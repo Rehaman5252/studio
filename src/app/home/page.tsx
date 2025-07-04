@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -16,6 +16,7 @@ import Cube, { type CubeBrand } from '@/components/Cube';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 const brands: CubeBrand[] = [
   // Apple: Black logo on white background. Using a reliable PNG.
@@ -37,59 +38,11 @@ const brands: CubeBrand[] = [
   { id: 6, brand: 'boAt', format: 'IPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Boat_logo.png', logoWidth: 80, logoHeight: 25 },
 ];
 
-function NextQuizTimer() {
-  const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
-      const nextQuizMinute = Math.ceil((minutes + 1) / 10) * 10;
-      let nextQuizTime = new Date(now);
-      nextQuizTime.setMinutes(nextQuizMinute, 0, 0);
-
-      if (nextQuizTime.getMinutes() === minutes) {
-          nextQuizTime.setMinutes(nextQuizMinute + 10, 0, 0);
-      }
-
-      const diff = nextQuizTime.getTime() - now.getTime();
-      const mins = Math.max(0, Math.floor(diff / 60000));
-      const secs = Math.max(0, Math.floor((diff % 60000) / 1000));
-      setTimeLeft({ minutes: mins, seconds: secs });
-    };
-
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (time: number) => time.toString().padStart(2, '0');
-
-  return (
-    <span className="font-bold text-2xl text-white">
-      {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
-    </span>
-  );
-}
+const formatTime = (time: number) => time.toString().padStart(2, '0');
 
 export default function HomeScreen() {
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
-  const [playersPlaying, setPlayersPlaying] = useState(743);
-  const [playersPlayed, setPlayersPlayed] = useState(3029);
-  const [totalWinners, setTotalWinners] = useState(129);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlayersPlaying((prev) => Math.max(200, prev + Math.floor(Math.random() * 15) - 7));
-      setPlayersPlayed((prev) => prev + Math.floor(Math.random() * 8));
-      if (Math.random() > 0.7) {
-        setTotalWinners((prev) => prev + Math.floor(Math.random() * 3));
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
+  const { timeLeft, playersPlaying, playersPlayed, totalWinners } = useQuizStatus();
 
   const selectedBrand = brands[selectedBrandIndex];
 
@@ -164,7 +117,9 @@ export default function HomeScreen() {
               <CardContent className="p-4 text-center">
                 <Clock className="h-6 w-6 mx-auto mb-2 text-accent" />
                 <p className="text-sm opacity-80 mb-1">Quiz Ends In</p>
-                <NextQuizTimer />
+                <span className="font-bold text-2xl text-white">
+                  {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
+                </span>
               </CardContent>
             </Card>
             <Card className="bg-white/20 border-0">

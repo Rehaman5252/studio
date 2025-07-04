@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 // Mock data based on the specification
 const liveLeaderboardData = [
@@ -38,7 +39,11 @@ const RankIcon = ({ rank }: { rank: number }) => {
   return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
 
+const formatTime = (time: number) => time.toString().padStart(2, '0');
+
 export default function LeaderboardPage() {
+  const { timeLeft, playersPlaying } = useQuizStatus();
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/80 to-green-300/80 pb-20">
       <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -57,7 +62,9 @@ export default function LeaderboardPage() {
             <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
               <CardHeader className="text-center">
                 <CardTitle>🏏 Current Quiz Leaderboard</CardTitle>
-                <CardDescription>Quiz ends in: 03:28 • Players: 482</CardDescription>
+                <CardDescription>
+                  Quiz ends in: {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)} • Players: {playersPlaying.toLocaleString()}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">

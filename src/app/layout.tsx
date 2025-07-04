@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { QuizStatusProvider } from '@/context/QuizStatusProvider';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -32,8 +33,10 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} h-full bg-background font-body`}>
-        {children}
-        <Toaster />
+        <QuizStatusProvider>
+          {children}
+          <Toaster />
+        </QuizStatusProvider>
       </body>
     </html>
   );
