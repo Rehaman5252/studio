@@ -126,7 +126,7 @@ export default function Cube({ brands, onSelect }: CubeProps) {
               className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-2xl"
               style={{
                 transform: faceTransforms[index],
-                backgroundColor: `${brand.bgColor}CC`, // 80% opacity
+                backgroundColor: brand.bgColor, // Use full opacity
                 borderColor: 'transparent',
               }}
             >
