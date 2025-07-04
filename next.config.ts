@@ -24,16 +24,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'cdn.shopify.com',
+        hostname: 'www.boat-lifestyle.com',
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'www.freepnglogos.com',
-        port: '',
-        pathname: '/**',
-      }
     ],
   },
 };

@@ -19,11 +19,11 @@ import { Separator } from '@/components/ui/separator';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#F5F5F5', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 40, logoHeight: 40 },
-  { id: 2, brand: 'Myntra', format: 'WPL', color: '#FF3F6C', bgColor: '#FFF0F5', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
+  { id: 2, brand: 'Myntra', format: 'WPL', color: '#FF3F6C', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
   { id: 3, brand: 'SBI', format: 'Test', color: '#1E3A8A', bgColor: '#EBF8FF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 60, logoHeight: 60 },
-  { id: 4, brand: 'Nike', format: 'ODI', color: '#FFFFFF', bgColor: '#000000', logoUrl: 'https://www.freepnglogos.com/uploads/nike-logo-png/nike-logo-white-png-21.png', logoWidth: 60, logoHeight: 30 },
+  { id: 4, brand: 'Nike', format: 'ODI', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Nike_logo.svg', logoWidth: 60, logoHeight: 30 },
   { id: 5, brand: 'Amazon', format: 'Mixed', color: '#FF9900', bgColor: '#232F3E', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 70, logoHeight: 25 },
-  { id: 6, brand: 'Boat', format: 'IPL', color: '#FF6B35', bgColor: '#1A1A1A', logoUrl: 'https://cdn.shopify.com/s/files/1/0057/8938/4802/files/boAt_logo_small_3067da8c-a83b-46dd-bce9-1f00a120b017_180x.png', logoWidth: 80, logoHeight: 30 },
+  { id: 6, brand: 'Boat', format: 'IPL', color: '#FFFFFF', bgColor: '#1A1A1A', logoUrl: 'https://www.boat-lifestyle.com/cdn/shop/files/logo-white_200x.png?v=1614266857', logoWidth: 80, logoHeight: 30 },
 ];
 
 function NextQuizTimer() {
@@ -130,7 +130,7 @@ export default function HomeScreen() {
                   <div>
                     <h3 className="text-2xl font-bold text-white">{selectedBrand.format} Cricket Quiz</h3>
                     <p className="opacity-80 mb-2 text-white">Sponsored by {selectedBrand.brand}</p>
-                    <p className="text-lg font-semibold text-accent">Win ₹100 + {selectedBrand.brand} Rewards!</p>
+                    <p className="text-lg font-semibold text-white">Win ₹100 + {selectedBrand.brand} Rewards!</p>
                   </div>
                   <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/30 p-2">
                     <Image
