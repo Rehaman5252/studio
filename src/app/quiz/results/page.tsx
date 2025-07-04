@@ -6,9 +6,10 @@ import type { QuizQuestion } from '@/ai/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, SkipForward } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, SkipForward, Info } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface QuizAttempt {
   slotId: string;
@@ -125,9 +126,11 @@ function ResultsComponent() {
     const [showAnswersAd, setShowAnswersAd] = useState(false);
     const [showAnswers, setShowAnswers] = useState(false);
 
-    const { questions, userAnswers, brand, format } = useMemo(() => {
+    const { questions, userAnswers, brand, format, isRetake } = useMemo(() => {
         const dataParam = searchParams.get('data');
-        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
+        const retakeParam = searchParams.get('retake') === 'true';
+
+        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', isRetake: retakeParam };
 
         try {
             const parsedData = JSON.parse(decodeURIComponent(dataParam));
@@ -136,10 +139,11 @@ function ResultsComponent() {
                 userAnswers: parsedData.userAnswers || [],
                 brand: parsedData.brand || 'CricBlitz',
                 format: parsedData.format || 'Cricket',
+                isRetake: retakeParam,
             };
         } catch (error) {
             console.error("Failed to parse results data:", error);
-            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
+            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', isRetake: retakeParam };
         }
     }, [searchParams]);
     
@@ -214,6 +218,15 @@ function ResultsComponent() {
                         <CardDescription className="text-base text-white/80">{format} Quiz - Sponsored by {brand}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                        {isRetake && (
+                            <Alert variant="default" className="text-left bg-yellow-500/20 border-yellow-400 text-white">
+                                <Info className="h-4 w-4 text-yellow-300" />
+                                <AlertTitle className="font-bold">Attempt already recorded</AlertTitle>
+                                <AlertDescription>
+                                    You have already played this quiz. Here is your result for this slot.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                         <div>
                             <p className="text-lg">You Scored</p>
                             <p className="text-6xl font-bold my-2">

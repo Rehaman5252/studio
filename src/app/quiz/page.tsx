@@ -158,7 +158,7 @@ function QuizComponent() {
           if (savedAttempt) {
             const dataToPass = { questions: savedAttempt.questions, userAnswers: savedAttempt.userAnswers, brand: savedAttempt.brand, format: savedAttempt.format };
             router.replace(
-              `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`
+              `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&retake=true`
             );
             return;
           }
