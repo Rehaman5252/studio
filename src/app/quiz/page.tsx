@@ -131,7 +131,11 @@ function QuizComponent() {
     setPaused(false);
     setSelectedOption(null);
     setIsHintVisible(false);
+    setCurrentQuestionIndex((prev) => prev + 1);
+    setTimeLeft(20);
+  }, []);
 
+  const proceedToNextStep = useCallback((updatedAnswers: string[]) => {
     if (currentQuestionIndex === 2 && !wasMidQuizAdShown) {
         setPaused(true);
         setAdConfig({
@@ -139,19 +143,18 @@ function QuizComponent() {
             onFinished: () => {
                 setWasMidQuizAdShown(true);
                 setAdConfig(null);
-                goToNextQuestion(); // This will recall the function, but wasMidQuizAdShown is now true
+                goToNextQuestion();
             }
         });
         return;
     }
     
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-      setTimeLeft(20);
+    if (currentQuestionIndex >= questions.length - 1) {
+      advanceToResults(updatedAnswers);
     } else {
-        advanceToResults(userAnswers);
+      goToNextQuestion();
     }
-  }, [currentQuestionIndex, questions.length, wasMidQuizAdShown, advanceToResults, userAnswers]);
+  }, [currentQuestionIndex, wasMidQuizAdShown, questions.length, goToNextQuestion, advanceToResults]);
   
   useEffect(() => {
     if (paused || loading || questions.length === 0 || selectedOption || adConfig) return;
@@ -162,15 +165,11 @@ function QuizComponent() {
     } else {
        const newAnswers = [...userAnswers, ''];
        setUserAnswers(newAnswers);
-       if (currentQuestionIndex < questions.length - 1) {
-         goToNextQuestion();
-       } else {
-         advanceToResults(newAnswers);
-       }
+       proceedToNextStep(newAnswers);
     }
-  }, [timeLeft, paused, loading, questions.length, selectedOption, goToNextQuestion, currentQuestionIndex, userAnswers, advanceToResults, adConfig]);
+  }, [timeLeft, paused, loading, questions.length, selectedOption, userAnswers, proceedToNextStep, adConfig]);
 
-  const handleAnswerSelect = (option: string) => {
+  const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption) return;
 
     const newAnswers = [...userAnswers, option];
@@ -178,13 +177,9 @@ function QuizComponent() {
     setSelectedOption(option);
     
     setTimeout(() => {
-       if (currentQuestionIndex < questions.length - 1) {
-         goToNextQuestion();
-       } else {
-         advanceToResults(newAnswers);
-       }
+       proceedToNextStep(newAnswers);
     }, 500);
-  };
+  }, [selectedOption, userAnswers, proceedToNextStep]);
 
   const handleUseHint = () => {
     if (usedHintIndices.includes(currentQuestionIndex) || adConfig) return;
