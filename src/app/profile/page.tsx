@@ -17,13 +17,14 @@ const StatCard = ({ title, value, icon: Icon }: { title: string, value: string |
 )
 
 const maskEmail = (email: string) => {
+    if (!email || !email.includes('@')) return '';
     const [user, domain] = email.split('@');
     if (user.length <= 2) return email;
-    return `${user.substring(0, 2)}••@${domain}`;
+    return `${user.substring(0, 2)}•••@${domain}`;
 };
 
 const maskPhone = (phone: string) => {
-    if (phone.length <= 4) return phone;
+    if (!phone || phone.length <= 4) return phone;
     return `${phone.substring(0, 4)}••••${phone.substring(phone.length - 2)}`;
 };
 
@@ -65,7 +66,7 @@ export default function ProfilePage() {
         <section className="grid grid-cols-2 gap-4">
             <StatCard title="Quizzes Played" value={user.quizzesPlayed} icon={BarChart} />
             <StatCard title="Highest Streak" value={user.highestStreak} icon={TrendingUp} />
-            <StatCard title="Total Rewards" value={user.totalRewards} icon={Banknote} />
+            <StatCard title="Total Earnings" value={user.totalRewards} icon={Banknote} />
             <StatCard title="Referral Earnings" value={user.referralEarnings} icon={Users} />
             <StatCard title="Certificates" value={user.certificatesEarned} icon={Award} />
         </section>
