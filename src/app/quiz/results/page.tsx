@@ -31,12 +31,7 @@ const getQuizSlotId = () => {
   return slotTime.getTime().toString();
 };
 
-function Certificate({ format }: { format: string }) {
-    const today = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
+function Certificate({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) {
     return (
         <div className="bg-white/90 text-primary rounded-lg p-6 border-4 border-yellow-400 shadow-2xl relative mt-4">
              <Star className="absolute top-2 right-2 text-yellow-400" size={32} />
@@ -46,10 +41,11 @@ function Certificate({ format }: { format: string }) {
             <div className="text-center">
                 <p className="text-lg font-semibold">Certificate of Achievement</p>
                 <p className="text-sm">This certifies that</p>
-                <p className="text-2xl font-bold my-2">CricBlitz User</p>
+                <p className="text-2xl font-bold my-2">{userName}</p>
                 <p className="text-sm">has successfully achieved a perfect score in the</p>
                 <p className="text-xl font-bold my-2">{format} Quiz</p>
-                <p className="text-xs mt-4">Awarded on: {today}</p>
+                <p className="text-xs mt-4">Awarded on: {date}</p>
+                <p className="text-xs mt-1">Quiz Slot: {slotTimings}</p>
             </div>
         </div>
     );
@@ -157,6 +153,16 @@ function ResultsComponent() {
         }, 0);
     }, [questions, userAnswers]);
 
+    const slotTimings = useMemo(() => {
+        const quizSlotId = getQuizSlotId();
+        const slotStartTime = new Date(parseInt(quizSlotId, 10));
+        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+    }, []);
+
     useEffect(() => {
         const quizSlotId = getQuizSlotId();
         if (questions.length > 0 && userAnswers.length > 0) {
@@ -205,6 +211,12 @@ function ResultsComponent() {
     } else if (score >= total * 0.7) {
         message = "Great job! You really know your cricket.";
     }
+
+    const today = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
 
     return (
         <>
@@ -281,7 +293,7 @@ function ResultsComponent() {
                     </Card>
                 )}
                 
-                {isPerfectScore && <Certificate format={format} />}
+                {isPerfectScore && <Certificate format={format} userName="CricBlitz User" date={today} slotTimings={slotTimings} />}
             </div>
 
             <AdDialog
