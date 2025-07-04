@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 
 interface CubeBrand {
   id: number;
@@ -24,40 +23,44 @@ const brands: CubeBrand[] = [
   { id: 6, brand: 'Boat', format: 'IPL', color: '#FF6B35', bgColor: '#1A1A1A', logoUrl: 'https://cdn.shopify.com/s/files/1/0057/8938/4802/files/boAt_logo_small_3067da8c-a83b-46dd-bce9-1f00a120b017_180x.png', logoWidth: 80, logoHeight: 30 },
 ];
 
+// Positions each face of the cube in 3D space
 const faceTransforms = [
-  'rotateY(0deg) translateZ(60px)', // Front
-  'rotateY(90deg) translateZ(60px)', // Right
-  'rotateY(180deg) translateZ(60px)', // Back
-  'rotateY(-90deg) translateZ(60px)', // Left
-  'rotateX(90deg) translateZ(60px)', // Top
-  'rotateX(-90deg) translateZ(60px)', // Bottom
+  'rotateY(0deg) translateZ(60px)',   // Face 0: Front
+  'rotateY(90deg) translateZ(60px)',  // Face 1: Right
+  'rotateY(180deg) translateZ(60px)', // Face 2: Back
+  'rotateY(-90deg) translateZ(60px)', // Face 3: Left
+  'rotateX(90deg) translateZ(60px)',  // Face 4: Top
+  'rotateX(-90deg) translateZ(60px)', // Face 5: Bottom
 ];
 
+// Defines the transform needed to bring a specific face to the front
 const rotationMap = [
-    'rotateY(0deg)',        // Front
-    'rotateY(-90deg)',      // Right
-    'rotateY(-180deg)',     // Back
-    'rotateY(90deg)',       // Left
-    'rotateX(-90deg)',      // Top
-    'rotateX(90deg)',       // Bottom
+    'rotateX(0deg) rotateY(0deg)',    // Brings face 0 (Front) to front
+    'rotateX(0deg) rotateY(-90deg)',  // Brings face 1 (Right) to front
+    'rotateX(0deg) rotateY(-180deg)', // Brings face 2 (Back) to front
+    'rotateX(0deg) rotateY(90deg)',   // Brings face 3 (Left) to front
+    'rotateX(-90deg) rotateY(0deg)',  // Brings face 4 (Top) to front
+    'rotateX(90deg) rotateY(0deg)',   // Brings face 5 (Bottom) to front
 ];
 
+// A dynamic sequence to show faces in a tumbling order
+const faceRotationOrder = [0, 4, 1, 5, 3, 2]; // Front, Top, Right, Bottom, Left, Back
 
 interface CubeProps {
   onSelect: (brand: string, format: string) => void;
 }
 
 export default function Cube({ onSelect }: CubeProps) {
-  const [currentFace, setCurrentFace] = useState(0);
+  const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const rotateToFace = useCallback((index: number) => {
+  const rotateToFace = useCallback((brandIndex: number) => {
     if (cubeRef.current) {
-        cubeRef.current.style.transform = rotationMap[index];
+        cubeRef.current.style.transform = rotationMap[brandIndex];
     }
-    onSelect(brands[index].brand, brands[index].format);
+    onSelect(brands[brandIndex].brand, brands[brandIndex].format);
   }, [onSelect]);
 
   const stopAutoRotation = useCallback(() => {
@@ -74,25 +77,30 @@ export default function Cube({ onSelect }: CubeProps) {
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
     rotationIntervalRef.current = setInterval(() => {
-      setCurrentFace(prevFace => {
-        const nextFace = (prevFace + 1) % brands.length;
-        rotateToFace(nextFace);
-        return nextFace;
-      });
-    }, 4000); // ~2s transition + ~2s pause
-  }, [rotateToFace, stopAutoRotation]);
+      setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
+    }, 2500); // 1.5s transition + 1s pause
+  }, [stopAutoRotation]);
 
   useEffect(() => {
-    onSelect(brands[0].brand, brands[0].format);
+      const faceToShow = faceRotationOrder[rotationOrderIndex];
+      rotateToFace(faceToShow);
+  }, [rotationOrderIndex, rotateToFace]);
+
+  useEffect(() => {
     startAutoRotation();
     return () => stopAutoRotation();
-  }, [onSelect, startAutoRotation, stopAutoRotation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAutoRotation]);
 
-  const handleFaceClick = (index: number) => {
+  const handleFaceClick = (brandIndex: number) => {
     stopAutoRotation();
-    setCurrentFace(index);
-    rotateToFace(index);
-    // Resume rotation after a period of inactivity
+    const newRotationOrderIndex = faceRotationOrder.indexOf(brandIndex);
+    if (newRotationOrderIndex !== -1) {
+        setRotationOrderIndex(newRotationOrderIndex);
+    } else {
+        // Fallback if somehow clicked face is not in the rotation order
+        rotateToFace(brandIndex);
+    }
     interactionTimeoutRef.current = setTimeout(startAutoRotation, 5000);
   };
   
@@ -111,7 +119,7 @@ export default function Cube({ onSelect }: CubeProps) {
               className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-2xl"
               style={{
                 transform: faceTransforms[index],
-                backgroundColor: `${brand.bgColor}CC`,
+                backgroundColor: `${brand.bgColor}BF`, // Use 75% opacity for translucency
                 borderColor: brand.color,
               }}
             >
