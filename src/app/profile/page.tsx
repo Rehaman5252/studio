@@ -192,6 +192,18 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        {/* Actions Section */}
+        <section className="space-y-3 pt-4">
+            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <Link href="/certificates">
+                  <Award className="mr-4" /> View Certificates
+                </Link>
+            </Button>
+            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <UserPlus className="mr-4" /> Refer & Earn
+            </Button>
+        </section>
+        
         {/* Support Section */}
         <Card className="bg-background/80 backdrop-blur-sm">
             <CardHeader>
@@ -204,18 +216,6 @@ export default function ProfilePage() {
                  <p className="font-semibold text-primary">support@indcric.com</p>
             </CardContent>
         </Card>
-
-        {/* Actions Section */}
-        <section className="space-y-3 pt-4">
-            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Link href="/certificates">
-                  <Award className="mr-4" /> View Certificates
-                </Link>
-            </Button>
-            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <UserPlus className="mr-4" /> Refer & Earn
-            </Button>
-        </section>
       </main>
     </div>
   );
