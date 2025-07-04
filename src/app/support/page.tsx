@@ -9,12 +9,12 @@ import { Mail, Settings, Send } from 'lucide-react';
 
 export default function SupportPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/80 to-green-300/80 pb-20">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-primary/80 to-green-300/80">
       <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">🆘 Help & Support</h1>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <Card className="bg-background/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

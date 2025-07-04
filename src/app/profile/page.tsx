@@ -77,7 +77,7 @@ export default function ProfilePage() {
     };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/80 to-green-300/80 pb-20">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-primary/80 to-green-300/80">
       <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
         <Button variant="ghost" size="icon" onClick={handleLogout}>
@@ -85,7 +85,7 @@ export default function ProfilePage() {
         </Button>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         {/* User Info Section */}
         <section className="relative text-center">
             <Avatar className="w-24 h-24 mx-auto mb-4 border-4 border-background shadow-lg">

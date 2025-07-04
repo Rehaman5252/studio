@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const selectedBrand = brands[selectedBrandIndex];
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary to-green-400 text-white">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-primary to-green-400 text-white">
       <header className="p-4 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold tracking-tight">Indcric</h1>
