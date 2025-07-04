@@ -11,6 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, Lightbulb } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
+import useRequireAuth from '@/hooks/useRequireAuth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider';
+
 
 const getQuizSlotId = () => {
   const now = new Date();
@@ -59,7 +64,9 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
 };
 
 function QuizComponent() {
+  useRequireAuth();
   const router = useRouter();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const brand = searchParams.get('brand') || 'Indcric';
   const format = searchParams.get('format') || 'Cricket';
@@ -88,27 +95,30 @@ function QuizComponent() {
     router.replace(
       `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`
     );
-  }, [questions, userAnswers, brand, format, router]);
+  }, [questions, brand, format, router]);
 
 
   useEffect(() => {
     const fetchQuestions = async () => {
+      if (!user) return; // Wait for user to be available
+
       try {
         const quizSlotId = getQuizSlotId();
-        const historyString = localStorage.getItem('indcric-quiz-history');
+        const attemptRef = doc(db, 'users', user.uid, 'quiz_attempts', quizSlotId);
+        const attemptSnap = await getDoc(attemptRef);
 
-        if (historyString) {
-          const history = JSON.parse(historyString);
-          // Check if ANY quiz has been attempted in this slot.
-          const savedAttempt = history.find((attempt: any) => attempt.slotId === quizSlotId);
-          
-          if (savedAttempt) {
-            const dataToPass = { questions: savedAttempt.questions, userAnswers: savedAttempt.userAnswers, brand: savedAttempt.brand, format: savedAttempt.format };
+        if (attemptSnap.exists()) {
+            const savedAttempt = attemptSnap.data();
+            const dataToPass = { 
+                questions: savedAttempt.questions, 
+                userAnswers: savedAttempt.userAnswers, 
+                brand: savedAttempt.brand, 
+                format: savedAttempt.format 
+            };
             router.replace(
               `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&retake=true`
             );
             return;
-          }
         }
         
         const quizQuestions = await generateQuiz({ format, brand });
@@ -125,8 +135,7 @@ function QuizComponent() {
     };
     
     fetchQuestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format, brand]);
+  }, [format, brand, user, router]);
 
   const goToNextQuestion = useCallback(() => {
     setPaused(false);

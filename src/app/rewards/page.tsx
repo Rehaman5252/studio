@@ -4,9 +4,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Gift, ExternalLink } from 'lucide-react';
+import { Gift, ExternalLink, Loader2 } from 'lucide-react';
 import type { QuizQuestion } from '@/ai/schemas';
 import Image from 'next/image';
+import useRequireAuth from '@/hooks/useRequireAuth';
+import { useAuth } from '@/context/AuthProvider';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 
 interface QuizAttempt {
   slotId: string;
@@ -78,27 +83,40 @@ const GenericOffer = ({ title, description, image, hint }: { title: string, desc
 )
 
 export default function RewardsPage() {
+  useRequireAuth();
+  const { user } = useAuth();
   const [latestAttempt, setLatestAttempt] = useState<QuizAttempt | null>(null);
-  const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsClient(true);
-    const historyString = localStorage.getItem('indcric-quiz-history');
-    if (historyString) {
+    const fetchLatestAttempt = async () => {
+      if (!user) {
+          setIsLoading(false);
+          return;
+      }
       try {
-        const history: QuizAttempt[] = JSON.parse(historyString);
-        if (history.length > 0) {
-          const sortedHistory = history.sort((a, b) => b.timestamp - a.timestamp);
-          setLatestAttempt(sortedHistory[0]);
+        const attemptsRef = collection(db, 'users', user.uid, 'quiz_attempts');
+        const q = query(attemptsRef, orderBy('timestamp', 'desc'), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            setLatestAttempt(querySnapshot.docs[0].data() as QuizAttempt);
         }
       } catch (e) {
-        console.error("Failed to parse quiz history", e);
+        console.error("Failed to fetch latest quiz attempt", e);
+      } finally {
+          setIsLoading(false);
       }
-    }
-  }, []);
+    };
+    
+    fetchLatestAttempt();
+  }, [user]);
 
-  if (!isClient) {
-    return null; // Render nothing on the server to avoid hydration mismatch
+  if (isLoading) {
+    return (
+        <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80 items-center justify-center">
+             <Loader2 className="h-12 w-12 animate-spin text-white" />
+        </div>
+    );
   }
 
   return (

@@ -1,58 +1,91 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, ArrowRight } from 'lucide-react';
+import { Mail, KeyRound, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { auth, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthProvider';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isLoginView, setIsLoginView] = useState(true);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
-  const handleSendOtp = async () => {
-    if (!email) {
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/home');
+    }
+  }, [user, authLoading, router]);
+
+  const handleAuthAction = async () => {
+    if (!email || !password) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter your email address.",
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please enter both email and password.',
       });
       return;
     }
-
     setLoading(true);
-    setTimeout(() => {
-      setIsOtpSent(true);
-      setLoading(false);
-      toast({
-        title: "OTP Sent",
-        description: "Please check your email for the verification code.",
-      });
-    }, 1500);
-  };
+    try {
+      if (isLoginView) {
+        // Handle Login
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({
+          title: 'Success',
+          description: 'Logged in successfully!',
+        });
+        router.replace('/home');
+      } else {
+        // Handle Sign Up
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const newUser = userCredential.user;
 
-  const handleVerifyOtp = async () => {
-    if (!otp) {
+        // Create a user document in Firestore
+        await setDoc(doc(db, 'users', newUser.uid), {
+          uid: newUser.uid,
+          email: newUser.email,
+          name: email.split('@')[0] || 'New User',
+          phone: '',
+          age: '',
+          gender: '',
+          occupation: 'Player',
+          totalRewards: 0,
+          highestStreak: 0,
+          referralEarnings: 0,
+          certificatesEarned: 0,
+          quizzesPlayed: 0,
+          upi: '',
+          referralCode: `indcric.com/ref/${newUser.uid.substring(0, 7)}`,
+          createdAt: new Date().toISOString(),
+        });
+
+        toast({
+          title: 'Account Created',
+          description: "You're all set! Welcome to Indcric.",
+        });
+        router.replace('/walkthrough');
+      }
+    } catch (error: any) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter the OTP.",
+        variant: 'destructive',
+        title: 'Authentication Failed',
+        description: error.code ? error.code.replace('auth/', '').replace(/-/g, ' ') : 'An unexpected error occurred.',
       });
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      router.replace('/walkthrough');
-    }, 1500);
   };
 
   return (
@@ -68,85 +101,62 @@ export default function LoginScreen() {
 
         <Card className="bg-background/80 backdrop-blur-sm border-white/20 shadow-xl">
           <CardHeader>
-            <CardTitle>{isOtpSent ? 'Verify Your Email' : 'Welcome to Indcric'}</CardTitle>
+            <CardTitle>{isLoginView ? 'Welcome Back!' : 'Create an Account'}</CardTitle>
             <CardDescription>
-              {isOtpSent 
-                ? 'Enter the 6-digit code sent to your email.'
-                : 'Enter your email to get started.'
-              }
+              {isLoginView ? 'Enter your credentials to log in.' : 'Sign up to start playing.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!isOtpSent ? (
-              <div className="space-y-4">
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    className="pl-10"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    type="email"
-                    autoCapitalize="none"
-                  />
-                </div>
-                <Button
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={handleSendOtp}
-                  disabled={loading}
-                >
-                  {loading ? 'Sending...' : 'Send OTP'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
+            <div className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                  className="text-center tracking-[0.5em] text-lg font-bold"
-                  placeholder="------"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  type="tel"
-                  maxLength={6}
-                  pattern="[0-9]*"
+                  className="pl-10"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  autoCapitalize="none"
                 />
-                <Button
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={handleVerifyOtp}
-                  disabled={loading}
-                >
-                  {loading ? 'Verifying...' : 'Verify OTP'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button
-                  variant="link"
-                  className="w-full"
-                  onClick={handleSendOtp}
-                >
-                  Didn't receive OTP? Resend
-                </Button>
               </div>
-            )}
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  className="pl-10"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                />
+              </div>
+              <Button
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                onClick={handleAuthAction}
+                disabled={loading}
+              >
+                {loading ? 'Processing...' : isLoginView ? 'Log In' : 'Sign Up'}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button
+                variant="link"
+                className="w-full text-white/80 hover:text-white"
+                onClick={() => setIsLoginView(!isLoginView)}
+              >
+                {isLoginView ? (
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Don't have an account? Sign Up
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Already have an account? Log In
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
-
-        <div className="mt-8 text-center text-white space-y-4">
-            <h3 className="text-xl font-semibold">Why choose Indcric?</h3>
-            <div className="flex justify-center gap-4 text-left">
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl">💰</span>
-                    <span>Win real money</span>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <span className="text-2xl">🏆</span>
-                    <span>Brand rewards</span>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <span className="text-2xl">⚡</span>
-                    <span>Quick quizzes</span>
-                </div>
-            </div>
-        </div>
       </div>
     </div>
   );

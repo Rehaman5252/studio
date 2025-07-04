@@ -12,8 +12,12 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
     LogOut, Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    Settings, LifeBuoy, Moon, Bell, Music, Vibrate, RefreshCw
+    Settings, LifeBuoy, Moon, Bell, Music, Vibrate, RefreshCw, Loader2
 } from 'lucide-react';
+import useRequireAuth from '@/hooks/useRequireAuth';
+import { useAuth } from '@/context/AuthProvider';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const maskEmail = (email: string) => {
     if (!email || !email.includes('@')) return '';
@@ -42,31 +46,21 @@ const StatItem = ({ title, value, icon: Icon }: { title: string, value: string |
 )
 
 export default function ProfilePage() {
+    useRequireAuth();
+    const { user, userData, loading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-
-    // Mock user data based on the spec
-    const user = {
-        name: 'John Doe',
-        email: 'johndoe@example.com',
-        phone: '9876543210',
-        age: 22,
-        gender: 'Male',
-        occupation: 'Student',
-        totalRewards: '₹600',
-        highestStreak: 5,
-        referralEarnings: '₹30',
-        certificatesEarned: 6,
-        quizzesPlayed: 27,
-        upi: 'john.doe@okaxis',
-        referralCode: 'indcric.com/ref/john123',
-    };
     
-    const handleLogout = () => {
-        // Clear quiz history from local storage
-        localStorage.removeItem('indcric-quiz-history');
-        // Redirect to login page
-        router.replace('/auth/login');
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            localStorage.removeItem('indcric-quiz-history');
+            router.replace('/auth/login');
+            toast({ title: "Logged Out", description: "You have been successfully logged out." });
+        } catch (error) {
+            console.error("Error signing out: ", error);
+            toast({ variant: "destructive", title: "Logout Failed", description: "Could not log you out. Please try again." });
+        }
     };
 
     const handleReferAndEarn = () => {
@@ -75,6 +69,21 @@ export default function ProfilePage() {
             description: "The referral program is not yet active. Check back later!",
         });
     };
+
+    if (loading || !user || !userData) {
+      return (
+        <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+           <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
+            </header>
+            <main className="flex-1 flex items-center justify-center">
+                 <Loader2 className="h-12 w-12 animate-spin text-white" />
+            </main>
+        </div>
+      );
+    }
+    
+    const userProfile = userData;
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
@@ -90,16 +99,16 @@ export default function ProfilePage() {
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardContent className="p-4 flex items-center gap-4 relative">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
-                    <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="avatar person" />
-                    <AvatarFallback>JD</AvatarFallback>
+                    <AvatarImage src={userProfile.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
+                    <AvatarFallback>{userProfile.name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
+                    <h2 className="text-2xl font-bold text-foreground">{userProfile.name}</h2>
                     <p className="text-muted-foreground text-sm">
-                        {maskPhone(user.phone)}
+                        {maskPhone(userProfile.phone)}
                     </p>
                     <p className="text-muted-foreground text-sm">
-                        {user.age} yrs | {user.gender} | {user.occupation}
+                        {userProfile.age && `${userProfile.age} yrs | `} {userProfile.gender && `${userProfile.gender} | `} {userProfile.occupation}
                     </p>
                 </div>
                  <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8">
@@ -111,9 +120,9 @@ export default function ProfilePage() {
         {/* Stats Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
              <CardContent className="p-4 grid grid-cols-3 gap-4">
-                <StatItem title="Quizzes Played" value={user.quizzesPlayed} icon={Trophy} />
-                <StatItem title="Highest Streak" value={user.highestStreak} icon={Star} />
-                <StatItem title="Total Earnings" value={user.totalRewards} icon={Banknote} />
+                <StatItem title="Quizzes Played" value={userProfile.quizzesPlayed || 0} icon={Trophy} />
+                <StatItem title="Highest Streak" value={userProfile.highestStreak || 0} icon={Star} />
+                <StatItem title="Total Earnings" value={`₹${userProfile.totalRewards || 0}`} icon={Banknote} />
             </CardContent>
         </Card>
 
@@ -126,7 +135,7 @@ export default function ProfilePage() {
                  <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
                     <Award className="h-8 w-8 text-primary"/>
                     <div>
-                        <p className="font-bold text-xl">{user.certificatesEarned}</p>
+                        <p className="font-bold text-xl">{userProfile.certificatesEarned || 0}</p>
                         <p className="text-sm text-muted-foreground">Certificates</p>
                     </div>
                 </div>
@@ -150,13 +159,13 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-3">
                         <Users className="h-8 w-8 text-primary"/>
                         <div>
-                            <p className="font-bold text-xl">{user.referralEarnings}</p>
+                            <p className="font-bold text-xl">₹{userProfile.referralEarnings || 0}</p>
                             <p className="text-sm text-muted-foreground">From Referrals</p>
                         </div>
                     </div>
                     <Button variant="outline" size="sm">Copy Link</Button>
                 </div>
-                <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{user.referralCode}</p>
+                <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{userProfile.referralCode}</p>
             </CardContent>
         </Card>
 
@@ -166,7 +175,7 @@ export default function ProfilePage() {
                 <CardTitle className="text-lg">Payout Info</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-sm text-foreground">UPI: {maskUpi(user.upi)}</p>
+                <p className="text-sm text-foreground">UPI: {userProfile.upi ? maskUpi(userProfile.upi) : 'Not set'}</p>
                 <p className="text-xs text-muted-foreground mt-1">Payout details are locked and cannot be changed.</p>
             </CardContent>
         </Card>

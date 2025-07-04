@@ -3,7 +3,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2 } from 'lucide-react';
+import { Award, Download, Share2, Loader2 } from 'lucide-react';
+import useRequireAuth from '@/hooks/useRequireAuth';
 
 // Mock data for certificates earned by the user
 const certificates = [
@@ -14,6 +15,16 @@ const certificates = [
 ];
 
 export default function CertificatesPage() {
+  const { loading } = useRequireAuth();
+  
+  if (loading) {
+      return (
+        <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80 items-center justify-center">
+             <Loader2 className="h-12 w-12 animate-spin text-white" />
+        </div>
+    );
+  }
+  
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
       <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">

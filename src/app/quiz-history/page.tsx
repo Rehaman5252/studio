@@ -10,8 +10,11 @@ import { Loader2, Star, Calendar, MessageSquareQuote } from 'lucide-react';
 import type { QuizQuestion } from '@/ai/schemas';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@/context/AuthProvider';
+import useRequireAuth from '@/hooks/useRequireAuth';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
-// This interface should match the one in `quiz/results/page.tsx`
 interface QuizAttempt {
   slotId: string;
   brand: string;
@@ -81,23 +84,36 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
 
 
 export default function QuizHistoryPage() {
+  useRequireAuth();
+  const { user } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
-  const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsClient(true);
-    const historyString = localStorage.getItem('indcric-quiz-history');
-    if (historyString) {
+    const fetchHistory = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      };
+
       try {
-        const parsedHistory: QuizAttempt[] = JSON.parse(historyString);
-        // Sort by most recent first
-        setHistory(parsedHistory.sort((a, b) => b.timestamp - a.timestamp));
+        setIsLoading(true);
+        const attemptsRef = collection(db, 'users', user.uid, 'quiz_attempts');
+        const q = query(attemptsRef, orderBy('timestamp', 'desc'));
+        
+        const querySnapshot = await getDocs(q);
+        const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+        setHistory(historyData);
       } catch (e) {
-        console.error("Failed to parse quiz history", e);
+        console.error("Failed to fetch quiz history", e);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, []);
+    };
+    
+    fetchHistory();
+  }, [user]);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {
@@ -110,7 +126,7 @@ export default function QuizHistoryPage() {
     return history;
   }, [history, filter]);
 
-  if (!isClient) {
+  if (isLoading) {
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80 pb-20">
             <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -162,7 +178,7 @@ export default function QuizHistoryPage() {
           <Card className="bg-background/80 backdrop-blur-sm border-white/20">
             <CardContent className="p-6 text-center text-muted-foreground">
               <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-              <p>No quizzes found for this filter.</p>
+              <p className="font-semibold">No Quizzes Found</p>
               <p>Play a quiz to see your history here!</p>
             </CardContent>
           </Card>

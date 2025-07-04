@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/context/AuthProvider';
 import { QuizStatusProvider } from '@/context/QuizStatusProvider';
 
 const inter = Inter({ 
@@ -34,10 +35,12 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} h-full bg-background font-body`}>
-        <QuizStatusProvider>
-          {children}
-          <Toaster />
-        </QuizStatusProvider>
+        <AuthProvider>
+          <QuizStatusProvider>
+            {children}
+            <Toaster />
+          </QuizStatusProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback } from 'react';
@@ -11,6 +12,7 @@ import {
   Flame,
   Star,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import Cube, { type CubeBrand } from '@/components/Cube';
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,7 @@ import TimerStat from '@/components/stats/TimerStat';
 import PlayersPlayingStat from '@/components/stats/PlayersPlayingStat';
 import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
 import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
+import useRequireAuth from '@/hooks/useRequireAuth';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -31,6 +34,7 @@ const brands: CubeBrand[] = [
 ];
 
 export default function HomeScreen() {
+  const { loading } = useRequireAuth();
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const router = useRouter();
 
@@ -39,6 +43,14 @@ export default function HomeScreen() {
   }, []);
 
   const selectedBrand = brands[selectedBrandIndex];
+
+  if (loading) {
+      return (
+        <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80 items-center justify-center">
+             <Loader2 className="h-12 w-12 animate-spin text-white" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white">

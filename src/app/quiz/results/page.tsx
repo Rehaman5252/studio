@@ -3,6 +3,9 @@
 
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { doc, setDoc, updateDoc, increment, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider';
 import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
@@ -56,6 +59,7 @@ function Certificate({ format, userName, date, slotTimings }: { format: string; 
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { user } = useAuth();
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
@@ -101,33 +105,49 @@ function ResultsComponent() {
     }, []);
 
     useEffect(() => {
-        const quizSlotId = getQuizSlotId();
-        if (questions.length > 0 && userAnswers.length > 0) {
-            try {
-                const historyString = localStorage.getItem('indcric-quiz-history');
-                const history: QuizAttempt[] = historyString ? JSON.parse(historyString) : [];
-
-                const attemptExists = history.some(attempt => attempt.slotId === quizSlotId);
-
-                if (!attemptExists) {
-                    const newAttempt: QuizAttempt = {
-                        slotId: quizSlotId,
-                        brand,
-                        format,
-                        score,
-                        totalQuestions: questions.length,
-                        questions,
-                        userAnswers,
-                        timestamp: new Date().getTime(),
-                    };
-                    history.push(newAttempt);
-                    localStorage.setItem('indcric-quiz-history', JSON.stringify(history));
-                }
-            } catch (e) {
-                console.error("Could not save to localStorage", e);
+        const saveAttempt = async () => {
+            if (!user || questions.length === 0 || userAnswers.length === 0 || isRetake) {
+                return;
             }
+
+            const quizSlotId = getQuizSlotId();
+            const attemptRef = doc(db, 'users', user.uid, 'quiz_attempts', quizSlotId);
+            const isPerfectScore = score === questions.length && questions.length > 0;
+
+            try {
+                const docSnap = await getDoc(attemptRef);
+                if (docSnap.exists()) {
+                    return; // Already saved
+                }
+
+                const newAttempt: QuizAttempt = {
+                    slotId: quizSlotId,
+                    brand,
+                    format,
+                    score,
+                    totalQuestions: questions.length,
+                    questions,
+                    userAnswers,
+                    timestamp: new Date().getTime(),
+                };
+                await setDoc(attemptRef, newAttempt);
+
+                const userRef = doc(db, 'users', user.uid);
+                await updateDoc(userRef, {
+                    quizzesPlayed: increment(1),
+                    totalRewards: isPerfectScore ? increment(100) : increment(0),
+                    certificatesEarned: isPerfectScore ? increment(1) : increment(0),
+                });
+
+            } catch (e) {
+                console.error("Could not save quiz attempt to Firestore", e);
+            }
+        };
+
+        if (user) {
+            saveAttempt();
         }
-    }, [questions, userAnswers, brand, format, score]);
+    }, [user, questions, userAnswers, brand, format, score, isRetake]);
 
     const handleViewAnswers = () => {
         if (showAnswers) return;
@@ -169,7 +189,7 @@ function ResultsComponent() {
 
     return (
         <>
-            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4 overflow-y-auto">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4 overflow-y-auto">
                 <Card className="w-full max-w-md text-center bg-white/10 border-0 my-4">
                     <CardHeader>
                         <div className="mx-auto bg-accent/20 p-4 rounded-full w-fit mb-4">
@@ -244,7 +264,7 @@ function ResultsComponent() {
                     </Card>
                 )}
                 
-                {isPerfectScore && <Certificate format={format} userName="Indcric User" date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
             </div>
 
             {adConfig && (
