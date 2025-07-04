@@ -1,11 +1,10 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { LogOut, Award, BarChart, Gift, TrendingUp, UserPlus, Edit, Banknote, Users } from 'lucide-react';
+import { LogOut, Award, BarChart, TrendingUp, UserPlus, Edit, Banknote, Users } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
     <Card className="bg-background/80 backdrop-blur-sm text-center">
@@ -29,7 +28,6 @@ const maskPhone = (phone: string) => {
 };
 
 export default function ProfilePage() {
-    const router = useRouter();
     
     // Mock user data based on the spec
     const user = {
@@ -73,9 +71,6 @@ export default function ProfilePage() {
         </section>
         
         <section className="space-y-4">
-            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary" onClick={() => router.push('/rewards')}>
-                <Gift className="mr-4" /> View Gifts & Offers
-            </Button>
              <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <UserPlus className="mr-4" /> Refer & Earn
             </Button>
