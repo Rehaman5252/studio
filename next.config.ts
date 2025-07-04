@@ -22,18 +22,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'assets.myntassets.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.boat-lifestyle.com',
-        port: '',
-        pathname: '/**',
-      },
     ],
   },
 };
