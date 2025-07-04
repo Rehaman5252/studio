@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
 
 interface QuizStatus {
   timeLeft: { minutes: number; seconds: number };
@@ -54,7 +54,9 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
   
-  const value = { timeLeft, playersPlaying, playersPlayed, totalWinners };
+  const value = useMemo(() => ({
+    timeLeft, playersPlaying, playersPlayed, totalWinners
+  }), [timeLeft, playersPlaying, playersPlayed, totalWinners]);
 
   return (
     <QuizStatusContext.Provider value={value}>

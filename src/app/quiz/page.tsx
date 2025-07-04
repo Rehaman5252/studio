@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -89,7 +88,7 @@ function QuizComponent() {
     router.replace(
       `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`
     );
-  }, [questions, brand, format, router]);
+  }, [questions, userAnswers, brand, format, router]);
 
 
   useEffect(() => {
@@ -183,7 +182,7 @@ function QuizComponent() {
     }, 500);
   }, [selectedOption, userAnswers, proceedToNextStep]);
 
-  const handleUseHint = () => {
+  const handleUseHint = useCallback(() => {
     if (usedHintIndices.includes(currentQuestionIndex) || adConfig) return;
     setPaused(true);
     setAdConfig({
@@ -196,7 +195,7 @@ function QuizComponent() {
         },
         children: <p className="font-bold text-lg mt-4">Enjoy your hint!</p>
     });
-  };
+  }, [adConfig, currentQuestionIndex, usedHintIndices]);
   
   if (loading) {
     return (
@@ -244,7 +243,7 @@ function QuizComponent() {
               <CardTitle className="text-xl md:text-2xl leading-tight">
                 {currentQuestion.questionText}
               </CardTitle>
-              {isHintVisible && (
+              {isHintVisible && currentQuestion.hint && (
                   <p className="text-sm text-yellow-300 pt-2 animate-in fade-in">
                       <strong>Hint:</strong> {currentQuestion.hint}
                   </p>
@@ -270,7 +269,7 @@ function QuizComponent() {
             </CardContent>
           </Card>
           
-          <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption} className="mt-6 bg-yellow-500 hover:bg-yellow-600">
+          <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption || !currentQuestion.hint} className="mt-6 bg-yellow-500 hover:bg-yellow-600">
             <Lightbulb className="mr-2" />
             {usedHintIndices.includes(currentQuestionIndex) ? "Hint Used" : "Use Hint"}
           </Button>

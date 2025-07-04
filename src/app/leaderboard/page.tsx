@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useQuizStatus } from '@/context/QuizStatusProvider';
+import LiveInfo from '@/components/leaderboard/LiveInfo';
 
 // Mock data based on the specification
 const liveLeaderboardData = [
@@ -39,18 +39,14 @@ const RankIcon = ({ rank }: { rank: number }) => {
   return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
 
-const formatTime = (time: number) => time.toString().padStart(2, '0');
-
 export default function LeaderboardPage() {
-  const { timeLeft, playersPlaying } = useQuizStatus();
-
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
       <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Leaderboard</h1>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 pb-20">
+      <main className="flex-1 overflow-y-auto p-4 pb-24">
         <Tabs defaultValue="live" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="live">Current</TabsTrigger>
@@ -63,7 +59,7 @@ export default function LeaderboardPage() {
               <CardHeader className="text-center">
                 <CardTitle>🏏 Current Quiz Leaderboard</CardTitle>
                 <CardDescription>
-                  Quiz ends in: {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)} • Players: {playersPlaying.toLocaleString()}
+                  <LiveInfo />
                 </CardDescription>
               </CardHeader>
               <CardContent>
