@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { 
     LogOut, Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    Settings, LifeBuoy
+    Settings, LifeBuoy, Moon, Bell, Music, Vibrate, RefreshCw
 } from 'lucide-react';
 
 const maskEmail = (email: string) => {
@@ -145,19 +147,49 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground mt-1">Payout details are locked and cannot be changed.</p>
             </CardContent>
         </Card>
-
+        
         {/* Settings Section */}
         <Card className="bg-background/80 backdrop-blur-sm">
-            <CardHeader>
-                <CardTitle className="text-lg">Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Button asChild className="w-full" variant="secondary">
-                    <Link href="/settings">
-                        <Settings className="mr-2" /> Go to App Settings
-                    </Link>
-                </Button>
-            </CardContent>
+          <CardHeader>
+            <CardTitle className="text-lg">Settings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="dark-mode" className="flex items-center gap-2">
+                <Moon className="h-5 w-5" />
+                <span>Dark Mode</span>
+              </Label>
+              <Switch id="dark-mode" />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notifications" className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                <span>Quiz Reminders</span>
+              </Label>
+              <Switch id="notifications" defaultChecked />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="sound" className="flex items-center gap-2">
+                <Music className="h-5 w-5" />
+                <span>In-App Sounds</span>
+              </Label>
+              <Switch id="sound" defaultChecked />
+            </div>
+             <div className="flex items-center justify-between">
+              <Label htmlFor="vibration" className="flex items-center gap-2">
+                <Vibrate className="h-5 w-5" />
+                <span>Vibration Feedback</span>
+              </Label>
+              <Switch id="vibration" defaultChecked />
+            </div>
+             <div className="flex items-center justify-between">
+              <Label htmlFor="hint-ad" className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" />
+                <span>Auto-play Hint Ad</span>
+              </Label>
+              <Switch id="hint-ad" defaultChecked />
+            </div>
+          </CardContent>
         </Card>
 
         {/* Support Section */}
@@ -166,14 +198,13 @@ export default function ProfilePage() {
                 <CardTitle className="text-lg">Support</CardTitle>
             </CardHeader>
             <CardContent>
-                 <Button asChild className="w-full" variant="secondary">
-                    <Link href="/support">
-                        <LifeBuoy className="mr-2" /> Contact Support
-                    </Link>
-                </Button>
+                 <p className="text-sm text-muted-foreground">
+                    For any issues or feedback, please email us at:
+                 </p>
+                 <p className="font-semibold text-primary">support@indcric.com</p>
             </CardContent>
         </Card>
-        
+
         {/* Actions Section */}
         <section className="space-y-3 pt-4">
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
