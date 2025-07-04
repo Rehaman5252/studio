@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
   Clock,
   Users,
@@ -32,6 +33,7 @@ const formatTime = (time: number) => time.toString().padStart(2, '0');
 export default function HomeScreen() {
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const { timeLeft, playersPlaying, playersPlayed, totalWinners } = useQuizStatus();
+  const router = useRouter();
 
   const selectedBrand = brands[selectedBrandIndex];
 
@@ -132,6 +134,14 @@ export default function HomeScreen() {
               </CardContent>
             </Card>
           </div>
+          <Button
+            size="lg"
+            className="w-full mt-8 bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-7"
+            onClick={() => router.push(`/quiz?brand=${selectedBrand.brand}&format=${selectedBrand.format}`)}
+          >
+            Start {selectedBrand.format} Quiz
+            <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
         </div>
       </main>
     </div>
