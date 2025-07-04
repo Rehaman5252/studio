@@ -3,11 +3,12 @@
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { QuizQuestion } from '@/ai/schemas';
+import type { Ad } from '@/lib/ads';
+import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, SkipForward, Info } from 'lucide-react';
-import Image from 'next/image';
+import { AdDialog } from '@/components/AdDialog';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -51,84 +52,11 @@ function Certificate({ format, userName, date, slotTimings }: { format: string; 
     );
 }
 
-function AdDialog({ open, onAdFinished, duration, skippableAfter, adImageUrl, adTitle, children }: { open: boolean, onAdFinished: () => void, duration: number, skippableAfter: number, adImageUrl: string, adTitle: string, children?: React.ReactNode }) {
-  const [adTimeLeft, setAdTimeLeft] = useState(duration);
-  const [isSkippable, setIsSkippable] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-
-    setAdTimeLeft(duration);
-    setIsSkippable(false);
-
-    const timer = setInterval(() => {
-      setAdTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          onAdFinished();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    const skippableTimer = setTimeout(() => {
-      setIsSkippable(true);
-    }, skippableAfter * 1000);
-
-    return () => {
-      clearInterval(timer);
-      clearTimeout(skippableTimer);
-    };
-  }, [open, duration, skippableAfter, onAdFinished]);
-
-  if (!open) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-        // Only allow closing if the ad is skippable or finished
-        if (!isOpen && isSkippable) {
-            onAdFinished();
-        }
-    }}>
-        <DialogContent
-            className="bg-background text-foreground p-0 max-w-sm"
-            onInteractOutside={(e) => e.preventDefault()}
-            onEscapeKeyDown={(e) => {
-                if (!isSkippable) {
-                    e.preventDefault();
-                }
-            }}
-        >
-            <DialogHeader className="p-4 border-b">
-                <DialogTitle>{adTitle}</DialogTitle>
-            </DialogHeader>
-            <div className="p-4 text-center">
-                 <Image src={adImageUrl} alt="Advertisement" width={400} height={200} className="rounded-md" data-ai-hint="advertisement" />
-                {children}
-                <div className="mt-4 flex justify-between items-center gap-2">
-                    <span className="text-sm text-muted-foreground shrink-0">Ad will close in {adTimeLeft}s</span>
-                    {isSkippable ? (
-                        <Button onClick={onAdFinished} size="sm" className="h-auto py-1 whitespace-normal">
-                            <SkipForward className="mr-2 h-4 w-4"/> Skip
-                        </Button>
-                    ) : (
-                        <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
-                           Skip in {Math.max(0, adTimeLeft - (duration - skippableAfter))}s
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </DialogContent>
-    </Dialog>
-  );
-}
-
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [showAnswersAd, setShowAnswersAd] = useState(false);
     const [showAnswers, setShowAnswers] = useState(false);
+    const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
     const { questions, userAnswers, brand, format, isRetake } = useMemo(() => {
         const dataParam = searchParams.get('data');
@@ -199,6 +127,18 @@ function ResultsComponent() {
             }
         }
     }, [questions, userAnswers, brand, format, score]);
+
+    const handleViewAnswers = () => {
+        if (showAnswers) return;
+        setAdConfig({
+            ad: adLibrary.resultsAd,
+            onFinished: () => {
+                setShowAnswers(true);
+                setAdConfig(null);
+            },
+            children: <p className="font-bold text-lg mt-4">Thank you for your patience!</p>
+        });
+    };
 
     if (!questions || questions.length === 0) {
         return (
@@ -273,12 +213,10 @@ function ResultsComponent() {
                         <Button
                             variant="secondary"
                             className="w-full"
-                            onClick={() => {
-                                setShowAnswers(false);
-                                setShowAnswersAd(true);
-                            }}
+                            onClick={handleViewAnswers}
+                            disabled={showAnswers}
                         >
-                           View Correct Answers (Ad)
+                           {showAnswers ? "Answers Displayed Below" : "View Correct Answers (Ad)"}
                         </Button>
                     </CardContent>
                 </Card>
@@ -304,19 +242,20 @@ function ResultsComponent() {
                 {isPerfectScore && <Certificate format={format} userName="CricBlitz User" date={today} slotTimings={slotTimings} />}
             </div>
 
-            <AdDialog
-                open={showAnswersAd}
-                onAdFinished={() => {
-                    setShowAnswersAd(false);
-                    setShowAnswers(true);
-                }}
-                duration={30}
-                skippableAfter={15}
-                adImageUrl="https://placehold.co/800x400"
-                adTitle="View Correct Answers"
-            >
-                <p className="font-bold text-lg mt-4">Thank you for your patience!</p>
-            </AdDialog>
+            {adConfig && (
+                <AdDialog
+                    open={!!adConfig}
+                    onAdFinished={adConfig.onFinished}
+                    duration={adConfig.ad.duration}
+                    skippableAfter={adConfig.ad.skippableAfter}
+                    adTitle={adConfig.ad.title}
+                    adType={adConfig.ad.type}
+                    adUrl={adConfig.ad.url}
+                    adHint={adConfig.ad.hint}
+                >
+                    {adConfig.children}
+                </AdDialog>
+            )}
         </>
     );
 }

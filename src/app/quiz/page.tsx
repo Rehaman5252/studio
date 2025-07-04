@@ -4,12 +4,13 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { QuizQuestion } from '@/ai/schemas';
+import type { Ad } from '@/lib/ads';
+import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb, SkipForward } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Image from 'next/image';
+import { Loader2, Lightbulb } from 'lucide-react';
+import { AdDialog } from '@/components/AdDialog';
 
 const getQuizSlotId = () => {
   const now = new Date();
@@ -57,79 +58,6 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
   );
 };
 
-function AdDialog({ open, onAdFinished, duration, skippableAfter, adImageUrl, adTitle, children }: { open: boolean, onAdFinished: () => void, duration: number, skippableAfter: number, adImageUrl: string, adTitle: string, children?: React.ReactNode }) {
-  const [adTimeLeft, setAdTimeLeft] = useState(duration);
-  const [isSkippable, setIsSkippable] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-
-    setAdTimeLeft(duration);
-    setIsSkippable(false);
-
-    const timer = setInterval(() => {
-      setAdTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          onAdFinished();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    const skippableTimer = setTimeout(() => {
-      setIsSkippable(true);
-    }, skippableAfter * 1000);
-
-    return () => {
-      clearInterval(timer);
-      clearTimeout(skippableTimer);
-    };
-  }, [open, duration, skippableAfter, onAdFinished]);
-
-  if (!open) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-        // Only allow closing if the ad is skippable or finished
-        if (!isOpen && isSkippable) {
-            onAdFinished();
-        }
-    }}>
-        <DialogContent
-            className="bg-background text-foreground p-0 max-w-sm"
-            onInteractOutside={(e) => e.preventDefault()}
-            onEscapeKeyDown={(e) => {
-                if (!isSkippable) {
-                    e.preventDefault();
-                }
-            }}
-        >
-            <DialogHeader className="p-4 border-b">
-                <DialogTitle>{adTitle}</DialogTitle>
-            </DialogHeader>
-            <div className="p-4 text-center">
-                 <Image src={adImageUrl} alt="Advertisement" width={400} height={200} className="rounded-md" data-ai-hint="advertisement" />
-                {children}
-                <div className="mt-4 flex justify-between items-center gap-2">
-                    <span className="text-sm text-muted-foreground shrink-0">Ad will close in {adTimeLeft}s</span>
-                    {isSkippable ? (
-                        <Button onClick={onAdFinished} size="sm" className="h-auto py-1 whitespace-normal">
-                            <SkipForward className="mr-2 h-4 w-4"/> Skip
-                        </Button>
-                    ) : (
-                        <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
-                            Skip in {Math.max(0, adTimeLeft - (duration - skippableAfter))}s
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </DialogContent>
-    </Dialog>
-  );
-}
-
 function QuizComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -145,10 +73,15 @@ function QuizComponent() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
-  const [showHintAd, setShowHintAd] = useState(false);
   const [isHintVisible, setIsHintVisible] = useState(false);
-  const [showMidQuizAd, setShowMidQuizAd] = useState(false);
+  const [wasMidQuizAdShown, setWasMidQuizAdShown] = useState(false);
   const [paused, setPaused] = useState(false);
+
+  const [adConfig, setAdConfig] = useState<{
+    ad: Ad;
+    onFinished: () => void;
+    children?: React.ReactNode;
+  } | null>(null);
   
   const advanceToResults = useCallback((finalAnswers: string[]) => {
     const dataToPass = { questions, userAnswers: finalAnswers, brand, format };
@@ -199,10 +132,17 @@ function QuizComponent() {
     setSelectedOption(null);
     setIsHintVisible(false);
 
-    if (currentQuestionIndex === 2 && !showMidQuizAd) {
-      setPaused(true);
-      setShowMidQuizAd(true);
-      return;
+    if (currentQuestionIndex === 2 && !wasMidQuizAdShown) {
+        setPaused(true);
+        setAdConfig({
+            ad: adLibrary.midQuizAd,
+            onFinished: () => {
+                setWasMidQuizAdShown(true);
+                setAdConfig(null);
+                goToNextQuestion(); // This will recall the function, but wasMidQuizAdShown is now true
+            }
+        });
+        return;
     }
     
     if (currentQuestionIndex < questions.length - 1) {
@@ -211,10 +151,10 @@ function QuizComponent() {
     } else {
         advanceToResults(userAnswers);
     }
-  }, [currentQuestionIndex, questions.length, showMidQuizAd, advanceToResults, userAnswers]);
+  }, [currentQuestionIndex, questions.length, wasMidQuizAdShown, advanceToResults, userAnswers]);
   
   useEffect(() => {
-    if (paused || loading || questions.length === 0 || selectedOption) return;
+    if (paused || loading || questions.length === 0 || selectedOption || adConfig) return;
 
     if (timeLeft > 0) {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -228,7 +168,7 @@ function QuizComponent() {
          advanceToResults(newAnswers);
        }
     }
-  }, [timeLeft, paused, loading, questions.length, selectedOption, goToNextQuestion, currentQuestionIndex, userAnswers, advanceToResults]);
+  }, [timeLeft, paused, loading, questions.length, selectedOption, goToNextQuestion, currentQuestionIndex, userAnswers, advanceToResults, adConfig]);
 
   const handleAnswerSelect = (option: string) => {
     if (selectedOption) return;
@@ -247,9 +187,18 @@ function QuizComponent() {
   };
 
   const handleUseHint = () => {
-    if (usedHintIndices.includes(currentQuestionIndex)) return;
+    if (usedHintIndices.includes(currentQuestionIndex) || adConfig) return;
     setPaused(true);
-    setShowHintAd(true);
+    setAdConfig({
+        ad: adLibrary.hintAds[currentQuestionIndex],
+        onFinished: () => {
+            setIsHintVisible(true);
+            setUsedHintIndices(prev => [...prev, currentQuestionIndex]);
+            setPaused(false);
+            setAdConfig(null);
+        },
+        children: <p className="font-bold text-lg mt-4">Enjoy your hint!</p>
+    });
   };
   
   if (loading) {
@@ -331,32 +280,20 @@ function QuizComponent() {
         </main>
       </div>
 
-      <AdDialog
-          open={showHintAd}
-          onAdFinished={() => {
-              setShowHintAd(false);
-              setIsHintVisible(true);
-              setUsedHintIndices(prev => [...prev, currentQuestionIndex]);
-              setPaused(false);
-          }}
-          duration={2}
-          skippableAfter={2}
-          adImageUrl="https://placehold.co/400x200"
-          adTitle="Sponsored Hint">
-          <p className="font-bold text-lg mt-4">Enjoy your hint!</p>
-      </AdDialog>
-      
-      <AdDialog
-          open={showMidQuizAd}
-          onAdFinished={() => {
-              setShowMidQuizAd(false);
-              goToNextQuestion();
-          }}
-          duration={10}
-          skippableAfter={5}
-          adImageUrl="https://placehold.co/600x300"
-          adTitle="A short break from our sponsors"
-      />
+      {adConfig && (
+        <AdDialog
+          open={!!adConfig}
+          onAdFinished={adConfig.onFinished}
+          duration={adConfig.ad.duration}
+          skippableAfter={adConfig.ad.skippableAfter}
+          adTitle={adConfig.ad.title}
+          adType={adConfig.ad.type}
+          adUrl={adConfig.ad.url}
+          adHint={adConfig.ad.hint}
+        >
+            {adConfig.children}
+        </AdDialog>
+      )}
     </>
   );
 }
