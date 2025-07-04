@@ -85,7 +85,7 @@ export default function LoginScreen() {
                     className="pl-10"
                     placeholder="Enter your email"
                     value={email}
-                    onChangeText={setEmail}
+                    onChange={(e) => setEmail(e.target.value)}
                     type="email"
                     autoCapitalize="none"
                   />
@@ -105,9 +105,10 @@ export default function LoginScreen() {
                   className="text-center tracking-[0.5em] text-lg font-bold"
                   placeholder="------"
                   value={otp}
-                  onChangeText={setOtp}
-                  type="number"
+                  onChange={(e) => setOtp(e.target.value)}
+                  type="tel"
                   maxLength={6}
+                  pattern="[0-9]*"
                 />
                 <Button
                   className="w-full bg-accent hover:bg-accent/90"

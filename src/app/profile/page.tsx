@@ -1,12 +1,15 @@
+
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import { 
     LogOut, Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
     Settings, LifeBuoy, Moon, Bell, Music, Vibrate, RefreshCw
@@ -39,7 +42,9 @@ const StatItem = ({ title, value, icon: Icon }: { title: string, value: string |
 )
 
 export default function ProfilePage() {
-    
+    const router = useRouter();
+    const { toast } = useToast();
+
     // Mock user data based on the spec
     const user = {
         name: 'John Doe',
@@ -56,12 +61,26 @@ export default function ProfilePage() {
         upi: 'john.doe@okaxis',
         referralCode: 'indcric.com/ref/john123',
     };
+    
+    const handleLogout = () => {
+        // Clear quiz history from local storage
+        localStorage.removeItem('indcric-quiz-history');
+        // Redirect to login page
+        router.replace('/auth/login');
+    };
+
+    const handleReferAndEarn = () => {
+        toast({
+            title: "Coming Soon!",
+            description: "The referral program is not yet active. Check back later!",
+        });
+    };
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/80 to-green-300/80 pb-20">
       <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={handleLogout}>
             <LogOut />
         </Button>
       </header>
@@ -199,7 +218,7 @@ export default function ProfilePage() {
                   <Award className="mr-4" /> View Certificates
                 </Link>
             </Button>
-            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary" onClick={handleReferAndEarn}>
                 <UserPlus className="mr-4" /> Refer & Earn
             </Button>
         </section>
