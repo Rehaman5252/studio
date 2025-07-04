@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +33,16 @@ const faceTransforms = [
   'rotateX(-90deg) translateZ(60px)', // Bottom
 ];
 
+const rotationMap = [
+    'rotateY(0deg)',        // Front
+    'rotateY(-90deg)',      // Right
+    'rotateY(-180deg)',     // Back
+    'rotateY(90deg)',       // Left
+    'rotateX(-90deg)',      // Top
+    'rotateX(90deg)',       // Bottom
+];
+
+
 interface CubeProps {
   onSelect: (brand: string, format: string) => void;
 }
@@ -40,51 +50,60 @@ interface CubeProps {
 export default function Cube({ onSelect }: CubeProps) {
   const [currentFace, setCurrentFace] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
-  const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rotationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const rotateToFace = useCallback((index: number) => {
+    if (cubeRef.current) {
+        cubeRef.current.style.transform = rotationMap[index];
+    }
+    onSelect(brands[index].brand, brands[index].format);
+  }, [onSelect]);
+
+  const stopAutoRotation = useCallback(() => {
+    if (rotationIntervalRef.current) {
+      clearInterval(rotationIntervalRef.current);
+      rotationIntervalRef.current = null;
+    }
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+      interactionTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startAutoRotation = useCallback(() => {
+    stopAutoRotation();
+    rotationIntervalRef.current = setInterval(() => {
+      setCurrentFace(prevFace => {
+        const nextFace = (prevFace + 1) % brands.length;
+        rotateToFace(nextFace);
+        return nextFace;
+      });
+    }, 4000); // ~2s transition + ~2s pause
+  }, [rotateToFace, stopAutoRotation]);
 
   useEffect(() => {
     onSelect(brands[0].brand, brands[0].format);
-    // Cleanup timeout on unmount
-    return () => {
-      if (autoRotateTimeoutRef.current) {
-        clearTimeout(autoRotateTimeoutRef.current);
-      }
-    };
-  }, [onSelect]);
+    startAutoRotation();
+    return () => stopAutoRotation();
+  }, [onSelect, startAutoRotation, stopAutoRotation]);
 
   const handleFaceClick = (index: number) => {
+    stopAutoRotation();
     setCurrentFace(index);
-    onSelect(brands[index].brand, brands[index].format);
-    if(cubeRef.current){
-        const rotationMap = [
-            'rotateY(0deg)',        // Front
-            'rotateY(-90deg)',      // Right
-            'rotateY(-180deg)',     // Back
-            'rotateY(90deg)',       // Left
-            'rotateX(-90deg)',      // Top
-            'rotateX(90deg)',       // Bottom
-        ];
-        // Clear any existing animation interruption timeout
-        if (autoRotateTimeoutRef.current) {
-          clearTimeout(autoRotateTimeoutRef.current);
-        }
-
-        cubeRef.current.style.animation = 'none'; // Pause auto-rotation
-        cubeRef.current.style.transform = rotationMap[index];
-        
-        // Resume animation after a delay
-        autoRotateTimeoutRef.current = setTimeout(() => {
-            if(cubeRef.current) {
-              cubeRef.current.style.animation = ''; // Resume animation
-            }
-        }, 3000);
-    }
+    rotateToFace(index);
+    // Resume rotation after a period of inactivity
+    interactionTimeoutRef.current = setTimeout(startAutoRotation, 5000);
   };
-
+  
   return (
     <div className="flex flex-col items-center">
       <div className="w-48 h-48 perspective">
-        <div ref={cubeRef} className="w-full h-full relative preserve-3d animate-cube-rotate">
+        <div 
+          ref={cubeRef} 
+          className="w-full h-full relative preserve-3d"
+          style={{ transition: 'transform 1.5s ease-in-out' }}
+        >
           {brands.map((brand, index) => (
             <div
               key={brand.id}

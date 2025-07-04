@@ -70,16 +70,4 @@
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
-
-  @keyframes auto-rotate {
-    from {
-      transform: rotateX(0deg) rotateY(0deg);
-    }
-    to {
-      transform: rotateX(360deg) rotateY(360deg);
-    }
-  }
-  .animate-cube-rotate {
-    animation: auto-rotate 25s linear infinite;
-  }
 }
