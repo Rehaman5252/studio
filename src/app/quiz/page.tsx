@@ -91,23 +91,36 @@ function AdDialog({ open, onAdFinished, duration, skippableAfter, adImageUrl, ad
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onAdFinished()}>
-        <DialogContent className="bg-background text-foreground p-0 max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        // Only allow closing if the ad is skippable or finished
+        if (!isOpen && isSkippable) {
+            onAdFinished();
+        }
+    }}>
+        <DialogContent
+            className="bg-background text-foreground p-0 max-w-sm"
+            onInteractOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => {
+                if (!isSkippable) {
+                    e.preventDefault();
+                }
+            }}
+        >
             <DialogHeader className="p-4 border-b">
                 <DialogTitle>{adTitle}</DialogTitle>
             </DialogHeader>
             <div className="p-4 text-center">
                  <Image src={adImageUrl} alt="Advertisement" width={400} height={200} className="rounded-md" data-ai-hint="advertisement" />
                 {children}
-                <div className="mt-4 flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Ad will close in {adTimeLeft}s</span>
+                <div className="mt-4 flex justify-between items-center gap-2">
+                    <span className="text-sm text-muted-foreground shrink-0">Ad will close in {adTimeLeft}s</span>
                     {isSkippable ? (
-                        <Button onClick={onAdFinished} size="sm">
-                            <SkipForward className="mr-2"/> Skip
+                        <Button onClick={onAdFinished} size="sm" className="h-auto py-1 whitespace-normal">
+                            <SkipForward className="mr-2 h-4 w-4"/> Skip
                         </Button>
                     ) : (
-                        <Button disabled size="sm">
-                            Skip in {adTimeLeft - (duration - skippableAfter)}s
+                        <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
+                            Skip in {Math.max(0, adTimeLeft - (duration - skippableAfter))}s
                         </Button>
                     )}
                 </div>
