@@ -20,7 +20,7 @@ export default function BottomNav() {
     <div className="fixed bottom-0 inset-x-0 bg-background border-t z-50">
       <nav className="flex justify-around h-16 items-center max-w-lg mx-auto">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname.startsWith(href);
+          const isActive = pathname === href;
           return (
             <Link href={href} key={label} className={cn(
               "flex flex-col items-center justify-center gap-1 w-full h-full transition-colors rounded-lg",
