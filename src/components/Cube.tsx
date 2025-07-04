@@ -23,24 +23,24 @@ const brands: CubeBrand[] = [
   { id: 6, brand: 'Boat', format: 'IPL', color: '#FF6B35', bgColor: '#1A1A1A', logoUrl: 'https://cdn.shopify.com/s/files/1/0057/8938/4802/files/boAt_logo_small_3067da8c-a83b-46dd-bce9-1f00a120b017_180x.png', logoWidth: 80, logoHeight: 30 },
 ];
 
-// Positions each face of the cube in 3D space
+// Positions each face of the cube in 3D space. The `translateZ` value is half the face width (128px / 2 = 64px).
 const faceTransforms = [
-  'rotateY(0deg) translateZ(60px)',   // Face 0: Front
-  'rotateY(90deg) translateZ(60px)',  // Face 1: Right
-  'rotateY(180deg) translateZ(60px)', // Face 2: Back
-  'rotateY(-90deg) translateZ(60px)', // Face 3: Left
-  'rotateX(90deg) translateZ(60px)',  // Face 4: Top
-  'rotateX(-90deg) translateZ(60px)', // Face 5: Bottom
+  'rotateY(0deg) translateZ(64px)',
+  'rotateY(90deg) translateZ(64px)',
+  'rotateY(180deg) translateZ(64px)',
+  'rotateY(-90deg) translateZ(64px)',
+  'rotateX(90deg) translateZ(64px)',
+  'rotateX(-90deg) translateZ(64px)',
 ];
 
 // Defines the transform needed to bring a specific face to the front
 const rotationMap = [
-    'rotateX(0deg) rotateY(0deg)',    // Brings face 0 (Front) to front
-    'rotateX(0deg) rotateY(-90deg)',  // Brings face 1 (Right) to front
-    'rotateX(0deg) rotateY(-180deg)', // Brings face 2 (Back) to front
-    'rotateX(0deg) rotateY(90deg)',   // Brings face 3 (Left) to front
-    'rotateX(-90deg) rotateY(0deg)',  // Brings face 4 (Top) to front
-    'rotateX(90deg) rotateY(0deg)',   // Brings face 5 (Bottom) to front
+    'rotateX(0deg) rotateY(0deg)',
+    'rotateX(0deg) rotateY(-90deg)',
+    'rotateX(0deg) rotateY(-180deg)',
+    'rotateX(0deg) rotateY(90deg)',
+    'rotateX(-90deg) rotateY(0deg)',
+    'rotateX(90deg) rotateY(0deg)',
 ];
 
 // A dynamic sequence to show faces in a tumbling order
@@ -55,12 +55,21 @@ export default function Cube({ onSelect }: CubeProps) {
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const selectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const rotateToFace = useCallback((brandIndex: number) => {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[brandIndex];
     }
-    onSelect(brands[brandIndex].brand, brands[brandIndex].format);
+    
+    if (selectTimeoutRef.current) {
+      clearTimeout(selectTimeoutRef.current);
+    }
+
+    // Wait for the animation to finish before updating the selected brand/banner.
+    selectTimeoutRef.current = setTimeout(() => {
+        onSelect(brands[brandIndex].brand, brands[brandIndex].format);
+    }, 1500); // Sync with 1.5s CSS transition
   }, [onSelect]);
 
   const stopAutoRotation = useCallback(() => {
@@ -76,19 +85,25 @@ export default function Cube({ onSelect }: CubeProps) {
 
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
+    // Rotate every 3 seconds: 1.5s for transition, 1.5s for pause
     rotationIntervalRef.current = setInterval(() => {
       setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
-    }, 2500); // 1.5s transition + 1s pause
+    }, 3000); 
   }, [stopAutoRotation]);
 
   useEffect(() => {
-      const faceToShow = faceRotationOrder[rotationOrderIndex];
-      rotateToFace(faceToShow);
+    const faceToShow = faceRotationOrder[rotationOrderIndex];
+    rotateToFace(faceToShow);
   }, [rotationOrderIndex, rotateToFace]);
 
   useEffect(() => {
     startAutoRotation();
-    return () => stopAutoRotation();
+    return () => {
+      stopAutoRotation();
+      if (selectTimeoutRef.current) {
+        clearTimeout(selectTimeoutRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startAutoRotation]);
 
@@ -98,9 +113,9 @@ export default function Cube({ onSelect }: CubeProps) {
     if (newRotationOrderIndex !== -1) {
         setRotationOrderIndex(newRotationOrderIndex);
     } else {
-        // Fallback if somehow clicked face is not in the rotation order
         rotateToFace(brandIndex);
     }
+    // Restart auto-rotation after user interaction
     interactionTimeoutRef.current = setTimeout(startAutoRotation, 5000);
   };
   
@@ -119,7 +134,7 @@ export default function Cube({ onSelect }: CubeProps) {
               className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-2xl"
               style={{
                 transform: faceTransforms[index],
-                backgroundColor: `${brand.bgColor}BF`, // Use 75% opacity for translucency
+                backgroundColor: `${brand.bgColor}80`, // 50% opacity for transparency
                 borderColor: brand.color,
               }}
             >
