@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -27,14 +28,14 @@ export default function CertificatesPage() {
   
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
-      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">
+      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">My Certificates</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
         {certificates.length > 0 ? (
           certificates.map((cert) => (
-            <Card key={cert.id} className="bg-background/80 backdrop-blur-sm border-white/20 shadow-lg">
+            <Card key={cert.id} className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
                     <Award className="h-8 w-8 text-yellow-400" />
@@ -57,7 +58,7 @@ export default function CertificatesPage() {
             </Card>
           ))
         ) : (
-          <Card className="bg-background/80 backdrop-blur-sm border-white/20">
+          <Card className="bg-background/70 backdrop-blur-sm border-white/20">
             <CardContent className="p-8 text-center text-muted-foreground">
               <Award className="h-12 w-12 mx-auto mb-4 text-primary/50" />
               <p className="font-semibold">No certificates yet!</p>

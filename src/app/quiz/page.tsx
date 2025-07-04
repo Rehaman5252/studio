@@ -10,7 +10,7 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb } from 'lucide-react';
+import { Loader2, Lightbulb, AlertTriangle } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
@@ -177,20 +177,27 @@ function QuizComponent() {
   
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
         <Loader2 className="h-12 w-12 animate-spin mb-4" />
-        <p className="text-xl">Generating your {format} quiz...</p>
-        <p>This might take a moment.</p>
+        <p className="text-xl font-semibold">Generating your {format} quiz...</p>
+        <p className="text-sm opacity-80">This might take a moment.</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-destructive text-destructive-foreground p-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong.</h1>
-        <p>{error}</p>
-        <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
+        <Card className="bg-background/70 backdrop-blur-sm border-destructive shadow-lg text-center p-6">
+            <CardHeader>
+                <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <CardTitle className="text-xl font-bold text-destructive-foreground">Oops! Something went wrong.</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">{error}</p>
+                <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
+            </CardContent>
+        </Card>
       </div>
     );
   }
@@ -202,7 +209,7 @@ function QuizComponent() {
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+      <div className="flex flex-col h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
         <header className="w-full max-w-2xl mx-auto mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold">{format} Quiz</h1>
@@ -216,27 +223,28 @@ function QuizComponent() {
             <Timer timeLeft={timeLeft} />
           </div>
 
-          <Card className="w-full bg-white/10 border-0">
+          <Card className="w-full bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-xl md:text-2xl leading-tight">
+              <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
                 {currentQuestion.questionText}
               </CardTitle>
               {isHintVisible && currentQuestion.hint && (
-                  <p className="text-sm text-yellow-300 pt-2 animate-in fade-in">
+                  <p className="text-sm text-accent pt-2 animate-in fade-in">
                       <strong>Hint:</strong> {currentQuestion.hint}
                   </p>
               )}
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {currentQuestion.options.map((option, index) => (
                 <Button
                   key={index}
                   onClick={() => handleAnswerSelect(option)}
                   disabled={!!selectedOption}
                   className={`
-                    w-full h-auto py-4 text-base whitespace-normal justify-start text-left
-                    bg-white/20 hover:bg-white/30 text-white
-                    ${selectedOption === option ? 'ring-4 ring-accent' : ''}
+                    w-full h-auto py-3 text-sm whitespace-normal justify-start text-left
+                    bg-background/80 hover:bg-primary/20 text-foreground
+                    transition-all duration-300 ease-in-out
+                    ${selectedOption === option ? 'ring-4 ring-offset-2 ring-offset-background ring-accent' : 'ring-1 ring-border'}
                     ${selectedOption && selectedOption !== option ? 'opacity-50' : ''}
                   `}
                 >
@@ -247,7 +255,7 @@ function QuizComponent() {
             </CardContent>
           </Card>
           
-          <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption || !currentQuestion.hint} className="mt-6 bg-yellow-500 hover:bg-yellow-600">
+          <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption || !currentQuestion.hint} className="mt-6 bg-accent hover:bg-accent/90 text-accent-foreground">
             <Lightbulb className="mr-2" />
             {usedHintIndices.includes(currentQuestionIndex) ? "Hint Used" : "Use Hint"}
           </Button>
@@ -275,7 +283,7 @@ function QuizComponent() {
 export default function QuizPage() {
   return (
     <Suspense fallback={
-        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
             <Loader2 className="h-12 w-12 animate-spin" />
         </div>
     }>

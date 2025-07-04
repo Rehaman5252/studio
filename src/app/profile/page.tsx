@@ -58,7 +58,7 @@ export default function ProfilePage() {
     if (loading || !user || !userData) {
       return (
         <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
-           <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+           <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
             </header>
             <main className="flex-1 flex items-center justify-center">
@@ -72,12 +72,12 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
-      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
             <CardContent className="p-4 flex items-center gap-4 relative">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                     <AvatarImage src={userProfile.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
@@ -98,7 +98,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
              <CardContent className="p-4 grid grid-cols-3 gap-4">
                 <StatItem title="Quizzes Played" value={userProfile.quizzesPlayed || 0} icon={Trophy} />
                 <StatItem title="Highest Streak" value={userProfile.highestStreak || 0} icon={Star} />
@@ -106,7 +106,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Rewards & Certificates</CardTitle>
             </CardHeader>
@@ -128,7 +128,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
         
-        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Referrals</CardTitle>
             </CardHeader>
@@ -147,7 +147,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Payout Info</CardTitle>
             </CardHeader>
@@ -157,7 +157,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
         
-        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Settings</CardTitle>
           </CardHeader>
@@ -211,7 +211,7 @@ export default function ProfilePage() {
             </Button>
         </section>
         
-        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Support</CardTitle>
             </CardHeader>

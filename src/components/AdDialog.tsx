@@ -106,7 +106,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                                 muted={isMuted}
                                 onEnded={handleVideoEnd}
                                 className="w-full h-full object-cover rounded-md"
-                                playsInline // for iOS
+                                playsInline
                                 autoPlay
                             />
                             <Button variant="ghost" size="icon" className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white" onClick={() => setIsMuted(prev => !prev)}>

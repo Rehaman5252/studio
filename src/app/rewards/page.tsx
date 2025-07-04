@@ -54,7 +54,7 @@ const ScratchCard = ({ brand }: { brand: string }) => {
 
 
 const GenericOffer = ({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <Card className="bg-background/80 backdrop-blur-sm border-white/20 shadow-lg">
+    <Card className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
         <CardContent className="p-4 flex items-center gap-4">
             <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
             <div>
@@ -93,7 +93,7 @@ export default function RewardsPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
-      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">
+      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Rewards Center</h1>
       </header>
 
@@ -103,7 +103,7 @@ export default function RewardsPage() {
           {latestAttempt ? (
             <ScratchCard brand={latestAttempt.brand} />
           ) : (
-            <Card className="bg-background/80 backdrop-blur-sm border-white/20">
+            <Card className="bg-background/70 backdrop-blur-sm border-white/20">
               <CardContent className="p-6 text-center text-muted-foreground">
                 <p>Play a quiz to unlock a special brand gift!</p>
               </CardContent>
