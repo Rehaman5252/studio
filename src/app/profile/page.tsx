@@ -4,7 +4,12 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, Edit, Award, Gift, UserPlus, Banknote, Users, Trophy, Star } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { 
+    LogOut, Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
+    Settings, LifeBuoy, Moon, Bell
+} from 'lucide-react';
 
 const maskEmail = (email: string) => {
     if (!email || !email.includes('@')) return '';
@@ -141,14 +146,49 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground mt-1">Payout details are locked and cannot be changed.</p>
             </CardContent>
         </Card>
+
+        {/* Settings Section */}
+        <Card className="bg-background/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-lg">Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="dark-mode" className="flex items-center gap-2">
+                        <Moon className="h-5 w-5" />
+                        <span>Dark Mode</span>
+                    </Label>
+                    <Switch id="dark-mode" />
+                </div>
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="notifications" className="flex items-center gap-2">
+                        <Bell className="h-5 w-5" />
+                        <span>Push Notifications</span>
+                    </Label>
+                    <Switch id="notifications" defaultChecked />
+                </div>
+            </CardContent>
+        </Card>
+
+        {/* Support Section */}
+        <Card className="bg-background/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-lg">Support</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                    For any issues or questions, please email us at <a href="mailto:support@indcric.com" className="text-primary underline">support@indcric.com</a>.
+                </p>
+                <Button className="w-full" variant="secondary">
+                    <LifeBuoy className="mr-2" /> Contact Support
+                </Button>
+            </CardContent>
+        </Card>
         
         {/* Actions Section */}
         <section className="space-y-3 pt-4">
             <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <Award className="mr-4" /> View Certificates
-            </Button>
-            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Gift className="mr-4" /> View Gifts & Offers
             </Button>
             <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <UserPlus className="mr-4" /> Refer & Earn
