@@ -1,12 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, MessageSquareQuote } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
@@ -19,8 +19,8 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleFetchAnalysis = async () => {
-        if (analysis) return; // Don't re-fetch
+    const handleFetchAnalysis = useCallback(async () => {
+        if (analysis || isLoading) return;
         setIsLoading(true);
         setError(null);
         try {
@@ -31,15 +31,15 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             setAnalysis(result.analysis);
         } catch (err) {
             console.error(err);
-            setError('Could not generate the analysis. Please try again later.');
+            setError('Could not generate the analysis. This feature may require API keys to be configured. Please try again later.');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [analysis, isLoading, attempt]);
 
     return (
         <Dialog onOpenChange={(open) => {
-            if (open && !analysis) handleFetchAnalysis();
+            if (open) handleFetchAnalysis();
         }}>
             <DialogTrigger asChild>
                 <Button variant="secondary" size="sm">View Analysis</Button>
@@ -53,12 +53,13 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                 </DialogHeader>
                 <div className="text-sm max-h-[60vh] overflow-y-auto pr-4">
                     {isLoading && (
-                        <div className="flex items-center justify-center p-8">
+                        <div className="flex flex-col items-center justify-center p-8 space-y-2">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="ml-4">Generating your report...</p>
+                            <p className="ml-4 text-muted-foreground">Generating your personalized report...</p>
+                            <p className="text-xs text-muted-foreground">This can take up to 30 seconds.</p>
                         </div>
                     )}
-                    {error && <p className="text-destructive">{error}</p>}
+                    {error && <p className="text-destructive font-semibold">{error}</p>}
                     {analysis && (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
                            <ReactMarkdown>{analysis}</ReactMarkdown>
@@ -79,12 +80,26 @@ export default function QuizHistoryPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    // Simulate fetching history
     setTimeout(() => {
         setHistory(mockQuizHistory);
         setIsLoading(false);
     }, 500);
   }, []);
+
+  const getSlotTimings = (timestamp: number) => {
+    const attemptDate = new Date(timestamp);
+    const minutes = attemptDate.getMinutes();
+    const slotStartMinute = Math.floor(minutes / 10) * 10;
+    
+    const slotStartTime = new Date(attemptDate);
+    slotStartTime.setMinutes(slotStartMinute, 0, 0);
+    
+    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+  };
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {
@@ -136,9 +151,15 @@ export default function QuizHistoryPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
+                      </div>
                     </div>
                   <AnalysisDialog attempt={attempt} />
                 </CardContent>
