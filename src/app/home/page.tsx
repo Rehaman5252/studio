@@ -21,8 +21,8 @@ const brands: CubeBrand[] = [
   // Apple: Black logo on white background. Using a reliable PNG.
   { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
   
-  // Myntra: Using the standard logo on a white background.
-  { id: 2, brand: 'Myntra', format: 'WPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
+  // Myntra: Using the new 'M' logo on a white background.
+  { id: 2, brand: 'Myntra', format: 'WPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://assets.myntassets.com/assets/images/retaillabs/2021/3/17/557c6c53-39f2-49f3-83f6-1ea4aedbf36d1615984252033-Myntra-logo.png', logoWidth: 60, logoHeight: 60 },
   
   // SBI: White logo on a solid blue background.
   { id: 3, brand: 'SBI', format: 'Test', color: '#FFFFFF', bgColor: '#0A2D7C', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
@@ -33,8 +33,8 @@ const brands: CubeBrand[] = [
   // Amazon: Black logo on a white background.
   { id: 5, brand: 'Amazon', format: 'Mixed', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
   
-  // boAt: Using a verified PNG logo on a white background.
-  { id: 6, brand: 'Boat', format: 'IPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/BoAt_logo.png/600px-BoAt_logo.png', logoWidth: 80, logoHeight: 30 },
+  // boAt: Using the red logo on a white background.
+  { id: 6, brand: 'boAt', format: 'IPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://www.boat-lifestyle.com/cdn/shop/files/boAt_logo_small_3067da8c-a83b-46dd-b28b-6ef1e1609142_140x.png?v=1682421543', logoWidth: 80, logoHeight: 25 },
 ];
 
 function NextQuizTimer() {
