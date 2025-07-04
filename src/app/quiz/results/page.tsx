@@ -10,10 +10,20 @@ import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, SkipForward } from 
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
+interface QuizAttempt {
+  slotId: string;
+  brand: string;
+  format: string;
+  score: number;
+  totalQuestions: number;
+  questions: QuizQuestion[];
+  userAnswers: string[];
+  timestamp: number;
+}
+
 const getQuizSlotId = () => {
   const now = new Date();
   const minutes = now.getMinutes();
-  // Calculate the start of the current 10-minute slot
   const currentSlotStartMinute = Math.floor(minutes / 10) * 10;
   const slotTime = new Date(now);
   slotTime.setMinutes(currentSlotStartMinute, 0, 0);
@@ -81,7 +91,6 @@ function AdDialog({ open, onAdFinished, duration, skippableAfter, adImageUrl, ad
     <Dialog open={open} onOpenChange={(isOpen) => {
         if (!isOpen) {
            if (isSkippable) onAdFinished()
-           // If not skippable and dialog is closed by other means, treat as finished.
            else onAdFinished()
         }
     }}>
@@ -118,40 +127,22 @@ function ResultsComponent() {
 
     const { questions, userAnswers, brand, format } = useMemo(() => {
         const dataParam = searchParams.get('data');
-        const brand = searchParams.get('brand') || 'CricBlitz';
-        const format = searchParams.get('format') || 'Cricket';
-
-        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand, format };
+        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
 
         try {
             const parsedData = JSON.parse(decodeURIComponent(dataParam));
             return {
                 questions: parsedData.questions || [],
                 userAnswers: parsedData.userAnswers || [],
-                brand,
-                format,
+                brand: parsedData.brand || 'CricBlitz',
+                format: parsedData.format || 'Cricket',
             };
         } catch (error) {
             console.error("Failed to parse results data:", error);
-            return { questions: [] as QuizQuestion[], userAnswers: [], brand, format };
+            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
         }
     }, [searchParams]);
-
-    useEffect(() => {
-        const dataParam = searchParams.get('data');
-        if (dataParam && questions.length > 0 && userAnswers.length > 0) {
-            const quizSlotId = getQuizSlotId();
-            const resultKey = `cricblitz-quiz-result-${quizSlotId}-${format}`;
-            try {
-                if (!localStorage.getItem(resultKey)) {
-                    localStorage.setItem(resultKey, decodeURIComponent(dataParam));
-                }
-            } catch (e) {
-                console.error("Could not save to localStorage", e);
-            }
-        }
-    }, [searchParams, format, questions, userAnswers]);
-
+    
     const score = useMemo(() => {
         if (!questions || !userAnswers) return 0;
         return userAnswers.reduce((acc, answer, index) => {
@@ -161,6 +152,35 @@ function ResultsComponent() {
             return acc;
         }, 0);
     }, [questions, userAnswers]);
+
+    useEffect(() => {
+        const quizSlotId = getQuizSlotId();
+        if (questions.length > 0 && userAnswers.length > 0) {
+            try {
+                const historyString = localStorage.getItem('cricblitz-quiz-history');
+                const history: QuizAttempt[] = historyString ? JSON.parse(historyString) : [];
+
+                const attemptExists = history.some(attempt => attempt.slotId === quizSlotId && attempt.format === format);
+
+                if (!attemptExists) {
+                    const newAttempt: QuizAttempt = {
+                        slotId: quizSlotId,
+                        brand,
+                        format,
+                        score,
+                        totalQuestions: questions.length,
+                        questions,
+                        userAnswers,
+                        timestamp: new Date().getTime(),
+                    };
+                    history.push(newAttempt);
+                    localStorage.setItem('cricblitz-quiz-history', JSON.stringify(history));
+                }
+            } catch (e) {
+                console.error("Could not save to localStorage", e);
+            }
+        }
+    }, [questions, userAnswers, brand, format, score]);
 
     if (!questions || questions.length === 0) {
         return (

@@ -138,25 +138,32 @@ function QuizComponent() {
   const [paused, setPaused] = useState(false);
   
   const advanceToResults = useCallback((finalAnswers: string[]) => {
-    const dataToPass = { questions, userAnswers: finalAnswers };
+    const dataToPass = { questions, userAnswers: finalAnswers, brand, format };
     router.replace(
-      `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&brand=${brand}&format=${format}`
+      `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`
     );
   }, [questions, brand, format, router]);
+
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const quizSlotId = getQuizSlotId();
-        const resultKey = `cricblitz-quiz-result-${quizSlotId}-${format}`;
-        const savedResult = localStorage.getItem(resultKey);
-        if (savedResult) {
-          router.replace(
-            `/quiz/results?data=${encodeURIComponent(savedResult)}&brand=${brand}&format=${format}`
-          );
-          return;
-        }
+        const historyString = localStorage.getItem('cricblitz-quiz-history');
 
+        if (historyString) {
+          const history = JSON.parse(historyString);
+          const savedAttempt = history.find((attempt: any) => attempt.slotId === quizSlotId && attempt.format === format);
+          
+          if (savedAttempt) {
+            const dataToPass = { questions: savedAttempt.questions, userAnswers: savedAttempt.userAnswers, brand: savedAttempt.brand, format: savedAttempt.format };
+            router.replace(
+              `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`
+            );
+            return;
+          }
+        }
+        
         const quizQuestions = await generateQuiz({ format, brand });
         if (!quizQuestions || quizQuestions.length < 5) {
             throw new Error('Failed to generate a complete quiz.');
@@ -174,7 +181,7 @@ function QuizComponent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [format, brand]);
 
-  const goToNextQuestion = useCallback((lastAnswer?: string) => {
+  const goToNextQuestion = useCallback(() => {
     setPaused(false);
     setSelectedOption(null);
     setIsHintVisible(false);
@@ -184,13 +191,12 @@ function QuizComponent() {
       setShowMidQuizAd(true);
       return;
     }
-
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       setTimeLeft(20);
     } else {
-        const finalAnswers = lastAnswer !== undefined ? [...userAnswers, lastAnswer] : userAnswers;
-        advanceToResults(finalAnswers);
+        advanceToResults(userAnswers);
     }
   }, [currentQuestionIndex, questions.length, showMidQuizAd, advanceToResults, userAnswers]);
   
@@ -201,20 +207,29 @@ function QuizComponent() {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timerId);
     } else {
-      setUserAnswers((prev) => [...prev, '']); // Timed out
-      goToNextQuestion('');
+       const newAnswers = [...userAnswers, ''];
+       setUserAnswers(newAnswers);
+       if (currentQuestionIndex < questions.length - 1) {
+         goToNextQuestion();
+       } else {
+         advanceToResults(newAnswers);
+       }
     }
-  }, [timeLeft, paused, loading, questions.length, selectedOption, goToNextQuestion]);
+  }, [timeLeft, paused, loading, questions.length, selectedOption, goToNextQuestion, currentQuestionIndex, userAnswers, advanceToResults]);
 
   const handleAnswerSelect = (option: string) => {
     if (selectedOption) return;
-    
-    setPaused(true);
+
+    const newAnswers = [...userAnswers, option];
+    setUserAnswers(newAnswers);
     setSelectedOption(option);
-    setUserAnswers((prev) => [...prev, option]);
     
     setTimeout(() => {
-      goToNextQuestion(option);
+       if (currentQuestionIndex < questions.length - 1) {
+         goToNextQuestion();
+       } else {
+         advanceToResults(newAnswers);
+       }
     }, 500);
   };
 
@@ -322,13 +337,7 @@ function QuizComponent() {
           open={showMidQuizAd}
           onAdFinished={() => {
               setShowMidQuizAd(false);
-              if (currentQuestionIndex < questions.length - 1) {
-                  setCurrentQuestionIndex(prev => prev + 1);
-                  setTimeLeft(20);
-                  setPaused(false);
-              } else {
-                  advanceToResults(userAnswers);
-              }
+              goToNextQuestion();
           }}
           duration={10}
           skippableAfter={5}
