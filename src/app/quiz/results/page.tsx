@@ -2,19 +2,13 @@
 
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import type { QuizQuestion } from '@/ai/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Trophy, Home, Loader2, CheckCircle2, XCircle, Award, SkipForward, Star } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-
-type QuizQuestion = {
-    questionText: string;
-    options: string[];
-    correctAnswer: string;
-    hint: string;
-};
 
 function Certificate({ format }: { format: string }) {
     const today = new Date().toLocaleDateString('en-US', {
@@ -111,7 +105,7 @@ function ResultsComponent() {
         const brand = searchParams.get('brand') || 'CricBlitz';
         const format = searchParams.get('format') || 'Cricket';
 
-        if (!dataParam) return { questions: [], userAnswers: [], brand, format };
+        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand, format };
 
         try {
             const parsedData = JSON.parse(decodeURIComponent(dataParam));
@@ -123,7 +117,7 @@ function ResultsComponent() {
             };
         } catch (error) {
             console.error("Failed to parse results data:", error);
-            return { questions: [], userAnswers: [], brand, format };
+            return { questions: [] as QuizQuestion[], userAnswers: [], brand, format };
         }
     }, [searchParams]);
 

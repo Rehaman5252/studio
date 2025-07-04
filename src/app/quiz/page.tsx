@@ -2,20 +2,14 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
+import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
+import type { QuizQuestion } from '@/ai/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, Lightbulb, Video, SkipForward, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
-
-type QuizQuestion = {
-    questionText: string;
-    options: string[];
-    correctAnswer: string;
-    hint: string;
-};
 
 const Timer = ({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;

@@ -1,31 +1,18 @@
-// 'use server';
+'use server';
 
 /**
  * @fileOverview A flow that generates AI-powered hints for quiz questions.
  *
  * - generateHint - A function that generates a hint for a given quiz question.
- * - GenerateHintInput - The input type for the generateHint function.
- * - GenerateHintOutput - The return type for the generateHint function.
  */
-
-'use server';
-
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+    GenerateHintInput,
+    GenerateHintOutput,
+    GenerateHintInputSchema,
+    GenerateHintOutputSchema
+} from '@/ai/schemas';
 
-const GenerateHintInputSchema = z.object({
-  question: z.string().describe('The quiz question to generate a hint for.'),
-  format: z.string().describe('The quiz format (e.g., T20, ODI, Test).'),
-  brand: z.string().describe('The brand associated with the quiz.'),
-});
-
-export type GenerateHintInput = z.infer<typeof GenerateHintInputSchema>;
-
-const GenerateHintOutputSchema = z.object({
-  hint: z.string().describe('A helpful hint for the quiz question.'),
-});
-
-export type GenerateHintOutput = z.infer<typeof GenerateHintOutputSchema>;
 
 export async function generateHint(input: GenerateHintInput): Promise<GenerateHintOutput> {
   return generateHintFlow(input);

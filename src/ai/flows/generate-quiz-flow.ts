@@ -3,43 +3,15 @@
  * @fileOverview A flow that generates a 5-question cricket quiz.
  *
  * - generateQuiz - A function that generates quiz questions based on a format.
- * - GenerateQuizInput - The input type for the generateQuiz function.
- * - GenerateQuizOutput - The return type for the generateQuiz function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const GenerateQuizInputSchema = z.object({
-  format: z.string().describe('The cricket format for the quiz (e.g., IPL, T20, Test).'),
-  brand: z.string().describe('The brand associated with the quiz.'),
-});
-
-export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
-
-const QuizQuestionSchema = z.object({
-    questionText: z
-      .string()
-      .describe('A unique and very difficult cricket trivia question.'),
-    options: z
-      .array(z.string())
-      .length(4)
-      .describe(
-        'An array of four very close, plausible options for the question.'
-      ),
-    correctAnswer: z
-      .string()
-      .describe(
-        'The single correct answer, which must exactly match one of the options.'
-      ),
-    hint: z
-        .string()
-        .describe('A helpful, single-sentence hint for the question that does not give away the answer directly.')
-});
-
-const GenerateQuizOutputSchema = z.array(QuizQuestionSchema).length(5);
-
-export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
+import {
+    GenerateQuizInput,
+    GenerateQuizOutput,
+    GenerateQuizInputSchema,
+    GenerateQuizOutputSchema
+} from '@/ai/schemas';
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
   return generateQuizFlow(input);
