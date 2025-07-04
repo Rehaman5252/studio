@@ -1,21 +1,13 @@
+
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 
+// With a mocked auth state, we no longer need to check for a user
+// or redirect. This hook now simply passes through the auth context
+// for consistency, but performs no actions.
 const useRequireAuth = () => {
   const { user, loading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    // If loading is finished and there's no user, redirect to login
-    if (!loading && !user && pathname !== '/auth/login') {
-      router.replace('/auth/login');
-    }
-  }, [user, loading, router, pathname]);
-
   return { user, loading };
 };
 

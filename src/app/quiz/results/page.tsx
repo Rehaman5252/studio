@@ -3,8 +3,6 @@
 
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { doc, setDoc, updateDoc, increment, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
 import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
@@ -15,17 +13,6 @@ import { AdDialog } from '@/components/AdDialog';
 import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-interface QuizAttempt {
-  slotId: string;
-  brand: string;
-  format: string;
-  score: number;
-  totalQuestions: number;
-  questions: QuizQuestion[];
-  userAnswers: string[];
-  timestamp: number;
-}
 
 const getQuizSlotId = () => {
   const now = new Date();
@@ -63,11 +50,10 @@ function ResultsComponent() {
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
-    const { questions, userAnswers, brand, format, isRetake } = useMemo(() => {
+    const { questions, userAnswers, brand, format } = useMemo(() => {
         const dataParam = searchParams.get('data');
-        const retakeParam = searchParams.get('retake') === 'true';
 
-        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', isRetake: retakeParam };
+        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
 
         try {
             const parsedData = JSON.parse(decodeURIComponent(dataParam));
@@ -76,11 +62,10 @@ function ResultsComponent() {
                 userAnswers: parsedData.userAnswers || [],
                 brand: parsedData.brand || 'Indcric',
                 format: parsedData.format || 'Cricket',
-                isRetake: retakeParam,
             };
         } catch (error) {
             console.error("Failed to parse results data:", error);
-            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', isRetake: retakeParam };
+            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
         }
     }, [searchParams]);
     
@@ -103,51 +88,6 @@ function ResultsComponent() {
 
         return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
     }, []);
-
-    useEffect(() => {
-        const saveAttempt = async () => {
-            if (!user || questions.length === 0 || userAnswers.length === 0 || isRetake) {
-                return;
-            }
-
-            const quizSlotId = getQuizSlotId();
-            const attemptRef = doc(db, 'users', user.uid, 'quiz_attempts', quizSlotId);
-            const isPerfectScore = score === questions.length && questions.length > 0;
-
-            try {
-                const docSnap = await getDoc(attemptRef);
-                if (docSnap.exists()) {
-                    return; // Already saved
-                }
-
-                const newAttempt: QuizAttempt = {
-                    slotId: quizSlotId,
-                    brand,
-                    format,
-                    score,
-                    totalQuestions: questions.length,
-                    questions,
-                    userAnswers,
-                    timestamp: new Date().getTime(),
-                };
-                await setDoc(attemptRef, newAttempt);
-
-                const userRef = doc(db, 'users', user.uid);
-                await updateDoc(userRef, {
-                    quizzesPlayed: increment(1),
-                    totalRewards: isPerfectScore ? increment(100) : increment(0),
-                    certificatesEarned: isPerfectScore ? increment(1) : increment(0),
-                });
-
-            } catch (e) {
-                console.error("Could not save quiz attempt to Firestore", e);
-            }
-        };
-
-        if (user) {
-            saveAttempt();
-        }
-    }, [user, questions, userAnswers, brand, format, score, isRetake]);
 
     const handleViewAnswers = () => {
         if (showAnswers) return;
@@ -199,15 +139,6 @@ function ResultsComponent() {
                         <CardDescription className="text-base text-white/80">{format} Quiz - Sponsored by {brand}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {isRetake && (
-                            <Alert variant="default" className="text-left bg-yellow-500/20 border-yellow-400 text-white">
-                                <Info className="h-4 w-4 text-yellow-300" />
-                                <AlertTitle className="font-bold">Attempt Already Recorded</AlertTitle>
-                                <AlertDescription>
-                                    You have already played the <strong>{format}</strong> quiz in this 10-minute slot. Each slot allows for one quiz attempt. Here are your results.
-                                </AlertDescription>
-                            </Alert>
-                        )}
                         <div>
                             <p className="text-lg">You Scored</p>
                             <p className="text-6xl font-bold my-2">

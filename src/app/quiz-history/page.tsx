@@ -6,25 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Star, Calendar, MessageSquareQuote } from 'lucide-react';
-import type { QuizQuestion } from '@/ai/schemas';
+import { Loader2, Calendar, MessageSquareQuote } from 'lucide-react';
+import type { QuizAttempt } from '@/lib/mockData';
+import { mockQuizHistory } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
-import { useAuth } from '@/context/AuthProvider';
 import useRequireAuth from '@/hooks/useRequireAuth';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
-interface QuizAttempt {
-  slotId: string;
-  brand: string;
-  format: string;
-  score: number;
-  totalQuestions: number;
-  questions: QuizQuestion[];
-  userAnswers: string[];
-  timestamp: number;
-}
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -85,35 +73,18 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
 
 export default function QuizHistoryPage() {
   useRequireAuth();
-  const { user } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      if (!user) {
+    setIsLoading(true);
+    // Simulate fetching history
+    setTimeout(() => {
+        setHistory(mockQuizHistory);
         setIsLoading(false);
-        return;
-      };
-
-      try {
-        setIsLoading(true);
-        const attemptsRef = collection(db, 'users', user.uid, 'quiz_attempts');
-        const q = query(attemptsRef, orderBy('timestamp', 'desc'));
-        
-        const querySnapshot = await getDocs(q);
-        const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-        setHistory(historyData);
-      } catch (e) {
-        console.error("Failed to fetch quiz history", e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchHistory();
-  }, [user]);
+    }, 500);
+  }, []);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {

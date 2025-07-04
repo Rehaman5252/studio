@@ -3,26 +3,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, Loader2 } from 'lucide-react';
-import type { QuizQuestion } from '@/ai/schemas';
 import Image from 'next/image';
 import useRequireAuth from '@/hooks/useRequireAuth';
-import { useAuth } from '@/context/AuthProvider';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
-
-interface QuizAttempt {
-  slotId: string;
-  brand: string;
-  format: string;
-  score: number;
-  totalQuestions: number;
-  questions: QuizQuestion[];
-  userAnswers: string[];
-  timestamp: number;
-}
+import type { QuizAttempt } from '@/lib/mockData';
+import { mockQuizHistory } from '@/lib/mockData';
 
 const ScratchCard = ({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -84,32 +70,18 @@ const GenericOffer = ({ title, description, image, hint }: { title: string, desc
 
 export default function RewardsPage() {
   useRequireAuth();
-  const { user } = useAuth();
   const [latestAttempt, setLatestAttempt] = useState<QuizAttempt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLatestAttempt = async () => {
-      if (!user) {
-          setIsLoading(false);
-          return;
+    setIsLoading(true);
+    setTimeout(() => {
+      if (mockQuizHistory.length > 0) {
+        setLatestAttempt(mockQuizHistory[0]);
       }
-      try {
-        const attemptsRef = collection(db, 'users', user.uid, 'quiz_attempts');
-        const q = query(attemptsRef, orderBy('timestamp', 'desc'), limit(1));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            setLatestAttempt(querySnapshot.docs[0].data() as QuizAttempt);
-        }
-      } catch (e) {
-        console.error("Failed to fetch latest quiz attempt", e);
-      } finally {
-          setIsLoading(false);
-      }
-    };
-    
-    fetchLatestAttempt();
-  }, [user]);
+      setIsLoading(false);
+    }, 500);
+  }, []);
 
   if (isLoading) {
     return (

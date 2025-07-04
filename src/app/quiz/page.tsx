@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -12,20 +13,8 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, Lightbulb } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
 
-
-const getQuizSlotId = () => {
-  const now = new Date();
-  const minutes = now.getMinutes();
-  // Calculate the start of the current 10-minute slot
-  const currentSlotStartMinute = Math.floor(minutes / 10) * 10;
-  const slotTime = new Date(now);
-  slotTime.setMinutes(currentSlotStartMinute, 0, 0);
-  return slotTime.getTime().toString();
-};
 
 const Timer = ({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;
@@ -100,27 +89,7 @@ function QuizComponent() {
 
   useEffect(() => {
     const fetchQuestions = async () => {
-      if (!user) return; // Wait for user to be available
-
       try {
-        const quizSlotId = getQuizSlotId();
-        const attemptRef = doc(db, 'users', user.uid, 'quiz_attempts', quizSlotId);
-        const attemptSnap = await getDoc(attemptRef);
-
-        if (attemptSnap.exists()) {
-            const savedAttempt = attemptSnap.data();
-            const dataToPass = { 
-                questions: savedAttempt.questions, 
-                userAnswers: savedAttempt.userAnswers, 
-                brand: savedAttempt.brand, 
-                format: savedAttempt.format 
-            };
-            router.replace(
-              `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&retake=true`
-            );
-            return;
-        }
-        
         const quizQuestions = await generateQuiz({ format, brand });
         if (!quizQuestions || quizQuestions.length < 5) {
             throw new Error('Failed to generate a complete quiz.');
@@ -135,7 +104,7 @@ function QuizComponent() {
     };
     
     fetchQuestions();
-  }, [format, brand, user, router]);
+  }, [format, brand]);
 
   const goToNextQuestion = useCallback(() => {
     setPaused(false);

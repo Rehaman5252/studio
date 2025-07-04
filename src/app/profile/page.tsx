@@ -3,7 +3,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,13 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
-    LogOut, Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    Settings, LifeBuoy, Moon, Bell, Music, Vibrate, RefreshCw, Loader2
+    Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
+    Settings, Moon, Bell, Music, Vibrate, RefreshCw, Loader2
 } from 'lucide-react';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+
 
 const maskEmail = (email: string) => {
     if (!email || !email.includes('@')) return '';
@@ -48,21 +46,8 @@ const StatItem = ({ title, value, icon: Icon }: { title: string, value: string |
 export default function ProfilePage() {
     useRequireAuth();
     const { user, userData, loading } = useAuth();
-    const router = useRouter();
     const { toast } = useToast();
     
-    const handleLogout = async () => {
-        try {
-            await signOut(auth);
-            localStorage.removeItem('indcric-quiz-history');
-            router.replace('/auth/login');
-            toast({ title: "Logged Out", description: "You have been successfully logged out." });
-        } catch (error) {
-            console.error("Error signing out: ", error);
-            toast({ variant: "destructive", title: "Logout Failed", description: "Could not log you out. Please try again." });
-        }
-    };
-
     const handleReferAndEarn = () => {
         toast({
             title: "Coming Soon!",
@@ -89,13 +74,9 @@ export default function ProfilePage() {
     <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
       <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
-        <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut />
-        </Button>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        {/* User Info Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardContent className="p-4 flex items-center gap-4 relative">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
@@ -117,7 +98,6 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        {/* Stats Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
              <CardContent className="p-4 grid grid-cols-3 gap-4">
                 <StatItem title="Quizzes Played" value={userProfile.quizzesPlayed || 0} icon={Trophy} />
@@ -126,7 +106,6 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        {/* Rewards & Certificates Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Rewards & Certificates</CardTitle>
@@ -149,7 +128,6 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
         
-        {/* Referral Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Referrals</CardTitle>
@@ -169,7 +147,6 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        {/* Payout Info Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Payout Info</CardTitle>
@@ -180,7 +157,6 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
         
-        {/* Settings Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Settings</CardTitle>
@@ -224,7 +200,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Actions Section */}
         <section className="space-y-3 pt-4">
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <Link href="/certificates">
@@ -236,7 +211,6 @@ export default function ProfilePage() {
             </Button>
         </section>
         
-        {/* Support Section */}
         <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Support</CardTitle>
