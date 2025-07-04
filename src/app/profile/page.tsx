@@ -208,7 +208,7 @@ export default function ProfilePage() {
         {/* Actions Section */}
         <section className="space-y-3 pt-4">
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Link href="/rewards">
+                <Link href="/certificates">
                   <Award className="mr-4" /> View Certificates
                 </Link>
             </Button>
