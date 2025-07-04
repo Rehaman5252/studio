@@ -1,12 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz-flow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lightbulb, Video, SkipForward, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Image from 'next/image';
+
+type QuizQuestion = {
+    questionText: string;
+    options: string[];
+    correctAnswer: string;
+    hint: string;
+};
 
 const Timer = ({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;
@@ -44,19 +53,85 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
   );
 };
 
+function AdDialog({ open, onAdFinished, duration, skippableAfter, adImageUrl, adTitle, children }: { open: boolean, onAdFinished: () => void, duration: number, skippableAfter: number, adImageUrl: string, adTitle: string, children?: React.ReactNode }) {
+  const [adTimeLeft, setAdTimeLeft] = useState(duration);
+  const [isSkippable, setIsSkippable] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setAdTimeLeft(duration);
+    setIsSkippable(false);
+
+    const timer = setInterval(() => {
+      setAdTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onAdFinished();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    const skippableTimer = setTimeout(() => {
+      setIsSkippable(true);
+    }, skippableAfter * 1000);
+
+    return () => {
+      clearInterval(timer);
+      clearTimeout(skippableTimer);
+    };
+  }, [open, duration, skippableAfter, onAdFinished]);
+
+  if (!open) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onAdFinished()}>
+        <DialogContent className="bg-background text-foreground p-0 max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader className="p-4 border-b">
+                <DialogTitle>{adTitle}</DialogTitle>
+            </DialogHeader>
+            <div className="p-4 text-center">
+                 <Image src={adImageUrl} alt="Advertisement" width={400} height={200} className="rounded-md" data-ai-hint="advertisement" />
+                {children}
+                <div className="mt-4 flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Ad will close in {adTimeLeft}s</span>
+                    {isSkippable ? (
+                        <Button onClick={onAdFinished} size="sm">
+                            <SkipForward className="mr-2"/> Skip
+                        </Button>
+                    ) : (
+                        <Button disabled size="sm">
+                            Skip in {adTimeLeft - (duration - skippableAfter)}s
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
+  );
+}
+
 function QuizComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const brand = searchParams.get('brand') || 'CricBlitz';
   const format = searchParams.get('format') || 'Cricket';
 
-  const [questions, setQuestions] = useState<GenerateQuizOutput>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+
+  const [hintUsed, setHintUsed] = useState(false);
+  const [showHintAd, setShowHintAd] = useState(false);
+  const [isHintVisible, setIsHintVisible] = useState(false);
+  const [showMidQuizAd, setShowMidQuizAd] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -77,25 +152,34 @@ function QuizComponent() {
     fetchQuestions();
   }, [format, brand]);
 
-  const goToNextQuestion = () => {
+  const advanceToResults = useCallback(() => {
+    const dataToPass = { questions, userAnswers };
+    router.replace(
+      `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&brand=${brand}&format=${format}`
+    );
+  }, [questions, userAnswers, brand, format, router]);
+
+  const goToNextQuestion = useCallback(() => {
+    setPaused(false);
     setSelectedOption(null);
+    setIsHintVisible(false);
+
+    if (currentQuestionIndex === 2 && !showMidQuizAd) {
+      setPaused(true);
+      setShowMidQuizAd(true);
+      return;
+    }
+
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       setTimeLeft(20);
     } else {
-      const finalAnswers = [...userAnswers, selectedOption || ''];
-       const score = finalAnswers.reduce((acc, answer, index) => {
-          if (index < questions.length && answer === questions[index].correctAnswer) {
-            return acc + 1;
-          }
-          return acc;
-      }, 0);
-      router.replace(`/quiz/results?score=${score}&total=${questions.length}&brand=${brand}&format=${format}`);
+      advanceToResults();
     }
-  };
-
+  }, [currentQuestionIndex, questions.length, showMidQuizAd, advanceToResults]);
+  
   useEffect(() => {
-    if (loading || questions.length === 0 || selectedOption) return;
+    if (paused || loading || questions.length === 0 || selectedOption) return;
 
     if (timeLeft > 0) {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -104,17 +188,24 @@ function QuizComponent() {
       setUserAnswers((prev) => [...prev, '']); // Timed out
       goToNextQuestion();
     }
-  }, [timeLeft, loading, questions.length, selectedOption]);
+  }, [timeLeft, paused, loading, questions.length, selectedOption, goToNextQuestion]);
 
   const handleAnswerSelect = (option: string) => {
     if (selectedOption) return;
-
+    
+    setPaused(true);
     setSelectedOption(option);
     setUserAnswers((prev) => [...prev, option]);
     
     setTimeout(() => {
       goToNextQuestion();
     }, 500);
+  };
+
+  const handleUseHint = () => {
+    if (hintUsed) return;
+    setPaused(true);
+    setShowHintAd(true);
   };
   
   if (loading) {
@@ -137,55 +228,99 @@ function QuizComponent() {
     );
   }
 
-  if (questions.length === 0) {
-    return null;
-  }
+  if (questions.length === 0) return null;
   
   const currentQuestion = questions[currentQuestionIndex];
   const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
-      <header className="w-full max-w-2xl mx-auto mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-xl font-bold">{format} Quiz</h1>
-          <p className="font-semibold">{currentQuestionIndex + 1} / {questions.length}</p>
-        </div>
-        <Progress value={progressValue} className="h-2 [&>div]:bg-accent" />
-      </header>
+    <>
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+        <header className="w-full max-w-2xl mx-auto mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-xl font-bold">{format} Quiz</h1>
+            <p className="font-semibold">{currentQuestionIndex + 1} / {questions.length}</p>
+          </div>
+          <Progress value={progressValue} className="h-2 [&>div]:bg-accent" />
+        </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
-        <div className="mb-8">
-          <Timer timeLeft={timeLeft} />
-        </div>
+        <main className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
+          <div className="mb-8">
+            <Timer timeLeft={timeLeft} />
+          </div>
 
-        <Card className="w-full bg-white/10 border-0">
-          <CardHeader>
-            <CardTitle className="text-xl md:text-2xl leading-tight">
-              {currentQuestion.questionText}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {currentQuestion.options.map((option, index) => (
-              <Button
-                key={index}
-                onClick={() => handleAnswerSelect(option)}
-                disabled={!!selectedOption}
-                className={`
-                  w-full h-auto py-4 text-base whitespace-normal justify-start text-left
-                  bg-white/20 hover:bg-white/30 text-white
-                  ${selectedOption === option ? 'ring-4 ring-accent' : ''}
-                  ${selectedOption && selectedOption !== option ? 'opacity-50' : ''}
-                `}
-              >
-                <span className="font-bold mr-4">{String.fromCharCode(65 + index)}</span>
-                <span>{option}</span>
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+          <Card className="w-full bg-white/10 border-0">
+            <CardHeader>
+              <CardTitle className="text-xl md:text-2xl leading-tight">
+                {currentQuestion.questionText}
+              </CardTitle>
+              {isHintVisible && (
+                  <p className="text-sm text-yellow-300 pt-2 animate-in fade-in">
+                      <strong>Hint:</strong> {currentQuestion.hint}
+                  </p>
+              )}
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {currentQuestion.options.map((option, index) => (
+                <Button
+                  key={index}
+                  onClick={() => handleAnswerSelect(option)}
+                  disabled={!!selectedOption}
+                  className={`
+                    w-full h-auto py-4 text-base whitespace-normal justify-start text-left
+                    bg-white/20 hover:bg-white/30 text-white
+                    ${selectedOption === option ? 'ring-4 ring-accent' : ''}
+                    ${selectedOption && selectedOption !== option ? 'opacity-50' : ''}
+                  `}
+                >
+                  <span className="font-bold mr-4">{String.fromCharCode(65 + index)}</span>
+                  <span>{option}</span>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+          
+          <Button onClick={handleUseHint} disabled={hintUsed || !!selectedOption} className="mt-6 bg-yellow-500 hover:bg-yellow-600">
+            <Lightbulb className="mr-2" />
+            {hintUsed ? "Hint Used" : "Use Hint"}
+          </Button>
+        </main>
+      </div>
+
+      <AdDialog
+          open={showHintAd}
+          onAdFinished={() => {
+              setShowHintAd(false);
+              setIsHintVisible(true);
+              setHintUsed(true);
+              setPaused(false);
+          }}
+          duration={2}
+          skippableAfter={2}
+          adImageUrl="https://placehold.co/400x200"
+          adTitle="Sponsored Hint">
+          <p className="font-bold text-lg mt-4">Enjoy your hint!</p>
+      </AdDialog>
+      
+      <AdDialog
+          open={showMidQuizAd}
+          onAdFinished={() => {
+              setShowMidQuizAd(false);
+              // This is where we actually advance the question
+              if (currentQuestionIndex < questions.length - 1) {
+                  setCurrentQuestionIndex(prev => prev + 1);
+                  setTimeLeft(20);
+                  setPaused(false);
+              } else {
+                  advanceToResults();
+              }
+          }}
+          duration={10}
+          skippableAfter={5}
+          adImageUrl="https://placehold.co/600x300"
+          adTitle="A short break from our sponsors"
+      />
+    </>
   );
 }
 

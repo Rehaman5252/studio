@@ -32,6 +32,9 @@ const QuizQuestionSchema = z.object({
       .describe(
         'The single correct answer, which must exactly match one of the options.'
       ),
+    hint: z
+        .string()
+        .describe('A helpful, single-sentence hint for the question that does not give away the answer directly.')
 });
 
 export const GenerateQuizOutputSchema = z.array(QuizQuestionSchema).length(5);
@@ -54,6 +57,7 @@ const prompt = ai.definePrompt({
   3.  **Plausible Options**: All four options for each question must be extremely close and believable to challenge the user.
   4.  **Correctness**: The \`correctAnswer\` must be an exact match to one of the provided options.
   5.  **Format Focus**: All questions must be strictly related to the "{{format}}" format.
+  6.  **Hints**: For each question, provide a concise, clever hint that guides the user toward the answer without giving it away.
 
   Generate the 5 questions now.
   `,
