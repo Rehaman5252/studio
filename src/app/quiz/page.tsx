@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -99,7 +100,8 @@ function QuizComponent() {
 
         if (historyString) {
           const history = JSON.parse(historyString);
-          const savedAttempt = history.find((attempt: any) => attempt.slotId === quizSlotId && attempt.format === format);
+          // Check if ANY quiz has been attempted in this slot.
+          const savedAttempt = history.find((attempt: any) => attempt.slotId === quizSlotId);
           
           if (savedAttempt) {
             const dataToPass = { questions: savedAttempt.questions, userAnswers: savedAttempt.userAnswers, brand: savedAttempt.brand, format: savedAttempt.format };

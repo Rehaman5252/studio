@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
@@ -106,7 +107,7 @@ function ResultsComponent() {
                 const historyString = localStorage.getItem('cricblitz-quiz-history');
                 const history: QuizAttempt[] = historyString ? JSON.parse(historyString) : [];
 
-                const attemptExists = history.some(attempt => attempt.slotId === quizSlotId && attempt.format === format);
+                const attemptExists = history.some(attempt => attempt.slotId === quizSlotId);
 
                 if (!attemptExists) {
                     const newAttempt: QuizAttempt = {
@@ -181,9 +182,9 @@ function ResultsComponent() {
                         {isRetake && (
                             <Alert variant="default" className="text-left bg-yellow-500/20 border-yellow-400 text-white">
                                 <Info className="h-4 w-4 text-yellow-300" />
-                                <AlertTitle className="font-bold">Attempt already recorded</AlertTitle>
+                                <AlertTitle className="font-bold">Attempt Already Recorded</AlertTitle>
                                 <AlertDescription>
-                                    You have already played this quiz. Here is your result for this slot.
+                                    You have already played the <strong>{format}</strong> quiz in this 10-minute slot. Each slot allows for one quiz attempt. Here are your results.
                                 </AlertDescription>
                             </Alert>
                         )}
