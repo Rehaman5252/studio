@@ -18,12 +18,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 const brands: CubeBrand[] = [
-  { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#F5F5F5', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 40, logoHeight: 40 },
-  { id: 2, brand: 'Myntra', format: 'WPL', color: '#FF3F6C', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
-  { id: 3, brand: 'SBI', format: 'Test', color: '#1E3A8A', bgColor: '#EBF8FF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 60, logoHeight: 60 },
+  { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 40, logoHeight: 40 },
+  { id: 2, brand: 'Myntra', format: 'WPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
+  { id: 3, brand: 'SBI', format: 'Test', color: '#1E3A8A', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 60, logoHeight: 60 },
   { id: 4, brand: 'Nike', format: 'ODI', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Nike_logo.svg', logoWidth: 60, logoHeight: 30 },
-  { id: 5, brand: 'Amazon', format: 'Mixed', color: '#FF9900', bgColor: '#232F3E', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 70, logoHeight: 25 },
-  { id: 6, brand: 'Boat', format: 'IPL', color: '#FFFFFF', bgColor: '#1A1A1A', logoUrl: 'https://www.boat-lifestyle.com/cdn/shop/files/logo-white_200x.png?v=1614266857', logoWidth: 80, logoHeight: 30 },
+  { id: 5, brand: 'Amazon', format: 'Mixed', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 70, logoHeight: 25 },
+  { id: 6, brand: 'Boat', format: 'IPL', color: '#FFFFFF', bgColor: '#000000', logoUrl: 'https://www.boat-lifestyle.com/cdn/shop/files/logo-white_200x.png?v=1614266857', logoWidth: 80, logoHeight: 30 },
 ];
 
 function NextQuizTimer() {

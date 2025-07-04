@@ -126,7 +126,7 @@ export default function Cube({ brands, onSelect }: CubeProps) {
               className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-2xl"
               style={{
                 transform: faceTransforms[index],
-                backgroundColor: `${brand.bgColor}20`, // 12.5% opacity
+                backgroundColor: `${brand.bgColor}A0`, // 63% opacity
                 borderColor: 'transparent',
               }}
             >
@@ -138,7 +138,7 @@ export default function Cube({ brands, onSelect }: CubeProps) {
                   height={brand.logoHeight}
                   className="object-contain px-2"
                 />
-                <span className="text-xs" style={{ color: brand.color, opacity: 0.8 }}>
+                <span className="text-xs font-semibold" style={{ color: brand.color, opacity: 0.9 }}>
                   {brand.format}
                 </span>
               </div>
