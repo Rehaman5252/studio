@@ -7,9 +7,19 @@ import type { QuizQuestion } from '@/ai/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb, Video, SkipForward, X } from 'lucide-react';
+import { Loader2, Lightbulb, SkipForward } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
+
+const getQuizSlotId = () => {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  // Calculate the start of the current 10-minute slot
+  const currentSlotStartMinute = Math.floor(minutes / 10) * 10;
+  const slotTime = new Date(now);
+  slotTime.setMinutes(currentSlotStartMinute, 0, 0);
+  return slotTime.getTime().toString();
+};
 
 const Timer = ({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;
@@ -121,16 +131,22 @@ function QuizComponent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
-  const [hintUsed, setHintUsed] = useState(false);
+  const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
   const [showHintAd, setShowHintAd] = useState(false);
   const [isHintVisible, setIsHintVisible] = useState(false);
   const [showMidQuizAd, setShowMidQuizAd] = useState(false);
   const [paused, setPaused] = useState(false);
+  
+  const advanceToResults = useCallback(() => {
+    const dataToPass = { questions, userAnswers };
+    router.replace(
+      `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&brand=${brand}&format=${format}`
+    );
+  }, [questions, userAnswers, brand, format, router]);
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        setLoading(true);
         const quizQuestions = await generateQuiz({ format, brand });
         if (!quizQuestions || quizQuestions.length < 5) {
             throw new Error('Failed to generate a complete quiz.');
@@ -143,15 +159,28 @@ function QuizComponent() {
         setLoading(false);
       }
     };
-    fetchQuestions();
-  }, [format, brand]);
 
-  const advanceToResults = useCallback(() => {
-    const dataToPass = { questions, userAnswers };
-    router.replace(
-      `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&brand=${brand}&format=${format}`
-    );
-  }, [questions, userAnswers, brand, format, router]);
+    const checkPreviousAttempt = () => {
+      const quizSlotId = getQuizSlotId();
+      const resultKey = `cricblitz-quiz-result-${quizSlotId}-${format}`;
+      try {
+        const savedResult = localStorage.getItem(resultKey);
+        if (savedResult) {
+          router.replace(
+            `/quiz/results?data=${encodeURIComponent(savedResult)}&brand=${brand}&format=${format}`
+          );
+        } else {
+          fetchQuestions();
+        }
+      } catch (e) {
+        console.error("Could not access localStorage, fetching new quiz.", e);
+        fetchQuestions();
+      }
+    };
+    
+    checkPreviousAttempt();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [format, brand]);
 
   const goToNextQuestion = useCallback(() => {
     setPaused(false);
@@ -197,7 +226,7 @@ function QuizComponent() {
   };
 
   const handleUseHint = () => {
-    if (hintUsed) return;
+    if (usedHintIndices.includes(currentQuestionIndex)) return;
     setPaused(true);
     setShowHintAd(true);
   };
@@ -274,9 +303,9 @@ function QuizComponent() {
             </CardContent>
           </Card>
           
-          <Button onClick={handleUseHint} disabled={hintUsed || !!selectedOption} className="mt-6 bg-yellow-500 hover:bg-yellow-600">
+          <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption} className="mt-6 bg-yellow-500 hover:bg-yellow-600">
             <Lightbulb className="mr-2" />
-            {hintUsed ? "Hint Used" : "Use Hint"}
+            {usedHintIndices.includes(currentQuestionIndex) ? "Hint Used" : "Use Hint"}
           </Button>
         </main>
       </div>
@@ -286,7 +315,7 @@ function QuizComponent() {
           onAdFinished={() => {
               setShowHintAd(false);
               setIsHintVisible(true);
-              setHintUsed(true);
+              setUsedHintIndices(prev => [...prev, currentQuestionIndex]);
               setPaused(false);
           }}
           duration={2}
@@ -300,7 +329,6 @@ function QuizComponent() {
           open={showMidQuizAd}
           onAdFinished={() => {
               setShowMidQuizAd(false);
-              // This is where we actually advance the question
               if (currentQuestionIndex < questions.length - 1) {
                   setCurrentQuestionIndex(prev => prev + 1);
                   setTimeLeft(20);

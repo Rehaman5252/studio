@@ -6,9 +6,19 @@ import type { QuizQuestion } from '@/ai/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Award, SkipForward, Star } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, SkipForward } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+
+const getQuizSlotId = () => {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  // Calculate the start of the current 10-minute slot
+  const currentSlotStartMinute = Math.floor(minutes / 10) * 10;
+  const slotTime = new Date(now);
+  slotTime.setMinutes(currentSlotStartMinute, 0, 0);
+  return slotTime.getTime().toString();
+};
 
 function Certificate({ format }: { format: string }) {
     const today = new Date().toLocaleDateString('en-US', {
@@ -120,6 +130,21 @@ function ResultsComponent() {
             return { questions: [] as QuizQuestion[], userAnswers: [], brand, format };
         }
     }, [searchParams]);
+
+    useEffect(() => {
+        const dataParam = searchParams.get('data');
+        if (dataParam) {
+            const quizSlotId = getQuizSlotId();
+            const resultKey = `cricblitz-quiz-result-${quizSlotId}-${format}`;
+            try {
+                if (!localStorage.getItem(resultKey)) {
+                    localStorage.setItem(resultKey, decodeURIComponent(dataParam));
+                }
+            } catch (e) {
+                console.error("Could not save to localStorage", e);
+            }
+        }
+    }, [searchParams, format]);
 
     const score = useMemo(() => {
         if (!questions || !userAnswers) return 0;
