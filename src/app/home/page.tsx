@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Clock,
   Users,
@@ -11,19 +12,19 @@ import {
   Star,
   ChevronRight,
 } from 'lucide-react';
-import Cube from '@/components/Cube';
+import Cube, { type CubeBrand } from '@/components/Cube';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
-const brandThemes: { [key: string]: { primary: string; secondary: string; accent: string } } = {
-  Apple: { primary: '#000000', secondary: '#F5F5F5', accent: '#007AFF' },
-  Myntra: { primary: '#FF3F6C', secondary: '#FFF0F5', accent: '#FF1744' },
-  SBI: { primary: '#1E3A8A', secondary: '#EBF8FF', accent: '#3B82F6' },
-  Nike: { primary: '#000000', secondary: '#FFFFFF', accent: '#FF6B35' },
-  Amazon: { primary: '#FF9900', secondary: '#232F3E', accent: '#FFB74D' },
-  Boat: { primary: '#FF6B35', secondary: '#1A1A1A', accent: '#FF8A65' },
-};
+const brands: CubeBrand[] = [
+  { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#F5F5F5', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 40, logoHeight: 40 },
+  { id: 2, brand: 'Myntra', format: 'WPL', color: '#FF3F6C', bgColor: '#FFF0F5', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
+  { id: 3, brand: 'SBI', format: 'Test', color: '#1E3A8A', bgColor: '#EBF8FF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 60, logoHeight: 60 },
+  { id: 4, brand: 'Nike', format: 'ODI', color: '#FFFFFF', bgColor: '#000000', logoUrl: 'https://www.freepnglogos.com/uploads/nike-logo-png/nike-logo-white-png-21.png', logoWidth: 60, logoHeight: 30 },
+  { id: 5, brand: 'Amazon', format: 'Mixed', color: '#FF9900', bgColor: '#232F3E', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 70, logoHeight: 25 },
+  { id: 6, brand: 'Boat', format: 'IPL', color: '#FF6B35', bgColor: '#1A1A1A', logoUrl: 'https://cdn.shopify.com/s/files/1/0057/8938/4802/files/boAt_logo_small_3067da8c-a83b-46dd-bce9-1f00a120b017_180x.png', logoWidth: 80, logoHeight: 30 },
+];
 
 function NextQuizTimer() {
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
@@ -62,8 +63,7 @@ function NextQuizTimer() {
 }
 
 export default function HomeScreen() {
-  const [selectedBrand, setSelectedBrand] = useState('Apple');
-  const [selectedFormat, setSelectedFormat] = useState('T20');
+  const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const [playersPlaying, setPlayersPlaying] = useState(743);
   const [playersPlayed, setPlayersPlayed] = useState(3029);
   const [totalWinners, setTotalWinners] = useState(129);
@@ -80,12 +80,7 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleFormatSelection = (brand: string, format: string) => {
-    setSelectedBrand(brand);
-    setSelectedFormat(format);
-  };
-
-  const currentTheme = brandThemes[selectedBrand] || brandThemes.Apple;
+  const selectedBrand = brands[selectedBrandIndex];
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary to-green-400 text-white">
@@ -126,19 +121,25 @@ export default function HomeScreen() {
             <h2 className="text-2xl font-bold">Select Your Cricket Format to Win</h2>
           </div>
 
-          <Cube onSelect={handleFormatSelection} />
+          <Cube brands={brands} onSelect={setSelectedBrandIndex} />
 
-          <Link href={{ pathname: '/quiz', query: { brand: selectedBrand, format: selectedFormat } }}>
-            <Card className="w-full mt-8 rounded-2xl shadow-lg transition-transform hover:scale-105" style={{ backgroundColor: currentTheme.secondary }}>
+          <Link href={{ pathname: '/quiz', query: { brand: selectedBrand.brand, format: selectedBrand.format } }}>
+            <Card className="w-full mt-8 rounded-2xl shadow-lg transition-transform hover:scale-105 bg-white/20 border-0">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-2xl font-bold" style={{ color: currentTheme.primary }}>{selectedFormat} Cricket Quiz</h3>
-                    <p className="opacity-80 mb-2" style={{ color: currentTheme.primary }}>Sponsored by {selectedBrand}</p>
-                    <p className="text-lg font-semibold" style={{ color: currentTheme.accent }}>Win ₹100 + {selectedBrand} Rewards!</p>
+                    <h3 className="text-2xl font-bold text-white">{selectedBrand.format} Cricket Quiz</h3>
+                    <p className="opacity-80 mb-2 text-white">Sponsored by {selectedBrand.brand}</p>
+                    <p className="text-lg font-semibold text-accent">Win ₹100 + {selectedBrand.brand} Rewards!</p>
                   </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: currentTheme.primary }}>
-                    <span className="text-3xl">🏏</span>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/30 p-2">
+                    <Image
+                      src={selectedBrand.logoUrl}
+                      alt={`${selectedBrand.brand} logo`}
+                      width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
+                      height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
+                      className="object-contain"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -178,9 +179,9 @@ export default function HomeScreen() {
             </Card>
           </div>
 
-          <Link href={{ pathname: '/quiz', query: { brand: selectedBrand, format: selectedFormat } }} className="mt-8 block">
+          <Link href={{ pathname: '/quiz', query: { brand: selectedBrand.brand, format: selectedBrand.format } }} className="mt-8 block">
             <Button size="lg" className="w-full h-16 bg-accent hover:bg-accent/90 text-accent-foreground text-xl font-bold shadow-lg">
-              Start {selectedFormat} Quiz Now <ChevronRight className="ml-2"/>
+              Start {selectedBrand.format} Quiz Now <ChevronRight className="ml-2"/>
             </Button>
           </Link>
         </div>

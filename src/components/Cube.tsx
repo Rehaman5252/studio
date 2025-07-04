@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 
-interface CubeBrand {
+export interface CubeBrand {
   id: number;
   brand: string;
   format: string;
@@ -13,15 +13,6 @@ interface CubeBrand {
   logoWidth: number;
   logoHeight: number;
 }
-
-const brands: CubeBrand[] = [
-  { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#F5F5F5', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 40, logoHeight: 40 },
-  { id: 2, brand: 'Myntra', format: 'WPL', color: '#FF3F6C', bgColor: '#FFF0F5', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
-  { id: 3, brand: 'SBI', format: 'Test', color: '#1E3A8A', bgColor: '#EBF8FF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 60, logoHeight: 60 },
-  { id: 4, brand: 'Nike', format: 'ODI', color: '#FFFFFF', bgColor: '#000000', logoUrl: 'https://www.freepnglogos.com/uploads/nike-logo-png/nike-logo-white-png-21.png', logoWidth: 60, logoHeight: 30 },
-  { id: 5, brand: 'Amazon', format: 'Mixed', color: '#FF9900', bgColor: '#232F3E', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 70, logoHeight: 25 },
-  { id: 6, brand: 'Boat', format: 'IPL', color: '#FF6B35', bgColor: '#1A1A1A', logoUrl: 'https://cdn.shopify.com/s/files/1/0057/8938/4802/files/boAt_logo_small_3067da8c-a83b-46dd-bce9-1f00a120b017_180x.png', logoWidth: 80, logoHeight: 30 },
-];
 
 // Positions each face of the cube in 3D space. The `translateZ` value is half the face width (128px / 2 = 64px).
 const faceTransforms = [
@@ -47,10 +38,11 @@ const rotationMap = [
 const faceRotationOrder = [0, 4, 1, 5, 3, 2]; // Front, Top, Right, Bottom, Left, Back
 
 interface CubeProps {
-  onSelect: (brand: string, format: string) => void;
+  brands: CubeBrand[];
+  onSelect: (index: number) => void;
 }
 
-export default function Cube({ onSelect }: CubeProps) {
+export default function Cube({ brands, onSelect }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,7 +60,7 @@ export default function Cube({ onSelect }: CubeProps) {
 
     // Wait for the animation to finish before updating the selected brand/banner.
     selectTimeoutRef.current = setTimeout(() => {
-        onSelect(brands[brandIndex].brand, brands[brandIndex].format);
+        onSelect(brandIndex);
     }, 1500); // Sync with 1.5s CSS transition
   }, [onSelect]);
 
@@ -134,8 +126,8 @@ export default function Cube({ onSelect }: CubeProps) {
               className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-2xl"
               style={{
                 transform: faceTransforms[index],
-                backgroundColor: `${brand.bgColor}80`, // 50% opacity for transparency
-                borderColor: brand.color,
+                backgroundColor: `${brand.bgColor}40`, // 25% opacity
+                borderColor: 'transparent',
               }}
             >
               <div className="flex flex-col items-center justify-center h-full text-center p-2 gap-2">
