@@ -18,12 +18,23 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 const brands: CubeBrand[] = [
-  { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 40, logoHeight: 40 },
+  // Apple: Black logo on white background. Using a reliable PNG.
+  { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
+  
+  // Myntra: Using the standard logo on a white background.
   { id: 2, brand: 'Myntra', format: 'WPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 80, logoHeight: 20 },
-  { id: 3, brand: 'SBI', format: 'Test', color: '#FFFFFF', bgColor: '#0A2D7C', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 60, logoHeight: 60 },
-  { id: 4, brand: 'Nike', format: 'ODI', color: '#FFFFFF', bgColor: '#000000', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Logo_NIKE.svg/200px-Logo_NIKE.svg.png', logoWidth: 80, logoHeight: 30 },
-  { id: 5, brand: 'Amazon', format: 'Mixed', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 70, logoHeight: 25 },
-  { id: 6, brand: 'Boat', format: 'IPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/5f/BoAt_logo.png/220px-BoAt_logo.png', logoWidth: 80, logoHeight: 30 },
+  
+  // SBI: White logo on a solid blue background.
+  { id: 3, brand: 'SBI', format: 'Test', color: '#FFFFFF', bgColor: '#0A2D7C', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
+  
+  // Nike: White swoosh on a solid black background for high contrast.
+  { id: 4, brand: 'Nike', format: 'ODI', color: '#FFFFFF', bgColor: '#000000', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Nike_logo_white.png', logoWidth: 80, logoHeight: 30 },
+  
+  // Amazon: Black logo on a white background.
+  { id: 5, brand: 'Amazon', format: 'Mixed', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
+  
+  // boAt: Using a verified PNG logo on a white background.
+  { id: 6, brand: 'Boat', format: 'IPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/BoAt_logo.png/600px-BoAt_logo.png', logoWidth: 80, logoHeight: 30 },
 ];
 
 function NextQuizTimer() {
