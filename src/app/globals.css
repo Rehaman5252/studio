@@ -73,13 +73,13 @@
 
   @keyframes auto-rotate {
     from {
-      transform: rotateX(-15deg) rotateY(15deg);
+      transform: rotateX(0deg) rotateY(0deg);
     }
     to {
-      transform: rotateX(-15deg) rotateY(375deg);
+      transform: rotateX(360deg) rotateY(360deg);
     }
   }
   .animate-cube-rotate {
-    animation: auto-rotate 20s linear infinite;
+    animation: auto-rotate 25s linear infinite;
   }
 }

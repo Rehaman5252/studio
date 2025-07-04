@@ -55,7 +55,7 @@ export default function Cube({ onSelect }: CubeProps) {
             'rotateX(90deg)',
         ];
         cubeRef.current.style.animation = 'none'; // Pause auto-rotation
-        cubeRef.current.style.transform = `rotateX(-15deg) ${rotationMap[index]}`;
+        cubeRef.current.style.transform = rotationMap[index];
         setTimeout(() => {
             if(cubeRef.current) cubeRef.current.style.animation = ''; // Resume
         }, 3000)
