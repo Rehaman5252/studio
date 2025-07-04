@@ -137,16 +137,26 @@ function QuizComponent() {
   const [showMidQuizAd, setShowMidQuizAd] = useState(false);
   const [paused, setPaused] = useState(false);
   
-  const advanceToResults = useCallback(() => {
-    const dataToPass = { questions, userAnswers };
+  const advanceToResults = useCallback((finalAnswers: string[]) => {
+    const dataToPass = { questions, userAnswers: finalAnswers };
     router.replace(
       `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}&brand=${brand}&format=${format}`
     );
-  }, [questions, userAnswers, brand, format, router]);
+  }, [questions, brand, format, router]);
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
+        const quizSlotId = getQuizSlotId();
+        const resultKey = `cricblitz-quiz-result-${quizSlotId}-${format}`;
+        const savedResult = localStorage.getItem(resultKey);
+        if (savedResult) {
+          router.replace(
+            `/quiz/results?data=${encodeURIComponent(savedResult)}&brand=${brand}&format=${format}`
+          );
+          return;
+        }
+
         const quizQuestions = await generateQuiz({ format, brand });
         if (!quizQuestions || quizQuestions.length < 5) {
             throw new Error('Failed to generate a complete quiz.');
@@ -159,30 +169,12 @@ function QuizComponent() {
         setLoading(false);
       }
     };
-
-    const checkPreviousAttempt = () => {
-      const quizSlotId = getQuizSlotId();
-      const resultKey = `cricblitz-quiz-result-${quizSlotId}-${format}`;
-      try {
-        const savedResult = localStorage.getItem(resultKey);
-        if (savedResult) {
-          router.replace(
-            `/quiz/results?data=${encodeURIComponent(savedResult)}&brand=${brand}&format=${format}`
-          );
-        } else {
-          fetchQuestions();
-        }
-      } catch (e) {
-        console.error("Could not access localStorage, fetching new quiz.", e);
-        fetchQuestions();
-      }
-    };
     
-    checkPreviousAttempt();
+    fetchQuestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [format, brand]);
 
-  const goToNextQuestion = useCallback(() => {
+  const goToNextQuestion = useCallback((lastAnswer?: string) => {
     setPaused(false);
     setSelectedOption(null);
     setIsHintVisible(false);
@@ -197,9 +189,10 @@ function QuizComponent() {
       setCurrentQuestionIndex((prev) => prev + 1);
       setTimeLeft(20);
     } else {
-      advanceToResults();
+        const finalAnswers = lastAnswer !== undefined ? [...userAnswers, lastAnswer] : userAnswers;
+        advanceToResults(finalAnswers);
     }
-  }, [currentQuestionIndex, questions.length, showMidQuizAd, advanceToResults]);
+  }, [currentQuestionIndex, questions.length, showMidQuizAd, advanceToResults, userAnswers]);
   
   useEffect(() => {
     if (paused || loading || questions.length === 0 || selectedOption) return;
@@ -209,7 +202,7 @@ function QuizComponent() {
       return () => clearTimeout(timerId);
     } else {
       setUserAnswers((prev) => [...prev, '']); // Timed out
-      goToNextQuestion();
+      goToNextQuestion('');
     }
   }, [timeLeft, paused, loading, questions.length, selectedOption, goToNextQuestion]);
 
@@ -221,7 +214,7 @@ function QuizComponent() {
     setUserAnswers((prev) => [...prev, option]);
     
     setTimeout(() => {
-      goToNextQuestion();
+      goToNextQuestion(option);
     }, 500);
   };
 
@@ -334,7 +327,7 @@ function QuizComponent() {
                   setTimeLeft(20);
                   setPaused(false);
               } else {
-                  advanceToResults();
+                  advanceToResults(userAnswers);
               }
           }}
           duration={10}

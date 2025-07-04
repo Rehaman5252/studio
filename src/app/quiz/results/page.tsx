@@ -78,7 +78,13 @@ function AdDialog({ open, onAdFinished, duration, skippableAfter, adImageUrl, ad
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onAdFinished()}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+           if (isSkippable) onAdFinished()
+           // If not skippable and dialog is closed by other means, treat as finished.
+           else onAdFinished()
+        }
+    }}>
         <DialogContent className="bg-background text-foreground p-0 max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
             <DialogHeader className="p-4 border-b">
                 <DialogTitle>{adTitle}</DialogTitle>
@@ -133,7 +139,7 @@ function ResultsComponent() {
 
     useEffect(() => {
         const dataParam = searchParams.get('data');
-        if (dataParam) {
+        if (dataParam && questions.length > 0 && userAnswers.length > 0) {
             const quizSlotId = getQuizSlotId();
             const resultKey = `cricblitz-quiz-result-${quizSlotId}-${format}`;
             try {
@@ -144,7 +150,7 @@ function ResultsComponent() {
                 console.error("Could not save to localStorage", e);
             }
         }
-    }, [searchParams, format]);
+    }, [searchParams, format, questions, userAnswers]);
 
     const score = useMemo(() => {
         if (!questions || !userAnswers) return 0;
@@ -178,8 +184,8 @@ function ResultsComponent() {
 
     return (
         <>
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
-                <Card className="w-full max-w-md text-center bg-white/10 border-0">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4 overflow-y-auto">
+                <Card className="w-full max-w-md text-center bg-white/10 border-0 my-4">
                     <CardHeader>
                         <div className="mx-auto bg-accent/20 p-4 rounded-full w-fit mb-4">
                             <Trophy className="h-12 w-12 text-yellow-300" />
@@ -214,7 +220,10 @@ function ResultsComponent() {
                         <Button
                             variant="secondary"
                             className="w-full"
-                            onClick={() => setShowAnswersAd(true)}
+                            onClick={() => {
+                                setShowAnswers(false);
+                                setShowAnswersAd(true);
+                            }}
                         >
                            View Correct Answers (Ad)
                         </Button>
@@ -222,7 +231,7 @@ function ResultsComponent() {
                 </Card>
 
                 {showAnswers && (
-                    <Card className="w-full max-w-md text-left bg-white/10 border-0 mt-4">
+                    <Card className="w-full max-w-md text-left bg-white/10 border-0 mt-4 mb-4">
                         <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             {questions.map((q, i) => (
