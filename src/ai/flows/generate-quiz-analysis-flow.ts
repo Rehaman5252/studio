@@ -6,6 +6,7 @@
  * - generateQuizAnalysis - A function that provides feedback and improvement tips.
  */
 import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 import {
     GenerateQuizAnalysisInput,
     GenerateQuizAnalysisOutput,
@@ -17,9 +18,20 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
   return generateQuizAnalysisFlow(input);
 }
 
+// This internal schema is used to format the data for the prompt,
+// avoiding the need for complex Handlebars helpers.
+const PromptInputSchema = z.object({
+    quizData: z.array(z.object({
+        questionNumber: z.number(),
+        questionText: z.string(),
+        correctAnswer: z.string(),
+        userAnswer: z.string(),
+    })),
+});
+
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
-  input: { schema: GenerateQuizAnalysisInputSchema },
+  input: { schema: PromptInputSchema },
   output: { schema: GenerateQuizAnalysisOutputSchema },
   prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide encouraging and insightful feedback to a user based on their quiz performance.
 
@@ -34,11 +46,11 @@ Based on the data, generate a personalized performance report. The report should
 6.  **Format the output as Markdown**, using headings, bold text, and lists to make it readable.
 
 Here is the quiz data:
-{{#each questions}}
+{{#each quizData}}
 ---
-Question {{add @index 1}}: {{this.questionText}}
+Question {{this.questionNumber}}: {{this.questionText}}
 Correct Answer: {{this.correctAnswer}}
-User's Answer: {{lookup ../userAnswers @index}}
+User's Answer: {{this.userAnswer}}
 {{/each}}
 `,
 });
@@ -50,7 +62,17 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
   async (input) => {
-    const { output } = await analysisPrompt(input);
+    // Transform the input to match the prompt's simpler schema
+    const promptInput = {
+        quizData: input.questions.map((q, index) => ({
+            questionNumber: index + 1,
+            questionText: q.questionText,
+            correctAnswer: q.correctAnswer,
+            userAnswer: input.userAnswers[index] || 'Not Answered',
+        })),
+    };
+
+    const { output } = await analysisPrompt(promptInput);
     return output!;
   }
 );

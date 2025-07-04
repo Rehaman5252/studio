@@ -16,6 +16,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Kolkata Knight Riders',
     hint: 'This team is co-owned by a Bollywood superstar.',
+    explanation: 'Kolkata Knight Riders (KKR) had a dominant season and defeated Sunrisers Hyderabad in the final to claim their third IPL title.',
     format: 'IPL',
   },
   {
@@ -28,6 +29,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Virat Kohli',
     hint: 'He is the all-time leading run-scorer in IPL history.',
+    explanation: 'Virat Kohli had an outstanding season with the bat for Royal Challengers Bangalore, scoring over 700 runs to win the Orange Cap for the most runs in the tournament.',
     format: 'IPL',
   },
   {
@@ -35,6 +37,7 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Rashid Khan', 'Yuzvendra Chahal', 'Harshal Patel', 'Jasprit Bumrah'],
     correctAnswer: 'Harshal Patel',
     hint: 'He previously won the Purple Cap in 2021.',
+    explanation: "Playing for Punjab Kings, Harshal Patel's clever variations and effective death bowling earned him the Purple Cap for the most wickets in the tournament.",
     format: 'IPL',
   },
   {
@@ -47,6 +50,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Narendra Modi Stadium',
     hint: 'It is the largest cricket stadium in the world.',
+    explanation: 'The final was held at the Narendra Modi Stadium in Ahmedabad, which is the largest cricket stadium in the world by capacity.',
     format: 'IPL',
   },
   {
@@ -59,6 +63,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Mitchell Starc',
     hint: 'He is a left-arm fast bowler from Australia.',
+    explanation: 'Mitchell Starc was named Player of the Match for his exceptional opening spell of 2/14, which broke the back of the Sunrisers Hyderabad batting lineup.',
     format: 'IPL',
   },
   {
@@ -66,18 +71,15 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Virat Kohli', 'David Warner', 'AB de Villiers', 'Chris Gayle'],
     correctAnswer: 'Chris Gayle',
     hint: 'He is called the "Universe Boss".',
+    explanation: 'Chris Gayle scored a century in just 30 balls for Royal Challengers Bangalore against Pune Warriors India in 2013, a record that still stands.',
     format: 'IPL',
   },
   {
-    questionText: 'Which team has won the most IPL titles as of 2024?',
-    options: [
-      'Chennai Super Kings',
-      'Mumbai Indians',
-      'Kolkata Knight Riders',
-      'Sunrisers Hyderabad',
-    ],
-    correctAnswer: 'Chennai Super Kings',
-    hint: 'Both CSK and MI have 5 titles as of 2024, but CSK won their fifth most recently.',
+    questionText: 'Which two teams have won the most IPL titles (5 each) as of 2024?',
+    options: ['CSK & MI', 'KKR & SRH', 'RCB & DC', 'RR & PBKS'],
+    correctAnswer: 'CSK & MI',
+    hint: "One team is led by 'Thala' and the other is known as the 'Paltan'.",
+    explanation: "As of the 2024 season, both Chennai Super Kings and Mumbai Indians have won the IPL title a record 5 times each, making them the most successful franchises in the tournament's history.",
     format: 'IPL',
   },
   {
@@ -90,6 +92,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Sunrisers Hyderabad',
     hint: 'They scored 287/3 in 2024.',
+    explanation: 'Sunrisers Hyderabad scored a mammoth 287/3 against Royal Challengers Bangalore in IPL 2024, setting a new record for the highest team total in the tournament\'s history.',
     format: 'IPL',
   },
   {
@@ -97,6 +100,7 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Sachin Tendulkar', 'Virat Kohli', 'Gautam Gambhir', 'Suresh Raina'],
     correctAnswer: 'Sachin Tendulkar',
     hint: 'He is the "Master Blaster".',
+    explanation: 'Sachin Tendulkar won the Orange Cap in the 2010 IPL season while playing for Mumbai Indians, becoming the first Indian player to achieve this feat.',
     format: 'IPL',
   },
   {
@@ -104,6 +108,7 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Lasith Malinga', 'Yuzvendra Chahal', 'Dwayne Bravo', 'Sunil Narine'],
     correctAnswer: 'Yuzvendra Chahal',
     hint: 'He is a leg-spinner who played for RCB and RR.',
+    explanation: "Yuzvendra Chahal, the crafty leg-spinner, is the all-time leading wicket-taker in the IPL, having surpassed Dwayne Bravo's record.",
     format: 'IPL',
   },
   // Test/ODI Questions
@@ -117,6 +122,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Virender Sehwag',
     hint: 'He scored 309 against Pakistan in Multan.',
+    explanation: "Virender Sehwag, the 'Nawab of Najafgarh', became the first Indian to score a triple hundred in Tests with his blistering 309 against Pakistan in 2004.",
     format: 'Test',
   },
   {
@@ -129,6 +135,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Kapil Dev',
     hint: 'An all-rounder and fast bowler.',
+    explanation: "Kapil Dev famously led the Indian team to its first-ever Cricket World Cup victory in 1983, defeating the mighty West Indies in the final.",
     format: 'ODI',
   },
   {
@@ -136,6 +143,7 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Virender Sehwag', 'Sachin Tendulkar', 'Rohit Sharma', 'Shubman Gill'],
     correctAnswer: 'Rohit Sharma',
     hint: 'He scored 264 runs against Sri Lanka.',
+    explanation: 'Rohit Sharma holds the world record for the highest individual score in ODIs, a monumental 264 against Sri Lanka at Eden Gardens in 2014.',
     format: 'ODI',
   },
   {
@@ -148,6 +156,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Anil Kumble',
     hint: 'He took all 10 wickets in an innings vs Pakistan.',
+    explanation: "Anil Kumble, the legendary leg-spinner, is India's highest wicket-taker in Test cricket with 619 wickets.",
     format: 'Test',
   },
   {
@@ -160,6 +169,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Harbhajan Singh',
     hint: 'Achieved against Australia in 2001 at Eden Gardens.',
+    explanation: 'Harbhajan Singh took the first-ever Test hat-trick for India against a formidable Australian side at Eden Gardens during the historic 2001 series.',
     format: 'Test',
   },
   {
@@ -167,6 +177,7 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Anil Kumble', 'Bishan Singh Bedi', 'Kapil Dev', 'Erapalli Prasanna'],
     correctAnswer: 'Anil Kumble',
     hint: 'Achieved against Pakistan in 1999.',
+    explanation: 'Anil Kumble is one of only three bowlers in Test history to take all ten wickets in an innings, achieving this feat against Pakistan at Feroz Shah Kotla, Delhi in 1999.',
     format: 'Test',
   },
   {
@@ -179,6 +190,7 @@ export const allQuestions: PredefinedQuestion[] = [
     ],
     correctAnswer: 'Sachin Tendulkar',
     hint: 'Achieved against South Africa in 2010.',
+    explanation: 'The Master Blaster, Sachin Tendulkar, broke the barrier for double centuries in ODIs, scoring an unbeaten 200 against South Africa in Gwalior in 2010.',
     format: 'ODI',
   },
   {
@@ -186,6 +198,7 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Virat Kohli', 'Kapil Dev', 'Yuvraj Singh', 'Rohit Sharma'],
     correctAnswer: 'Virat Kohli',
     hint: 'Scored in 52 balls vs Australia, 2013.',
+    explanation: 'Virat Kohli smashed a century off just 52 balls against Australia in Jaipur in 2013, setting the record for the fastest ODI hundred by an Indian batsman.',
     format: 'ODI',
   },
   {
@@ -193,13 +206,15 @@ export const allQuestions: PredefinedQuestion[] = [
     options: ['Sachin Tendulkar', 'Virat Kohli', 'Rahul Dravid', 'Sunil Gavaskar'],
     correctAnswer: 'Virat Kohli',
     hint: 'Has 7 Test double centuries.',
+    explanation: 'Virat Kohli holds the record for the most Test double centuries by an Indian batsman, with a total of seven.',
     format: 'Test',
   },
   {
     questionText: 'Who is the only Indian to have scored a century and taken five wickets in the same Test match?',
     options: ['Kapil Dev', 'Ravi Shastri', 'Hardik Pandya', 'Anil Kumble'],
     correctAnswer: 'Kapil Dev',
-    hint: 'Achieved against Pakistan in 1983.',
+    hint: 'This was achieved by the legendary all-rounder against Pakistan.',
+    explanation: 'The great all-rounder Kapil Dev is the only Indian to have achieved the rare feat of scoring a century and taking five wickets in the same Test match.',
     format: 'Test',
   },
 ];

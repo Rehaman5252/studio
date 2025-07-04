@@ -8,7 +8,7 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -227,12 +227,16 @@ function ResultsComponent() {
                         <CardContent className="space-y-4">
                             {questions.map((q, i) => (
                                 <div key={i} className="text-sm p-3 rounded-lg bg-black/20">
-                                    <p className="font-bold mb-2">{i+1}. {q.questionText}</p>
+                                    <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
                                     <p className={cn("flex items-center", userAnswers[i] === q.correctAnswer ? "text-green-300" : "text-red-300")}>
-                                      {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2"/> : <XCircle className="mr-2"/>}
+                                      {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0"/> : <XCircle className="mr-2 shrink-0"/>}
                                       Your answer: {userAnswers[i] || 'Not answered'}
                                     </p>
-                                    {userAnswers[i] !== q.correctAnswer && <p className="text-green-300 flex items-center"><CheckCircle2 className="mr-2"/> Correct: {q.correctAnswer}</p>}
+                                    {userAnswers[i] !== q.correctAnswer && <p className="text-green-300 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
+                                    <div className="mt-2 pt-2 border-t border-white/20 text-white/80">
+                                        <p className="font-semibold">Explanation:</p>
+                                        <p>{q.explanation}</p>
+                                    </div>
                                 </div>
                             ))}
                         </CardContent>
