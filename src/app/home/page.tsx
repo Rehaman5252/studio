@@ -20,23 +20,12 @@ import { Separator } from '@/components/ui/separator';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 const brands: CubeBrand[] = [
-  // Apple: Black logo on white background. Using a reliable PNG.
-  { id: 1, brand: 'Apple', format: 'T20', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
-  
-  // Myntra: Using a reliable PNG logo on a white background.
-  { id: 2, brand: 'Myntra', format: 'WPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e9/Myntra-logo.png', logoWidth: 70, logoHeight: 25 },
-  
-  // SBI: White logo on a solid blue background.
-  { id: 3, brand: 'SBI', format: 'Test', color: '#FFFFFF', bgColor: '#0A2D7C', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
-  
-  // Nike: White swoosh on a solid black background for high contrast.
-  { id: 4, brand: 'Nike', format: 'ODI', color: '#FFFFFF', bgColor: '#000000', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Nike_logo_white.png', logoWidth: 80, logoHeight: 30 },
-  
-  // Amazon: Black logo on a white background.
-  { id: 5, brand: 'Amazon', format: 'Mixed', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
-  
-  // boAt: Using a reliable PNG logo on a white background.
-  { id: 6, brand: 'boAt', format: 'IPL', color: '#000000', bgColor: '#FFFFFF', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Boat_logo.png', logoWidth: 80, logoHeight: 25 },
+  { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
+  { id: 2, brand: 'Myntra', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e9/Myntra-logo.png', logoWidth: 70, logoHeight: 25 },
+  { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
+  { id: 4, brand: 'Nike', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Nike_logo_white.png', logoWidth: 80, logoHeight: 30 },
+  { id: 5, brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
+  { id: 6, brand: 'boAt', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Boat_logo.png', logoWidth: 80, logoHeight: 25 },
 ];
 
 const formatTime = (time: number) => time.toString().padStart(2, '0');

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -7,8 +8,6 @@ export interface CubeBrand {
   id: number;
   brand: string;
   format: string;
-  color: string;
-  bgColor: string;
   logoUrl: string;
   logoWidth: number;
   logoHeight: number;
@@ -123,11 +122,9 @@ export default function Cube({ brands, onSelect }: CubeProps) {
             <div
               key={brand.id}
               onClick={() => handleFaceClick(index)}
-              className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer"
+              className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer bg-white/20 backdrop-blur-sm border-white/30"
               style={{
                 transform: faceTransforms[index],
-                backgroundColor: brand.bgColor,
-                borderColor: 'transparent',
               }}
             >
               <div className="flex flex-col items-center justify-center h-full text-center p-2 gap-2">
@@ -136,9 +133,9 @@ export default function Cube({ brands, onSelect }: CubeProps) {
                   alt={`${brand.brand} logo`}
                   width={brand.logoWidth}
                   height={brand.logoHeight}
-                  className="object-contain px-2"
+                  className="object-contain px-2 drop-shadow-lg"
                 />
-                <span className="text-xs font-semibold" style={{ color: brand.color, opacity: 0.9 }}>
+                <span className="text-xs font-semibold text-white opacity-90">
                   {brand.format}
                 </span>
               </div>
