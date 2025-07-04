@@ -44,3 +44,17 @@ export const GenerateHintOutputSchema = z.object({
   hint: z.string().describe('A helpful hint for the quiz question.'),
 });
 export type GenerateHintOutput = z.infer<typeof GenerateHintOutputSchema>;
+
+
+// Schemas for generateQuizAnalysisFlow
+export const GenerateQuizAnalysisInputSchema = z.object({
+  questions: z.array(QuizQuestionSchema),
+  userAnswers: z.array(z.string()),
+});
+export type GenerateQuizAnalysisInput = z.infer<typeof GenerateQuizAnalysisInputSchema>;
+
+
+export const GenerateQuizAnalysisOutputSchema = z.object({
+    analysis: z.string().describe('A detailed analysis of the user quiz performance, including strengths, weaknesses, and tips for improvement. The analysis should be formatted as markdown.'),
+});
+export type GenerateQuizAnalysisOutput = z.infer<typeof GenerateQuizAnalysisOutputSchema>;
