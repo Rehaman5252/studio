@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Gift, ExternalLink, Ticket, Percent } from 'lucide-react';
+import { Gift, ExternalLink } from 'lucide-react';
 import type { QuizQuestion } from '@/ai/schemas';
 import Image from 'next/image';
 
@@ -61,10 +61,10 @@ const ScratchCard = ({ brand }: { brand: string }) => {
 };
 
 
-const GenericOffer = ({ title, description, icon: Icon, image, hint }: { title: string, description: string, icon: React.ElementType, image: string, hint: string }) => (
+const GenericOffer = ({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
     <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
         <CardContent className="p-4 flex items-center gap-4">
-            <Image src={image} alt={title} width={64} height={64} className="rounded-md" data-ai-hint={hint} />
+            <Image src={image} alt={title} width={100} height={100} className="rounded-md" data-ai-hint={hint} />
             <div>
                 <h4 className="font-bold text-foreground">{title}</h4>
                 <p className="text-sm text-muted-foreground">{description}</p>
@@ -123,9 +123,9 @@ export default function RewardsPage() {
         <section>
           <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
           <div className="space-y-4">
-            <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" icon={Ticket} image="https://placehold.co/100x100.png" hint="shoes sport" />
-            <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" icon={Percent} image="https://placehold.co/100x100.png" hint="food delivery" />
-            <GenericOffer title="Buy 1 Get 1 on Pizza Hut" description="Valid on medium pan pizzas" icon={Gift} image="https://placehold.co/100x100.png" hint="pizza food" />
+            <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" image="https://placehold.co/100x100.png" hint="shoes sport" />
+            <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
+            <GenericOffer title="Buy 1 Get 1 on Pizza Hut" description="Valid on medium pan pizzas" image="https://placehold.co/100x100.png" hint="pizza food" />
           </div>
         </section>
       </main>
