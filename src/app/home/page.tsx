@@ -21,11 +21,11 @@ import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
-  { id: 2, brand: 'Myntra', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Myntra_logo.svg/200px-Myntra_logo.svg.png', logoWidth: 45, logoHeight: 45 },
+  { id: 2, brand: 'Myntra', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Myntra_logo.svg/1200px-Myntra_logo.svg.png', logoWidth: 45, logoHeight: 45 },
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
   { id: 4, brand: 'Nike', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Nike_logo_black.svg/1280px-Nike_logo_black.svg.png', logoWidth: 80, logoHeight: 30 },
   { id: 5, brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
-  { id: 6, brand: 'boAt', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Boat-Logo_2021.svg/250px-Boat-Logo_2021.svg.png', logoWidth: 80, logoHeight: 25 },
+  { id: 6, brand: 'boAt', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Boat-Logo_2021.svg/2048px-Boat-Logo_2021.svg.png', logoWidth: 80, logoHeight: 25 },
 ];
 
 const formatTime = (time: number) => time.toString().padStart(2, '0');
