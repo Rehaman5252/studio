@@ -78,6 +78,9 @@ export default function ProfilePage() {
             <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <Edit className="mr-4" /> Edit Profile
             </Button>
+            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <Award className="mr-4" /> View Certificates
+            </Button>
         </section>
       </main>
     </div>
