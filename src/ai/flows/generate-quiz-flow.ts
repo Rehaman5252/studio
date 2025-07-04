@@ -10,7 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateQuizInputSchema = z.object({
+const GenerateQuizInputSchema = z.object({
   format: z.string().describe('The cricket format for the quiz (e.g., IPL, T20, Test).'),
   brand: z.string().describe('The brand associated with the quiz.'),
 });
@@ -37,7 +37,7 @@ const QuizQuestionSchema = z.object({
         .describe('A helpful, single-sentence hint for the question that does not give away the answer directly.')
 });
 
-export const GenerateQuizOutputSchema = z.array(QuizQuestionSchema).length(5);
+const GenerateQuizOutputSchema = z.array(QuizQuestionSchema).length(5);
 
 export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 
