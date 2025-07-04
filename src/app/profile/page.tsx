@@ -34,9 +34,9 @@ const maskUpi = (upi: string) => {
 }
 
 const StatItem = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
-    <div className="flex flex-col items-center gap-1 text-center">
-        <Icon className="h-6 w-6 text-primary" />
-        <p className="font-bold text-lg">{value}</p>
+    <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg bg-background/50">
+        <Icon className="h-7 w-7 text-primary" />
+        <p className="font-bold text-xl">{value}</p>
         <p className="text-xs text-muted-foreground">{title}</p>
     </div>
 )
@@ -77,8 +77,8 @@ export default function ProfilePage() {
     };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-primary/80 to-green-300/80">
-      <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
         <Button variant="ghost" size="icon" onClick={handleLogout}>
             <LogOut />
@@ -87,25 +87,29 @@ export default function ProfilePage() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         {/* User Info Section */}
-        <section className="relative text-center">
-            <Avatar className="w-24 h-24 mx-auto mb-4 border-4 border-background shadow-lg">
-                <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="avatar person" />
-                <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-             <Button variant="outline" size="icon" className="absolute top-0 right-0 rounded-full h-8 w-8">
-                <Edit className="h-4 w-4" />
-             </Button>
-            <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
-            <p className="text-muted-foreground text-sm">
-                {maskPhone(user.phone)}  •  {maskEmail(user.email)}
-            </p>
-             <p className="text-muted-foreground text-sm">
-                {user.age} yrs | {user.gender} | {user.occupation}
-            </p>
-        </section>
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
+            <CardContent className="p-4 flex items-center gap-4 relative">
+                <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
+                    <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="avatar person" />
+                    <AvatarFallback>JD</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                    <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
+                    <p className="text-muted-foreground text-sm">
+                        {maskPhone(user.phone)}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                        {user.age} yrs | {user.gender} | {user.occupation}
+                    </p>
+                </div>
+                 <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8">
+                    <Edit className="h-4 w-4" />
+                 </Button>
+            </CardContent>
+        </Card>
 
         {/* Stats Section */}
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
              <CardContent className="p-4 grid grid-cols-3 gap-4">
                 <StatItem title="Quizzes Played" value={user.quizzesPlayed} icon={Trophy} />
                 <StatItem title="Highest Streak" value={user.highestStreak} icon={Star} />
@@ -114,19 +118,19 @@ export default function ProfilePage() {
         </Card>
 
         {/* Rewards & Certificates Section */}
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Rewards & Certificates</CardTitle>
             </CardHeader>
              <CardContent className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
                     <Award className="h-8 w-8 text-primary"/>
                     <div>
                         <p className="font-bold text-xl">{user.certificatesEarned}</p>
                         <p className="text-sm text-muted-foreground">Certificates</p>
                     </div>
                 </div>
-                 <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
                     <Gift className="h-8 w-8 text-primary"/>
                     <div>
                          <p className="font-bold text-xl">1</p>
@@ -137,12 +141,12 @@ export default function ProfilePage() {
         </Card>
         
         {/* Referral Section */}
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Referrals</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                         <Users className="h-8 w-8 text-primary"/>
                         <div>
@@ -152,12 +156,12 @@ export default function ProfilePage() {
                     </div>
                     <Button variant="outline" size="sm">Copy Link</Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 bg-muted p-2 rounded-md">{user.referralCode}</p>
+                <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{user.referralCode}</p>
             </CardContent>
         </Card>
 
         {/* Payout Info Section */}
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Payout Info</CardTitle>
             </CardHeader>
@@ -168,7 +172,7 @@ export default function ProfilePage() {
         </Card>
         
         {/* Settings Section */}
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Settings</CardTitle>
           </CardHeader>
@@ -224,7 +228,7 @@ export default function ProfilePage() {
         </section>
         
         {/* Support Section */}
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Support</CardTitle>
             </CardHeader>

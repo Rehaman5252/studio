@@ -35,7 +35,7 @@ const ScratchCard = ({ brand }: { brand: string }) => {
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
 
   return (
-    <Card className="bg-gradient-to-br from-accent to-orange-400 text-accent-foreground p-0 overflow-hidden shadow-lg relative aspect-video">
+    <Card className="bg-gradient-to-br from-accent to-yellow-400 text-accent-foreground p-0 overflow-hidden shadow-lg relative aspect-video">
       {!isScratched ? (
         <div
           className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90"
@@ -51,7 +51,7 @@ const ScratchCard = ({ brand }: { brand: string }) => {
           <p className="text-sm opacity-80">from {brand}</p>
           <Button
             onClick={() => window.open(reward.link, '_blank')}
-            className="mt-4 bg-white text-accent hover:bg-white/90"
+            className="mt-4 bg-white text-accent-foreground hover:bg-white/90"
           >
             Claim Now <ExternalLink className="ml-2 h-4 w-4" />
           </Button>
@@ -63,9 +63,9 @@ const ScratchCard = ({ brand }: { brand: string }) => {
 
 
 const GenericOffer = ({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
+    <Card className="bg-background/80 backdrop-blur-sm border-white/20 shadow-lg">
         <CardContent className="p-4 flex items-center gap-4">
-            <Image src={image} alt={title} width={100} height={100} className="rounded-md" data-ai-hint={hint} />
+            <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
             <div>
                 <h4 className="font-bold text-foreground">{title}</h4>
                 <p className="text-sm text-muted-foreground">{description}</p>
@@ -102,8 +102,8 @@ export default function RewardsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-primary/80 to-green-300/80">
-      <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Rewards Center</h1>
       </header>
 
@@ -113,7 +113,7 @@ export default function RewardsPage() {
           {latestAttempt ? (
             <ScratchCard brand={latestAttempt.brand} />
           ) : (
-            <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
+            <Card className="bg-background/80 backdrop-blur-sm border-white/20">
               <CardContent className="p-6 text-center text-muted-foreground">
                 <p>Play a quiz to unlock a special brand gift!</p>
               </CardContent>

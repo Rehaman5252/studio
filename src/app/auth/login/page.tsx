@@ -56,17 +56,17 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 p-4">
+    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 p-4">
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8 text-white">
-          <div className="inline-block bg-white/20 p-4 rounded-full">
+          <div className="inline-block bg-white/20 p-4 rounded-full shadow-lg">
             <span className="text-6xl">🏏</span>
           </div>
           <h1 className="text-4xl font-extrabold mt-4">Indcric</h1>
           <p className="text-lg opacity-90">Win ₹100 for 100 Seconds</p>
         </div>
 
-        <Card>
+        <Card className="bg-background/80 backdrop-blur-sm border-white/20 shadow-xl">
           <CardHeader>
             <CardTitle>{isOtpSent ? 'Verify Your Email' : 'Welcome to Indcric'}</CardTitle>
             <CardDescription>
@@ -91,7 +91,7 @@ export default function LoginScreen() {
                   />
                 </div>
                 <Button
-                  className="w-full bg-accent hover:bg-accent/90"
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
                   onClick={handleSendOtp}
                   disabled={loading}
                 >
@@ -111,7 +111,7 @@ export default function LoginScreen() {
                   pattern="[0-9]*"
                 />
                 <Button
-                  className="w-full bg-accent hover:bg-accent/90"
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
                   onClick={handleVerifyOtp}
                   disabled={loading}
                 >

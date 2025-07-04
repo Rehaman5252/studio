@@ -17,10 +17,10 @@ interface WalkthroughStep {
 }
 
 const steps: WalkthroughStep[] = [
-  { id: 1, title: 'Choose Your Cricket Format', description: 'Spin the cube to select your favorite cricket format and brand partner. This affects your quiz questions and rewards!', icon: '🏏', color: 'from-green-400 to-primary' },
-  { id: 2, title: 'Quick 100-Second Quizzes', description: 'Answer 5 cricket questions in 100 seconds. New quizzes start every 10 minutes with live players worldwide!', icon: '⚡', color: 'from-orange-400 to-accent' },
+  { id: 1, title: 'Choose Your Cricket Format', description: 'Spin the cube to select your favorite cricket format and brand partner. This affects your quiz questions and rewards!', icon: '🏏', color: 'from-green-500 to-primary' },
+  { id: 2, title: 'Quick 100-Second Quizzes', description: 'Answer 5 cricket questions in 100 seconds. New quizzes start every 10 minutes with live players worldwide!', icon: '⚡', color: 'from-amber-500 to-accent' },
   { id: 3, title: 'Win Real Money & Rewards', description: 'Score 5/5 to win ₹100 instantly plus brand rewards. Get certificates and climb the leaderboard!', icon: '💰', color: 'from-yellow-400 to-yellow-600' },
-  { id: 4, title: 'Smart Hint System', description: 'Use one hint per quiz to help you answer tough questions. Watch a quick ad to unlock your hint!', icon: '💡', color: 'from-purple-400 to-purple-600' },
+  { id: 4, title: 'Smart Hint System', description: 'Use one hint per quiz to help you answer tough questions. Watch a quick ad to unlock your hint!', icon: '💡', color: 'from-teal-400 to-cyan-600' },
 ];
 
 export default function WalkthroughScreen() {
@@ -58,7 +58,7 @@ export default function WalkthroughScreen() {
       </header>
       
       <main className="flex-1 flex flex-col justify-center items-center text-center">
-        <div className="w-32 h-32 rounded-full bg-white/20 flex items-center justify-center mb-8">
+        <div className="w-32 h-32 rounded-full bg-white/20 flex items-center justify-center mb-8 shadow-lg">
           <span className="text-6xl">{step.icon}</span>
         </div>
         <h1 className="text-3xl font-extrabold mb-4">{step.title}</h1>
@@ -77,7 +77,7 @@ export default function WalkthroughScreen() {
                     <button key={s.id} onClick={() => setCurrentStep(index)} className={`h-2 rounded-full transition-all ${currentStep === index ? 'w-6 bg-white' : 'w-2 bg-white/50'}`}></button>
                 ))}
             </div>
-            <Button onClick={handleNext} className="bg-white text-primary hover:bg-gray-200">
+            <Button onClick={handleNext} className="bg-white text-black hover:bg-gray-200 font-bold">
                 {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
                 <ArrowRight className="h-4 w-4 ml-2" />
             </Button>

@@ -45,8 +45,8 @@ export default function LeaderboardPage() {
   const { timeLeft, playersPlaying } = useQuizStatus();
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-primary/80 to-green-300/80">
-      <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Leaderboard</h1>
       </header>
 
@@ -59,7 +59,7 @@ export default function LeaderboardPage() {
           </TabsList>
           
           <TabsContent value="live">
-            <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
+            <Card className="bg-background/80 backdrop-blur-sm border-white/20 shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle>🏏 Current Quiz Leaderboard</CardTitle>
                 <CardDescription>
@@ -91,7 +91,7 @@ export default function LeaderboardPage() {
           </TabsContent>
 
           <TabsContent value="all-time">
-            <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
+            <Card className="bg-background/80 backdrop-blur-sm border-white/20 shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle>🏆 All-Time Legends</CardTitle>
                 <CardDescription>Based on number of perfect scores</CardDescription>
@@ -121,7 +121,7 @@ export default function LeaderboardPage() {
           </TabsContent>
 
           <TabsContent value="my-leaderboard">
-            <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
+            <Card className="bg-background/80 backdrop-blur-sm border-white/20 shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle>🤝 My Referral Network</CardTitle>
                  <CardDescription>Your performance against friends</CardDescription>

@@ -9,13 +9,13 @@ import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-primary/80 to-green-300/80">
-      <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">⚙️ App Settings</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle>Theme</CardTitle>
           </CardHeader>
@@ -30,7 +30,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle>Notifications</CardTitle>
           </CardHeader>
@@ -45,7 +45,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle>Sound & Haptics</CardTitle>
           </CardHeader>
@@ -67,7 +67,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-background/80 backdrop-blur-sm">
+        <Card className="bg-background/80 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle>Hint Preferences</CardTitle>
           </CardHeader>

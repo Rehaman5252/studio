@@ -53,7 +53,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             <DialogTrigger asChild>
                 <Button variant="secondary" size="sm">View Analysis</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg bg-background/90 backdrop-blur-sm">
                 <DialogHeader>
                     <DialogTitle>Quiz Performance Analysis</DialogTitle>
                     <DialogDescription>
@@ -112,15 +112,15 @@ export default function QuizHistoryPage() {
 
   if (!isClient) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary/80 to-green-300/80 pb-20">
+        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80 pb-20">
             <Loader2 className="h-12 w-12 animate-spin text-white" />
         </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-primary/80 to-green-300/80">
-      <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+      <header className="p-4 bg-background/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
       </header>
 
@@ -138,7 +138,7 @@ export default function QuizHistoryPage() {
         {filteredHistory.length > 0 ? (
           <div className="space-y-4">
             {filteredHistory.map((attempt) => (
-              <Card key={attempt.slotId + attempt.format} className="bg-background/80 backdrop-blur-sm border-primary/20">
+              <Card key={attempt.slotId + attempt.format} className="bg-background/80 backdrop-blur-sm border-white/20 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center text-lg">
                     <span>{attempt.format} Quiz</span>
@@ -159,7 +159,7 @@ export default function QuizHistoryPage() {
             ))}
           </div>
         ) : (
-          <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
+          <Card className="bg-background/80 backdrop-blur-sm border-white/20">
             <CardContent className="p-6 text-center text-muted-foreground">
               <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
               <p>No quizzes found for this filter.</p>
