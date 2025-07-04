@@ -143,7 +143,7 @@ function ResultsComponent() {
 
     if (!questions || questions.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
                 <h1 className="text-2xl font-bold mb-4">Invalid Results</h1>
                 <p>Could not load quiz results data.</p>
                 <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
@@ -169,7 +169,7 @@ function ResultsComponent() {
 
     return (
         <>
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4 overflow-y-auto">
+            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4 overflow-y-auto">
                 <Card className="w-full max-w-md text-center bg-white/10 border-0 my-4">
                     <CardHeader>
                         <div className="mx-auto bg-accent/20 p-4 rounded-full w-fit mb-4">
@@ -268,7 +268,7 @@ function ResultsComponent() {
 export default function ResultsPage() {
     return (
         <Suspense fallback={
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
                 <Loader2 className="h-12 w-12 animate-spin" />
                 <p>Loading results...</p>
             </div>

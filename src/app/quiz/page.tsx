@@ -200,7 +200,7 @@ function QuizComponent() {
   
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
         <Loader2 className="h-12 w-12 animate-spin mb-4" />
         <p className="text-xl">Generating your {format} quiz...</p>
         <p>This might take a moment.</p>
@@ -210,7 +210,7 @@ function QuizComponent() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-destructive text-destructive-foreground p-4 text-center">
+      <div className="flex flex-col items-center justify-center h-screen bg-destructive text-destructive-foreground p-4 text-center">
         <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong.</h1>
         <p>{error}</p>
         <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
@@ -225,7 +225,7 @@ function QuizComponent() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+      <div className="flex flex-col h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
         <header className="w-full max-w-2xl mx-auto mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold">{format} Quiz</h1>
@@ -298,7 +298,7 @@ function QuizComponent() {
 export default function QuizPage() {
   return (
     <Suspense fallback={
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
             <Loader2 className="h-12 w-12 animate-spin" />
         </div>
     }>

@@ -49,7 +49,7 @@ export default function WalkthroughScreen() {
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <div className={`flex flex-col min-h-screen justify-between bg-gradient-to-br ${step.color} p-6 text-white transition-all duration-500`}>
+    <div className={`flex flex-col h-screen justify-between bg-gradient-to-br ${step.color} p-6 text-white transition-all duration-500`}>
       <header className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Indcric Tour</h2>
         <Button variant="ghost" className="text-white hover:bg-white/20" onClick={handleSkip}>
