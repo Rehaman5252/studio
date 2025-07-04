@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Star, Calendar, MessageSquareQuote } from 'lucide-react';
 import type { QuizQuestion } from '@/ai/schemas';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
+import ReactMarkdown from 'react-markdown';
 
 // This interface should match the one in `quiz/results/page.tsx`
 interface QuizAttempt {
@@ -67,9 +68,9 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                     )}
                     {error && <p className="text-destructive">{error}</p>}
                     {analysis && (
-                        <pre className="whitespace-pre-wrap font-sans text-foreground">
-                            {analysis}
-                        </pre>
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
+                           <ReactMarkdown>{analysis}</ReactMarkdown>
+                        </div>
                     )}
                 </div>
             </DialogContent>

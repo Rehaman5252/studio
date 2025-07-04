@@ -24,10 +24,12 @@ export const QuizQuestionSchema = z.object({
       ),
     hint: z
         .string()
-        .describe('A helpful, single-sentence hint for the question that does not give away the answer directly.'),
+        .describe('A helpful, single-sentence hint for the question that does not give away the answer directly.')
+        .optional(),
     explanation: z
         .string()
         .describe('A brief explanation of why the correct answer is right.')
+        .optional()
 });
 export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 
