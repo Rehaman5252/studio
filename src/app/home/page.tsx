@@ -7,7 +7,6 @@ import {
   Users,
   TrendingUp,
   Trophy,
-  Menu,
   Flame,
   Star,
   ChevronRight,
@@ -15,8 +14,6 @@ import {
 import Cube from '@/components/Cube';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import SideNav from '@/components/SideNav';
 import { Separator } from '@/components/ui/separator';
 
 const brandThemes: { [key: string]: { primary: string; secondary: string; accent: string } } = {
@@ -92,25 +89,14 @@ export default function HomeScreen() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary to-green-400 text-white">
-      <header className="p-4 flex items-center justify-between">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 bg-background">
-            <SideNav />
-          </SheetContent>
-        </Sheet>
+      <header className="p-4 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold tracking-tight">CricBlitz</h1>
           <p className="text-sm opacity-90">Win ₹100 for 100 Seconds</p>
         </div>
-        <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-20">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-3 gap-4 mb-8">
             <Card className="bg-white/20 border-0 text-center">
