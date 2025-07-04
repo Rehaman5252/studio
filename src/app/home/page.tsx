@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import {
   Clock,
@@ -23,7 +22,7 @@ const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
   { id: 2, brand: 'Myntra', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e9/Myntra-logo.png', logoWidth: 70, logoHeight: 25 },
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
-  { id: 4, brand: 'Nike', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Nike_logo_white.png', logoWidth: 80, logoHeight: 30 },
+  { id: 4, brand: 'Nike', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Nike_logo.svg/1024px-Nike_logo.svg.png', logoWidth: 80, logoHeight: 30 },
   { id: 5, brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
   { id: 6, brand: 'boAt', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Boat_logo.png', logoWidth: 80, logoHeight: 25 },
 ];
@@ -73,32 +72,31 @@ export default function HomeScreen() {
 
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Select Your Cricket Format to Win</h2>
+            <p className="text-sm opacity-80">Click a face on the cube to start!</p>
           </div>
 
           <Cube brands={brands} onSelect={setSelectedBrandIndex} />
 
-          <Link href={{ pathname: '/quiz', query: { brand: selectedBrand.brand, format: selectedBrand.format } }}>
-            <Card className="w-full mt-8 rounded-2xl shadow-lg transition-transform hover:scale-105 bg-white/20 border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">{selectedBrand.format} Cricket Quiz</h3>
-                    <p className="opacity-80 mb-2 text-white">Sponsored by {selectedBrand.brand}</p>
-                    <p className="text-lg font-semibold text-white">Win ₹100 + {selectedBrand.brand} Rewards!</p>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/30 p-2">
-                    <Image
-                      src={selectedBrand.logoUrl}
-                      alt={`${selectedBrand.brand} logo`}
-                      width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
-                      height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
-                      className="object-contain"
-                    />
-                  </div>
+          <Card className="w-full mt-8 rounded-2xl shadow-lg bg-white/20 border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{selectedBrand.format} Cricket Quiz</h3>
+                  <p className="opacity-80 mb-2 text-white">Sponsored by {selectedBrand.brand}</p>
+                  <p className="text-lg font-semibold text-white">Win ₹100 + {selectedBrand.brand} Rewards!</p>
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/30 p-2">
+                  <Image
+                    src={selectedBrand.logoUrl}
+                    alt={`${selectedBrand.brand} logo`}
+                    width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
+                    height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
           <Separator className="my-8 bg-white/20" />
 
@@ -134,12 +132,6 @@ export default function HomeScreen() {
               </CardContent>
             </Card>
           </div>
-
-          <Link href={{ pathname: '/quiz', query: { brand: selectedBrand.brand, format: selectedBrand.format } }} className="mt-8 block">
-            <Button size="lg" className="w-full h-16 bg-accent hover:bg-accent/90 text-accent-foreground text-xl font-bold shadow-lg">
-              Start {selectedBrand.format} Quiz Now <ChevronRight className="ml-2"/>
-            </Button>
-          </Link>
         </div>
       </main>
     </div>

@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export interface CubeBrand {
   id: number;
@@ -44,29 +45,20 @@ interface CubeProps {
 export default function Cube({ brands, onSelect }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
-  const rotationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
+  const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const selectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const rotateToFace = useCallback((brandIndex: number) => {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[brandIndex];
     }
-    
-    if (selectTimeoutRef.current) {
-      clearTimeout(selectTimeoutRef.current);
-    }
-
-    // Wait for the animation to finish before updating the selected brand/banner.
-    selectTimeoutRef.current = setTimeout(() => {
-        onSelect(brandIndex);
-    }, 1500); // Sync with 1.5s CSS transition
-  }, [onSelect]);
+  }, []);
 
   const stopAutoRotation = useCallback(() => {
-    if (rotationIntervalRef.current) {
-      clearInterval(rotationIntervalRef.current);
-      rotationIntervalRef.current = null;
+    if (rotationTimeoutRef.current) {
+      clearTimeout(rotationTimeoutRef.current);
+      rotationTimeoutRef.current = null;
     }
     if (interactionTimeoutRef.current) {
       clearTimeout(interactionTimeoutRef.current);
@@ -76,11 +68,16 @@ export default function Cube({ brands, onSelect }: CubeProps) {
 
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
-    // Rotate every 3 seconds: 1.5s for transition, 1.5s for pause
-    rotationIntervalRef.current = setInterval(() => {
-      setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
-    }, 3000); 
-  }, [stopAutoRotation]);
+    const rotate = () => {
+        setRotationOrderIndex(prevIndex => {
+            const nextIndex = (prevIndex + 1) % faceRotationOrder.length;
+            onSelect(faceRotationOrder[nextIndex]);
+            return nextIndex;
+        });
+        rotationTimeoutRef.current = setTimeout(rotate, 1500);
+    };
+    rotationTimeoutRef.current = setTimeout(rotate, 100);
+  }, [stopAutoRotation, onSelect]);
 
   useEffect(() => {
     const faceToShow = faceRotationOrder[rotationOrderIndex];
@@ -89,25 +86,26 @@ export default function Cube({ brands, onSelect }: CubeProps) {
 
   useEffect(() => {
     startAutoRotation();
-    return () => {
-      stopAutoRotation();
-      if (selectTimeoutRef.current) {
-        clearTimeout(selectTimeoutRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startAutoRotation]);
+    return stopAutoRotation;
+  }, [startAutoRotation, stopAutoRotation]);
 
   const handleFaceClick = (brandIndex: number) => {
     stopAutoRotation();
+    onSelect(brandIndex);
+
+    // Find the correct rotation index for the clicked face
     const newRotationOrderIndex = faceRotationOrder.indexOf(brandIndex);
     if (newRotationOrderIndex !== -1) {
         setRotationOrderIndex(newRotationOrderIndex);
     } else {
         rotateToFace(brandIndex);
     }
-    // Restart auto-rotation after user interaction
-    interactionTimeoutRef.current = setTimeout(startAutoRotation, 5000);
+    
+    // Navigate to the quiz page after the animation
+    const selectedBrand = brands[brandIndex];
+    setTimeout(() => {
+        router.push(`/quiz?brand=${selectedBrand.brand}&format=${selectedBrand.format}`);
+    }, 750); // Match animation speed
   };
   
   return (
@@ -116,13 +114,13 @@ export default function Cube({ brands, onSelect }: CubeProps) {
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
-          style={{ transition: 'transform 1.5s ease-in-out' }}
+          style={{ transition: 'transform 0.75s ease-in-out' }}
         >
           {brands.map((brand, index) => (
             <div
               key={brand.id}
               onClick={() => handleFaceClick(index)}
-              className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer bg-white/20 backdrop-blur-sm border-white/30"
+              className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer bg-black/30 backdrop-blur-md border-white/30 transition-all hover:bg-black/50 hover:border-white"
               style={{
                 transform: faceTransforms[index],
               }}
