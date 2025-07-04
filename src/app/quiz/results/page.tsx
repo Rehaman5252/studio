@@ -70,7 +70,7 @@ function ResultsComponent() {
             return {
                 questions: parsedData.questions || [],
                 userAnswers: parsedData.userAnswers || [],
-                brand: parsedData.brand || 'CricBlitz',
+                brand: parsedData.brand || 'Indcric',
                 format: parsedData.format || 'Cricket',
                 isRetake: retakeParam,
             };
@@ -104,7 +104,7 @@ function ResultsComponent() {
         const quizSlotId = getQuizSlotId();
         if (questions.length > 0 && userAnswers.length > 0) {
             try {
-                const historyString = localStorage.getItem('cricblitz-quiz-history');
+                const historyString = localStorage.getItem('indcric-quiz-history');
                 const history: QuizAttempt[] = historyString ? JSON.parse(historyString) : [];
 
                 const attemptExists = history.some(attempt => attempt.slotId === quizSlotId);
@@ -121,7 +121,7 @@ function ResultsComponent() {
                         timestamp: new Date().getTime(),
                     };
                     history.push(newAttempt);
-                    localStorage.setItem('cricblitz-quiz-history', JSON.stringify(history));
+                    localStorage.setItem('indcric-quiz-history', JSON.stringify(history));
                 }
             } catch (e) {
                 console.error("Could not save to localStorage", e);
@@ -244,7 +244,7 @@ function ResultsComponent() {
                     </Card>
                 )}
                 
-                {isPerfectScore && <Certificate format={format} userName="CricBlitz User" date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <Certificate format={format} userName="Indcric User" date={today} slotTimings={slotTimings} />}
             </div>
 
             {adConfig && (

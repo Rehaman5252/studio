@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -28,7 +29,7 @@ const ScratchCard = ({ brand }: { brand: string }) => {
     'Nike': { gift: '15% off on running shoes', link: 'https://www.nike.com', image: 'https://placehold.co/300x150.png', hint: 'shoes sport' },
     'Amazon': { gift: '₹250 Amazon Pay Balance', link: 'https://www.amazon.in', image: 'https://placehold.co/300x150.png', hint: 'shopping' },
     'boAt': { gift: 'Free airdopes with your next order', link: 'https://www.boat-lifestyle.com', image: 'https://placehold.co/300x150.png', hint: 'headphones music' },
-    'Default': { gift: 'A surprise gift from CricBlitz!', link: '#', image: 'https://placehold.co/300x150.png', hint: 'gift box' },
+    'Default': { gift: 'A surprise gift from Indcric!', link: '#', image: 'https://placehold.co/300x150.png', hint: 'gift box' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
@@ -82,7 +83,7 @@ export default function RewardsPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const historyString = localStorage.getItem('cricblitz-quiz-history');
+    const historyString = localStorage.getItem('indcric-quiz-history');
     if (historyString) {
       try {
         const history: QuizAttempt[] = JSON.parse(historyString);

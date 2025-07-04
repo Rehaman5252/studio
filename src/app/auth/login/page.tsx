@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -61,13 +62,13 @@ export default function LoginScreen() {
           <div className="inline-block bg-white/20 p-4 rounded-full">
             <span className="text-6xl">🏏</span>
           </div>
-          <h1 className="text-4xl font-extrabold mt-4">CricBlitz</h1>
+          <h1 className="text-4xl font-extrabold mt-4">Indcric</h1>
           <p className="text-lg opacity-90">Win ₹100 for 100 Seconds</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>{isOtpSent ? 'Verify Your Email' : 'Welcome to CricBlitz'}</CardTitle>
+            <CardTitle>{isOtpSent ? 'Verify Your Email' : 'Welcome to Indcric'}</CardTitle>
             <CardDescription>
               {isOtpSent 
                 ? 'Enter the 6-digit code sent to your email.'
@@ -129,7 +130,7 @@ export default function LoginScreen() {
         </Card>
 
         <div className="mt-8 text-center text-white space-y-4">
-            <h3 className="text-xl font-semibold">Why choose CricBlitz?</h3>
+            <h3 className="text-xl font-semibold">Why choose Indcric?</h3>
             <div className="flex justify-center gap-4 text-left">
                 <div className="flex items-center gap-2">
                     <span className="text-2xl">💰</span>

@@ -62,7 +62,7 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
 function QuizComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const brand = searchParams.get('brand') || 'CricBlitz';
+  const brand = searchParams.get('brand') || 'Indcric';
   const format = searchParams.get('format') || 'Cricket';
 
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -96,7 +96,7 @@ function QuizComponent() {
     const fetchQuestions = async () => {
       try {
         const quizSlotId = getQuizSlotId();
-        const historyString = localStorage.getItem('cricblitz-quiz-history');
+        const historyString = localStorage.getItem('indcric-quiz-history');
 
         if (historyString) {
           const history = JSON.parse(historyString);

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -50,7 +51,7 @@ export default function HomeScreen() {
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary to-green-400 text-white">
       <header className="p-4 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight">CricBlitz</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">Indcric</h1>
           <p className="text-sm opacity-90">Win ₹100 for 100 Seconds</p>
         </div>
       </header>

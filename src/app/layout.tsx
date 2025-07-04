@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -10,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CricBlitz',
+  title: 'Indcric',
   description: 'Win ₹100 for 100 Seconds in the ultimate cricket quiz challenge!',
   icons: {
     icon: '/favicon.ico',

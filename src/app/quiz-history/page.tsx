@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -86,7 +87,7 @@ export default function QuizHistoryPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const historyString = localStorage.getItem('cricblitz-quiz-history');
+    const historyString = localStorage.getItem('indcric-quiz-history');
     if (historyString) {
       try {
         const parsedHistory: QuizAttempt[] = JSON.parse(historyString);
