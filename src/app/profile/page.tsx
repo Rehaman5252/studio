@@ -3,18 +3,8 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { LogOut, Award, BarChart, TrendingUp, UserPlus, Edit, Banknote, Users } from 'lucide-react';
-
-const StatCard = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
-    <Card className="bg-background/80 backdrop-blur-sm text-center">
-        <CardContent className="p-4 flex flex-col items-center justify-center">
-            <Icon className="h-8 w-8 mx-auto text-primary mb-2" />
-            <p className="text-2xl font-bold">{value}</p>
-            <p className="text-sm text-muted-foreground">{title}</p>
-        </CardContent>
-    </Card>
-)
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LogOut, Edit, Award, Gift, UserPlus, Banknote, Users, Trophy, Star } from 'lucide-react';
 
 const maskEmail = (email: string) => {
     if (!email || !email.includes('@')) return '';
@@ -25,21 +15,40 @@ const maskEmail = (email: string) => {
 
 const maskPhone = (phone: string) => {
     if (!phone || phone.length <= 4) return phone;
-    return `${phone.substring(0, 4)}••••${phone.substring(phone.length - 2)}`;
+    return `+91 ••••${phone.substring(phone.length - 4)}`;
 };
+
+const maskUpi = (upi: string) => {
+    if (!upi || !upi.includes('@')) return upi;
+    const [user, domain] = upi.split('@');
+    return `${user.substring(0, 3)}••••@${domain}`;
+}
+
+const StatItem = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
+    <div className="flex flex-col items-center gap-1 text-center">
+        <Icon className="h-6 w-6 text-primary" />
+        <p className="font-bold text-lg">{value}</p>
+        <p className="text-xs text-muted-foreground">{title}</p>
+    </div>
+)
 
 export default function ProfilePage() {
     
     // Mock user data based on the spec
     const user = {
-        name: 'CricBlitz User',
-        email: 'user@example.com',
+        name: 'John Doe',
+        email: 'johndoe@example.com',
         phone: '9876543210',
+        age: 22,
+        gender: 'Male',
+        occupation: 'Student',
         totalRewards: '₹600',
         highestStreak: 5,
         referralEarnings: '₹30',
         certificatesEarned: 6,
         quizzesPlayed: 27,
+        upi: 'john.doe@okaxis',
+        referralCode: 'indcric.com/ref/john123',
     };
 
   return (
@@ -51,35 +60,98 @@ export default function ProfilePage() {
         </Button>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-8">
-        <section className="text-center">
-            <Avatar className="w-24 h-24 mx-auto mb-4 border-4 border-background">
+      <main className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* User Info Section */}
+        <section className="relative text-center">
+            <Avatar className="w-24 h-24 mx-auto mb-4 border-4 border-background shadow-lg">
                 <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="avatar person" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>JD</AvatarFallback>
             </Avatar>
+             <Button variant="outline" size="icon" className="absolute top-0 right-0 rounded-full h-8 w-8">
+                <Edit className="h-4 w-4" />
+             </Button>
             <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
                 {maskPhone(user.phone)}  •  {maskEmail(user.email)}
+            </p>
+             <p className="text-muted-foreground text-sm">
+                {user.age} yrs | {user.gender} | {user.occupation}
             </p>
         </section>
 
-        <section className="grid grid-cols-2 gap-4">
-            <StatCard title="Quizzes Played" value={user.quizzesPlayed} icon={BarChart} />
-            <StatCard title="Highest Streak" value={user.highestStreak} icon={TrendingUp} />
-            <StatCard title="Total Earnings" value={user.totalRewards} icon={Banknote} />
-            <StatCard title="Referral Earnings" value={user.referralEarnings} icon={Users} />
-            <StatCard title="Certificates" value={user.certificatesEarned} icon={Award} />
-        </section>
+        {/* Stats Section */}
+        <Card className="bg-background/80 backdrop-blur-sm">
+             <CardContent className="p-4 grid grid-cols-3 gap-4">
+                <StatItem title="Quizzes Played" value={user.quizzesPlayed} icon={Trophy} />
+                <StatItem title="Highest Streak" value={user.highestStreak} icon={Star} />
+                <StatItem title="Total Earnings" value={user.totalRewards} icon={Banknote} />
+            </CardContent>
+        </Card>
+
+        {/* Rewards & Certificates Section */}
+        <Card className="bg-background/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-lg">Rewards & Certificates</CardTitle>
+            </CardHeader>
+             <CardContent className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                    <Award className="h-8 w-8 text-primary"/>
+                    <div>
+                        <p className="font-bold text-xl">{user.certificatesEarned}</p>
+                        <p className="text-sm text-muted-foreground">Certificates</p>
+                    </div>
+                </div>
+                 <div className="flex items-center gap-3">
+                    <Gift className="h-8 w-8 text-primary"/>
+                    <div>
+                         <p className="font-bold text-xl">1</p>
+                        <p className="text-sm text-muted-foreground">Gift Unlocked</p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
         
-        <section className="space-y-4">
-             <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <UserPlus className="mr-4" /> Refer & Earn
-            </Button>
-            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Edit className="mr-4" /> Edit Profile
-            </Button>
+        {/* Referral Section */}
+        <Card className="bg-background/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-lg">Referrals</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Users className="h-8 w-8 text-primary"/>
+                        <div>
+                            <p className="font-bold text-xl">{user.referralEarnings}</p>
+                            <p className="text-sm text-muted-foreground">From Referrals</p>
+                        </div>
+                    </div>
+                    <Button variant="outline" size="sm">Copy Link</Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 bg-muted p-2 rounded-md">{user.referralCode}</p>
+            </CardContent>
+        </Card>
+
+        {/* Payout Info Section */}
+        <Card className="bg-background/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-lg">Payout Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-foreground">UPI: {maskUpi(user.upi)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Payout details are locked and cannot be changed.</p>
+            </CardContent>
+        </Card>
+        
+        {/* Actions Section */}
+        <section className="space-y-3 pt-4">
             <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <Award className="mr-4" /> View Certificates
+            </Button>
+            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <Gift className="mr-4" /> View Gifts & Offers
+            </Button>
+            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <UserPlus className="mr-4" /> Refer & Earn
             </Button>
         </section>
       </main>
