@@ -120,7 +120,7 @@ export default function Cube({ brands, onSelect }: CubeProps) {
             <div
               key={brand.id}
               onClick={() => handleFaceClick(index)}
-              className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer bg-black/30 backdrop-blur-md border-white/30 transition-all hover:bg-black/50 hover:border-white"
+              className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-lg border-2 backface-hidden cursor-pointer bg-white/10 backdrop-blur-lg border-white/50 transition-all hover:bg-white/20 hover:border-white shadow-lg shadow-white/10"
               style={{
                 transform: faceTransforms[index],
               }}
