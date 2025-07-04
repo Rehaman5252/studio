@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Trophy, User, Gift } from 'lucide-react';
+import { Home, Trophy, User, Gift, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { href: '/quiz-history', label: 'History', icon: ScrollText },
   { href: '/rewards', label: 'Rewards', icon: Gift },
   { href: '/profile', label: 'Profile', icon: User },
 ];

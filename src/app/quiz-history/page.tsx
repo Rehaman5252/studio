@@ -1,6 +1,171 @@
 'use client';
 
-// This page is no longer in use as per the new design specification.
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Star, Calendar, MessageSquareQuote } from 'lucide-react';
+import type { QuizQuestion } from '@/ai/schemas';
+import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
+
+// This interface should match the one in `quiz/results/page.tsx`
+interface QuizAttempt {
+  slotId: string;
+  brand: string;
+  format: string;
+  score: number;
+  totalQuestions: number;
+  questions: QuizQuestion[];
+  userAnswers: string[];
+  timestamp: number;
+}
+
+const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
+    const [analysis, setAnalysis] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleFetchAnalysis = async () => {
+        if (analysis) return; // Don't re-fetch
+        setIsLoading(true);
+        setError(null);
+        try {
+            const result = await generateQuizAnalysis({
+                questions: attempt.questions,
+                userAnswers: attempt.userAnswers,
+            });
+            setAnalysis(result.analysis);
+        } catch (err) {
+            console.error(err);
+            setError('Could not generate the analysis. Please try again later.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Dialog onOpenChange={(open) => {
+            if (open && !analysis) handleFetchAnalysis();
+        }}>
+            <DialogTrigger asChild>
+                <Button variant="secondary" size="sm">View Analysis</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Quiz Performance Analysis</DialogTitle>
+                    <DialogDescription>
+                        AI-powered feedback on your {attempt.format} quiz from {new Date(attempt.timestamp).toLocaleDateString()}.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="text-sm max-h-[60vh] overflow-y-auto pr-4">
+                    {isLoading && (
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="ml-4">Generating your report...</p>
+                        </div>
+                    )}
+                    {error && <p className="text-destructive">{error}</p>}
+                    {analysis && (
+                        <pre className="whitespace-pre-wrap font-sans text-foreground">
+                            {analysis}
+                        </pre>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function QuizHistoryPage() {
-  return null;
+  const [history, setHistory] = useState<QuizAttempt[]>([]);
+  const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const historyString = localStorage.getItem('cricblitz-quiz-history');
+    if (historyString) {
+      try {
+        const parsedHistory: QuizAttempt[] = JSON.parse(historyString);
+        // Sort by most recent first
+        setHistory(parsedHistory.sort((a, b) => b.timestamp - a.timestamp));
+      } catch (e) {
+        console.error("Failed to parse quiz history", e);
+      }
+    }
+  }, []);
+
+  const filteredHistory = useMemo(() => {
+    if (filter === 'recent') {
+      const sevenDaysAgo = new Date().getTime() - 7 * 24 * 60 * 60 * 1000;
+      return history.filter(attempt => attempt.timestamp >= sevenDaysAgo);
+    }
+    if (filter === 'perfect') {
+      return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0);
+    }
+    return history;
+  }, [history, filter]);
+
+  if (!isClient) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary/80 to-green-300/80 pb-20">
+            <Loader2 className="h-12 w-12 animate-spin text-white" />
+        </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/80 to-green-300/80 pb-20">
+      <header className="p-4 bg-background/50 backdrop-blur-lg sticky top-0 z-10 border-b">
+        <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
+      </header>
+
+      <main className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex justify-center">
+            <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="w-full max-w-md">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="recent">Recent</TabsTrigger>
+                    <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
+                </TabsList>
+            </Tabs>
+        </div>
+        
+        {filteredHistory.length > 0 ? (
+          <div className="space-y-4">
+            {filteredHistory.map((attempt) => (
+              <Card key={attempt.slotId + attempt.format} className="bg-background/80 backdrop-blur-sm border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center text-lg">
+                    <span>{attempt.format} Quiz</span>
+                    <span className="text-lg font-bold text-primary">{attempt.score}/{attempt.totalQuestions}</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Sponsored by {attempt.brand}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-between items-center">
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+                    </div>
+                  <AnalysisDialog attempt={attempt} />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="bg-background/80 backdrop-blur-sm border-primary/20">
+            <CardContent className="p-6 text-center text-muted-foreground">
+              <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
+              <p>No quizzes found for this filter.</p>
+              <p>Play a quiz to see your history here!</p>
+            </CardContent>
+          </Card>
+        )}
+      </main>
+    </div>
+  );
 }
