@@ -23,6 +23,7 @@ import PlayersPlayingStat from '@/components/stats/PlayersPlayingStat';
 import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
 import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import useRequireAuth from '@/hooks/useRequireAuth';
+import { cn } from '@/lib/utils';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -42,6 +43,10 @@ export default function HomeScreen() {
     setSelectedBrandIndex(index);
   }, []);
 
+  const handleStartQuiz = useCallback((brand: string, format: string) => {
+    router.push(`/quiz?brand=${brand}&format=${format}`);
+  }, [router]);
+  
   const selectedBrand = brands[selectedBrandIndex];
 
   if (loading) {
@@ -92,9 +97,20 @@ export default function HomeScreen() {
             <p className="text-sm opacity-80">Click a face on the cube to start!</p>
           </div>
 
-          <Cube brands={brands} onSelect={handleBrandSelect} />
+          <Cube 
+            brands={brands} 
+            onSelect={handleBrandSelect}
+            onFaceClick={(brand) => {
+              // A short delay to allow the cube animation to settle
+              setTimeout(() => handleStartQuiz(brand.brand, brand.format), 300);
+            }}
+          />
           
-          <Card key={selectedBrand.id} className="w-full mt-8 rounded-2xl shadow-xl bg-white/10 border-0 animate-in fade-in duration-500 backdrop-blur-sm">
+          <Card 
+            key={selectedBrand.id}
+            onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
+            className="w-full mt-8 rounded-2xl shadow-xl bg-white/10 border-0 animate-in fade-in duration-500 backdrop-blur-sm cursor-pointer hover:bg-white/20 transition-colors"
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -150,7 +166,7 @@ export default function HomeScreen() {
           <Button
             size="lg"
             className="w-full mt-8 bg-accent text-accent-foreground hover:bg-accent/90 text-lg font-bold py-7 rounded-full shadow-lg"
-            onClick={() => router.push(`/quiz?brand=${selectedBrand.brand}&format=${selectedBrand.format}`)}
+            onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
           >
             Start {selectedBrand.format} Quiz
             <ChevronRight className="ml-2 h-5 w-5" />

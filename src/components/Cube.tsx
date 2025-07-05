@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 
 export interface CubeBrand {
   id: number;
@@ -40,12 +39,12 @@ const faceRotationOrder = [0, 4, 1, 5, 3, 2]; // Front, Top, Right, Bottom, Left
 interface CubeProps {
   brands: CubeBrand[];
   onSelect: (index: number) => void;
+  onFaceClick: (brand: CubeBrand) => void;
 }
 
-export default function Cube({ brands, onSelect }: CubeProps) {
+export default function Cube({ brands, onSelect, onFaceClick }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -91,6 +90,8 @@ export default function Cube({ brands, onSelect }: CubeProps) {
 
   const handleFaceClick = (brandIndex: number) => {
     stopAutoRotation();
+    const brand = brands[brandIndex];
+    onFaceClick(brand);
     onSelect(brandIndex);
 
     // Find the correct rotation index for the clicked face
@@ -100,12 +101,6 @@ export default function Cube({ brands, onSelect }: CubeProps) {
     } else {
         rotateToFace(brandIndex);
     }
-    
-    // Navigate to the quiz page after the animation
-    const selectedBrand = brands[brandIndex];
-    setTimeout(() => {
-        router.push(`/quiz?brand=${selectedBrand.brand}&format=${selectedBrand.format}`);
-    }, 750); // Match animation speed
   };
   
   return (

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import type { QuizQuestion } from '@/ai/schemas';
@@ -10,9 +10,11 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
+import ReactMarkdown from 'react-markdown';
+
 
 const getQuizSlotId = () => {
   const now = new Date();
@@ -23,7 +25,7 @@ const getQuizSlotId = () => {
   return slotTime.getTime().toString();
 };
 
-function Certificate({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) {
+const Certificate = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
     return (
         <div className="bg-white/90 text-primary rounded-lg p-6 border-4 border-yellow-400 shadow-2xl relative mt-4">
              <Star className="absolute top-2 right-2 text-yellow-400" size={32} />
@@ -42,6 +44,65 @@ function Certificate({ format, userName, date, slotTimings }: { format: string; 
         </div>
     );
 }
+
+const AnalysisCard = ({ questions, userAnswers }: { questions: QuizQuestion[]; userAnswers: string[] }) => {
+    const [analysis, setAnalysis] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleFetchAnalysis = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const result = await generateQuizAnalysis({ questions, userAnswers });
+            setAnalysis(result.analysis);
+        } catch (err) {
+            console.error(err);
+            setError('Could not generate the analysis. Please try again later.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [questions, userAnswers]);
+    
+    if (analysis) {
+        return (
+            <Card className="w-full max-w-md text-left bg-white/10 border-0 mt-4 mb-4">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="text-accent" /> AI Performance Analysis
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <div className="prose prose-sm dark:prose-invert max-w-none text-white/90 [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
+                        <ReactMarkdown>{analysis}</ReactMarkdown>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card className="w-full max-w-md text-center bg-white/10 border-0 mt-4 mb-4">
+            <CardContent className="p-6">
+                <Sparkles className="h-10 w-10 text-accent mx-auto mb-3" />
+                <h3 className="text-lg font-bold">Want to improve?</h3>
+                <p className="text-sm text-white/80 mb-4">Get a personalized analysis of your performance from our AI coach.</p>
+                {isLoading ? (
+                    <Button disabled className="w-full">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating Report...
+                    </Button>
+                ) : (
+                    <Button onClick={handleFetchAnalysis} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                        Generate Free Analysis
+                    </Button>
+                )}
+                {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+            </CardContent>
+        </Card>
+    );
+};
+
 
 function ResultsComponent() {
     const router = useRouter();
@@ -138,7 +199,7 @@ function ResultsComponent() {
                         <CardTitle className="text-3xl font-extrabold">Quiz Complete!</CardTitle>
                         <CardDescription className="text-base text-white/80">{format} Quiz - Sponsored by {brand}</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-4">
                         <div>
                             <p className="text-lg">You Scored</p>
                             <p className="text-6xl font-bold my-2">
@@ -153,15 +214,26 @@ function ResultsComponent() {
                                 <p className="text-sm text-white/90">You've won ₹100! The amount will be credited via Razorpay soon.</p>
                             </div>
                         )}
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button
+                                size="lg"
+                                className="bg-background/80 text-foreground hover:bg-white/90"
+                                onClick={() => router.replace('/home')}
+                            >
+                                <Home className="mr-2 h-5 w-5" />
+                                Home
+                            </Button>
+                            <Button
+                                size="lg"
+                                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                                onClick={() => router.replace('/home')}
+                            >
+                                <RefreshCw className="mr-2 h-5 w-5" />
+                                Play Again
+                            </Button>
+                        </div>
 
-                        <Button
-                            size="lg"
-                            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg"
-                            onClick={() => router.replace('/home')}
-                        >
-                            <Home className="mr-2 h-5 w-5" />
-                            Back to Home
-                        </Button>
                         <Button
                             variant="secondary"
                             className="w-full"
@@ -194,6 +266,8 @@ function ResultsComponent() {
                         </CardContent>
                     </Card>
                 )}
+                
+                <AnalysisCard questions={questions} userAnswers={userAnswers} />
                 
                 {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
             </div>

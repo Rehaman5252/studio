@@ -10,10 +10,11 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb, AlertTriangle } from 'lucide-react';
+import { Loader2, Lightbulb, AlertTriangle, Check, X } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
+import { cn } from '@/lib/utils';
 
 
 const Timer = ({ timeLeft }: { timeLeft: number }) => {
@@ -151,13 +152,13 @@ function QuizComponent() {
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption) return;
 
+    setSelectedOption(option);
     const newAnswers = [...userAnswers, option];
     setUserAnswers(newAnswers);
-    setSelectedOption(option);
     
     setTimeout(() => {
        proceedToNextStep(newAnswers);
-    }, 500);
+    }, 1200); // Increased delay to let user see feedback
   }, [selectedOption, userAnswers, proceedToNextStep]);
 
   const handleUseHint = useCallback(() => {
@@ -235,23 +236,36 @@ function QuizComponent() {
               )}
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {currentQuestion.options.map((option, index) => (
-                <Button
-                  key={index}
-                  onClick={() => handleAnswerSelect(option)}
-                  disabled={!!selectedOption}
-                  className={`
-                    w-full h-auto py-3 text-sm whitespace-normal justify-start text-left
-                    bg-background/80 hover:bg-primary/20 text-foreground
-                    transition-all duration-300 ease-in-out
-                    ${selectedOption === option ? 'ring-4 ring-offset-2 ring-offset-background ring-accent' : 'ring-1 ring-border'}
-                    ${selectedOption && selectedOption !== option ? 'opacity-50' : ''}
-                  `}
-                >
-                  <span className="font-bold mr-4">{String.fromCharCode(65 + index)}</span>
-                  <span>{option}</span>
-                </Button>
-              ))}
+              {currentQuestion.options.map((option, index) => {
+                const isCorrect = option === currentQuestion.correctAnswer;
+                const isSelected = selectedOption === option;
+
+                return (
+                    <Button
+                    key={index}
+                    onClick={() => handleAnswerSelect(option)}
+                    disabled={!!selectedOption}
+                    className={cn(
+                        'relative w-full h-auto py-3 text-sm whitespace-normal justify-start text-left transition-all duration-300 ease-in-out',
+                        !selectedOption && 'bg-background/80 hover:bg-primary/20 text-foreground ring-1 ring-border',
+                        selectedOption && {
+                            'opacity-60': !isSelected && !isCorrect,
+                            'bg-red-500/80 border-red-400 text-white ring-4 ring-offset-2 ring-offset-background ring-red-500': isSelected && !isCorrect,
+                            'bg-green-500/80 border-green-400 text-white ring-4 ring-offset-2 ring-offset-background ring-green-500': isCorrect,
+                        }
+                    )}
+                    >
+                    <span className="font-bold mr-4">{String.fromCharCode(65 + index)}</span>
+                    <span>{option}</span>
+                    {selectedOption && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                        {isCorrect && <Check className="h-4 w-4 text-white" />}
+                        {isSelected && !isCorrect && <X className="h-4 w-4 text-white" />}
+                      </div>
+                    )}
+                    </Button>
+                );
+              })}
             </CardContent>
           </Card>
           
