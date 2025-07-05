@@ -20,7 +20,7 @@ import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import InterstitialLoader from '@/components/InterstitialLoader';
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
-    0: { logo: 'https://www.freepnglogos.com/uploads/tata-logo-png/tata-logo-logovector-net-25.png', hint: 'Tata logo' },
+    0: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/600px-BMW.svg.png', hint: 'BMW logo' },
     1: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Dominos_pizza_logo.svg/1200px-Dominos_pizza_logo.svg.png', hint: 'Dominos logo' },
     3: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Pepsi_logo_2014.svg/1200px-Pepsi_logo_2014.svg.png', hint: 'Pepsi logo' },
 };
