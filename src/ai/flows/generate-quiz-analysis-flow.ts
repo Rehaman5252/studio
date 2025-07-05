@@ -19,11 +19,9 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
   return generateQuizAnalysisFlow(input);
 }
 
-// The prompt will now be simpler, just asking for a raw markdown string.
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: z.string() },
-  // Request a raw string output, not a JSON object. This is more reliable.
   output: { format: 'string' },
   prompt: `You are an expert cricket coach. A user has just completed a quiz. Based on the following summary of their performance, generate a personalized performance report as a single, raw markdown-formatted string.
 
@@ -53,18 +51,14 @@ const generateQuizAnalysisFlow = ai.defineFlow(
   {
     name: 'generateQuizAnalysisFlow',
     inputSchema: GenerateQuizAnalysisInputSchema,
-    // The flow's external contract still returns the structured object.
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
   async (input) => {
-    // Manually construct the prompt string for maximum reliability.
     const score = input.questions.reduce((acc, q, index) => 
         (input.userAnswers[index] === q.correctAnswer) ? acc + 1 : acc, 0);
     
-    // Simple format detection from the first question.
-    const format = input.format || (input.questions[0]?.questionText.includes('IPL') ? 'IPL' : (input.questions[0]?.questionText.includes('Test') ? 'Test' : 'General Cricket'));
+    const format = input.questions[0]?.questionText.includes('IPL') ? 'IPL' : (input.questions[0]?.questionText.includes('Test') ? 'Test' : 'General Cricket');
 
-    // Create a summary of incorrect answers.
     const incorrect = input.questions.map((q, index) => ({
         ...q,
         userAnswer: input.userAnswers[index] || 'Not Answered',
@@ -81,16 +75,13 @@ const generateQuizAnalysisFlow = ai.defineFlow(
 
     const promptInputString = `Format: ${format}\nScore: ${score}/${input.questions.length}\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
     
-    // The prompt function now returns a promise for a raw string.
     const { output } = await analysisPrompt(promptInputString);
     
-    // Validate that we got a non-empty string back.
     if (!output || output.trim() === '') {
       console.error("AI analysis returned a null or empty analysis string.", { output });
       throw new Error("The AI failed to generate a valid analysis. The response was empty.");
     }
 
-    // Wrap the raw string output into the object format required by the flow's outputSchema.
     return { analysis: output };
   }
 );

@@ -61,22 +61,23 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const getAnalysisCacheKey = () => `analysis_${slotId}`;
+    const getAnalysisCacheKey = useCallback(() => `analysis_${slotId}`, [slotId]);
 
-    // On mount, check if analysis is already cached in localStorage
     useEffect(() => {
         const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
         if (cachedAnalysis) {
             setAnalysis(cachedAnalysis);
         }
-    }, [slotId]);
-
+    }, [getAnalysisCacheKey]);
 
     const handleFetchAnalysis = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
             const result = await generateQuizAnalysis({ questions, userAnswers, timePerQuestion, usedHintIndices });
+            if (!result.analysis) {
+                throw new Error("Received empty analysis from the server.");
+            }
             setAnalysis(result.analysis);
             localStorage.setItem(getAnalysisCacheKey(), result.analysis);
         } catch (err) {
@@ -85,7 +86,7 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
         } finally {
             setIsLoading(false);
         }
-    }, [questions, userAnswers, timePerQuestion, usedHintIndices, slotId]);
+    }, [questions, userAnswers, timePerQuestion, usedHintIndices, getAnalysisCacheKey]);
     
     return (
         <motion.div variants={cardVariants}>
@@ -114,7 +115,7 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
                                 Generate Free Analysis
                             </Button>
                         )}
-                        {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+                        {error && <p className="text-destructive text-xs mt-2">{error}</p>}
                     </div>
                 )}
                 </CardContent>
@@ -196,7 +197,7 @@ function ResultsComponent() {
         }
     }, [score, questions, userAnswers, format, brand, timePerQuestion, usedHintIndices, setLastAttemptInSlot, isReview, slotId]);
 
-    const handleViewAnswers = () => {
+    const handleViewAnswers = useCallback(() => {
         if (showAnswers) return;
         setAdConfig({
             ad: adLibrary.resultsAd,
@@ -206,7 +207,7 @@ function ResultsComponent() {
             },
             children: <p className="font-bold text-lg mt-4">Thank you for your patience!</p>
         });
-    };
+    }, [showAnswers]);
 
     if (!questions || questions.length === 0) {
         return (
@@ -290,8 +291,6 @@ function ResultsComponent() {
                     </Card>
                 </motion.div>
 
-                {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
-                
                 <AnalysisCard 
                     questions={questions} 
                     userAnswers={userAnswers} 
@@ -299,8 +298,10 @@ function ResultsComponent() {
                     usedHintIndices={usedHintIndices}
                     slotId={slotId}
                 />
-                
+
                 {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
+                
+                {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
             </motion.div>
 
             {adConfig && (

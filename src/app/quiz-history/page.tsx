@@ -39,6 +39,9 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                 timePerQuestion: attempt.timePerQuestion,
                 usedHintIndices: attempt.usedHintIndices,
             });
+            if (!result.analysis) {
+                throw new Error("Received empty analysis from the server.");
+            }
             setAnalysis(result.analysis);
             localStorage.setItem(getAnalysisCacheKey(), result.analysis);
         } catch (err) {
@@ -47,18 +50,13 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [analysis, isLoading, attempt, getAnalysisCacheKey]);
+    }, [isLoading, attempt, getAnalysisCacheKey]);
 
-    const handleOpenChange = (open: boolean) => {
-        if (open) {
+    const handleOpenChange = useCallback((open: boolean) => {
+        if (open && !analysis) { // Only fetch if opening and no analysis is loaded
             handleFetchAnalysis();
-        } else {
-            // Optional: reset state when dialog closes
-            setAnalysis(null);
-            setError(null);
-            setIsLoading(false);
         }
-    };
+    }, [analysis, handleFetchAnalysis]);
 
     return (
         <Dialog onOpenChange={handleOpenChange}>
@@ -83,7 +81,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                             <p className="text-xs text-muted-foreground">This can take up to 30 seconds.</p>
                         </div>
                     )}
-                    {error && <p className="text-destructive font-semibold">{error}</p>}
+                    {error && <p className="text-destructive font-semibold p-4 text-center">{error}</p>}
                     {analysis && (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
                            <ReactMarkdown>{analysis}</ReactMarkdown>
@@ -119,7 +117,7 @@ export default function QuizHistoryPage() {
   useEffect(() => {
     setIsLoading(true);
     // Sort the mock history by timestamp descending before setting it
-    const sortedHistory = mockQuizHistory.sort((a, b) => b.timestamp - a.timestamp);
+    const sortedHistory = [...mockQuizHistory].sort((a, b) => b.timestamp - a.timestamp);
     setTimeout(() => {
         setHistory(sortedHistory);
         setIsLoading(false);
