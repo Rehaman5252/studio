@@ -70,4 +70,33 @@
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
+  
+  /* Animations for BottomNav */
+  .nav-container {
+    animation: slide-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    animation-delay: 0.2s;
+  }
+
+  .nav-item {
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .nav-item:hover {
+    transform: translateY(-4px) scale(1.05);
+  }
+
+  .active-nav-indicator {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  @keyframes slide-up {
+    0% {
+      transform: translateY(100px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 }
