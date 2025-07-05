@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo, useCallback } from 'react';
@@ -11,8 +10,11 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    Settings, Moon, Bell, Music, Vibrate, RefreshCw
+    Settings, Moon, Bell, Music, Vibrate, RefreshCw, LogOut
 } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 const maskPhone = (phone: string) => {
     if (!phone || phone.length <= 4) return phone;
@@ -191,6 +193,46 @@ const SupportCard = memo(() => (
 ));
 SupportCard.displayName = 'SupportCard';
 
+const LogoutButton = memo(() => {
+    const { toast } = useToast();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        if (!isFirebaseConfigured || !auth) {
+            toast({
+                title: "In Demo Mode",
+                description: "You cannot log out in demo mode.",
+            });
+            return;
+        }
+
+        try {
+            await signOut(auth);
+            toast({
+                title: "Logged Out",
+                description: "You have been successfully logged out.",
+            });
+            router.push('/auth/login');
+        } catch (error: any) {
+            toast({
+                title: "Logout Failed",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
+    };
+
+    return (
+        <div className="pt-2">
+            <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
+                <LogOut className="mr-2 h-5 w-5" /> Logout
+            </Button>
+        </div>
+    );
+});
+LogoutButton.displayName = 'LogoutButton';
+
+
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     
@@ -215,6 +257,8 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
             <ActionButtons handleReferAndEarn={handleReferAndEarn} />
             
             <div><SupportCard /></div>
+
+            <LogoutButton />
         </div>
     )
 }

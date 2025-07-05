@@ -1,13 +1,21 @@
-
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
-// With a mocked auth state, we no longer need to check for a user
-// or redirect. This hook now simply passes through the auth context
-// for consistency, but performs no actions.
 const useRequireAuth = () => {
   const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Don't redirect if Firebase is not configured (we're in demo mode)
+    if (!loading && !user && isFirebaseConfigured) {
+      router.replace('/auth/login');
+    }
+  }, [user, loading, router]);
+
   return { user, loading };
 };
 
