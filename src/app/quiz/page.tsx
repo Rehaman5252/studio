@@ -4,7 +4,7 @@
 import React, { useState, useEffect, Suspense, useCallback, useRef, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { QuizQuestion } from '@/ai/schemas';
-import { mockQuestions } from '@/lib/mockData';
+import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
@@ -66,10 +66,10 @@ function QuizComponent() {
 
   const { setLastAttemptInSlot } = useQuizStatus();
   
-  // Quiz starts instantly with mock questions, no loading state needed for questions.
-  const [questions] = useState<QuizQuestion[]>(() => 
-    mockQuestions.sort(() => Math.random() - 0.5) // Shuffle questions for replayability
-  );
+  const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(20);
@@ -87,13 +87,12 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
-  // Use a ref to hold the latest state to prevent stale closures in async operations/cleanups
   const stateRef = useRef({ userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex });
   stateRef.current = { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex };
   
   const advanceToResults = useCallback(() => {
-    // Use the ref to get the most up-to-date state
     const { questions, userAnswers, brand, format, usedHintIndices, timePerQuestion } = stateRef.current;
+    if (!questions) return;
     const dataToPass = {
         questions,
         userAnswers,
@@ -105,11 +104,27 @@ function QuizComponent() {
     router.replace(`/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`);
   }, [router]);
 
-
+  // Fetch questions on component mount
   useEffect(() => {
-    if (!user) return;
+    setIsLoading(true);
+    generateQuiz({ format, brand })
+      .then((generatedQuestions) => {
+        setQuestions(generatedQuestions);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error("Failed to generate quiz:", err);
+        setError("Could not generate the quiz. Please try again later.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [format, brand]);
+
+  // Effect to save progress
+  useEffect(() => {
+    if (!user || !questions) return;
     
-    // Immediately save the initial attempt state since quiz starts instantly
     const initialAttempt = {
         slotId: getQuizSlotId(),
         score: 0,
@@ -123,13 +138,11 @@ function QuizComponent() {
     };
     setLastAttemptInSlot(initialAttempt);
 
-    // Cleanup function to save progress if user leaves mid-quiz
     return () => {
       const { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex } = stateRef.current;
-      const isMidQuiz = questions.length > 0 && currentQuestionIndex < questions.length;
+      const isMidQuiz = questions && currentQuestionIndex < questions.length;
       
       if (isMidQuiz) {
-        // Calculate score based on current answers
         const score = userAnswers.reduce((acc, answer, index) => 
             (questions[index] && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
 
@@ -148,7 +161,7 @@ function QuizComponent() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format, brand, user, questions]); // Depend on questions array
+  }, [user, questions]);
 
   const goToNextQuestion = useCallback(() => {
     setPaused(false);
@@ -159,6 +172,8 @@ function QuizComponent() {
   }, []);
 
   const handleNextStep = useCallback(() => {
+    if (!questions) return;
+
     if (currentQuestionIndex === 2 && !wasMidQuizAdShown) {
         setPaused(true);
         setAdConfig({
@@ -177,23 +192,22 @@ function QuizComponent() {
     } else {
       goToNextQuestion();
     }
-  }, [currentQuestionIndex, wasMidQuizAdShown, questions.length, goToNextQuestion, advanceToResults]);
+  }, [currentQuestionIndex, wasMidQuizAdShown, questions, goToNextQuestion, advanceToResults]);
   
   // Timer effect
   useEffect(() => {
-    if (paused || selectedOption || adConfig) return;
+    if (paused || selectedOption || adConfig || !questions) return;
 
     if (timeLeft > 0) {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timerId);
     } else {
-       // Time ran out, treat as an unanswered question
        const timeTaken = 20;
        setTimePerQuestion(prev => [...prev, timeTaken]);
        setUserAnswers(prev => [...prev, '']);
        handleNextStep();
     }
-  }, [timeLeft, paused, selectedOption, adConfig, handleNextStep]);
+  }, [timeLeft, paused, selectedOption, adConfig, handleNextStep, questions]);
 
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption) return;
@@ -222,6 +236,26 @@ function QuizComponent() {
         children: <p className="font-bold text-lg mt-4">Enjoy your hint!</p>
     });
   }, [adConfig, currentQuestionIndex, usedHintIndices]);
+
+  if (isLoading) {
+    return <CricketLoading message="Generating your quiz..." />;
+  }
+
+  if (error) {
+    return (
+      <CricketLoading state="error" errorMessage={error}>
+        <Button onClick={() => router.push('/home')}>Go Home</Button>
+      </CricketLoading>
+    );
+  }
+
+  if (!questions) {
+    return (
+        <CricketLoading state="error" errorMessage="An unknown error occurred.">
+            <Button onClick={() => router.push('/home')}>Go Home</Button>
+      </CricketLoading>
+    );
+  }
   
   const currentQuestion = questions[currentQuestionIndex];
   const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
