@@ -27,36 +27,38 @@ const ScratchCard = ({ brand }: { brand: string }) => {
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
 
   return (
-    <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground p-0 overflow-hidden shadow-lg relative w-48 h-48 rounded-2xl">
-      {!isScratched ? (
-        <div
-          className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
-          onClick={() => setIsScratched(true)}
-        >
-          <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
-          <p className="text-zinc-500">From {brand}</p>
-        </div>
-      ) : (
-        <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
-          <Gift className="h-10 w-10 mb-2 text-white" />
-          <h3 className="text-lg font-bold">{reward.gift}</h3>
-          <p className="text-xs opacity-80 mt-1">{reward.description}</p>
-          <Button
-            onClick={() => window.open(reward.link, '_blank')}
-            className="mt-3 bg-white text-accent-foreground hover:bg-white/90"
-            size="sm"
-          >
-            Claim Now <ExternalLink className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      )}
-    </Card>
+    <div className="w-full aspect-square p-1">
+        <Card className="bg-gradient-to-br from-primary to-yellow-400 text-primary-foreground p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl">
+        {!isScratched ? (
+            <div
+            className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
+            onClick={() => setIsScratched(true)}
+            >
+            <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
+            <p className="text-zinc-500">From {brand}</p>
+            </div>
+        ) : (
+            <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
+            <Gift className="h-10 w-10 mb-2 text-white" />
+            <h3 className="text-lg font-bold">{reward.gift}</h3>
+            <p className="text-xs opacity-80 mt-1">{reward.description}</p>
+            <Button
+                onClick={() => window.open(reward.link, '_blank')}
+                className="mt-3 bg-white text-primary-foreground hover:bg-white/90"
+                size="sm"
+            >
+                Claim Now <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+            </div>
+        )}
+        </Card>
+    </div>
   );
 };
 
 
 const GenericOffer = ({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <Card className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
+    <Card className="bg-card/80 border-primary/10 shadow-lg">
         <CardContent className="p-4 flex items-center gap-4">
             <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
             <div>
@@ -95,15 +97,15 @@ export default function RewardsPage() {
 
   if (isLoading) {
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900 items-center justify-center">
-             <Loader2 className="h-12 w-12 animate-spin text-white" />
+        <div className="flex flex-col h-screen bg-background items-center justify-center">
+             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
-      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-background">
+      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Rewards Center</h1>
       </header>
 
@@ -119,12 +121,10 @@ export default function RewardsPage() {
                 }}
                 className="w-full max-w-full"
             >
-                <CarouselContent className="-ml-2">
+                <CarouselContent className="-ml-4">
                     {uniqueBrandAttempts.map((attempt) => (
-                    <CarouselItem key={attempt.brand} className="pl-4 basis-2/3 sm:basis-1/2 md:basis-1/3">
-                        <div className="p-1">
-                          <ScratchCard brand={attempt.brand} />
-                        </div>
+                    <CarouselItem key={attempt.brand} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                        <ScratchCard brand={attempt.brand} />
                     </CarouselItem>
                     ))}
                 </CarouselContent>
@@ -132,7 +132,7 @@ export default function RewardsPage() {
                 <CarouselNext className="hidden sm:flex" />
             </Carousel>
           ) : (
-            <Card className="bg-background/70 backdrop-blur-sm border-white/20">
+            <Card className="bg-card/80">
               <CardContent className="p-6 text-center text-muted-foreground">
                 <p>Play a quiz to unlock a special brand gift!</p>
               </CardContent>

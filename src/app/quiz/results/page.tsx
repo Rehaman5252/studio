@@ -21,19 +21,19 @@ import CricketLoading from '@/components/CricketLoading';
 
 const Certificate = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
     return (
-        <div className="bg-white/90 text-primary rounded-lg p-6 border-4 border-accent shadow-2xl relative mt-4">
-             <Star className="absolute top-2 right-2 text-accent" size={32} />
-             <Star className="absolute top-2 left-2 text-accent" size={32} />
-             <Star className="absolute bottom-2 right-2 text-accent" size={32} />
-             <Star className="absolute bottom-2 left-2 text-accent" size={32} />
+        <div className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
+             <Star className="absolute top-2 right-2 text-primary" size={32} />
+             <Star className="absolute top-2 left-2 text-primary" size={32} />
+             <Star className="absolute bottom-2 right-2 text-primary" size={32} />
+             <Star className="absolute bottom-2 left-2 text-primary" size={32} />
             <div className="text-center">
-                <p className="text-lg font-semibold">Certificate of Achievement</p>
+                <p className="text-lg font-semibold text-muted-foreground">Certificate of Achievement</p>
                 <p className="text-sm">This certifies that</p>
-                <p className="text-2xl font-bold my-2">{userName}</p>
+                <p className="text-2xl font-bold my-2 text-primary">{userName}</p>
                 <p className="text-sm">has successfully achieved a perfect score in the</p>
                 <p className="text-xl font-bold my-2">{format} Quiz</p>
-                <p className="text-xs mt-4">Awarded on: {date}</p>
-                <p className="text-xs mt-1">Quiz Slot: {slotTimings}</p>
+                <p className="text-xs mt-4 text-muted-foreground">Awarded on: {date}</p>
+                <p className="text-xs mt-1 text-muted-foreground">Quiz Slot: {slotTimings}</p>
             </div>
         </div>
     );
@@ -60,14 +60,14 @@ const AnalysisCard = ({ questions, userAnswers, timePerQuestion, usedHintIndices
     
     if (analysis) {
         return (
-            <Card className="w-full max-w-md text-left bg-white/10 border-0 mt-4 mb-4">
+            <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="text-accent" /> AI Performance Analysis
+                        <Sparkles className="text-primary" /> AI Performance Analysis
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                     <div className="prose prose-sm dark:prose-invert max-w-none text-white/90 [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
+                     <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
                         <ReactMarkdown>{analysis}</ReactMarkdown>
                     </div>
                 </CardContent>
@@ -76,18 +76,18 @@ const AnalysisCard = ({ questions, userAnswers, timePerQuestion, usedHintIndices
     }
 
     return (
-        <Card className="w-full max-w-md text-center bg-white/10 border-0 mt-4 mb-4">
+        <Card className="w-full max-w-md text-center bg-card border-0 mt-4 mb-4">
             <CardContent className="p-6">
-                <Sparkles className="h-10 w-10 text-accent mx-auto mb-3" />
+                <Sparkles className="h-10 w-10 text-primary mx-auto mb-3" />
                 <h3 className="text-lg font-bold">Want to improve?</h3>
-                <p className="text-sm text-white/80 mb-4">Get a personalized analysis of your performance from our AI coach.</p>
+                <p className="text-sm text-muted-foreground mb-4">Get a personalized analysis of your performance from our AI coach.</p>
                 {isLoading ? (
                     <Button disabled className="w-full">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Generating Report...
                     </Button>
                 ) : (
-                    <Button onClick={handleFetchAnalysis} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                    <Button onClick={handleFetchAnalysis} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                         Generate Free Analysis
                     </Button>
                 )}
@@ -181,7 +181,7 @@ function ResultsComponent() {
 
     if (!questions || questions.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-orange-800 text-white p-4">
+            <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
                 <h1 className="text-2xl font-bold mb-4">Invalid Results</h1>
                 <p>Could not load quiz results data.</p>
                 <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
@@ -207,46 +207,46 @@ function ResultsComponent() {
 
     return (
         <>
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-orange-800 text-white p-4 overflow-y-auto">
-                <Card className="w-full max-w-md text-center bg-white/10 border-0 my-4">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 overflow-y-auto">
+                <Card className="w-full max-w-md text-center bg-card border-0 my-4">
                     {isReview && (
                         <div className="p-4 pt-6 text-left">
-                            <Alert variant="default" className="border-accent bg-accent/10 text-accent-foreground">
-                                <Info className="h-4 w-4 text-accent" />
+                            <Alert variant="default" className="border-primary bg-primary/10 text-primary-foreground">
+                                <Info className="h-4 w-4 text-primary" />
                                 <AlertTitle>Reviewing Attempt</AlertTitle>
-                                <AlertDescription className="text-white/80">
+                                <AlertDescription className="text-foreground/80">
                                     You have already played in this 10-minute slot. Here are your results.
                                 </AlertDescription>
                             </Alert>
                         </div>
                     )}
                     <CardHeader className={cn(isReview && "pt-2")}>
-                        <div className="mx-auto bg-accent/20 p-4 rounded-full w-fit mb-4">
-                            <Trophy className="h-12 w-12 text-accent" />
+                        <div className="mx-auto bg-primary/20 p-4 rounded-full w-fit mb-4">
+                            <Trophy className="h-12 w-12 text-primary" />
                         </div>
                         <CardTitle className="text-3xl font-extrabold">Quiz Complete!</CardTitle>
-                        <CardDescription className="text-base text-white/80">{format} Quiz - Sponsored by {brand}</CardDescription>
+                        <CardDescription className="text-base text-muted-foreground">{format} Quiz - Sponsored by {brand}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
                             <p className="text-lg">You Scored</p>
-                            <p className="text-6xl font-bold my-2">
-                                {score} <span className="text-3xl text-white/70">/ {total}</span>
+                            <p className="text-6xl font-bold my-2 text-primary">
+                                {score} <span className="text-3xl text-muted-foreground">/ {total}</span>
                             </p>
                         </div>
-                        <p className="text-lg font-medium text-accent">{message}</p>
+                        <p className="text-lg font-medium text-primary">{message}</p>
                         
                         {isPerfectScore && (
-                            <div className="bg-accent/20 p-4 rounded-lg border border-accent">
-                                <h3 className="font-bold text-lg text-white">Congratulations!</h3>
-                                <p className="text-sm text-white/90">You've won ₹100! The amount will be credited via Razorpay soon.</p>
+                            <div className="bg-primary/20 p-4 rounded-lg border border-primary">
+                                <h3 className="font-bold text-lg text-foreground">Congratulations!</h3>
+                                <p className="text-sm text-foreground/90">You've won ₹100! The amount will be credited via Razorpay soon.</p>
                             </div>
                         )}
                         
                         <div className="grid grid-cols-1 gap-3">
                             <Button
                                 size="lg"
-                                className="bg-background/80 text-foreground hover:bg-white/90"
+                                className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
                                 onClick={() => router.replace('/home')}
                             >
                                 <Home className="mr-2 h-5 w-5" />
@@ -255,7 +255,7 @@ function ResultsComponent() {
                         </div>
 
                         <Button
-                            variant="secondary"
+                            variant="outline"
                             className="w-full"
                             onClick={handleViewAnswers}
                             disabled={showAnswers}
@@ -266,19 +266,19 @@ function ResultsComponent() {
                 </Card>
 
                 {showAnswers && (
-                    <Card className="w-full max-w-md text-left bg-white/10 border-0 mt-4 mb-4">
+                    <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
                         <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             {questions.map((q, i) => (
-                                <div key={i} className="text-sm p-3 rounded-lg bg-black/20">
+                                <div key={i} className="text-sm p-3 rounded-lg bg-background">
                                     <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
-                                    <p className={cn("flex items-center text-white/90")}>
+                                    <p className={cn("flex items-center text-foreground/90")}>
                                       {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0 text-green-400"/> : <XCircle className="mr-2 shrink-0 text-red-400"/>}
                                       Your answer: {userAnswers[i] || 'Not answered'}
                                     </p>
                                     {userAnswers[i] !== q.correctAnswer && <p className="text-green-400 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
-                                    <div className="mt-2 pt-2 border-t border-white/20 text-white/80">
-                                        <p className="font-semibold">Explanation:</p>
+                                    <div className="mt-2 pt-2 border-t border-border text-muted-foreground">
+                                        <p className="font-semibold text-foreground">Explanation:</p>
                                         <p>{q.explanation}</p>
                                     </div>
                                 </div>

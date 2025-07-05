@@ -28,7 +28,7 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
     <div className="relative h-28 w-28">
       <svg className="h-full w-full" viewBox="0 0 100 100">
         <circle
-          className="stroke-current text-white/20"
+          className="stroke-current text-border"
           strokeWidth="10"
           cx="50"
           cy="50"
@@ -36,7 +36,7 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
           fill="transparent"
         />
         <circle
-          className="stroke-current text-accent transition-all duration-1000 linear"
+          className="stroke-current text-primary transition-all duration-1000 linear"
           strokeWidth="10"
           strokeLinecap="round"
           cx="50"
@@ -49,7 +49,7 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-3xl font-bold text-white">{timeLeft}</span>
+        <span className="text-3xl font-bold text-foreground">{timeLeft}</span>
       </div>
     </div>
   );
@@ -260,13 +260,13 @@ function QuizComponent() {
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-gradient-to-br from-orange-500 via-red-800 to-neutral-900 text-white p-4">
+      <div className="flex flex-col h-screen bg-background text-foreground p-4">
         <header className="w-full max-w-2xl mx-auto mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold">{format} Quiz</h1>
             <p className="font-semibold">{currentQuestionIndex + 1} / {questions.length}</p>
           </div>
-          <Progress value={progressValue} className="h-2 [&>div]:bg-accent" />
+          <Progress value={progressValue} className="h-2 [&>div]:bg-primary" />
         </header>
 
         <main className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
@@ -274,13 +274,13 @@ function QuizComponent() {
             <Timer timeLeft={timeLeft} />
           </div>
 
-          <Card className="w-full bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
+          <Card className="w-full bg-card shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
                 {currentQuestion.questionText}
               </CardTitle>
               {isHintVisible && currentQuestion.hint && (
-                  <p className="text-sm text-accent pt-2 animate-in fade-in">
+                  <p className="text-sm text-primary pt-2 animate-in fade-in">
                       <strong>Hint:</strong> {currentQuestion.hint}
                   </p>
               )}
@@ -294,12 +294,13 @@ function QuizComponent() {
                     key={index}
                     onClick={() => handleAnswerSelect(option)}
                     disabled={!!selectedOption}
+                    variant="outline"
                     className={cn(
                         'relative w-full h-auto py-3 text-sm whitespace-normal justify-start text-left transition-all duration-300 ease-in-out',
-                        !selectedOption && 'bg-background/80 hover:bg-primary/20 text-foreground ring-1 ring-border',
+                        !selectedOption && 'hover:bg-primary/10 hover:border-primary',
                         selectedOption && {
-                            'opacity-60': !isSelected,
-                            'bg-primary text-primary-foreground ring-2 ring-offset-2 ring-offset-background ring-primary': isSelected,
+                            'opacity-50': !isSelected,
+                            'bg-primary text-primary-foreground border-primary': isSelected,
                         }
                     )}
                     >
@@ -311,7 +312,7 @@ function QuizComponent() {
             </CardContent>
           </Card>
           
-          <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption || !currentQuestion.hint} className="mt-6 bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption || !currentQuestion.hint} className="mt-6 bg-primary/20 text-primary-foreground hover:bg-primary/30">
             <Lightbulb className="mr-2" />
             {usedHintIndices.includes(currentQuestionIndex) ? "Hint Used" : "Use Hint"}
           </Button>

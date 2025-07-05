@@ -17,12 +17,12 @@ const CricketLoading = ({
   children
 }: CricketLoadingProps) => {
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900 text-white p-4">
+    <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
       <div className="w-64 h-48 mb-4">
         <svg viewBox="0 0 300 200" className="w-full h-full">
           {/* Pitch */}
-          <ellipse cx="150" cy="100" rx="140" ry="50" fill="#BCAAA4" />
-          <rect x="50" y="85" width="200" height="30" fill="#D7CCC8" />
+          <ellipse cx="150" cy="100" rx="140" ry="50" fill="hsl(var(--muted))" />
+          <rect x="50" y="85" width="200" height="30" fill="hsl(var(--secondary))" />
           
           <style>
             {`
@@ -71,10 +71,10 @@ const CricketLoading = ({
           ) : (
             <g>
                 <g className="wickets-falling" transform="translate(140, 78)">
-                    <rect width="4" height="25" fill="#FB8C00" />
-                    <rect x="7" width="4" height="25" fill="#FB8C00" />
-                    <rect x="14" width="4" height="25" fill="#FB8C00" />
-                    <rect x="0" y="-2" width="18" height="3" fill="#FB8C00" />
+                    <rect width="4" height="25" fill="hsl(var(--primary))" />
+                    <rect x="7" width="4" height="25" fill="hsl(var(--primary))" />
+                    <rect x="14" width="4" height="25" fill="hsl(var(--primary))" />
+                    <rect x="0" y="-2" width="18" height="3" fill="hsl(var(--primary))" />
                 </g>
                 <circle className="ball-hit-wicket" cx="150" cy="95" r="10" fill="#B71C1C" />
             </g>

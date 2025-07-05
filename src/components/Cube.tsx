@@ -68,11 +68,15 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
     stopAutoRotation();
     isAutoRotating.current = true;
     const rotate = () => {
-        setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
-        rotationTimeoutRef.current = setTimeout(rotate, 1500);
+        setRotationOrderIndex(prevIndex => {
+            const nextIndex = (prevIndex + 1) % faceRotationOrder.length;
+            onSelect(faceRotationOrder[nextIndex]);
+            return nextIndex;
+        });
+        rotationTimeoutRef.current = setTimeout(rotate, 2000); // Slower, more elegant rotation
     };
     rotationTimeoutRef.current = setTimeout(rotate, 100);
-  }, [stopAutoRotation]);
+  }, [stopAutoRotation, onSelect]);
 
   useEffect(() => {
     if(disabled) {
@@ -86,10 +90,7 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
   useEffect(() => {
     const faceToShow = faceRotationOrder[rotationOrderIndex];
     rotateToFace(faceToShow);
-    if (isAutoRotating.current) {
-      onSelect(faceToShow);
-    }
-  }, [rotationOrderIndex, rotateToFace, onSelect]);
+  }, [rotationOrderIndex, rotateToFace]);
 
   const handleFaceClick = (brandIndex: number) => {
     if (disabled) return;
@@ -113,15 +114,15 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
-          style={{ transition: 'transform 0.75s ease-in-out' }}
+          style={{ transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)' }}
         >
           {brands.map((brand, index) => (
             <div
               key={brand.id}
               onClick={() => handleFaceClick(index)}
               className={cn(
-                "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-white/10 backdrop-blur-lg border-white/30 shadow-xl shadow-black/20",
-                !disabled && "cursor-pointer transition-all hover:bg-white/20 hover:border-white"
+                "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
+                !disabled && "cursor-pointer transition-all hover:border-primary hover:shadow-primary/20"
               )}
               style={{
                 transform: faceTransforms[index],
@@ -134,8 +135,9 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
                   width={brand.logoWidth}
                   height={brand.logoHeight}
                   className="object-contain px-2 drop-shadow-lg"
+                  style={{filter: 'brightness(0) invert(1)'}}
                 />
-                <span className="text-xs font-semibold text-white opacity-90">
+                <span className="text-xs font-semibold text-foreground opacity-90">
                   {brand.format}
                 </span>
               </div>

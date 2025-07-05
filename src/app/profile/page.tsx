@@ -57,12 +57,12 @@ export default function ProfilePage() {
 
     if (loading || !user || !userData) {
       return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
-           <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+        <div className="flex flex-col h-screen bg-background">
+           <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
             </header>
             <main className="flex-1 flex items-center justify-center">
-                 <Loader2 className="h-12 w-12 animate-spin text-white" />
+                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </main>
         </div>
       );
@@ -71,13 +71,13 @@ export default function ProfilePage() {
     const userProfile = userData;
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
-      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+    <div className="flex flex-col h-screen bg-background">
+      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
             <CardContent className="p-4 flex items-center gap-4 relative">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                     <AvatarImage src={userProfile.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
@@ -98,7 +98,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
              <CardContent className="p-4 grid grid-cols-3 gap-4">
                 <StatItem title="Quizzes Played" value={userProfile.quizzesPlayed || 0} icon={Trophy} />
                 <StatItem title="Highest Streak" value={userProfile.highestStreak || 0} icon={Star} />
@@ -106,7 +106,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Rewards & Certificates</CardTitle>
             </CardHeader>
@@ -128,7 +128,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
         
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Referrals</CardTitle>
             </CardHeader>
@@ -141,13 +141,13 @@ export default function ProfilePage() {
                             <p className="text-sm text-muted-foreground">From Referrals</p>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm">Copy Link</Button>
+                    <Button variant="secondary" size="sm">Copy Link</Button>
                 </div>
                 <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{userProfile.referralCode}</p>
             </CardContent>
         </Card>
 
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Payout Info</CardTitle>
             </CardHeader>
@@ -157,7 +157,7 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
         
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Settings</CardTitle>
           </CardHeader>
@@ -167,7 +167,7 @@ export default function ProfilePage() {
                 <Moon className="h-5 w-5" />
                 <span>Dark Mode</span>
               </Label>
-              <Switch id="dark-mode" />
+              <Switch id="dark-mode" defaultChecked disabled />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="notifications" className="flex items-center gap-2">
@@ -211,7 +211,7 @@ export default function ProfilePage() {
             </Button>
         </section>
         
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg">Support</CardTitle>
             </CardHeader>

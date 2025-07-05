@@ -46,7 +46,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             <DialogTrigger asChild>
                 <Button variant="secondary" size="sm">View Analysis</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg bg-background/90 backdrop-blur-sm">
+            <DialogContent className="max-w-lg bg-card/90 backdrop-blur-sm">
                 <DialogHeader>
                     <DialogTitle>Quiz Performance Analysis</DialogTitle>
                     <DialogDescription>
@@ -116,15 +116,15 @@ export default function QuizHistoryPage() {
 
   if (isLoading) {
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900 pb-20">
-            <Loader2 className="h-12 w-12 animate-spin text-white" />
+        <div className="flex flex-col items-center justify-center h-screen bg-background pb-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
-      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-background">
+      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
       </header>
 
@@ -142,7 +142,7 @@ export default function QuizHistoryPage() {
         {filteredHistory.length > 0 ? (
           <div className="space-y-4">
             {filteredHistory.map((attempt) => (
-              <Card key={attempt.slotId + attempt.format} className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
+              <Card key={attempt.slotId + attempt.format} className="bg-card/80 border-primary/10 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center text-lg">
                     <span>{attempt.format} Quiz</span>
@@ -169,7 +169,7 @@ export default function QuizHistoryPage() {
             ))}
           </div>
         ) : (
-          <Card className="bg-background/70 backdrop-blur-sm border-white/20">
+          <Card className="bg-card/80">
             <CardContent className="p-6 text-center text-muted-foreground">
               <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
               <p className="font-semibold">No Quizzes Found</p>

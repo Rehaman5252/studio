@@ -10,13 +10,13 @@ import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
-      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-background">
+      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">⚙️ App Settings</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
           <CardHeader>
             <CardTitle>Theme</CardTitle>
           </CardHeader>
@@ -26,12 +26,12 @@ export default function SettingsPage() {
                 <Moon className="h-5 w-5" />
                 <span>Dark Mode</span>
               </Label>
-              <Switch id="dark-mode" />
+              <Switch id="dark-mode" defaultChecked disabled/>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
           <CardHeader>
             <CardTitle>Notifications</CardTitle>
           </CardHeader>
@@ -46,7 +46,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
           <CardHeader>
             <CardTitle>Sound & Haptics</CardTitle>
           </CardHeader>
@@ -68,7 +68,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-background/70 backdrop-blur-sm shadow-lg">
+        <Card className="bg-card shadow-lg">
           <CardHeader>
             <CardTitle>Hint Preferences</CardTitle>
           </CardHeader>

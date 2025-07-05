@@ -47,15 +47,15 @@ export default function LeaderboardPage() {
 
   if (loading) {
       return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900 items-center justify-center">
-             <Loader2 className="h-12 w-12 animate-spin text-white" />
+        <div className="flex flex-col h-screen bg-background items-center justify-center">
+             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
   }
   
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
-      <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b">
+    <div className="flex flex-col h-screen bg-background">
+      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Leaderboard</h1>
       </header>
 
@@ -68,7 +68,7 @@ export default function LeaderboardPage() {
           </TabsList>
           
           <TabsContent value="live">
-            <Card className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
+            <Card className="bg-card/80 border-primary/10 shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle>🏏 Current Quiz Leaderboard</CardTitle>
                 <CardDescription>
@@ -78,7 +78,7 @@ export default function LeaderboardPage() {
               <CardContent>
                 <div className="space-y-2">
                   {liveLeaderboardData.map((player) => (
-                    <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20")}>
+                    <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
                       <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
                       <Avatar className="h-10 w-10 mx-4">
                         <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
           </TabsContent>
 
           <TabsContent value="all-time">
-            <Card className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
+            <Card className="bg-card/80 border-primary/10 shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle>🏆 All-Time Legends</CardTitle>
                 <CardDescription>Based on number of perfect scores</CardDescription>
@@ -108,7 +108,7 @@ export default function LeaderboardPage() {
               <CardContent>
                 <div className="space-y-2">
                   {allTimeLeaderboardData.map((player) => (
-                     <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20")}>
+                     <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
                       <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
                       <Avatar className="h-10 w-10 mx-4">
                         <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -130,7 +130,7 @@ export default function LeaderboardPage() {
           </TabsContent>
 
           <TabsContent value="my-leaderboard">
-            <Card className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
+            <Card className="bg-card/80 border-primary/10 shadow-lg">
               <CardHeader className="text-center">
                 <CardTitle>🤝 My Referral Network</CardTitle>
                  <CardDescription>Your performance against friends</CardDescription>
@@ -138,7 +138,7 @@ export default function LeaderboardPage() {
               <CardContent>
                  <div className="space-y-2">
                   {myLeaderboardData.map((player) => (
-                     <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20")}>
+                     <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
                       <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
                       <Avatar className="h-10 w-10 mx-4">
                         <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
