@@ -44,17 +44,7 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInteracting = useRef(false);
-
-  // This effect synchronizes the cube's visual rotation and notifies the parent
-  useEffect(() => {
-    const brandIndex = faceRotationOrder[rotationOrderIndex];
-    if (cubeRef.current) {
-        cubeRef.current.style.transform = rotationMap[brandIndex];
-    }
-    onSelect(brandIndex);
-  }, [rotationOrderIndex, onSelect]);
-
+  
   const stopAutoRotation = useCallback(() => {
     if (rotationTimeoutRef.current) {
       clearTimeout(rotationTimeoutRef.current);
@@ -64,38 +54,25 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
 
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
-    if (isInteracting.current || disabled) return;
+    if (disabled) return;
 
     rotationTimeoutRef.current = setTimeout(() => {
         setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
-    }, 800);
+    }, 266); // Increased speed by 3x (from 800ms)
   }, [disabled, stopAutoRotation]);
+
+  useEffect(() => {
+    const brandIndex = faceRotationOrder[rotationOrderIndex];
+    if (cubeRef.current) {
+        cubeRef.current.style.transform = rotationMap[brandIndex];
+    }
+    onSelect(brandIndex);
+  }, [rotationOrderIndex, onSelect]);
   
-  // This effect manages the auto-rotation lifecycle
   useEffect(() => {
     startAutoRotation();
     return stopAutoRotation;
   }, [rotationOrderIndex, startAutoRotation, stopAutoRotation]);
-
-
-  const handleMouseEnterContainer = () => {
-    isInteracting.current = true;
-    stopAutoRotation();
-  };
-  
-  const handleMouseLeaveContainer = () => {
-    isInteracting.current = false;
-    startAutoRotation();
-  };
-
-  const handleMouseEnterFace = (brandIndex: number) => {
-    if (disabled) return;
-    const newRotationOrderIndex = faceRotationOrder.indexOf(brandIndex);
-    if (newRotationOrderIndex > -1) {
-      // Set the index, which will trigger the main useEffect
-      setRotationOrderIndex(newRotationOrderIndex);
-    }
-  };
 
   const handleFaceClick = (brandIndex: number) => {
     if (disabled) return;
@@ -105,8 +82,6 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
   return (
     <div 
       className="flex flex-col items-center"
-      onMouseEnter={handleMouseEnterContainer}
-      onMouseLeave={handleMouseLeaveContainer}
     >
       <div className={cn("w-48 h-48 perspective", disabled && "opacity-50")}>
         <div 
@@ -118,7 +93,6 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
             <div
               key={brand.id}
               onClick={() => handleFaceClick(index)}
-              onMouseEnter={() => handleMouseEnterFace(index)}
               className={cn(
                 "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
                 !disabled && "cursor-pointer transition-all hover:border-primary hover:shadow-primary/20"
