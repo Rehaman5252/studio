@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="dark h-full">
       <body className={`${inter.variable} h-full bg-background font-body`}>
         <AuthProvider>
           <QuizStatusProvider>
