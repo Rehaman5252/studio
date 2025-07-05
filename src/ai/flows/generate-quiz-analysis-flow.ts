@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -29,10 +30,11 @@ const PromptInputSchema = z.object({
     })),
 });
 
+// This prompt now directly asks for a markdown string, making it simpler for the model.
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: PromptInputSchema },
-  output: { schema: GenerateQuizAnalysisOutputSchema },
+  output: { schema: z.string().describe("A detailed analysis of the user's quiz performance, formatted as markdown.") },
   prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide encouraging and insightful feedback to a user based on their quiz performance.
 
 Analyze the provided quiz data, which includes the questions, the correct answers, and the user's answers.
@@ -43,7 +45,7 @@ Based on the data, generate a personalized performance report. The report should
 3.  **Identify Areas for Improvement**: Gently point out where the user went wrong without being discouraging. For example, "It seems like questions about cricket history before 2010 were a bit tricky."
 4.  **Provide Actionable Tips**: Give 2-3 specific, actionable tips for how they can improve. For example, "To brush up on Test cricket records, you could watch highlights from classic matches on YouTube" or "Following a good cricket news website can help with staying up-to-date on player stats."
 5.  **Maintain a positive, coach-like tone** throughout the analysis.
-6.  **Format the output as Markdown**, using headings, bold text, and lists to make it readable.
+6.  **Format the output as Markdown**, using headings, bold text, and lists to make it readable. Do not wrap the output in a JSON object.
 
 Here is the quiz data:
 {{#each quizData}}
@@ -72,7 +74,14 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         })),
     };
 
+    // The prompt returns a raw string.
     const { output } = await analysisPrompt(promptInput);
-    return output!;
+    
+    if (!output) {
+      throw new Error("The AI failed to generate an analysis.");
+    }
+
+    // We wrap the raw string in the object structure expected by the flow's output schema.
+    return { analysis: output };
   }
 );
