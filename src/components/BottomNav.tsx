@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Trophy, User, Gift, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
@@ -19,26 +20,38 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 inset-x-0 h-20 flex justify-center z-50 pointer-events-none">
-       <div className="absolute bottom-4 w-[95%] max-w-lg mx-auto pointer-events-auto">
+       <motion.div 
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
+        className="absolute bottom-4 w-[95%] max-w-lg mx-auto pointer-events-auto"
+       >
          <nav className="relative flex justify-around h-16 items-center bg-background/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40">
             {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
             return (
-                <div key={label} className="relative flex-1 h-full flex items-center justify-center">
+                <motion.div
+                    key={label}
+                    whileHover={{ scale: 1.05, y: -4 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                    className="relative flex-1 h-full flex items-center justify-center"
+                >
                     <Link href={href} className="w-full h-full flex flex-col items-center justify-center gap-1 z-10 rounded-lg" aria-label={label}>
                         <Icon className={cn("h-6 w-6 transition-colors duration-200", isActive ? 'text-primary' : 'text-muted-foreground')} aria-hidden="true" />
                         <span className={cn("text-xs font-medium transition-colors duration-200", isActive ? 'text-primary' : 'text-muted-foreground')}>{label}</span>
                     </Link>
                     {isActive && (
-                        <div
-                            className="absolute inset-1 bg-primary/20 rounded-xl z-0 transition-all duration-300 ease-in-out"
+                        <motion.div
+                            layoutId="active-nav-indicator"
+                            className="absolute inset-1 bg-primary/20 rounded-xl z-0"
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                         />
                     )}
-                </div>
+                </motion.div>
             );
             })}
          </nav>
-       </div>
+       </motion.div>
     </div>
   );
 }
