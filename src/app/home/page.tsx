@@ -1,29 +1,44 @@
 
 'use client';
 
-import React, { useState, useCallback, useMemo, memo } from 'react';
-import Image from 'next/image';
+import React, { useState, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
-  Users,
-  TrendingUp,
-  Trophy,
-  ChevronRight,
   Loader2,
-  Clock,
 } from 'lucide-react';
-import Cube, { type CubeBrand } from '@/components/Cube';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import type { CubeBrand } from '@/components/Cube';
 import { Separator } from '@/components/ui/separator';
-import TimerStat from '@/components/stats/TimerStat';
-import PlayersPlayingStat from '@/components/stats/PlayersPlayingStat';
-import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
-import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Dynamic imports for heavy components
+const Cube = dynamic(() => import('@/components/Cube'), {
+  loading: () => <Skeleton className="w-48 h-48 mx-auto" />,
+  ssr: false, // Cube has animations and client-side logic
+});
+
+const SelectedBrandCard = dynamic(() => import('@/components/home/SelectedBrandCard'), {
+  loading: () => <Skeleton className="w-full mt-8 h-[140px] rounded-2xl" />,
+});
+
+const GlobalStats = dynamic(() => import('@/components/home/GlobalStats'), {
+  loading: () => (
+    <div className="grid grid-cols-2 gap-4">
+      <Skeleton className="w-full h-[108px] rounded-lg" />
+      <Skeleton className="w-full h-[108px] rounded-lg" />
+      <Skeleton className="w-full h-[108px] rounded-lg" />
+      <Skeleton className="w-full h-[108px] rounded-lg" />
+    </div>
+  ),
+});
+
+const StartQuizButton = dynamic(() => import('@/components/home/StartQuizButton'), {
+  loading: () => <Skeleton className="w-full mt-8 h-[60px] rounded-full" />,
+});
+
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -33,68 +48,6 @@ const brands: CubeBrand[] = [
   { id: 5, brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
   { id: 6, brand: 'PayPal', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/1200px-PayPal.svg.png', logoWidth: 90, logoHeight: 25 },
 ];
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-};
-
-const statCardContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2
-    }
-  }
-};
-
-const GlobalStats = memo(() => (
-    <motion.div 
-        className="grid grid-cols-2 gap-4"
-        initial="hidden"
-        animate="visible"
-        variants={statCardContainer}
-    >
-        <motion.div variants={cardVariants}>
-        <Card className="bg-card border-border/50 shadow-lg">
-            <CardContent className="p-4 text-center">
-            <Clock className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <p className="text-sm text-muted-foreground mb-1">Quiz Ends In</p>
-            <TimerStat />
-            </CardContent>
-        </Card>
-        </motion.div>
-        <motion.div variants={cardVariants}>
-        <Card className="bg-card border-border/50 shadow-lg">
-            <CardContent className="p-4 text-center">
-            <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <p className="text-sm text-muted-foreground mb-1">Players Playing</p>
-            <PlayersPlayingStat />
-            </CardContent>
-        </Card>
-        </motion.div>
-        <motion.div variants={cardVariants}>
-        <Card className="bg-card border-border/50 shadow-lg">
-            <CardContent className="p-4 text-center">
-            <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <p className="text-sm text-muted-foreground mb-1">Players Played</p>
-            <PlayersPlayedStat />
-            </CardContent>
-        </Card>
-        </motion.div>
-        <motion.div variants={cardVariants}>
-        <Card className="bg-card border-border/50 shadow-lg">
-            <CardContent className="p-4 text-center">
-            <Trophy className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <p className="text-sm text-muted-foreground mb-1">Total Winners</p>
-            <TotalWinnersStat />
-            </CardContent>
-        </Card>
-        </motion.div>
-    </motion.div>
-));
-GlobalStats.displayName = 'GlobalStats';
 
 
 export default function HomeScreen() {
@@ -158,56 +111,19 @@ export default function HomeScreen() {
             }}
           />
 
-            <motion.div
-              key={selectedBrand.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
-              className="cursor-pointer"
-            >
-              <Card 
-                className="w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30 transition-colors hover:border-primary"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold text-foreground">{selectedBrand.format} Cricket Quiz</h3>
-                      <p className="text-muted-foreground mb-2">Sponsored by {selectedBrand.brand}</p>
-                      <p className="text-lg font-semibold text-primary">Win Rewards!</p>
-                    </div>
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white p-2 shadow-inner">
-                      <Image
-                        src={selectedBrand.logoUrl}
-                        alt={`${selectedBrand.brand} logo`}
-                        width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
-                        height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
-                        className="object-contain"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          <SelectedBrandCard 
+            selectedBrand={selectedBrand}
+            handleStartQuiz={handleStartQuiz}
+          />
           
           <Separator className="my-8 bg-border/50" />
 
           <GlobalStats />
 
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              size="lg"
-              variant="default"
-              className="w-full mt-8 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"
-              onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
-            >
-              {`Start ${selectedBrand.format} Quiz`}
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
-          </motion.div>
+          <StartQuizButton 
+            brandFormat={selectedBrand.format}
+            onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
+          />
         </div>
       </main>
     </div>
