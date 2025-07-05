@@ -39,8 +39,9 @@ const analysisPrompt = ai.definePrompt({
   input: { schema: PromptInputSchema },
   output: { schema: GenerateQuizAnalysisOutputSchema },
   prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide a detailed, encouraging, and insightful analysis of a user's quiz performance.
+Your output MUST be a JSON object with a single key "analysis". The value for "analysis" must be a markdown-formatted string.
 
-Analyze the provided quiz data. Based on the data, generate a personalized performance report. The report must be formatted as Markdown and should cover the following sections:
+Based on the data provided, generate a personalized performance report. The markdown analysis you generate must cover the following sections:
 
 1.  **Overall Performance Summary**: Start with an encouraging summary of their score and overall performance.
 2.  **Knowledge Areas**:
@@ -65,6 +66,8 @@ Here is the quiz data:
 {{#if this.timeTaken}}*   **Time Taken**: {{this.timeTaken}}s{{/if}}
 {{#if this.hintUsed}}*   **Hint Used**: Yes{{else}}*   **Hint Used**: No{{/if}}
 {{/each}}
+
+Remember, your entire response must be a single JSON object with the "analysis" key containing the markdown string.
 `,
 });
 

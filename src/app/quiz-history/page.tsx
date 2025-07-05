@@ -33,7 +33,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             setAnalysis(result.analysis);
         } catch (err) {
             console.error(err);
-            setError('Could not generate the analysis. This feature may require API keys to be configured. Please try again later.');
+            setError('The AI could not generate an analysis for this quiz. Please try again.');
         } finally {
             setIsLoading(false);
         }
