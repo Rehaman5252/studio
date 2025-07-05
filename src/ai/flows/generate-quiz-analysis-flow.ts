@@ -19,54 +19,37 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
   return generateQuizAnalysisFlow(input);
 }
 
-// This internal schema is used to format the data for the prompt.
-const PromptInputSchema = z.object({
-    quizData: z.array(z.object({
-        questionNumber: z.number(),
-        questionText: z.string(),
-        correctAnswer: z.string(),
-        userAnswer: z.string(),
-        isCorrect: z.boolean(),
-    })),
-    totalScore: z.string(),
-    format: z.string(),
+// Internal schema for the prompt itself. This will now be the output of the prompt.
+// By asking for a structured object, we increase the reliability of the AI's response.
+const PromptOutputSchema = z.object({
+    analysis: z.string().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string. The analysis should be encouraging and cover: overall performance, areas for improvement based on incorrect answers, and one actionable tip.'),
 });
 
-// The prompt will now directly ask for a markdown string.
-// We make it nullable to gracefully handle cases where the AI returns nothing, preventing a schema validation crash.
+// The prompt will take a simple, manually constructed string as input to reduce complexity.
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
-  input: { schema: PromptInputSchema },
-  output: { schema: z.string().nullable().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string.') },
-  prompt: `You are an expert cricket coach. Generate a personalized performance report as a single, raw markdown-formatted string.
+  input: { schema: z.string() },
+  output: { schema: PromptOutputSchema },
+  prompt: `You are an expert cricket coach. A user has just completed a quiz. Based on the following summary of their performance, generate a personalized performance report as a single, raw markdown-formatted string and place it inside the 'analysis' field of the JSON output.
 
 The analysis MUST be encouraging and cover these sections:
-1.  **Overall Performance**: Start with a summary of their score (e.g., "Great job on the {format} quiz! A score of {totalScore} is a solid performance.").
-2.  **Areas for Improvement**: Based on the incorrect answers, identify 1-2 specific topics for the user to study (e.g., "It looks like questions about 1990s Test cricket were tricky. Brushing up on that era could boost your score.").
-3.  **Actionable Tip**: Provide one specific, actionable tip for improvement (e.g., "To master player statistics, try exploring ESPNcricinfo's Statsguru section.").
+1.  **Overall Performance**: Start with a summary of their score.
+2.  **Areas for Improvement**: Based on the incorrect answers, identify 1-2 specific topics for the user to study.
+3.  **Actionable Tip**: Provide one specific, actionable tip for improvement.
 
 Maintain a positive, coach-like tone.
 
-Here is the quiz data:
-Format: {{format}}
-Score: {{totalScore}}
-
-Incorrect Answers:
-{{#each quizData}}
-  {{#unless this.isCorrect}}
-    - **Q{{this.questionNumber}}**: {{this.questionText}}
-      - **Your Answer**: {{this.userAnswer}}
-      - **Correct Answer**: {{this.correctAnswer}}
-  {{/unless}}
-{{/each}}
+Here is the user's quiz performance data:
+{{{_input}}}
 `,
   config: {
-    // Relax safety settings completely to prevent the model from returning null.
+    // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
     ],
   },
 });
@@ -79,31 +62,40 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
   async (input) => {
-    // Transform the input to match the prompt's simpler schema
+    // Manually construct the prompt string for maximum reliability.
     const score = input.questions.reduce((acc, q, index) => 
         (input.userAnswers[index] === q.correctAnswer) ? acc + 1 : acc, 0);
-
-    const promptInput = {
-        quizData: input.questions.map((q, index) => ({
-            questionNumber: index + 1,
-            questionText: q.questionText,
-            correctAnswer: q.correctAnswer,
-            userAnswer: input.userAnswers[index] || 'Not Answered',
-            isCorrect: input.userAnswers[index] === q.correctAnswer,
-        })),
-        totalScore: `${score}/${input.questions.length}`,
-        format: input.questions[0]?.questionText.includes('IPL') ? 'IPL' : 'General Cricket', // Simple format detection
-    };
-
-    // The prompt function now returns a promise for a raw string, which could be null.
-    const {output} = await analysisPrompt(promptInput);
     
-    // Check if the output is null, undefined, or an empty string. This is the critical fix.
-    if (!output || output.trim() === '') {
-      throw new Error("The AI failed to generate a valid analysis string.");
+    // Simple format detection from the first question.
+    const format = input.format || (input.questions[0]?.questionText.includes('IPL') ? 'IPL' : (input.questions[0]?.questionText.includes('Test') ? 'Test' : 'General Cricket'));
+
+    // Create a summary of incorrect answers.
+    const incorrect = input.questions.map((q, index) => ({
+        ...q,
+        userAnswer: input.userAnswers[index] || 'Not Answered',
+        isCorrect: input.userAnswers[index] === q.correctAnswer,
+        questionNumber: index + 1,
+    })).filter(q => !q.isCorrect);
+
+    let incorrectAnswersSummary = 'No incorrect answers! Great job!';
+    if (incorrect.length > 0) {
+        incorrectAnswersSummary = incorrect.map(q => 
+            `Question ${q.questionNumber}: "${q.questionText}"\n  - Your Answer: ${q.userAnswer}\n  - Correct Answer: ${q.correctAnswer}`
+        ).join('\n\n');
     }
 
-    // Wrap the raw string into the object format required by the flow's output schema.
-    return { analysis: output };
+    const promptInputString = `Format: ${format}\nScore: ${score}/${input.questions.length}\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
+    
+    // The prompt function returns a promise for the structured object.
+    const { output } = await analysisPrompt(promptInputString);
+    
+    // This is the critical fix: Check if the AI returned a valid object with a non-empty analysis string.
+    if (!output || !output.analysis || output.analysis.trim() === '') {
+      console.error("AI analysis returned a null or empty analysis string.", { output });
+      throw new Error("The AI failed to generate a valid analysis. The response was empty.");
+    }
+
+    // The output from the prompt is already in the correct format { analysis: '...' } required by the flow's outputSchema.
+    return output;
   }
 );
