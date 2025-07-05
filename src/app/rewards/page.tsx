@@ -13,42 +13,45 @@ import { mockQuizHistory } from '@/lib/mockData';
 const ScratchCard = ({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
 
-  const rewardsByBrand: { [key: string]: { gift: string, link: string, image: string, hint: string } } = {
-    'Apple': { gift: '10% off on a new iPhone', link: 'https://www.apple.com', image: 'https://placehold.co/300x150.png', hint: 'tech apple' },
-    'Myntra': { gift: 'Flat ₹500 off on next purchase', link: 'https://www.myntra.com', image: 'https://placehold.co/300x150.png', hint: 'fashion' },
-    'SBI': { gift: '2x Reward Points on credit card', link: 'https://www.onlinesbi.com', image: 'https://placehold.co/300x150.png', hint: 'finance money' },
-    'Nike': { gift: '15% off on running shoes', link: 'https://www.nike.com', image: 'https://placehold.co/300x150.png', hint: 'shoes sport' },
-    'Amazon': { gift: '₹250 Amazon Pay Balance', link: 'https://www.amazon.in', image: 'https://placehold.co/300x150.png', hint: 'shopping' },
-    'boAt': { gift: 'Free airdopes with your next order', link: 'https://www.boat-lifestyle.com', image: 'https://placehold.co/300x150.png', hint: 'headphones music' },
-    'Default': { gift: 'A surprise gift from Indcric!', link: '#', image: 'https://placehold.co/300x150.png', hint: 'gift box' },
+  const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; image: string; hint: string; } } = {
+    'Apple': { gift: '10% off new iPhone', description: 'Save big on your next Apple purchase.', link: 'https://www.apple.com', image: 'https://placehold.co/300x150.png', hint: 'tech apple' },
+    'Myntra': { gift: 'Flat ₹500 off', description: 'On your next Myntra order.', link: 'https://www.myntra.com', image: 'https://placehold.co/300x150.png', hint: 'fashion' },
+    'SBI': { gift: '2x Reward Points', description: 'On your SBI credit card.', link: 'https://www.onlinesbi.com', image: 'https://placehold.co/300x150.png', hint: 'finance money' },
+    'Nike': { gift: '15% off running shoes', description: 'Step up your game with Nike.', link: 'https://www.nike.com', image: 'https://placehold.co/300x150.png', hint: 'shoes sport' },
+    'Amazon': { gift: '₹250 Amazon Pay', description: 'Added to your wallet.', link: 'https://www.amazon.in', image: 'https://placehold.co/300x150.png', hint: 'shopping' },
+    'boAt': { gift: 'Free Airdopes', description: 'With your next boAt order.', link: 'https://www.boat-lifestyle.com', image: 'https://placehold.co/300x150.png', hint: 'headphones music' },
+    'Default': { gift: 'Surprise Gift!', description: 'A special reward from Indcric.', link: '#', image: 'https://placehold.co/300x150.png', hint: 'gift box' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
 
   return (
-    <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground p-0 overflow-hidden shadow-lg relative aspect-video">
-      {!isScratched ? (
-        <div
-          className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90"
-          onClick={() => setIsScratched(true)}
-        >
-          <p className="font-bold text-zinc-600 text-lg">Scratch to reveal your gift!</p>
-          <p className="text-zinc-500">From {brand}</p>
-        </div>
-      ) : (
-        <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
-          <Gift className="h-16 w-16 mb-4 text-white" />
-          <h3 className="text-2xl font-bold">{reward.gift}</h3>
-          <p className="text-sm opacity-80">from {brand}</p>
-          <Button
-            onClick={() => window.open(reward.link, '_blank')}
-            className="mt-4 bg-white text-accent-foreground hover:bg-white/90"
+    <div className="flex justify-center">
+      <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground p-0 overflow-hidden shadow-lg relative w-56 h-56 rounded-2xl">
+        {!isScratched ? (
+          <div
+            className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl"
+            onClick={() => setIsScratched(true)}
           >
-            Claim Now <ExternalLink className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      )}
-    </Card>
+            <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
+            <p className="text-zinc-500">From {brand}</p>
+          </div>
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
+            <Gift className="h-12 w-12 mb-2 text-white" />
+            <h3 className="text-xl font-bold">{reward.gift}</h3>
+            <p className="text-sm opacity-80 mt-1">{reward.description}</p>
+            <Button
+              onClick={() => window.open(reward.link, '_blank')}
+              className="mt-4 bg-white text-accent-foreground hover:bg-white/90"
+              size="sm"
+            >
+              Claim Now <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 };
 
