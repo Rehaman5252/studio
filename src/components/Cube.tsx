@@ -14,7 +14,6 @@ export interface CubeBrand {
   logoHeight: number;
 }
 
-// Positions each face of the cube in 3D space. The `translateZ` value is half the face width (128px / 2 = 64px).
 const faceTransforms = [
   'rotateY(0deg) translateZ(64px)',
   'rotateY(90deg) translateZ(64px)',
@@ -24,7 +23,6 @@ const faceTransforms = [
   'rotateX(-90deg) translateZ(64px)',
 ];
 
-// Defines the transform needed to bring a specific face to the front
 const rotationMap = [
     'rotateX(0deg) rotateY(0deg)',
     'rotateX(0deg) rotateY(-90deg)',
@@ -34,8 +32,7 @@ const rotationMap = [
     'rotateX(90deg) rotateY(0deg)',
 ];
 
-// A dynamic sequence to show faces in a tumbling order
-const faceRotationOrder = [0, 4, 1, 5, 3, 2]; // Front, Top, Right, Bottom, Left, Back
+const faceRotationOrder = [0, 4, 1, 5, 3, 2];
 
 interface CubeProps {
   brands: CubeBrand[];
@@ -63,20 +60,27 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
       rotationTimeoutRef.current = null;
     }
   }, []);
+  
+  useEffect(() => {
+    // This effect runs whenever the auto-rotation index or a click changes the selected face.
+    // It is responsible for calling the parent's onSelect callback and applying the visual rotation.
+    // This safely decouples the parent state update from this component's render cycle.
+    const currentFaceIndex = faceRotationOrder[rotationOrderIndex];
+    onSelect(currentFaceIndex);
+    rotateToFace(currentFaceIndex);
+  }, [rotationOrderIndex, onSelect, rotateToFace]);
 
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
     isAutoRotating.current = true;
     const rotate = () => {
-        setRotationOrderIndex(prevIndex => {
-            const nextIndex = (prevIndex + 1) % faceRotationOrder.length;
-            onSelect(faceRotationOrder[nextIndex]);
-            return nextIndex;
-        });
-        rotationTimeoutRef.current = setTimeout(rotate, 2000); // Slower, more elegant rotation
+        // This function now *only* updates the local state of the Cube component.
+        // It no longer calls onSelect directly, which was causing the error.
+        setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
+        rotationTimeoutRef.current = setTimeout(rotate, 2000);
     };
     rotationTimeoutRef.current = setTimeout(rotate, 100);
-  }, [stopAutoRotation, onSelect]);
+  }, [stopAutoRotation]);
 
   useEffect(() => {
     if(disabled) {
@@ -87,24 +91,18 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
     return stopAutoRotation;
   }, [disabled, startAutoRotation, stopAutoRotation]);
 
-  useEffect(() => {
-    const faceToShow = faceRotationOrder[rotationOrderIndex];
-    rotateToFace(faceToShow);
-  }, [rotationOrderIndex, rotateToFace]);
-
   const handleFaceClick = (brandIndex: number) => {
     if (disabled) return;
     
     stopAutoRotation();
     const brand = brands[brandIndex];
-    onFaceClick(brand);
-    onSelect(brandIndex);
+    onFaceClick(brand); // Notify parent to start the quiz
 
+    // Find the position in our auto-rotation sequence for the clicked face
     const newRotationOrderIndex = faceRotationOrder.indexOf(brandIndex);
     if (newRotationOrderIndex !== -1) {
+        // Set the state. The useEffect hook will handle calling onSelect and rotating the cube.
         setRotationOrderIndex(newRotationOrderIndex);
-    } else {
-        rotateToFace(brandIndex);
     }
   };
   
