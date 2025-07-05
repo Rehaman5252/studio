@@ -78,8 +78,16 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     const { output } = await analysisPrompt(promptInputString);
     
     if (!output || output.trim() === '') {
-      console.error("AI analysis returned a null or empty analysis string.", { output });
-      throw new Error("The AI failed to generate a valid analysis. The response was empty.");
+      console.warn("AI analysis returned a null or empty analysis string. Providing a fallback response.", { output });
+      const fallbackAnalysis = `### Analysis Unavailable
+
+We couldn't generate a detailed AI analysis for this quiz at the moment. 
+
+**Your Score:** ${score}/${input.questions.length}
+
+Please try again on your next quiz!
+`;
+      return { analysis: fallbackAnalysis };
     }
 
     return { analysis: output };
