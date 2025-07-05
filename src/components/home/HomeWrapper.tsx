@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -10,8 +10,7 @@ import { getQuizSlotId } from '@/lib/utils';
 import GlobalStats from '@/components/home/GlobalStats';
 import QuizSelector from '@/components/home/QuizSelector';
 import type { CubeBrand } from '@/components/Cube';
-import SelectedBrandCard from '@/components/home/SelectedBrandCard';
-import StartQuizButton from '@/components/home/StartQuizButton';
+import CricketLoading from '@/components/CricketLoading';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -27,36 +26,43 @@ export default function HomeWrapper() {
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
   
-  const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
+  const [startingQuizInfo, setStartingQuizInfo] = useState<{ brand: string; format: string } | null>(null);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
   }, [lastAttemptInSlot, isQuizStatusLoading]);
 
-  const handleStartQuiz = useCallback((brand: string, format: string) => {
-    if (hasPlayedInCurrentSlot) {
-      router.push(`/quiz/results?review=true`);
-    } else {
-      router.push(`/quiz?brand=${encodeURIComponent(brand)}&format=${encodeURIComponent(format)}`);
-    }
-  }, [router, hasPlayedInCurrentSlot]);
-  
-  const selectedBrand = useMemo(() => brands[selectedBrandIndex], [selectedBrandIndex]);
-
   const onCubeFaceClick = useCallback((brand: CubeBrand) => {
-    handleStartQuiz(brand.brand, brand.format);
-  }, [handleStartQuiz]);
+    setStartingQuizInfo({ brand: brand.brand, format: brand.format });
+  }, []);
 
-  const onStartQuizClick = useCallback(() => {
-    handleStartQuiz(selectedBrand.brand, selectedBrand.format);
-  }, [handleStartQuiz, selectedBrand]);
+  useEffect(() => {
+    if (startingQuizInfo) {
+      const timer = setTimeout(() => {
+        if (hasPlayedInCurrentSlot) {
+          router.push(`/quiz/results?review=true`);
+        } else {
+          router.push(`/quiz?brand=${encodeURIComponent(startingQuizInfo.brand)}&format=${encodeURIComponent(startingQuizInfo.format)}`);
+        }
+      }, 1500); // 1.5 second delay before navigation
 
+      return () => clearTimeout(timer);
+    }
+  }, [startingQuizInfo, hasPlayedInCurrentSlot, router]);
 
   if (isQuizStatusLoading) {
       return (
         <div className="flex flex-col flex-1 items-center justify-center py-10">
              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  if (startingQuizInfo) {
+    return (
+        <div className="flex flex-col flex-1 items-center justify-center py-10">
+            <CricketLoading message={`You have selected ${startingQuizInfo.format} format. Getting your quiz ready...`} />
         </div>
     );
   }
@@ -70,22 +76,13 @@ export default function HomeWrapper() {
       
       <QuizSelector 
           brands={brands} 
-          onSelect={setSelectedBrandIndex}
           onFaceClick={onCubeFaceClick}
-      />
-      <SelectedBrandCard 
-          selectedBrand={selectedBrand}
-          handleStartQuiz={() => onCubeFaceClick(selectedBrand)}
+          disabled={!!startingQuizInfo}
       />
 
       <Separator className="my-8 bg-border/50" />
 
       <GlobalStats />
-
-      <StartQuizButton 
-          brandFormat={selectedBrand.format}
-          onClick={onStartQuizClick}
-      />
     </>
   );
 }

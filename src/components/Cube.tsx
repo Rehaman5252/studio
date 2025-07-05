@@ -35,12 +35,11 @@ const faceRotationOrder = [0, 4, 1, 5, 3, 2];
 
 interface CubeProps {
   brands: CubeBrand[];
-  onSelect: (index: number) => void;
   onFaceClick: (brand: CubeBrand) => void;
   disabled?: boolean;
 }
 
-function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
+function Cube({ brands, onFaceClick, disabled = false }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -66,8 +65,7 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[brandIndex];
     }
-    onSelect(brandIndex);
-  }, [rotationOrderIndex, onSelect]);
+  }, [rotationOrderIndex]);
   
   useEffect(() => {
     startAutoRotation();
