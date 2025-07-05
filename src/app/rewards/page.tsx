@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, Loader2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import Image from 'next/image';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const ScratchCard = ({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -26,32 +27,30 @@ const ScratchCard = ({ brand }: { brand: string }) => {
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
 
   return (
-    <div className="flex justify-center">
-      <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground p-0 overflow-hidden shadow-lg relative w-56 h-56 rounded-2xl">
-        {!isScratched ? (
-          <div
-            className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl"
-            onClick={() => setIsScratched(true)}
+    <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground p-0 overflow-hidden shadow-lg relative w-48 h-48 rounded-2xl">
+      {!isScratched ? (
+        <div
+          className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
+          onClick={() => setIsScratched(true)}
+        >
+          <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
+          <p className="text-zinc-500">From {brand}</p>
+        </div>
+      ) : (
+        <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
+          <Gift className="h-10 w-10 mb-2 text-white" />
+          <h3 className="text-lg font-bold">{reward.gift}</h3>
+          <p className="text-xs opacity-80 mt-1">{reward.description}</p>
+          <Button
+            onClick={() => window.open(reward.link, '_blank')}
+            className="mt-3 bg-white text-accent-foreground hover:bg-white/90"
+            size="sm"
           >
-            <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
-            <p className="text-zinc-500">From {brand}</p>
-          </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
-            <Gift className="h-12 w-12 mb-2 text-white" />
-            <h3 className="text-xl font-bold">{reward.gift}</h3>
-            <p className="text-sm opacity-80 mt-1">{reward.description}</p>
-            <Button
-              onClick={() => window.open(reward.link, '_blank')}
-              className="mt-4 bg-white text-accent-foreground hover:bg-white/90"
-              size="sm"
-            >
-              Claim Now <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </Card>
-    </div>
+            Claim Now <ExternalLink className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 };
 
@@ -73,15 +72,23 @@ const GenericOffer = ({ title, description, image, hint }: { title: string, desc
 
 export default function RewardsPage() {
   useRequireAuth();
-  const [latestAttempt, setLatestAttempt] = useState<QuizAttempt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const uniqueBrandAttempts = useMemo(() => {
+    const seenBrands = new Set<string>();
+    return mockQuizHistory.filter(attempt => {
+        if (seenBrands.has(attempt.brand)) {
+            return false;
+        } else {
+            seenBrands.add(attempt.brand);
+            return true;
+        }
+    });
+  }, []);
 
   useEffect(() => {
     setIsLoading(true);
     setTimeout(() => {
-      if (mockQuizHistory.length > 0) {
-        setLatestAttempt(mockQuizHistory[0]);
-      }
       setIsLoading(false);
     }, 500);
   }, []);
@@ -102,9 +109,28 @@ export default function RewardsPage() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
         <section>
-          <h2 className="text-xl font-semibold mb-4 text-foreground">Your Brand Gift</h2>
-          {latestAttempt ? (
-            <ScratchCard brand={latestAttempt.brand} />
+          <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+          <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift from each brand you've played with. Scratch to reveal!</p>
+          
+          {uniqueBrandAttempts.length > 0 ? (
+            <Carousel
+                opts={{
+                    align: 'start',
+                }}
+                className="w-full max-w-full"
+            >
+                <CarouselContent className="-ml-2">
+                    {uniqueBrandAttempts.map((attempt) => (
+                    <CarouselItem key={attempt.brand} className="pl-4 basis-2/3 sm:basis-1/2 md:basis-1/3">
+                        <div className="p-1">
+                          <ScratchCard brand={attempt.brand} />
+                        </div>
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+            </Carousel>
           ) : (
             <Card className="bg-background/70 backdrop-blur-sm border-white/20">
               <CardContent className="p-6 text-center text-muted-foreground">
