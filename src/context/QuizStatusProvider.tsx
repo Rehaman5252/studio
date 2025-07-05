@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
+import { getQuizSlotId } from '@/lib/utils';
 
 // Represents a simplified quiz attempt for tracking in the current session.
 export interface SlotAttempt {
@@ -31,43 +32,30 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<SlotAttempt | null>(null);
 
   useEffect(() => {
-    const calculateTimeLeft = () => {
+    const timerInterval = setInterval(() => {
+      // Calculate time left in the current slot
       const now = new Date();
       const minutes = now.getMinutes();
-      
       const slotLength = 10;
       const currentSlotStartMinute = Math.floor(minutes / slotLength) * slotLength;
-      
       const nextSlotTime = new Date(now);
       nextSlotTime.setMinutes(currentSlotStartMinute + slotLength, 0, 0);
-      
       const diff = nextSlotTime.getTime() - now.getTime();
-      
       const mins = Math.max(0, Math.floor(diff / 60000));
       const secs = Math.max(0, Math.floor((diff % 60000) / 1000));
-      
       setTimeLeft({ minutes: mins, seconds: secs });
 
-      // Reset last attempt if the slot has changed
+      // This is the core logic fix:
+      // Use the functional update form of setState to safely access the previous
+      // state and determine if the slot has changed.
       const currentSlotId = getQuizSlotId();
-      if (lastAttemptInSlot?.slotId !== currentSlotId) {
-        setLastAttemptInSlot(null);
-      }
-    };
-    
-    // Extracted to be used by the effect hook
-    const getQuizSlotId = () => {
-        const now = new Date();
-        const minutes = now.getMinutes();
-        const currentSlotStartMinute = Math.floor(minutes / 10) * 10;
-        const slotTime = new Date(now);
-        slotTime.setMinutes(currentSlotStartMinute, 0, 0);
-        return slotTime.getTime().toString();
-    };
-
-
-    calculateTimeLeft();
-    const timerInterval = setInterval(calculateTimeLeft, 1000);
+      setLastAttemptInSlot(prevAttempt => {
+        if (prevAttempt && prevAttempt.slotId !== currentSlotId) {
+          return null; // The slot has changed, so clear the previous attempt.
+        }
+        return prevAttempt; // Otherwise, keep the current attempt state.
+      });
+    }, 1000);
 
     const playerInterval = setInterval(() => {
       setPlayersPlaying((prev) => Math.max(200, prev + Math.floor(Math.random() * 15) - 7));
@@ -81,8 +69,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(timerInterval);
       clearInterval(playerInterval);
     };
-  }, [lastAttemptInSlot?.slotId]);
-  
+  }, []); // The empty dependency array ensures this effect runs only once.
+
   const value = useMemo(() => ({
     timeLeft, 
     playersPlaying, 
