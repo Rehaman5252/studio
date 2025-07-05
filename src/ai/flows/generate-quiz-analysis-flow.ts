@@ -37,7 +37,7 @@ const PromptInputSchema = z.object({
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: PromptInputSchema },
-  output: { schema: z.string().describe("A detailed analysis of the user's quiz performance, formatted as markdown.") },
+  output: { schema: GenerateQuizAnalysisOutputSchema },
   prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide a detailed, encouraging, and insightful analysis of a user's quiz performance.
 
 Analyze the provided quiz data. Based on the data, generate a personalized performance report. The report must be formatted as Markdown and should cover the following sections:
@@ -51,7 +51,7 @@ Analyze the provided quiz data. Based on the data, generate a personalized perfo
     *   **Hint Utilization**: Comment on their use of hints. If they used hints and still got it wrong, suggest how to better use hints. If they didn't use hints on tough questions, suggest that it's a valuable tool. For example: "You effectively used a hint on Question 2 to arrive at the correct answer. For Question 4, where you were incorrect, a hint might have provided the necessary clue."
 4.  **Actionable Tips for Improvement**: Provide 2-3 specific, actionable tips to improve their knowledge and strategy. These should be directly related to their performance. Examples: "To improve on player statistics, try following a sports analytics website like ESPNcricinfo Statsguru." or "For time management, practice focusing on keywords in the question before looking at the options."
 
-Maintain a positive, coach-like tone throughout the analysis. Always generate a report.
+Maintain a positive, coach-like tone throughout the analysis.
 
 Here is the quiz data:
 {{#if totalTime}}Total Time Taken: {{totalTime}} seconds{{/if}}
@@ -92,10 +92,10 @@ const generateQuizAnalysisFlow = ai.defineFlow(
 
     const { output } = await analysisPrompt(promptInput);
     
-    if (!output) {
-      throw new Error("The AI failed to generate an analysis.");
+    if (!output?.analysis) {
+      throw new Error("The AI failed to generate a valid analysis object.");
     }
 
-    return { analysis: output };
+    return output;
   }
 );
