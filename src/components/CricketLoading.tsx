@@ -11,41 +11,26 @@ interface CricketLoadingProps {
   children?: React.ReactNode;
 }
 
-const BatAndBallSpinner = () => (
-  <div className="w-32 h-32 relative">
-    <style>{`
-      @keyframes bat-swing {
-        0% { transform: rotate(-20deg); }
-        50% { transform: rotate(40deg); }
-        100% { transform: rotate(-20deg); }
-      }
-      @keyframes ball-fly {
-        0%, 45% { transform: translate(0, 0) scale(1); opacity: 1; }
-        55% { transform: translate(10px, -5px) scale(1.1); }
-        100% { transform: translate(80px, -80px) scale(0.5); opacity: 0; }
-      }
-      .bat { 
-        transform-origin: 5px 85px; 
-        animation: bat-swing 1.2s cubic-bezier(0.6, 0, 0.4, 1) infinite; 
-      }
-      .ball { 
-        transform-origin: center; 
-        animation: ball-fly 1.2s cubic-bezier(0.5, 1, 0.8, 1) infinite; 
-      }
-    `}</style>
-    <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible drop-shadow-lg">
-      <g className="ball" transform="translate(35, 70)">
-        <circle r="6" fill="hsl(var(--primary))" />
-      </g>
-      <g className="bat" transform="translate(20, 0)">
-        {/* Bat Handle */}
-        <rect x="0" y="65" width="10" height="25" rx="3" fill="hsl(var(--muted-foreground))" />
-        {/* Bat Body */}
-        <path d="M-10,65 L20,65 L12,15 L-2,15 Z" fill="hsl(var(--foreground))" />
-      </g>
-    </svg>
-  </div>
+const RoyalSpinner = () => (
+    <div className="w-24 h-24 relative">
+        <svg viewBox="0 0 100 100" className="w-full h-full animate-spin-slow">
+            <defs>
+                <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 0.5 }} />
+                </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="45" fill="none" stroke="url(#gold-gradient)" strokeWidth="4" strokeDasharray="282.7" strokeDashoffset="212" strokeLinecap="round" />
+        </svg>
+        <svg viewBox="0 0 100 100" className="w-full h-full absolute top-0 left-0 animate-spin-medium">
+            <circle cx="50" cy="50" r="35" fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeDasharray="219.9" strokeDashoffset="165" strokeLinecap="round" />
+        </svg>
+        <svg viewBox="0 0 100 100" className="w-full h-full absolute top-0 left-0 animate-spin-fast">
+             <circle cx="50" cy="50" r="25" fill="none" stroke="hsl(var(--foreground))" strokeWidth="2" strokeDasharray="157" strokeDashoffset="118" strokeLinecap="round" />
+        </svg>
+    </div>
 );
+
 
 const CricketLoading = ({
   state = 'loading',
@@ -56,7 +41,7 @@ const CricketLoading = ({
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
       {state === 'loading' ? (
-        <BatAndBallSpinner />
+        <RoyalSpinner />
       ) : (
          <div className="w-32 h-32 mb-4">
             <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -77,9 +62,13 @@ const CricketLoading = ({
             </svg>
         </div>
       )}
-      <h2 className="text-xl font-semibold text-foreground/80 text-center">
+      <motion.h2 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="text-xl font-semibold text-foreground/80 text-center mt-4">
         {state === 'loading' ? message : errorMessage}
-      </h2>
+      </motion.h2>
       {children && <div className="mt-6">{children}</div>}
     </div>
   );
