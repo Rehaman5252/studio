@@ -21,7 +21,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     'Nike': { gift: '15% off running shoes', description: 'Step up your game with Nike.', link: 'https://www.nike.com' },
     'Amazon': { gift: '₹250 Amazon Pay', description: 'Added to your wallet.', link: 'https://www.amazon.in' },
     'boAt': { gift: 'Free Airdopes', description: 'With your next boAt order.', link: 'https://www.boat-lifestyle.com' },
-    'Default': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
+    'Default': { gift: 'Surprise Gift!', description: 'A special reward from Indcric.', link: '#' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
@@ -149,7 +149,7 @@ export default function RewardsPage() {
         <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
           <div className="space-y-4">
-            <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" image="https://placehold.co/100x100.png" hint="shoes sport" />
+            <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
             <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
             <GenericOffer title="Buy 1 Get 1 on Pizza Hut" description="Valid on medium pan pizzas" image="https://placehold.co/100x100.png" hint="pizza food" />
           </div>

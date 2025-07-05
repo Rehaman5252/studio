@@ -61,7 +61,7 @@ function QuizComponent() {
   const router = useRouter();
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const brand = searchParams.get('brand') || 'CricBlitz';
+  const brand = searchParams.get('brand') || 'Indcric';
   const format = searchParams.get('format') || 'Cricket';
 
   const { setLastAttemptInSlot } = useQuizStatus();

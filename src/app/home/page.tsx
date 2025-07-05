@@ -8,11 +8,8 @@ import {
   Users,
   TrendingUp,
   Trophy,
-  Flame,
-  Star,
   ChevronRight,
   Loader2,
-  Lock,
   Clock,
 } from 'lucide-react';
 import Cube, { type CubeBrand } from '@/components/Cube';
@@ -51,44 +48,6 @@ const statCardContainer = {
     }
   }
 };
-
-const UserStats = memo(() => (
-  <motion.div 
-    className="grid grid-cols-3 gap-4 mb-8"
-    initial="hidden"
-    animate="visible"
-    variants={statCardContainer}
-  >
-    <motion.div variants={cardVariants}>
-      <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
-        <CardContent className="p-3 flex flex-col items-center justify-center">
-          <Flame className="h-5 w-5 text-primary" />
-          <span className="text-lg font-bold mt-1">7</span>
-          <span className="text-xs opacity-80">Day Streak</span>
-        </CardContent>
-      </Card>
-    </motion.div>
-    <motion.div variants={cardVariants}>
-      <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
-        <CardContent className="p-3 flex flex-col items-center justify-center">
-          <Trophy className="h-5 w-5 text-primary" />
-          <span className="text-lg font-bold mt-1">₹500</span>
-          <span className="text-xs opacity-80">Won</span>
-        </CardContent>
-      </Card>
-    </motion.div>
-    <motion.div variants={cardVariants}>
-      <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
-        <CardContent className="p-3 flex flex-col items-center justify-center">
-          <Star className="h-5 w-5 text-primary" />
-          <span className="text-lg font-bold mt-1">4.8</span>
-          <span className="text-xs opacity-80">Best Score</span>
-        </CardContent>
-      </Card>
-    </motion.div>
-  </motion.div>
-));
-UserStats.displayName = 'UserStats';
 
 const GlobalStats = memo(() => (
     <motion.div 
@@ -186,17 +145,15 @@ export default function HomeScreen() {
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="p-4 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
-            CricBlitz
+          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-primary">
+            Indcric
           </h1>
-          <p className="text-sm text-muted-foreground">The Ultimate Cricket Quiz</p>
+          <p className="text-sm text-muted-foreground">The Ultimate Cricket Challenge</p>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="container mx-auto px-4 py-8">
-          <UserStats />
-
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
             <p className="text-sm text-muted-foreground">Click a face on the cube to start!</p>
@@ -251,7 +208,7 @@ export default function HomeScreen() {
             <Button
               size="lg"
               variant="default"
-              className="w-full mt-8 bg-gradient-to-r from-primary via-yellow-300 to-primary text-primary-foreground hover:from-primary/90 hover:to-yellow-400/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"
+              className="w-full mt-8 bg-gradient-to-r from-primary via-secondary to-primary text-primary-foreground hover:from-primary/90 hover:to-secondary/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"
               onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
             >
               {`Start ${selectedBrand.format} Quiz`}

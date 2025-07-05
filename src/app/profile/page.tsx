@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -216,12 +216,12 @@ export default function ProfilePage() {
     const { user, userData, loading } = useAuth();
     const { toast } = useToast();
     
-    const handleReferAndEarn = () => {
+    const handleReferAndEarn = useCallback(() => {
         toast({
             title: "Coming Soon!",
             description: "The referral program is not yet active. Check back later!",
         });
-    };
+    }, [toast]);
 
     if (loading || !user || !userData) {
       return (

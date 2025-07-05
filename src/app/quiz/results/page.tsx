@@ -300,7 +300,7 @@ function ResultsComponent() {
                     slotId={slotId}
                 />
                 
-                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "CricBlitz User"} date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
             </motion.div>
 
             {adConfig && (

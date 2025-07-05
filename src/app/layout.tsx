@@ -13,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'Indcric',
-  description: 'Win ₹100 for 100 Seconds in the ultimate cricket quiz challenge!',
+  description: 'Indcric: Win prizes in the ultimate cricket quiz challenge!',
   icons: {
     icon: '/favicon.ico',
   },
