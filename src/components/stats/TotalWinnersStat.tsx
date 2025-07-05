@@ -1,8 +1,10 @@
+
 'use client';
 
-import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { memo } from 'react';
 
-export default function TotalWinnersStat() {
-  const { totalWinners } = useQuizStatus();
-  return <p className="text-2xl font-bold">{totalWinners.toLocaleString()}</p>;
+const TotalWinnersStat = ({ winners }: { winners: number }) => {
+  return <p className="text-2xl font-bold">{winners.toLocaleString()}</p>;
 }
+
+export default memo(TotalWinnersStat);

@@ -5,9 +5,16 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import useRequireAuth from '@/hooks/useRequireAuth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
-  loading: () => <div className="flex flex-1 items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
+  loading: () => (
+    <div className="space-y-4">
+      <Skeleton className="h-[125px] w-full" />
+      <Skeleton className="h-[125px] w-full" />
+      <Skeleton className="h-[125px] w-full" />
+    </div>
+  ),
   ssr: false,
 });
 

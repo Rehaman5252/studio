@@ -33,6 +33,7 @@ const GlobalStats = dynamic(() => import('@/components/home/GlobalStats'), {
       <Skeleton className="w-full h-[108px] rounded-lg" />
     </div>
   ),
+  ssr: false,
 });
 
 const StartQuizButton = dynamic(() => import('@/components/home/StartQuizButton'), {
@@ -69,7 +70,7 @@ export default function HomeScreen() {
 
   const handleStartQuiz = useCallback((brand: string, format: string) => {
     if (hasPlayedInCurrentSlot) {
-      router.push(`/quiz/results`);
+      router.push(`/quiz/results?review=true`);
     } else {
       router.push(`/quiz?brand=${encodeURIComponent(brand)}&format=${encodeURIComponent(format)}`);
     }

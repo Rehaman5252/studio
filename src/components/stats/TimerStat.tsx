@@ -1,13 +1,22 @@
+
 'use client';
 
-import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { memo } from 'react';
 import { formatTime } from '@/lib/utils';
 
-export default function TimerStat() {
-  const { timeLeft } = useQuizStatus();
+interface TimerStatProps {
+  timeLeft: {
+    minutes: number;
+    seconds: number;
+  };
+}
+
+const TimerStat = ({ timeLeft }: TimerStatProps) => {
   return (
     <span className="text-2xl font-bold text-primary">
       {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
     </span>
   );
 }
+
+export default memo(TimerStat);

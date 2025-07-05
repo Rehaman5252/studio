@@ -5,9 +5,22 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import useRequireAuth from '@/hooks/useRequireAuth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
-  loading: () => <div className="flex flex-1 items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
+  loading: () => (
+    <div className="space-y-2">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-[52px] w-full" />
+      <div className="pt-2 space-y-2">
+        <Skeleton className="h-[60px] w-full" />
+        <Skeleton className="h-[60px] w-full" />
+        <Skeleton className="h-[60px] w-full" />
+        <Skeleton className="h-[60px] w-full" />
+        <Skeleton className="h-[60px] w-full" />
+      </div>
+    </div>
+  ),
   ssr: false,
 });
 

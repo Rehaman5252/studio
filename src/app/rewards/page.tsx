@@ -5,9 +5,26 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import useRequireAuth from '@/hooks/useRequireAuth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
-  loading: () => <div className="flex-1 flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
+  loading: () => (
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-4 w-3/4" />
+        <div className="flex space-x-4">
+          <Skeleton className="h-32 w-32 aspect-square" />
+          <Skeleton className="h-32 w-32 aspect-square" />
+        </div>
+      </div>
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-[96px] w-full" />
+        <Skeleton className="h-[96px] w-full" />
+      </div>
+    </div>
+  ),
   ssr: false,
 });
 

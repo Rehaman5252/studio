@@ -18,6 +18,8 @@ import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import CricketLoading from '@/components/CricketLoading';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const cardContainerVariants = {
     hidden: { opacity: 0 },
@@ -179,16 +181,36 @@ const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion
 ));
 AnswerReview.displayName = 'AnswerReview';
 
+
+const CertificateLoader = () => <Skeleton className="h-[218px] w-full max-w-md mt-4" />;
+const AnalysisLoader = () => <Skeleton className="h-[180px] w-full max-w-md mt-4" />;
+const AnswerReviewLoader = () => <Skeleton className="h-[200px] w-full max-w-md mt-4" />;
+
+const DynamicCertificate = dynamic(() => Promise.resolve(Certificate), { loading: CertificateLoader, ssr: false });
+const DynamicAnalysisCard = dynamic(() => Promise.resolve(AnalysisCard), { loading: AnalysisLoader, ssr: false });
+const DynamicAnswerReview = dynamic(() => Promise.resolve(AnswerReview), { loading: AnswerReviewLoader, ssr: false });
+
+
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuth();
     const { lastAttemptInSlot, isLoading: isContextLoading } = useQuizStatus();
+    
+    // Hooks must be called unconditionally at the top level.
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
-
     const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
     const reason = useMemo(() => searchParams.get('reason'), [searchParams]);
+    const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
+    
+    const slotTimings = useMemo(() => {
+        if (!lastAttemptInSlot?.slotId) return '';
+        const slotStartTime = new Date(parseInt(lastAttemptInSlot.slotId, 10));
+        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+    }, [lastAttemptInSlot?.slotId]);
     
     const handleViewAnswers = useCallback(() => {
         if (showAnswers) return;
@@ -202,16 +224,7 @@ function ResultsComponent() {
         });
     }, [showAnswers]);
 
-    const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
-    
-    const slotTimings = useMemo(() => {
-        if (!lastAttemptInSlot?.slotId) return '';
-        const slotStartTime = new Date(parseInt(lastAttemptInSlot.slotId, 10));
-        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-    }, [lastAttemptInSlot?.slotId]);
-
+    // Conditional returns can only happen AFTER all hooks are called.
     if (reason === 'malpractice') {
         return <MalpracticeScreen />;
     }
@@ -223,8 +236,8 @@ function ResultsComponent() {
     if (!lastAttemptInSlot) {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
-                <h1 className="text-2xl font-bold mb-4">Invalid Results</h1>
-                <p>Could not load quiz results data.</p>
+                <h1 className="text-2xl font-bold mb-4">No Recent Quiz Found</h1>
+                <p>Could not find data for your last quiz attempt.</p>
                 <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
             </div>
         );
@@ -295,17 +308,17 @@ function ResultsComponent() {
                     </Card>
                 </motion.div>
 
-                <AnalysisCard 
-                    questions={questions} 
-                    userAnswers={userAnswers} 
-                    timePerQuestion={timePerQuestion} 
+                <DynamicAnalysisCard
+                    questions={questions}
+                    userAnswers={userAnswers}
+                    timePerQuestion={timePerQuestion}
                     usedHintIndices={usedHintIndices}
                     slotId={slotId}
                 />
 
-                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <DynamicCertificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
                 
-                {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
+                {showAnswers && <DynamicAnswerReview questions={questions} userAnswers={userAnswers} />}
             </motion.div>
 
             {adConfig && (
@@ -333,5 +346,3 @@ export default function ResultsPage() {
         </Suspense>
     )
 }
-
-    

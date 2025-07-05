@@ -1,8 +1,9 @@
+
 'use client';
+import { memo } from 'react';
 
-import { useQuizStatus } from '@/context/QuizStatusProvider';
-
-export default function PlayersPlayingStat() {
-  const { playersPlaying } = useQuizStatus();
-  return <p className="text-2xl font-bold">{playersPlaying.toLocaleString()}</p>;
+const PlayersPlayingStat = ({ players }: { players: number }) => {
+  return <p className="text-2xl font-bold">{players.toLocaleString()}</p>;
 }
+
+export default memo(PlayersPlayingStat);
