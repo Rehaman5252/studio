@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
@@ -19,8 +19,17 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const getAnalysisCacheKey = useCallback(() => `analysis_${attempt.slotId}`, [attempt.slotId]);
+
     const handleFetchAnalysis = useCallback(async () => {
-        if (analysis || isLoading) return;
+        const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
+        if (cachedAnalysis) {
+            setAnalysis(cachedAnalysis);
+            return;
+        }
+
+        if (isLoading) return;
+
         setIsLoading(true);
         setError(null);
         try {
@@ -31,20 +40,33 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                 usedHintIndices: attempt.usedHintIndices,
             });
             setAnalysis(result.analysis);
+            localStorage.setItem(getAnalysisCacheKey(), result.analysis);
         } catch (err) {
             console.error("Analysis generation failed:", err);
             setError('Could not generate the analysis. Please try again later.');
         } finally {
             setIsLoading(false);
         }
-    }, [analysis, isLoading, attempt]);
+    }, [analysis, isLoading, attempt, getAnalysisCacheKey]);
+
+    const handleOpenChange = (open: boolean) => {
+        if (open) {
+            handleFetchAnalysis();
+        } else {
+            // Optional: reset state when dialog closes
+            setAnalysis(null);
+            setError(null);
+            setIsLoading(false);
+        }
+    };
 
     return (
-        <Dialog onOpenChange={(open) => {
-            if (open) handleFetchAnalysis();
-        }}>
+        <Dialog onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="secondary" size="sm">View Analysis</Button>
+                <Button variant="secondary" size="sm">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    View Analysis
+                </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg bg-card/90 backdrop-blur-sm">
                 <DialogHeader>
@@ -96,8 +118,10 @@ export default function QuizHistoryPage() {
 
   useEffect(() => {
     setIsLoading(true);
+    // Sort the mock history by timestamp descending before setting it
+    const sortedHistory = mockQuizHistory.sort((a, b) => b.timestamp - a.timestamp);
     setTimeout(() => {
-        setHistory(mockQuizHistory);
+        setHistory(sortedHistory);
         setIsLoading(false);
     }, 500);
   }, []);
@@ -161,7 +185,7 @@ export default function QuizHistoryPage() {
             variants={listVariants}
           >
             {filteredHistory.map((attempt) => (
-              <motion.div key={attempt.slotId + attempt.format} variants={itemVariants}>
+              <motion.div key={attempt.slotId} variants={itemVariants}>
                 <Card className="bg-card/80 border-primary/10 shadow-lg">
                   <CardHeader>
                     <CardTitle className="flex justify-between items-center text-lg">
@@ -190,13 +214,15 @@ export default function QuizHistoryPage() {
             ))}
           </motion.div>
         ) : (
-          <Card className="bg-card/80">
-            <CardContent className="p-6 text-center text-muted-foreground">
-              <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-              <p className="font-semibold">No Quizzes Found</p>
-              <p>Play a quiz to see your history here!</p>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Card className="bg-card/80">
+              <CardContent className="p-6 text-center text-muted-foreground">
+                <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
+                <p className="font-semibold">No Quizzes Found</p>
+                <p>Play a quiz to see your history here!</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </main>
     </div>

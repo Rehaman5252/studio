@@ -54,50 +54,50 @@ const mockQuestions: QuizQuestion[] = [
 
 export const mockQuizHistory: QuizAttempt[] = [
   {
-    slotId: '1',
+    slotId: '1722160800000', // Corresponds to '2024-07-28T10:00:00Z'
     brand: 'Nike',
     format: 'ODI',
     score: 4,
     totalQuestions: 5,
     questions: mockQuestions,
     userAnswers: ["Sachin Tendulkar", "Australia", "2008", "380", "Muttiah Muralitharan"],
-    timestamp: new Date('2024-07-28T10:00:00Z').getTime(),
+    timestamp: new Date('2024-07-28T10:05:00Z').getTime(),
     timePerQuestion: [10, 5, 12, 19, 8],
     usedHintIndices: [4]
   },
   {
-    slotId: '2',
+    slotId: '1722105000000', // Corresponds to '2024-07-27T18:30:00Z'
     brand: 'boAt',
     format: 'IPL',
     score: 5,
     totalQuestions: 5,
     questions: mockQuestions,
     userAnswers: mockQuestions.map(q => q.correctAnswer),
-    timestamp: new Date('2024-07-27T18:30:00Z').getTime(),
+    timestamp: new Date('2024-07-27T18:33:00Z').getTime(),
     timePerQuestion: [12, 14, 8, 11, 15],
     usedHintIndices: [0, 1]
   },
   {
-    slotId: '3',
+    slotId: '1721906400000', // Corresponds to '2024-07-25T14:00:00Z'
     brand: 'SBI',
     format: 'Test',
     score: 3,
     totalQuestions: 5,
     questions: mockQuestions,
     userAnswers: ["Ricky Ponting", "Australia", "2009", "400*", "Muttiah Muralitharan"],
-    timestamp: new Date('2024-07-25T14:00:00Z').getTime(),
+    timestamp: new Date('2024-07-25T14:08:00Z').getTime(),
     timePerQuestion: [18, 6, 19, 10, 13],
     usedHintIndices: []
   },
   {
-    slotId: '4',
+    slotId: '1721823000000', // Corresponds to '2024-07-24T12:10:00Z'
     brand: 'Myntra',
     format: 'WPL',
     score: 2,
     totalQuestions: 5,
     questions: mockQuestions,
     userAnswers: ["Sachin Tendulkar", "West Indies", "2008", "375", "Shane Warne"],
-    timestamp: new Date('2024-07-24T12:10:00Z').getTime(),
+    timestamp: new Date('2024-07-24T12:15:00Z').getTime(),
     timePerQuestion: [5, 20, 20, 15, 18],
     usedHintIndices: [1, 2, 3, 4]
   }
