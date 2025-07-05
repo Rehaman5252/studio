@@ -48,7 +48,7 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isAutoRotating = useRef(false);
 
   const rotateToFace = useCallback((brandIndex: number) => {
     if (cubeRef.current) {
@@ -57,28 +57,22 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
   }, []);
 
   const stopAutoRotation = useCallback(() => {
+    isAutoRotating.current = false;
     if (rotationTimeoutRef.current) {
       clearTimeout(rotationTimeoutRef.current);
       rotationTimeoutRef.current = null;
-    }
-    if (interactionTimeoutRef.current) {
-      clearTimeout(interactionTimeoutRef.current);
-      interactionTimeoutRef.current = null;
     }
   }, []);
 
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
+    isAutoRotating.current = true;
     const rotate = () => {
-        setRotationOrderIndex(prevIndex => {
-            const nextIndex = (prevIndex + 1) % faceRotationOrder.length;
-            onSelect(faceRotationOrder[nextIndex]);
-            return nextIndex;
-        });
+        setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
         rotationTimeoutRef.current = setTimeout(rotate, 1500);
     };
     rotationTimeoutRef.current = setTimeout(rotate, 100);
-  }, [stopAutoRotation, onSelect]);
+  }, [stopAutoRotation]);
 
   useEffect(() => {
     if(disabled) {
@@ -92,7 +86,10 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
   useEffect(() => {
     const faceToShow = faceRotationOrder[rotationOrderIndex];
     rotateToFace(faceToShow);
-  }, [rotationOrderIndex, rotateToFace]);
+    if (isAutoRotating.current) {
+      onSelect(faceToShow);
+    }
+  }, [rotationOrderIndex, rotateToFace, onSelect]);
 
   const handleFaceClick = (brandIndex: number) => {
     if (disabled) return;
