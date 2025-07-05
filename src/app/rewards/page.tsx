@@ -1,28 +1,27 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import useRequireAuth from '@/hooks/useRequireAuth';
-import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
 
-const ScratchCard = ({ brand }: { brand: string }) => {
+const ScratchCard = memo(({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
 
-  const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; image: string; hint: string; } } = {
-    'Apple': { gift: '10% off new iPhone', description: 'Save big on your next Apple purchase.', link: 'https://www.apple.com', image: 'https://placehold.co/300x150.png', hint: 'tech apple' },
-    'Myntra': { gift: 'Flat ₹500 off', description: 'On your next Myntra order.', link: 'https://www.myntra.com', image: 'https://placehold.co/300x150.png', hint: 'fashion' },
-    'SBI': { gift: '2x Reward Points', description: 'On your SBI credit card.', link: 'https://www.onlinesbi.com', image: 'https://placehold.co/300x150.png', hint: 'finance money' },
-    'Nike': { gift: '15% off running shoes', description: 'Step up your game with Nike.', link: 'https://www.nike.com', image: 'https://placehold.co/300x150.png', hint: 'shoes sport' },
-    'Amazon': { gift: '₹250 Amazon Pay', description: 'Added to your wallet.', link: 'https://www.amazon.in', image: 'https://placehold.co/300x150.png', hint: 'shopping' },
-    'boAt': { gift: 'Free Airdopes', description: 'With your next boAt order.', link: 'https://www.boat-lifestyle.com', image: 'https://placehold.co/300x150.png', hint: 'headphones music' },
-    'Default': { gift: 'Surprise Gift!', description: 'A special reward from Indcric.', link: '#', image: 'https://placehold.co/300x150.png', hint: 'gift box' },
+  const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
+    'Apple': { gift: '10% off new iPhone', description: 'Save on your next Apple purchase.', link: 'https://www.apple.com' },
+    'Myntra': { gift: 'Flat ₹500 off', description: 'On your next Myntra order.', link: 'https://www.myntra.com' },
+    'SBI': { gift: '2x Reward Points', description: 'On your SBI credit card.', link: 'https://www.onlinesbi.com' },
+    'Nike': { gift: '15% off running shoes', description: 'Step up your game with Nike.', link: 'https://www.nike.com' },
+    'Amazon': { gift: '₹250 Amazon Pay', description: 'Added to your wallet.', link: 'https://www.amazon.in' },
+    'boAt': { gift: 'Free Airdopes', description: 'With your next boAt order.', link: 'https://www.boat-lifestyle.com' },
+    'Default': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
@@ -36,7 +35,7 @@ const ScratchCard = ({ brand }: { brand: string }) => {
             onClick={() => setIsScratched(true)}
             >
             <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
-            <p className="text-zinc-500">From {brand}</p>
+            <p className="text-zinc-500 text-sm">From {brand}</p>
             </div>
         ) : (
             <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
@@ -45,7 +44,7 @@ const ScratchCard = ({ brand }: { brand: string }) => {
             <p className="text-xs opacity-80 mt-1">{reward.description}</p>
             <Button
                 onClick={() => window.open(reward.link, '_blank')}
-                className="mt-3 bg-white text-primary-foreground hover:bg-white/90"
+                className="mt-3 bg-white text-black hover:bg-white/90"
                 size="sm"
             >
                 Claim Now <ExternalLink className="ml-2 h-4 w-4" />
@@ -55,10 +54,11 @@ const ScratchCard = ({ brand }: { brand: string }) => {
         </Card>
     </div>
   );
-};
+});
+ScratchCard.displayName = 'ScratchCard';
 
 
-const GenericOffer = ({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
+const GenericOffer = memo(({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
     <motion.div whileHover={{ scale: 1.03 }} transition={{ type: 'spring', stiffness: 300 }}>
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardContent className="p-4 flex items-center gap-4">
@@ -73,7 +73,8 @@ const GenericOffer = ({ title, description, image, hint }: { title: string, desc
             </CardContent>
         </Card>
     </motion.div>
-)
+));
+GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsPage() {
   useRequireAuth();
@@ -82,7 +83,7 @@ export default function RewardsPage() {
   const uniqueBrandAttempts = useMemo(() => {
     const seenBrands = new Set<string>();
     return mockQuizHistory.filter(attempt => {
-        if (seenBrands.has(attempt.brand)) {
+        if (seenBrands.has(attempt.brand) || !attempt.brand) {
             return false;
         } else {
             seenBrands.add(attempt.brand);
@@ -93,9 +94,11 @@ export default function RewardsPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    setTimeout(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 500);
+    }, 300);
+    return () => clearTimeout(timer);
   }, []);
 
   if (isLoading) {

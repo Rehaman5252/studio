@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useRef, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { QuizQuestion } from '@/ai/schemas';
@@ -10,7 +10,7 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
@@ -18,11 +18,11 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import CricketLoading from '@/components/CricketLoading';
 
-
-const Timer = ({ timeLeft }: { timeLeft: number }) => {
+const Timer = memo(({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = (timeLeft / 20) * circumference;
+  // Ensure strokeDashoffset doesn't go below 0
+  const offset = circumference - (timeLeft / 20) * circumference;
 
   return (
     <div className="relative h-28 w-28">
@@ -44,7 +44,7 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
           r={radius}
           fill="transparent"
           strokeDasharray={circumference}
-          strokeDashoffset={circumference - strokeDashoffset}
+          strokeDashoffset={offset}
           transform="rotate(-90 50 50)"
         />
       </svg>
@@ -53,14 +53,15 @@ const Timer = ({ timeLeft }: { timeLeft: number }) => {
       </div>
     </div>
   );
-};
+});
+Timer.displayName = 'Timer';
 
 function QuizComponent() {
   useRequireAuth();
   const router = useRouter();
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const brand = searchParams.get('brand') || 'Indcric';
+  const brand = searchParams.get('brand') || 'CricBlitz';
   const format = searchParams.get('format') || 'Cricket';
 
   const { setLastAttemptInSlot } = useQuizStatus();
@@ -85,22 +86,23 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
+  // Use a ref to hold the latest state to prevent stale closures in async operations/cleanups
   const stateRef = useRef({ userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex });
   stateRef.current = { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex };
   
-  const advanceToResults = useCallback((finalAnswers: string[], finalTimes: number[]) => {
+  const advanceToResults = useCallback(() => {
+    // Use the ref to get the most up-to-date state
+    const { questions, userAnswers, brand, format, usedHintIndices, timePerQuestion } = stateRef.current;
     const dataToPass = {
         questions,
-        userAnswers: finalAnswers,
+        userAnswers,
         brand,
         format,
         usedHintIndices,
-        timePerQuestion: finalTimes
+        timePerQuestion
     };
-    router.replace(
-      `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`
-    );
-  }, [questions, brand, format, router, usedHintIndices]);
+    router.replace(`/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`);
+  }, [router]);
 
 
   useEffect(() => {
@@ -114,6 +116,7 @@ function QuizComponent() {
         }
         setQuestions(quizQuestions);
         
+        // Immediately save the initial attempt state
         const initialAttempt = {
             slotId: getQuizSlotId(),
             score: 0,
@@ -137,14 +140,19 @@ function QuizComponent() {
     
     fetchQuestions();
 
+    // Cleanup function to save progress if user leaves mid-quiz
     return () => {
       const { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex } = stateRef.current;
       const isMidQuiz = questions.length > 0 && currentQuestionIndex < questions.length;
       
       if (isMidQuiz) {
+        // Calculate score based on current answers
+        const score = userAnswers.reduce((acc, answer, index) => 
+            (questions[index] && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
+
         const currentProgress = {
           slotId: getQuizSlotId(),
-          score: 0,
+          score,
           totalQuestions: questions.length,
           format,
           brand,
@@ -167,7 +175,7 @@ function QuizComponent() {
     setTimeLeft(20);
   }, []);
 
-  const proceedToNextStep = useCallback((updatedAnswers: string[], updatedTimes: number[]) => {
+  const handleNextStep = useCallback(() => {
     if (currentQuestionIndex === 2 && !wasMidQuizAdShown) {
         setPaused(true);
         setAdConfig({
@@ -182,12 +190,13 @@ function QuizComponent() {
     }
     
     if (currentQuestionIndex >= questions.length - 1) {
-      advanceToResults(updatedAnswers, updatedTimes);
+      advanceToResults();
     } else {
       goToNextQuestion();
     }
   }, [currentQuestionIndex, wasMidQuizAdShown, questions.length, goToNextQuestion, advanceToResults]);
   
+  // Timer effect
   useEffect(() => {
     if (paused || loading || questions.length === 0 || selectedOption || adConfig) return;
 
@@ -195,32 +204,28 @@ function QuizComponent() {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timerId);
     } else {
+       // Time ran out, treat as an unanswered question
        const timeTaken = 20;
-       const newTimes = [...timePerQuestion, timeTaken];
-       setTimePerQuestion(newTimes);
-       const newAnswers = [...userAnswers, ''];
-       setUserAnswers(newAnswers);
-       proceedToNextStep(newAnswers, newTimes);
+       setTimePerQuestion(prev => [...prev, timeTaken]);
+       setUserAnswers(prev => [...prev, '']);
+       handleNextStep();
     }
-  }, [timeLeft, paused, loading, questions.length, selectedOption, userAnswers, proceedToNextStep, adConfig, timePerQuestion]);
+  }, [timeLeft, paused, loading, questions.length, selectedOption, adConfig, handleNextStep]);
 
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption) return;
 
     const timeTaken = 20 - timeLeft;
-    const newTimes = [...timePerQuestion, timeTaken];
-    setTimePerQuestion(newTimes);
+    setTimePerQuestion(prev => [...prev, timeTaken]);
     
     setSelectedOption(option);
-    const newAnswers = [...userAnswers, option];
-    setUserAnswers(newAnswers);
+    setUserAnswers(prev => [...prev, option]);
     
-    const isLastQuestion = currentQuestionIndex >= questions.length - 1;
-
+    // Use a timeout to allow UI to update before moving to next step
     setTimeout(() => {
-       proceedToNextStep(newAnswers, newTimes);
-    }, 100);
-  }, [selectedOption, userAnswers, timeLeft, timePerQuestion, proceedToNextStep, currentQuestionIndex, questions.length]);
+       handleNextStep();
+    }, 200); // A brief delay for visual feedback on selection
+  }, [selectedOption, timeLeft, handleNextStep]);
 
   const handleUseHint = useCallback(() => {
     if (usedHintIndices.includes(currentQuestionIndex) || adConfig) return;

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
@@ -19,27 +19,26 @@ import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import CricketLoading from '@/components/CricketLoading';
 
-const Certificate = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
-    return (
-        <div className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
-             <Star className="absolute top-2 right-2 text-primary" size={32} />
-             <Star className="absolute top-2 left-2 text-primary" size={32} />
-             <Star className="absolute bottom-2 right-2 text-primary" size={32} />
-             <Star className="absolute bottom-2 left-2 text-primary" size={32} />
-            <div className="text-center">
-                <p className="text-lg font-semibold text-muted-foreground">Certificate of Achievement</p>
-                <p className="text-sm">This certifies that</p>
-                <p className="text-2xl font-bold my-2 text-primary">{userName}</p>
-                <p className="text-sm">has successfully achieved a perfect score in the</p>
-                <p className="text-xl font-bold my-2">{format} Quiz</p>
-                <p className="text-xs mt-4 text-muted-foreground">Awarded on: {date}</p>
-                <p className="text-xs mt-1 text-muted-foreground">Quiz Slot: {slotTimings}</p>
-            </div>
+const Certificate = memo(({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => (
+    <div className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
+         <Star className="absolute top-2 right-2 text-primary" size={32} />
+         <Star className="absolute top-2 left-2 text-primary" size={32} />
+         <Star className="absolute bottom-2 right-2 text-primary" size={32} />
+         <Star className="absolute bottom-2 left-2 text-primary" size={32} />
+        <div className="text-center">
+            <p className="text-lg font-semibold text-muted-foreground">Certificate of Achievement</p>
+            <p className="text-sm">This certifies that</p>
+            <p className="text-2xl font-bold my-2 text-primary">{userName}</p>
+            <p className="text-sm">has successfully achieved a perfect score in the</p>
+            <p className="text-xl font-bold my-2">{format} Quiz</p>
+            <p className="text-xs mt-4 text-muted-foreground">Awarded on: {date}</p>
+            <p className="text-xs mt-1 text-muted-foreground">Quiz Slot: {slotTimings}</p>
         </div>
-    );
-}
+    </div>
+));
+Certificate.displayName = 'Certificate';
 
-const AnalysisCard = ({ questions, userAnswers, timePerQuestion, usedHintIndices }: { questions: QuizQuestion[]; userAnswers: string[], timePerQuestion?: number[], usedHintIndices?: number[] }) => {
+const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIndices }: { questions: QuizQuestion[]; userAnswers: string[], timePerQuestion?: number[], usedHintIndices?: number[] }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -95,8 +94,34 @@ const AnalysisCard = ({ questions, userAnswers, timePerQuestion, usedHintIndices
             </CardContent>
         </Card>
     );
-};
+});
+AnalysisCard.displayName = 'AnalysisCard';
 
+
+const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion[], userAnswers: string[] }) => (
+    <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
+        <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+            {questions.map((q, i) => (
+                <div key={i} className="text-sm p-3 rounded-lg bg-background">
+                    <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
+                    <p className={cn("flex items-center text-foreground/90")}>
+                      {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0 text-green-400"/> : <XCircle className="mr-2 shrink-0 text-red-400"/>}
+                      Your answer: {userAnswers[i] || 'Not answered'}
+                    </p>
+                    {userAnswers[i] !== q.correctAnswer && <p className="text-green-400 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
+                    {q.explanation && (
+                        <div className="mt-2 pt-2 border-t border-border text-muted-foreground">
+                            <p className="font-semibold text-foreground">Explanation:</p>
+                            <p>{q.explanation}</p>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </CardContent>
+    </Card>
+));
+AnswerReview.displayName = 'AnswerReview';
 
 function ResultsComponent() {
     const router = useRouter();
@@ -108,20 +133,9 @@ function ResultsComponent() {
 
     const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, isReview } = useMemo(() => {
         const dataParam = searchParams.get('data');
-
         if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [], isReview: false };
-
         try {
-            const parsedData = JSON.parse(decodeURIComponent(dataParam));
-            return {
-                questions: parsedData.questions || [],
-                userAnswers: parsedData.userAnswers || [],
-                brand: parsedData.brand || 'Indcric',
-                format: parsedData.format || 'Cricket',
-                timePerQuestion: parsedData.timePerQuestion || [],
-                usedHintIndices: parsedData.usedHintIndices || [],
-                isReview: parsedData.isReview || false,
-            };
+            return JSON.parse(decodeURIComponent(dataParam));
         } catch (error) {
             console.error("Failed to parse results data:", error);
             return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [], isReview: false };
@@ -130,15 +144,10 @@ function ResultsComponent() {
     
     const score = useMemo(() => {
         if (!questions || !userAnswers) return 0;
-        return userAnswers.reduce((acc, answer, index) => {
-            if (index < questions.length && answer === questions[index].correctAnswer) {
-                return acc + 1;
-            }
-            return acc;
-        }, 0);
+        return userAnswers.reduce((acc, answer, index) => 
+            (index < questions.length && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
     }, [questions, userAnswers]);
 
-    // Save the attempt to global state once results are calculated, but not in review mode
     useEffect(() => {
         if (questions.length > 0 && !isReview) {
             const attempt = {
@@ -155,17 +164,6 @@ function ResultsComponent() {
             setLastAttemptInSlot(attempt);
         }
     }, [score, questions, userAnswers, format, brand, timePerQuestion, usedHintIndices, setLastAttemptInSlot, isReview]);
-
-
-    const slotTimings = useMemo(() => {
-        const quizSlotId = getQuizSlotId();
-        const slotStartTime = new Date(parseInt(quizSlotId, 10));
-        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-
-        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-    }, []);
 
     const handleViewAnswers = () => {
         if (showAnswers) return;
@@ -191,19 +189,18 @@ function ResultsComponent() {
     
     const total = questions.length;
     const isPerfectScore = score === total && total > 0;
+    const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
+    const slotTimings = useMemo(() => {
+        const quizSlotId = getQuizSlotId();
+        const slotStartTime = new Date(parseInt(quizSlotId, 10));
+        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+    }, []);
 
     let message = "Good effort! Keep practicing.";
-    if (isPerfectScore) {
-        message = "Perfect score! You're a true cricket expert!";
-    } else if (score >= total * 0.7) {
-        message = "Great job! You really know your cricket.";
-    }
-
-    const today = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
+    if (isPerfectScore) message = "Perfect score! You're a true cricket expert!";
+    else if (score >= total * 0.7) message = "Great job! You really know your cricket.";
 
     return (
         <>
@@ -211,7 +208,7 @@ function ResultsComponent() {
                 <Card className="w-full max-w-md text-center bg-card border-0 my-4">
                     {isReview && (
                         <div className="p-4 pt-6 text-left">
-                            <Alert variant="default" className="border-primary bg-primary/10 text-primary-foreground">
+                            <Alert variant="default" className="border-primary bg-primary/10">
                                 <Info className="h-4 w-4 text-primary" />
                                 <AlertTitle>Reviewing Attempt</AlertTitle>
                                 <AlertDescription className="text-foreground/80">
@@ -239,57 +236,27 @@ function ResultsComponent() {
                         {isPerfectScore && (
                             <div className="bg-primary/20 p-4 rounded-lg border border-primary">
                                 <h3 className="font-bold text-lg text-foreground">Congratulations!</h3>
-                                <p className="text-sm text-foreground/90">You've won ₹100! The amount will be credited via Razorpay soon.</p>
+                                <p className="text-sm text-foreground/90">You've won a special reward!</p>
                             </div>
                         )}
                         
                         <div className="grid grid-cols-1 gap-3">
-                            <Button
-                                size="lg"
-                                className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                                onClick={() => router.replace('/home')}
-                            >
-                                <Home className="mr-2 h-5 w-5" />
-                                Go Home
+                            <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={() => router.replace('/home')}>
+                                <Home className="mr-2 h-5 w-5" /> Go Home
                             </Button>
                         </div>
 
-                        <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={handleViewAnswers}
-                            disabled={showAnswers}
-                        >
+                        <Button variant="outline" className="w-full" onClick={handleViewAnswers} disabled={showAnswers}>
                            {showAnswers ? "Answers Displayed Below" : "View Correct Answers (Ad)"}
                         </Button>
                     </CardContent>
                 </Card>
 
-                {showAnswers && (
-                    <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
-                        <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            {questions.map((q, i) => (
-                                <div key={i} className="text-sm p-3 rounded-lg bg-background">
-                                    <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
-                                    <p className={cn("flex items-center text-foreground/90")}>
-                                      {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0 text-green-400"/> : <XCircle className="mr-2 shrink-0 text-red-400"/>}
-                                      Your answer: {userAnswers[i] || 'Not answered'}
-                                    </p>
-                                    {userAnswers[i] !== q.correctAnswer && <p className="text-green-400 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
-                                    <div className="mt-2 pt-2 border-t border-border text-muted-foreground">
-                                        <p className="font-semibold text-foreground">Explanation:</p>
-                                        <p>{q.explanation}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
+                {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
                 
                 <AnalysisCard questions={questions} userAnswers={userAnswers} timePerQuestion={timePerQuestion} usedHintIndices={usedHintIndices} />
                 
-                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "CricBlitz User"} date={today} slotTimings={slotTimings} />}
             </div>
 
             {adConfig && (

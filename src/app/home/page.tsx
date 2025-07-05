@@ -1,11 +1,10 @@
 
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
-  Clock,
   Users,
   TrendingUp,
   Trophy,
@@ -14,6 +13,7 @@ import {
   ChevronRight,
   Loader2,
   Lock,
+  Clock,
 } from 'lucide-react';
 import Cube, { type CubeBrand } from '@/components/Cube';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,92 @@ const statCardContainer = {
     }
   }
 };
+
+const UserStats = memo(() => (
+  <motion.div 
+    className="grid grid-cols-3 gap-4 mb-8"
+    initial="hidden"
+    animate="visible"
+    variants={statCardContainer}
+  >
+    <motion.div variants={cardVariants}>
+      <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
+        <CardContent className="p-3 flex flex-col items-center justify-center">
+          <Flame className="h-5 w-5 text-primary" />
+          <span className="text-lg font-bold mt-1">7</span>
+          <span className="text-xs opacity-80">Day Streak</span>
+        </CardContent>
+      </Card>
+    </motion.div>
+    <motion.div variants={cardVariants}>
+      <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
+        <CardContent className="p-3 flex flex-col items-center justify-center">
+          <Trophy className="h-5 w-5 text-primary" />
+          <span className="text-lg font-bold mt-1">₹500</span>
+          <span className="text-xs opacity-80">Won</span>
+        </CardContent>
+      </Card>
+    </motion.div>
+    <motion.div variants={cardVariants}>
+      <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
+        <CardContent className="p-3 flex flex-col items-center justify-center">
+          <Star className="h-5 w-5 text-primary" />
+          <span className="text-lg font-bold mt-1">4.8</span>
+          <span className="text-xs opacity-80">Best Score</span>
+        </CardContent>
+      </Card>
+    </motion.div>
+  </motion.div>
+));
+UserStats.displayName = 'UserStats';
+
+const GlobalStats = memo(() => (
+    <motion.div 
+        className="grid grid-cols-2 gap-4"
+        initial="hidden"
+        animate="visible"
+        variants={statCardContainer}
+    >
+        <motion.div variants={cardVariants}>
+        <Card className="bg-card border-border/50 shadow-lg">
+            <CardContent className="p-4 text-center">
+            <Clock className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <p className="text-sm text-muted-foreground mb-1">Quiz Ends In</p>
+            <TimerStat />
+            </CardContent>
+        </Card>
+        </motion.div>
+        <motion.div variants={cardVariants}>
+        <Card className="bg-card border-border/50 shadow-lg">
+            <CardContent className="p-4 text-center">
+            <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <p className="text-sm text-muted-foreground mb-1">Players Playing</p>
+            <PlayersPlayingStat />
+            </CardContent>
+        </Card>
+        </motion.div>
+        <motion.div variants={cardVariants}>
+        <Card className="bg-card border-border/50 shadow-lg">
+            <CardContent className="p-4 text-center">
+            <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <p className="text-sm text-muted-foreground mb-1">Players Played</p>
+            <PlayersPlayedStat />
+            </CardContent>
+        </Card>
+        </motion.div>
+        <motion.div variants={cardVariants}>
+        <Card className="bg-card border-border/50 shadow-lg">
+            <CardContent className="p-4 text-center">
+            <Trophy className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <p className="text-sm text-muted-foreground mb-1">Total Winners</p>
+            <TotalWinnersStat />
+            </CardContent>
+        </Card>
+        </motion.div>
+    </motion.div>
+));
+GlobalStats.displayName = 'GlobalStats';
+
 
 export default function HomeScreen() {
   const { loading: authLoading } = useRequireAuth();
@@ -100,47 +186,16 @@ export default function HomeScreen() {
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="p-4 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight">Indcric</h1>
-          <p className="text-sm text-muted-foreground">Win ₹100 for 100 Seconds</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">
+            CricBlitz
+          </h1>
+          <p className="text-sm text-muted-foreground">The Ultimate Cricket Quiz</p>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="container mx-auto px-4 py-8">
-          <motion.div 
-            className="grid grid-cols-3 gap-4 mb-8"
-            initial="hidden"
-            animate="visible"
-            variants={statCardContainer}
-          >
-            <motion.div variants={cardVariants}>
-              <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
-                <CardContent className="p-3 flex flex-col items-center justify-center">
-                  <Flame className="h-5 w-5 text-primary" />
-                  <span className="text-lg font-bold mt-1">7</span>
-                  <span className="text-xs opacity-80">Day Streak</span>
-                </CardContent>
-              </Card>
-            </motion.div>
-            <motion.div variants={cardVariants}>
-              <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
-                <CardContent className="p-3 flex flex-col items-center justify-center">
-                  <Trophy className="h-5 w-5 text-primary" />
-                  <span className="text-lg font-bold mt-1">₹500</span>
-                  <span className="text-xs opacity-80">Won</span>
-                </CardContent>
-              </Card>
-            </motion.div>
-            <motion.div variants={cardVariants}>
-              <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
-                <CardContent className="p-3 flex flex-col items-center justify-center">
-                  <Star className="h-5 w-5 text-primary" />
-                  <span className="text-lg font-bold mt-1">4.8</span>
-                  <span className="text-xs opacity-80">Best Score</span>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
+          <UserStats />
 
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
@@ -169,7 +224,7 @@ export default function HomeScreen() {
                     <div>
                       <h3 className="text-2xl font-bold text-foreground">{selectedBrand.format} Cricket Quiz</h3>
                       <p className="text-muted-foreground mb-2">Sponsored by {selectedBrand.brand}</p>
-                      <p className="text-lg font-semibold text-primary">Win ₹100 + {selectedBrand.brand} Rewards!</p>
+                      <p className="text-lg font-semibold text-primary">Win Rewards!</p>
                     </div>
                     <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white p-2 shadow-inner">
                       <Image
@@ -187,49 +242,8 @@ export default function HomeScreen() {
           
           <Separator className="my-8 bg-border/50" />
 
-          <motion.div 
-            className="grid grid-cols-2 gap-4"
-            initial="hidden"
-            animate="visible"
-            variants={statCardContainer}
-          >
-            <motion.div variants={cardVariants}>
-              <Card className="bg-card border-border/50 shadow-lg">
-                <CardContent className="p-4 text-center">
-                  <Clock className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="text-sm text-muted-foreground mb-1">Quiz Ends In</p>
-                  <TimerStat />
-                </CardContent>
-              </Card>
-            </motion.div>
-            <motion.div variants={cardVariants}>
-              <Card className="bg-card border-border/50 shadow-lg">
-                <CardContent className="p-4 text-center">
-                  <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="text-sm text-muted-foreground mb-1">Players Playing</p>
-                  <PlayersPlayingStat />
-                </CardContent>
-              </Card>
-            </motion.div>
-            <motion.div variants={cardVariants}>
-              <Card className="bg-card border-border/50 shadow-lg">
-                <CardContent className="p-4 text-center">
-                  <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="text-sm text-muted-foreground mb-1">Players Played</p>
-                  <PlayersPlayedStat />
-                </CardContent>
-              </Card>
-            </motion.div>
-            <motion.div variants={cardVariants}>
-              <Card className="bg-card border-border/50 shadow-lg">
-                <CardContent className="p-4 text-center">
-                  <Trophy className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="text-sm text-muted-foreground mb-1">Total Winners</p>
-                  <TotalWinnersStat />
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
+          <GlobalStats />
+
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -237,7 +251,7 @@ export default function HomeScreen() {
             <Button
               size="lg"
               variant="default"
-              className="w-full mt-8 bg-gradient-to-r from-primary via-yellow-300 to-primary text-primary-foreground hover:bg-primary/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"
+              className="w-full mt-8 bg-gradient-to-r from-primary via-yellow-300 to-primary text-primary-foreground hover:from-primary/90 hover:to-yellow-400/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"
               onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
             >
               {`Start ${selectedBrand.format} Quiz`}
