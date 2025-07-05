@@ -75,21 +75,32 @@ const generateQuizAnalysisFlow = ai.defineFlow(
 
     const promptInputString = `Format: ${format}\nScore: ${score}/${input.questions.length}\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
     
-    const { output } = await analysisPrompt(promptInputString);
+    try {
+        const { output } = await analysisPrompt(promptInputString);
     
-    if (!output || output.trim() === '') {
-      console.warn("AI analysis returned a null or empty analysis string. Providing a fallback response.", { output });
-      const fallbackAnalysis = `### Analysis Unavailable
+        if (!output || output.trim() === '') {
+          // This case handles when the AI returns an empty string, but doesn't throw an error.
+          // We will construct the fallback and return it.
+          console.warn("AI analysis returned a null or empty analysis string. Providing a fallback response.", { output });
+        } else {
+            // If we got a valid output, return it.
+            return { analysis: output };
+        }
 
-We couldn't generate a detailed AI analysis for this quiz at the moment. 
+    } catch (error) {
+        // This case handles when the analysisPrompt() call itself throws an error (e.g. network, auth, internal Genkit error)
+        console.error("AI analysis call failed with an error. Providing a fallback response.", { error });
+    }
+
+    // This is the fallback logic. It's reached if the AI returns empty/null OR if the AI call throws an error.
+    const fallbackAnalysis = `### Analysis Currently Unavailable
+
+We couldn't generate a detailed AI analysis for this quiz at the moment. This can happen occasionally due to high traffic.
 
 **Your Score:** ${score}/${input.questions.length}
 
-Please try again on your next quiz!
+You can try generating the analysis again from your Quiz History later.
 `;
-      return { analysis: fallbackAnalysis };
-    }
-
-    return { analysis: output };
+    return { analysis: fallbackAnalysis };
   }
 );

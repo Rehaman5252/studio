@@ -4,7 +4,7 @@
 import React, { useState, useEffect, Suspense, useCallback, useRef, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { QuizQuestion } from '@/ai/schemas';
-import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
+import { mockQuestions } from '@/lib/mockData';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
@@ -66,10 +66,12 @@ function QuizComponent() {
 
   const { setLastAttemptInSlot } = useQuizStatus();
   
-  const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  // Use pre-defined mock questions for instant loading
+  const [questions, setQuestions] = useState<QuizQuestion[]>(
+    () => mockQuestions.sort(() => 0.5 - Math.random()).slice(0, 5)
+  );
+  const [isLoading, setIsLoading] = useState(false); // No initial loading needed
+  
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(20);
@@ -91,33 +93,17 @@ function QuizComponent() {
   stateRef.current = { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex };
   
   const advanceToResults = useCallback(() => {
-    // The quiz state will be saved by the unmount effect.
-    // Just navigate to the results page without a large data payload.
+    // Navigate immediately to the results page.
+    // The unmount effect will handle saving the final state.
     router.replace(`/quiz/results`);
   }, [router]);
 
-  // Fetch questions on component mount
-  useEffect(() => {
-    setIsLoading(true);
-    generateQuiz({ format, brand })
-      .then((generatedQuestions) => {
-        setQuestions(generatedQuestions);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error("Failed to generate quiz:", err);
-        setError("Could not generate the quiz. Please try again later.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [format, brand]);
 
   // Effect to save progress on mount (for abandoned quizzes) and unmount (for final results)
   useEffect(() => {
     if (!user || !questions) return;
     
-    // On mount, save an initial attempt record. This is useful if the user abandons the quiz.
+    // On mount, save an initial attempt record.
     const initialAttempt = {
         slotId: getQuizSlotId(),
         score: 0,
@@ -133,7 +119,6 @@ function QuizComponent() {
 
     return () => {
       // On unmount, save the final state of the quiz.
-      // This ensures the results page has the most up-to-date data.
       const { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format } = stateRef.current;
       
       if (questions && user) {
@@ -232,20 +217,12 @@ function QuizComponent() {
   }, [adConfig, currentQuestionIndex, usedHintIndices]);
 
   if (isLoading) {
-    return <CricketLoading message="Generating your quiz..." />;
+    return <CricketLoading message="Getting your quiz ready..." />;
   }
 
-  if (error) {
+  if (!questions || questions.length === 0) {
     return (
-      <CricketLoading state="error" errorMessage={error}>
-        <Button onClick={() => router.push('/home')}>Go Home</Button>
-      </CricketLoading>
-    );
-  }
-
-  if (!questions) {
-    return (
-        <CricketLoading state="error" errorMessage="An unknown error occurred.">
+        <CricketLoading state="error" errorMessage="Could not load quiz questions.">
             <Button onClick={() => router.push('/home')}>Go Home</Button>
       </CricketLoading>
     );

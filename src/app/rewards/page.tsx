@@ -30,26 +30,33 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     <div className="w-full aspect-square p-1">
         <Card className="bg-gradient-to-br from-primary to-yellow-400 text-primary-foreground p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl">
         {!isScratched ? (
-            <div
-            className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
-            onClick={() => setIsScratched(true)}
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: isScratched ? 0 : 1 }}
+              transition={{ duration: 0.5 }}
+              className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
+              onClick={() => setIsScratched(true)}
             >
-            <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
-            <p className="text-zinc-500 text-sm">From {brand}</p>
-            </div>
+              <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
+              <p className="text-zinc-500 text-sm">From {brand}</p>
+            </motion.div>
         ) : (
-            <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-in fade-in">
-            <Gift className="h-10 w-10 mb-2 text-white" />
-            <h3 className="text-lg font-bold">{reward.gift}</h3>
-            <p className="text-xs opacity-80 mt-1">{reward.description}</p>
-            <Button
-                onClick={() => window.open(reward.link, '_blank')}
-                className="mt-3 bg-white text-black hover:bg-white/90"
-                size="sm"
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="h-full flex flex-col items-center justify-center p-4 text-center"
             >
-                Claim Now <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-            </div>
+              <Gift className="h-10 w-10 mb-2 text-white" />
+              <h3 className="text-lg font-bold">{reward.gift}</h3>
+              <p className="text-xs opacity-80 mt-1">{reward.description}</p>
+              <Button
+                  onClick={() => window.open(reward.link, '_blank')}
+                  className="mt-3 bg-white text-black hover:bg-white/90"
+                  size="sm"
+              >
+                  Claim Now <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </motion.div>
         )}
         </Card>
     </div>
@@ -76,6 +83,51 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
+const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: { brand: string }[] }) => (
+  <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+    <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+    <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift from each brand you've played with. Scratch to reveal!</p>
+    
+    {uniqueBrandAttempts.length > 0 ? (
+      <Carousel
+          opts={{
+              align: 'start',
+          }}
+          className="w-full max-w-full"
+      >
+          <CarouselContent className="-ml-4">
+              {uniqueBrandAttempts.map((attempt) => (
+              <CarouselItem key={attempt.brand} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                  <ScratchCard brand={attempt.brand} />
+              </CarouselItem>
+              ))}
+          </CarouselContent>
+          <CarouselPrevious className="hidden sm:flex" />
+          <CarouselNext className="hidden sm:flex" />
+      </Carousel>
+    ) : (
+      <Card className="bg-card/80">
+        <CardContent className="p-6 text-center text-muted-foreground">
+          <p>Play a quiz to unlock a special brand gift!</p>
+        </CardContent>
+      </Card>
+    )}
+  </motion.section>
+));
+BrandGiftsSection.displayName = 'BrandGiftsSection';
+
+const GenericOffersSection = memo(() => (
+  <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+    <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+    <div className="space-y-4">
+      <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
+      <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
+      <GenericOffer title="Buy 1 Get 1 on Pizza Hut" description="Valid on medium pan pizzas" image="https://placehold.co/100x100.png" hint="pizza food" />
+    </div>
+  </motion.section>
+));
+GenericOffersSection.displayName = 'GenericOffersSection';
+
 export default function RewardsPage() {
   useRequireAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -93,11 +145,8 @@ export default function RewardsPage() {
   }, []);
 
   useEffect(() => {
-    setIsLoading(true);
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
+    // Simulate a very short loading time for initial mount.
+    const timer = setTimeout(() => setIsLoading(false), 100);
     return () => clearTimeout(timer);
   }, []);
 
@@ -116,44 +165,8 @@ export default function RewardsPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-          <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift from each brand you've played with. Scratch to reveal!</p>
-          
-          {uniqueBrandAttempts.length > 0 ? (
-            <Carousel
-                opts={{
-                    align: 'start',
-                }}
-                className="w-full max-w-full"
-            >
-                <CarouselContent className="-ml-4">
-                    {uniqueBrandAttempts.map((attempt) => (
-                    <CarouselItem key={attempt.brand} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                        <ScratchCard brand={attempt.brand} />
-                    </CarouselItem>
-                    ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex" />
-                <CarouselNext className="hidden sm:flex" />
-            </Carousel>
-          ) : (
-            <Card className="bg-card/80">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                <p>Play a quiz to unlock a special brand gift!</p>
-              </CardContent>
-            </Card>
-          )}
-        </motion.section>
-
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-          <div className="space-y-4">
-            <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
-            <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
-            <GenericOffer title="Buy 1 Get 1 on Pizza Hut" description="Valid on medium pan pizzas" image="https://placehold.co/100x100.png" hint="pizza food" />
-          </div>
-        </motion.section>
+        <BrandGiftsSection uniqueBrandAttempts={uniqueBrandAttempts} />
+        <GenericOffersSection />
       </main>
     </div>
   );
