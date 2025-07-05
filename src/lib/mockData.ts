@@ -14,7 +14,7 @@ export interface QuizAttempt {
   usedHintIndices?: number[];
 }
 
-const mockQuestions: QuizQuestion[] = [
+export const mockQuestions: QuizQuestion[] = [
     {
         questionText: "Who is the highest run-scorer in the history of Test cricket?",
         options: ["Sachin Tendulkar", "Ricky Ponting", "Jacques Kallis", "Rahul Dravid"],
