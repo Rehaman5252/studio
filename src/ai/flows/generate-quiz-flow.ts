@@ -29,16 +29,13 @@ const quizGenerationPrompt = ai.definePrompt({
     input: { schema: GenerateQuizInputSchema },
     // Use the lenient schema for the AI's direct output.
     output: { schema: LenientGenerateQuizOutputSchema },
-    prompt: `You are a cricket trivia expert and a creative marketer. Generate a list of 5 unique and challenging quiz questions about the sport of cricket, cleverly integrating the sponsoring brand where appropriate.
+    prompt: `You are a cricket trivia expert. Generate a list of 5 unique and challenging quiz questions about the sport of cricket.
 
-The user has selected the following parameters for their quiz:
+The user has selected the following cricket format for their quiz:
 - Format: {{{format}}}
-- Sponsoring Brand: {{{brand}}}
 
-Your task is to create a quiz that is both a fun cricket challenge and a subtle promotion for the brand.
-
-- Generate at least two questions that are directly or indirectly related to the sponsoring brand's involvement in cricket. For example, if the brand is a team sponsor, an equipment manufacturer, or has cricketers as ambassadors, create questions around that. For a brand like 'boAt', you could ask about a cricketer who is their brand ambassador. For 'Myntra', you could ask about their cricket-related campaigns.
-- The remaining questions should be tailored to the selected cricket format ({{{format}}}).
+Your task is to create a quiz that is a fun and challenging cricket challenge.
+- All questions should be tailored to the selected cricket format ({{{format}}}).
 - All questions should be difficult and require deep knowledge.
 
 For each question, provide:
