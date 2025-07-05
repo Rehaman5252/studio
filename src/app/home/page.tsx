@@ -92,21 +92,21 @@ export default function HomeScreen() {
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-3 gap-4 mb-8">
-            <Card className="bg-card border-primary/10 text-center shadow-lg hover:bg-secondary/20 transition-colors">
+            <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
               <CardContent className="p-3 flex flex-col items-center justify-center">
                 <Flame className="h-5 w-5 text-primary" />
                 <span className="text-lg font-bold mt-1">7</span>
                 <span className="text-xs opacity-80">Day Streak</span>
               </CardContent>
             </Card>
-            <Card className="bg-card border-primary/10 text-center shadow-lg hover:bg-secondary/20 transition-colors">
+            <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
               <CardContent className="p-3 flex flex-col items-center justify-center">
                 <Trophy className="h-5 w-5 text-primary" />
                 <span className="text-lg font-bold mt-1">₹500</span>
                 <span className="text-xs opacity-80">Won</span>
               </CardContent>
             </Card>
-            <Card className="bg-card border-primary/10 text-center shadow-lg hover:bg-secondary/20 transition-colors">
+            <Card className="bg-card border-border/50 text-center shadow-lg hover:bg-muted/40 transition-colors">
               <CardContent className="p-3 flex flex-col items-center justify-center">
                 <Star className="h-5 w-5 text-primary" />
                 <span className="text-lg font-bold mt-1">4.8</span>
@@ -130,12 +130,12 @@ export default function HomeScreen() {
 
             <Card 
               key={selectedBrand.id}
-              className="w-full mt-8 rounded-2xl shadow-xl bg-gradient-to-br from-card to-background border border-primary/20 shadow-primary/10 animate-in fade-in duration-500"
+              className="w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30 animate-in fade-in duration-500"
             >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-2xl font-bold text-white">{selectedBrand.format} Cricket Quiz</h3>
+                    <h3 className="text-2xl font-bold text-foreground">{selectedBrand.format} Cricket Quiz</h3>
                     <p className="text-muted-foreground mb-2">Sponsored by {selectedBrand.brand}</p>
                     <p className="text-lg font-semibold text-primary">Win ₹100 + {selectedBrand.brand} Rewards!</p>
                   </div>
@@ -152,31 +152,31 @@ export default function HomeScreen() {
               </CardContent>
             </Card>
           
-          <Separator className="my-8 bg-primary/20" />
+          <Separator className="my-8 bg-border/50" />
 
           <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-card border-primary/10 shadow-lg">
+            <Card className="bg-card border-border/50 shadow-lg">
               <CardContent className="p-4 text-center">
                 <Clock className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <p className="text-sm text-muted-foreground mb-1">Quiz Ends In</p>
                 <TimerStat />
               </CardContent>
             </Card>
-            <Card className="bg-card border-primary/10 shadow-lg">
+            <Card className="bg-card border-border/50 shadow-lg">
               <CardContent className="p-4 text-center">
                 <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <p className="text-sm text-muted-foreground mb-1">Players Playing</p>
                 <PlayersPlayingStat />
               </CardContent>
             </Card>
-            <Card className="bg-card border-primary/10 shadow-lg">
+            <Card className="bg-card border-border/50 shadow-lg">
               <CardContent className="p-4 text-center">
                 <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <p className="text-sm text-muted-foreground mb-1">Players Played</p>
                 <PlayersPlayedStat />
               </CardContent>
             </Card>
-            <Card className="bg-card border-primary/10 shadow-lg">
+            <Card className="bg-card border-border/50 shadow-lg">
               <CardContent className="p-4 text-center">
                 <Trophy className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <p className="text-sm text-muted-foreground mb-1">Total Winners</p>
@@ -187,7 +187,7 @@ export default function HomeScreen() {
           <Button
             size="lg"
             variant="default"
-            className="w-full mt-8 bg-primary text-primary-foreground hover:bg-primary/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/20 hover:scale-105 hover:shadow-primary/40 transition-all duration-300"
+            className="w-full mt-8 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:bg-primary/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:scale-105 hover:shadow-primary/40 transition-all duration-300"
             onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
           >
             {`Start ${selectedBrand.format} Quiz`}
