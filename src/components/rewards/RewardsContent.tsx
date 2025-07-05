@@ -29,7 +29,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     <div className="w-full aspect-square p-1">
         <Card className="bg-gradient-to-br from-primary to-yellow-400 text-primary-foreground p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl">
         {!isScratched ? (
-            <motion.div
+            <motion.button
               initial={{ opacity: 1 }}
               animate={{ opacity: isScratched ? 0 : 1 }}
               transition={{ duration: 0.5 }}
@@ -40,7 +40,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
             >
               <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
               <p className="text-zinc-500 text-sm">From {brand}</p>
-            </motion.div>
+            </motion.button>
         ) : (
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
