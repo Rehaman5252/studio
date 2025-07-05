@@ -4,6 +4,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo, useCallback } from 'react';
 import { getQuizSlotId } from '@/lib/utils';
 import { useAuth } from './AuthProvider';
+import type { QuizQuestion } from '@/ai/schemas';
 
 // Represents a simplified quiz attempt for tracking in the current session.
 export interface SlotAttempt {
@@ -12,6 +13,11 @@ export interface SlotAttempt {
   totalQuestions: number;
   format: string;
   brand: string;
+  // New fields to store full context for review
+  questions: QuizQuestion[];
+  userAnswers: string[];
+  timePerQuestion?: number[];
+  usedHintIndices?: number[];
 }
 
 interface QuizStatus {
@@ -86,7 +92,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to parse last attempt from localStorage", error);
       // Clear potentially corrupt data
-      localStorage.removeItem(key);
+      const lsKey = getLocalStorageKey();
+      if(lsKey) localStorage.removeItem(lsKey);
     } finally {
       setIsLoading(false);
     }

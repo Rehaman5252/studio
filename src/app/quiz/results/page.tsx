@@ -16,6 +16,7 @@ import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircle
 import { cn } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const Certificate = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
     return (
@@ -104,10 +105,10 @@ function ResultsComponent() {
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
-    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices } = useMemo(() => {
+    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, isReview } = useMemo(() => {
         const dataParam = searchParams.get('data');
 
-        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [] };
+        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [], isReview: false };
 
         try {
             const parsedData = JSON.parse(decodeURIComponent(dataParam));
@@ -118,10 +119,11 @@ function ResultsComponent() {
                 format: parsedData.format || 'Cricket',
                 timePerQuestion: parsedData.timePerQuestion || [],
                 usedHintIndices: parsedData.usedHintIndices || [],
+                isReview: parsedData.isReview || false,
             };
         } catch (error) {
             console.error("Failed to parse results data:", error);
-            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [] };
+            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [], isReview: false };
         }
     }, [searchParams]);
     
@@ -135,19 +137,23 @@ function ResultsComponent() {
         }, 0);
     }, [questions, userAnswers]);
 
-    // Save the attempt to global state once results are calculated
+    // Save the attempt to global state once results are calculated, but not in review mode
     useEffect(() => {
-        if (questions.length > 0) {
+        if (questions.length > 0 && !isReview) {
             const attempt = {
                 slotId: getQuizSlotId(),
                 score,
                 totalQuestions: questions.length,
                 format,
                 brand,
+                questions,
+                userAnswers,
+                timePerQuestion,
+                usedHintIndices,
             };
             setLastAttemptInSlot(attempt);
         }
-    }, [score, questions, format, brand, setLastAttemptInSlot]);
+    }, [score, questions, userAnswers, format, brand, timePerQuestion, usedHintIndices, setLastAttemptInSlot, isReview]);
 
 
     const slotTimings = useMemo(() => {
@@ -202,7 +208,18 @@ function ResultsComponent() {
         <>
             <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4 overflow-y-auto">
                 <Card className="w-full max-w-md text-center bg-white/10 border-0 my-4">
-                    <CardHeader>
+                    {isReview && (
+                        <div className="p-4 pt-6 text-left">
+                            <Alert variant="default" className="border-accent bg-accent/10 text-accent-foreground">
+                                <Info className="h-4 w-4 text-accent" />
+                                <AlertTitle>Reviewing Attempt</AlertTitle>
+                                <AlertDescription className="text-white/80">
+                                    You have already played in this 10-minute slot. Here are your results.
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                    )}
+                    <CardHeader className={cn(isReview && "pt-2")}>
                         <div className="mx-auto bg-accent/20 p-4 rounded-full w-fit mb-4">
                             <Trophy className="h-12 w-12 text-yellow-300" />
                         </div>

@@ -13,21 +13,19 @@ import {
   Star,
   ChevronRight,
   Loader2,
-  AlertCircle,
   Lock,
 } from 'lucide-react';
 import Cube, { type CubeBrand } from '@/components/Cube';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import TimerStat from '@/components/stats/TimerStat';
 import PlayersPlayingStat from '@/components/stats/PlayersPlayingStat';
 import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
 import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { getQuizSlotId, formatTime } from '@/lib/utils';
+import { getQuizSlotId } from '@/lib/utils';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -40,9 +38,8 @@ const brands: CubeBrand[] = [
 
 export default function HomeScreen() {
   const { loading: authLoading } = useRequireAuth();
-  const { lastAttemptInSlot, timeLeft, isLoading: isQuizStatusLoading } = useQuizStatus();
+  const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
-  const [showAlreadyPlayedDialog, setShowAlreadyPlayedDialog] = useState(false);
   const router = useRouter();
 
   const loading = authLoading || isQuizStatusLoading;
@@ -57,12 +54,21 @@ export default function HomeScreen() {
   }, []);
 
   const handleStartQuiz = useCallback((brand: string, format: string) => {
-    if (hasPlayedInCurrentSlot) {
-      setShowAlreadyPlayedDialog(true);
+    if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
+       const dataToPass = {
+        questions: lastAttemptInSlot.questions,
+        userAnswers: lastAttemptInSlot.userAnswers,
+        brand: lastAttemptInSlot.brand,
+        format: lastAttemptInSlot.format,
+        timePerQuestion: lastAttemptInSlot.timePerQuestion,
+        usedHintIndices: lastAttemptInSlot.usedHintIndices,
+        isReview: true,
+      };
+      router.push(`/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`);
     } else {
       router.push(`/quiz?brand=${brand}&format=${format}`);
     }
-  }, [router, hasPlayedInCurrentSlot]);
+  }, [router, hasPlayedInCurrentSlot, lastAttemptInSlot]);
   
   const selectedBrand = brands[selectedBrandIndex];
 
@@ -120,24 +126,8 @@ export default function HomeScreen() {
             onFaceClick={(brand) => {
               handleStartQuiz(brand.brand, brand.format);
             }}
-            disabled={hasPlayedInCurrentSlot}
           />
 
-          {hasPlayedInCurrentSlot ? (
-            <Card className="w-full mt-8 rounded-2xl shadow-xl bg-black/30 border border-yellow-400 backdrop-blur-sm text-center">
-              <CardContent className="p-6">
-                <Lock className="h-8 w-8 mx-auto text-yellow-400 mb-2"/>
-                <h3 className="text-xl font-bold text-white">Slot Already Played</h3>
-                <p className="opacity-80 mb-2 text-white">You can only play once per slot.</p>
-                <p className="text-lg font-semibold text-yellow-300">
-                  Next quiz begins in {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
-                </p>
-                <Button variant="secondary" className="mt-4" onClick={() => setShowAlreadyPlayedDialog(true)}>
-                    View Your Score
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
             <Card 
               key={selectedBrand.id}
               onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
@@ -162,7 +152,6 @@ export default function HomeScreen() {
                 </div>
               </CardContent>
             </Card>
-          )}
           
           <Separator className="my-8 bg-white/20" />
 
@@ -200,51 +189,12 @@ export default function HomeScreen() {
             size="lg"
             className="w-full mt-8 bg-accent text-accent-foreground hover:bg-accent/90 text-lg font-bold py-7 rounded-full shadow-lg"
             onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
-            disabled={hasPlayedInCurrentSlot}
           >
-            {hasPlayedInCurrentSlot ? 'Slot Already Played' : `Start ${selectedBrand.format} Quiz`}
+            {`Start ${selectedBrand.format} Quiz`}
             <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </main>
-
-      <Dialog open={showAlreadyPlayedDialog} onOpenChange={setShowAlreadyPlayedDialog}>
-        <DialogContent className="bg-background/90 backdrop-blur-md border-border">
-            <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-                <AlertCircle className="text-yellow-400" />
-                Slot Already Used
-            </DialogTitle>
-            <DialogDescription>
-                You can only play one quiz per 10-minute slot. Please wait for the next slot to play again.
-            </DialogDescription>
-            </DialogHeader>
-            {lastAttemptInSlot && (
-            <div className="my-2">
-                <p className="font-semibold text-center mb-2 text-muted-foreground">Your Score in This Slot:</p>
-                <Card className="text-center bg-background">
-                    <CardHeader>
-                        <CardTitle>{lastAttemptInSlot.format} Quiz</CardTitle>
-                        <CardDescription>Sponsored by {lastAttemptInSlot.brand}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-5xl font-bold text-primary">
-                            {lastAttemptInSlot.score}
-                            <span className="text-2xl text-muted-foreground">
-                                / {lastAttemptInSlot.totalQuestions}
-                            </span>
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-            )}
-            <DialogFooter>
-            <Button onClick={() => setShowAlreadyPlayedDialog(false)} className="w-full">
-                Got It
-            </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
