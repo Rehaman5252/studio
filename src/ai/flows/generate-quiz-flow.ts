@@ -22,17 +22,11 @@ const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `You are an expert quiz creator. Generate a 5-question multiple-choice quiz about "{{format}}" cricket.
-The brand context is "{{brand}}", you can subtly mention it if it makes sense.
+  prompt: `Generate 5 multiple-choice quiz questions about "{{format}}" cricket.
 
-For each question, provide:
-- "questionText": A clear and concise question.
-- "options": An array of four plausible options. One must be correct.
-- "correctAnswer": The correct answer from the options.
-- "hint": A single-sentence hint.
-- "explanation": A brief explanation for the correct answer.
+For each question, provide the following fields: "questionText", "options" (an array of 4), "correctAnswer", "hint" (optional), and "explanation" (optional).
 
-Keep the questions moderately difficult and engaging.`,
+The questions must be strictly about the sport and not mention any brands or sponsors.`,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [

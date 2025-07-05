@@ -24,13 +24,12 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateHintOutputSchema},
   prompt: `You are an AI assistant designed to provide helpful hints for a cricket quiz.
 
-  Given the following quiz question, format, and brand, generate a concise and relevant hint that guides the user towards the correct answer without giving it away directly.
+  Given the following quiz question and format, generate a concise and relevant hint that guides the user towards the correct answer without giving it away directly.
 
   Question: {{{question}}}
   Format: {{{format}}}
-  Brand: {{{brand}}}
 
-  Ensure the hint is specific to the question and considers the format and brand when applicable.
+  Ensure the hint is specific to the question and considers the format. Do not mention any brands.
   `,
 });
 

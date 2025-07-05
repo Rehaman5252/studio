@@ -51,6 +51,14 @@ export default function HomeWrapper() {
   
   const selectedBrand = brands[selectedBrandIndex];
 
+  const onCubeFaceClick = useCallback((brand: CubeBrand) => {
+    handleStartQuiz(brand.brand, brand.format);
+  }, [handleStartQuiz]);
+
+  const onStartQuizClick = useCallback(() => {
+    handleStartQuiz(selectedBrand.brand, selectedBrand.format);
+  }, [handleStartQuiz, selectedBrand]);
+
   if (isQuizStatusLoading) {
       return (
         <div className="flex flex-col flex-1 items-center justify-center py-10">
@@ -69,9 +77,7 @@ export default function HomeWrapper() {
       <Cube 
         brands={brands} 
         onSelect={handleBrandSelect}
-        onFaceClick={(brand) => {
-          handleStartQuiz(brand.brand, brand.format);
-        }}
+        onFaceClick={onCubeFaceClick}
       />
 
       <SelectedBrandCard 
@@ -85,7 +91,7 @@ export default function HomeWrapper() {
 
       <StartQuizButton 
         brandFormat={selectedBrand.format}
-        onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
+        onClick={onStartQuizClick}
       />
     </>
   );
