@@ -19,40 +19,51 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
   return generateQuizAnalysisFlow(input);
 }
 
-// This internal schema is used to format the data for the prompt,
-// avoiding the need for complex Handlebars helpers.
+// This internal schema is used to format the data for the prompt.
 const PromptInputSchema = z.object({
     quizData: z.array(z.object({
         questionNumber: z.number(),
         questionText: z.string(),
         correctAnswer: z.string(),
         userAnswer: z.string(),
+        isCorrect: z.boolean(),
+        timeTaken: z.number().optional(),
+        hintUsed: z.boolean().optional(),
     })),
+    totalTime: z.number().optional(),
+    totalHintsUsed: z.number().optional(),
 });
 
-// This prompt now directly asks for a markdown string, making it simpler for the model.
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: PromptInputSchema },
   output: { schema: z.string().describe("A detailed analysis of the user's quiz performance, formatted as markdown.") },
-  prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide encouraging and insightful feedback to a user based on their quiz performance.
+  prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide a detailed, encouraging, and insightful analysis of a user's quiz performance.
 
-Analyze the provided quiz data, which includes the questions, the correct answers, and the user's answers.
+Analyze the provided quiz data. Based on the data, generate a personalized performance report. The report must be formatted as Markdown and should cover the following sections:
 
-Based on the data, generate a personalized performance report. The report should:
-1.  **Start with an encouraging summary** of their performance.
-2.  **Identify Strengths**: Point out topics or question types where the user did well. For example, "You have a strong grasp of recent IPL events."
-3.  **Identify Areas for Improvement**: Gently point out where the user went wrong without being discouraging. For example, "It seems like questions about cricket history before 2010 were a bit tricky."
-4.  **Provide Actionable Tips**: Give 2-3 specific, actionable tips for how they can improve. For example, "To brush up on Test cricket records, you could watch highlights from classic matches on YouTube" or "Following a good cricket news website can help with staying up-to-date on player stats."
-5.  **Maintain a positive, coach-like tone** throughout the analysis.
-6.  **Format the output as Markdown**, using headings, bold text, and lists to make it readable. Do not wrap the output in a JSON object.
+1.  **Overall Performance Summary**: Start with an encouraging summary of their score and overall performance.
+2.  **Knowledge Areas**:
+    *   **Strengths**: Identify topics or question types where the user performed well (e.g., "You have a strong grasp of IPL history.").
+    *   **Areas for Improvement**: Gently point out topics where the user struggled. Be specific (e.g., "Questions about Test cricket records from the 1990s seemed to be a challenge.").
+3.  **Strategic Analysis**:
+    *   **Pacing & Time Management**: Analyze their time usage. Did they rush on incorrect answers? Did they take their time on questions they got right? Provide feedback like, "You answered Question 3 very quickly but it was incorrect. It might be helpful to take an extra moment to read all options carefully." or "Your pacing was excellent on the questions you answered correctly."
+    *   **Hint Utilization**: Comment on their use of hints. If they used hints and still got it wrong, suggest how to better use hints. If they didn't use hints on tough questions, suggest that it's a valuable tool. For example: "You effectively used a hint on Question 2 to arrive at the correct answer. For Question 4, where you were incorrect, a hint might have provided the necessary clue."
+4.  **Actionable Tips for Improvement**: Provide 2-3 specific, actionable tips to improve their knowledge and strategy. These should be directly related to their performance. Examples: "To improve on player statistics, try following a sports analytics website like ESPNcricinfo Statsguru." or "For time management, practice focusing on keywords in the question before looking at the options."
+
+Maintain a positive, coach-like tone throughout the analysis. Always generate a report.
 
 Here is the quiz data:
+{{#if totalTime}}Total Time Taken: {{totalTime}} seconds{{/if}}
+{{#if totalHintsUsed}}Total Hints Used: {{totalHintsUsed}}{{/if}}
+
 {{#each quizData}}
 ---
-Question {{this.questionNumber}}: {{this.questionText}}
-Correct Answer: {{this.correctAnswer}}
-User's Answer: {{this.userAnswer}}
+**Question {{this.questionNumber}}**: {{this.questionText}}
+*   **Your Answer**: {{this.userAnswer}} ({{#if this.isCorrect}}Correct{{else}}Incorrect{{/if}})
+*   **Correct Answer**: {{this.correctAnswer}}
+{{#if this.timeTaken}}*   **Time Taken**: {{this.timeTaken}}s{{/if}}
+{{#if this.hintUsed}}*   **Hint Used**: Yes{{else}}*   **Hint Used**: No{{/if}}
 {{/each}}
 `,
 });
@@ -71,17 +82,20 @@ const generateQuizAnalysisFlow = ai.defineFlow(
             questionText: q.questionText,
             correctAnswer: q.correctAnswer,
             userAnswer: input.userAnswers[index] || 'Not Answered',
+            isCorrect: input.userAnswers[index] === q.correctAnswer,
+            timeTaken: input.timePerQuestion?.[index],
+            hintUsed: input.usedHintIndices?.includes(index),
         })),
+        totalTime: input.timePerQuestion?.reduce((a, b) => a + b, 0),
+        totalHintsUsed: input.usedHintIndices?.length,
     };
 
-    // The prompt returns a raw string.
     const { output } = await analysisPrompt(promptInput);
     
     if (!output) {
       throw new Error("The AI failed to generate an analysis.");
     }
 
-    // We wrap the raw string in the object structure expected by the flow's output schema.
     return { analysis: output };
   }
 );

@@ -27,6 +27,8 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             const result = await generateQuizAnalysis({
                 questions: attempt.questions,
                 userAnswers: attempt.userAnswers,
+                timePerQuestion: attempt.timePerQuestion,
+                usedHintIndices: attempt.usedHintIndices,
             });
             setAnalysis(result.analysis);
         } catch (err) {

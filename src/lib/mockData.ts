@@ -10,6 +10,8 @@ export interface QuizAttempt {
   questions: QuizQuestion[];
   userAnswers: string[];
   timestamp: number;
+  timePerQuestion?: number[];
+  usedHintIndices?: number[];
 }
 
 const mockQuestions: QuizQuestion[] = [
@@ -60,6 +62,8 @@ export const mockQuizHistory: QuizAttempt[] = [
     questions: mockQuestions,
     userAnswers: ["Sachin Tendulkar", "Australia", "2008", "380", "Muttiah Muralitharan"],
     timestamp: new Date('2024-07-28T10:00:00Z').getTime(),
+    timePerQuestion: [10, 5, 12, 19, 8],
+    usedHintIndices: [4]
   },
   {
     slotId: '2',
@@ -70,6 +74,8 @@ export const mockQuizHistory: QuizAttempt[] = [
     questions: mockQuestions,
     userAnswers: mockQuestions.map(q => q.correctAnswer),
     timestamp: new Date('2024-07-27T18:30:00Z').getTime(),
+    timePerQuestion: [12, 14, 8, 11, 15],
+    usedHintIndices: [0, 1]
   },
   {
     slotId: '3',
@@ -80,6 +86,8 @@ export const mockQuizHistory: QuizAttempt[] = [
     questions: mockQuestions,
     userAnswers: ["Ricky Ponting", "Australia", "2009", "400*", "Muttiah Muralitharan"],
     timestamp: new Date('2024-07-25T14:00:00Z').getTime(),
+    timePerQuestion: [18, 6, 19, 10, 13],
+    usedHintIndices: []
   },
   {
     slotId: '4',
@@ -90,5 +98,7 @@ export const mockQuizHistory: QuizAttempt[] = [
     questions: mockQuestions,
     userAnswers: ["Sachin Tendulkar", "West Indies", "2008", "375", "Shane Warne"],
     timestamp: new Date('2024-07-24T12:10:00Z').getTime(),
+    timePerQuestion: [5, 20, 20, 15, 18],
+    usedHintIndices: [1, 2, 3, 4]
   }
 ];

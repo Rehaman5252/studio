@@ -37,7 +37,7 @@ const Certificate = ({ format, userName, date, slotTimings }: { format: string; 
     );
 }
 
-const AnalysisCard = ({ questions, userAnswers }: { questions: QuizQuestion[]; userAnswers: string[] }) => {
+const AnalysisCard = ({ questions, userAnswers, timePerQuestion, usedHintIndices }: { questions: QuizQuestion[]; userAnswers: string[], timePerQuestion?: number[], usedHintIndices?: number[] }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ const AnalysisCard = ({ questions, userAnswers }: { questions: QuizQuestion[]; u
         setIsLoading(true);
         setError(null);
         try {
-            const result = await generateQuizAnalysis({ questions, userAnswers });
+            const result = await generateQuizAnalysis({ questions, userAnswers, timePerQuestion, usedHintIndices });
             setAnalysis(result.analysis);
         } catch (err) {
             console.error(err);
@@ -54,7 +54,7 @@ const AnalysisCard = ({ questions, userAnswers }: { questions: QuizQuestion[]; u
         } finally {
             setIsLoading(false);
         }
-    }, [questions, userAnswers]);
+    }, [questions, userAnswers, timePerQuestion, usedHintIndices]);
     
     if (analysis) {
         return (
@@ -104,10 +104,10 @@ function ResultsComponent() {
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
-    const { questions, userAnswers, brand, format } = useMemo(() => {
+    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices } = useMemo(() => {
         const dataParam = searchParams.get('data');
 
-        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
+        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [] };
 
         try {
             const parsedData = JSON.parse(decodeURIComponent(dataParam));
@@ -116,10 +116,12 @@ function ResultsComponent() {
                 userAnswers: parsedData.userAnswers || [],
                 brand: parsedData.brand || 'Indcric',
                 format: parsedData.format || 'Cricket',
+                timePerQuestion: parsedData.timePerQuestion || [],
+                usedHintIndices: parsedData.usedHintIndices || [],
             };
         } catch (error) {
             console.error("Failed to parse results data:", error);
-            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '' };
+            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [] };
         }
     }, [searchParams]);
     
@@ -275,7 +277,7 @@ function ResultsComponent() {
                     </Card>
                 )}
                 
-                <AnalysisCard questions={questions} userAnswers={userAnswers} />
+                <AnalysisCard questions={questions} userAnswers={userAnswers} timePerQuestion={timePerQuestion} usedHintIndices={usedHintIndices} />
                 
                 {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
             </div>
@@ -284,12 +286,12 @@ function ResultsComponent() {
                 <AdDialog
                     open={!!adConfig}
                     onAdFinished={adConfig.onFinished}
-                    duration={ad.duration}
-                    skippableAfter={ad.skippableAfter}
-                    adTitle={ad.title}
-                    adType={ad.type}
-                    adUrl={ad.url}
-                    adHint={ad.hint}
+                    duration={adConfig.ad.duration}
+                    skippableAfter={adConfig.ad.skippableAfter}
+                    adTitle={adConfig.ad.title}
+                    adType={adConfig.ad.type}
+                    adUrl={adConfig.ad.url}
+                    adHint={adConfig.ad.hint}
                 >
                     {adConfig.children}
                 </AdDialog>

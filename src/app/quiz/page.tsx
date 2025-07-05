@@ -70,6 +70,7 @@ function QuizComponent() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
+  const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
   const [isHintVisible, setIsHintVisible] = useState(false);
   const [wasMidQuizAdShown, setWasMidQuizAdShown] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -80,12 +81,19 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
   
-  const advanceToResults = useCallback((finalAnswers: string[]) => {
-    const dataToPass = { questions, userAnswers: finalAnswers, brand, format };
+  const advanceToResults = useCallback((finalAnswers: string[], finalTimes: number[]) => {
+    const dataToPass = {
+        questions,
+        userAnswers: finalAnswers,
+        brand,
+        format,
+        usedHintIndices,
+        timePerQuestion: finalTimes
+    };
     router.replace(
       `/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`
     );
-  }, [questions, brand, format, router]);
+  }, [questions, brand, format, router, usedHintIndices]);
 
 
   useEffect(() => {
@@ -115,7 +123,7 @@ function QuizComponent() {
     setTimeLeft(20);
   }, []);
 
-  const proceedToNextStep = useCallback((updatedAnswers: string[]) => {
+  const proceedToNextStep = useCallback((updatedAnswers: string[], updatedTimes: number[]) => {
     if (currentQuestionIndex === 2 && !wasMidQuizAdShown) {
         setPaused(true);
         setAdConfig({
@@ -130,7 +138,7 @@ function QuizComponent() {
     }
     
     if (currentQuestionIndex >= questions.length - 1) {
-      advanceToResults(updatedAnswers);
+      advanceToResults(updatedAnswers, updatedTimes);
     } else {
       goToNextQuestion();
     }
@@ -143,23 +151,30 @@ function QuizComponent() {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timerId);
     } else {
+       const timeTaken = 20;
+       const newTimes = [...timePerQuestion, timeTaken];
+       setTimePerQuestion(newTimes);
        const newAnswers = [...userAnswers, ''];
        setUserAnswers(newAnswers);
-       proceedToNextStep(newAnswers);
+       proceedToNextStep(newAnswers, newTimes);
     }
-  }, [timeLeft, paused, loading, questions.length, selectedOption, userAnswers, proceedToNextStep, adConfig]);
+  }, [timeLeft, paused, loading, questions.length, selectedOption, userAnswers, proceedToNextStep, adConfig, timePerQuestion]);
 
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption) return;
 
+    const timeTaken = 20 - timeLeft;
+    const newTimes = [...timePerQuestion, timeTaken];
+    setTimePerQuestion(newTimes);
+    
     setSelectedOption(option);
     const newAnswers = [...userAnswers, option];
     setUserAnswers(newAnswers);
     
     setTimeout(() => {
-       proceedToNextStep(newAnswers);
-    }, 1200); // Increased delay to let user see feedback
-  }, [selectedOption, userAnswers, proceedToNextStep]);
+       proceedToNextStep(newAnswers, newTimes);
+    }, 1200);
+  }, [selectedOption, userAnswers, timeLeft, timePerQuestion, proceedToNextStep]);
 
   const handleUseHint = useCallback(() => {
     if (usedHintIndices.includes(currentQuestionIndex) || adConfig) return;

@@ -55,6 +55,8 @@ export type GenerateHintOutput = z.infer<typeof GenerateHintOutputSchema>;
 export const GenerateQuizAnalysisInputSchema = z.object({
   questions: z.array(QuizQuestionSchema),
   userAnswers: z.array(z.string()),
+  timePerQuestion: z.array(z.number()).optional().describe('Time taken in seconds for each question.'),
+  usedHintIndices: z.array(z.number()).optional().describe('Indices of questions where a hint was used.'),
 });
 export type GenerateQuizAnalysisInput = z.infer<typeof GenerateQuizAnalysisInputSchema>;
 
