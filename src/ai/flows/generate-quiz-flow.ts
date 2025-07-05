@@ -29,14 +29,10 @@ const quizGenerationPrompt = ai.definePrompt({
     input: { schema: GenerateQuizInputSchema },
     // Use the lenient schema for the AI's direct output.
     output: { schema: LenientGenerateQuizOutputSchema },
-    prompt: `You are a cricket trivia expert. Generate a list of 5 unique and challenging quiz questions about the sport of cricket.
+    prompt: `You are a cricket trivia expert. Generate a list of 5 quiz questions about the sport of cricket.
 
 The user has selected the following cricket format for their quiz:
 - Format: {{{format}}}
-
-Your task is to create a quiz that is a fun and challenging cricket challenge.
-- All questions should be tailored to the selected cricket format ({{{format}}}).
-- All questions should be difficult and require deep knowledge.
 
 For each question, provide:
 1. "questionText": The question itself.
