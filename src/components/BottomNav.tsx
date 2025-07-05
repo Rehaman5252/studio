@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Trophy, User, Gift, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
@@ -17,18 +16,6 @@ const navItems = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    // Render a placeholder to prevent layout shifts on initial load
-    return (
-        <div className="fixed bottom-0 inset-x-0 h-20" />
-    );
-  }
 
   return (
     <div className="fixed bottom-0 inset-x-0 h-20 flex justify-center z-50 pointer-events-none">
