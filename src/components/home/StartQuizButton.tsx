@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 
@@ -28,4 +28,4 @@ const StartQuizButton = ({ brandFormat, onClick }: StartQuizButtonProps) => {
     );
 };
 
-export default StartQuizButton;
+export default memo(StartQuizButton);

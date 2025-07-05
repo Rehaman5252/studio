@@ -9,12 +9,12 @@ export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 export const QuizQuestionSchema = z.object({
     questionText: z
       .string()
-      .describe('A unique and very difficult cricket trivia question.'),
+      .describe('A unique and very difficult cricket trivia question, focusing on specific statistics, player records, obscure moments, or historic match details.'),
     options: z
       .array(z.string())
       .length(4)
       .describe(
-        'An array of four very close, plausible options for the question.'
+        'An array of four very close, plausible options for the question, designed to challenge an expert.'
       ),
     correctAnswer: z
       .string()

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CubeBrand } from '@/components/Cube';
@@ -45,4 +45,4 @@ const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCard
     );
 };
 
-export default SelectedBrandCard;
+export default memo(SelectedBrandCard);

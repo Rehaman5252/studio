@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +41,7 @@ interface CubeProps {
   disabled?: boolean;
 }
 
-export default function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
+function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -69,14 +69,13 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
           const newIndex = (prevIndex + 1) % faceRotationOrder.length;
           const newBrandIndexOnDeck = faceRotationOrder[newIndex];
           rotateToFace(newBrandIndexOnDeck);
-          // This is the performance fix: Do NOT call the parent's onSelect prop here.
-          // This prevents re-rendering the entire home page every 2 seconds.
+          onSelect(newBrandIndexOnDeck);
           return newIndex;
       });
-      rotationTimeoutRef.current = setTimeout(rotate, 2500);
+      rotationTimeoutRef.current = setTimeout(rotate, 800);
     };
-    rotationTimeoutRef.current = setTimeout(rotate, 2500);
-  }, [disabled, rotateToFace, stopAutoRotation]);
+    rotationTimeoutRef.current = setTimeout(rotate, 800);
+  }, [disabled, rotateToFace, stopAutoRotation, onSelect]);
 
   useEffect(() => {
     rotateToFace(faceRotationOrder[rotationOrderIndex]);
@@ -162,3 +161,5 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
     </div>
   );
 }
+
+export default memo(Cube);
