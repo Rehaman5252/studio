@@ -27,11 +27,11 @@ import { motion } from 'framer-motion';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
-  { id: 2, brand: 'Myntra', format: 'WPL', logoUrl: 'https://www.freepnglogos.com/uploads/myntra-logo-png-transparent-20.png', logoWidth: 90, logoHeight: 25 },
+  { id: 2, brand: 'Gucci', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Gucci_logo.svg/1200px-Gucci_logo.svg.png', logoWidth: 90, logoHeight: 25 },
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
   { id: 4, brand: 'Nike', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Logo_NIKE.svg/1200px-Logo_NIKE.svg.png', logoWidth: 80, logoHeight: 30 },
   { id: 5, brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
-  { id: 6, brand: 'boAt', format: 'IPL', logoUrl: 'https://cdn.shopify.com/s/files/1/0057/8938/4802/files/boat_logo_small.png?v=1682573254', logoWidth: 80, logoHeight: 25 },
+  { id: 6, brand: 'Corona', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Corona_logo_2017.svg/1024px-Corona_logo_2017.svg.png', logoWidth: 90, logoHeight: 45 },
 ];
 
 const cardVariants = {
@@ -116,7 +116,7 @@ export default function HomeScreen() {
 
   const handleStartQuiz = useCallback((brand: string, format: string) => {
     if (hasPlayedInCurrentSlot) {
-      router.push(`/quiz/results?review=true`);
+      router.push(`/quiz/results`);
     } else {
       router.push(`/quiz?brand=${encodeURIComponent(brand)}&format=${encodeURIComponent(format)}`);
     }
