@@ -57,7 +57,7 @@ export default function ProfilePage() {
 
     if (loading || !user || !userData) {
       return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+        <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
            <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
             </header>
@@ -71,7 +71,7 @@ export default function ProfilePage() {
     const userProfile = userData;
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
       <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
       </header>

@@ -219,7 +219,7 @@ function QuizComponent() {
 
     setTimeout(() => {
        proceedToNextStep(newAnswers, newTimes);
-    }, isLastQuestion ? 100 : 1200);
+    }, 100);
   }, [selectedOption, userAnswers, timeLeft, timePerQuestion, proceedToNextStep, currentQuestionIndex, questions.length]);
 
   const handleUseHint = useCallback(() => {
@@ -260,7 +260,7 @@ function QuizComponent() {
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
+      <div className="flex flex-col h-screen bg-gradient-to-br from-orange-500 via-red-800 to-neutral-900 text-white p-4">
         <header className="w-full max-w-2xl mx-auto mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold">{format} Quiz</h1>

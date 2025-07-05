@@ -21,11 +21,11 @@ import CricketLoading from '@/components/CricketLoading';
 
 const Certificate = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
     return (
-        <div className="bg-white/90 text-primary rounded-lg p-6 border-4 border-yellow-400 shadow-2xl relative mt-4">
-             <Star className="absolute top-2 right-2 text-yellow-400" size={32} />
-             <Star className="absolute top-2 left-2 text-yellow-400" size={32} />
-             <Star className="absolute bottom-2 right-2 text-yellow-400" size={32} />
-             <Star className="absolute bottom-2 left-2 text-yellow-400" size={32} />
+        <div className="bg-white/90 text-primary rounded-lg p-6 border-4 border-accent shadow-2xl relative mt-4">
+             <Star className="absolute top-2 right-2 text-accent" size={32} />
+             <Star className="absolute top-2 left-2 text-accent" size={32} />
+             <Star className="absolute bottom-2 right-2 text-accent" size={32} />
+             <Star className="absolute bottom-2 left-2 text-accent" size={32} />
             <div className="text-center">
                 <p className="text-lg font-semibold">Certificate of Achievement</p>
                 <p className="text-sm">This certifies that</p>
@@ -181,7 +181,7 @@ function ResultsComponent() {
 
     if (!questions || questions.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
+            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-orange-800 text-white p-4">
                 <h1 className="text-2xl font-bold mb-4">Invalid Results</h1>
                 <p>Could not load quiz results data.</p>
                 <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
@@ -207,7 +207,7 @@ function ResultsComponent() {
 
     return (
         <>
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4 overflow-y-auto">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-primary to-orange-800 text-white p-4 overflow-y-auto">
                 <Card className="w-full max-w-md text-center bg-white/10 border-0 my-4">
                     {isReview && (
                         <div className="p-4 pt-6 text-left">
@@ -222,7 +222,7 @@ function ResultsComponent() {
                     )}
                     <CardHeader className={cn(isReview && "pt-2")}>
                         <div className="mx-auto bg-accent/20 p-4 rounded-full w-fit mb-4">
-                            <Trophy className="h-12 w-12 text-yellow-300" />
+                            <Trophy className="h-12 w-12 text-accent" />
                         </div>
                         <CardTitle className="text-3xl font-extrabold">Quiz Complete!</CardTitle>
                         <CardDescription className="text-base text-white/80">{format} Quiz - Sponsored by {brand}</CardDescription>
@@ -234,10 +234,10 @@ function ResultsComponent() {
                                 {score} <span className="text-3xl text-white/70">/ {total}</span>
                             </p>
                         </div>
-                        <p className="text-lg font-medium text-yellow-300">{message}</p>
+                        <p className="text-lg font-medium text-accent">{message}</p>
                         
                         {isPerfectScore && (
-                            <div className="bg-green-500/20 p-4 rounded-lg border border-green-400">
+                            <div className="bg-accent/20 p-4 rounded-lg border border-accent">
                                 <h3 className="font-bold text-lg text-white">Congratulations!</h3>
                                 <p className="text-sm text-white/90">You've won ₹100! The amount will be credited via Razorpay soon.</p>
                             </div>
@@ -276,7 +276,7 @@ function ResultsComponent() {
                                       {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0 text-green-400"/> : <XCircle className="mr-2 shrink-0 text-red-400"/>}
                                       Your answer: {userAnswers[i] || 'Not answered'}
                                     </p>
-                                    {userAnswers[i] !== q.correctAnswer && <p className="text-green-300 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
+                                    {userAnswers[i] !== q.correctAnswer && <p className="text-green-400 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
                                     <div className="mt-2 pt-2 border-t border-white/20 text-white/80">
                                         <p className="font-semibold">Explanation:</p>
                                         <p>{q.explanation}</p>

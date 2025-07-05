@@ -116,14 +116,14 @@ export default function QuizHistoryPage() {
 
   if (isLoading) {
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80 pb-20">
+        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900 pb-20">
             <Loader2 className="h-12 w-12 animate-spin text-white" />
         </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-primary/80 via-green-800 to-green-900/80">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-600 via-red-700 to-neutral-900">
       <header className="p-4 bg-background/70 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
       </header>
