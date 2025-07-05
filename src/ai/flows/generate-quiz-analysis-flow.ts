@@ -34,18 +34,17 @@ const PromptInputSchema = z.object({
     totalHintsUsed: z.number().optional(),
 });
 
+// The prompt now expects the AI to return a single, raw markdown string. This is more reliable.
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: PromptInputSchema },
-  // REVERTING THE CHANGE: Ask for a structured object. This is more reliable with Genkit.
-  output: { schema: GenerateQuizAnalysisOutputSchema },
+  // We ask for a simple string, not a complex object.
+  output: { schema: z.string().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string.') },
   prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide a detailed, encouraging, and insightful analysis of a user's quiz performance.
 
-Based on the data provided, generate a personalized performance report. The analysis MUST be a single markdown-formatted string.
+Based on the data provided, generate a personalized performance report as a single, raw markdown-formatted string. Do NOT wrap your response in JSON or any other special formatting.
 
-The final output MUST be a JSON object with a single key "analysis" containing your markdown report.
-
-The markdown analysis you generate must cover the following sections:
+The markdown analysis you generate MUST cover the following sections:
 
 1.  **Overall Performance Summary**: Start with an encouraging summary of their score and overall performance.
 2.  **Knowledge Areas**:
@@ -77,6 +76,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
   {
     name: 'generateQuizAnalysisFlow',
     inputSchema: GenerateQuizAnalysisInputSchema,
+    // The flow's external contract still returns the structured object.
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
   async (input) => {
@@ -95,14 +95,15 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         totalHintsUsed: input.usedHintIndices?.length,
     };
 
-    // The output from the prompt is now the structured object.
-    const { output } = await analysisPrompt(promptInput);
+    // The prompt function now returns a promise for a raw string.
+    const analysisText = await analysisPrompt(promptInput);
     
-    if (!output || !output.analysis) {
-      throw new Error("The AI failed to generate a valid analysis object.");
+    if (!analysisText || analysisText.trim() === '') {
+      throw new Error("The AI failed to generate a valid analysis string.");
     }
 
-    // Return the structured object directly.
-    return output;
+    // We wrap the raw string into the object format required by the flow's output schema.
+    // This is much more reliable than asking the AI to format the JSON itself.
+    return { analysis: analysisText };
   }
 );
