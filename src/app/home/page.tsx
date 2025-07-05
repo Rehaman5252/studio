@@ -50,7 +50,7 @@ export default function HomeScreen() {
       <header className="p-4 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold tracking-tight text-primary">
-            CricBlitz
+            Indcric
           </h1>
           <p className="text-sm text-muted-foreground">Win big with your cricket knowledge</p>
         </div>
