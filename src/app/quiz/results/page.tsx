@@ -74,9 +74,6 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
         setError(null);
         try {
             const result = await generateQuizAnalysis({ questions, userAnswers, timePerQuestion, usedHintIndices });
-            if (!result.analysis) {
-                throw new Error("Received empty analysis from the server.");
-            }
             setAnalysis(result.analysis);
             localStorage.setItem(getAnalysisCacheKey(), result.analysis);
         } catch (err) {
@@ -200,9 +197,9 @@ function ResultsComponent() {
         return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
     }, [slotId]);
 
-    let message = "Good effort! Keep practicing.";
-    if (isPerfectScore) message = "Perfect score! You're a true cricket expert!";
-    else if (score >= total * 0.7) message = "Great job! You really know your cricket.";
+    let message = "Good effort! Keep practicing. 💪";
+    if (isPerfectScore) message = "Perfect score! You're a true cricket expert! 🏆🎉";
+    else if (score >= total * 0.7) message = "Great job! You really know your cricket. 👍";
 
     return (
         <>

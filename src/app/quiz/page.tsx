@@ -21,9 +21,9 @@ import InterstitialLoader from '@/components/InterstitialLoader';
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
     0: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Tata_logo.svg/1024px-Tata_logo.svg.png', hint: 'Tata logo' },
-    1: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Reliance_Industries_Logo.svg/1200px-Reliance_Industries_Logo.svg.png', hint: 'Reliance logo' },
-    2: { logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/2560px-Swiggy_logo.svg.png', hint: 'Swiggy logo' },
-    3: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Lupin_Limited_logo.svg/1200px-Lupin_Limited_logo.svg.png', hint: 'Lupin logo' },
+    1: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/OnePlus_Logo.svg/1024px-OnePlus_Logo.svg.png', hint: 'OnePlus logo' },
+    2: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/HDFC_Bank_logo.svg/1280px-HDFC_Bank_logo.svg.png', hint: 'HDFC Bank logo' },
+    3: { logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/b/bf/KFC_logo.svg/1200px-KFC_logo.svg.png', hint: 'KFC logo' },
 };
 
 const Timer = memo(({ timeLeft }: { timeLeft: number }) => {
