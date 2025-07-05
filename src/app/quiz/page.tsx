@@ -169,7 +169,7 @@ function QuizComponent() {
       
       setIsLoading(true);
       try {
-        const generatedQuestions = await generateQuiz({ format, brand });
+        const generatedQuestions = await generateQuiz({ format });
         setQuestions(generatedQuestions);
       } catch (error) {
         console.error("Failed to generate quiz:", error);
@@ -178,7 +178,7 @@ function QuizComponent() {
       setIsLoading(false);
     }
     fetchQuestions();
-  }, [format, brand]);
+  }, [format]);
   
   // Timer effect
   useEffect(() => {

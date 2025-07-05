@@ -18,15 +18,11 @@ export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQu
   return generateQuizFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const generalPrompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `Generate 5 multiple-choice quiz questions about "{{format}}" cricket.
-
-For each question, provide the following fields: "questionText", "options" (an array of 4), "correctAnswer", "hint" (optional), and "explanation" (optional).
-
-The questions must be strictly about the sport and not mention any brands or sponsors.`,
+  prompt: `Generate 5 multiple-choice quiz questions about "{{format}}" cricket. The questions must be strictly about the sport and not mention any brands or sponsors.`,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
@@ -39,6 +35,23 @@ The questions must be strictly about the sport and not mention any brands or spo
   },
 });
 
+const mixedFormatPrompt = ai.definePrompt({
+    name: 'generateMixedQuizPrompt',
+    input: {schema: GenerateQuizInputSchema},
+    output: {schema: GenerateQuizOutputSchema},
+    prompt: `Generate a 5-question multiple-choice quiz with one question from each of the following cricket formats: T20, IPL, WPL, ODI, and Test. The questions must be strictly about the sport and not mention any brands or sponsors.`,
+    config: {
+      // Set extremely permissive safety settings to prevent the model from blocking valid responses.
+      safetySettings: [
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+      ],
+    },
+});
+
 const generateQuizFlow = ai.defineFlow(
   {
     name: 'generateQuizFlow',
@@ -46,7 +59,8 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const promptToUse = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
+    const {output} = await promptToUse(input);
     if (!output) {
       throw new Error("The AI failed to generate quiz questions.");
     }

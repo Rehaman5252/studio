@@ -61,27 +61,38 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
     }
   }, []);
   
+  // This effect ensures the visual rotation happens whenever the index changes.
   useEffect(() => {
-    // This effect runs whenever the auto-rotation index or a click changes the selected face.
-    // It is responsible for calling the parent's onSelect callback and applying the visual rotation.
-    // This safely decouples the parent state update from this component's render cycle.
     const currentFaceIndex = faceRotationOrder[rotationOrderIndex];
-    onSelect(currentFaceIndex);
     rotateToFace(currentFaceIndex);
-  }, [rotationOrderIndex, onSelect, rotateToFace]);
+  }, [rotationOrderIndex, rotateToFace]);
+
+  // This effect calls onSelect only on the initial load to set the first card.
+  useEffect(() => {
+    onSelect(faceRotationOrder[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
     isAutoRotating.current = true;
     const rotate = () => {
-        // This function now *only* updates the local state of the Cube component.
-        // It no longer calls onSelect directly, which was causing the error.
-        setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
+        const newRotationIndex = (rotationOrderIndex + 1) % faceRotationOrder.length;
+        const newBrandIndexOnDeck = faceRotationOrder[newRotationIndex];
+        
+        // This is the key change: update the parent component's state
+        // with the *next* brand that will be displayed *before* the animation starts.
+        onSelect(newBrandIndexOnDeck);
+
+        // Update local state to trigger the visual rotation animation.
+        setRotationOrderIndex(newRotationIndex);
+        
         rotationTimeoutRef.current = setTimeout(rotate, 2000);
     };
-    rotationTimeoutRef.current = setTimeout(rotate, 100);
-  }, [stopAutoRotation]);
+    rotationTimeoutRef.current = setTimeout(rotate, 2000); // Start the first rotation after a delay
+  }, [rotationOrderIndex, onSelect, stopAutoRotation]);
 
+  // This effect controls the starting and stopping of the auto-rotation.
   useEffect(() => {
     if(disabled) {
         stopAutoRotation();
@@ -95,13 +106,13 @@ export default function Cube({ brands, onSelect, onFaceClick, disabled = false }
     if (disabled) return;
     
     stopAutoRotation();
+    onSelect(brandIndex); // Ensure parent knows the clicked brand
+    
     const brand = brands[brandIndex];
     onFaceClick(brand); // Notify parent to start the quiz
 
-    // Find the position in our auto-rotation sequence for the clicked face
     const newRotationOrderIndex = faceRotationOrder.indexOf(brandIndex);
     if (newRotationOrderIndex !== -1) {
-        // Set the state. The useEffect hook will handle calling onSelect and rotating the cube.
         setRotationOrderIndex(newRotationOrderIndex);
     }
   };

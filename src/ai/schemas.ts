@@ -2,8 +2,7 @@ import {z} from 'genkit';
 
 // Schemas for generateQuizFlow
 export const GenerateQuizInputSchema = z.object({
-  format: z.string().describe('The cricket format for the quiz (e.g., IPL, T20, Test).'),
-  brand: z.string().describe('The brand associated with the quiz.'),
+  format: z.string().describe('The cricket format for the quiz (e.g., IPL, T20, Test, Mixed).'),
 });
 export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
@@ -41,7 +40,6 @@ export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 export const GenerateHintInputSchema = z.object({
   question: z.string().describe('The quiz question to generate a hint for.'),
   format: z.string().describe('The quiz format (e.g., T20, ODI, Test).'),
-  brand: z.string().describe('The brand associated with the quiz.'),
 });
 export type GenerateHintInput = z.infer<typeof GenerateHintInputSchema>;
 
