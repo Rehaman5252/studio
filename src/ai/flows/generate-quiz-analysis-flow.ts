@@ -34,15 +34,18 @@ const PromptInputSchema = z.object({
     totalHintsUsed: z.number().optional(),
 });
 
-// The prompt now expects the AI to return a single, raw markdown string. This is more reliable.
+// Define a schema for the AI's direct output. Asking for a JSON object is more reliable.
+const AnalysisPromptOutputSchema = z.object({
+  analysis: z.string().optional().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string.'),
+});
+
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: PromptInputSchema },
-  // We ask for a simple string, not a complex object.
-  output: { schema: z.string().nullable().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string.') },
+  output: { schema: AnalysisPromptOutputSchema }, // Use the new, more robust schema
   prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide a detailed, encouraging, and insightful analysis of a user's quiz performance.
 
-Based on the data provided, generate a personalized performance report as a single, raw markdown-formatted string. Do NOT wrap your response in JSON or any other special formatting.
+Based on the data provided, generate a personalized performance report. The entire response must be a JSON object with a single key "analysis" which contains a markdown-formatted string.
 
 The markdown analysis you generate MUST cover the following sections:
 
@@ -104,15 +107,15 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         totalHintsUsed: input.usedHintIndices?.length,
     };
 
-    // The prompt function now returns a promise for a raw string.
+    // The prompt function now returns a promise for an object with an optional 'analysis' string.
     const {output} = await analysisPrompt(promptInput);
     
-    if (!output || output.trim() === '') {
+    // Check if the 'analysis' key exists and is a non-empty string.
+    if (!output?.analysis || output.analysis.trim() === '') {
       throw new Error("The AI failed to generate a valid analysis string.");
     }
 
-    // We wrap the raw string into the object format required by the flow's output schema.
-    // This is much more reliable than asking the AI to format the JSON itself.
-    return { analysis: output };
+    // Wrap the raw string into the object format required by the flow's output schema.
+    return { analysis: output.analysis };
   }
 );
