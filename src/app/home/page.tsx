@@ -145,7 +145,7 @@ export default function HomeScreen() {
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="p-4 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-primary">
+          <h1 className="text-3xl font-extrabold tracking-tight text-primary">
             Indcric
           </h1>
           <p className="text-sm text-muted-foreground">The Ultimate Cricket Challenge</p>
@@ -208,7 +208,7 @@ export default function HomeScreen() {
             <Button
               size="lg"
               variant="default"
-              className="w-full mt-8 bg-gradient-to-r from-primary via-secondary to-primary text-primary-foreground hover:from-primary/90 hover:to-secondary/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"
+              className="w-full mt-8 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"
               onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
             >
               {`Start ${selectedBrand.format} Quiz`}
