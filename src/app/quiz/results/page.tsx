@@ -202,6 +202,16 @@ function ResultsComponent() {
         });
     }, [showAnswers]);
 
+    const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
+    
+    const slotTimings = useMemo(() => {
+        if (!lastAttemptInSlot?.slotId) return '';
+        const slotStartTime = new Date(parseInt(lastAttemptInSlot.slotId, 10));
+        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+    }, [lastAttemptInSlot?.slotId]);
+
     if (reason === 'malpractice') {
         return <MalpracticeScreen />;
     }
@@ -223,15 +233,7 @@ function ResultsComponent() {
     const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, slotId } = lastAttemptInSlot;
     const total = questions.length;
     const isPerfectScore = score === total && total > 0;
-    const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
-    const slotTimings = useMemo(() => {
-        if (!slotId) return '';
-        const slotStartTime = new Date(parseInt(slotId, 10));
-        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-    }, [slotId]);
-
+    
     let message = "Good effort! Keep practicing. 💪";
     if (isPerfectScore) message = "Perfect score! You're a true cricket expert! 🏆🎉";
     else if (score >= total * 0.7) message = "Great job! You really know your cricket. 👍";
