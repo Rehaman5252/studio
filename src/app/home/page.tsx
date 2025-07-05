@@ -13,21 +13,24 @@ import {
   Star,
   ChevronRight,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import Cube, { type CubeBrand } from '@/components/Cube';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import TimerStat from '@/components/stats/TimerStat';
 import PlayersPlayingStat from '@/components/stats/PlayersPlayingStat';
 import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
 import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import useRequireAuth from '@/hooks/useRequireAuth';
-import { cn } from '@/lib/utils';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { getQuizSlotId } from '@/lib/utils';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
-  { id: 2, brand: 'Myntra', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png', logoWidth: 90, logoHeight: 25 },
+  { id: 2, brand: 'Myntra', format: 'WPL', logoUrl: 'https://www.freepnglogos.com/uploads/myntra-logo-png-transparent-20.png', logoWidth: 90, logoHeight: 25 },
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
   { id: 4, brand: 'Nike', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Logo_NIKE.svg/1200px-Logo_NIKE.svg.png', logoWidth: 80, logoHeight: 30 },
   { id: 5, brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
@@ -36,7 +39,9 @@ const brands: CubeBrand[] = [
 
 export default function HomeScreen() {
   const { loading } = useRequireAuth();
+  const { lastAttemptInSlot } = useQuizStatus();
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
+  const [showAlreadyPlayedDialog, setShowAlreadyPlayedDialog] = useState(false);
   const router = useRouter();
 
   const handleBrandSelect = useCallback((index: number) => {
@@ -44,8 +49,13 @@ export default function HomeScreen() {
   }, []);
 
   const handleStartQuiz = useCallback((brand: string, format: string) => {
-    router.push(`/quiz?brand=${brand}&format=${format}`);
-  }, [router]);
+    const currentSlotId = getQuizSlotId();
+    if (lastAttemptInSlot && lastAttemptInSlot.slotId === currentSlotId) {
+      setShowAlreadyPlayedDialog(true);
+    } else {
+      router.push(`/quiz?brand=${brand}&format=${format}`);
+    }
+  }, [router, lastAttemptInSlot]);
   
   const selectedBrand = brands[selectedBrandIndex];
 
@@ -101,8 +111,7 @@ export default function HomeScreen() {
             brands={brands} 
             onSelect={handleBrandSelect}
             onFaceClick={(brand) => {
-              // A short delay to allow the cube animation to settle
-              setTimeout(() => handleStartQuiz(brand.brand, brand.format), 300);
+              handleStartQuiz(brand.brand, brand.format);
             }}
           />
           
@@ -173,6 +182,44 @@ export default function HomeScreen() {
           </Button>
         </div>
       </main>
+
+      <Dialog open={showAlreadyPlayedDialog} onOpenChange={setShowAlreadyPlayedDialog}>
+        <DialogContent className="bg-background/90 backdrop-blur-md border-border">
+            <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+                <AlertCircle className="text-yellow-400" />
+                Slot Already Used
+            </DialogTitle>
+            <DialogDescription>
+                You can only play one quiz per 10-minute slot. Please wait for the next slot to play again.
+            </DialogDescription>
+            </DialogHeader>
+            {lastAttemptInSlot && (
+            <div className="my-2">
+                <p className="font-semibold text-center mb-2 text-muted-foreground">Your Score in This Slot:</p>
+                <Card className="text-center bg-background">
+                    <CardHeader>
+                        <CardTitle>{lastAttemptInSlot.format} Quiz</CardTitle>
+                        <CardDescription>Sponsored by {lastAttemptInSlot.brand}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-5xl font-bold text-primary">
+                            {lastAttemptInSlot.score}
+                            <span className="text-2xl text-muted-foreground">
+                                / {lastAttemptInSlot.totalQuestions}
+                            </span>
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+            )}
+            <DialogFooter>
+            <Button onClick={() => setShowAlreadyPlayedDialog(false)} className="w-full">
+                Got It
+            </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

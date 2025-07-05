@@ -4,6 +4,8 @@
 import React, { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { getQuizSlotId } from '@/lib/utils';
 import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
@@ -14,16 +16,6 @@ import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircle
 import { cn } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
-
-
-const getQuizSlotId = () => {
-  const now = new Date();
-  const minutes = now.getMinutes();
-  const currentSlotStartMinute = Math.floor(minutes / 10) * 10;
-  const slotTime = new Date(now);
-  slotTime.setMinutes(currentSlotStartMinute, 0, 0);
-  return slotTime.getTime().toString();
-};
 
 const Certificate = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
     return (
@@ -108,6 +100,7 @@ function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuth();
+    const { setLastAttemptInSlot } = useQuizStatus();
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
@@ -139,6 +132,21 @@ function ResultsComponent() {
             return acc;
         }, 0);
     }, [questions, userAnswers]);
+
+    // Save the attempt to global state once results are calculated
+    useEffect(() => {
+        if (questions.length > 0) {
+            const attempt = {
+                slotId: getQuizSlotId(),
+                score,
+                totalQuestions: questions.length,
+                format,
+                brand,
+            };
+            setLastAttemptInSlot(attempt);
+        }
+    }, [score, questions, format, brand, setLastAttemptInSlot]);
+
 
     const slotTimings = useMemo(() => {
         const quizSlotId = getQuizSlotId();
@@ -276,12 +284,12 @@ function ResultsComponent() {
                 <AdDialog
                     open={!!adConfig}
                     onAdFinished={adConfig.onFinished}
-                    duration={adConfig.ad.duration}
-                    skippableAfter={adConfig.ad.skippableAfter}
-                    adTitle={adConfig.ad.title}
-                    adType={adConfig.ad.type}
-                    adUrl={adConfig.ad.url}
-                    adHint={adConfig.ad.hint}
+                    duration={ad.duration}
+                    skippableAfter={ad.skippableAfter}
+                    adTitle={ad.title}
+                    adType={ad.type}
+                    adUrl={ad.url}
+                    adHint={ad.hint}
                 >
                     {adConfig.children}
                 </AdDialog>
