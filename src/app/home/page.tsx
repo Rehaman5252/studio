@@ -139,7 +139,7 @@ export default function HomeScreen() {
                     <p className="text-muted-foreground mb-2">Sponsored by {selectedBrand.brand}</p>
                     <p className="text-lg font-semibold text-primary">Win ₹100 + {selectedBrand.brand} Rewards!</p>
                   </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center bg-background/50 p-2 shadow-inner">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white p-2 shadow-inner">
                     <Image
                       src={selectedBrand.logoUrl}
                       alt={`${selectedBrand.brand} logo`}
@@ -187,7 +187,7 @@ export default function HomeScreen() {
           <Button
             size="lg"
             variant="default"
-            className="w-full mt-8 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:bg-primary/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:scale-105 hover:shadow-primary/40 transition-all duration-300"
+            className="w-full mt-8 bg-gradient-to-r from-primary to-amber-400 text-primary-foreground hover:bg-primary/90 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:scale-105 hover:shadow-primary/40 transition-all duration-300"
             onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
           >
             {`Start ${selectedBrand.format} Quiz`}
