@@ -116,11 +116,9 @@ export default function HomeScreen() {
 
   const handleStartQuiz = useCallback((brand: string, format: string) => {
     if (hasPlayedInCurrentSlot) {
-      // The user has already played. Navigate to the results page for review.
-      // The results page will get the data from the QuizStatusProvider context.
       router.push(`/quiz/results?review=true`);
     } else {
-      router.push(`/quiz?brand=${brand}&format=${format}`);
+      router.push(`/quiz?brand=${encodeURIComponent(brand)}&format=${encodeURIComponent(format)}`);
     }
   }, [router, hasPlayedInCurrentSlot]);
   
@@ -165,9 +163,11 @@ export default function HomeScreen() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
+              className="cursor-pointer"
             >
               <Card 
-                className="w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30"
+                className="w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30 transition-colors hover:border-primary"
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">

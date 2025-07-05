@@ -2,7 +2,6 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 
 interface CricketLoadingProps {
   state?: 'loading' | 'error';
@@ -13,22 +12,30 @@ interface CricketLoadingProps {
 
 const CricketLoading = ({
   state = 'loading',
-  message = "Getting the pitch ready...",
+  message = "Generating your quiz...",
   errorMessage = "It's a wicket! Looks like there was an error.",
   children
 }: CricketLoadingProps) => {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
-      <div className="w-48 h-48 mb-4">
-        <svg viewBox="0 0 200 200" className="w-full h-full">
+      <div className="w-32 h-32 mb-4">
+        <svg viewBox="0 0 100 100" className="w-full h-full">
           <style>{`
+            .spinner-arc {
+              transform-origin: center;
+              animation: spin 1s linear infinite;
+            }
             @keyframes spin {
               from { transform: rotate(0deg); }
               to { transform: rotate(360deg); }
             }
-            .spinner {
+            .ball {
               transform-origin: center;
-              animation: spin 1.5s linear infinite;
+              animation: pulse 1.5s ease-in-out infinite;
+            }
+            @keyframes pulse {
+              0%, 100% { transform: scale(0.95); opacity: 0.8; }
+              50% { transform: scale(1); opacity: 1; }
             }
             @keyframes fall-apart {
               to {
@@ -45,20 +52,25 @@ const CricketLoading = ({
           `}</style>
           
           {state === 'loading' ? (
-            <g className="spinner">
-              <circle cx="100" cy="100" r="70" fill="transparent" stroke="hsl(var(--primary))" strokeWidth="4"/>
-              <path d="M100,30 C 140,60 140,140 100,170" stroke="hsl(var(--primary))" strokeWidth="4" fill="none" strokeLinecap="round"/>
-              <path d="M100,30 C 60,60 60,140 100,170" stroke="hsl(var(--primary))" strokeWidth="4" fill="none" strokeDasharray="8 6" strokeLinecap="round"/>
+            <g>
+                <path
+                    className="spinner-arc"
+                    d="M 50,10 A 40,40 0 1 1 10,50"
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                />
+                <circle cx="50" cy="50" r="12" fill="hsl(var(--primary))" className="ball" />
             </g>
           ) : (
             <g>
-                <g className="wickets-falling" transform="translate(91, 85)">
-                    <rect width="6" height="35" fill="hsl(var(--primary))" />
-                    <rect x="10" width="6" height="35" fill="hsl(var(--primary))" />
-                    <rect x="20" width="6" height="35" fill="hsl(var(--primary))" />
-                    <rect x="0" y="-3" width="26" height="4" fill="hsl(var(--primary))" />
+                <g className="wickets-falling" transform="translate(37, 30) scale(1.2)">
+                    <rect width="6" height="35" fill="hsl(var(--primary))" rx="2" />
+                    <rect x="10" width="6" height="35" fill="hsl(var(--primary))" rx="2" />
+                    <rect x="20" width="6" height="35" fill="hsl(var(--primary))" rx="2" />
+                    <rect x="0" y="-3" width="26" height="4" fill="hsl(var(--primary))" rx="2" />
                 </g>
-                <circle cx="100" cy="100" r="10" fill="hsl(var(--primary))" />
             </g>
           )}
         </svg>
