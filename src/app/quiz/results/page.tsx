@@ -5,7 +5,6 @@ import React, { Suspense, useState, useEffect, useMemo, useCallback, memo } from
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { getQuizSlotId } from '@/lib/utils';
 import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
@@ -157,46 +156,12 @@ function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuth();
-    const { setLastAttemptInSlot } = useQuizStatus();
+    const { lastAttemptInSlot, isLoading: isContextLoading } = useQuizStatus();
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
-    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, isReview, slotId } = useMemo(() => {
-        const dataParam = searchParams.get('data');
-        if (!dataParam) return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [], isReview: false, slotId: '' };
-        try {
-            const parsedData = JSON.parse(decodeURIComponent(dataParam));
-            parsedData.slotId = parsedData.slotId || getQuizSlotId();
-            return parsedData;
-        } catch (error) {
-            console.error("Failed to parse results data:", error);
-            return { questions: [] as QuizQuestion[], userAnswers: [], brand: '', format: '', timePerQuestion: [], usedHintIndices: [], isReview: false, slotId: '' };
-        }
-    }, [searchParams]);
+    const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
     
-    const score = useMemo(() => {
-        if (!questions || !userAnswers) return 0;
-        return userAnswers.reduce((acc, answer, index) => 
-            (index < questions.length && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
-    }, [questions, userAnswers]);
-
-    useEffect(() => {
-        if (questions.length > 0 && !isReview) {
-            const attempt = {
-                slotId: slotId,
-                score,
-                totalQuestions: questions.length,
-                format,
-                brand,
-                questions,
-                userAnswers,
-                timePerQuestion,
-                usedHintIndices,
-            };
-            setLastAttemptInSlot(attempt);
-        }
-    }, [score, questions, userAnswers, format, brand, timePerQuestion, usedHintIndices, setLastAttemptInSlot, isReview, slotId]);
-
     const handleViewAnswers = useCallback(() => {
         if (showAnswers) return;
         setAdConfig({
@@ -209,7 +174,11 @@ function ResultsComponent() {
         });
     }, [showAnswers]);
 
-    if (!questions || questions.length === 0) {
+    if (isContextLoading) {
+        return <CricketLoading message="Calculating your score..." />;
+    }
+
+    if (!lastAttemptInSlot) {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
                 <h1 className="text-2xl font-bold mb-4">Invalid Results</h1>
@@ -219,6 +188,7 @@ function ResultsComponent() {
         );
     }
     
+    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, slotId } = lastAttemptInSlot;
     const total = questions.length;
     const isPerfectScore = score === total && total > 0;
     const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);

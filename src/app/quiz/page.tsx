@@ -91,17 +91,9 @@ function QuizComponent() {
   stateRef.current = { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex };
   
   const advanceToResults = useCallback(() => {
-    const { questions, userAnswers, brand, format, usedHintIndices, timePerQuestion } = stateRef.current;
-    if (!questions) return;
-    const dataToPass = {
-        questions,
-        userAnswers,
-        brand,
-        format,
-        usedHintIndices,
-        timePerQuestion
-    };
-    router.replace(`/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`);
+    // The quiz state will be saved by the unmount effect.
+    // Just navigate to the results page without a large data payload.
+    router.replace(`/quiz/results`);
   }, [router]);
 
   // Fetch questions on component mount
@@ -121,10 +113,11 @@ function QuizComponent() {
       });
   }, [format, brand]);
 
-  // Effect to save progress
+  // Effect to save progress on mount (for abandoned quizzes) and unmount (for final results)
   useEffect(() => {
     if (!user || !questions) return;
     
+    // On mount, save an initial attempt record. This is useful if the user abandons the quiz.
     const initialAttempt = {
         slotId: getQuizSlotId(),
         score: 0,
@@ -139,10 +132,11 @@ function QuizComponent() {
     setLastAttemptInSlot(initialAttempt);
 
     return () => {
-      const { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex } = stateRef.current;
-      const isMidQuiz = questions && currentQuestionIndex < questions.length;
+      // On unmount, save the final state of the quiz.
+      // This ensures the results page has the most up-to-date data.
+      const { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format } = stateRef.current;
       
-      if (isMidQuiz) {
+      if (questions && user) {
         const score = userAnswers.reduce((acc, answer, index) => 
             (questions[index] && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
 
@@ -161,7 +155,7 @@ function QuizComponent() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, questions]);
+  }, [user, questions, format, brand]);
 
   const goToNextQuestion = useCallback(() => {
     setPaused(false);
@@ -219,7 +213,7 @@ function QuizComponent() {
     setUserAnswers(prev => [...prev, option]);
     
     // Go to next step immediately
-    handleNextStep();
+    setTimeout(() => handleNextStep(), 300); // Short delay to show selection
   }, [selectedOption, timeLeft, handleNextStep]);
 
   const handleUseHint = useCallback(() => {

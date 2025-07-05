@@ -115,21 +115,14 @@ export default function HomeScreen() {
   }, []);
 
   const handleStartQuiz = useCallback((brand: string, format: string) => {
-    if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
-       const dataToPass = {
-        questions: lastAttemptInSlot.questions,
-        userAnswers: lastAttemptInSlot.userAnswers,
-        brand: lastAttemptInSlot.brand,
-        format: lastAttemptInSlot.format,
-        timePerQuestion: lastAttemptInSlot.timePerQuestion,
-        usedHintIndices: lastAttemptInSlot.usedHintIndices,
-        isReview: true,
-      };
-      router.push(`/quiz/results?data=${encodeURIComponent(JSON.stringify(dataToPass))}`);
+    if (hasPlayedInCurrentSlot) {
+      // The user has already played. Navigate to the results page for review.
+      // The results page will get the data from the QuizStatusProvider context.
+      router.push(`/quiz/results?review=true`);
     } else {
       router.push(`/quiz?brand=${brand}&format=${format}`);
     }
-  }, [router, hasPlayedInCurrentSlot, lastAttemptInSlot]);
+  }, [router, hasPlayedInCurrentSlot]);
   
   const selectedBrand = brands[selectedBrandIndex];
 
