@@ -117,6 +117,7 @@ function QuizComponent() {
 
   const [interstitialConfig, setInterstitialConfig] = useState<{ logo: string; hint: string } | null>(null);
   const hasFetchedQuestions = useRef(false);
+  const quizCompleted = useRef(false);
 
   const [adConfig, setAdConfig] = useState<{
     ad: Ad;
@@ -125,7 +126,9 @@ function QuizComponent() {
   } | null>(null);
 
   const saveAttempt = useCallback((finalAnswers, finalTime, finalHints) => {
-    if (!questions || !user) return;
+    if (!questions || !user || quizCompleted.current) return;
+    quizCompleted.current = true;
+    
     const score = finalAnswers.reduce((acc, answer, index) => 
         (questions[index] && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
 
@@ -221,9 +224,10 @@ function QuizComponent() {
     }
   }, [timeLeft, selectedOption, adConfig, interstitialConfig, questions, isTerminated, proceedToNextStep]);
 
-  // Anti-cheat effect
+  // Anti-cheat effect and unmount save
   useEffect(() => {
     const handleVisibilityChange = () => {
+      // If user switches tabs/apps, terminate and save.
       if (document.hidden && !isTerminated && questions) {
         setIsTerminated(true); // Prevent further actions
         saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
@@ -232,8 +236,16 @@ function QuizComponent() {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    // The cleanup function runs when the component unmounts.
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      
+      // If the quiz started but was not "completed" (by finishing or malpractice),
+      // save the attempt. This covers navigating away with the back button.
+      if (hasFetchedQuestions.current && !quizCompleted.current) {
+        saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
+      }
     };
   }, [router, saveAttempt, userAnswers, timePerQuestion, usedHintIndices, isTerminated, questions]);
 
