@@ -1,22 +1,43 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Loader2 } from 'lucide-react';
+import { Award, Download, Share2, Loader2, Clock, Calendar } from 'lucide-react';
 import useRequireAuth from '@/hooks/useRequireAuth';
-
-// Mock data for certificates earned by the user
-const certificates = [
-  { id: 1, title: 'T20 Masterclass Certificate', date: '2024-07-21', brand: 'Apple' },
-  { id: 2, title: 'Test Cricket Expert Certificate', date: '2024-07-19', brand: 'SBI' },
-  { id: 3, title: 'IPL 2024 Champion Certificate', date: '2024-07-18', brand: 'boAt' },
-  { id: 4, title: 'ODI Whiz Certificate', date: '2024-07-15', brand: 'Nike' },
-];
+import { mockQuizHistory } from '@/lib/mockData';
 
 export default function CertificatesPage() {
   const { loading } = useRequireAuth();
+
+  const getSlotTimings = (timestamp: number) => {
+    const attemptDate = new Date(timestamp);
+    const minutes = attemptDate.getMinutes();
+    const slotStartMinute = Math.floor(minutes / 10) * 10;
+    
+    const slotStartTime = new Date(attemptDate);
+    slotStartTime.setMinutes(slotStartMinute, 0, 0);
+    
+    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+  };
+  
+  const certificates = useMemo(() => {
+    return mockQuizHistory
+      .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0)
+      .map(attempt => ({
+        id: attempt.slotId + attempt.format,
+        title: `${attempt.format} Masterclass Certificate`,
+        date: new Date(attempt.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        slot: getSlotTimings(attempt.timestamp),
+        brand: attempt.brand,
+        format: attempt.format,
+      }));
+  }, []);
   
   if (loading) {
       return (
@@ -37,11 +58,23 @@ export default function CertificatesPage() {
           certificates.map((cert) => (
             <Card key={cert.id} className="bg-background/70 backdrop-blur-sm border-white/20 shadow-lg">
               <CardHeader>
-                <div className="flex items-center gap-3">
-                    <Award className="h-8 w-8 text-yellow-400" />
-                    <div>
+                <div className="flex items-start gap-4">
+                    <Award className="h-8 w-8 text-yellow-400 mt-1 flex-shrink-0" />
+                    <div className="flex-grow">
                         <CardTitle className="text-lg">{cert.title}</CardTitle>
-                        <CardDescription>Awarded on {cert.date} for the {cert.brand} quiz</CardDescription>
+                        <CardDescription>
+                            For the {cert.brand} {cert.format} quiz.
+                        </CardDescription>
+                         <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                             <div className="flex items-center gap-2">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>Awarded on: {cert.date}</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Slot: {cert.slot}</span>
+                             </div>
+                        </div>
                     </div>
                 </div>
               </CardHeader>
