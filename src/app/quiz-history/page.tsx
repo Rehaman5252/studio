@@ -12,7 +12,7 @@ import { mockQuizHistory } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import useRequireAuth from '@/hooks/useRequireAuth';
-
+import { motion } from 'framer-motion';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -73,6 +73,20 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     );
 };
 
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 export default function QuizHistoryPage() {
   useRequireAuth();
@@ -140,34 +154,41 @@ export default function QuizHistoryPage() {
         </div>
         
         {filteredHistory.length > 0 ? (
-          <div className="space-y-4">
+          <motion.div 
+            className="space-y-4"
+            initial="hidden"
+            animate="visible"
+            variants={listVariants}
+          >
             {filteredHistory.map((attempt) => (
-              <Card key={attempt.slotId + attempt.format} className="bg-card/80 border-primary/10 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-center text-lg">
-                    <span>{attempt.format} Quiz</span>
-                    <span className="text-lg font-bold text-primary">{attempt.score}/{attempt.totalQuestions}</span>
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Sponsored by {attempt.brand}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+              <motion.div key={attempt.slotId + attempt.format} variants={itemVariants}>
+                <Card className="bg-card/80 border-primary/10 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex justify-between items-center text-lg">
+                      <span>{attempt.format} Quiz</span>
+                      <span className="text-lg font-bold text-primary">{attempt.score}/{attempt.totalQuestions}</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Sponsored by {attempt.brand}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex justify-between items-center">
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
-                      </div>
-                    </div>
-                  <AnalysisDialog attempt={attempt} />
-                </CardContent>
-              </Card>
+                    <AnalysisDialog attempt={attempt} />
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
           <Card className="bg-card/80">
             <CardContent className="p-6 text-center text-muted-foreground">

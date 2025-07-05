@@ -10,6 +10,7 @@ import useRequireAuth from '@/hooks/useRequireAuth';
 import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { motion } from 'framer-motion';
 
 const ScratchCard = ({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -58,18 +59,20 @@ const ScratchCard = ({ brand }: { brand: string }) => {
 
 
 const GenericOffer = ({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <Card className="bg-card/80 border-primary/10 shadow-lg">
-        <CardContent className="p-4 flex items-center gap-4">
-            <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
-            <div>
-                <h4 className="font-bold text-foreground">{title}</h4>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-             <Button variant="ghost" size="icon" className="ml-auto">
-                <ExternalLink className="text-muted-foreground" />
-             </Button>
-        </CardContent>
-    </Card>
+    <motion.div whileHover={{ scale: 1.03 }} transition={{ type: 'spring', stiffness: 300 }}>
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardContent className="p-4 flex items-center gap-4">
+                <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
+                <div>
+                    <h4 className="font-bold text-foreground">{title}</h4>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="ml-auto">
+                    <ExternalLink className="text-muted-foreground" />
+                </Button>
+            </CardContent>
+        </Card>
+    </motion.div>
 )
 
 export default function RewardsPage() {
@@ -110,7 +113,7 @@ export default function RewardsPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
-        <section>
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
           <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift from each brand you've played with. Scratch to reveal!</p>
           
@@ -138,16 +141,16 @@ export default function RewardsPage() {
               </CardContent>
             </Card>
           )}
-        </section>
+        </motion.section>
 
-        <section>
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
           <div className="space-y-4">
             <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" image="https://placehold.co/100x100.png" hint="shoes sport" />
             <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
             <GenericOffer title="Buy 1 Get 1 on Pizza Hut" description="Valid on medium pan pizzas" image="https://placehold.co/100x100.png" hint="pizza food" />
           </div>
-        </section>
+        </motion.section>
       </main>
     </div>
   );

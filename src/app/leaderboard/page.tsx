@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 // Mock data based on the specification
 const liveLeaderboardData = [
@@ -40,6 +41,21 @@ const RankIcon = ({ rank }: { rank: number }) => {
   if (rank === 2) return <span className="text-2xl">🥈</span>;
   if (rank === 3) return <span className="text-2xl">🥉</span>;
   return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
+};
+
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0 }
 };
 
 export default function LeaderboardPage() {
@@ -76,9 +92,14 @@ export default function LeaderboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <motion.div 
+                  className="space-y-2"
+                  initial="hidden"
+                  animate="visible"
+                  variants={listVariants}
+                >
                   {liveLeaderboardData.map((player) => (
-                    <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+                    <motion.div key={player.rank} variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
                       <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
                       <Avatar className="h-10 w-10 mx-4">
                         <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -92,9 +113,9 @@ export default function LeaderboardPage() {
                         <p className="font-bold text-primary">{player.time}s</p>
                         <p className="text-xs text-muted-foreground">Time</p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -106,9 +127,14 @@ export default function LeaderboardPage() {
                 <CardDescription>Based on number of perfect scores</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <motion.div 
+                  className="space-y-2"
+                  initial="hidden"
+                  animate="visible"
+                  variants={listVariants}
+                >
                   {allTimeLeaderboardData.map((player) => (
-                     <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+                     <motion.div key={player.rank} variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
                       <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
                       <Avatar className="h-10 w-10 mx-4">
                         <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -122,9 +148,9 @@ export default function LeaderboardPage() {
                         <p className="font-bold text-primary">{player.perfectScores}</p>
                         <p className="text-xs text-muted-foreground">Perfect Scores</p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -136,9 +162,14 @@ export default function LeaderboardPage() {
                  <CardDescription>Your performance against friends</CardDescription>
               </CardHeader>
               <CardContent>
-                 <div className="space-y-2">
+                 <motion.div 
+                  className="space-y-2"
+                  initial="hidden"
+                  animate="visible"
+                  variants={listVariants}
+                >
                   {myLeaderboardData.map((player) => (
-                     <div key={player.rank} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+                     <motion.div key={player.rank} variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
                       <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
                       <Avatar className="h-10 w-10 mx-4">
                         <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -151,9 +182,9 @@ export default function LeaderboardPage() {
                         <p className="font-bold text-primary">{player.perfectScores}</p>
                         <p className="text-xs text-muted-foreground">Perfect Scores</p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </CardContent>
             </Card>
           </TabsContent>

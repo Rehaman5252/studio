@@ -7,6 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Loader2, Clock, Calendar } from 'lucide-react';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { mockQuizHistory } from '@/lib/mockData';
+import { motion } from 'framer-motion';
+
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 export default function CertificatesPage() {
   const { loading } = useRequireAuth();
@@ -55,41 +71,50 @@ export default function CertificatesPage() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
         {certificates.length > 0 ? (
-          certificates.map((cert) => (
-            <Card key={cert.id} className="bg-card/80 border-primary/10 shadow-lg">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                    <Award className="h-8 w-8 text-primary mt-1 flex-shrink-0" />
-                    <div className="flex-grow">
-                        <CardTitle className="text-lg">{cert.title}</CardTitle>
-                        <CardDescription>
-                            For the {cert.brand} {cert.format} quiz.
-                        </CardDescription>
-                         <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                             <div className="flex items-center gap-2">
-                                <Calendar className="h-3.5 w-3.5" />
-                                <span>Awarded on: {cert.date}</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                                <Clock className="h-3.5 w-3.5" />
-                                <span>Slot: {cert.slot}</span>
-                             </div>
+          <motion.div 
+            className="space-y-4"
+            initial="hidden"
+            animate="visible"
+            variants={listVariants}
+          >
+            {certificates.map((cert) => (
+              <motion.div key={cert.id} variants={itemVariants}>
+                <Card className="bg-card/80 border-primary/10 shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                        <Award className="h-8 w-8 text-primary mt-1 flex-shrink-0" />
+                        <div className="flex-grow">
+                            <CardTitle className="text-lg">{cert.title}</CardTitle>
+                            <CardDescription>
+                                For the {cert.brand} {cert.format} quiz.
+                            </CardDescription>
+                            <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    <span>Awarded on: {cert.date}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>Slot: {cert.slot}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex justify-end gap-2">
-                <Button variant="secondary" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share
-                </Button>
-              </CardContent>
-            </Card>
-          ))
+                  </CardHeader>
+                  <CardContent className="flex justify-end gap-2">
+                    <Button variant="secondary" size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Share
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
         ) : (
           <Card className="bg-card/80">
             <CardContent className="p-8 text-center text-muted-foreground">
