@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export interface CubeBrand {
   id: number;
@@ -40,9 +41,10 @@ interface CubeProps {
   brands: CubeBrand[];
   onSelect: (index: number) => void;
   onFaceClick: (brand: CubeBrand) => void;
+  disabled?: boolean;
 }
 
-export default function Cube({ brands, onSelect, onFaceClick }: CubeProps) {
+export default function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,22 +81,27 @@ export default function Cube({ brands, onSelect, onFaceClick }: CubeProps) {
   }, [stopAutoRotation, onSelect]);
 
   useEffect(() => {
+    if(disabled) {
+        stopAutoRotation();
+    } else {
+        startAutoRotation();
+    }
+    return stopAutoRotation;
+  }, [disabled, startAutoRotation, stopAutoRotation]);
+
+  useEffect(() => {
     const faceToShow = faceRotationOrder[rotationOrderIndex];
     rotateToFace(faceToShow);
   }, [rotationOrderIndex, rotateToFace]);
 
-  useEffect(() => {
-    startAutoRotation();
-    return stopAutoRotation;
-  }, [startAutoRotation, stopAutoRotation]);
-
   const handleFaceClick = (brandIndex: number) => {
+    if (disabled) return;
+    
     stopAutoRotation();
     const brand = brands[brandIndex];
     onFaceClick(brand);
     onSelect(brandIndex);
 
-    // Find the correct rotation index for the clicked face
     const newRotationOrderIndex = faceRotationOrder.indexOf(brandIndex);
     if (newRotationOrderIndex !== -1) {
         setRotationOrderIndex(newRotationOrderIndex);
@@ -105,7 +112,7 @@ export default function Cube({ brands, onSelect, onFaceClick }: CubeProps) {
   
   return (
     <div className="flex flex-col items-center">
-      <div className="w-48 h-48 perspective">
+      <div className={cn("w-48 h-48 perspective", disabled && "opacity-50")}>
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
@@ -115,7 +122,10 @@ export default function Cube({ brands, onSelect, onFaceClick }: CubeProps) {
             <div
               key={brand.id}
               onClick={() => handleFaceClick(index)}
-              className="absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden cursor-pointer bg-white/10 backdrop-blur-lg border-white/30 transition-all hover:bg-white/20 hover:border-white shadow-xl shadow-black/20"
+              className={cn(
+                "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-white/10 backdrop-blur-lg border-white/30 shadow-xl shadow-black/20",
+                !disabled && "cursor-pointer transition-all hover:bg-white/20 hover:border-white"
+              )}
               style={{
                 transform: faceTransforms[index],
               }}

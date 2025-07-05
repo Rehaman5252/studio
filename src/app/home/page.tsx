@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 import Cube, { type CubeBrand } from '@/components/Cube';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,7 @@ import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
 import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { getQuizSlotId } from '@/lib/utils';
+import { getQuizSlotId, formatTime } from '@/lib/utils';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -39,23 +40,27 @@ const brands: CubeBrand[] = [
 
 export default function HomeScreen() {
   const { loading } = useRequireAuth();
-  const { lastAttemptInSlot } = useQuizStatus();
+  const { lastAttemptInSlot, timeLeft } = useQuizStatus();
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const [showAlreadyPlayedDialog, setShowAlreadyPlayedDialog] = useState(false);
   const router = useRouter();
+
+  const hasPlayedInCurrentSlot = useMemo(() => {
+    if (!lastAttemptInSlot) return false;
+    return lastAttemptInSlot.slotId === getQuizSlotId();
+  }, [lastAttemptInSlot]);
 
   const handleBrandSelect = useCallback((index: number) => {
     setSelectedBrandIndex(index);
   }, []);
 
   const handleStartQuiz = useCallback((brand: string, format: string) => {
-    const currentSlotId = getQuizSlotId();
-    if (lastAttemptInSlot && lastAttemptInSlot.slotId === currentSlotId) {
+    if (hasPlayedInCurrentSlot) {
       setShowAlreadyPlayedDialog(true);
     } else {
       router.push(`/quiz?brand=${brand}&format=${format}`);
     }
-  }, [router, lastAttemptInSlot]);
+  }, [router, hasPlayedInCurrentSlot]);
   
   const selectedBrand = brands[selectedBrandIndex];
 
@@ -113,32 +118,49 @@ export default function HomeScreen() {
             onFaceClick={(brand) => {
               handleStartQuiz(brand.brand, brand.format);
             }}
+            disabled={hasPlayedInCurrentSlot}
           />
-          
-          <Card 
-            key={selectedBrand.id}
-            onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
-            className="w-full mt-8 rounded-2xl shadow-xl bg-white/10 border-0 animate-in fade-in duration-500 backdrop-blur-sm cursor-pointer hover:bg-white/20 transition-colors"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-bold text-white">{selectedBrand.format} Cricket Quiz</h3>
-                  <p className="opacity-80 mb-2 text-white">Sponsored by {selectedBrand.brand}</p>
-                  <p className="text-lg font-semibold text-white">Win ₹100 + {selectedBrand.brand} Rewards!</p>
+
+          {hasPlayedInCurrentSlot ? (
+            <Card className="w-full mt-8 rounded-2xl shadow-xl bg-black/30 border border-yellow-400 backdrop-blur-sm text-center">
+              <CardContent className="p-6">
+                <Lock className="h-8 w-8 mx-auto text-yellow-400 mb-2"/>
+                <h3 className="text-xl font-bold text-white">Slot Already Played</h3>
+                <p className="opacity-80 mb-2 text-white">You can only play once per slot.</p>
+                <p className="text-lg font-semibold text-yellow-300">
+                  Next quiz begins in {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
+                </p>
+                <Button variant="secondary" className="mt-4" onClick={() => setShowAlreadyPlayedDialog(true)}>
+                    View Your Score
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card 
+              key={selectedBrand.id}
+              onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
+              className="w-full mt-8 rounded-2xl shadow-xl bg-white/10 border-0 animate-in fade-in duration-500 backdrop-blur-sm cursor-pointer hover:bg-white/20 transition-colors"
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">{selectedBrand.format} Cricket Quiz</h3>
+                    <p className="opacity-80 mb-2 text-white">Sponsored by {selectedBrand.brand}</p>
+                    <p className="text-lg font-semibold text-white">Win ₹100 + {selectedBrand.brand} Rewards!</p>
+                  </div>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/20 p-2 shadow-inner">
+                    <Image
+                      src={selectedBrand.logoUrl}
+                      alt={`${selectedBrand.brand} logo`}
+                      width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
+                      height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
-                <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/20 p-2 shadow-inner">
-                  <Image
-                    src={selectedBrand.logoUrl}
-                    alt={`${selectedBrand.brand} logo`}
-                    width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
-                    height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
           
           <Separator className="my-8 bg-white/20" />
 
@@ -176,8 +198,9 @@ export default function HomeScreen() {
             size="lg"
             className="w-full mt-8 bg-accent text-accent-foreground hover:bg-accent/90 text-lg font-bold py-7 rounded-full shadow-lg"
             onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
+            disabled={hasPlayedInCurrentSlot}
           >
-            Start {selectedBrand.format} Quiz
+            {hasPlayedInCurrentSlot ? 'Slot Already Played' : `Start ${selectedBrand.format} Quiz`}
             <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
         </div>

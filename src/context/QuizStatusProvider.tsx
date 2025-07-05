@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo, useRef } from 'react';
 import { getQuizSlotId } from '@/lib/utils';
 
 // Represents a simplified quiz attempt for tracking in the current session.
@@ -29,14 +30,18 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [playersPlayed, setPlayersPlayed] = useState(3029);
   const [totalWinners, setTotalWinners] = useState(129);
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<SlotAttempt | null>(null);
+  
+  // Use a ref to hold the latest value of lastAttemptInSlot to avoid stale closures in setInterval
+  const lastAttemptRef = useRef(lastAttemptInSlot);
+  lastAttemptRef.current = lastAttemptInSlot;
 
   useEffect(() => {
     const timerInterval = setInterval(() => {
       const currentSlotId = getQuizSlotId();
+      const lastAttempt = lastAttemptRef.current;
       
       // If there's an old attempt from a previous slot, clear it.
-      // This ensures that when a new slot begins, the user can play again.
-      if (lastAttemptInSlot && lastAttemptInSlot.slotId !== currentSlotId) {
+      if (lastAttempt && lastAttempt.slotId !== currentSlotId) {
         setLastAttemptInSlot(null);
       }
 
@@ -65,7 +70,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(timerInterval);
       clearInterval(playerInterval);
     };
-  }, [lastAttemptInSlot]); // Dependency ensures the interval always has the latest state
+  }, []); // Empty dependency array ensures intervals are set up only once
 
   const value = useMemo(() => ({
     timeLeft, 
