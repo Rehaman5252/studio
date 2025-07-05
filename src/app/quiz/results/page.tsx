@@ -11,7 +11,7 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -33,6 +33,36 @@ const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
 };
+
+const MalpracticeScreen = memo(() => {
+    const router = useRouter();
+    return (
+        <motion.div 
+            className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+        >
+            <Card className="w-full max-w-md text-center bg-card border-2 border-destructive my-4">
+                <CardHeader>
+                     <div className="mx-auto bg-destructive/20 p-4 rounded-full w-fit mb-4">
+                        <AlertTriangle className="h-12 w-12 text-destructive" />
+                    </div>
+                    <CardTitle className="text-3xl font-extrabold text-destructive">Quiz Terminated</CardTitle>
+                    <CardDescription className="text-base text-muted-foreground">Malpractice Detected</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <p className="text-lg">Your quiz session was ended because you switched tabs or left the app.</p>
+                     <p className="text-sm text-muted-foreground">To ensure fair play for all users, this is not permitted during a quiz.</p>
+                     <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-4" onClick={() => router.replace('/home')}>
+                        <Home className="mr-2 h-5 w-5" /> Go Home
+                     </Button>
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
+});
+MalpracticeScreen.displayName = "MalpracticeScreen";
+
 
 const Certificate = memo(({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => (
     <motion.div variants={cardVariants}>
@@ -158,6 +188,7 @@ function ResultsComponent() {
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
 
     const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
+    const reason = useMemo(() => searchParams.get('reason'), [searchParams]);
     
     const handleViewAnswers = useCallback(() => {
         if (showAnswers) return;
@@ -170,6 +201,10 @@ function ResultsComponent() {
             children: <p className="font-bold text-lg mt-4">Thank you for your patience!</p>
         });
     }, [showAnswers]);
+
+    if (reason === 'malpractice') {
+        return <MalpracticeScreen />;
+    }
 
     if (isContextLoading) {
         return <CricketLoading message="Calculating your score..." />;

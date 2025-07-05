@@ -20,16 +20,15 @@ import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import InterstitialLoader from '@/components/InterstitialLoader';
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
-    0: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Tata_logo.svg/1024px-Tata_logo.svg.png', hint: 'Tata logo' },
-    1: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Dominos_pizza_logo.svg/1200px-Dominos_pizza_logo.svg.png', hint: 'Dominos logo' },
-    3: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Pepsi_logo_2014.svg/1200px-Pepsi_logo_2014.svg.png', hint: 'Pepsi logo' },
+    0: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Dominos_pizza_logo.svg/1200px-Dominos_pizza_logo.svg.png', hint: 'Dominos logo' },
+    1: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Pepsi_logo_2014.svg/1200px-Pepsi_logo_2014.svg.png', hint: 'Pepsi logo' },
 };
 
 const Timer = memo(({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   // Ensure strokeDashoffset doesn't go below 0
-  const offset = circumference - (timeLeft / 20) * circumference;
+  const offset = Math.max(0, circumference - (timeLeft / 20) * circumference);
 
   return (
     <div className="relative h-28 w-28">
@@ -84,8 +83,7 @@ function QuizComponent() {
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
   const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
   const [isHintVisible, setIsHintVisible] = useState(false);
-  const [wasMidQuizAdShown, setWasMidQuizAdShown] = useState(false);
-  const [paused, setPaused] = useState(false);
+  const [isTerminated, setIsTerminated] = useState(false);
 
   const [interstitialConfig, setInterstitialConfig] = useState<{ logo: string; hint: string } | null>(null);
 
@@ -95,9 +93,54 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
-  const stateRef = useRef({ userAnswers, timePerQuestion, usedHintIndices, questions, brand, format });
-  stateRef.current = { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format };
+  const saveAttempt = useCallback((finalAnswers, finalTime, finalHints) => {
+    if (!questions || !user) return;
+    const score = finalAnswers.reduce((acc, answer, index) => 
+        (questions[index] && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
 
+    const currentProgress = {
+      slotId: getQuizSlotId(),
+      score,
+      totalQuestions: questions.length,
+      format,
+      brand,
+      questions,
+      userAnswers: finalAnswers,
+      timePerQuestion: finalTime,
+      usedHintIndices: finalHints,
+    };
+    setLastAttemptInSlot(currentProgress);
+  }, [questions, user, format, brand, setLastAttemptInSlot]);
+
+  const goToNextQuestion = useCallback(() => {
+    setSelectedOption(null);
+    setIsHintVisible(false);
+    setCurrentQuestionIndex((prev) => prev + 1);
+    setTimeLeft(20);
+  }, []);
+  
+  const proceedToNextStep = useCallback((answer: string) => {
+    const newAnswers = [...userAnswers, answer];
+    const newTimes = [...timePerQuestion, 20 - timeLeft];
+    
+    // Save state before deciding next step
+    setUserAnswers(newAnswers);
+    setTimePerQuestion(newTimes);
+    
+    if (currentQuestionIndex >= questions!.length - 1) {
+      saveAttempt(newAnswers, newTimes, usedHintIndices);
+      router.replace(`/quiz/results`);
+    } else {
+      const interstitial = interstitialAds[currentQuestionIndex];
+      if (interstitial) {
+        setInterstitialConfig(interstitial);
+      } else {
+        goToNextQuestion();
+      }
+    }
+  }, [userAnswers, timePerQuestion, timeLeft, currentQuestionIndex, questions, usedHintIndices, saveAttempt, router, goToNextQuestion]);
+
+  // Fetch questions
   useEffect(() => {
     async function fetchQuestions() {
       setIsLoading(true);
@@ -106,153 +149,68 @@ function QuizComponent() {
         setQuestions(generatedQuestions);
       } catch (error) {
         console.error("Failed to generate quiz:", error);
-        setQuestions(null); // Explicitly set to null on error
+        setQuestions(null);
       }
       setIsLoading(false);
     }
     fetchQuestions();
   }, [format, brand]);
   
-  const advanceToResults = useCallback(() => {
-    router.replace(`/quiz/results`);
-  }, [router]);
-
-
-  useEffect(() => {
-    if (!user || !questions) return;
-    
-    // On mount with questions, save an initial attempt record.
-    const initialAttempt = {
-        slotId: getQuizSlotId(),
-        score: 0,
-        totalQuestions: questions.length,
-        format,
-        brand,
-        questions: questions,
-        userAnswers: [],
-        timePerQuestion: [],
-        usedHintIndices: [],
-    };
-    setLastAttemptInSlot(initialAttempt);
-
-    return () => {
-      // On unmount, save the final state of the quiz.
-      const { userAnswers, timePerQuestion, usedHintIndices, questions: finalQuestions, brand, format } = stateRef.current;
-      
-      if (finalQuestions && user) {
-        const score = userAnswers.reduce((acc, answer, index) => 
-            (finalQuestions[index] && answer === finalQuestions[index].correctAnswer) ? acc + 1 : acc, 0);
-
-        const currentProgress = {
-          slotId: getQuizSlotId(),
-          score,
-          totalQuestions: finalQuestions.length,
-          format,
-          brand,
-          questions: finalQuestions,
-          userAnswers,
-          timePerQuestion,
-          usedHintIndices,
-        };
-        setLastAttemptInSlot(currentProgress);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, questions]); // Rerun only when user or questions are loaded
-
-  const goToNextQuestion = useCallback(() => {
-    setPaused(false);
-    setSelectedOption(null);
-    setIsHintVisible(false);
-    setCurrentQuestionIndex((prev) => prev + 1);
-    setTimeLeft(20);
-  }, []);
-
-  const proceedToNextQuestionFlow = useCallback(() => {
-    if (!questions) return;
-    
-    // Mid-quiz ad logic
-    if (currentQuestionIndex === 2 && !wasMidQuizAdShown) {
-        setPaused(true);
-        setAdConfig({
-            ad: adLibrary.midQuizAd,
-            onFinished: () => {
-                setWasMidQuizAdShown(true);
-                setAdConfig(null);
-                goToNextQuestion();
-            }
-        });
-        return;
-    }
-    
-    // Final question logic
-    if (currentQuestionIndex >= questions.length - 1) {
-      advanceToResults();
-    } else {
-      goToNextQuestion();
-    }
-  }, [currentQuestionIndex, wasMidQuizAdShown, questions, goToNextQuestion, advanceToResults, setAdConfig, setPaused]);
-
-
-  const onInterstitialComplete = useCallback(() => {
-    setInterstitialConfig(null);
-    proceedToNextQuestionFlow();
-  }, [proceedToNextQuestionFlow]);
-
-
-  const handleAnswerSelect = useCallback((option: string) => {
-    if (selectedOption) return;
-
-    const timeTaken = 20 - timeLeft;
-    setTimePerQuestion(prev => [...prev, timeTaken]);
-    
-    setSelectedOption(option);
-    setUserAnswers(prev => [...prev, option]);
-    
-    setTimeout(() => {
-        const interstitial = interstitialAds[currentQuestionIndex];
-        if (interstitial) {
-            setInterstitialConfig(interstitial);
-        } else {
-            proceedToNextQuestionFlow();
-        }
-    }, 300);
-  }, [selectedOption, timeLeft, currentQuestionIndex, proceedToNextQuestionFlow]);
-
   // Timer effect
   useEffect(() => {
-    if (paused || selectedOption || adConfig || interstitialConfig || !questions) return;
+    if (selectedOption || adConfig || interstitialConfig || !questions || isTerminated) return;
 
     if (timeLeft > 0) {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timerId);
     } else {
-       const timeTaken = 20;
-       setTimePerQuestion(prev => [...prev, timeTaken]);
-       setUserAnswers(prev => [...prev, '']);
-       const interstitial = interstitialAds[currentQuestionIndex];
-       if (interstitial) {
-            setInterstitialConfig(interstitial);
-        } else {
-            proceedToNextQuestionFlow();
-        }
+       proceedToNextStep(''); // Timeout is an empty answer
     }
-  }, [timeLeft, paused, selectedOption, adConfig, interstitialConfig, proceedToNextQuestionFlow, currentQuestionIndex, questions]);
+  }, [timeLeft, selectedOption, adConfig, interstitialConfig, questions, isTerminated, proceedToNextStep]);
+
+  // Anti-cheat effect
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && !isTerminated) {
+        setIsTerminated(true); // Prevent further actions
+        saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
+        router.replace(`/quiz/results?reason=malpractice`);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [router, saveAttempt, userAnswers, timePerQuestion, usedHintIndices, isTerminated]);
+
+
+  const onInterstitialComplete = useCallback(() => {
+    setInterstitialConfig(null);
+    goToNextQuestion();
+  }, [goToNextQuestion]);
+
+
+  const handleAnswerSelect = useCallback((option: string) => {
+    if (selectedOption) return;
+    setSelectedOption(option);
+    setTimeout(() => proceedToNextStep(option), 300);
+  }, [selectedOption, proceedToNextStep]);
+
 
   const handleUseHint = useCallback(() => {
-    if (usedHintIndices.includes(currentQuestionIndex) || adConfig) return;
-    setPaused(true);
+    if (usedHintIndices.includes(currentQuestionIndex) || adConfig || !questions) return;
+    const currentAd = adLibrary.hintAds[currentQuestionIndex % adLibrary.hintAds.length];
     setAdConfig({
-        ad: adLibrary.hintAds[currentQuestionIndex],
+        ad: currentAd,
         onFinished: () => {
             setIsHintVisible(true);
             setUsedHintIndices(prev => [...prev, currentQuestionIndex]);
-            setPaused(false);
             setAdConfig(null);
         },
         children: <p className="font-bold text-lg mt-4">Enjoy your hint!</p>
     });
-  }, [adConfig, currentQuestionIndex, usedHintIndices]);
+  }, [adConfig, currentQuestionIndex, usedHintIndices, questions]);
 
   if (isLoading) {
     return <CricketLoading message="Getting your quiz ready..." />;
@@ -266,12 +224,19 @@ function QuizComponent() {
     );
   }
   
+  if (isTerminated) {
+     return <CricketLoading state="error" errorMessage="Quiz Terminated." />;
+  }
+  
   const currentQuestion = questions[currentQuestionIndex];
   const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-background text-foreground p-4">
+      <div 
+        className="flex flex-col h-screen bg-background text-foreground p-4 select-none"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <header className="w-full max-w-2xl mx-auto mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold">{format} Quiz</h1>
