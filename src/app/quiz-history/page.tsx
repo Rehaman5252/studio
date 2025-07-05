@@ -32,7 +32,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             });
             setAnalysis(result.analysis);
         } catch (err) {
-            console.error(err);
+            console.error("Analysis generation failed:", err);
             setError('Could not generate the analysis. Please try again later.');
         } finally {
             setIsLoading(false);

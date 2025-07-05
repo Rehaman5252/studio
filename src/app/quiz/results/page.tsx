@@ -12,7 +12,7 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -50,7 +50,7 @@ const AnalysisCard = ({ questions, userAnswers, timePerQuestion, usedHintIndices
             const result = await generateQuizAnalysis({ questions, userAnswers, timePerQuestion, usedHintIndices });
             setAnalysis(result.analysis);
         } catch (err) {
-            console.error(err);
+            console.error("Analysis generation failed:", err);
             setError('Could not generate the analysis. Please try again later.');
         } finally {
             setIsLoading(false);
@@ -271,8 +271,8 @@ function ResultsComponent() {
                             {questions.map((q, i) => (
                                 <div key={i} className="text-sm p-3 rounded-lg bg-black/20">
                                     <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
-                                    <p className={cn("flex items-center", userAnswers[i] === q.correctAnswer ? "text-green-300" : "text-red-300")}>
-                                      {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0"/> : <XCircle className="mr-2 shrink-0"/>}
+                                    <p className={cn("flex items-center text-white/90")}>
+                                      {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0 text-green-400"/> : <XCircle className="mr-2 shrink-0 text-red-400"/>}
                                       Your answer: {userAnswers[i] || 'Not answered'}
                                     </p>
                                     {userAnswers[i] !== q.correctAnswer && <p className="text-green-300 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
