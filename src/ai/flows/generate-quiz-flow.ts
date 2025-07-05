@@ -22,26 +22,17 @@ const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `You are a master cricket quiz creator. Your primary goal is to generate 5 completely unique and exceptionally difficult trivia questions for an expert-level quiz.
+  prompt: `You are an expert quiz creator. Generate a 5-question multiple-choice quiz about "{{format}}" cricket.
+The brand context is "{{brand}}", you can subtly mention it if it makes sense.
 
-**CRITICAL INSTRUCTIONS for Uniqueness and Quality:**
-1.  **ABSOLUTE UNIQUENESS**: The questions you generate MUST be original and obscure. Do NOT use common, widely-known cricket trivia. The user should feel like they have never encountered these questions before.
-2.  **DEEP SPECIFICITY**: Questions should target very specific moments, statistics, or niche rules from the requested cricket format. Avoid broad or general knowledge questions.
-3.  **NO REPETITION**: You must ensure that the 5 questions in this set are completely different from each other.
+For each question, provide:
+- "questionText": A clear and concise question.
+- "options": An array of four plausible options. One must be correct.
+- "correctAnswer": The correct answer from the options.
+- "hint": A single-sentence hint.
+- "explanation": A brief explanation for the correct answer.
 
-The user has requested a quiz for the following context:
-- Format: {{{format}}}
-- Brand: {{{brand}}}
-
-For each of the 5 questions, you MUST provide the following structure:
-- "questionText": The unique and difficult trivia question.
-- "options": An array of exactly four plausible, closely-related options. One must be correct.
-- "correctAnswer": The single correct answer, which MUST exactly match one of the provided options.
-- "hint": A clever, single-sentence hint that points towards the answer without giving it away.
-- "explanation": A brief, clear explanation of the correct answer.
-
-The quiz must be challenging even for the most dedicated cricket enthusiasts. The tone should be engaging and fun.
-`,
+Keep the questions moderately difficult and engaging.`,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
