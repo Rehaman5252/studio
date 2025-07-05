@@ -10,7 +10,7 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb, AlertTriangle, Check, X } from 'lucide-react';
+import { Loader2, Lightbulb, AlertTriangle } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
@@ -252,7 +252,6 @@ function QuizComponent() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {currentQuestion.options.map((option, index) => {
-                const isCorrect = option === currentQuestion.correctAnswer;
                 const isSelected = selectedOption === option;
 
                 return (
@@ -264,20 +263,13 @@ function QuizComponent() {
                         'relative w-full h-auto py-3 text-sm whitespace-normal justify-start text-left transition-all duration-300 ease-in-out',
                         !selectedOption && 'bg-background/80 hover:bg-primary/20 text-foreground ring-1 ring-border',
                         selectedOption && {
-                            'opacity-60': !isSelected && !isCorrect,
-                            'bg-red-500/80 border-red-400 text-white ring-4 ring-offset-2 ring-offset-background ring-red-500': isSelected && !isCorrect,
-                            'bg-green-500/80 border-green-400 text-white ring-4 ring-offset-2 ring-offset-background ring-green-500': isCorrect,
+                            'opacity-60': !isSelected,
+                            'bg-primary text-primary-foreground ring-2 ring-offset-2 ring-offset-background ring-primary': isSelected,
                         }
                     )}
                     >
                     <span className="font-bold mr-4">{String.fromCharCode(65 + index)}</span>
                     <span>{option}</span>
-                    {selectedOption && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                        {isCorrect && <Check className="h-4 w-4 text-white" />}
-                        {isSelected && !isCorrect && <X className="h-4 w-4 text-white" />}
-                      </div>
-                    )}
                     </Button>
                 );
               })}

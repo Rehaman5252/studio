@@ -12,7 +12,7 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, RefreshCw } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -50,7 +50,7 @@ const AnalysisCard = ({ questions, userAnswers, timePerQuestion, usedHintIndices
             setAnalysis(result.analysis);
         } catch (err) {
             console.error(err);
-            setError('The AI could not generate an analysis for this quiz. Please try again.');
+            setError('Could not generate the analysis. Please try again later.');
         } finally {
             setIsLoading(false);
         }
@@ -225,22 +225,14 @@ function ResultsComponent() {
                             </div>
                         )}
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3">
                             <Button
                                 size="lg"
                                 className="bg-background/80 text-foreground hover:bg-white/90"
                                 onClick={() => router.replace('/home')}
                             >
                                 <Home className="mr-2 h-5 w-5" />
-                                Home
-                            </Button>
-                            <Button
-                                size="lg"
-                                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                                onClick={() => router.replace('/home')}
-                            >
-                                <RefreshCw className="mr-2 h-5 w-5" />
-                                Play Again
+                                Go Home
                             </Button>
                         </div>
 
