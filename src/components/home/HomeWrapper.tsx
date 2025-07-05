@@ -10,6 +10,8 @@ import { getQuizSlotId } from '@/lib/utils';
 import GlobalStats from '@/components/home/GlobalStats';
 import QuizSelector from '@/components/home/QuizSelector';
 import type { CubeBrand } from '@/components/Cube';
+import SelectedBrandCard from '@/components/home/SelectedBrandCard';
+import StartQuizButton from '@/components/home/StartQuizButton';
 import CricketLoading from '@/components/CricketLoading';
 
 const brands: CubeBrand[] = [
@@ -26,16 +28,22 @@ export default function HomeWrapper() {
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
   
+  const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const [startingQuizInfo, setStartingQuizInfo] = useState<{ brand: string; format: string } | null>(null);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
   }, [lastAttemptInSlot, isQuizStatusLoading]);
-
-  const onCubeFaceClick = useCallback((brand: CubeBrand) => {
-    setStartingQuizInfo({ brand: brand.brand, format: brand.format });
+  
+  const handleFaceSelect = useCallback((index: number) => {
+    setSelectedBrandIndex(index);
   }, []);
+
+  const handleStartQuiz = useCallback(() => {
+    const selectedBrand = brands[selectedBrandIndex];
+    setStartingQuizInfo({ brand: selectedBrand.brand, format: selectedBrand.format });
+  }, [selectedBrandIndex]);
 
   useEffect(() => {
     if (startingQuizInfo) {
@@ -67,22 +75,35 @@ export default function HomeWrapper() {
     );
   }
   
+  const selectedBrand = brands[selectedBrandIndex];
+
   return (
     <>
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-        <p className="text-sm text-muted-foreground">Click a face on the cube to start!</p>
+        <p className="text-sm text-muted-foreground">Click a face, banner or button to start!</p>
       </div>
       
       <QuizSelector 
-          brands={brands} 
-          onFaceClick={onCubeFaceClick}
+          brands={brands}
+          onFaceSelect={handleFaceSelect}
+          onFaceClick={handleStartQuiz}
           disabled={!!startingQuizInfo}
       />
 
+      <SelectedBrandCard
+        selectedBrand={selectedBrand}
+        handleStartQuiz={handleStartQuiz}
+      />
+      
       <Separator className="my-8 bg-border/50" />
 
       <GlobalStats />
+
+      <StartQuizButton
+        brandFormat={selectedBrand.format}
+        onClick={handleStartQuiz}
+      />
     </>
   );
 }

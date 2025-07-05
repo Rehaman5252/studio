@@ -31,15 +31,17 @@ const rotationMap = [
     'rotateX(90deg) rotateY(0deg)',
 ];
 
-const faceRotationOrder = [0, 4, 1, 5, 3, 2];
+// This determines the visual order of faces as the cube rotates right
+const faceRotationOrder = [0, 1, 2, 3]; // Only cycle through vertical faces
 
 interface CubeProps {
   brands: CubeBrand[];
-  onFaceClick: (brand: CubeBrand) => void;
+  onFaceSelect: (index: number) => void;
+  onFaceClick: () => void;
   disabled?: boolean;
 }
 
-function Cube({ brands, onFaceClick, disabled = false }: CubeProps) {
+function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -56,8 +58,8 @@ function Cube({ brands, onFaceClick, disabled = false }: CubeProps) {
     if (disabled) return;
 
     rotationTimeoutRef.current = setTimeout(() => {
-        setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
-    }, 500);
+      setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
+    }, 500); // Use the specified 500ms speed
   }, [disabled, stopAutoRotation]);
 
   useEffect(() => {
@@ -65,16 +67,20 @@ function Cube({ brands, onFaceClick, disabled = false }: CubeProps) {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[brandIndex];
     }
-  }, [rotationOrderIndex]);
-  
-  useEffect(() => {
+    // Inform the parent of the newly selected face
+    onFaceSelect(brandIndex);
+    
+    // Continue the rotation loop
     startAutoRotation();
-    return stopAutoRotation;
-  }, [rotationOrderIndex, startAutoRotation, stopAutoRotation]);
 
-  const handleFaceClick = (brandIndex: number) => {
+    return stopAutoRotation;
+  }, [rotationOrderIndex, onFaceSelect, startAutoRotation, stopAutoRotation]);
+
+
+  const handleFaceClick = () => {
     if (disabled) return;
-    onFaceClick(brands[brandIndex]);
+    stopAutoRotation(); // Stop rotating once clicked
+    onFaceClick();
   };
   
   return (
@@ -90,7 +96,7 @@ function Cube({ brands, onFaceClick, disabled = false }: CubeProps) {
           {brands.map((brand, index) => (
             <div
               key={brand.id}
-              onClick={() => handleFaceClick(index)}
+              onClick={handleFaceClick}
               className={cn(
                 "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
                 !disabled && "cursor-pointer transition-all hover:border-primary hover:shadow-primary/20"

@@ -8,14 +8,14 @@ import type { CubeBrand } from '@/components/Cube';
 
 interface SelectedBrandCardProps {
     selectedBrand: CubeBrand;
-    handleStartQuiz: (brand: string, format: string) => void;
+    handleStartQuiz: () => void;
 }
 
 const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCardProps) => {
     return (
         <div
             key={selectedBrand.id}
-            onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
+            onClick={handleStartQuiz}
             className="cursor-pointer"
         >
             <Card 

@@ -7,14 +7,16 @@ import Cube from '@/components/Cube';
 
 interface QuizSelectorProps {
     brands: CubeBrand[];
-    onFaceClick: (brand: CubeBrand) => void;
+    onFaceSelect: (index: number) => void;
+    onFaceClick: () => void;
     disabled?: boolean;
 }
 
-const QuizSelector = ({ brands, onFaceClick, disabled }: QuizSelectorProps) => {
+const QuizSelector = ({ brands, onFaceSelect, onFaceClick, disabled }: QuizSelectorProps) => {
     return (
         <Cube 
             brands={brands} 
+            onFaceSelect={onFaceSelect}
             onFaceClick={onFaceClick}
             disabled={disabled}
         />
