@@ -12,11 +12,12 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, Play } from 'lucide-react';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import CricketLoading from '@/components/CricketLoading';
 
 const Certificate = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
     return (
@@ -311,12 +312,7 @@ function ResultsComponent() {
 
 export default function ResultsPage() {
     return (
-        <Suspense fallback={
-            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-primary to-green-400 text-white p-4">
-                <Loader2 className="h-12 w-12 animate-spin" />
-                <p>Loading results...</p>
-            </div>
-        }>
+        <Suspense fallback={<CricketLoading message="Calculating your score..." />}>
             <ResultsComponent />
         </Suspense>
     )

@@ -10,12 +10,13 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb, AlertTriangle } from 'lucide-react';
+import { Loader2, Lightbulb } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
 import { cn, getQuizSlotId } from '@/lib/utils';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
+import CricketLoading from '@/components/CricketLoading';
 
 
 const Timer = ({ timeLeft }: { timeLeft: number }) => {
@@ -214,10 +215,12 @@ function QuizComponent() {
     const newAnswers = [...userAnswers, option];
     setUserAnswers(newAnswers);
     
+    const isLastQuestion = currentQuestionIndex >= questions.length - 1;
+
     setTimeout(() => {
        proceedToNextStep(newAnswers, newTimes);
-    }, 1200);
-  }, [selectedOption, userAnswers, timeLeft, timePerQuestion, proceedToNextStep]);
+    }, isLastQuestion ? 100 : 1200);
+  }, [selectedOption, userAnswers, timeLeft, timePerQuestion, proceedToNextStep, currentQuestionIndex, questions.length]);
 
   const handleUseHint = useCallback(() => {
     if (usedHintIndices.includes(currentQuestionIndex) || adConfig) return;
@@ -236,28 +239,17 @@ function QuizComponent() {
   
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
-        <Loader2 className="h-12 w-12 animate-spin mb-4" />
-        <p className="text-xl font-semibold">Generating your {format} quiz...</p>
-        <p className="text-sm opacity-80">This might take a moment.</p>
-      </div>
+      <CricketLoading message={`Generating your ${format} quiz...`} />
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
-        <Card className="bg-background/70 backdrop-blur-sm border-destructive shadow-lg text-center p-6">
-            <CardHeader>
-                <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                <CardTitle className="text-xl font-bold text-destructive-foreground">Oops! Something went wrong.</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">{error}</p>
-                <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
-            </CardContent>
-        </Card>
-      </div>
+      <CricketLoading state="error" errorMessage={error}>
+          <Button onClick={() => router.push('/home')} className="mt-6">
+            Go Home
+          </Button>
+      </CricketLoading>
     );
   }
 
@@ -346,11 +338,7 @@ function QuizComponent() {
 
 export default function QuizPage() {
   return (
-    <Suspense fallback={
-        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary via-green-800 to-green-900 text-white p-4">
-            <Loader2 className="h-12 w-12 animate-spin" />
-        </div>
-    }>
+    <Suspense fallback={<CricketLoading message="Loading your quiz..." />}>
       <QuizComponent />
     </Suspense>
   )
