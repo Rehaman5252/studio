@@ -67,7 +67,7 @@ const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => (
                     {userProfile.age && `${userProfile.age} yrs | `} {userProfile.gender && `${userProfile.gender} | `} {userProfile.occupation}
                 </p>
             </div>
-            <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8">
+            <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
                 <Edit className="h-4 w-4" />
             </Button>
         </CardContent>

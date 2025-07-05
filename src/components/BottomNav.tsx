@@ -40,8 +40,8 @@ export default function BottomNav() {
                     className="relative flex-1 h-full flex items-center justify-center"
                     whileTap={{ scale: 0.9, y: 2, transition: { type: 'spring', stiffness: 400, damping: 15 } }}
                 >
-                    <Link href={href} className="w-full h-full flex flex-col items-center justify-center gap-1 z-10">
-                        <Icon className={cn("h-6 w-6 transition-colors", isActive ? 'text-primary' : 'text-muted-foreground')} />
+                    <Link href={href} className="w-full h-full flex flex-col items-center justify-center gap-1 z-10" aria-label={label}>
+                        <Icon className={cn("h-6 w-6 transition-colors", isActive ? 'text-primary' : 'text-muted-foreground')} aria-hidden="true" />
                         <span className={cn("text-xs font-medium transition-colors", isActive ? 'text-primary' : 'text-muted-foreground')}>{label}</span>
                     </Link>
                     {isActive && (

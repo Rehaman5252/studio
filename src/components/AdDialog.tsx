@@ -108,6 +108,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                                 className="w-full h-full object-cover rounded-md"
                                 playsInline
                                 autoPlay
+                                title={adTitle}
                             />
                             <Button variant="ghost" size="icon" className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white" onClick={() => setIsMuted(prev => !prev)}>
                                 {isMuted ? <VolumeX /> : <Volume2 />}

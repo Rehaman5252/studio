@@ -35,6 +35,8 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
               transition={{ duration: 0.5 }}
               className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
               onClick={() => setIsScratched(true)}
+              role="button"
+              aria-label={`Scratch to reveal gift from ${brand}`}
             >
               <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
               <p className="text-zinc-500 text-sm">From {brand}</p>
@@ -73,7 +75,7 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
                     <h4 className="font-bold text-foreground">{title}</h4>
                     <p className="text-sm text-muted-foreground">{description}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto">
+                <Button variant="ghost" size="icon" className="ml-auto" aria-label={`Claim offer for ${title}`}>
                     <ExternalLink className="text-muted-foreground" />
                 </Button>
             </CardContent>

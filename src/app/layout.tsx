@@ -12,8 +12,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Indcric',
-  description: 'Indcric: Win prizes in the ultimate cricket quiz challenge!',
+  title: {
+    default: 'Indcric - The Ultimate Cricket Quiz Challenge',
+    template: '%s | Indcric',
+  },
+  description: 'Test your cricket knowledge on Indcric, the ultimate quiz app. Compete, climb the leaderboard, and win exciting prizes. Fast, fun, and built for true cricket fans.',
   icons: {
     icon: '/favicon.ico',
   },
