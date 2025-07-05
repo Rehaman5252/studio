@@ -48,10 +48,14 @@ const QuizSelector = ({ onStartQuiz }: QuizSelectorProps) => {
                 selectedBrand={selectedBrand}
                 handleStartQuiz={onCubeFaceClick}
             />
-            <StartQuizButton 
-                brandFormat={selectedBrand.format}
-                onClick={onStartQuizClick}
-            />
+            <div className="fixed bottom-28 inset-x-0 z-10 flex justify-center pointer-events-none">
+                <div className="w-full max-w-md px-4 pointer-events-auto">
+                    <StartQuizButton 
+                        brandFormat={selectedBrand.format}
+                        onClick={onStartQuizClick}
+                    />
+                </div>
+            </div>
         </>
     );
 }

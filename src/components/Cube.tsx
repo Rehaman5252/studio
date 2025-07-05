@@ -58,7 +58,7 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
 
     rotationTimeoutRef.current = setTimeout(() => {
         setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
-    }, 266); // Increased speed by 3x (from 800ms)
+    }, 500);
   }, [disabled, stopAutoRotation]);
 
   useEffect(() => {
