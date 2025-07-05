@@ -39,7 +39,7 @@ const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: PromptInputSchema },
   // We ask for a simple string, not a complex object.
-  output: { schema: z.string().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string.') },
+  output: { schema: z.string().nullable().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string.') },
   prompt: `You are an expert cricket coach and quiz analyst. Your goal is to provide a detailed, encouraging, and insightful analysis of a user's quiz performance.
 
 Based on the data provided, generate a personalized performance report as a single, raw markdown-formatted string. Do NOT wrap your response in JSON or any other special formatting.
