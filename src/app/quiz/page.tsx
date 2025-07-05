@@ -129,17 +129,36 @@ function QuizComponent() {
     setUserAnswers(newAnswers);
     setTimePerQuestion(newTimes);
     
+    // Check if quiz is over
     if (currentQuestionIndex >= questions!.length - 1) {
       saveAttempt(newAnswers, newTimes, usedHintIndices);
       router.replace(`/quiz/results`);
-    } else {
-      const interstitial = interstitialAds[currentQuestionIndex];
-      if (interstitial) {
-        setInterstitialConfig(interstitial);
-      } else {
-        goToNextQuestion();
-      }
+      return;
     }
+
+    // After Q3 (index 2), show video ad
+    if (currentQuestionIndex === 2) {
+      setAdConfig({
+        ad: adLibrary.midQuizAd,
+        onFinished: () => {
+          setAdConfig(null);
+          goToNextQuestion();
+        },
+        children: <p className="font-bold text-lg mt-4">Enjoy a short break!</p>
+      });
+      return;
+    }
+    
+    // Check for other image interstitials
+    const interstitial = interstitialAds[currentQuestionIndex];
+    if (interstitial) {
+      setInterstitialConfig(interstitial);
+      return;
+    }
+    
+    // Otherwise, go to next question
+    goToNextQuestion();
+
   }, [userAnswers, timePerQuestion, timeLeft, currentQuestionIndex, questions, usedHintIndices, saveAttempt, router, goToNextQuestion]);
 
   // Fetch questions
@@ -176,7 +195,7 @@ function QuizComponent() {
   // Anti-cheat effect
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && !isTerminated) {
+      if (document.hidden && !isTerminated && questions) {
         setIsTerminated(true); // Prevent further actions
         saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
         router.replace(`/quiz/results?reason=malpractice`);
@@ -187,7 +206,7 @@ function QuizComponent() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [router, saveAttempt, userAnswers, timePerQuestion, usedHintIndices, isTerminated]);
+  }, [router, saveAttempt, userAnswers, timePerQuestion, usedHintIndices, isTerminated, questions]);
 
 
   const onInterstitialComplete = useCallback(() => {
