@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
@@ -47,11 +46,14 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInteracting = useRef(false);
 
-  const rotateToFace = useCallback((brandIndex: number) => {
+  // This effect synchronizes the cube's visual rotation and notifies the parent
+  useEffect(() => {
+    const brandIndex = faceRotationOrder[rotationOrderIndex];
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[brandIndex];
     }
-  }, []);
+    onSelect(brandIndex);
+  }, [rotationOrderIndex, onSelect]);
 
   const stopAutoRotation = useCallback(() => {
     if (rotationTimeoutRef.current) {
@@ -59,41 +61,22 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
       rotationTimeoutRef.current = null;
     }
   }, []);
-  
+
   const startAutoRotation = useCallback(() => {
     stopAutoRotation();
     if (isInteracting.current || disabled) return;
 
-    const rotate = () => {
-      setRotationOrderIndex(prevIndex => {
-          const newIndex = (prevIndex + 1) % faceRotationOrder.length;
-          const newBrandIndexOnDeck = faceRotationOrder[newIndex];
-          rotateToFace(newBrandIndexOnDeck);
-          onSelect(newBrandIndexOnDeck);
-          return newIndex;
-      });
-      rotationTimeoutRef.current = setTimeout(rotate, 800);
-    };
-    rotationTimeoutRef.current = setTimeout(rotate, 800);
-  }, [disabled, rotateToFace, stopAutoRotation, onSelect]);
-
-  useEffect(() => {
-    rotateToFace(faceRotationOrder[rotationOrderIndex]);
-  }, [rotationOrderIndex, rotateToFace]);
+    rotationTimeoutRef.current = setTimeout(() => {
+        setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
+    }, 800);
+  }, [disabled, stopAutoRotation]);
   
+  // This effect manages the auto-rotation lifecycle
   useEffect(() => {
-    if (!disabled && !isInteracting.current) {
-        startAutoRotation();
-    } else {
-        stopAutoRotation();
-    }
+    startAutoRotation();
     return stopAutoRotation;
-  }, [disabled, startAutoRotation, stopAutoRotation]);
-  
-  useEffect(() => {
-    onSelect(faceRotationOrder[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [rotationOrderIndex, startAutoRotation, stopAutoRotation]);
+
 
   const handleMouseEnterContainer = () => {
     isInteracting.current = true;
@@ -107,8 +90,11 @@ function Cube({ brands, onSelect, onFaceClick, disabled = false }: CubeProps) {
 
   const handleMouseEnterFace = (brandIndex: number) => {
     if (disabled) return;
-    rotateToFace(brandIndex); // Snap to the hovered face
-    onSelect(brandIndex); // Update the parent card ONLY on user interaction
+    const newRotationOrderIndex = faceRotationOrder.indexOf(brandIndex);
+    if (newRotationOrderIndex > -1) {
+      // Set the index, which will trigger the main useEffect
+      setRotationOrderIndex(newRotationOrderIndex);
+    }
   };
 
   const handleFaceClick = (brandIndex: number) => {
