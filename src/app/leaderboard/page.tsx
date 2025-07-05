@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -58,6 +58,62 @@ const itemVariants = {
   visible: { opacity: 1, x: 0 }
 };
 
+const LiveLeaderboardItem = memo(({ player }: { player: typeof liveLeaderboardData[0] }) => (
+    <motion.div variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
+        <Avatar className="h-10 w-10 mx-4">
+            <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
+            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+            <p className="font-semibold text-foreground">{player.name}</p>
+            <p className="text-sm text-muted-foreground">Score: {player.score}</p>
+        </div>
+        <div className="text-right">
+            <p className="font-bold text-primary">{player.time}s</p>
+            <p className="text-xs text-muted-foreground">Time</p>
+        </div>
+    </motion.div>
+));
+LiveLeaderboardItem.displayName = "LiveLeaderboardItem";
+
+const AllTimeLeaderboardItem = memo(({ player }: { player: typeof allTimeLeaderboardData[0] }) => (
+    <motion.div variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
+        <Avatar className="h-10 w-10 mx-4">
+            <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
+            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+            <p className="font-semibold text-foreground">{player.name}</p>
+            <p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p>
+        </div>
+        <div className="text-right">
+            <p className="font-bold text-primary">{player.perfectScores}</p>
+            <p className="text-xs text-muted-foreground">Perfect Scores</p>
+        </div>
+    </motion.div>
+));
+AllTimeLeaderboardItem.displayName = "AllTimeLeaderboardItem";
+
+const MyNetworkLeaderboardItem = memo(({ player }: { player: typeof myLeaderboardData[0] }) => (
+    <motion.div variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
+        <Avatar className="h-10 w-10 mx-4">
+            <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
+            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+            <p className="font-semibold text-foreground">{player.name}</p>
+        </div>
+        <div className="text-right">
+            <p className="font-bold text-primary">{player.perfectScores}</p>
+            <p className="text-xs text-muted-foreground">Perfect Scores</p>
+        </div>
+    </motion.div>
+));
+MyNetworkLeaderboardItem.displayName = "MyNetworkLeaderboardItem";
+
 export default function LeaderboardPage() {
   const { loading } = useRequireAuth();
 
@@ -99,21 +155,7 @@ export default function LeaderboardPage() {
                   variants={listVariants}
                 >
                   {liveLeaderboardData.map((player) => (
-                    <motion.div key={player.rank} variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
-                      <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-                      <Avatar className="h-10 w-10 mx-4">
-                        <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
-                        <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground">{player.name}</p>
-                        <p className="text-sm text-muted-foreground">Score: {player.score}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-primary">{player.time}s</p>
-                        <p className="text-xs text-muted-foreground">Time</p>
-                      </div>
-                    </motion.div>
+                    <LiveLeaderboardItem key={player.rank} player={player} />
                   ))}
                 </motion.div>
               </CardContent>
@@ -134,21 +176,7 @@ export default function LeaderboardPage() {
                   variants={listVariants}
                 >
                   {allTimeLeaderboardData.map((player) => (
-                     <motion.div key={player.rank} variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
-                      <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-                      <Avatar className="h-10 w-10 mx-4">
-                        <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
-                        <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground">{player.name}</p>
-                        <p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-primary">{player.perfectScores}</p>
-                        <p className="text-xs text-muted-foreground">Perfect Scores</p>
-                      </div>
-                    </motion.div>
+                     <AllTimeLeaderboardItem key={player.rank} player={player} />
                   ))}
                 </motion.div>
               </CardContent>
@@ -169,20 +197,7 @@ export default function LeaderboardPage() {
                   variants={listVariants}
                 >
                   {myLeaderboardData.map((player) => (
-                     <motion.div key={player.rank} variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
-                      <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-                      <Avatar className="h-10 w-10 mx-4">
-                        <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
-                        <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground">{player.name}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-primary">{player.perfectScores}</p>
-                        <p className="text-xs text-muted-foreground">Perfect Scores</p>
-                      </div>
-                    </motion.div>
+                     <MyNetworkLeaderboardItem key={player.rank} player={player} />
                   ))}
                 </motion.div>
               </CardContent>

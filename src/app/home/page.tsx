@@ -31,7 +31,7 @@ const brands: CubeBrand[] = [
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/SBI-logo.svg/1024px-SBI-logo.svg.png', logoWidth: 60, logoHeight: 60 },
   { id: 4, brand: 'Nike', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Logo_NIKE.svg/1200px-Logo_NIKE.svg.png', logoWidth: 80, logoHeight: 30 },
   { id: 5, brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png', logoWidth: 70, logoHeight: 25 },
-  { id: 6, brand: 'KFC', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/b/bf/KFC_logo.svg/800px-KFC_logo.svg.png', logoWidth: 60, logoHeight: 60 },
+  { id: 6, brand: 'Coca-Cola', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Coca-Cola_logo.svg/1200px-Coca-Cola_logo.svg.png', logoWidth: 90, logoHeight: 30 },
 ];
 
 const cardVariants = {

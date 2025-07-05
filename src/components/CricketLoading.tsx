@@ -1,9 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 
 interface CricketLoadingProps {
   state?: 'loading' | 'error';
@@ -12,50 +11,41 @@ interface CricketLoadingProps {
   children?: React.ReactNode;
 }
 
-const logos = [
-    { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/8/8d/Board_of_Control_for_Cricket_in_India_logo.svg/1200px-Board_of_Control_for_Cricket_in_India_logo.svg.png', alt: 'BCCI Logo', hint: 'BCCI logo' },
-    { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e8/International_Cricket_Council_logo.svg/1200px-International_Cricket_Council_logo.svg.png', alt: 'ICC Logo', hint: 'ICC logo' },
-    { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/3f/Cricket_Australia_logo.svg/1200px-Cricket_Australia_logo.svg.png', alt: 'Cricket Australia Logo', hint: 'cricket australia' },
-    { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/6c/England_and_Wales_Cricket_Board_logo.svg/1200px-England_and_Wales_Cricket_Board_logo.svg.png', alt: 'ECB Logo', hint: 'cricket england' },
-    { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a0/New_Zealand_Cricket_logo.svg/1200px-New_Zealand_Cricket_logo.svg.png', alt: 'NZC Logo', hint: 'cricket new zealand' },
-    { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/8/87/Pakistan_Cricket_Board_logo.svg/1200px-Pakistan_Cricket_Board_logo.svg.png', alt: 'PCB Logo', hint: 'cricket pakistan' },
-];
-
-const LoadingSpinner = () => {
-  const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentLogoIndex((prevIndex) => (prevIndex + 1) % logos.length);
-    }, 1500); // Change logo every 1.5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="w-32 h-32 mb-4 relative flex items-center justify-center">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentLogoIndex}
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.5 }}
-          transition={{ duration: 0.5 }}
-          className="absolute inset-0 flex items-center justify-center p-4"
-        >
-          <Image
-            src={logos[currentLogoIndex].src}
-            alt={logos[currentLogoIndex].alt}
-            data-ai-hint={logos[currentLogoIndex].hint}
-            width={80}
-            height={80}
-            className="object-contain"
-          />
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-};
+const BatAndBallSpinner = () => (
+  <div className="w-32 h-32 relative">
+    <style>{`
+      @keyframes bat-swing {
+        0% { transform: rotate(-20deg); }
+        50% { transform: rotate(40deg); }
+        100% { transform: rotate(-20deg); }
+      }
+      @keyframes ball-fly {
+        0%, 45% { transform: translate(0, 0) scale(1); opacity: 1; }
+        55% { transform: translate(10px, -5px) scale(1.1); }
+        100% { transform: translate(80px, -80px) scale(0.5); opacity: 0; }
+      }
+      .bat { 
+        transform-origin: 5px 85px; 
+        animation: bat-swing 1.2s cubic-bezier(0.6, 0, 0.4, 1) infinite; 
+      }
+      .ball { 
+        transform-origin: center; 
+        animation: ball-fly 1.2s cubic-bezier(0.5, 1, 0.8, 1) infinite; 
+      }
+    `}</style>
+    <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible drop-shadow-lg">
+      <g className="ball" transform="translate(35, 70)">
+        <circle r="6" fill="hsl(var(--primary))" />
+      </g>
+      <g className="bat" transform="translate(20, 0)">
+        {/* Bat Handle */}
+        <rect x="0" y="65" width="10" height="25" rx="3" fill="hsl(var(--muted-foreground))" />
+        {/* Bat Body */}
+        <path d="M-10,65 L20,65 L12,15 L-2,15 Z" fill="hsl(var(--foreground))" />
+      </g>
+    </svg>
+  </div>
+);
 
 const CricketLoading = ({
   state = 'loading',
@@ -66,7 +56,7 @@ const CricketLoading = ({
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
       {state === 'loading' ? (
-        <LoadingSpinner />
+        <BatAndBallSpinner />
       ) : (
          <div className="w-32 h-32 mb-4">
             <svg viewBox="0 0 100 100" className="w-full h-full">

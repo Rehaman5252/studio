@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
@@ -93,6 +93,52 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     );
 };
 
+const getSlotTimings = (timestamp: number) => {
+    const attemptDate = new Date(timestamp);
+    const minutes = attemptDate.getMinutes();
+    const slotStartMinute = Math.floor(minutes / 10) * 10;
+    
+    const slotStartTime = new Date(attemptDate);
+    slotStartTime.setMinutes(slotStartMinute, 0, 0);
+    
+    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+};
+
+const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => (
+    <motion.div variants={itemVariants}>
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardHeader>
+            <CardTitle className="flex justify-between items-center text-lg">
+                <span>{attempt.format} Quiz</span>
+                <span className="text-lg font-bold text-primary">{attempt.score}/{attempt.totalQuestions}</span>
+            </CardTitle>
+            <CardDescription className="text-xs">
+                Sponsored by {attempt.brand}
+            </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground space-y-1">
+                <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
+                </div>
+                </div>
+            <AnalysisDialog attempt={attempt} />
+            </CardContent>
+        </Card>
+    </motion.div>
+));
+QuizHistoryItem.displayName = "QuizHistoryItem";
+
+
 const listVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -116,28 +162,12 @@ export default function QuizHistoryPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    // Sort the mock history by timestamp descending before setting it
     const sortedHistory = [...mockQuizHistory].sort((a, b) => b.timestamp - a.timestamp);
     setTimeout(() => {
         setHistory(sortedHistory);
         setIsLoading(false);
     }, 500);
   }, []);
-
-  const getSlotTimings = (timestamp: number) => {
-    const attemptDate = new Date(timestamp);
-    const minutes = attemptDate.getMinutes();
-    const slotStartMinute = Math.floor(minutes / 10) * 10;
-    
-    const slotStartTime = new Date(attemptDate);
-    slotStartTime.setMinutes(slotStartMinute, 0, 0);
-    
-    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-  };
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {
@@ -183,32 +213,7 @@ export default function QuizHistoryPage() {
             variants={listVariants}
           >
             {filteredHistory.map((attempt) => (
-              <motion.div key={attempt.slotId} variants={itemVariants}>
-                <Card className="bg-card/80 border-primary/10 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex justify-between items-center text-lg">
-                      <span>{attempt.format} Quiz</span>
-                      <span className="text-lg font-bold text-primary">{attempt.score}/{attempt.totalQuestions}</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Sponsored by {attempt.brand}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex justify-between items-center">
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
-                        </div>
-                      </div>
-                    <AnalysisDialog attempt={attempt} />
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <QuizHistoryItem key={attempt.slotId} attempt={attempt} />
             ))}
           </motion.div>
         ) : (
