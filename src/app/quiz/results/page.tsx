@@ -17,32 +17,14 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import CricketLoading from '@/components/CricketLoading';
-import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const cardContainerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-        staggerChildren: 0.1
-        }
-    }
-};
-
-const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
-};
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
     return (
-        <motion.div 
+        <div 
             className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
         >
             <Card className="w-full max-w-md text-center bg-card border-2 border-destructive my-4">
                 <CardHeader>
@@ -60,14 +42,14 @@ const MalpracticeScreen = memo(() => {
                      </Button>
                 </CardContent>
             </Card>
-        </motion.div>
+        </div>
     );
 });
 MalpracticeScreen.displayName = "MalpracticeScreen";
 
 
 const Certificate = memo(({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => (
-    <motion.div variants={cardVariants}>
+    <div>
         <div className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
             <Star className="absolute top-2 right-2 text-primary" size={32} />
             <Star className="absolute top-2 left-2 text-primary" size={32} />
@@ -83,7 +65,7 @@ const Certificate = memo(({ format, userName, date, slotTimings }: { format: str
                 <p className="text-xs mt-1 text-muted-foreground">Quiz Slot: {slotTimings}</p>
             </div>
         </div>
-    </motion.div>
+    </div>
 ));
 Certificate.displayName = 'Certificate';
 
@@ -117,7 +99,7 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
     }, [questions, userAnswers, timePerQuestion, usedHintIndices, getAnalysisCacheKey]);
     
     return (
-        <motion.div variants={cardVariants}>
+        <div>
             <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
                  <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -148,14 +130,14 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
                 )}
                 </CardContent>
             </Card>
-        </motion.div>
+        </div>
     )
 });
 AnalysisCard.displayName = 'AnalysisCard';
 
 
 const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion[], userAnswers: string[] }) => (
-    <motion.div variants={cardVariants}>
+    <div>
         <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
             <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -177,7 +159,7 @@ const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion
                 ))}
             </CardContent>
         </Card>
-    </motion.div>
+    </div>
 ));
 AnswerReview.displayName = 'AnswerReview';
 
@@ -253,13 +235,10 @@ function ResultsComponent() {
 
     return (
         <>
-            <motion.div 
+            <div 
                 className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 overflow-y-auto"
-                initial="hidden"
-                animate="visible"
-                variants={cardContainerVariants}
             >
-                <motion.div variants={cardVariants} className="w-full max-w-md">
+                <div className="w-full max-w-md">
                     <Card className="w-full text-center bg-card border-0 my-4">
                         {isReview && (
                             <div className="p-4 pt-6 text-left">
@@ -306,7 +285,7 @@ function ResultsComponent() {
                             </Button>
                         </CardContent>
                     </Card>
-                </motion.div>
+                </div>
 
                 <DynamicAnalysisCard
                     questions={questions}
@@ -319,7 +298,7 @@ function ResultsComponent() {
                 {isPerfectScore && <DynamicCertificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
                 
                 {showAnswers && <DynamicAnswerReview questions={questions} userAnswers={userAnswers} />}
-            </motion.div>
+            </div>
 
             {adConfig && (
                 <AdDialog

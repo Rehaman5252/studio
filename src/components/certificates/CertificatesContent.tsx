@@ -6,22 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar } from 'lucide-react';
 import { mockQuizHistory } from '@/lib/mockData';
-import { motion } from 'framer-motion';
-
-const listVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-};
 
 export default function CertificatesContent() {
 
@@ -56,14 +40,11 @@ export default function CertificatesContent() {
   return (
     <>
         {certificates.length > 0 ? (
-          <motion.div 
+          <div 
             className="space-y-4"
-            initial="hidden"
-            animate="visible"
-            variants={listVariants}
           >
             {certificates.map((cert) => (
-              <motion.div key={cert.id} variants={itemVariants}>
+              <div key={cert.id}>
                 <Card className="bg-card/80 border-primary/10 shadow-lg">
                   <CardHeader>
                     <div className="flex items-start gap-4">
@@ -97,9 +78,9 @@ export default function CertificatesContent() {
                     </Button>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         ) : (
           <Card className="bg-card/80">
             <CardContent className="p-8 text-center text-muted-foreground">

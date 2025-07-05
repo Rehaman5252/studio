@@ -8,7 +8,6 @@ import { Gift, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import { mockQuizHistory } from '@/lib/mockData';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { motion } from 'framer-motion';
 
 const ScratchCard = memo(({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -29,10 +28,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     <div className="w-full aspect-square p-1">
         <Card className="bg-gradient-to-br from-primary to-yellow-400 text-primary-foreground p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl">
         {!isScratched ? (
-            <motion.button
-              initial={{ opacity: 1 }}
-              animate={{ opacity: isScratched ? 0 : 1 }}
-              transition={{ duration: 0.5 }}
+            <button
               className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
               onClick={() => setIsScratched(true)}
               role="button"
@@ -40,11 +36,9 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
             >
               <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
               <p className="text-zinc-500 text-sm">From {brand}</p>
-            </motion.button>
+            </button>
         ) : (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <div 
               className="h-full flex flex-col items-center justify-center p-4 text-center"
             >
               <Gift className="h-10 w-10 mb-2 text-white" />
@@ -57,7 +51,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
               >
                   Claim Now <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
-            </motion.div>
+            </div>
         )}
         </Card>
     </div>
@@ -67,7 +61,7 @@ ScratchCard.displayName = 'ScratchCard';
 
 
 const GenericOffer = memo(({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <motion.div whileHover={{ scale: 1.03 }} transition={{ type: 'spring', stiffness: 300 }}>
+    <div className="transition-transform hover:scale-103">
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardContent className="p-4 flex items-center gap-4">
                 <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
@@ -80,12 +74,12 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
                 </Button>
             </CardContent>
         </Card>
-    </motion.div>
+    </div>
 ));
 GenericOffer.displayName = 'GenericOffer';
 
 const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: { brand: string }[] }) => (
-  <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+  <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
     <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift from each brand you've played with. Scratch to reveal!</p>
     
@@ -113,19 +107,19 @@ const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: 
         </CardContent>
       </Card>
     )}
-  </motion.section>
+  </section>
 ));
 BrandGiftsSection.displayName = 'BrandGiftsSection';
 
 const GenericOffersSection = memo(() => (
-  <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+  <section>
     <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
     <div className="space-y-4">
       <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
       <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
       <GenericOffer title="Buy 1 Get 1 on Pizza Hut" description="Valid on medium pan pizzas" image="https://placehold.co/100x100.png" hint="pizza food" />
     </div>
-  </motion.section>
+  </section>
 ));
 GenericOffersSection.displayName = 'GenericOffersSection';
 

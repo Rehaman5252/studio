@@ -3,7 +3,6 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CubeBrand } from '@/components/Cube';
 
@@ -14,11 +13,8 @@ interface SelectedBrandCardProps {
 
 const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCardProps) => {
     return (
-        <motion.div
+        <div
             key={selectedBrand.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
             onClick={() => handleStartQuiz(selectedBrand.brand, selectedBrand.format)}
             className="cursor-pointer"
         >
@@ -45,7 +41,7 @@ const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCard
                     </div>
                 </CardContent>
             </Card>
-        </motion.div>
+        </div>
     );
 };
 

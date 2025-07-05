@@ -13,23 +13,6 @@ import {
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
     Settings, Moon, Bell, Music, Vibrate, RefreshCw
 } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-const cardContainerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-        staggerChildren: 0.1
-        }
-    }
-};
-
-const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
-};
-
 
 const maskPhone = (phone: string) => {
     if (!phone || phone.length <= 4) return phone;
@@ -179,16 +162,16 @@ SettingsSummary.displayName = 'SettingsSummary';
 
 const ActionButtons = memo(({ handleReferAndEarn }: { handleReferAndEarn: () => void }) => (
     <section className="space-y-3 pt-4">
-        <motion.div variants={cardVariants}>
+        <div>
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <Link href="/certificates"><Award className="mr-4" /> View Certificates</Link>
             </Button>
-        </motion.div>
-        <motion.div variants={cardVariants}>
+        </div>
+        <div>
             <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary" onClick={handleReferAndEarn}>
                 <UserPlus className="mr-4" /> Refer & Earn
             </Button>
-        </motion.div>
+        </div>
     </section>
 ));
 ActionButtons.displayName = 'ActionButtons';
@@ -219,22 +202,19 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
     }, [toast]);
 
     return (
-        <motion.div 
-            initial="hidden"
-            animate="visible"
-            variants={cardContainerVariants}
+        <div 
             className="space-y-6"
         >
-            <motion.div variants={cardVariants}><ProfileHeader userProfile={userProfile} /></motion.div>
-            <motion.div variants={cardVariants}><StatsSummary userProfile={userProfile} /></motion.div>
-            <motion.div variants={cardVariants}><RewardsSummary userProfile={userProfile} /></motion.div>
-            <motion.div variants={cardVariants}><ReferralCard userProfile={userProfile} /></motion.div>
-            <motion.div variants={cardVariants}><PayoutInfo userProfile={userProfile} /></motion.div>
-            <motion.div variants={cardVariants}><SettingsSummary /></motion.div>
+            <div><ProfileHeader userProfile={userProfile} /></div>
+            <div><StatsSummary userProfile={userProfile} /></div>
+            <div><RewardsSummary userProfile={userProfile} /></div>
+            <div><ReferralCard userProfile={userProfile} /></div>
+            <div><PayoutInfo userProfile={userProfile} /></div>
+            <div><SettingsSummary /></div>
             
             <ActionButtons handleReferAndEarn={handleReferAndEarn} />
             
-            <motion.div variants={cardVariants}><SupportCard /></motion.div>
-        </motion.div>
+            <div><SupportCard /></div>
+        </div>
     )
 }

@@ -11,7 +11,6 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
-import { motion } from 'framer-motion';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -108,7 +107,7 @@ const getSlotTimings = (timestamp: number) => {
 };
 
 const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => (
-    <motion.div variants={itemVariants}>
+    <div>
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader>
             <CardTitle className="flex justify-between items-center text-lg">
@@ -133,25 +132,9 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => (
             <AnalysisDialog attempt={attempt} />
             </CardContent>
         </Card>
-    </motion.div>
+    </div>
 ));
 QuizHistoryItem.displayName = "QuizHistoryItem";
-
-
-const listVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-};
 
 export default function QuizHistoryContent() {
   const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -199,26 +182,23 @@ export default function QuizHistoryContent() {
         </div>
         
         {filteredHistory.length > 0 ? (
-          <motion.div 
-            className="space-y-4"
-            initial="hidden"
-            animate="visible"
-            variants={listVariants}
+          <div 
+            className="space-y-4 pt-4"
           >
             {filteredHistory.map((attempt) => (
               <QuizHistoryItem key={attempt.slotId} attempt={attempt} />
             ))}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Card className="bg-card/80">
+          <div>
+            <Card className="bg-card/80 mt-4">
               <CardContent className="p-6 text-center text-muted-foreground">
                 <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
                 <p className="font-semibold">No Quizzes Found</p>
                 <p>Play a quiz to see your history here!</p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         )}
     </>
   );

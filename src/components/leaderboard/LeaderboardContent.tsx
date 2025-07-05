@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
-import { motion } from 'framer-motion';
 
 // Mock data based on the specification
 const liveLeaderboardData = [
@@ -41,23 +40,8 @@ const RankIcon = ({ rank }: { rank: number }) => {
   return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
 
-const listVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0 }
-};
-
 const LiveLeaderboardItem = memo(({ player }: { player: typeof liveLeaderboardData[0] }) => (
-    <motion.div variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+    <div className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
         <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
         <Avatar className="h-10 w-10 mx-4">
             <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -71,12 +55,12 @@ const LiveLeaderboardItem = memo(({ player }: { player: typeof liveLeaderboardDa
             <p className="font-bold text-primary">{player.time}s</p>
             <p className="text-xs text-muted-foreground">Time</p>
         </div>
-    </motion.div>
+    </div>
 ));
 LiveLeaderboardItem.displayName = "LiveLeaderboardItem";
 
 const AllTimeLeaderboardItem = memo(({ player }: { player: typeof allTimeLeaderboardData[0] }) => (
-    <motion.div variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+    <div className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
         <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
         <Avatar className="h-10 w-10 mx-4">
             <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -90,12 +74,12 @@ const AllTimeLeaderboardItem = memo(({ player }: { player: typeof allTimeLeaderb
             <p className="font-bold text-primary">{player.perfectScores}</p>
             <p className="text-xs text-muted-foreground">Perfect Scores</p>
         </div>
-    </motion.div>
+    </div>
 ));
 AllTimeLeaderboardItem.displayName = "AllTimeLeaderboardItem";
 
 const MyNetworkLeaderboardItem = memo(({ player }: { player: typeof myLeaderboardData[0] }) => (
-    <motion.div variants={itemVariants} className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
+    <div className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
         <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
         <Avatar className="h-10 w-10 mx-4">
             <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
@@ -108,7 +92,7 @@ const MyNetworkLeaderboardItem = memo(({ player }: { player: typeof myLeaderboar
             <p className="font-bold text-primary">{player.perfectScores}</p>
             <p className="text-xs text-muted-foreground">Perfect Scores</p>
         </div>
-    </motion.div>
+    </div>
 ));
 MyNetworkLeaderboardItem.displayName = "MyNetworkLeaderboardItem";
 
@@ -130,16 +114,13 @@ export default function LeaderboardContent() {
             </CardDescription>
             </CardHeader>
             <CardContent>
-            <motion.div 
+            <div 
                 className="space-y-2"
-                initial="hidden"
-                animate="visible"
-                variants={listVariants}
             >
                 {liveLeaderboardData.map((player) => (
                 <LiveLeaderboardItem key={player.rank} player={player} />
                 ))}
-            </motion.div>
+            </div>
             </CardContent>
         </Card>
         </TabsContent>
@@ -151,16 +132,13 @@ export default function LeaderboardContent() {
             <CardDescription>Based on number of perfect scores</CardDescription>
             </CardHeader>
             <CardContent>
-            <motion.div 
+            <div 
                 className="space-y-2"
-                initial="hidden"
-                animate="visible"
-                variants={listVariants}
             >
                 {allTimeLeaderboardData.map((player) => (
                     <AllTimeLeaderboardItem key={player.rank} player={player} />
                 ))}
-            </motion.div>
+            </div>
             </CardContent>
         </Card>
         </TabsContent>
@@ -172,16 +150,13 @@ export default function LeaderboardContent() {
                 <CardDescription>Your performance against friends</CardDescription>
             </CardHeader>
             <CardContent>
-                <motion.div 
+                <div 
                 className="space-y-2"
-                initial="hidden"
-                animate="visible"
-                variants={listVariants}
             >
                 {myLeaderboardData.map((player) => (
                     <MyNetworkLeaderboardItem key={player.rank} player={player} />
                 ))}
-            </motion.div>
+            </div>
             </CardContent>
         </Card>
         </TabsContent>

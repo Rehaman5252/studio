@@ -2,7 +2,6 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 
@@ -13,9 +12,8 @@ interface StartQuizButtonProps {
 
 const StartQuizButton = ({ brandFormat, onClick }: StartQuizButtonProps) => {
     return (
-        <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+        <div
+            className="transition-transform hover:scale-105 active:scale-95"
         >
             <Button
                 size="lg"
@@ -26,7 +24,7 @@ const StartQuizButton = ({ brandFormat, onClick }: StartQuizButtonProps) => {
                 {`Start ${brandFormat} Quiz`}
                 <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
-        </motion.div>
+        </div>
     );
 };
 

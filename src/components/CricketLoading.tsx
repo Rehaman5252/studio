@@ -2,7 +2,6 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 
 interface CricketLoadingProps {
   state?: 'loading' | 'error';
@@ -62,13 +61,10 @@ const CricketLoading = ({
             </svg>
         </div>
       )}
-      <motion.h2 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+      <h2 
         className="text-xl font-semibold text-foreground/80 text-center mt-4">
         {state === 'loading' ? message : errorMessage}
-      </motion.h2>
+      </h2>
       {children && <div className="mt-6">{children}</div>}
     </div>
   );
