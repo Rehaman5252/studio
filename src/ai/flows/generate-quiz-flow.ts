@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow that generates a cricket quiz using an AI model.
@@ -11,6 +12,7 @@ import {
   GenerateQuizOutputSchema,
   GenerateQuizInput,
   GenerateQuizOutput,
+  QuizQuestionSchema,
 } from '@/ai/schemas';
 
 export async function generateQuiz(
@@ -19,10 +21,14 @@ export async function generateQuiz(
   return generateQuizFlow(input);
 }
 
+// Use a more lenient schema for the prompt response, as the AI may not return exactly 5 questions.
+const LenientGenerateQuizOutputSchema = z.array(QuizQuestionSchema);
+
 const quizGenerationPrompt = ai.definePrompt({
     name: 'quizGenerationPrompt',
     input: { schema: GenerateQuizInputSchema },
-    output: { schema: GenerateQuizOutputSchema },
+    // Use the lenient schema for the AI's direct output.
+    output: { schema: LenientGenerateQuizOutputSchema },
     prompt: `You are a cricket trivia expert. Generate a list of 5 unique and challenging quiz questions about the sport of cricket.
 
 The user has selected the following parameters for their quiz:
@@ -50,20 +56,26 @@ const generateQuizFlow = ai.defineFlow(
   {
     name: 'generateQuizFlow',
     inputSchema: GenerateQuizInputSchema,
+    // The flow itself still promises to return exactly 5 questions to the client.
     outputSchema: GenerateQuizOutputSchema,
   },
   async (input) => {
     const { output } = await quizGenerationPrompt(input);
     
-    if (!output) {
-      throw new Error('AI failed to generate quiz questions.');
+    if (!output || output.length < 5) {
+      console.error('AI failed to generate a sufficient number of questions.', {
+        count: output?.length,
+      });
+      throw new Error('AI failed to generate a complete quiz. Please try again.');
     }
     
-    // The output should already be parsed and validated by the prompt definition.
-    // Let's add an extra shuffle of the options for each question for more variety.
-    return output.map(q => ({
+    // Take the first 5 questions and shuffle the options for each.
+    const finalQuestions = output.slice(0, 5).map(q => ({
       ...q,
       options: q.options.sort(() => Math.random() - 0.5),
     }));
+
+    // This return value will be validated against the flow's strict outputSchema.
+    return finalQuestions;
   }
 );
