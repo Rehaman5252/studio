@@ -39,16 +39,18 @@ const brands: CubeBrand[] = [
 ];
 
 export default function HomeScreen() {
-  const { loading } = useRequireAuth();
-  const { lastAttemptInSlot, timeLeft } = useQuizStatus();
+  const { loading: authLoading } = useRequireAuth();
+  const { lastAttemptInSlot, timeLeft, isLoading: isQuizStatusLoading } = useQuizStatus();
   const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
   const [showAlreadyPlayedDialog, setShowAlreadyPlayedDialog] = useState(false);
   const router = useRouter();
 
+  const loading = authLoading || isQuizStatusLoading;
+
   const hasPlayedInCurrentSlot = useMemo(() => {
-    if (!lastAttemptInSlot) return false;
+    if (loading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
-  }, [lastAttemptInSlot]);
+  }, [lastAttemptInSlot, loading]);
 
   const handleBrandSelect = useCallback((index: number) => {
     setSelectedBrandIndex(index);
