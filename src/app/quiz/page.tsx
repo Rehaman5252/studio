@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect, Suspense, useCallback, useRef, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { QuizQuestion } from '@/ai/schemas';
+import { mockQuestions } from '@/lib/mockData';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
@@ -65,13 +65,14 @@ function QuizComponent() {
   const format = searchParams.get('format') || 'Cricket';
 
   const { setLastAttemptInSlot } = useQuizStatus();
-
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  
+  // Quiz starts instantly with mock questions, no loading state needed for questions.
+  const [questions] = useState<QuizQuestion[]>(() => 
+    mockQuestions.sort(() => Math.random() - 0.5) // Shuffle questions for replayability
+  );
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(20);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
@@ -107,38 +108,20 @@ function QuizComponent() {
 
   useEffect(() => {
     if (!user) return;
-
-    const fetchQuestions = async () => {
-      try {
-        const quizQuestions = await generateQuiz({ format, brand });
-        if (!quizQuestions || quizQuestions.length < 5) {
-            throw new Error('Failed to generate a complete quiz.');
-        }
-        setQuestions(quizQuestions);
-        
-        // Immediately save the initial attempt state
-        const initialAttempt = {
-            slotId: getQuizSlotId(),
-            score: 0,
-            totalQuestions: quizQuestions.length,
-            format,
-            brand,
-            questions: quizQuestions,
-            userAnswers: [],
-            timePerQuestion: [],
-            usedHintIndices: [],
-        };
-        setLastAttemptInSlot(initialAttempt);
-
-      } catch (e) {
-        setError('Could not fetch quiz questions. Please try again later.');
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
     
-    fetchQuestions();
+    // Immediately save the initial attempt state since quiz starts instantly
+    const initialAttempt = {
+        slotId: getQuizSlotId(),
+        score: 0,
+        totalQuestions: questions.length,
+        format,
+        brand,
+        questions: questions,
+        userAnswers: [],
+        timePerQuestion: [],
+        usedHintIndices: [],
+    };
+    setLastAttemptInSlot(initialAttempt);
 
     // Cleanup function to save progress if user leaves mid-quiz
     return () => {
@@ -165,7 +148,7 @@ function QuizComponent() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format, brand, user]);
+  }, [format, brand, user, questions]); // Depend on questions array
 
   const goToNextQuestion = useCallback(() => {
     setPaused(false);
@@ -198,7 +181,7 @@ function QuizComponent() {
   
   // Timer effect
   useEffect(() => {
-    if (paused || loading || questions.length === 0 || selectedOption || adConfig) return;
+    if (paused || selectedOption || adConfig) return;
 
     if (timeLeft > 0) {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -210,7 +193,7 @@ function QuizComponent() {
        setUserAnswers(prev => [...prev, '']);
        handleNextStep();
     }
-  }, [timeLeft, paused, loading, questions.length, selectedOption, adConfig, handleNextStep]);
+  }, [timeLeft, paused, selectedOption, adConfig, handleNextStep]);
 
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption) return;
@@ -221,10 +204,8 @@ function QuizComponent() {
     setSelectedOption(option);
     setUserAnswers(prev => [...prev, option]);
     
-    // Use a timeout to allow UI to update before moving to next step
-    setTimeout(() => {
-       handleNextStep();
-    }, 200); // A brief delay for visual feedback on selection
+    // Go to next step immediately
+    handleNextStep();
   }, [selectedOption, timeLeft, handleNextStep]);
 
   const handleUseHint = useCallback(() => {
@@ -241,24 +222,6 @@ function QuizComponent() {
         children: <p className="font-bold text-lg mt-4">Enjoy your hint!</p>
     });
   }, [adConfig, currentQuestionIndex, usedHintIndices]);
-  
-  if (loading) {
-    return (
-      <CricketLoading message={`Generating your ${format} quiz...`} />
-    );
-  }
-
-  if (error) {
-    return (
-      <CricketLoading state="error" errorMessage={error}>
-          <Button onClick={() => router.push('/home')} className="mt-6">
-            Go Home
-          </Button>
-      </CricketLoading>
-    );
-  }
-
-  if (questions.length === 0) return null;
   
   const currentQuestion = questions[currentQuestionIndex];
   const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
