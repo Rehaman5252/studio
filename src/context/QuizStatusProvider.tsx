@@ -2,7 +2,6 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
-import { getQuizSlotId } from '@/lib/utils';
 
 // Represents a simplified quiz attempt for tracking in the current session.
 export interface SlotAttempt {
@@ -44,17 +43,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
       const mins = Math.max(0, Math.floor(diff / 60000));
       const secs = Math.max(0, Math.floor((diff % 60000) / 1000));
       setTimeLeft({ minutes: mins, seconds: secs });
-
-      // This is the core logic fix:
-      // Use the functional update form of setState to safely access the previous
-      // state and determine if the slot has changed.
-      const currentSlotId = getQuizSlotId();
-      setLastAttemptInSlot(prevAttempt => {
-        if (prevAttempt && prevAttempt.slotId !== currentSlotId) {
-          return null; // The slot has changed, so clear the previous attempt.
-        }
-        return prevAttempt; // Otherwise, keep the current attempt state.
-      });
     }, 1000);
 
     const playerInterval = setInterval(() => {
