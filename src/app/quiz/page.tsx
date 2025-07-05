@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { QuizQuestion } from '@/ai/schemas';
@@ -14,7 +14,8 @@ import { Loader2, Lightbulb, AlertTriangle } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
-import { cn } from '@/lib/utils';
+import { cn, getQuizSlotId } from '@/lib/utils';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 
 const Timer = ({ timeLeft }: { timeLeft: number }) => {
@@ -61,6 +62,8 @@ function QuizComponent() {
   const brand = searchParams.get('brand') || 'Indcric';
   const format = searchParams.get('format') || 'Cricket';
 
+  const { setLastAttemptInSlot } = useQuizStatus();
+
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
@@ -80,6 +83,9 @@ function QuizComponent() {
     onFinished: () => void;
     children?: React.ReactNode;
   } | null>(null);
+
+  const stateRef = useRef({ userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex });
+  stateRef.current = { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex };
   
   const advanceToResults = useCallback((finalAnswers: string[], finalTimes: number[]) => {
     const dataToPass = {
@@ -97,6 +103,8 @@ function QuizComponent() {
 
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchQuestions = async () => {
       try {
         const quizQuestions = await generateQuiz({ format, brand });
@@ -104,6 +112,20 @@ function QuizComponent() {
             throw new Error('Failed to generate a complete quiz.');
         }
         setQuestions(quizQuestions);
+        
+        const initialAttempt = {
+            slotId: getQuizSlotId(),
+            score: 0,
+            totalQuestions: quizQuestions.length,
+            format,
+            brand,
+            questions: quizQuestions,
+            userAnswers: [],
+            timePerQuestion: [],
+            usedHintIndices: [],
+        };
+        setLastAttemptInSlot(initialAttempt);
+
       } catch (e) {
         setError('Could not fetch quiz questions. Please try again later.');
         console.error(e);
@@ -113,7 +135,28 @@ function QuizComponent() {
     };
     
     fetchQuestions();
-  }, [format, brand]);
+
+    return () => {
+      const { userAnswers, timePerQuestion, usedHintIndices, questions, brand, format, currentQuestionIndex } = stateRef.current;
+      const isMidQuiz = questions.length > 0 && currentQuestionIndex < questions.length;
+      
+      if (isMidQuiz) {
+        const currentProgress = {
+          slotId: getQuizSlotId(),
+          score: 0,
+          totalQuestions: questions.length,
+          format,
+          brand,
+          questions,
+          userAnswers,
+          timePerQuestion,
+          usedHintIndices,
+        };
+        setLastAttemptInSlot(currentProgress);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [format, brand, user]);
 
   const goToNextQuestion = useCallback(() => {
     setPaused(false);
