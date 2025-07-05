@@ -96,14 +96,14 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     };
 
     // The prompt function now returns a promise for a raw string.
-    const analysisText = await analysisPrompt(promptInput);
+    const {output} = await analysisPrompt(promptInput);
     
-    if (!analysisText || analysisText.trim() === '') {
+    if (!output || output.trim() === '') {
       throw new Error("The AI failed to generate a valid analysis string.");
     }
 
     // We wrap the raw string into the object format required by the flow's output schema.
     // This is much more reliable than asking the AI to format the JSON itself.
-    return { analysis: analysisText };
+    return { analysis: output };
   }
 );

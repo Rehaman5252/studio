@@ -33,7 +33,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             setAnalysis(result.analysis);
         } catch (err) {
             console.error(err);
-            setError('The AI could not generate an analysis for this quiz. Please try again.');
+            setError('Could not generate the analysis. Please try again later.');
         } finally {
             setIsLoading(false);
         }
