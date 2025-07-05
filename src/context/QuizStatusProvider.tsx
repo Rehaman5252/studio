@@ -1,7 +1,7 @@
-
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
+import { getQuizSlotId } from '@/lib/utils';
 
 // Represents a simplified quiz attempt for tracking in the current session.
 export interface SlotAttempt {
@@ -32,6 +32,14 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const timerInterval = setInterval(() => {
+      const currentSlotId = getQuizSlotId();
+      
+      // If there's an old attempt from a previous slot, clear it.
+      // This ensures that when a new slot begins, the user can play again.
+      if (lastAttemptInSlot && lastAttemptInSlot.slotId !== currentSlotId) {
+        setLastAttemptInSlot(null);
+      }
+
       // Calculate time left in the current slot
       const now = new Date();
       const minutes = now.getMinutes();
@@ -57,7 +65,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(timerInterval);
       clearInterval(playerInterval);
     };
-  }, []); // The empty dependency array ensures this effect runs only once.
+  }, [lastAttemptInSlot]); // Dependency ensures the interval always has the latest state
 
   const value = useMemo(() => ({
     timeLeft, 
