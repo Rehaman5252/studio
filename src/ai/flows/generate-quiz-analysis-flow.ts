@@ -19,25 +19,20 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
   return generateQuizAnalysisFlow(input);
 }
 
-// Internal schema for the prompt itself. This will now be the output of the prompt.
-// By asking for a structured object, we increase the reliability of the AI's response.
-const PromptOutputSchema = z.object({
-    analysis: z.string().describe('A detailed analysis of the user quiz performance, formatted as a single markdown string. The analysis should be encouraging and cover: overall performance, areas for improvement based on incorrect answers, and one actionable tip.'),
-});
-
-// The prompt will take a simple, manually constructed string as input to reduce complexity.
+// The prompt will now be simpler, just asking for a raw markdown string.
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: z.string() },
-  output: { schema: PromptOutputSchema },
-  prompt: `You are an expert cricket coach. A user has just completed a quiz. Based on the following summary of their performance, generate a personalized performance report as a single, raw markdown-formatted string and place it inside the 'analysis' field of the JSON output.
+  // Request a raw string output, not a JSON object. This is more reliable.
+  output: { format: 'string' },
+  prompt: `You are an expert cricket coach. A user has just completed a quiz. Based on the following summary of their performance, generate a personalized performance report as a single, raw markdown-formatted string.
 
 The analysis MUST be encouraging and cover these sections:
 1.  **Overall Performance**: Start with a summary of their score.
 2.  **Areas for Improvement**: Based on the incorrect answers, identify 1-2 specific topics for the user to study.
 3.  **Actionable Tip**: Provide one specific, actionable tip for improvement.
 
-Maintain a positive, coach-like tone.
+Maintain a positive, coach-like tone. DO NOT wrap your response in JSON or any other special formatting.
 
 Here is the user's quiz performance data:
 {{{_input}}}
@@ -86,16 +81,16 @@ const generateQuizAnalysisFlow = ai.defineFlow(
 
     const promptInputString = `Format: ${format}\nScore: ${score}/${input.questions.length}\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
     
-    // The prompt function returns a promise for the structured object.
+    // The prompt function now returns a promise for a raw string.
     const { output } = await analysisPrompt(promptInputString);
     
-    // This is the critical fix: Check if the AI returned a valid object with a non-empty analysis string.
-    if (!output || !output.analysis || output.analysis.trim() === '') {
+    // Validate that we got a non-empty string back.
+    if (!output || output.trim() === '') {
       console.error("AI analysis returned a null or empty analysis string.", { output });
       throw new Error("The AI failed to generate a valid analysis. The response was empty.");
     }
 
-    // The output from the prompt is already in the correct format { analysis: '...' } required by the flow's outputSchema.
-    return output;
+    // Wrap the raw string output into the object format required by the flow's outputSchema.
+    return { analysis: output };
   }
 );
