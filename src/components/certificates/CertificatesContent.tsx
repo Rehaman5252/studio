@@ -21,10 +21,14 @@ export default function CertificatesContent() {
   const [isLoading, setIsLoading] = useState(history.length === 0);
 
   useEffect(() => {
+    // If history is already populated from cache, no need to fetch.
+    if (history.length > 0) {
+      setIsLoading(false);
+      return;
+    }
+
     async function fetchHistory() {
-      if (history.length === 0) {
-          setIsLoading(true);
-      }
+      setIsLoading(true);
 
       if (!isFirebaseConfigured || !db || !user) {
         setHistory(mockQuizHistory);
@@ -39,24 +43,20 @@ export default function CertificatesContent() {
         const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
         setHistory(fetchedHistory);
         if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify(fetchedHistory));
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify(fetchedHistory));
         }
       } catch (error) {
         console.error("Failed to fetch quiz history:", error);
-        if (history.length === 0) { // Only fallback to mock if there's nothing to show
-          setHistory(mockQuizHistory);
-        }
+        // Fallback to mock data on error if history is empty
+        setHistory(mockQuizHistory);
       } finally {
         setIsLoading(false);
       }
     }
     
-    // Only fetch if cache is empty, otherwise let the history page manage updates
-    if (history.length === 0) {
-        fetchHistory();
-    }
+    fetchHistory();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, history.length]);
 
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -86,7 +86,7 @@ export default function CertificatesContent() {
       }));
   }, [history]);
 
-  if (isLoading && history.length === 0) {
+  if (isLoading) {
     return (
         <div className="flex flex-col items-center justify-center h-full py-10">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

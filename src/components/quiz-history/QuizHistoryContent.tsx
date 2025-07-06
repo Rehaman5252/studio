@@ -151,10 +151,14 @@ export default function QuizHistoryContent() {
   const [isLoading, setIsLoading] = useState(history.length === 0);
 
   useEffect(() => {
+    // If history is already populated from cache, no need to fetch.
+    if (history.length > 0) {
+      setIsLoading(false);
+      return;
+    }
+
     async function fetchHistory() {
-      if (history.length === 0) {
-          setIsLoading(true);
-      }
+      setIsLoading(true);
 
       if (!isFirebaseConfigured || !db || !user) {
         setHistory(mockQuizHistory);
@@ -172,16 +176,16 @@ export default function QuizHistoryContent() {
         }
       } catch (error) {
          console.error("Failed to fetch quiz history:", error);
-         if (history.length === 0) {
-            setHistory(mockQuizHistory);
-         }
+         // Fallback to mock data on error if history is empty
+         setHistory(mockQuizHistory);
       } finally {
         setIsLoading(false);
       }
     }
+
     fetchHistory();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, history.length]);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {
@@ -194,7 +198,7 @@ export default function QuizHistoryContent() {
     return history;
   }, [history, filter]);
 
-  if (isLoading && history.length === 0) {
+  if (isLoading) {
     return (
         <div className="flex flex-col items-center justify-center h-full py-10">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
