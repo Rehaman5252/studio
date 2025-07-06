@@ -4,61 +4,51 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
-import { mockQuizHistory, type QuizAttempt } from '@/lib/mockData';
+import type { QuizAttempt } from '@/lib/mockData';
+import { mockQuizHistory } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 
 export default function CertificatesContent() {
-  const { user } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading } = useAuth();
+  const [localHistory, setLocalHistory] = useState<QuizAttempt[]>([]);
   
-  const cacheKey = useMemo(() => user ? `quizHistoryCache_${user.uid}` : null, [user]);
-
   useEffect(() => {
     const loadHistory = async () => {
-        if (!user || !cacheKey) {
-            setIsLoading(false);
-            setHistory(isFirebaseConfigured ? [] : mockQuizHistory);
+        if (!user) {
+            setLocalHistory(isFirebaseConfigured ? [] : mockQuizHistory);
+            if (isHistoryLoading) setIsHistoryLoading(false);
             return;
         }
 
-        setIsLoading(true);
-
-        // Try to load from cache first
-        if (typeof sessionStorage !== 'undefined') {
-            const cachedData = sessionStorage.getItem(cacheKey);
-            if (cachedData) {
-                setHistory(JSON.parse(cachedData));
-                setIsLoading(false);
-                return; // Exit if cache is found
-            }
+        if (quizHistory) {
+            setLocalHistory(quizHistory as QuizAttempt[]);
+            if (isHistoryLoading) setIsHistoryLoading(false);
+            return;
         }
 
-        // If no cache, fetch from Firestore (same as history page)
+        if (!isHistoryLoading) setIsHistoryLoading(true);
+
         if (isFirebaseConfigured && db) {
             try {
                 const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
                 const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
                 const querySnapshot = await getDocs(q);
                 const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-                setHistory(fetchedHistory);
-                if (typeof sessionStorage !== 'undefined') {
-                    // We can share the same cache as the history page
-                    sessionStorage.setItem(cacheKey, JSON.stringify(fetchedHistory));
-                }
+                setLocalHistory(fetchedHistory);
+                setQuizHistory(fetchedHistory);
             } catch (error) {
                 console.error("Failed to fetch quiz history:", error);
-                setHistory(mockQuizHistory); // Fallback to mock data on error
+                setLocalHistory(mockQuizHistory);
             }
         }
-        setIsLoading(false);
+        setIsHistoryLoading(false);
     };
 
     loadHistory();
-  }, [user, cacheKey]);
+  }, [user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading]);
 
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -76,7 +66,7 @@ export default function CertificatesContent() {
   };
   
   const certificates = useMemo(() => {
-    return history
+    return localHistory
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0)
       .map(attempt => ({
         id: attempt.slotId + attempt.format,
@@ -86,9 +76,9 @@ export default function CertificatesContent() {
         brand: attempt.brand,
         format: attempt.format,
       }));
-  }, [history]);
+  }, [localHistory]);
 
-  if (isLoading) {
+  if (isHistoryLoading) {
     return (
         <div className="flex flex-col items-center justify-center h-full py-10">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

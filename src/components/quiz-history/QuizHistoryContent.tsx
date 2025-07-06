@@ -139,33 +139,27 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => (
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
 export default function QuizHistoryContent() {
-  const { user } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>([]);
+  const { user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading } = useAuth();
+  const [localHistory, setLocalHistory] = useState<QuizAttempt[]>([]);
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
-  const [isLoading, setIsLoading] = useState(true);
-
-  const cacheKey = useMemo(() => user ? `quizHistoryCache_${user.uid}` : null, [user]);
 
   useEffect(() => {
     const loadHistory = async () => {
-        if (!user || !cacheKey) {
-            setIsLoading(false);
-            setHistory(isFirebaseConfigured ? [] : mockQuizHistory);
+        if (!user) {
+            setLocalHistory(isFirebaseConfigured ? [] : mockQuizHistory);
+            if (isHistoryLoading) setIsHistoryLoading(false);
             return;
         }
 
-        setIsLoading(true);
-
-        // Try to load from cache first
-        if (typeof sessionStorage !== 'undefined') {
-            const cachedData = sessionStorage.getItem(cacheKey);
-            if (cachedData) {
-                setHistory(JSON.parse(cachedData));
-                setIsLoading(false);
-                return; // Exit if cache is found
-            }
+        // Use cached history if available
+        if (quizHistory) {
+            setLocalHistory(quizHistory as QuizAttempt[]);
+            if (isHistoryLoading) setIsHistoryLoading(false);
+            return;
         }
 
+        if (!isHistoryLoading) setIsHistoryLoading(true);
+        
         // If no cache, fetch from Firestore
         if (isFirebaseConfigured && db) {
             try {
@@ -173,33 +167,31 @@ export default function QuizHistoryContent() {
                 const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(25));
                 const querySnapshot = await getDocs(q);
                 const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-                setHistory(fetchedHistory);
-                if (typeof sessionStorage !== 'undefined') {
-                    sessionStorage.setItem(cacheKey, JSON.stringify(fetchedHistory));
-                }
+                setLocalHistory(fetchedHistory);
+                setQuizHistory(fetchedHistory); // Update the context cache
             } catch (error) {
                 console.error("Failed to fetch quiz history:", error);
-                setHistory(mockQuizHistory); // Fallback to mock data on error
+                setLocalHistory(mockQuizHistory); // Fallback to mock data on error
             }
         }
-        setIsLoading(false);
+        setIsHistoryLoading(false);
     };
 
     loadHistory();
-  }, [user, cacheKey]);
+  }, [user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading]);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {
       const sevenDaysAgo = new Date().getTime() - 7 * 24 * 60 * 60 * 1000;
-      return history.filter(attempt => attempt.timestamp >= sevenDaysAgo);
+      return localHistory.filter(attempt => attempt.timestamp >= sevenDaysAgo);
     }
     if (filter === 'perfect') {
-      return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0);
+      return localHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0);
     }
-    return history;
-  }, [history, filter]);
+    return localHistory;
+  }, [localHistory, filter]);
 
-  if (isLoading) {
+  if (isHistoryLoading) {
     return (
         <div className="flex flex-col items-center justify-center h-full py-10">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

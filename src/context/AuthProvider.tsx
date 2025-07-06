@@ -64,18 +64,28 @@ interface AuthContextType {
   user: User | null;
   userData: DocumentData | null;
   loading: boolean;
+  quizHistory: DocumentData[] | null;
+  setQuizHistory: (history: DocumentData[]) => void;
+  isHistoryLoading: boolean;
+  setIsHistoryLoading: (loading: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userData: null,
   loading: true,
+  quizHistory: null,
+  setQuizHistory: () => {},
+  isHistoryLoading: true,
+  setIsHistoryLoading: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quizHistory, setQuizHistory] = useState<DocumentData[] | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth || !db) {
@@ -86,37 +96,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (user?.uid !== currentUser?.uid) {
+        setQuizHistory(null); // Clear history cache on user change
+      }
       setUser(currentUser);
       if (!currentUser) {
         setUserData(null);
         setLoading(false);
       }
-      // If there IS a user, the next useEffect will handle setting loading to false.
     });
 
     return () => unsubscribeAuth();
-  }, []);
+  }, [user?.uid]);
 
   useEffect(() => {
-    // This effect runs when `user` changes.
-    // If `user` is null, we do nothing, as the auth listener already handled it.
     if (user && db) {
       const userDocRef = doc(db, 'users', user.uid);
       
       const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
         setUserData(doc.exists() ? doc.data() : null);
-        setLoading(false); // Loading is complete once user data is fetched
+        setLoading(false);
       }, (error) => {
         console.error("Firestore snapshot error:", error);
         setUserData(null);
-        setLoading(false); // Also stop loading on error
+        setLoading(false);
       });
       
       return () => unsubscribeFirestore();
     }
   }, [user]);
 
-  const value = { user, userData, loading };
+  const value = { user, userData, loading, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading };
 
   return (
     <AuthContext.Provider value={value}>

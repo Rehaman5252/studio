@@ -40,6 +40,7 @@ interface CubeProps {
 
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const cubeRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -53,7 +54,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
       setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
     };
 
-    if (!disabled) {
+    if (!disabled && !isHovered) {
       intervalRef.current = setInterval(rotateToNextFace, 500);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -64,7 +65,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         clearInterval(intervalRef.current);
       }
     };
-  }, [disabled, brands.length]);
+  }, [disabled, isHovered, brands.length]);
 
 
   useEffect(() => {
@@ -81,7 +82,11 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   };
   
   return (
-    <div className="flex justify-center items-center h-48">
+    <div 
+      className="flex justify-center items-center h-48"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div 
         className={cn("w-32 h-32 perspective", disabled && "opacity-50")}
       >
