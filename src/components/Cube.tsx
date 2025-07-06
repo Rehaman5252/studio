@@ -41,12 +41,34 @@ interface CubeProps {
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
+  const [isHovering, setIsHovering] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Set initial random face
   useEffect(() => {
     const initialFace = Math.floor(Math.random() * 6);
     setCurrentFaceIndex(initialFace);
   }, []);
+
+  // Effect to handle auto-rotation
+  useEffect(() => {
+    const rotateToNextFace = () => {
+      setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
+    };
+
+    if (!isHovering && !disabled) {
+      intervalRef.current = setInterval(rotateToNextFace, 3000); // Rotate every 3 seconds
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isHovering, disabled, brands.length]);
+
 
   // Update transform and notify parent when face changes
   useEffect(() => {
@@ -66,6 +88,8 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     <div 
       id="tour-step-cube"
       className="flex flex-col items-center"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
       <div className={cn("w-48 h-48 perspective", disabled && "opacity-50")}>
         <div 
