@@ -1,20 +1,18 @@
-
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
-import GlobalStats from '@/components/home/GlobalStats';
-import QuizSelector from '@/components/home/QuizSelector';
 import type { CubeBrand } from '@/components/Cube';
-import SelectedBrandCard from '@/components/home/SelectedBrandCard';
-import StartQuizButton from '@/components/home/StartQuizButton';
 import CricketLoading from '@/components/CricketLoading';
 import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebase';
+import QuizSelector from '@/components/home/QuizSelector';
+import SelectedBrandCard from '@/components/home/SelectedBrandCard';
+import GlobalStats from '@/components/home/GlobalStats';
+import StartQuizButton from '@/components/home/StartQuizButton';
 
 
 const brands: CubeBrand[] = [
@@ -46,7 +44,7 @@ export default function HomeWrapper() {
 
   const handleStartQuiz = useCallback(() => {
     if (!user && isFirebaseConfigured) {
-      router.push('/auth/login');
+      router.push('/auth/login?from=quiz');
       return;
     }
     
@@ -67,6 +65,28 @@ export default function HomeWrapper() {
       return () => clearTimeout(timer);
     }
   }, [startingQuizInfo, hasPlayedInCurrentSlot, router]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // You can now access the user's location.
+          // For now, we'll just log it to the console.
+          console.log('User location access granted:', {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          // In a real app, you might save this to the user's profile in Firestore.
+        },
+        (error) => {
+          // Handle errors, including the user denying permission.
+          console.error('Geolocation error:', error.message);
+        }
+      );
+    } else {
+      console.log('Geolocation is not supported by this browser.');
+    }
+  }, []); // Empty dependency array means this runs once on mount
 
   if (isQuizStatusLoading) {
       return (
@@ -100,19 +120,19 @@ export default function HomeWrapper() {
           disabled={!!startingQuizInfo}
       />
 
-      <SelectedBrandCard
-        selectedBrand={selectedBrand}
-        handleStartQuiz={handleStartQuiz}
-      />
-      
-      <Separator className="my-8 bg-border/50" />
+      <div className="mt-8 space-y-8">
+        <SelectedBrandCard
+          selectedBrand={selectedBrand}
+          handleStartQuiz={handleStartQuiz}
+        />
+        
+        <GlobalStats />
 
-      <GlobalStats />
-
-      <StartQuizButton
-        brandFormat={selectedBrand.format}
-        onClick={handleStartQuiz}
-      />
+        <StartQuizButton
+          brandFormat={selectedBrand.format}
+          onClick={handleStartQuiz}
+        />
+      </div>
     </>
   );
 }
