@@ -54,7 +54,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         } while (nextIndex === prevIndex);
         return nextIndex;
       });
-    }, 5000); // Rotate every 5 seconds
+    }, 2500); // Rotate every 2.5 seconds (2x faster)
 
     return () => clearInterval(rotationInterval);
   }, [disabled]);
@@ -94,7 +94,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleFaceClick()}
               className={cn(
                 "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
-                !disabled && "cursor-pointer transition-all hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"
+                !disabled && "cursor-pointer hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"
               )}
               style={{
                 transform: faceTransforms[index],

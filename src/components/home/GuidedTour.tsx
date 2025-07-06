@@ -14,11 +14,11 @@ const tourSteps: Step[] = [
         placement: 'center',
         title: 'Welcome to IndCric!',
         content: (
-            <div>
-                <p className="text-lg">Win ₹100 in just 100 seconds!</p>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li>Play live cricket quizzes every 10 minutes.</li>
-                    <li>Compete, rank, and earn real cash.</li>
+            <div className="text-center">
+                <p className="text-lg font-bold">“Win ₹100 in just 100 seconds!”</p>
+                <ul className="list-none mt-3 space-y-2 text-left">
+                    <li>⚡ Play live cricket quizzes every 10 minutes</li>
+                    <li>🎯 Compete, rank, and earn real cash.</li>
                 </ul>
             </div>
         ),
@@ -26,32 +26,48 @@ const tourSteps: Step[] = [
     },
     {
         target: '#tour-step-cube',
-        title: 'Choose Your Game Format',
-        content: 'Tap any side of the cube (T20, ODI, Test, IPL, etc.) to start your quiz. Each face is linked with a brand sponsor!',
+        title: 'Select Your Game Format',
+        content: (
+            <div>
+                <p>Tap any side of the cube (T20, ODI, Test, IPL, etc.) to start your quiz. Each face is linked with a brand sponsor!</p>
+                <p className="mt-4 font-semibold text-primary">🟩 “Tap to begin – it’s LIVE!”</p>
+            </div>
+        ),
         placement: 'bottom',
     },
     {
         target: '#tour-step-start-quiz',
         title: 'Start Your Quiz!',
-        content: "You’ll get 5 Questions, with only 100 seconds total. Play smart, play fast, and win real cash! Remember, you get one attempt per slot – so choose wisely.",
+        content: (
+            <div>
+                <p>You’ll get <strong>5 Questions</strong> & ⏱️ <strong>100 seconds only</strong>.</p>
+                <p>Play smart, fast, and win real ₹!</p>
+                <p className="mt-4 text-muted-foreground text-sm">📌 One attempt per slot – so choose wisely.</p>
+            </div>
+        ),
         placement: 'bottom',
     },
     {
         target: '#tour-step-leaderboard',
         title: 'Track Your Progress',
-        content: 'After each quiz, see your scorecard and check the Leaderboard to see how you rank against other players.',
-        placement: 'top',
-    },
-    {
-        target: '#tour-step-rewards',
-        title: 'Claim Your Rewards',
-        content: 'Tap here to see the cashback, scratch cards & offers you’ve earned. Score a perfect 5/5 to win ₹100!',
+        content: (
+            <div>
+                <p>🏅 <strong>Leaderboard</strong>: See how you rank against others.</p>
+                <p className="mt-2">🎁 <strong>Rewards</strong>: Claim cash if you score 100/100!</p>
+                <p className="mt-4 font-semibold text-primary">📢 ₹100 reward if you're perfect. Go for it!</p>
+            </div>
+        ),
         placement: 'top',
     },
     {
         target: '#tour-step-profile',
         title: 'Personalize Your Game',
-        content: 'View your name, photo, rewards, and performance history here. You’re ready to become a quiz champ!',
+        content: (
+            <div>
+                <p>View your name, photo, rewards, and performance history.</p>
+                <p className="mt-4 text-xl">🎉 You’re ready to become a quiz champ!</p>
+            </div>
+        ),
         placement: 'top',
     }
 ];
@@ -88,6 +104,7 @@ export default function GuidedTour({ run, onFinish }: GuidedTourProps) {
         tooltip: {
             border: '1px solid hsl(var(--border))',
             borderRadius: 'var(--radius)',
+            padding: '1rem',
         },
         buttonNext: {
             borderRadius: 'calc(var(--radius) - 4px)',
