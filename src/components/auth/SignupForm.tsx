@@ -59,11 +59,10 @@ export default function SignupForm() {
   const [step, setStep] = useState<'details' | 'otp'>('details');
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [userDetails, setUserDetails] = useState<DetailsFormValues | null>(null);
-  const [isDemoMode] = useState(!isFirebaseConfigured);
 
   // Initialize reCAPTCHA verifier
   useEffect(() => {
-    if (isDemoMode || !auth || typeof window === 'undefined') return;
+    if (!isFirebaseConfigured || !auth || typeof window === 'undefined') return;
     
     if (!window.recaptchaVerifier) {
         try {
@@ -82,7 +81,7 @@ export default function SignupForm() {
             });
         }
     }
-  }, [toast, isDemoMode]);
+  }, [toast]);
 
   const detailsForm = useForm<DetailsFormValues>({
     resolver: zodResolver(detailsSchema),
@@ -93,10 +92,11 @@ export default function SignupForm() {
   });
 
   const handleDetailsSubmit = async (data: DetailsFormValues) => {
-    if (isDemoMode || !auth || !window.recaptchaVerifier) {
+    if (!isFirebaseConfigured || !auth || !window.recaptchaVerifier) {
       toast({
-        title: "Demo Mode",
+        title: "Authentication Error",
         description: "Account creation is disabled because Firebase is not configured.",
+        variant: 'destructive',
       });
       return;
     }
@@ -130,7 +130,7 @@ export default function SignupForm() {
   };
 
   const handleOtpSubmit = async (data: OtpFormValues) => {
-    if (isDemoMode || !auth || !db || !verificationId || !userDetails) {
+    if (!isFirebaseConfigured || !auth || !db || !verificationId || !userDetails) {
       toast({ title: 'An error occurred', description: 'Missing verification data. Please start over.', variant: 'destructive' });
       setStep('details');
       return;
@@ -194,12 +194,12 @@ export default function SignupForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isDemoMode && step === 'details' && (
-            <Alert variant="default" className="mb-4 border-primary bg-primary/10">
-                <Info className="h-4 w-4 text-primary" />
-                <AlertTitle>Demo Mode</AlertTitle>
+        {!isFirebaseConfigured && step === 'details' && (
+            <Alert variant="destructive" className="mb-4">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Firebase Not Configured</AlertTitle>
                 <AlertDescription className="text-foreground/80">
-                    Firebase is not configured. Account creation is disabled. The app uses a mock user for demonstration.
+                    The app cannot connect to the authentication service. Please configure your Firebase environment variables.
                 </AlertDescription>
             </Alert>
         )}
@@ -208,25 +208,25 @@ export default function SignupForm() {
             <div id="recaptcha-container"></div>
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" type="text" placeholder="John Doe" {...detailsForm.register('name')} disabled={isDemoMode} />
+              <Input id="name" type="text" placeholder="John Doe" {...detailsForm.register('name')} />
               {detailsForm.formState.errors.name && <p className="text-sm text-destructive">{detailsForm.formState.errors.name.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="user@example.com" {...detailsForm.register('email')} disabled={isDemoMode} />
+              <Input id="email" type="email" placeholder="user@example.com" {...detailsForm.register('email')} />
               {detailsForm.formState.errors.email && <p className="text-sm text-destructive">{detailsForm.formState.errors.email.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...detailsForm.register('password')} disabled={isDemoMode} />
+              <Input id="password" type="password" {...detailsForm.register('password')} />
               {detailsForm.formState.errors.password && <p className="text-sm text-destructive">{detailsForm.formState.errors.password.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number (with country code)</Label>
-              <Input id="phone" type="tel" placeholder="+919876543210" {...detailsForm.register('phone')} disabled={isDemoMode} />
+              <Input id="phone" type="tel" placeholder="+919876543210" {...detailsForm.register('phone')} />
               {detailsForm.formState.errors.phone && <p className="text-sm text-destructive">{detailsForm.formState.errors.phone.message}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading || isDemoMode}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Send OTP
             </Button>

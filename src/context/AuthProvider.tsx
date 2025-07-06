@@ -8,60 +8,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
-import { mockQuizHistory } from '@/lib/mockData';
-
-
-// This is a mock user object.
-const mockUser: User = {
-    uid: 'example-user-id',
-    email: 'user@example.com',
-    emailVerified: true,
-    displayName: 'Explorer User',
-    isAnonymous: false,
-    photoURL: 'https://placehold.co/100x100.png',
-    providerData: [],
-    metadata: {
-      creationTime: new Date().toUTCString(),
-      lastSignInTime: new Date().toUTCString(),
-    },
-    providerId: 'password',
-    refreshToken: 'mock-refresh-token',
-    tenantId: null,
-    delete: async () => {},
-    getIdToken: async () => 'mock-id-token',
-    getIdTokenResult: async () => ({
-        token: 'mock-id-token',
-        expirationTime: '',
-        authTime: '',
-        issuedAtTime: '',
-        signInProvider: null,
-        signInSecondFactor: null,
-        claims: {},
-    }),
-    reload: async () => {},
-    toJSON: () => ({}),
-};
-
-// This is mock user data.
-const mockUserData: DocumentData = {
-    uid: 'example-user-id',
-    email: 'user@example.com',
-    name: 'Explorer User',
-    phone: '9876543210',
-    age: '28',
-    gender: 'Unspecified',
-    occupation: 'Explorer',
-    totalRewards: 500,
-    highestStreak: 7,
-    referralEarnings: 150,
-    certificatesEarned: 2,
-    quizzesPlayed: 15,
-    upi: 'explorer@upi',
-    referralCode: `indcric.com/ref/example`,
-    createdAt: new Date().toISOString(),
-    photoURL: 'https://placehold.co/100x100.png'
-};
-
 
 interface AuthContextType {
   user: User | null;
@@ -87,17 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    // If firebase is not configured, use mock data and stop.
-    if (!isFirebaseConfigured) {
-      setUser(mockUser);
-      setUserData(mockUserData);
-      setQuizHistory(mockQuizHistory);
-      setLoading(false);
-      setIsHistoryLoading(false);
-      return;
-    }
-
-    if (!auth || !db) {
+    if (!isFirebaseConfigured || !auth || !db) {
         setLoading(false);
         setIsHistoryLoading(false);
         return;
@@ -122,7 +58,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user || !db) {
+        // Ensure history is cleared and loading is false if user logs out
+        if (quizHistory !== null) setQuizHistory(null);
+        if (!isHistoryLoading) setIsHistoryLoading(false);
+        return;
+    }
 
     // This listener fetches and subscribes to the user's profile data.
     const userDocRef = doc(db, 'users', user.uid);
@@ -150,13 +91,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
     
-    // Only fetch history if we don't have it yet for this user.
-    if (quizHistory === null) {
-        loadHistory();
-    }
+    loadHistory();
 
     return () => unsubscribeFirestore();
-  }, [user, db, quizHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const value = { user, userData, loading, quizHistory, isHistoryLoading };
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo, useCallback } from 'react';
@@ -47,7 +48,6 @@ const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => (
             <div className="flex-1">
                 <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-bold text-foreground">{userProfile.name}</h2>
-                    {!isFirebaseConfigured && <Badge variant="outline">Demo</Badge>}
                 </div>
                 <p className="text-muted-foreground text-sm">
                     {maskPhone(userProfile.phone)}
@@ -204,8 +204,9 @@ const LogoutButton = memo(() => {
     const handleLogout = async () => {
         if (!isFirebaseConfigured || !auth) {
             toast({
-                title: "In Demo Mode",
-                description: "You cannot log out in demo mode.",
+                title: "Error",
+                description: "Could not connect to authentication service.",
+                variant: "destructive"
             });
             return;
         }
