@@ -34,6 +34,7 @@ const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCard
                                 width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
                                 height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
                                 className="object-contain"
+                                priority
                             />
                         </div>
                     </div>

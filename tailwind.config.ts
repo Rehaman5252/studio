@@ -82,12 +82,16 @@ export default {
           '100%': { transform: 'rotate(360deg)' },
         },
         'spin-medium': {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(-360deg)' },
+          '0%': { transform: 'rotate(-360deg)' },
+          '100%': { transform: 'rotate(360deg)' },
         },
         'spin-fast': {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' },
+        },
+        'shimmer': {
+          'from': { backgroundPosition: '200% center' },
+          'to': { backgroundPosition: '-200% center' },
         },
       },
       animation: {
@@ -96,6 +100,7 @@ export default {
         'spin-slow': 'spin-slow 3s linear infinite',
         'spin-medium': 'spin-medium 2.5s linear infinite',
         'spin-fast': 'spin-fast 1.5s linear infinite',
+        'shimmer': 'shimmer 4s linear infinite',
       },
     },
   },

@@ -99,4 +99,16 @@
       opacity: 1;
     }
   }
+
+  .text-shimmer {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--foreground)) 20%,
+      hsl(var(--primary)) 40%,
+      hsl(var(--primary)) 60%,
+      hsl(var(--foreground)) 80%
+    );
+    background-size: 200% auto;
+  }
 }

@@ -111,6 +111,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
                   height={brand.logoHeight}
                   className="object-contain px-2 drop-shadow-lg"
                   style={{filter: 'brightness(0) invert(1)'}}
+                  priority
                 />
                 <span className="text-xs font-semibold text-foreground opacity-90">
                   {brand.format}
