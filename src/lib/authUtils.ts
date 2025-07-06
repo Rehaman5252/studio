@@ -1,12 +1,12 @@
 'use client';
 
-import { auth, db, isFirebaseConfigured, GoogleAuthProvider } from './firebase';
+import { auth, db, GoogleAuthProvider } from './firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 export const handleGoogleSignIn = async (onSuccess: () => void, onError: (message: string) => void) => {
-    if (!isFirebaseConfigured || !auth || !db) {
-        onError("The authentication service is not configured. Please contact support.");
+    if (!auth || !db) {
+        onError("Firebase Not Configured: The app cannot connect to the authentication service. Please configure your Firebase environment variables.");
         return;
     }
 
@@ -15,12 +15,10 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
 
-        // Check if user already exists in Firestore
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            // New user, create a document in Firestore
             await setDoc(userDocRef, {
                 uid: user.uid,
                 name: user.displayName,

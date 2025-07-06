@@ -14,7 +14,7 @@ import {
     Settings, Moon, Bell, Music, Vibrate, RefreshCw, LogOut
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 
@@ -202,22 +202,10 @@ const LogoutButton = memo(() => {
     const router = useRouter();
 
     const handleLogout = async () => {
-        if (!isFirebaseConfigured) {
-            // Local logout
-            localStorage.removeItem('local_currentUserEmail');
-            toast({
-                title: "Logged Out (Demo Mode)",
-                description: "You have been successfully logged out.",
-            });
-            window.dispatchEvent(new Event('local-auth-change'));
-            router.push('/auth/login');
-            return;
-        }
-
         if (!auth) {
             toast({
-                title: "Error",
-                description: "Could not connect to authentication service.",
+                title: "Firebase Not Configured",
+                description: "Could not connect to authentication service. Please set up your environment variables.",
                 variant: "destructive"
             });
             return;

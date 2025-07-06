@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Loader2, ArrowRight } from 'lucide-react';
-import { sendOtp } from '@/ai/flows/send-otp-flow';
-import { verifyOtp } from '@/ai/flows/verify-otp-flow';
+import { Loader2 } from 'lucide-react';
 import { handleGoogleSignIn } from '@/lib/authUtils';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -26,42 +24,13 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-const IndianFlagIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="30" height="20">
-      <rect width="30" height="20" fill="#f93"/>
-      <rect width="30" height="13" fill="#fff"/>
-      <rect width="30" height="7" fill="#128807"/>
-      <g transform="translate(15,10)">
-        <circle r="3" fill="#008"/>
-        <circle r="2.5" fill="#fff"/>
-        <circle r="0.5" fill="#008"/>
-        <g id="d">
-          <g id="c">
-            <g id="b">
-              <g id="a">
-                <path d="M0-2.5v2.5h1" fill="#008"/>
-                <path d="M0-2.5v2.5h-1" fill="#008" transform="scale(-1,1)"/>
-              </g>
-              <use href="#a" transform="rotate(15)"/>
-            </g>
-            <use href="#b" transform="rotate(30)"/>
-          </g>
-          <use href="#c" transform="rotate(60)"/>
-        </g>
-        <use href="#d" transform="scale(-1,1)"/>
-      </g>
-    </svg>
-  );
-
-const emailSchema = z.object({ email: z.string().email({ message: 'Please enter a valid email address.' }) });
-const otpSchema = z.object({ otp: z.string().min(6, { message: 'OTP must be 6 digits.' }) });
-const detailsSchema = z.object({
+const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  phone: z.string().min(10, { message: 'Please enter a valid 10-digit phone number.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
-type Step = 'email' | 'otp' | 'details';
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupForm() {
   const router = useRouter();
@@ -70,11 +39,15 @@ export default function SignupForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [step, setStep] = useState<Step>('email');
-  const [formData, setFormData] = useState({ email: '', name: '', phone: '', password: '' });
 
-  const { register, handleSubmit, formState: { errors }, getValues, trigger } = useForm();
-  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+  });
+
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
     await handleGoogleSignIn(
@@ -82,75 +55,32 @@ export default function SignupForm() {
         (errorMsg) => toast({ title: 'Google Sign-In Failed', description: errorMsg, variant: 'destructive' })
     );
     setIsGoogleLoading(false);
-  }
-
-  const handleSendOtp = async () => {
-    const isValid = await trigger("email");
-    if (!isValid) return;
-
-    setIsLoading(true);
-    const email = getValues("email");
-    try {
-      const result = await sendOtp({ email });
-      if (result.success) {
-        setFormData(prev => ({ ...prev, email }));
-        setStep('otp');
-        toast({ title: 'OTP Sent', description: `A verification code (123456) has been sent to ${email}.` });
-      } else {
-        toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
-      }
-    } catch (error) {
-      toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
   };
-
-  const handleVerifyOtp = async () => {
-    const isValid = await trigger("otp");
-    if (!isValid) return;
-
+  
+  const onSignup = async (data: SignupFormValues) => {
     setIsLoading(true);
-    const otp = getValues("otp");
-    try {
-      const result = await verifyOtp({ email: formData.email, otp });
-      if (result.success) {
-        setStep('details');
-        toast({ title: 'Email Verified', description: 'Please complete your registration.' });
-      } else {
-        toast({ title: 'Invalid OTP', description: result.message, variant: 'destructive' });
-      }
-    } catch (error) {
-      toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateAccount = async () => {
-    const isValid = await trigger(["name", "phone", "password"]);
-    if (!isValid) return;
-
-    setIsLoading(true);
-    const { name, phone, password } = getValues();
-    const { email } = formData;
     
-    if (!isFirebaseConfigured || !auth || !db) {
-        toast({ title: 'Service Unavailable', description: "The authentication service is not configured.", variant: "destructive" });
+    if (!auth || !db) {
+        toast({
+            title: "Firebase Not Configured",
+            description: "The app cannot connect to the authentication service. Please configure your Firebase environment variables.",
+            variant: "destructive",
+        });
         setIsLoading(false);
         return;
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
-      await updateProfile(user, { displayName: name });
       
+      await updateProfile(user, { displayName: data.name });
+
       const userDoc = {
         uid: user.uid,
-        name,
-        email,
-        phone,
+        name: data.name,
+        email: user.email,
+        phone: '', 
         createdAt: serverTimestamp(),
         totalRewards: 0,
         quizzesPlayed: 0,
@@ -158,15 +88,22 @@ export default function SignupForm() {
         photoURL: user.photoURL || '',
       };
       await setDoc(doc(db, 'users', user.uid), userDoc);
-      
+
       router.push(from || '/home');
     } catch (error: any) {
-        const message = error.code === 'auth/email-already-in-use' 
-            ? 'This email is already registered. Please log in.' 
-            : 'An error occurred during sign up.';
-      toast({ title: 'Sign Up Failed', description: message, variant: 'destructive' });
+        let message = 'An error occurred during sign up.';
+        if (error.code === 'auth/email-already-in-use') {
+            message = 'This email is already registered. Please log in instead.';
+        } else if (error.code === 'auth/weak-password') {
+            message = 'The password is too weak. Please choose a stronger password.';
+        }
+        toast({
+            title: 'Sign Up Failed',
+            description: message,
+            variant: 'destructive',
+        });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 
@@ -203,65 +140,27 @@ export default function SignupForm() {
           </div>
         </div>
 
-        {step === 'email' && (
-          <form onSubmit={handleSubmit(handleSendOtp)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
-              <Input id="email" type="email" placeholder="you@example.com" {...register('email', emailSchema.shape.email as any)} disabled={isLoading} />
-              {errors.email && <p className="text-sm text-destructive">{String(errors.email.message)}</p>}
-            </div>
-            <Button type="submit" className="w-full text-base py-6" disabled={isLoading}>
-              {isLoading && <Loader2 className="animate-spin" />}
-              Send Verification Code
-              {!isLoading && <ArrowRight />}
-            </Button>
-          </form>
-        )}
-
-        {step === 'otp' && (
-          <form onSubmit={handleSubmit(handleVerifyOtp)} className="space-y-4 text-center">
-             <Label htmlFor="otp">Enter Verification Code</Label>
-             <p className='text-sm text-muted-foreground'>Sent to {formData.email}. The dummy OTP is 123456.</p>
-            <div className="space-y-2">
-              <Input id="otp" {...register('otp', otpSchema.shape.otp as any)} maxLength={6} className="text-center text-2xl tracking-[0.5em] font-mono" />
-              {errors.otp && <p className="text-sm text-destructive">{String(errors.otp.message)}</p>}
-            </div>
-            <Button type="submit" className="w-full text-base py-6" disabled={isLoading}>
-              {isLoading && <Loader2 className="animate-spin" />}
-              Verify Email
-            </Button>
-          </form>
-        )}
-        
-        {step === 'details' && (
-          <form onSubmit={handleSubmit(handleCreateAccount)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" {...register('name', detailsSchema.shape.name as any)} />
-              {errors.name && <p className="text-sm text-destructive">{String(errors.name.message)}</p>}
-            </div>
-             <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none gap-2">
-                       <IndianFlagIcon />
-                       <span className="text-foreground">+91</span>
-                    </div>
-                    <Input id="phone" type="tel" {...register('phone', detailsSchema.shape.phone as any)} className="pl-20" />
-                </div>
-                {errors.phone && <p className="text-sm text-destructive">{String(errors.phone.message)}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...register('password', detailsSchema.shape.password as any)} />
-              {errors.password && <p className="text-sm text-destructive">{String(errors.password.message)}</p>}
-            </div>
-            <Button type="submit" className="w-full text-base py-6" disabled={isLoading}>
-              {isLoading && <Loader2 className="animate-spin" />}
-              Create Account
-            </Button>
-          </form>
-        )}
+        <form onSubmit={handleSubmit(onSignup)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isLoading || isGoogleLoading} />
+            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isLoading || isGoogleLoading} />
+            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" {...register('password')} disabled={isLoading || isGoogleLoading} />
+            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+          </div>
+          <Button type="submit" className="w-full text-base py-6" disabled={isLoading || isGoogleLoading}>
+            {isLoading && <Loader2 className="animate-spin" />}
+            Create Account
+          </Button>
+        </form>
       </div>
     </div>
   );

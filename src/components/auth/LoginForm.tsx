@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth, isFirebaseConfigured, GoogleAuthProvider } from '@/lib/firebase';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,10 +48,10 @@ export default function LoginForm() {
 
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
-    if (!isFirebaseConfigured || !auth) {
+    if (!auth) {
         toast({
-            title: "Service Unavailable",
-            description: "The authentication service is not configured. Please contact support.",
+            title: "Firebase Not Configured",
+            description: "The app cannot connect to the authentication service. Please configure your Firebase environment variables.",
             variant: "destructive",
         });
         setIsLoading(false);

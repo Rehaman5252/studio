@@ -63,28 +63,3 @@ export const GenerateQuizAnalysisOutputSchema = z.object({
     analysis: z.string().describe('A detailed analysis of the user quiz performance, including strengths, weaknesses, and tips for improvement. The analysis should be formatted as markdown.'),
 });
 export type GenerateQuizAnalysisOutput = z.infer<typeof GenerateQuizAnalysisOutputSchema>;
-
-// Schemas for send-otp-flow
-export const SendOtpInputSchema = z.object({
-  email: z.string().email().describe('The email address to send the OTP to.'),
-});
-export type SendOtpInput = z.infer<typeof SendOtpInputSchema>;
-
-export const SendOtpOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-});
-export type SendOtpOutput = z.infer<typeof SendOtpOutputSchema>;
-
-// Schemas for verify-otp-flow
-export const VerifyOtpInputSchema = z.object({
-  email: z.string().email().describe("The user's email address."),
-  otp: z.string().min(6).describe('The 6-digit OTP submitted by the user.'),
-});
-export type VerifyOtpInput = z.infer<typeof VerifyOtpInputSchema>;
-
-export const VerifyOtpOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-});
-export type VerifyOtpOutput = z.infer<typeof VerifyOtpOutputSchema>;
