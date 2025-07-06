@@ -291,7 +291,7 @@ function QuizComponent() {
   }, [adConfig, currentQuestionIndex, usedHintIndices, questions]);
 
   if (isLoading) {
-    return <CricketLoading message="Getting your quiz ready..." />;
+    return <CricketLoading message={`Generating your ${format} quiz...`} />;
   }
 
   if (!questions) {

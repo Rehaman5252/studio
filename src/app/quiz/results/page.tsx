@@ -17,8 +17,6 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import CricketLoading from '@/components/CricketLoading';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
@@ -49,7 +47,7 @@ MalpracticeScreen.displayName = "MalpracticeScreen";
 
 
 const Certificate = memo(({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => (
-    <div>
+    <div className="w-full max-w-md">
         <div className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
             <Star className="absolute top-2 right-2 text-primary" size={32} />
             <Star className="absolute top-2 left-2 text-primary" size={32} />
@@ -99,8 +97,8 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
     }, [questions, userAnswers, timePerQuestion, usedHintIndices, getAnalysisCacheKey]);
     
     return (
-        <div>
-            <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
+        <div className="w-full max-w-md">
+            <Card className="w-full text-left bg-card border-0 mt-4 mb-4">
                  <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Sparkles className="text-primary" /> AI Performance Analysis
@@ -137,8 +135,8 @@ AnalysisCard.displayName = 'AnalysisCard';
 
 
 const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion[], userAnswers: string[] }) => (
-    <div>
-        <Card className="w-full max-w-md text-left bg-card border-0 mt-4 mb-4">
+    <div className="w-full max-w-md">
+        <Card className="w-full text-left bg-card border-0 mt-4 mb-4">
             <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
             <CardContent className="space-y-4">
                 {questions.map((q, i) => (
@@ -162,16 +160,6 @@ const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion
     </div>
 ));
 AnswerReview.displayName = 'AnswerReview';
-
-
-const CertificateLoader = () => <Skeleton className="h-[218px] w-full max-w-md mt-4" />;
-const AnalysisLoader = () => <Skeleton className="h-[180px] w-full max-w-md mt-4" />;
-const AnswerReviewLoader = () => <Skeleton className="h-[200px] w-full max-w-md mt-4" />;
-
-const DynamicCertificate = dynamic(() => Promise.resolve(Certificate), { loading: CertificateLoader, ssr: false });
-const DynamicAnalysisCard = dynamic(() => Promise.resolve(AnalysisCard), { loading: AnalysisLoader, ssr: false });
-const DynamicAnswerReview = dynamic(() => Promise.resolve(AnswerReview), { loading: AnswerReviewLoader, ssr: false });
-
 
 function ResultsComponent() {
     const router = useRouter();
@@ -236,7 +224,7 @@ function ResultsComponent() {
     return (
         <>
             <div 
-                className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 overflow-y-auto"
+                className="flex flex-col items-center min-h-screen bg-background text-foreground p-4 overflow-y-auto"
             >
                 <div className="w-full max-w-md">
                     <Card className="w-full text-center bg-card border-0 my-4">
@@ -287,7 +275,7 @@ function ResultsComponent() {
                     </Card>
                 </div>
 
-                <DynamicAnalysisCard
+                <AnalysisCard
                     questions={questions}
                     userAnswers={userAnswers}
                     timePerQuestion={timePerQuestion}
@@ -295,9 +283,9 @@ function ResultsComponent() {
                     slotId={slotId}
                 />
 
-                {isPerfectScore && <DynamicCertificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "Indcric User"} date={today} slotTimings={slotTimings} />}
                 
-                {showAnswers && <DynamicAnswerReview questions={questions} userAnswers={userAnswers} />}
+                {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
             </div>
 
             {adConfig && (

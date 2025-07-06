@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { CubeBrand } from '@/components/Cube';
-import CricketLoading from '@/components/CricketLoading';
 import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import QuizSelector from '@/components/home/QuizSelector';
@@ -24,47 +23,74 @@ const brands: CubeBrand[] = [
   { id: 6, brand: 'PayPal', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/1200px-PayPal.svg.png', logoWidth: 90, logoHeight: 25 },
 ];
 
+// This new component encapsulates all the frequently-updating parts of the UI.
+// It manages its own state for the selected brand, preventing the main HomeWrapper
+// from re-rendering every time the cube rotates.
+const QuizSelection = ({ onStartQuiz }: { onStartQuiz: (brand: CubeBrand) => void }) => {
+    const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
+    const selectedBrand = brands[selectedBrandIndex];
+
+    const handleFaceSelect = useCallback((index: number) => {
+        setSelectedBrandIndex(index);
+    }, []);
+
+    const handleStart = useCallback(() => {
+        onStartQuiz(selectedBrand);
+    }, [onStartQuiz, selectedBrand]);
+
+    return (
+        <>
+            <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
+                <p className="text-sm text-muted-foreground">Click a face, banner or button to start!</p>
+            </div>
+            
+            <QuizSelector 
+                brands={brands}
+                onFaceSelect={handleFaceSelect}
+                onFaceClick={handleStart}
+            />
+
+            <div className="mt-8 space-y-8">
+                <SelectedBrandCard
+                  selectedBrand={selectedBrand}
+                  handleStartQuiz={handleStart}
+                />
+                
+                <GlobalStats />
+
+                <StartQuizButton
+                  brandFormat={selectedBrand.format}
+                  onClick={handleStart}
+                />
+            </div>
+        </>
+    );
+};
+
 
 export default function HomeWrapper() {
   const { user } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
-  
-  const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
-  const [startingQuizInfo, setStartingQuizInfo] = useState<{ brand: string; format: string } | null>(null);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
   }, [lastAttemptInSlot, isQuizStatusLoading]);
-  
-  const handleFaceSelect = useCallback((index: number) => {
-    setSelectedBrandIndex(index);
-  }, []);
 
-  const handleStartQuiz = useCallback(() => {
+  const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
     if (!user && isFirebaseConfigured) {
-      router.push('/auth/login?from=quiz');
-      return;
+        router.push('/auth/login?from=quiz');
+        return;
     }
-    
-    const selectedBrand = brands[selectedBrandIndex];
-    setStartingQuizInfo({ brand: selectedBrand.brand, format: selectedBrand.format });
-  }, [selectedBrandIndex, user, router]);
 
-  useEffect(() => {
-    if (startingQuizInfo) {
-      const timer = setTimeout(() => {
-        if (hasPlayedInCurrentSlot) {
-          router.push(`/quiz/results?review=true`);
-        } else {
-          router.push(`/quiz?brand=${encodeURIComponent(startingQuizInfo.brand)}&format=${encodeURIComponent(startingQuizInfo.format)}`);
-        }
-      }, 1500); // 1.5 second delay before navigation
-
-      return () => clearTimeout(timer);
+    if (hasPlayedInCurrentSlot) {
+        router.push(`/quiz/results?review=true`);
+    } else {
+        router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [startingQuizInfo, hasPlayedInCurrentSlot, router]);
+  }, [user, router, hasPlayedInCurrentSlot]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -108,43 +134,5 @@ export default function HomeWrapper() {
     );
   }
 
-  if (startingQuizInfo) {
-    return (
-        <div className="flex flex-col flex-1 items-center justify-center py-10">
-            <CricketLoading message={`You have selected ${startingQuizInfo.format} format. Getting your quiz ready...`} />
-        </div>
-    );
-  }
-  
-  const selectedBrand = brands[selectedBrandIndex];
-
-  return (
-    <>
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-        <p className="text-sm text-muted-foreground">Click a face, banner or button to start!</p>
-      </div>
-      
-      <QuizSelector 
-          brands={brands}
-          onFaceSelect={handleFaceSelect}
-          onFaceClick={handleStartQuiz}
-          disabled={!!startingQuizInfo}
-      />
-
-      <div className="mt-8 space-y-8">
-        <SelectedBrandCard
-          selectedBrand={selectedBrand}
-          handleStartQuiz={handleStartQuiz}
-        />
-        
-        <GlobalStats />
-
-        <StartQuizButton
-          brandFormat={selectedBrand.format}
-          onClick={handleStartQuiz}
-        />
-      </div>
-    </>
-  );
+  return <QuizSelection onStartQuiz={handleStartQuiz} />;
 }
