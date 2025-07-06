@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -8,7 +9,6 @@ import { getQuizSlotId } from '@/lib/utils';
 import type { CubeBrand } from '@/components/Cube';
 import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import GuidedTour from './GuidedTour';
 import QuizSelection from './QuizSelection';
 
 
@@ -16,7 +16,6 @@ export default function HomeWrapper() {
   const { user } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
-  const [runTour, setRunTour] = useState(false);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
@@ -38,11 +37,6 @@ export default function HomeWrapper() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const tourCompleted = localStorage.getItem('indcric_guided_tour_completed');
-      if (!tourCompleted) {
-          setRunTour(true);
-      }
-      
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -73,13 +67,6 @@ export default function HomeWrapper() {
     }
   }, []);
 
-  const handleFinishTour = () => {
-      if (typeof window !== 'undefined') {
-          localStorage.setItem('indcric_guided_tour_completed', 'true');
-          setRunTour(false);
-      }
-  };
-
   if (isQuizStatusLoading) {
       return (
         <div className="flex flex-col flex-1 items-center justify-center py-10">
@@ -90,7 +77,6 @@ export default function HomeWrapper() {
 
   return (
     <>
-      <GuidedTour run={runTour} onFinish={handleFinishTour} />
       <QuizSelection onStartQuiz={handleStartQuiz} />
     </>
   );

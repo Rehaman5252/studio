@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, memo } from 'react';
@@ -86,7 +87,6 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   
   return (
     <div 
-      id="tour-step-cube"
       className="flex flex-col items-center"
     >
       <div 
