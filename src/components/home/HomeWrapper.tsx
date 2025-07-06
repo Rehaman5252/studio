@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -12,6 +13,7 @@ import QuizSelector from '@/components/home/QuizSelector';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
+import GuidedTour from './GuidedTour';
 
 
 const brands: CubeBrand[] = [
@@ -23,9 +25,6 @@ const brands: CubeBrand[] = [
   { id: 6, brand: 'PayPal', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/1200px-PayPal.svg.png', logoWidth: 90, logoHeight: 25 },
 ];
 
-// This new component encapsulates all the frequently-updating parts of the UI.
-// It manages its own state for the selected brand, preventing the main HomeWrapper
-// from re-rendering every time the cube rotates.
 const QuizSelection = ({ onStartQuiz }: { onStartQuiz: (brand: CubeBrand) => void }) => {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
     const selectedBrand = brands[selectedBrandIndex];
@@ -73,6 +72,7 @@ export default function HomeWrapper() {
   const { user } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
+  const [showTour, setShowTour] = useState(false);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
@@ -94,7 +94,11 @@ export default function HomeWrapper() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Geolocation
+      const tourCompleted = localStorage.getItem('cricblitz_guided_tour_completed');
+      if (!tourCompleted) {
+          setShowTour(true);
+      }
+      
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -111,7 +115,6 @@ export default function HomeWrapper() {
         console.log('Geolocation is not supported by this browser.');
       }
       
-      // Notification permission
       if ('Notification' in window && Notification.permission !== 'granted') {
           if (Notification.permission !== 'denied') {
             Notification.requestPermission().then(permission => {
@@ -124,7 +127,14 @@ export default function HomeWrapper() {
           }
       }
     }
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
+
+  const handleFinishTour = () => {
+      if (typeof window !== 'undefined') {
+          localStorage.setItem('cricblitz_guided_tour_completed', 'true');
+          setShowTour(false);
+      }
+  };
 
   if (isQuizStatusLoading) {
       return (
@@ -134,5 +144,10 @@ export default function HomeWrapper() {
     );
   }
 
-  return <QuizSelection onStartQuiz={handleStartQuiz} />;
+  return (
+    <>
+      <GuidedTour open={showTour} onFinish={handleFinishTour} />
+      <QuizSelection onStartQuiz={handleStartQuiz} />
+    </>
+  );
 }
