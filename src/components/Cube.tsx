@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
@@ -43,7 +42,7 @@ interface CubeProps {
 }
 
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
-  const [rotationOrderIndex, setRotationOrderIndex] = useState(0);
+  const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -59,12 +58,20 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     if (disabled) return;
 
     rotationTimeoutRef.current = setTimeout(() => {
-      setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
+      // Logic for unpredictable rotation
+      setCurrentFaceIndex(prevIndex => {
+        let nextIndex;
+        do {
+          // Select a random face index from 0 to 5
+          nextIndex = Math.floor(Math.random() * faceRotationOrder.length);
+        } while (nextIndex === prevIndex); // Ensure the new face is different from the current one
+        return nextIndex;
+      });
     }, 500);
   }, [disabled, stopAutoRotation]);
 
   useEffect(() => {
-    const brandIndex = faceRotationOrder[rotationOrderIndex];
+    const brandIndex = faceRotationOrder[currentFaceIndex];
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[brandIndex];
     }
@@ -73,7 +80,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     startAutoRotation();
 
     return stopAutoRotation;
-  }, [rotationOrderIndex, onFaceSelect, startAutoRotation, stopAutoRotation]);
+  }, [currentFaceIndex, onFaceSelect, startAutoRotation, stopAutoRotation]);
 
 
   const handleFaceClick = () => {

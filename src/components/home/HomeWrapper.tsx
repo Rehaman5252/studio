@@ -67,24 +67,36 @@ export default function HomeWrapper() {
   }, [startingQuizInfo, hasPlayedInCurrentSlot, router]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // You can now access the user's location.
-          // For now, we'll just log it to the console.
-          console.log('User location access granted:', {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          // In a real app, you might save this to the user's profile in Firestore.
-        },
-        (error) => {
-          // Handle errors, including the user denying permission.
-          console.error('Geolocation error:', error.message);
-        }
-      );
-    } else {
-      console.log('Geolocation is not supported by this browser.');
+    if (typeof window !== 'undefined') {
+      // Geolocation
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log('User location access granted:', {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          (error) => {
+            console.error('Geolocation error:', error.message);
+          }
+        );
+      } else {
+        console.log('Geolocation is not supported by this browser.');
+      }
+      
+      // Notification permission
+      if ('Notification' in window && Notification.permission !== 'granted') {
+          if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                console.log('Notification permission granted.');
+                } else {
+                console.log('Notification permission denied.');
+                }
+            });
+          }
+      }
     }
   }, []); // Empty dependency array means this runs once on mount
 
