@@ -152,7 +152,8 @@ function QuizComponent() {
      if (db) {
         try {
             const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), currentProgress.slotId);
-            await setDoc(attemptDocRef, currentProgress);
+            // Non-blocking write to Firestore
+            setDoc(attemptDocRef, currentProgress);
         } catch (error) {
             console.error("Error saving quiz history to Firestore: ", error);
         }
@@ -166,7 +167,7 @@ function QuizComponent() {
     setTimeLeft(20);
   }, []);
   
-  const proceedToNextStep = useCallback(async (answer: string) => {
+  const proceedToNextStep = useCallback((answer: string) => {
     const newAnswers = [...userAnswers, answer];
     const newTimes = [...timePerQuestion, 20 - timeLeft];
     
@@ -176,7 +177,8 @@ function QuizComponent() {
     
     // Check if quiz is over
     if (currentQuestionIndex >= questions!.length - 1) {
-      await saveAttempt(newAnswers, newTimes, usedHintIndices);
+      // Non-blocking save and instant navigation
+      saveAttempt(newAnswers, newTimes, usedHintIndices);
       router.replace(`/quiz/results`);
       return;
     }
@@ -239,11 +241,11 @@ function QuizComponent() {
 
   // Anti-cheat effect and unmount save
   useEffect(() => {
-    const handleVisibilityChange = async () => {
+    const handleVisibilityChange = () => {
       // If user switches tabs/apps, terminate and save.
       if (document.hidden && !isTerminated && questions) {
         setIsTerminated(true); // Prevent further actions
-        await saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
+        saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
         router.replace(`/quiz/results?reason=malpractice`);
       }
     };

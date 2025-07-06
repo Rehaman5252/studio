@@ -111,4 +111,17 @@
     );
     background-size: 200% auto;
   }
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% center;
+    }
+    to {
+      background-position: -200% center;
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 4s linear infinite;
+  }
 }

@@ -8,7 +8,7 @@ import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react'
 import { mockQuizHistory, type QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 export default function CertificatesContent() {
   const { user } = useAuth();
@@ -26,7 +26,7 @@ export default function CertificatesContent() {
 
       try {
         const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-        const q = query(historyCollection, orderBy('timestamp', 'desc'));
+        const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
         const querySnapshot = await getDocs(q);
         const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
         setHistory(fetchedHistory);

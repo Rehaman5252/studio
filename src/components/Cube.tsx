@@ -42,22 +42,11 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
 
-  // Continuous, unpredictable rotation
+  // Set initial random face
   useEffect(() => {
-    if (disabled) return;
-
-    const rotationInterval = setInterval(() => {
-      setCurrentFaceIndex(prevIndex => {
-        let nextIndex;
-        do {
-          nextIndex = Math.floor(Math.random() * 6); // 6 faces
-        } while (nextIndex === prevIndex);
-        return nextIndex;
-      });
-    }, 500); // Rotate every 500ms
-
-    return () => clearInterval(rotationInterval);
-  }, [disabled]);
+    const initialFace = Math.floor(Math.random() * 6);
+    setCurrentFaceIndex(initialFace);
+  }, []);
 
   // Update transform and notify parent when face changes
   useEffect(() => {
@@ -83,7 +72,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
         >

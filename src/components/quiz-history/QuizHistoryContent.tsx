@@ -13,7 +13,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
@@ -156,7 +156,7 @@ export default function QuizHistoryContent() {
       }
       try {
         const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-        const q = query(historyCollection, orderBy('timestamp', 'desc'));
+        const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(25));
         const querySnapshot = await getDocs(q);
         const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
         setHistory(fetchedHistory);
