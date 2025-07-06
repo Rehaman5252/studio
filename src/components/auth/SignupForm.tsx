@@ -85,6 +85,9 @@ export default function SignupForm() {
 
   const detailsForm = useForm<DetailsFormValues>({
     resolver: zodResolver(detailsSchema),
+    defaultValues: {
+      phone: '+91',
+    },
   });
 
   const otpForm = useForm<OtpFormValues>({
@@ -95,7 +98,7 @@ export default function SignupForm() {
     if (!isFirebaseConfigured || !auth || !window.recaptchaVerifier) {
       toast({
         title: "Authentication Error",
-        description: "Account creation is disabled because Firebase is not configured.",
+        description: "The authentication service is currently unavailable. Please try again later.",
         variant: 'destructive',
       });
       return;
@@ -130,7 +133,16 @@ export default function SignupForm() {
   };
 
   const handleOtpSubmit = async (data: OtpFormValues) => {
-    if (!isFirebaseConfigured || !auth || !db || !verificationId || !userDetails) {
+    if (!isFirebaseConfigured || !auth || !db) {
+        toast({
+            title: "Authentication Error",
+            description: "The authentication service is currently unavailable. Please try again later.",
+            variant: 'destructive'
+        });
+        return;
+    }
+
+    if (!verificationId || !userDetails) {
       toast({ title: 'An error occurred', description: 'Missing verification data. Please start over.', variant: 'destructive' });
       setStep('details');
       return;
@@ -194,12 +206,12 @@ export default function SignupForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!isFirebaseConfigured && step === 'details' && (
+        {step === 'details' && !isFirebaseConfigured && (
             <Alert variant="destructive" className="mb-4">
                 <Info className="h-4 w-4" />
-                <AlertTitle>Firebase Not Configured</AlertTitle>
+                <AlertTitle>Service Unavailable</AlertTitle>
                 <AlertDescription className="text-foreground/80">
-                    The app cannot connect to the authentication service. Please configure your Firebase environment variables.
+                    The authentication service is currently unavailable. Please try again later.
                 </AlertDescription>
             </Alert>
         )}
@@ -226,7 +238,7 @@ export default function SignupForm() {
               <Input id="phone" type="tel" placeholder="+919876543210" {...detailsForm.register('phone')} />
               {detailsForm.formState.errors.phone && <p className="text-sm text-destructive">{detailsForm.formState.errors.phone.message}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Send OTP
             </Button>
