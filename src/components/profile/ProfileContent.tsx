@@ -202,7 +202,19 @@ const LogoutButton = memo(() => {
     const router = useRouter();
 
     const handleLogout = async () => {
-        if (!isFirebaseConfigured || !auth) {
+        if (!isFirebaseConfigured) {
+            // Local logout
+            localStorage.removeItem('local_currentUserEmail');
+            toast({
+                title: "Logged Out (Demo Mode)",
+                description: "You have been successfully logged out.",
+            });
+            window.dispatchEvent(new Event('local-auth-change'));
+            router.push('/auth/login');
+            return;
+        }
+
+        if (!auth) {
             toast({
                 title: "Error",
                 description: "Could not connect to authentication service.",

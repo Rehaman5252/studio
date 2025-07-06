@@ -39,24 +39,62 @@ export default function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
-    if (!isFirebaseConfigured || !auth) {
+  const handleLocalLogin = (data: LoginFormValues) => {
+    try {
+      const localUsers = JSON.parse(localStorage.getItem('local_users') || '{}');
+      const user = localUsers[data.email];
+
+      if (user && user.password === data.password) {
+        localStorage.setItem('local_currentUserEmail', data.email);
+        window.dispatchEvent(new Event('local-auth-change'));
+        router.push(from || '/home');
+      } else {
         toast({
-            title: "Firebase Not Configured",
-            description: "The app cannot connect to the authentication service. Please configure your Firebase environment variables.",
+          title: 'Login Failed (Demo Mode)',
+          description: 'Invalid email or password.',
+          variant: 'destructive',
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'Local Login Failed',
+        description: 'Could not log in using local storage.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onSubmit = async (data: LoginFormValues) => {
+    setIsLoading(true);
+    if (!isFirebaseConfigured) {
+      handleLocalLogin(data);
+      return;
+    }
+
+    if (!auth) {
+        toast({
+            title: "Firebase Service Unavailable",
+            description: "The app cannot connect to the authentication service. Please check your configuration.",
             variant: 'destructive'
         });
+        setIsLoading(false);
         return;
     }
 
-    setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push(from || '/home');
     } catch (error: any) {
+      let friendlyMessage = error.message;
+      if (error.code === 'auth/invalid-credential') {
+          friendlyMessage = "Invalid login credentials. Please check your email and password."
+      }
       toast({
         title: 'Login Failed',
-        description: error.message,
+        description: friendlyMessage,
         variant: 'destructive',
       });
     } finally {
@@ -72,11 +110,11 @@ export default function LoginForm() {
       </CardHeader>
       <CardContent>
         {!isFirebaseConfigured && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert variant="default" className="mb-4 border-primary/50 bg-primary/10">
                 <Info className="h-4 w-4" />
-                <AlertTitle>Firebase Not Configured</AlertTitle>
+                <AlertTitle>Demo Mode Active</AlertTitle>
                 <AlertDescription className="text-foreground/80">
-                    The app cannot connect to the authentication service. Please configure your Firebase environment variables.
+                    Firebase is not configured. Accounts will be saved in your browser.
                 </AlertDescription>
             </Alert>
         )}
@@ -91,7 +129,7 @@ export default function LoginForm() {
             <Input id="password" type="password" {...register('password')} />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Log In
           </Button>
