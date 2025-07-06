@@ -85,12 +85,12 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     <div className="flex justify-center items-center h-48">
       <div 
         className={cn("w-32 h-32 perspective", disabled && "opacity-50")}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
       >
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
           style={{ 
             transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
