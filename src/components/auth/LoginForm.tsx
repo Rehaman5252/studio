@@ -42,8 +42,8 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginFormValues) => {
     if (!isFirebaseConfigured || !auth) {
         toast({
-            title: "Authentication Error",
-            description: "The authentication service is currently unavailable. Please try again later.",
+            title: "Firebase Not Configured",
+            description: "The app cannot connect to the authentication service. Please configure your Firebase environment variables.",
             variant: 'destructive'
         });
         return;
@@ -74,9 +74,9 @@ export default function LoginForm() {
         {!isFirebaseConfigured && (
             <Alert variant="destructive" className="mb-4">
                 <Info className="h-4 w-4" />
-                <AlertTitle>Service Unavailable</AlertTitle>
+                <AlertTitle>Firebase Not Configured</AlertTitle>
                 <AlertDescription className="text-foreground/80">
-                    The authentication service is currently unavailable. Please try again later.
+                    The app cannot connect to the authentication service. Please configure your Firebase environment variables.
                 </AlertDescription>
             </Alert>
         )}
@@ -91,7 +91,7 @@ export default function LoginForm() {
             <Input id="password" type="password" {...register('password')} />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Log In
           </Button>
