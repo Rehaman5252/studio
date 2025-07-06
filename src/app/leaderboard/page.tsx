@@ -27,14 +27,6 @@ const LeaderboardContent = dynamic(() => import('@/components/leaderboard/Leader
 
 export default function LeaderboardPage() {
   const { loading } = useAuth();
-
-  if (loading) {
-      return (
-        <div className="flex flex-col h-screen bg-background items-center justify-center">
-             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
   
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -43,7 +35,13 @@ export default function LeaderboardPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 pb-24">
-        <LeaderboardContent />
+        {loading ? (
+           <div className="flex flex-col h-full items-center justify-center">
+             <Loader2 className="h-12 w-12 animate-spin text-primary" />
+           </div>
+        ) : (
+          <LeaderboardContent />
+        )}
       </main>
     </div>
   );

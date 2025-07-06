@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, memo } from 'react';
@@ -53,18 +54,14 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
       setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
     };
 
-    if (!disabled) {
-      intervalRef.current = setInterval(rotateToNextFace, 2000); // Continuous rotation
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    intervalRef.current = setInterval(rotateToNextFace, 500); // Continuous, faster rotation
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [disabled, brands.length]);
+  }, [brands.length]);
 
 
   useEffect(() => {
@@ -91,7 +88,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
         >

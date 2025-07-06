@@ -23,20 +23,7 @@ const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent
 
 export default function ProfilePage() {
     useRequireAuth();
-    const { user, userData, loading } = useAuth();
-    
-    if (loading || !user || !userData) {
-      return (
-        <div className="flex flex-col h-screen bg-background">
-           <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
-            </header>
-            <main className="flex-1 flex items-center justify-center">
-                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </main>
-        </div>
-      );
-    }
+    const { userData, loading } = useAuth();
     
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -45,7 +32,13 @@ export default function ProfilePage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        <ProfileContent userProfile={userData} />
+        {loading || !userData ? (
+             <div className="flex items-center justify-center h-full">
+                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        ) : (
+             <ProfileContent userProfile={userData} />
+        )}
       </main>
     </div>
   );
