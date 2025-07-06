@@ -190,7 +190,7 @@ export default function SignupForm() {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">{step === 'details' ? 'Create an Account' : 'Verify Your Phone'}</CardTitle>
         <CardDescription>
-          {step === 'details' ? 'Join Indcric to test your cricket knowledge' : `Enter the OTP sent to ${userDetails?.phone}`}
+          {step === 'details' ? 'Join indcric to test your cricket knowledge' : `Enter the OTP sent to ${userDetails?.phone}`}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     default: 'indcric - The Ultimate Cricket Quiz Challenge',
     template: '%s | indcric',
   },
-  description: 'Test your cricket knowledge on Indcric, the ultimate quiz app. Compete, climb the leaderboard, and win exciting prizes. Fast, fun, and built for true cricket fans.',
+  description: 'Test your cricket knowledge on indcric and win ₹100 every 100 seconds. Compete, climb the leaderboard, and win exciting prizes. Fast, fun, and built for true cricket fans.',
   keywords: ['cricket', 'quiz', 'ipl', 't20', 'odi', 'test cricket', 'sports trivia', 'indcric'],
   icons: {
     icon: '/favicon.ico',
