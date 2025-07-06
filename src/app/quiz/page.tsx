@@ -31,7 +31,6 @@ const interstitialAds: Record<number, { logo: string; hint: string }> = {
 const Timer = memo(({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
-  // Ensure strokeDashoffset doesn't go below 0
   const offset = Math.max(0, circumference - (timeLeft / 20) * circumference);
 
   return (
@@ -128,37 +127,15 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
-  const saveAttempt = useCallback(async (finalAnswers: string[], finalTime: number[], finalHints: number[]) => {
-    if (!questions || !user || quizCompleted.current) return;
-    quizCompleted.current = true;
-    
-    const score = finalAnswers.reduce((acc, answer, index) => 
-        (questions[index] && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
-
-    const currentProgress: SlotAttempt = {
-      slotId: getQuizSlotId(),
-      score,
-      totalQuestions: questions.length,
-      format,
-      brand,
-      questions,
-      userAnswers: finalAnswers,
-      timePerQuestion: finalTime,
-      usedHintIndices: finalHints,
-      timestamp: Date.now(),
-    };
-    setLastAttemptInSlot(currentProgress);
-
-     if (db) {
-        try {
-            const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), currentProgress.slotId);
-            // Non-blocking write to Firestore
-            setDoc(attemptDocRef, currentProgress);
-        } catch (error) {
-            console.error("Error saving quiz history to Firestore: ", error);
-        }
+  const saveAttemptInBackground = useCallback((attempt: SlotAttempt) => {
+    if (db && user) {
+        const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), attempt.slotId);
+        // Fire-and-forget write to Firestore, handling potential errors in the background.
+        setDoc(attemptDocRef, attempt).catch(error => {
+            console.error("Error saving quiz history in background: ", error);
+        });
     }
-  }, [questions, user, format, brand, setLastAttemptInSlot]);
+  }, [user]);
 
   const goToNextQuestion = useCallback(() => {
     setSelectedOption(null);
@@ -171,19 +148,35 @@ function QuizComponent() {
     const newAnswers = [...userAnswers, answer];
     const newTimes = [...timePerQuestion, 20 - timeLeft];
     
-    // Save state before deciding next step
     setUserAnswers(newAnswers);
     setTimePerQuestion(newTimes);
     
-    // Check if quiz is over
     if (currentQuestionIndex >= questions!.length - 1) {
-      // Non-blocking save and instant navigation
-      saveAttempt(newAnswers, newTimes, usedHintIndices);
-      router.replace(`/quiz/results`);
-      return;
+        if (quizCompleted.current) return;
+        quizCompleted.current = true;
+        
+        const score = newAnswers.reduce((acc, ans, index) => 
+            (questions![index] && ans === questions![index].correctAnswer) ? acc + 1 : acc, 0);
+
+        const finalAttempt: SlotAttempt = {
+            slotId: getQuizSlotId(),
+            score,
+            totalQuestions: questions!.length,
+            format,
+            brand,
+            questions: questions!,
+            userAnswers: newAnswers,
+            timePerQuestion: newTimes,
+            usedHintIndices,
+            timestamp: Date.now(),
+        };
+
+        setLastAttemptInSlot(finalAttempt);
+        router.replace(`/quiz/results`);
+        saveAttemptInBackground(finalAttempt);
+        return;
     }
 
-    // After Q3 (index 2), show video ad
     if (currentQuestionIndex === 2) {
       setAdConfig({
         ad: adLibrary.midQuizAd,
@@ -196,17 +189,15 @@ function QuizComponent() {
       return;
     }
     
-    // Check for other image interstitials
     const interstitial = interstitialAds[currentQuestionIndex];
     if (interstitial) {
       setInterstitialConfig(interstitial);
       return;
     }
     
-    // Otherwise, go to next question
     goToNextQuestion();
 
-  }, [userAnswers, timePerQuestion, timeLeft, currentQuestionIndex, questions, usedHintIndices, saveAttempt, router, goToNextQuestion]);
+  }, [userAnswers, timePerQuestion, timeLeft, currentQuestionIndex, questions, usedHintIndices, saveAttemptInBackground, router, goToNextQuestion, brand, format, setLastAttemptInSlot]);
 
   // Fetch questions
   useEffect(() => {
@@ -235,34 +226,27 @@ function QuizComponent() {
       const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timerId);
     } else {
-       proceedToNextStep(''); // Timeout is an empty answer
+       proceedToNextStep('');
     }
   }, [timeLeft, selectedOption, adConfig, interstitialConfig, questions, isTerminated, proceedToNextStep]);
 
   // Anti-cheat effect and unmount save
   useEffect(() => {
     const handleVisibilityChange = () => {
-      // If user switches tabs/apps, terminate and save.
-      if (document.hidden && !isTerminated && questions) {
-        setIsTerminated(true); // Prevent further actions
-        saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
+      if (document.hidden && !isTerminated && questions && !quizCompleted.current) {
+        setIsTerminated(true);
+        // When terminating for malpractice, we don't need to save the full attempt data,
+        // as the results page will just show the malpractice screen.
         router.replace(`/quiz/results?reason=malpractice`);
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     
-    // The cleanup function runs when the component unmounts.
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      
-      // If the quiz started but was not "completed" (by finishing or malpractice),
-      // save the attempt. This covers navigating away with the back button.
-      if (hasFetchedQuestions.current && !quizCompleted.current) {
-        saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
-      }
     };
-  }, [router, saveAttempt, userAnswers, timePerQuestion, usedHintIndices, isTerminated, questions]);
+  }, [router, isTerminated, questions]);
 
 
   const onInterstitialComplete = useCallback(() => {

@@ -45,13 +45,11 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   const [isHovering, setIsHovering] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Set initial random face
   useEffect(() => {
     const initialFace = Math.floor(Math.random() * 6);
     setCurrentFaceIndex(initialFace);
   }, []);
 
-  // Effect to handle auto-rotation
   useEffect(() => {
     const rotateToNextFace = () => {
       setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
@@ -71,7 +69,6 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   }, [isHovering, disabled, brands.length]);
 
 
-  // Update transform and notify parent when face changes
   useEffect(() => {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[currentFaceIndex];
@@ -86,11 +83,9 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   };
   
   return (
-    <div 
-      className="flex flex-col items-center"
-    >
+    <div className="flex justify-center items-center h-48">
       <div 
-        className={cn("w-48 h-48 perspective", disabled && "opacity-50")}
+        className={cn("w-32 h-32 perspective", disabled && "opacity-50")}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
@@ -111,7 +106,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
               aria-label={`Select ${brand.format} quiz sponsored by ${brand.brand}`}
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleFaceClick()}
               className={cn(
-                "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
+                "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
                 !disabled && "cursor-pointer hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"
               )}
               style={{

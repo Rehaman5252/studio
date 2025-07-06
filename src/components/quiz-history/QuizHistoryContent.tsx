@@ -15,6 +15,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 
+const CACHE_KEY = 'quizHistoryCache';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -55,7 +56,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     }, [isLoading, attempt, getAnalysisCacheKey]);
 
     const handleOpenChange = useCallback((open: boolean) => {
-        if (open && !analysis) { // Only fetch if opening and no analysis is loaded
+        if (open && !analysis) {
             handleFetchAnalysis();
         }
     }, [analysis, handleFetchAnalysis]);
@@ -142,13 +143,20 @@ QuizHistoryItem.displayName = "QuizHistoryItem";
 
 export default function QuizHistoryContent() {
   const { user } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>([]);
+  const [history, setHistory] = useState<QuizAttempt[]>(() => {
+      if (typeof sessionStorage === 'undefined') return [];
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      return cached ? JSON.parse(cached) : [];
+  });
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(history.length === 0);
 
   useEffect(() => {
     async function fetchHistory() {
-      setIsLoading(true);
+      if (history.length === 0) {
+          setIsLoading(true);
+      }
+
       if (!isFirebaseConfigured || !db || !user) {
         setHistory(mockQuizHistory);
         setIsLoading(false);
@@ -160,15 +168,20 @@ export default function QuizHistoryContent() {
         const querySnapshot = await getDocs(q);
         const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
         setHistory(fetchedHistory);
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify(fetchedHistory));
+        }
       } catch (error) {
          console.error("Failed to fetch quiz history:", error);
-         setHistory(mockQuizHistory); // Fallback to mock data on error
+         if (history.length === 0) {
+            setHistory(mockQuizHistory);
+         }
       } finally {
         setIsLoading(false);
       }
     }
-
     fetchHistory();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const filteredHistory = useMemo(() => {

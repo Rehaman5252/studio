@@ -10,14 +10,25 @@ import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
+const CACHE_KEY = 'certificatesCache';
+
 export default function CertificatesContent() {
   const { user } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [history, setHistory] = useState<QuizAttempt[]>(() => {
+    if (typeof sessionStorage === 'undefined') return [];
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [isLoading, setIsLoading] = useState(history.length === 0);
 
   useEffect(() => {
     async function fetchHistory() {
-      setIsLoading(true);
+      // If we have cached data, we can show it while fetching fresh data in the background
+      // This makes navigation feel instant.
+      if (history.length === 0) {
+          setIsLoading(true);
+      }
+
       if (!isFirebaseConfigured || !db || !user) {
         setHistory(mockQuizHistory);
         setIsLoading(false);
@@ -30,14 +41,21 @@ export default function CertificatesContent() {
         const querySnapshot = await getDocs(q);
         const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
         setHistory(fetchedHistory);
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify(fetchedHistory));
+        }
       } catch (error) {
         console.error("Failed to fetch quiz history:", error);
-        setHistory(mockQuizHistory); // Fallback to mock on error
+        if (history.length === 0) { // Only fallback to mock if there's nothing to show
+          setHistory(mockQuizHistory);
+        }
       } finally {
         setIsLoading(false);
       }
     }
     fetchHistory();
+  // We only want to run this on mount or when the user changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const getSlotTimings = (timestamp: number) => {
