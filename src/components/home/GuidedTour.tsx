@@ -144,8 +144,9 @@ export default function GuidedTour({ open, onFinish }: GuidedTourProps) {
             <Image 
                 src={currentStep.image}
                 alt={currentStep.title}
-                fill={true}
-                className="object-cover"
+                width={400}
+                height={200}
+                className="object-cover w-full h-full"
                 data-ai-hint={currentStep.imageHint}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />

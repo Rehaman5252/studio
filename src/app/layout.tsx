@@ -11,10 +11,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Indcric - The Ultimate Cricket Quiz Challenge',
-    template: '%s | Indcric',
+    default: 'CricBlitz - The Ultimate Cricket Quiz Challenge',
+    template: '%s | CricBlitz',
   },
-  description: 'Test your cricket knowledge on Indcric, the ultimate quiz app. Compete, climb the leaderboard, and win exciting prizes. Fast, fun, and built for true cricket fans.',
+  description: 'Test your cricket knowledge on CricBlitz, the ultimate quiz app. Compete, climb the leaderboard, and win exciting prizes. Fast, fun, and built for true cricket fans.',
+  keywords: ['cricket', 'quiz', 'ipl', 't20', 'odi', 'test cricket', 'sports trivia', 'cricblitz'],
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#E0F8E0' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a2a1a' },
+  ],
   icons: {
     icon: '/favicon.ico',
   },

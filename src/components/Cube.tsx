@@ -67,7 +67,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         } while (nextIndex === prevIndex); // Ensure the new face is different from the current one
         return nextIndex;
       });
-    }, 500);
+    }, 5000); // Increased interval for slower, more deliberate rotation
   }, [disabled, stopAutoRotation]);
 
   useEffect(() => {
@@ -103,9 +103,13 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
             <div
               key={brand.id}
               onClick={handleFaceClick}
+              role="button"
+              tabIndex={disabled ? -1 : 0}
+              aria-label={`Select ${brand.format} quiz sponsored by ${brand.brand}`}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleFaceClick()}
               className={cn(
                 "absolute w-32 h-32 left-[calc(50%-64px)] top-[calc(50%-64px)] rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
-                !disabled && "cursor-pointer transition-all hover:border-primary hover:shadow-primary/20"
+                !disabled && "cursor-pointer transition-all hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"
               )}
               style={{
                 transform: faceTransforms[index],
