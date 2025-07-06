@@ -9,7 +9,7 @@ function SignupPageLoading() {
         <Card className="w-full max-w-sm">
             <CardHeader className="text-center">
                 <CardTitle className="text-2xl">Create an Account</CardTitle>
-                <CardDescription>Join Indcric to test your cricket knowledge</CardDescription>
+                <CardDescription>Join indcric to test your cricket knowledge</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">

@@ -99,7 +99,7 @@ function QuizComponent() {
   const router = useRouter();
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const brand = searchParams.get('brand') || 'Indcric';
+  const brand = searchParams.get('brand') || 'indcric';
   const format = searchParams.get('format') || 'Cricket';
 
   const { setLastAttemptInSlot } = useQuizStatus();

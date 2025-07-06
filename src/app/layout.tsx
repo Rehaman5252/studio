@@ -11,8 +11,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Indcric - The Ultimate Cricket Quiz Challenge',
-    template: '%s | Indcric',
+    default: 'indcric - The Ultimate Cricket Quiz Challenge',
+    template: '%s | indcric',
   },
   description: 'Test your cricket knowledge on Indcric, the ultimate quiz app. Compete, climb the leaderboard, and win exciting prizes. Fast, fun, and built for true cricket fans.',
   keywords: ['cricket', 'quiz', 'ipl', 't20', 'odi', 'test cricket', 'sports trivia', 'indcric'],
