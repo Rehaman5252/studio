@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, memo } from 'react';
@@ -54,7 +55,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         } while (nextIndex === prevIndex);
         return nextIndex;
       });
-    }, 2500); // Rotate every 2.5 seconds (2x faster)
+    }, 500); // Rotate every 0.5 seconds
 
     return () => clearInterval(rotationInterval);
   }, [disabled]);
