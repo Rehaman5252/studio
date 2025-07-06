@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -14,8 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { handleGoogleSignIn } from '@/lib/authUtils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -61,7 +61,6 @@ export default function SignupForm() {
     setIsLoading(true);
     
     if (!auth || !db) {
-        console.error("FIREBASE MISSING CONFIG: Please add your Firebase project configuration to your environment variables to enable authentication.");
         toast({
             title: "Authentication Unavailable",
             description: "The authentication service is not configured. Please contact the site administrator.",
@@ -108,6 +107,8 @@ export default function SignupForm() {
     }
   };
 
+  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
+
   return (
     <div className="w-full max-w-md p-4 sm:p-8 space-y-8">
       <div>
@@ -126,7 +127,16 @@ export default function SignupForm() {
       </div>
 
       <div className="space-y-6">
-        <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isLoading || isGoogleLoading} suppressHydrationWarning>
+        {!isFirebaseConfigured && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Service Unavailable</AlertTitle>
+                <AlertDescription>
+                    Account creation is currently offline. Please try again later.
+                </AlertDescription>
+            </Alert>
+        )}
+        <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isAuthDisabled}>
             {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-2" /> Continue with Google</>}
         </Button>
         <div className="relative">
@@ -143,20 +153,20 @@ export default function SignupForm() {
         <form onSubmit={handleSubmit(onSignup)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isLoading || isGoogleLoading} suppressHydrationWarning />
+            <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isAuthDisabled} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
-            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isLoading || isGoogleLoading} suppressHydrationWarning />
+            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isAuthDisabled} />
             {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" {...register('password')} disabled={isLoading || isGoogleLoading} suppressHydrationWarning />
+            <Input id="password" type="password" {...register('password')} disabled={isAuthDisabled} />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
-          <Button type="submit" className="w-full text-base py-6" disabled={isLoading || isGoogleLoading}>
+          <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled}>
             {isLoading && <Loader2 className="animate-spin mr-2" />}
             Create Account
           </Button>
