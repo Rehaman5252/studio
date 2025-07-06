@@ -48,7 +48,7 @@ export default function LoginForm() {
 
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
-    if (!auth) {
+    if (!isFirebaseConfigured || !auth) {
         toast({
             title: "Authentication Unavailable",
             description: "The authentication service is not configured. Please contact the site administrator.",
@@ -81,7 +81,7 @@ export default function LoginForm() {
     setIsGoogleLoading(false);
   }
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
+  const isAuthDisabled = isLoading || isGoogleLoading;
 
   return (
     <div className="w-full max-w-md p-4 sm:p-8 space-y-8">
@@ -104,14 +104,14 @@ export default function LoginForm() {
         {!isFirebaseConfigured && (
             <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Service Unavailable</AlertTitle>
+                <AlertTitle>Firebase Not Configured</AlertTitle>
                 <AlertDescription>
-                    Authentication is currently offline. Please try again later.
+                    The app cannot connect to the authentication service. If you are the developer, please ensure your Firebase environment variables are set in your hosting provider's settings.
                 </AlertDescription>
             </Alert>
         )}
       
-        <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isAuthDisabled}>
+        <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isAuthDisabled || !isFirebaseConfigured}>
             {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-2" /> Continue with Google</>}
         </Button>
 
@@ -129,15 +129,15 @@ export default function LoginForm() {
         <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
-            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isAuthDisabled} />
+            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isAuthDisabled || !isFirebaseConfigured} />
             {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" {...register('password')} disabled={isAuthDisabled} />
+            <Input id="password" type="password" {...register('password')} disabled={isAuthDisabled || !isFirebaseConfigured} />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
-          <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled}>
+          <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled || !isFirebaseConfigured}>
             {isLoading && <Loader2 className="animate-spin mr-2" />}
             Sign In
           </Button>
