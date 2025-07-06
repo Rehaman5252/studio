@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { auth, isFirebaseConfigured } from '@/lib/firebase';
-import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,8 +30,6 @@ export default function LoginForm() {
   const from = searchParams.get('from');
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
-  const [unverifiedUser, setUnverifiedUser] = useState<any>(null);
 
   const {
     register,
@@ -40,26 +38,6 @@ export default function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
-
-  const handleResendVerification = async () => {
-      if (!unverifiedUser) return;
-      setIsResending(true);
-      try {
-        await sendEmailVerification(unverifiedUser);
-        toast({
-            title: 'Verification Email Sent',
-            description: 'A new verification link has been sent to your email address.',
-        });
-      } catch (error: any) {
-        toast({
-            title: 'Error',
-            description: error.message,
-            variant: 'destructive',
-        });
-      } finally {
-        setIsResending(false);
-      }
-  }
 
   const onSubmit = async (data: LoginFormValues) => {
     if (!isFirebaseConfigured || !auth) {
@@ -72,22 +50,9 @@ export default function LoginForm() {
     }
 
     setIsLoading(true);
-    setUnverifiedUser(null);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-      
-      if (!userCredential.user.emailVerified) {
-        setUnverifiedUser(userCredential.user);
-        toast({
-            title: 'Email Not Verified',
-            description: 'Please check your inbox and click the verification link to continue.',
-            variant: 'destructive',
-        });
-        await auth.signOut(); // Log out the user until they are verified
-      } else {
-        router.push(from || '/home');
-      }
-
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      router.push(from || '/home');
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -131,12 +96,6 @@ export default function LoginForm() {
             Log In
           </Button>
         </form>
-        {unverifiedUser && (
-             <Button variant="secondary" className="w-full mt-2" onClick={handleResendVerification} disabled={isResending}>
-                {isResending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Resend Verification Email
-            </Button>
-        )}
         <div className="mt-4 text-center text-sm">
           Don't have an account?{' '}
           <Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="underline">
