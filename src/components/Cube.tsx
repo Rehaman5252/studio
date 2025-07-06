@@ -88,10 +88,12 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     <div 
       id="tour-step-cube"
       className="flex flex-col items-center"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
     >
-      <div className={cn("w-48 h-48 perspective", disabled && "opacity-50")}>
+      <div 
+        className={cn("w-48 h-48 perspective", disabled && "opacity-50")}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
