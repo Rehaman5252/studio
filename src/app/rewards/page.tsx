@@ -29,8 +29,6 @@ const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent
 });
 
 export default function RewardsPage() {
-  useRequireAuth();
-
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">

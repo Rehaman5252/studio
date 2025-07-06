@@ -126,7 +126,7 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { quizHistory, isHistoryLoading } = useAuth();
+  const { user, quizHistory, isHistoryLoading } = useAuth();
   
   const uniqueBrandAttempts = useMemo(() => {
     const localHistory = (quizHistory as QuizAttempt[]) || [];
@@ -141,17 +141,21 @@ export default function RewardsContent() {
     });
   }, [quizHistory]);
 
-  if (isHistoryLoading) {
-    return (
-        <div className="flex flex-col items-center justify-center h-full py-10">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
 
   return (
     <>
-        <BrandGiftsSection uniqueBrandAttempts={uniqueBrandAttempts} />
+        {user && (
+            isHistoryLoading ? (
+                 <section>
+                    <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+                    <div className="w-full flex justify-center items-center h-40">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    </div>
+                </section>
+            ) : (
+                <BrandGiftsSection uniqueBrandAttempts={uniqueBrandAttempts} />
+            )
+        )}
         <GenericOffersSection />
     </>
   );
