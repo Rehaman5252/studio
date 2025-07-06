@@ -57,7 +57,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     };
 
     if (!isHovering && !disabled) {
-      intervalRef.current = setInterval(rotateToNextFace, 3000); // Rotate every 3 seconds
+      intervalRef.current = setInterval(rotateToNextFace, 500); // Rotate every 0.5 seconds
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
