@@ -1,3 +1,4 @@
+
 'use client';
 
 import { auth, db, GoogleAuthProvider } from './firebase';
@@ -6,7 +7,8 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 export const handleGoogleSignIn = async (onSuccess: () => void, onError: (message: string) => void) => {
     if (!auth || !db) {
-        onError("Firebase Not Configured: The app cannot connect to the authentication service. Please configure your Firebase environment variables.");
+        console.error("FIREBASE MISSING CONFIG: Please add your Firebase project configuration to your environment variables to enable Google Sign-In.");
+        onError("The authentication service is not configured. Please contact the site administrator.");
         return;
     }
 

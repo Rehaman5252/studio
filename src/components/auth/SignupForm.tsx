@@ -61,9 +61,10 @@ export default function SignupForm() {
     setIsLoading(true);
     
     if (!auth || !db) {
+        console.error("FIREBASE MISSING CONFIG: Please add your Firebase project configuration to your environment variables to enable authentication.");
         toast({
-            title: "Firebase Not Configured",
-            description: "The app cannot connect to the authentication service. Please configure your Firebase environment variables.",
+            title: "Authentication Unavailable",
+            description: "The authentication service is not configured. Please contact the site administrator.",
             variant: "destructive",
         });
         setIsLoading(false);
@@ -125,9 +126,8 @@ export default function SignupForm() {
       </div>
 
       <div className="space-y-6">
-        <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isLoading || isGoogleLoading}>
-            {isGoogleLoading ? <Loader2 className="animate-spin" /> : <GoogleIcon className="h-5 w-5" />}
-            Continue with Google
+        <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isLoading || isGoogleLoading} suppressHydrationWarning>
+            {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-2" /> Continue with Google</>}
         </Button>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -143,21 +143,21 @@ export default function SignupForm() {
         <form onSubmit={handleSubmit(onSignup)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isLoading || isGoogleLoading} />
+            <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isLoading || isGoogleLoading} suppressHydrationWarning />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
-            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isLoading || isGoogleLoading} />
+            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isLoading || isGoogleLoading} suppressHydrationWarning />
             {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" {...register('password')} disabled={isLoading || isGoogleLoading} />
+            <Input id="password" type="password" {...register('password')} disabled={isLoading || isGoogleLoading} suppressHydrationWarning />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
           <Button type="submit" className="w-full text-base py-6" disabled={isLoading || isGoogleLoading}>
-            {isLoading && <Loader2 className="animate-spin" />}
+            {isLoading && <Loader2 className="animate-spin mr-2" />}
             Create Account
           </Button>
         </form>
