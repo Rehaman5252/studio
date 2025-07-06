@@ -94,7 +94,7 @@ export default function HomeWrapper() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const tourCompleted = localStorage.getItem('cricblitz_guided_tour_completed');
+      const tourCompleted = localStorage.getItem('indcric_guided_tour_completed');
       if (!tourCompleted) {
           setShowTour(true);
       }
@@ -131,7 +131,7 @@ export default function HomeWrapper() {
 
   const handleFinishTour = () => {
       if (typeof window !== 'undefined') {
-          localStorage.setItem('cricblitz_guided_tour_completed', 'true');
+          localStorage.setItem('indcric_guided_tour_completed', 'true');
           setShowTour(false);
       }
   };
