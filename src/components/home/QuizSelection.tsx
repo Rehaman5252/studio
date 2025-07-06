@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useRef } from 'react';
 import type { CubeBrand } from '@/components/Cube';
 import QuizSelector from '@/components/home/QuizSelector';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
@@ -23,14 +23,17 @@ interface QuizSelectionProps {
 function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
     const selectedBrand = brands[selectedBrandIndex];
+    
+    const selectedBrandRef = useRef(selectedBrand);
+    selectedBrandRef.current = selectedBrand;
 
     const handleFaceSelect = useCallback((index: number) => {
         setSelectedBrandIndex(index);
     }, []);
 
     const handleStart = useCallback(() => {
-        onStartQuiz(selectedBrand);
-    }, [onStartQuiz, selectedBrand]);
+        onStartQuiz(selectedBrandRef.current);
+    }, [onStartQuiz]);
 
     return (
         <>
