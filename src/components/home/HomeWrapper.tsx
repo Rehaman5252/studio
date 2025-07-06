@@ -16,7 +16,7 @@ export default function HomeWrapper() {
   const { user } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
-  const [showTour, setShowTour] = useState(false);
+  const [runTour, setRunTour] = useState(false);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
@@ -40,7 +40,7 @@ export default function HomeWrapper() {
     if (typeof window !== 'undefined') {
       const tourCompleted = localStorage.getItem('indcric_guided_tour_completed');
       if (!tourCompleted) {
-          setShowTour(true);
+          setRunTour(true);
       }
       
       if ('geolocation' in navigator) {
@@ -76,7 +76,7 @@ export default function HomeWrapper() {
   const handleFinishTour = () => {
       if (typeof window !== 'undefined') {
           localStorage.setItem('indcric_guided_tour_completed', 'true');
-          setShowTour(false);
+          setRunTour(false);
       }
   };
 
@@ -90,7 +90,7 @@ export default function HomeWrapper() {
 
   return (
     <>
-      <GuidedTour open={showTour} onFinish={handleFinishTour} />
+      <GuidedTour run={runTour} onFinish={handleFinishTour} />
       <QuizSelection onStartQuiz={handleStartQuiz} />
     </>
   );

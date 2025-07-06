@@ -16,6 +16,7 @@ const StartQuizButton = ({ brandFormat, onClick }: StartQuizButtonProps) => {
             className="transition-transform hover:scale-105 active:scale-95"
         >
             <Button
+                id="tour-step-start-quiz"
                 size="lg"
                 variant="default"
                 className="w-full mt-8 text-lg font-bold py-7 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all duration-300"

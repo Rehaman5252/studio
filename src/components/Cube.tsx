@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -31,9 +31,6 @@ const rotationMap = [
     'rotateX(90deg) rotateY(0deg)',
 ];
 
-// This determines the visual order of faces as the cube rotates right
-const faceRotationOrder = [0, 1, 2, 3, 4, 5]; // Cycle through all faces
-
 interface CubeProps {
   brands: CubeBrand[];
   onFaceSelect: (index: number) => void;
@@ -44,53 +41,41 @@ interface CubeProps {
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
-  const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const stopAutoRotation = useCallback(() => {
-    if (rotationTimeoutRef.current) {
-      clearTimeout(rotationTimeoutRef.current);
-      rotationTimeoutRef.current = null;
-    }
-  }, []);
 
-  const startAutoRotation = useCallback(() => {
-    stopAutoRotation();
+  // Continuous, unpredictable rotation
+  useEffect(() => {
     if (disabled) return;
 
-    rotationTimeoutRef.current = setTimeout(() => {
-      // Logic for unpredictable rotation
+    const rotationInterval = setInterval(() => {
       setCurrentFaceIndex(prevIndex => {
         let nextIndex;
         do {
-          // Select a random face index from 0 to 5
-          nextIndex = Math.floor(Math.random() * faceRotationOrder.length);
-        } while (nextIndex === prevIndex); // Ensure the new face is different from the current one
+          nextIndex = Math.floor(Math.random() * 6); // 6 faces
+        } while (nextIndex === prevIndex);
         return nextIndex;
       });
-    }, 5000); // Increased interval for slower, more deliberate rotation
-  }, [disabled, stopAutoRotation]);
+    }, 5000); // Rotate every 5 seconds
 
+    return () => clearInterval(rotationInterval);
+  }, [disabled]);
+
+  // Update transform and notify parent when face changes
   useEffect(() => {
-    const brandIndex = faceRotationOrder[currentFaceIndex];
     if (cubeRef.current) {
-        cubeRef.current.style.transform = rotationMap[brandIndex];
+        cubeRef.current.style.transform = rotationMap[currentFaceIndex];
     }
-    onFaceSelect(brandIndex);
-    
-    startAutoRotation();
-
-    return stopAutoRotation;
-  }, [currentFaceIndex, onFaceSelect, startAutoRotation, stopAutoRotation]);
+    onFaceSelect(currentFaceIndex);
+  }, [currentFaceIndex, onFaceSelect]);
 
 
   const handleFaceClick = () => {
     if (disabled) return;
-    stopAutoRotation(); // Stop rotating once clicked
     onFaceClick();
   };
   
   return (
     <div 
+      id="tour-step-cube"
       className="flex flex-col items-center"
     >
       <div className={cn("w-48 h-48 perspective", disabled && "opacity-50")}>
