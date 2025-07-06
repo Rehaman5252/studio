@@ -5,8 +5,11 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import type { User } from 'firebase/auth';
 import type { DocumentData } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import type { QuizAttempt } from '@/lib/mockData';
+import { mockQuizHistory } from '@/lib/mockData';
+
 
 // This is a mock user object.
 const mockUser: User = {
@@ -65,9 +68,7 @@ interface AuthContextType {
   userData: DocumentData | null;
   loading: boolean;
   quizHistory: DocumentData[] | null;
-  setQuizHistory: (history: DocumentData[]) => void;
   isHistoryLoading: boolean;
-  setIsHistoryLoading: (loading: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -75,9 +76,7 @@ const AuthContext = createContext<AuthContextType>({
   userData: null,
   loading: true,
   quizHistory: null,
-  setQuizHistory: () => {},
   isHistoryLoading: true,
-  setIsHistoryLoading: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -88,44 +87,78 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth || !db) {
+    // If firebase is not configured, use mock data and stop.
+    if (!isFirebaseConfigured) {
       setUser(mockUser);
       setUserData(mockUserData);
+      setQuizHistory(mockQuizHistory);
       setLoading(false);
+      setIsHistoryLoading(false);
       return;
     }
 
+    if (!auth || !db) {
+        setLoading(false);
+        setIsHistoryLoading(false);
+        return;
+    }
+    
+    // This listener handles user authentication state changes.
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      // Clear cached data if the user changes
-      if (user?.uid !== currentUser?.uid) {
-        setQuizHistory(null);
-        setUserData(null);
-      }
       setUser(currentUser);
-      // The initial authentication check is complete.
-      setLoading(false);
+      // Main loading is complete once we know if there's a user or not.
+      if (loading) setLoading(false);
+      
+      // If user logs out, clear their data.
+      if (!currentUser) {
+        setUserData(null);
+        setQuizHistory(null);
+        setIsHistoryLoading(false);
+      }
     });
 
     return () => unsubscribeAuth();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only ONCE on mount to check auth state quickly.
+  }, []);
 
   useEffect(() => {
-    // This separate effect fetches user data without blocking the main `loading` state.
-    if (user && db) {
-      const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
-        setUserData(doc.exists() ? doc.data() : null);
-      }, (error) => {
-        console.error("Firestore snapshot error:", error);
-        setUserData(null);
-      });
-      
-      return () => unsubscribeFirestore();
-    }
-  }, [user]);
+    if (!user || !db) return;
 
-  const value = { user, userData, loading, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading };
+    // This listener fetches and subscribes to the user's profile data.
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
+        setUserData(doc.exists() ? doc.data() : null);
+    }, (error) => {
+        console.error("Firestore user data snapshot error:", error);
+        setUserData(null);
+    });
+    
+    // This function fetches the user's quiz history once.
+    const loadHistory = async () => {
+        setIsHistoryLoading(true);
+        try {
+            const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
+            const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
+            const querySnapshot = await getDocs(q);
+            const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+            setQuizHistory(fetchedHistory);
+        } catch (error) {
+            console.error("Failed to fetch quiz history:", error);
+            setQuizHistory([]); // Set to empty array on error
+        } finally {
+            setIsHistoryLoading(false);
+        }
+    };
+    
+    // Only fetch history if we don't have it yet for this user.
+    if (quizHistory === null) {
+        loadHistory();
+    }
+
+    return () => unsubscribeFirestore();
+  }, [user, db, quizHistory]);
+
+  const value = { user, userData, loading, quizHistory, isHistoryLoading };
 
   return (
     <AuthContext.Provider value={value}>

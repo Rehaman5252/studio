@@ -1,55 +1,16 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
-import { mockQuizHistory } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 
 export default function CertificatesContent() {
-  const { user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading } = useAuth();
-  const [localHistory, setLocalHistory] = useState<QuizAttempt[]>([]);
+  const { quizHistory, isHistoryLoading } = useAuth();
   
-  useEffect(() => {
-    const loadHistory = async () => {
-        if (!user) {
-            setLocalHistory(isFirebaseConfigured ? [] : mockQuizHistory);
-            if (isHistoryLoading) setIsHistoryLoading(false);
-            return;
-        }
-
-        if (quizHistory) {
-            setLocalHistory(quizHistory as QuizAttempt[]);
-            if (isHistoryLoading) setIsHistoryLoading(false);
-            return;
-        }
-
-        if (!isHistoryLoading) setIsHistoryLoading(true);
-
-        if (isFirebaseConfigured && db) {
-            try {
-                const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-                const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
-                const querySnapshot = await getDocs(q);
-                const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-                setLocalHistory(fetchedHistory);
-                setQuizHistory(fetchedHistory);
-            } catch (error) {
-                console.error("Failed to fetch quiz history:", error);
-                setLocalHistory(mockQuizHistory);
-            }
-        }
-        setIsHistoryLoading(false);
-    };
-
-    loadHistory();
-  }, [user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading]);
-
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
     const minutes = attemptDate.getMinutes();
@@ -66,7 +27,8 @@ export default function CertificatesContent() {
   };
   
   const certificates = useMemo(() => {
-    return localHistory
+    if (!quizHistory) return [];
+    return (quizHistory as QuizAttempt[])
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0)
       .map(attempt => ({
         id: attempt.slotId + attempt.format,
@@ -76,7 +38,7 @@ export default function CertificatesContent() {
         brand: attempt.brand,
         format: attempt.format,
       }));
-  }, [localHistory]);
+  }, [quizHistory]);
 
   if (isHistoryLoading) {
     return (

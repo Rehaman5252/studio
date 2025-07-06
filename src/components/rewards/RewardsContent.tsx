@@ -1,16 +1,13 @@
 
 'use client';
 
-import React, { useState, useMemo, memo, useEffect } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
-import { mockQuizHistory } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const ScratchCard = memo(({ brand }: { brand: string }) => {
@@ -129,45 +126,10 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading } = useAuth();
-  const [localHistory, setLocalHistory] = useState<QuizAttempt[]>([]);
+  const { quizHistory, isHistoryLoading } = useAuth();
   
-  useEffect(() => {
-    const loadHistory = async () => {
-        if (!user) {
-            setLocalHistory(isFirebaseConfigured ? [] : mockQuizHistory);
-            if (isHistoryLoading) setIsHistoryLoading(false);
-            return;
-        }
-
-        if (quizHistory) {
-            setLocalHistory(quizHistory as QuizAttempt[]);
-            if (isHistoryLoading) setIsHistoryLoading(false);
-            return;
-        }
-
-        if (!isHistoryLoading) setIsHistoryLoading(true);
-
-        if (isFirebaseConfigured && db) {
-            try {
-                const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-                const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
-                const querySnapshot = await getDocs(q);
-                const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-                setLocalHistory(fetchedHistory);
-                setQuizHistory(fetchedHistory);
-            } catch (error) {
-                console.error("Failed to fetch quiz history:", error);
-                setLocalHistory(mockQuizHistory);
-            }
-        }
-        setIsHistoryLoading(false);
-    };
-
-    loadHistory();
-  }, [user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading]);
-
   const uniqueBrandAttempts = useMemo(() => {
+    const localHistory = (quizHistory as QuizAttempt[]) || [];
     const seenBrands = new Set<string>();
     return localHistory.filter(attempt => {
         if (!attempt.brand || seenBrands.has(attempt.brand)) {
@@ -177,7 +139,7 @@ export default function RewardsContent() {
             return true;
         }
     });
-  }, [localHistory]);
+  }, [quizHistory]);
 
   if (isHistoryLoading) {
     return (

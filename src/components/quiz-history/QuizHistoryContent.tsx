@@ -1,18 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
-import { mockQuizHistory } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -139,57 +136,20 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => (
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
 export default function QuizHistoryContent() {
-  const { user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading } = useAuth();
-  const [localHistory, setLocalHistory] = useState<QuizAttempt[]>([]);
+  const { quizHistory, isHistoryLoading } = useAuth();
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
 
-  useEffect(() => {
-    const loadHistory = async () => {
-        if (!user) {
-            setLocalHistory(isFirebaseConfigured ? [] : mockQuizHistory);
-            if (isHistoryLoading) setIsHistoryLoading(false);
-            return;
-        }
-
-        // Use cached history if available
-        if (quizHistory) {
-            setLocalHistory(quizHistory as QuizAttempt[]);
-            if (isHistoryLoading) setIsHistoryLoading(false);
-            return;
-        }
-
-        if (!isHistoryLoading) setIsHistoryLoading(true);
-        
-        // If no cache, fetch from Firestore
-        if (isFirebaseConfigured && db) {
-            try {
-                const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-                const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(25));
-                const querySnapshot = await getDocs(q);
-                const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-                setLocalHistory(fetchedHistory);
-                setQuizHistory(fetchedHistory); // Update the context cache
-            } catch (error) {
-                console.error("Failed to fetch quiz history:", error);
-                setLocalHistory(mockQuizHistory); // Fallback to mock data on error
-            }
-        }
-        setIsHistoryLoading(false);
-    };
-
-    loadHistory();
-  }, [user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading]);
-
   const filteredHistory = useMemo(() => {
+    const history = (quizHistory as QuizAttempt[]) || [];
     if (filter === 'recent') {
       const sevenDaysAgo = new Date().getTime() - 7 * 24 * 60 * 60 * 1000;
-      return localHistory.filter(attempt => attempt.timestamp >= sevenDaysAgo);
+      return history.filter(attempt => attempt.timestamp >= sevenDaysAgo);
     }
     if (filter === 'perfect') {
-      return localHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0);
+      return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0);
     }
-    return localHistory;
-  }, [localHistory, filter]);
+    return history;
+  }, [quizHistory, filter]);
 
   if (isHistoryLoading) {
     return (
