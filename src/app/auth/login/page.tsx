@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,6 +25,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -82,7 +84,7 @@ export default function LoginPage() {
         });
         await auth.signOut(); // Log out the user until they are verified
       } else {
-        router.push('/home');
+        router.push(from || '/home');
       }
 
     } catch (error: any) {
@@ -136,7 +138,7 @@ export default function LoginPage() {
         )}
         <div className="mt-4 text-center text-sm">
           Don't have an account?{' '}
-          <Link href="/auth/signup" className="underline">
+          <Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="underline">
             Sign up
           </Link>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -51,6 +51,8 @@ declare global {
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'details' | 'otp'>('details');
@@ -169,7 +171,7 @@ export default function SignupPage() {
         photoURL: '',
       });
       
-      router.push('/auth/verify-email');
+      router.push(`/auth/verify-email${from ? `?from=${encodeURIComponent(from)}` : ''}`);
 
     } catch (error: any) {
       toast({
@@ -246,7 +248,7 @@ export default function SignupPage() {
         )}
         <div className="mt-4 text-center text-sm">
           Already have an account?{' '}
-          <Link href="/auth/login" className="underline">
+          <Link href={`/auth/login${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="underline">
             Log in
           </Link>
         </div>

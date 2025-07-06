@@ -25,7 +25,7 @@ export default function VerifyEmailPage() {
             <p>We've sent a verification link to your email address.</p>
             <p className="text-muted-foreground">Please click the link in the email to activate your account. You can close this tab.</p>
             <Button asChild size="lg" className="mt-4">
-            <Link href="/auth/login">
+            <Link href={`/auth/login${from ? `?from=${encodeURIComponent(from)}` : ''}`}>
                 Go to Login
             </Link>
             </Button>
