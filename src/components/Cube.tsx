@@ -97,7 +97,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
-          style={{ transition: 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          style={{ transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
         >
           {brands.map((brand, index) => (
             <div
