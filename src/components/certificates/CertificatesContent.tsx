@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -10,7 +9,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
-const CACHE_KEY = 'certificatesCache';
+const CACHE_KEY = 'quizHistoryCache'; // Use the same cache as history page
 
 export default function CertificatesContent() {
   const { user } = useAuth();
@@ -23,8 +22,6 @@ export default function CertificatesContent() {
 
   useEffect(() => {
     async function fetchHistory() {
-      // If we have cached data, we can show it while fetching fresh data in the background
-      // This makes navigation feel instant.
       if (history.length === 0) {
           setIsLoading(true);
       }
@@ -53,8 +50,11 @@ export default function CertificatesContent() {
         setIsLoading(false);
       }
     }
-    fetchHistory();
-  // We only want to run this on mount or when the user changes.
+    
+    // Only fetch if cache is empty, otherwise let the history page manage updates
+    if (history.length === 0) {
+        fetchHistory();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -86,7 +86,7 @@ export default function CertificatesContent() {
       }));
   }, [history]);
 
-  if (isLoading) {
+  if (isLoading && history.length === 0) {
     return (
         <div className="flex flex-col items-center justify-center h-full py-10">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

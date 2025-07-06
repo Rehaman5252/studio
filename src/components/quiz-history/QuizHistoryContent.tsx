@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
@@ -195,7 +194,7 @@ export default function QuizHistoryContent() {
     return history;
   }, [history, filter]);
 
-  if (isLoading) {
+  if (isLoading && history.length === 0) {
     return (
         <div className="flex flex-col items-center justify-center h-full py-10">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
