@@ -9,54 +9,56 @@ import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
-const CACHE_KEY = 'quizHistoryCache'; // Use the same cache as history page
 
 export default function CertificatesContent() {
   const { user } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>(() => {
-    if (typeof sessionStorage === 'undefined') return [];
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [isLoading, setIsLoading] = useState(history.length === 0);
+  const [history, setHistory] = useState<QuizAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const cacheKey = useMemo(() => user ? `quizHistoryCache_${user.uid}` : null, [user]);
 
   useEffect(() => {
-    // If history is already populated from cache, no need to fetch.
-    if (history.length > 0) {
-      setIsLoading(false);
-      return;
-    }
-
-    async function fetchHistory() {
-      setIsLoading(true);
-
-      if (!isFirebaseConfigured || !db || !user) {
-        setHistory(mockQuizHistory);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-        const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
-        const querySnapshot = await getDocs(q);
-        const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-        setHistory(fetchedHistory);
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify(fetchedHistory));
+    const loadHistory = async () => {
+        if (!user || !cacheKey) {
+            setIsLoading(false);
+            setHistory(isFirebaseConfigured ? [] : mockQuizHistory);
+            return;
         }
-      } catch (error) {
-        console.error("Failed to fetch quiz history:", error);
-        // Fallback to mock data on error if history is empty
-        setHistory(mockQuizHistory);
-      } finally {
+
+        setIsLoading(true);
+
+        // Try to load from cache first
+        if (typeof sessionStorage !== 'undefined') {
+            const cachedData = sessionStorage.getItem(cacheKey);
+            if (cachedData) {
+                setHistory(JSON.parse(cachedData));
+                setIsLoading(false);
+                return; // Exit if cache is found
+            }
+        }
+
+        // If no cache, fetch from Firestore (same as history page)
+        if (isFirebaseConfigured && db) {
+            try {
+                const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
+                const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
+                const querySnapshot = await getDocs(q);
+                const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+                setHistory(fetchedHistory);
+                if (typeof sessionStorage !== 'undefined') {
+                    // We can share the same cache as the history page
+                    sessionStorage.setItem(cacheKey, JSON.stringify(fetchedHistory));
+                }
+            } catch (error) {
+                console.error("Failed to fetch quiz history:", error);
+                setHistory(mockQuizHistory); // Fallback to mock data on error
+            }
+        }
         setIsLoading(false);
-      }
-    }
-    
-    fetchHistory();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, history.length]);
+    };
+
+    loadHistory();
+  }, [user, cacheKey]);
 
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);

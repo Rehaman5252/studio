@@ -14,8 +14,6 @@ import { useAuth } from '@/context/AuthProvider';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 
-const CACHE_KEY = 'quizHistoryCache';
-
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -142,50 +140,53 @@ QuizHistoryItem.displayName = "QuizHistoryItem";
 
 export default function QuizHistoryContent() {
   const { user } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>(() => {
-      if (typeof sessionStorage === 'undefined') return [];
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      return cached ? JSON.parse(cached) : [];
-  });
+  const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
-  const [isLoading, setIsLoading] = useState(history.length === 0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const cacheKey = useMemo(() => user ? `quizHistoryCache_${user.uid}` : null, [user]);
 
   useEffect(() => {
-    // If history is already populated from cache, no need to fetch.
-    if (history.length > 0) {
-      setIsLoading(false);
-      return;
-    }
-
-    async function fetchHistory() {
-      setIsLoading(true);
-
-      if (!isFirebaseConfigured || !db || !user) {
-        setHistory(mockQuizHistory);
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-        const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(25));
-        const querySnapshot = await getDocs(q);
-        const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-        setHistory(fetchedHistory);
-        if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify(fetchedHistory));
+    const loadHistory = async () => {
+        if (!user || !cacheKey) {
+            setIsLoading(false);
+            setHistory(isFirebaseConfigured ? [] : mockQuizHistory);
+            return;
         }
-      } catch (error) {
-         console.error("Failed to fetch quiz history:", error);
-         // Fallback to mock data on error if history is empty
-         setHistory(mockQuizHistory);
-      } finally {
-        setIsLoading(false);
-      }
-    }
 
-    fetchHistory();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, history.length]);
+        setIsLoading(true);
+
+        // Try to load from cache first
+        if (typeof sessionStorage !== 'undefined') {
+            const cachedData = sessionStorage.getItem(cacheKey);
+            if (cachedData) {
+                setHistory(JSON.parse(cachedData));
+                setIsLoading(false);
+                return; // Exit if cache is found
+            }
+        }
+
+        // If no cache, fetch from Firestore
+        if (isFirebaseConfigured && db) {
+            try {
+                const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
+                const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(25));
+                const querySnapshot = await getDocs(q);
+                const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+                setHistory(fetchedHistory);
+                if (typeof sessionStorage !== 'undefined') {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(fetchedHistory));
+                }
+            } catch (error) {
+                console.error("Failed to fetch quiz history:", error);
+                setHistory(mockQuizHistory); // Fallback to mock data on error
+            }
+        }
+        setIsLoading(false);
+    };
+
+    loadHistory();
+  }, [user, cacheKey]);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {
@@ -221,7 +222,7 @@ export default function QuizHistoryContent() {
         {filteredHistory.length > 0 ? (
           <div className="space-y-4 pt-4">
             {filteredHistory.map((attempt) => (
-              <QuizHistoryItem key={attempt.slotId} attempt={attempt} />
+              <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}`} attempt={attempt} />
             ))}
           </div>
         ) : (

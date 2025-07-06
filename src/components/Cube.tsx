@@ -41,7 +41,6 @@ interface CubeProps {
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
-  const [isHovering, setIsHovering] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -54,8 +53,8 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
       setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
     };
 
-    if (!isHovering && !disabled) {
-      intervalRef.current = setInterval(rotateToNextFace, 500); // Rotate every 0.5 seconds
+    if (!disabled) {
+      intervalRef.current = setInterval(rotateToNextFace, 500);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -65,7 +64,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         clearInterval(intervalRef.current);
       }
     };
-  }, [isHovering, disabled, brands.length]);
+  }, [disabled, brands.length]);
 
 
   useEffect(() => {
@@ -89,8 +88,6 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
           style={{ 
             transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
