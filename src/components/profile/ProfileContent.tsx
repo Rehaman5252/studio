@@ -15,6 +15,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 
 const maskPhone = (phone: string) => {
     if (!phone || phone.length <= 4) return phone;
@@ -44,7 +45,10 @@ const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => (
                 <AvatarFallback>{userProfile.name?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <h2 className="text-2xl font-bold text-foreground">{userProfile.name}</h2>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-foreground">{userProfile.name}</h2>
+                    {!isFirebaseConfigured && <Badge variant="outline">Demo</Badge>}
+                </div>
                 <p className="text-muted-foreground text-sm">
                     {maskPhone(userProfile.phone)}
                 </p>

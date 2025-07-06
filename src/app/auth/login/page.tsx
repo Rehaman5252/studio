@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address' }),
@@ -28,6 +29,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [unverifiedUser, setUnverifiedUser] = useState<any>(null);
+  const [isDemoMode] = useState(!isFirebaseConfigured);
 
   const {
     register,
@@ -58,13 +60,11 @@ export default function LoginPage() {
   }
 
   const onSubmit = async (data: LoginFormValues) => {
-    if (!isFirebaseConfigured || !auth) {
+    if (isDemoMode || !auth) {
         toast({
             title: "Demo Mode",
-            description: "Firebase is not configured. Logging in with mock user.",
-            variant: "default",
+            description: "Login is disabled because Firebase is not configured.",
         });
-        router.push('/home');
         return;
     }
 
@@ -103,18 +103,27 @@ export default function LoginPage() {
         <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
       <CardContent>
+        {isDemoMode && (
+            <Alert variant="default" className="mb-4 border-primary bg-primary/10">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertTitle>Demo Mode</AlertTitle>
+                <AlertDescription className="text-foreground/80">
+                    Firebase is not configured. Login is disabled. The app uses a mock user for demonstration.
+                </AlertDescription>
+            </Alert>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="user@example.com" {...register('email')} />
+            <Input id="email" type="email" placeholder="user@example.com" {...register('email')} disabled={isDemoMode} />
             {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" {...register('password')} />
+            <Input id="password" type="password" {...register('password')} disabled={isDemoMode} />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading || isDemoMode}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Log In
           </Button>
