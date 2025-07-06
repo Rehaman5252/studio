@@ -84,23 +84,18 @@ export default function LoginForm() {
   const isAuthDisabled = isLoading || isGoogleLoading;
 
   return (
-    <div className="w-full max-w-md p-4 sm:p-8 space-y-8">
-      <div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-center text-shimmer animate-shimmer">
-          indcric
-        </h1>
-        <h2 className="mt-2 text-center text-2xl font-bold tracking-tight text-foreground">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          Or{' '}
-          <Link href={`/auth/signup${from ? `?from=${from}` : ''}`} className="font-medium text-primary hover:text-primary/90">
-            create a new account
+    <div className="flex h-full flex-col justify-center space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold">Welcome Back!</h1>
+        <p className="text-muted-foreground">
+          Don't have an account?{' '}
+          <Link href={`/auth/signup${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">
+            Sign up
           </Link>
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {!isFirebaseConfigured && (
             <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -112,7 +107,7 @@ export default function LoginForm() {
         )}
       
         <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isAuthDisabled || !isFirebaseConfigured}>
-            {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-2" /> Continue with Google</>}
+            {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-3" /> Continue with Google</>}
         </Button>
 
         <div className="relative">
@@ -120,24 +115,24 @@ export default function LoginForm() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or continue with email
+            <span className="bg-card px-2 text-muted-foreground">
+              Or with email
             </span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
-            <Input id="email" type="email" placeholder="you@example.com" {...register('email')} disabled={isAuthDisabled || !isFirebaseConfigured} />
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled || !isFirebaseConfigured} suppressHydrationWarning />
             {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" {...register('password')} disabled={isAuthDisabled || !isFirebaseConfigured} />
+            <Input id="password" type="password" placeholder="••••••••" {...register('password')} disabled={isAuthDisabled || !isFirebaseConfigured} suppressHydrationWarning />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
-          <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled || !isFirebaseConfigured}>
+          <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled || !isFirebaseConfigured} suppressHydrationWarning>
             {isLoading && <Loader2 className="animate-spin mr-2" />}
             Sign In
           </Button>
