@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
@@ -32,7 +33,7 @@ const rotationMap = [
 ];
 
 // This determines the visual order of faces as the cube rotates right
-const faceRotationOrder = [0, 1, 2, 3]; // Only cycle through vertical faces
+const faceRotationOrder = [0, 1, 2, 3, 4, 5]; // Cycle through all faces
 
 interface CubeProps {
   brands: CubeBrand[];
@@ -59,7 +60,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
 
     rotationTimeoutRef.current = setTimeout(() => {
       setRotationOrderIndex(prevIndex => (prevIndex + 1) % faceRotationOrder.length);
-    }, 500); // Use the specified 500ms speed
+    }, 500);
   }, [disabled, stopAutoRotation]);
 
   useEffect(() => {
@@ -67,10 +68,8 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[brandIndex];
     }
-    // Inform the parent of the newly selected face
     onFaceSelect(brandIndex);
     
-    // Continue the rotation loop
     startAutoRotation();
 
     return stopAutoRotation;

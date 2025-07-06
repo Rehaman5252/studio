@@ -1,13 +1,44 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar } from 'lucide-react';
-import { mockQuizHistory } from '@/lib/mockData';
+import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
+import { mockQuizHistory, type QuizAttempt } from '@/lib/mockData';
+import { useAuth } from '@/context/AuthProvider';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 export default function CertificatesContent() {
+  const { user } = useAuth();
+  const [history, setHistory] = useState<QuizAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchHistory() {
+      setIsLoading(true);
+      if (!isFirebaseConfigured || !db || !user) {
+        setHistory(mockQuizHistory);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
+        const q = query(historyCollection, orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+        setHistory(fetchedHistory);
+      } catch (error) {
+        console.error("Failed to fetch quiz history:", error);
+        setHistory(mockQuizHistory); // Fallback to mock on error
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchHistory();
+  }, [user]);
 
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -25,7 +56,7 @@ export default function CertificatesContent() {
   };
   
   const certificates = useMemo(() => {
-    return mockQuizHistory
+    return history
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0)
       .map(attempt => ({
         id: attempt.slotId + attempt.format,
@@ -35,14 +66,20 @@ export default function CertificatesContent() {
         brand: attempt.brand,
         format: attempt.format,
       }));
-  }, []);
+  }, [history]);
+
+  if (isLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full py-10">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
   
   return (
     <>
         {certificates.length > 0 ? (
-          <div 
-            className="space-y-4"
-          >
+          <div className="space-y-4">
             {certificates.map((cert) => (
               <div key={cert.id}>
                 <Card className="bg-card/80 border-primary/10 shadow-lg">

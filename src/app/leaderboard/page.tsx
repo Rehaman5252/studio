@@ -4,8 +4,8 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
-import useRequireAuth from '@/hooks/useRequireAuth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
 
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
   loading: () => (
@@ -26,7 +26,7 @@ const LeaderboardContent = dynamic(() => import('@/components/leaderboard/Leader
 
 
 export default function LeaderboardPage() {
-  const { loading } = useRequireAuth();
+  const { loading } = useAuth();
 
   if (loading) {
       return (

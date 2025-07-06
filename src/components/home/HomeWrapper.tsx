@@ -13,6 +13,9 @@ import type { CubeBrand } from '@/components/Cube';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import CricketLoading from '@/components/CricketLoading';
+import { useAuth } from '@/context/AuthProvider';
+import { isFirebaseConfigured } from '@/lib/firebase';
+
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -25,6 +28,7 @@ const brands: CubeBrand[] = [
 
 
 export default function HomeWrapper() {
+  const { user } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
   
@@ -41,9 +45,14 @@ export default function HomeWrapper() {
   }, []);
 
   const handleStartQuiz = useCallback(() => {
+    if (!user && isFirebaseConfigured) {
+      router.push('/auth/login');
+      return;
+    }
+    
     const selectedBrand = brands[selectedBrandIndex];
     setStartingQuizInfo({ brand: selectedBrand.brand, format: selectedBrand.format });
-  }, [selectedBrandIndex]);
+  }, [selectedBrandIndex, user, router]);
 
   useEffect(() => {
     if (startingQuizInfo) {

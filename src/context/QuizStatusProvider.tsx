@@ -18,6 +18,7 @@ export interface SlotAttempt {
   userAnswers: string[];
   timePerQuestion?: number[];
   usedHintIndices?: number[];
+  timestamp?: number;
 }
 
 interface QuizStatus {
@@ -71,10 +72,12 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
 
     const key = getLocalStorageKey();
     if (!key) {
+      _setLastAttemptInSlot(null);
       setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     try {
       const storedAttemptRaw = localStorage.getItem(key);
       if (storedAttemptRaw) {
@@ -88,6 +91,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
           localStorage.removeItem(key);
            _setLastAttemptInSlot(null);
         }
+      } else {
+        _setLastAttemptInSlot(null);
       }
     } catch (error) {
       console.error("Failed to parse last attempt from localStorage", error);

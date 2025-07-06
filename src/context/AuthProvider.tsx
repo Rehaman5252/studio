@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
@@ -77,7 +78,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If Firebase is not configured, use mock data and finish loading.
     if (!isFirebaseConfigured || !auth || !db) {
       setUser(mockUser);
       setUserData(mockUserData);
@@ -85,29 +85,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        setUserData(null);
+        setLoading(false);
+      }
+      // If there IS a user, the next useEffect will handle setting loading to false.
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
+    // This effect runs when `user` changes.
+    // If `user` is null, we do nothing, as the auth listener already handled it.
     if (user && db) {
       const userDocRef = doc(db, 'users', user.uid);
       
-      const unsubscribe = onSnapshot(userDocRef, (doc) => {
-        if (doc.exists()) {
-          setUserData(doc.data());
-        } else {
-          setUserData(null); // User document doesn't exist yet
-        }
+      const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
+        setUserData(doc.exists() ? doc.data() : null);
+        setLoading(false); // Loading is complete once user data is fetched
+      }, (error) => {
+        console.error("Firestore snapshot error:", error);
+        setUserData(null);
+        setLoading(false); // Also stop loading on error
       });
       
-      return () => unsubscribe();
-    } else {
-      setUserData(null); // No user, no data
+      return () => unsubscribeFirestore();
     }
   }, [user]);
 

@@ -11,6 +11,10 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@/context/AuthProvider';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -137,18 +141,35 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => (
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
 export default function QuizHistoryContent() {
+  const { user } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsLoading(true);
-    const sortedHistory = [...mockQuizHistory].sort((a, b) => b.timestamp - a.timestamp);
-    setTimeout(() => {
-        setHistory(sortedHistory);
+    async function fetchHistory() {
+      setIsLoading(true);
+      if (!isFirebaseConfigured || !db || !user) {
+        setHistory(mockQuizHistory);
         setIsLoading(false);
-    }, 100); // reduced delay for faster perceived load
-  }, []);
+        return;
+      }
+      try {
+        const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
+        const q = query(historyCollection, orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+        setHistory(fetchedHistory);
+      } catch (error) {
+         console.error("Failed to fetch quiz history:", error);
+         setHistory(mockQuizHistory); // Fallback to mock data on error
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchHistory();
+  }, [user]);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'recent') {
@@ -163,7 +184,7 @@ export default function QuizHistoryContent() {
 
   if (isLoading) {
     return (
-        <div className="flex flex-col items-center justify-center h-full">
+        <div className="flex flex-col items-center justify-center h-full py-10">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
@@ -182,9 +203,7 @@ export default function QuizHistoryContent() {
         </div>
         
         {filteredHistory.length > 0 ? (
-          <div 
-            className="space-y-4 pt-4"
-          >
+          <div className="space-y-4 pt-4">
             {filteredHistory.map((attempt) => (
               <QuizHistoryItem key={attempt.slotId} attempt={attempt} />
             ))}

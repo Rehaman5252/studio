@@ -14,10 +14,13 @@ import { AdDialog } from '@/components/AdDialog';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import { useAuth } from '@/context/AuthProvider';
 import { cn, getQuizSlotId } from '@/lib/utils';
-import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { useQuizStatus, type SlotAttempt } from '@/context/QuizStatusProvider';
 import CricketLoading from '@/components/CricketLoading';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import InterstitialLoader from '@/components/InterstitialLoader';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, collection } from 'firebase/firestore';
+
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
     0: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/600px-BMW.svg.png', hint: 'BMW logo' },
@@ -125,14 +128,14 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
-  const saveAttempt = useCallback((finalAnswers, finalTime, finalHints) => {
+  const saveAttempt = useCallback(async (finalAnswers: string[], finalTime: number[], finalHints: number[]) => {
     if (!questions || !user || quizCompleted.current) return;
     quizCompleted.current = true;
     
     const score = finalAnswers.reduce((acc, answer, index) => 
         (questions[index] && answer === questions[index].correctAnswer) ? acc + 1 : acc, 0);
 
-    const currentProgress = {
+    const currentProgress: SlotAttempt = {
       slotId: getQuizSlotId(),
       score,
       totalQuestions: questions.length,
@@ -142,8 +145,18 @@ function QuizComponent() {
       userAnswers: finalAnswers,
       timePerQuestion: finalTime,
       usedHintIndices: finalHints,
+      timestamp: Date.now(),
     };
     setLastAttemptInSlot(currentProgress);
+
+     if (db) {
+        try {
+            const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), currentProgress.slotId);
+            await setDoc(attemptDocRef, currentProgress);
+        } catch (error) {
+            console.error("Error saving quiz history to Firestore: ", error);
+        }
+    }
   }, [questions, user, format, brand, setLastAttemptInSlot]);
 
   const goToNextQuestion = useCallback(() => {
@@ -153,7 +166,7 @@ function QuizComponent() {
     setTimeLeft(20);
   }, []);
   
-  const proceedToNextStep = useCallback((answer: string) => {
+  const proceedToNextStep = useCallback(async (answer: string) => {
     const newAnswers = [...userAnswers, answer];
     const newTimes = [...timePerQuestion, 20 - timeLeft];
     
@@ -163,7 +176,7 @@ function QuizComponent() {
     
     // Check if quiz is over
     if (currentQuestionIndex >= questions!.length - 1) {
-      saveAttempt(newAnswers, newTimes, usedHintIndices);
+      await saveAttempt(newAnswers, newTimes, usedHintIndices);
       router.replace(`/quiz/results`);
       return;
     }
@@ -226,11 +239,11 @@ function QuizComponent() {
 
   // Anti-cheat effect and unmount save
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       // If user switches tabs/apps, terminate and save.
       if (document.hidden && !isTerminated && questions) {
         setIsTerminated(true); // Prevent further actions
-        saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
+        await saveAttempt(userAnswers, timePerQuestion, usedHintIndices);
         router.replace(`/quiz/results?reason=malpractice`);
       }
     };

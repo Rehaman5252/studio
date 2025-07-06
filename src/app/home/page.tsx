@@ -5,6 +5,7 @@ import useRequireAuth from '@/hooks/useRequireAuth';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
 
 // Dynamically import the main content wrapper.
 // This component contains all the logic that depends on frequently updating state,
@@ -34,7 +35,7 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
 // The actual page component is now very simple. It handles the initial auth check
 // and renders the static layout, delegating all dynamic content to HomeWrapper.
 export default function HomeScreen() {
-  const { loading: authLoading } = useRequireAuth();
+  const { loading: authLoading } = useAuth();
   
   // This is the main page loader for authentication state.
   if (authLoading) {
