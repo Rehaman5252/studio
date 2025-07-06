@@ -6,18 +6,12 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-
-export const SendOtpInputSchema = z.object({
-  email: z.string().email().describe('The email address to send the OTP to.'),
-});
-export type SendOtpInput = z.infer<typeof SendOtpInputSchema>;
-
-export const SendOtpOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-});
-export type SendOtpOutput = z.infer<typeof SendOtpOutputSchema>;
+import {
+  SendOtpInput,
+  SendOtpOutput,
+  SendOtpInputSchema,
+  SendOtpOutputSchema,
+} from '@/ai/schemas';
 
 export async function sendOtp(input: SendOtpInput): Promise<SendOtpOutput> {
   return sendOtpFlow(input);

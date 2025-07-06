@@ -6,19 +6,12 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-
-export const VerifyOtpInputSchema = z.object({
-  email: z.string().email().describe("The user's email address."),
-  otp: z.string().min(6).describe('The 6-digit OTP submitted by the user.'),
-});
-export type VerifyOtpInput = z.infer<typeof VerifyOtpInputSchema>;
-
-export const VerifyOtpOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-});
-export type VerifyOtpOutput = z.infer<typeof VerifyOtpOutputSchema>;
+import {
+  VerifyOtpInput,
+  VerifyOtpOutput,
+  VerifyOtpInputSchema,
+  VerifyOtpOutputSchema,
+} from '@/ai/schemas';
 
 export async function verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpOutput> {
   return verifyOtpFlow(input);
