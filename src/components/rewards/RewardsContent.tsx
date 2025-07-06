@@ -1,12 +1,16 @@
 
 'use client';
 
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink } from 'lucide-react';
+import { Gift, ExternalLink, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import type { QuizAttempt } from '@/lib/mockData';
 import { mockQuizHistory } from '@/lib/mockData';
+import { useAuth } from '@/context/AuthProvider';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const ScratchCard = memo(({ brand }: { brand: string }) => {
@@ -18,7 +22,8 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     'SBI': { gift: '2x Reward Points', description: 'On your SBI credit card.', link: 'https://www.onlinesbi.com' },
     'Nike': { gift: '15% off running shoes', description: 'Step up your game with Nike.', link: 'https://www.nike.com' },
     'Amazon': { gift: '₹250 Amazon Pay', description: 'Added to your wallet.', link: 'https://www.amazon.in' },
-    'boAt': { gift: 'Free Airdopes', description: 'With your next boAt order.', link: 'https://www.boat-lifestyle.com' },
+    'PayPal': { gift: 'Free Shipping Voucher', description: 'On your next PayPal transaction.', link: 'https://www.paypal.com' },
+    'Gucci': { gift: 'Exclusive Scarf', description: 'A special reward from Gucci.', link: 'https://www.gucci.com' },
     'Default': { gift: 'Surprise Gift!', description: 'A special reward from Indcric.', link: '#' },
   };
 
@@ -124,18 +129,63 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
+  const { user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading } = useAuth();
+  const [localHistory, setLocalHistory] = useState<QuizAttempt[]>([]);
+  
+  useEffect(() => {
+    const loadHistory = async () => {
+        if (!user) {
+            setLocalHistory(isFirebaseConfigured ? [] : mockQuizHistory);
+            if (isHistoryLoading) setIsHistoryLoading(false);
+            return;
+        }
+
+        if (quizHistory) {
+            setLocalHistory(quizHistory as QuizAttempt[]);
+            if (isHistoryLoading) setIsHistoryLoading(false);
+            return;
+        }
+
+        if (!isHistoryLoading) setIsHistoryLoading(true);
+
+        if (isFirebaseConfigured && db) {
+            try {
+                const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
+                const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
+                const querySnapshot = await getDocs(q);
+                const fetchedHistory = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+                setLocalHistory(fetchedHistory);
+                setQuizHistory(fetchedHistory);
+            } catch (error) {
+                console.error("Failed to fetch quiz history:", error);
+                setLocalHistory(mockQuizHistory);
+            }
+        }
+        setIsHistoryLoading(false);
+    };
+
+    loadHistory();
+  }, [user, quizHistory, setQuizHistory, isHistoryLoading, setIsHistoryLoading]);
 
   const uniqueBrandAttempts = useMemo(() => {
     const seenBrands = new Set<string>();
-    return mockQuizHistory.filter(attempt => {
-        if (seenBrands.has(attempt.brand) || !attempt.brand) {
+    return localHistory.filter(attempt => {
+        if (!attempt.brand || seenBrands.has(attempt.brand)) {
             return false;
         } else {
             seenBrands.add(attempt.brand);
             return true;
         }
     });
-  }, []);
+  }, [localHistory]);
+
+  if (isHistoryLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full py-10">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <>

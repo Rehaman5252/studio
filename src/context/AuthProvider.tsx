@@ -96,30 +96,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      // Clear cached data if the user changes
       if (user?.uid !== currentUser?.uid) {
-        setQuizHistory(null); // Clear history cache on user change
+        setQuizHistory(null);
+        setUserData(null);
       }
       setUser(currentUser);
-      if (!currentUser) {
-        setUserData(null);
-        setLoading(false);
-      }
+      // The initial authentication check is complete.
+      setLoading(false);
     });
 
     return () => unsubscribeAuth();
-  }, [user?.uid]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only ONCE on mount to check auth state quickly.
 
   useEffect(() => {
+    // This separate effect fetches user data without blocking the main `loading` state.
     if (user && db) {
       const userDocRef = doc(db, 'users', user.uid);
-      
       const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
         setUserData(doc.exists() ? doc.data() : null);
-        setLoading(false);
       }, (error) => {
         console.error("Firestore snapshot error:", error);
         setUserData(null);
-        setLoading(false);
       });
       
       return () => unsubscribeFirestore();
