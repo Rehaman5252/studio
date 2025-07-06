@@ -54,7 +54,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         } while (nextIndex === prevIndex);
         return nextIndex;
       });
-    }, 250); // Rotate every 250ms
+    }, 500); // Rotate every 500ms
 
     return () => clearInterval(rotationInterval);
   }, [disabled]);
