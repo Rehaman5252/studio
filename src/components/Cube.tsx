@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, memo } from 'react';
@@ -55,7 +54,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         } while (nextIndex === prevIndex);
         return nextIndex;
       });
-    }, 500); // Rotate every 0.5 seconds
+    }, 250); // Rotate every 250ms
 
     return () => clearInterval(rotationInterval);
   }, [disabled]);
@@ -83,7 +82,10 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
         <div 
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
-          style={{ transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          style={{ 
+            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            willChange: 'transform' 
+          }}
         >
           {brands.map((brand, index) => (
             <div
