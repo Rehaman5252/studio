@@ -1,7 +1,13 @@
 
 'use client';
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { doc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -11,16 +17,31 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    Settings, Moon, Bell, Music, Vibrate, RefreshCw, LogOut
+    Settings, Moon, Bell, Music, Vibrate, RefreshCw, LogOut, Loader2
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const profileSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.'}),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Please use YYYY-MM-DD format.' }).refine(
+    (dob) => new Date(dob) < new Date(), { message: "Date of birth must be in the past."}
+  ),
+  gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say']),
+  occupation: z.string().min(2, { message: 'Occupation must be at least 2 characters.' }),
+  upi: z.string().optional(),
+});
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
 
 const maskPhone = (phone: string) => {
     if (!phone || phone.length <= 4) return phone;
-    // Handles international and local formats by grabbing last 4 digits
     const lastFour = phone.slice(-4);
     const countryCode = phone.startsWith('+') ? phone.split(' ')[0] : '+91';
     return `${countryCode} ••••${lastFour}`;
@@ -31,6 +52,18 @@ const maskUpi = (upi: string) => {
     const [user, domain] = upi.split('@');
     return `${user.substring(0, 3)}••••@${domain}`;
 }
+
+const calculateAge = (dobString: string): number | null => {
+    if (!dobString || !/^\d{4}-\d{2}-\d{2}$/.test(dobString)) return null;
+    const birthDate = new Date(dobString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+};
 
 const StatItem = memo(({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
     <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg bg-background/50">
@@ -80,30 +113,37 @@ const ProfileSkeleton = () => (
 );
 
 
-const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => (
-    <Card className="bg-card shadow-lg">
-        <CardContent className="p-4 flex items-center gap-4 relative">
-            <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
-                <AvatarImage src={userProfile?.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
-                <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-                <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
+const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => {
+    const age = calculateAge(userProfile?.dob);
+    return (
+        <Card className="bg-card shadow-lg">
+            <CardContent className="p-4 flex items-center gap-4 relative">
+                <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
+                    <AvatarImage src={userProfile?.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
+                    <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                        {maskPhone(userProfile?.phone || '')}
+                    </p>
+                    <div className="text-muted-foreground text-sm flex items-center gap-2 flex-wrap">
+                        {age && <span>{age} yrs</span>}
+                        {userProfile?.gender && <span>&middot; {userProfile.gender}</span>}
+                        {userProfile?.occupation && <span>&middot; {userProfile.occupation}</span>}
+                    </div>
                 </div>
-                <p className="text-muted-foreground text-sm">
-                    {maskPhone(userProfile?.phone || '')}
-                </p>
-                <p className="text-muted-foreground text-sm">
-                    {userProfile?.age && `${userProfile.age} yrs | `} {userProfile?.gender && `${userProfile.gender} | `} {userProfile?.occupation}
-                </p>
-            </div>
-            <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
-                <Edit className="h-4 w-4" />
-            </Button>
-        </CardContent>
-    </Card>
-));
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                </DialogTrigger>
+            </CardContent>
+        </Card>
+    );
+});
 ProfileHeader.displayName = 'ProfileHeader';
 
 const StatsSummary = memo(({ userProfile }: { userProfile: any }) => (
@@ -171,7 +211,7 @@ const PayoutInfo = memo(({ userProfile }: { userProfile: any }) => (
         </CardHeader>
         <CardContent>
             <p className="text-sm text-foreground">UPI: {userProfile?.upi ? maskUpi(userProfile.upi) : 'Not set'}</p>
-            <p className="text-xs text-muted-foreground mt-1">Payout details are locked and cannot be changed.</p>
+            <p className="text-xs text-muted-foreground mt-1">Payout details are locked after being set.</p>
         </CardContent>
     </Card>
 ));
@@ -282,6 +322,59 @@ LogoutButton.displayName = 'LogoutButton';
 
 export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
     const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [open, setOpen] = useState(false);
+    
+    const form = useForm<ProfileFormValues>({
+        resolver: zodResolver(profileSchema),
+        defaultValues: {
+            name: userProfile?.name || '',
+            phone: userProfile?.phone || '',
+            dob: userProfile?.dob || '',
+            gender: userProfile?.gender || undefined,
+            occupation: userProfile?.occupation || '',
+            upi: userProfile?.upi || '',
+        },
+    });
+
+    useEffect(() => {
+        if (userProfile) {
+            form.reset({
+                name: userProfile.name || '',
+                phone: userProfile.phone || '',
+                dob: userProfile.dob || '',
+                gender: userProfile.gender || undefined,
+                occupation: userProfile.occupation || '',
+                upi: userProfile.upi || '',
+            });
+        }
+    }, [userProfile, form]);
+
+    const onSubmit = async (data: ProfileFormValues) => {
+        if (!userProfile?.uid) return;
+        setIsSubmitting(true);
+        try {
+            const userDocRef = doc(db, 'users', userProfile.uid);
+            const dataToUpdate: Partial<ProfileFormValues> = { ...data };
+            if (userProfile.upi) {
+                delete dataToUpdate.upi; // Prevent updating UPI if it already exists
+            }
+            await updateDoc(userDocRef, dataToUpdate);
+            toast({
+                title: "Profile Updated",
+                description: "Your information has been saved successfully.",
+            });
+            setOpen(false);
+        } catch (error: any) {
+            toast({
+                title: "Update Failed",
+                description: "Could not save your profile. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
     
     const handleReferAndEarn = useCallback(() => {
         toast({
@@ -305,21 +398,123 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     }
 
     return (
-        <div 
-            className="space-y-6 animate-fade-in-up"
-        >
-            <div><ProfileHeader userProfile={userProfile} /></div>
-            <div><StatsSummary userProfile={userProfile} /></div>
-            <div><RewardsSummary userProfile={userProfile} /></div>
-            <div><ReferralCard userProfile={userProfile} /></div>
-            <div><PayoutInfo userProfile={userProfile} /></div>
-            <div><SettingsSummary /></div>
-            
-            <ActionButtons handleReferAndEarn={handleReferAndEarn} />
-            
-            <div><SupportCard /></div>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <div className="space-y-6 animate-fade-in-up">
+                <div><ProfileHeader userProfile={userProfile} /></div>
+                <div><StatsSummary userProfile={userProfile} /></div>
+                <div><RewardsSummary userProfile={userProfile} /></div>
+                <div><ReferralCard userProfile={userProfile} /></div>
+                <div><PayoutInfo userProfile={userProfile} /></div>
+                <div><SettingsSummary /></div>
+                
+                <ActionButtons handleReferAndEarn={handleReferAndEarn} />
+                
+                <div><SupportCard /></div>
 
-            <LogoutButton />
-        </div>
+                <LogoutButton />
+            </div>
+
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Edit Profile</DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Name</FormLabel>
+                                    <FormControl><Input placeholder="Your Name" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Phone</FormLabel>
+                                    <FormControl><Input placeholder="10-digit number" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="dob"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Date of Birth</FormLabel>
+                                    <FormControl><Input type="date" placeholder="YYYY-MM-DD" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="gender"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Gender</FormLabel>
+                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select a gender" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Male">Male</SelectItem>
+                                            <SelectItem value="Female">Female</SelectItem>
+                                            <SelectItem value="Other">Other</SelectItem>
+                                            <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="occupation"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Occupation</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Student, Engineer" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="upi"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>UPI ID</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                            placeholder="your-id@bank" 
+                                            {...field} 
+                                            disabled={!!userProfile?.upi || isSubmitting} 
+                                        />
+                                    </FormControl>
+                                    {!!userProfile?.upi && <p className="text-xs text-muted-foreground">UPI ID cannot be changed once set.</p>}
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button>
+                            </DialogClose>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save changes
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
     )
 }

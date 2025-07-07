@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             quizzesPlayed: 0,
             referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
             photoURL: user.photoURL || '',
-            age: '',
+            dob: '',
             gender: '',
             occupation: '',
             upi: '',
