@@ -46,7 +46,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
 
   // This effect runs the rotation timer. It pauses when the user hovers over the cube.
   useEffect(() => {
-    if (isPaused) {
+    if (isPaused || disabled) {
       return;
     }
     
@@ -55,11 +55,11 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
     
-    // Rotate every 1.5 seconds for a dynamic feel.
-    const intervalId = setInterval(rotateToNextFace, 1500);
+    // Rotate every 750ms for a faster, more dynamic feel (2x speed).
+    const intervalId = setInterval(rotateToNextFace, 750);
     
     return () => clearInterval(intervalId);
-  }, [brands.length, isPaused]);
+  }, [brands.length, isPaused, disabled]);
 
 
   // This effect is ONLY for side effects when the face changes.

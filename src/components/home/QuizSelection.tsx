@@ -24,13 +24,17 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
     const selectedBrand = brands[selectedBrandIndex];
     
+    // Use a ref to hold the most up-to-date selected brand for the callback.
+    // This avoids needing to re-create the handleStart callback on every selection change.
     const selectedBrandRef = useRef(selectedBrand);
     selectedBrandRef.current = selectedBrand;
 
+    // useCallback prevents this function from being re-created on every render.
     const handleFaceSelect = useCallback((index: number) => {
         setSelectedBrandIndex(index);
     }, []);
 
+    // useCallback ensures this function is stable and not re-created unnecessarily.
     const handleStart = useCallback(() => {
         onStartQuiz(selectedBrandRef.current);
     }, [onStartQuiz]);
@@ -39,7 +43,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
         <>
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face, banner or button to start!</p>
+                <p className="text-sm text-muted-foreground">Hover to pause, click to play!</p>
             </div>
             
             <QuizSelector 
