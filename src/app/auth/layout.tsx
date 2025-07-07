@@ -18,13 +18,13 @@ export default function AuthLayout({
             height={800}
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute bottom-8 left-8 text-white">
-            <h1 className="text-4xl font-bold">indcric</h1>
-            <p className="mt-2 text-lg">The ultimate cricket quiz challenge.</p>
+            <h1 className="text-5xl font-extrabold tracking-tight">indcric</h1>
+            <p className="mt-2 text-lg">Where Champions Are Forged.</p>
           </div>
         </div>
-        <div className="bg-card p-8">{children}</div>
+        <div className="bg-card p-8 flex flex-col justify-center">{children}</div>
       </div>
     </main>
   );

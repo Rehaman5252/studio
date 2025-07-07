@@ -88,7 +88,7 @@ export default function LoginForm() {
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Sign In to indcric</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
         <p className="text-muted-foreground">
           New to the crease?{' '}
           <Link href={`/auth/signup${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">
@@ -102,7 +102,7 @@ export default function LoginForm() {
       ) : (
         <div className="space-y-4">
             <Button variant="outline" size="lg" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
-                {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-3" /> Continue with Google</>}
+                {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
             </Button>
 
             <div className="relative">

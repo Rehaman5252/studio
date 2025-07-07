@@ -163,7 +163,7 @@ export default function SignupForm() {
       ) : formStep === 'details' ? (
         <div className="space-y-4">
           <Button variant="outline" size="lg" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
-              {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-3" /> Continue with Google</>}
+              {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
           </Button>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
