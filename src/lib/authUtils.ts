@@ -37,13 +37,17 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
         onSuccess();
 
     } catch (error: any) {
+        // This specific error code means the user intentionally closed the popup.
+        // It's not a true "error" we need to show the user. We can just return.
+        if (error.code === 'auth/popup-closed-by-user') {
+            console.log('Google Sign-In was cancelled by the user.');
+            return;
+        }
+        
         console.error("Google Sign-In Error:", error.code, error.message);
         let message = "An unexpected error occurred. Please try again.";
         
         switch (error.code) {
-            case 'auth/popup-closed-by-user':
-                message = "Sign-in was cancelled. Please try again.";
-                break;
             case 'auth/account-exists-with-different-credential':
                 message = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
                 break;
