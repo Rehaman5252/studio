@@ -55,8 +55,8 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
     
-    // Rotate every 750ms for a 2x faster feel.
-    const intervalId = setInterval(rotateToNextFace, 750);
+    // Rotate every 1.5 seconds for a dynamic feel.
+    const intervalId = setInterval(rotateToNextFace, 1500);
     
     return () => clearInterval(intervalId);
   }, [brands.length, isPaused]);
