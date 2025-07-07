@@ -37,12 +37,22 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
         onSuccess();
 
     } catch (error: any) {
-        console.error("Google Sign-In Error:", error);
+        console.error("Google Sign-In Error:", error.code, error.message);
         let message = "An unexpected error occurred. Please try again.";
-        if (error.code === 'auth/popup-closed-by-user') {
-            message = "Sign-in was cancelled. Please try again.";
-        } else if (error.code === 'auth/account-exists-with-different-credential') {
-            message = "An account already exists with the same email address but different sign-in credentials.";
+        
+        switch (error.code) {
+            case 'auth/popup-closed-by-user':
+                message = "Sign-in was cancelled. Please try again.";
+                break;
+            case 'auth/account-exists-with-different-credential':
+                message = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
+                break;
+            case 'auth/unauthorized-domain':
+                message = "This app's domain is not authorized for Google Sign-In. The developer must add this website's domain to the 'Authorized domains' list in the Firebase Authentication settings.";
+                break;
+            default:
+                message = `An error occurred. (Code: ${error.code})`;
+                break;
         }
         onError(message);
     }
