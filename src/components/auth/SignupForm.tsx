@@ -13,11 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { AlertCircle, Loader2, IndianRupee } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { handleGoogleSignIn } from '@/lib/authUtils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { verifyOtp } from '@/ai/flows/verify-otp-flow';
+import FirebaseConfigWarning from './FirebaseConfigWarning';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -51,7 +51,6 @@ export default function SignupForm() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isOtpSending, setIsOtpSending] = useState(false);
   
-  // Store form data to use after OTP verification
   const [detailsData, setDetailsData] = useState<DetailsFormValues | null>(null);
 
   const detailsForm = useForm<DetailsFormValues>({ resolver: zodResolver(detailsSchema) });
@@ -88,7 +87,7 @@ export default function SignupForm() {
     if (!detailsData) return;
     setIsLoading(true);
 
-    if (!isFirebaseConfigured || !auth || !db) {
+    if (!auth || !db) {
         toast({
             title: "Service Unavailable",
             description: "Cannot create account. Please contact support.",
@@ -155,18 +154,11 @@ export default function SignupForm() {
         </p>
       </div>
 
-      {formStep === 'details' && (
+      {!isFirebaseConfigured ? (
+         <FirebaseConfigWarning />
+      ) : formStep === 'details' ? (
         <div className="space-y-4">
-          {!isFirebaseConfigured && (
-            <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Firebase Not Configured</AlertTitle>
-                <AlertDescription>
-                    The app cannot connect to the authentication service. If you are the developer, please ensure your Firebase environment variables are set in your hosting provider's settings.
-                </AlertDescription>
-            </Alert>
-          )}
-          <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isAuthDisabled || !isFirebaseConfigured} suppressHydrationWarning>
+          <Button variant="outline" className="w-full text-base py-6" onClick={onGoogleLogin} disabled={isAuthDisabled}>
               {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="h-5 w-5 mr-3" /> Continue with Google</>}
           </Button>
           <div className="relative">
@@ -205,14 +197,12 @@ export default function SignupForm() {
               <Input id="password" type="password" placeholder="••••••••" {...detailsForm.register('password')} disabled={isAuthDisabled} />
               {detailsForm.formState.errors.password && <p className="text-sm text-destructive">{detailsForm.formState.errors.password.message}</p>}
             </div>
-            <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled || !isFirebaseConfigured} suppressHydrationWarning>
+            <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled}>
               {isOtpSending ? <Loader2 className="animate-spin mr-2" /> : 'Continue'}
             </Button>
           </form>
         </div>
-      )}
-
-      {formStep === 'otp' && (
+      ) : (
         <div className="space-y-4">
              <form onSubmit={otpForm.handleSubmit(handleVerifyAndSignup)} className="space-y-4">
                 <div className="space-y-2">
@@ -220,7 +210,7 @@ export default function SignupForm() {
                     <Input id="otp" type="text" placeholder="123456" {...otpForm.register('otp')} disabled={isAuthDisabled} />
                     {otpForm.formState.errors.otp && <p className="text-sm text-destructive">{otpForm.formState.errors.otp.message}</p>}
                 </div>
-                <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled || !isFirebaseConfigured} suppressHydrationWarning>
+                <Button type="submit" className="w-full text-base py-6" disabled={isAuthDisabled}>
                     {isLoading && <Loader2 className="animate-spin mr-2" />}
                     Verify & Create Account
                 </Button>
