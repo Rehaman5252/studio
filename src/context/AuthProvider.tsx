@@ -12,7 +12,8 @@ import type { QuizAttempt } from '@/lib/mockData';
 interface AuthContextType {
   user: User | null;
   userData: DocumentData | null;
-  loading: boolean;
+  loading: boolean; // Tracks auth state readiness
+  isUserDataLoading: boolean; // Tracks Firestore user doc loading
   quizHistory: DocumentData[] | null;
   isHistoryLoading: boolean;
 }
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   userData: null,
   loading: true,
+  isUserDataLoading: true,
   quizHistory: null,
   isHistoryLoading: true,
 });
@@ -29,12 +31,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [quizHistory, setQuizHistory] = useState<DocumentData[] | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
     if (!auth) {
       setLoading(false);
+      setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
     }
@@ -46,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUserData(null);
         setQuizHistory(null);
         setIsHistoryLoading(false);
+        setIsUserDataLoading(false);
       }
     });
 
@@ -54,14 +59,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     if (user && db) {
+      setIsUserDataLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
         setUserData(doc.exists() ? doc.data() : null);
+        setIsUserDataLoading(false);
       }, (error) => {
         console.error("Firestore user data snapshot error:", error);
         setUserData(null);
+        setIsUserDataLoading(false);
       });
       return () => unsubscribeFirestore();
+    } else {
+        setIsUserDataLoading(false);
     }
   }, [user]);
 
@@ -91,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   }, [user]);
 
-  const value = { user, userData, loading, quizHistory, isHistoryLoading };
+  const value = { user, userData, loading, isUserDataLoading, quizHistory, isHistoryLoading };
 
   return (
     <AuthContext.Provider value={value}>

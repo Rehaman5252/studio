@@ -9,12 +9,11 @@ import { useAuth } from '@/context/AuthProvider';
 
 export default function ProfilePage() {
     useRequireAuth();
-    const { userData, loading: isAuthLoading, isHistoryLoading } = useAuth();
+    const { userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
     
-    // Determine the loading state for the skeleton.
-    // We show the skeleton if auth is still resolving OR if history is still loading,
-    // as some stats might depend on it.
-    const isLoading = isAuthLoading || isHistoryLoading;
+    // The main loading state for the profile page should depend on auth being ready
+    // and the user document fetch being complete.
+    const isLoading = isAuthLoading || isUserDataLoading;
 
     return (
         <div className="flex flex-col h-screen bg-background">

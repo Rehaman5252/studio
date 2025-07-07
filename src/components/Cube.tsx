@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, memo } from 'react';
@@ -42,32 +43,26 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
 
-  // This is the core logic fix. This effect runs ONLY ONCE and sets up a stable interval.
+  // This effect runs ONLY ONCE and sets up a stable interval for rotation.
+  // It is not affected by parent re-renders.
   useEffect(() => {
-    // Set an initial random face.
-    const initialFace = Math.floor(Math.random() * brands.length);
-    setCurrentFaceIndex(initialFace);
-
     const rotateToNextFace = () => {
       // Use the functional form of setState to get the latest index without needing it as a dependency.
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
     
-    // The cube will now change faces every 1.5 seconds.
-    const intervalId = setInterval(rotateToNextFace, 1500);
+    const intervalId = setInterval(rotateToNextFace, 1500); // Change face every 1.5 seconds
     
-    // Cleanup function to clear the interval when the component unmounts.
     return () => clearInterval(intervalId);
-  }, [brands.length]); // This dependency is stable and will only re-run if the number of brands changes.
+  }, [brands.length]);
 
 
-  // This effect is now ONLY for side effects when the face changes.
+  // This effect is ONLY for side effects when the face changes.
+  // It applies the CSS transform and informs the parent of the new face.
   useEffect(() => {
-    // 1. Apply the actual CSS transform to rotate the cube.
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[currentFaceIndex];
     }
-    // 2. Inform the parent component which face is now showing.
     onFaceSelect(currentFaceIndex);
   }, [currentFaceIndex, onFaceSelect]);
 
@@ -88,8 +83,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            // The animation speed for each turn is 500ms (0.5s).
-            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)', // 500ms animation speed
             willChange: 'transform' 
           }}
         >
