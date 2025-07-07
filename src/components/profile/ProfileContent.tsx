@@ -20,7 +20,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const maskPhone = (phone: string) => {
     if (!phone || phone.length <= 4) return phone;
-    return `+91 ••••${phone.substring(phone.length - 4)}`;
+    // Handles international and local formats by grabbing last 4 digits
+    const lastFour = phone.slice(-4);
+    const countryCode = phone.startsWith('+') ? phone.split(' ')[0] : '+91';
+    return `${countryCode} ••••${lastFour}`;
 };
 
 const maskUpi = (upi: string) => {
@@ -81,18 +84,18 @@ const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => (
     <Card className="bg-card shadow-lg">
         <CardContent className="p-4 flex items-center gap-4 relative">
             <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
-                <AvatarImage src={userProfile.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
-                <AvatarFallback>{userProfile.name?.charAt(0) || 'U'}</AvatarFallback>
+                <AvatarImage src={userProfile?.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
+                <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
                 <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-bold text-foreground">{userProfile.name}</h2>
+                    <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
                 </div>
                 <p className="text-muted-foreground text-sm">
-                    {maskPhone(userProfile.phone)}
+                    {maskPhone(userProfile?.phone || '')}
                 </p>
                 <p className="text-muted-foreground text-sm">
-                    {userProfile.age && `${userProfile.age} yrs | `} {userProfile.gender && `${userProfile.gender} | `} {userProfile.occupation}
+                    {userProfile?.age && `${userProfile.age} yrs | `} {userProfile?.gender && `${userProfile.gender} | `} {userProfile?.occupation}
                 </p>
             </div>
             <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
@@ -106,9 +109,9 @@ ProfileHeader.displayName = 'ProfileHeader';
 const StatsSummary = memo(({ userProfile }: { userProfile: any }) => (
     <Card className="bg-card shadow-lg">
         <CardContent className="p-4 grid grid-cols-3 gap-4">
-            <StatItem title="Quizzes Played" value={userProfile.quizzesPlayed || 0} icon={Trophy} />
-            <StatItem title="Highest Streak" value={userProfile.highestStreak || 0} icon={Star} />
-            <StatItem title="Total Earnings" value={`₹${userProfile.totalRewards || 0}`} icon={Banknote} />
+            <StatItem title="Quizzes Played" value={userProfile?.quizzesPlayed || 0} icon={Trophy} />
+            <StatItem title="Highest Streak" value={userProfile?.highestStreak || 0} icon={Star} />
+            <StatItem title="Total Earnings" value={`₹${userProfile?.totalRewards || 0}`} icon={Banknote} />
         </CardContent>
     </Card>
 ));
@@ -123,7 +126,7 @@ const RewardsSummary = memo(({ userProfile }: { userProfile: any }) => (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
                 <Award className="h-8 w-8 text-primary"/>
                 <div>
-                    <p className="font-bold text-xl">{userProfile.certificatesEarned || 0}</p>
+                    <p className="font-bold text-xl">{userProfile?.certificatesEarned || 0}</p>
                     <p className="text-sm text-muted-foreground">Certificates</p>
                 </div>
             </div>
@@ -149,13 +152,13 @@ const ReferralCard = memo(({ userProfile }: { userProfile: any }) => (
                 <div className="flex items-center gap-3">
                     <Users className="h-8 w-8 text-primary"/>
                     <div>
-                        <p className="font-bold text-xl">₹{userProfile.referralEarnings || 0}</p>
+                        <p className="font-bold text-xl">₹{userProfile?.referralEarnings || 0}</p>
                         <p className="text-sm text-muted-foreground">From Referrals</p>
                     </div>
                 </div>
                 <Button variant="secondary" size="sm">Copy Link</Button>
             </div>
-            <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{userProfile.referralCode}</p>
+            <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{userProfile?.referralCode || 'No code available'}</p>
         </CardContent>
     </Card>
 ));
@@ -167,7 +170,7 @@ const PayoutInfo = memo(({ userProfile }: { userProfile: any }) => (
             <CardTitle className="text-lg">Payout Info</CardTitle>
         </CardHeader>
         <CardContent>
-            <p className="text-sm text-foreground">UPI: {userProfile.upi ? maskUpi(userProfile.upi) : 'Not set'}</p>
+            <p className="text-sm text-foreground">UPI: {userProfile?.upi ? maskUpi(userProfile.upi) : 'Not set'}</p>
             <p className="text-xs text-muted-foreground mt-1">Payout details are locked and cannot be changed.</p>
         </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -122,6 +123,14 @@ export default function SignupForm() {
             quizzesPlayed: 0,
             referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
             photoURL: user.photoURL || '',
+            // Add default empty fields to prevent profile page errors
+            age: '',
+            gender: '',
+            occupation: '',
+            upi: '',
+            highestStreak: 0,
+            certificatesEarned: 0,
+            referralEarnings: 0,
         };
         await setDoc(doc(db, 'users', user.uid), userDoc);
 

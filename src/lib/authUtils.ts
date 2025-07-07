@@ -30,7 +30,7 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
             if (!userDoc.exists()) {
                 await setDoc(userDocRef, {
                     uid: user.uid,
-                    name: user.displayName,
+                    name: user.displayName || 'New User',
                     email: user.email,
                     phone: user.phoneNumber || '',
                     createdAt: serverTimestamp(),
@@ -38,6 +38,14 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
                     quizzesPlayed: 0,
                     referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
                     photoURL: user.photoURL || '',
+                    // Add default empty fields to prevent profile page errors
+                    age: '',
+                    gender: '',
+                    occupation: '',
+                    upi: '',
+                    highestStreak: 0,
+                    certificatesEarned: 0,
+                    referralEarnings: 0,
                 });
             }
         } catch (firestoreError: any) {
