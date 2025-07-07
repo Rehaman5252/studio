@@ -5,7 +5,7 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import type { User } from 'firebase/auth';
 import type { DocumentData } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, getDocs, orderBy, limit, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 
@@ -43,14 +43,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setLoading(false);
-      if (!currentUser) {
+
+      if (currentUser && db) {
+        // This is the self-healing logic.
+        // It ensures a user document exists for any authenticated user.
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+          // Document doesn't exist, so create it.
+          try {
+            await setDoc(userDocRef, {
+              uid: currentUser.uid,
+              name: currentUser.displayName || 'New User',
+              email: currentUser.email,
+              phone: currentUser.phoneNumber || '',
+              createdAt: serverTimestamp(),
+              totalRewards: 0,
+              quizzesPlayed: 0,
+              referralCode: `indcric.com/ref/${currentUser.uid.slice(0, 8)}`,
+              photoURL: currentUser.photoURL || '',
+              // Add default empty fields to prevent profile page errors
+              age: '',
+              gender: '',
+              occupation: '',
+              upi: '',
+              highestStreak: 0,
+              certificatesEarned: 0,
+              referralEarnings: 0,
+            });
+            console.log("Created new user document for UID:", currentUser.uid);
+          } catch (error) {
+            console.error("Failed to create user document:", error);
+          }
+        }
+      } else {
+        // User is logged out, clear all data.
         setUserData(null);
         setQuizHistory(null);
-        setIsHistoryLoading(false);
         setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
       }
     });
 
