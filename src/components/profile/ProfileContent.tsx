@@ -32,10 +32,22 @@ const profileSchema = z.object({
     (dob) => new Date(dob) < new Date(), { message: "Date of birth must be in the past."}
   ).optional().or(z.literal('')),
   gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say', '']),
-  occupation: z.string().optional(),
+  occupation: z.enum(['Student', 'Employee', 'Business', 'Others', '']),
   upi: z.string().optional(),
+  favoriteFormat: z.string().optional(),
+  favoriteTeam: z.string().optional(),
+  favoriteCricketer: z.string().min(2, { message: 'Name must be at least 2 characters.' }).optional().or(z.literal('')),
 });
 type ProfileFormValues = z.infer<typeof profileSchema>;
+
+
+const occupations = ['Student', 'Employee', 'Business', 'Others'];
+const cricketFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
+const cricketTeams = [
+    'India', 'Australia', 'England', 'South Africa', 'New Zealand', 'Pakistan', 'Sri Lanka', 'West Indies',
+    'Chennai Super Kings', 'Mumbai Indians', 'Kolkata Knight Riders', 'Royal Challengers Bengaluru', 
+    'Sunrisers Hyderabad', 'Punjab Kings', 'Delhi Capitals', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans'
+];
 
 
 const maskPhone = (phone?: string) => {
@@ -263,6 +275,9 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             gender: '',
             occupation: '',
             upi: '',
+            favoriteFormat: '',
+            favoriteTeam: '',
+            favoriteCricketer: '',
         },
     });
 
@@ -275,6 +290,9 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 gender: userProfile.gender || '',
                 occupation: userProfile.occupation || '',
                 upi: userProfile.upi || '',
+                favoriteFormat: userProfile.favoriteFormat || '',
+                favoriteTeam: userProfile.favoriteTeam || '',
+                favoriteCricketer: userProfile.favoriteCricketer || '',
             });
         }
     }, [userProfile, form]);
@@ -285,10 +303,8 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         try {
             const userDocRef = doc(db, 'users', userProfile.uid);
             
-            // Create a mutable copy to potentially remove the UPI field
             const dataToUpdate: Partial<ProfileFormValues> = { ...data };
 
-            // Prevent updating UPI if it already exists and is not empty.
             if (userProfile.upi && userProfile.upi.trim() !== '') {
                 delete dataToUpdate.upi;
             }
@@ -340,7 +356,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                     <DialogTitle>Edit Profile</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[80vh] overflow-y-auto pr-6">
                         <FormField
                             control={form.control}
                             name="name"
@@ -395,13 +411,20 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                         <FormField
                             control={form.control}
                             name="occupation"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Occupation</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Student, Engineer" {...field} /></FormControl>
+                                     <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select your occupation" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {occupations.map(occ => <SelectItem key={occ} value={occ}>{occ}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -424,7 +447,54 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                 </FormItem>
                             )}
                         />
-                        <DialogFooter>
+                        <FormField
+                            control={form.control}
+                            name="favoriteFormat"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Favorite Format</FormLabel>
+                                     <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select your favorite format" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {cricketFormats.map(format => <SelectItem key={format} value={format}>{format}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="favoriteTeam"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Favorite Team</FormLabel>
+                                     <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select your favorite team" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {cricketTeams.map(team => <SelectItem key={team} value={team}>{team}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="favoriteCricketer"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Favorite Cricketer</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Virat Kohli" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter className="sticky bottom-0 bg-background pt-4">
                             <DialogClose asChild>
                                 <Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button>
                             </DialogClose>

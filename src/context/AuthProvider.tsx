@@ -58,6 +58,9 @@ const getUserDocument = async (uid: string, displayName?: string | null, email?:
                 highestStreak: 0,
                 certificatesEarned: 0,
                 referralEarnings: 0,
+                favoriteFormat: '',
+                favoriteTeam: '',
+                favoriteCricketer: '',
             };
             await setDoc(userDocRef, newUserDoc);
             return newUserDoc;
