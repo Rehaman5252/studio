@@ -247,10 +247,14 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
             description: "The referral program is not yet active. Check back later!",
         });
     }, [toast]);
+    
+    if (!userProfile) {
+        return null;
+    }
 
     return (
         <div 
-            className="space-y-6"
+            className="space-y-6 animate-fade-in-up"
         >
             <div><ProfileHeader userProfile={userProfile} /></div>
             <div><StatsSummary userProfile={userProfile} /></div>

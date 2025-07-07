@@ -5,7 +5,6 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/context/AuthProvider';
 import useRequireAuth from '@/hooks/useRequireAuth';
-import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
@@ -23,7 +22,7 @@ const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent
 
 export default function ProfilePage() {
     useRequireAuth();
-    const { userData, loading } = useAuth();
+    const { userData } = useAuth();
     
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -32,13 +31,7 @@ export default function ProfilePage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        {loading || !userData ? (
-             <div className="flex items-center justify-center h-full">
-                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        ) : (
-             <ProfileContent userProfile={userData} />
-        )}
+        <ProfileContent userProfile={userData} />
       </main>
     </div>
   );
