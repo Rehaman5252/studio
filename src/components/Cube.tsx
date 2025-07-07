@@ -44,14 +44,15 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   const cubeRef = useRef<HTMLDivElement>(null);
 
   // This effect runs ONLY ONCE and sets up a stable interval for rotation.
-  // It is not affected by parent re-renders.
+  // It is not affected by parent re-renders and will rotate continuously.
   useEffect(() => {
     const rotateToNextFace = () => {
       // Use the functional form of setState to get the latest index without needing it as a dependency.
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
     
-    const intervalId = setInterval(rotateToNextFace, 1500); // Change face every 1.5 seconds
+    // Rotate every 1.5 seconds for a dynamic feel.
+    const intervalId = setInterval(rotateToNextFace, 1500);
     
     return () => clearInterval(intervalId);
   }, [brands.length]);
@@ -83,7 +84,8 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)', // 500ms animation speed
+            // The transition speed for each rotation is 500ms as requested.
+            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
         >

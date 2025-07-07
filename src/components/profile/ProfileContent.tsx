@@ -12,12 +12,10 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    Settings, Moon, Bell, Music, Vibrate, RefreshCw, LogOut, Loader2, Copy
+    LogOut, Loader2, Copy
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -32,28 +30,28 @@ const profileSchema = z.object({
   phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.'}),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Please use YYYY-MM-DD format.' }).refine(
     (dob) => new Date(dob) < new Date(), { message: "Date of birth must be in the past."}
-  ),
-  gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say']),
-  occupation: z.string().min(2, { message: 'Occupation must be at least 2 characters.' }),
+  ).optional().or(z.literal('')),
+  gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say', '']),
+  occupation: z.string().optional(),
   upi: z.string().optional(),
 });
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 
-const maskPhone = (phone: string) => {
-    if (!phone || phone.length <= 4) return phone;
+const maskPhone = (phone?: string) => {
+    if (!phone || phone.length < 10) return 'Not set';
     const lastFour = phone.slice(-4);
-    const countryCode = phone.startsWith('+') ? phone.split(' ')[0] : '+91';
-    return `${countryCode} ••••${lastFour}`;
+    return `+91 •••• ••${lastFour.substring(0,2)} ${lastFour.substring(2,4)}`;
 };
 
-const maskUpi = (upi: string) => {
-    if (!upi || !upi.includes('@')) return upi;
+const maskUpi = (upi?: string) => {
+    if (!upi || !upi.includes('@')) return 'Not set';
     const [user, domain] = upi.split('@');
+    if (user.length <= 3) return `${user}••••@${domain}`;
     return `${user.substring(0, 3)}••••@${domain}`;
 }
 
-const calculateAge = (dobString: string): number | null => {
+const calculateAge = (dobString?: string): number | null => {
     if (!dobString || !/^\d{4}-\d{2}-\d{2}$/.test(dobString)) return null;
     const birthDate = new Date(dobString);
     const today = new Date();
@@ -106,8 +104,7 @@ const ProfileSkeleton = () => (
               </div>
           </CardContent>
       </Card>
-      <Skeleton className="h-[140px] w-full" />
-      <Skeleton className="h-[124px] w-full" />
+      <Skeleton className="h-[92px] w-full" />
       <Skeleton className="h-[92px] w-full" />
     </div>
 );
@@ -123,11 +120,9 @@ const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => {
                     <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
-                    </div>
+                    <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
                     <p className="text-muted-foreground text-sm">
-                        {maskPhone(userProfile?.phone || '')}
+                        {maskPhone(userProfile?.phone)}
                     </p>
                     <div className="text-muted-foreground text-sm flex items-center gap-2 flex-wrap">
                         {age && <span>{age} yrs</span>}
@@ -157,30 +152,19 @@ const StatsSummary = memo(({ userProfile }: { userProfile: any }) => (
 ));
 StatsSummary.displayName = 'StatsSummary';
 
-const RewardsSummary = memo(({ userProfile }: { userProfile: any }) => (
+
+const PayoutInfo = memo(({ userProfile }: { userProfile: any }) => (
     <Card className="bg-card shadow-lg">
         <CardHeader>
-            <CardTitle className="text-lg">Rewards & Certificates</CardTitle>
+            <CardTitle className="text-lg">Payout Info</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
-                <Award className="h-8 w-8 text-primary"/>
-                <div>
-                    <p className="font-bold text-xl">{userProfile?.certificatesEarned || 0}</p>
-                    <p className="text-sm text-muted-foreground">Certificates</p>
-                </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
-                <Gift className="h-8 w-8 text-primary"/>
-                <div>
-                    <p className="font-bold text-xl">1</p>
-                    <p className="text-sm text-muted-foreground">Gift Unlocked</p>
-                </div>
-            </div>
+        <CardContent>
+            <p className="text-sm text-foreground">UPI: {maskUpi(userProfile?.upi)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Payout details are locked after first entry.</p>
         </CardContent>
     </Card>
 ));
-RewardsSummary.displayName = 'RewardsSummary';
+PayoutInfo.displayName = 'PayoutInfo';
 
 const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
     const { toast } = useToast();
@@ -196,7 +180,7 @@ const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
     return (
      <Card className="bg-card shadow-lg">
         <CardHeader>
-            <CardTitle className="text-lg">Referrals</CardTitle>
+            <CardTitle className="text-lg">Refer & Earn</CardTitle>
         </CardHeader>
         <CardContent>
             <div className="flex items-center justify-between mb-2">
@@ -219,95 +203,19 @@ const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
 });
 ReferralCard.displayName = 'ReferralCard';
 
-const PayoutInfo = memo(({ userProfile }: { userProfile: any }) => (
-    <Card className="bg-card shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-lg">Payout Info</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-foreground">UPI: {userProfile?.upi ? maskUpi(userProfile.upi) : 'Not set'}</p>
-            <p className="text-xs text-muted-foreground mt-1">Payout details are locked after being set.</p>
-        </CardContent>
-    </Card>
-));
-PayoutInfo.displayName = 'PayoutInfo';
-
-const SettingsSummary = memo(() => (
-    <Card className="bg-card shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-lg">Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-                <Label htmlFor="dark-mode" className="flex items-center gap-2"><Moon className="h-5 w-5" /><span>Dark Mode</span></Label>
-                <Switch id="dark-mode" defaultChecked disabled />
-            </div>
-            <div className="flex items-center justify-between">
-                <Label htmlFor="notifications" className="flex items-center gap-2"><Bell className="h-5 w-5" /><span>Quiz Reminders</span></Label>
-                <Switch id="notifications" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-                <Label htmlFor="sound" className="flex items-center gap-2"><Music className="h-5 w-5" /><span>In-App Sounds</span></Label>
-                <Switch id="sound" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-                <Label htmlFor="vibration" className="flex items-center gap-2"><Vibrate className="h-5 w-5" /><span>Vibration Feedback</span></Label>
-                <Switch id="vibration" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-                <Label htmlFor="hint-ad" className="flex items-center gap-2"><RefreshCw className="h-5 w-5" /><span>Auto-play Hint Ad</span></Label>
-                <Switch id="hint-ad" defaultChecked />
-            </div>
-        </CardContent>
-    </Card>
-));
-SettingsSummary.displayName = 'SettingsSummary';
-
-const ActionButtons = memo(({ handleReferAndEarn }: { handleReferAndEarn: () => void }) => (
-    <section className="space-y-3 pt-4">
-        <div>
-            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Link href="/certificates"><Award className="mr-4" /> View Certificates</Link>
-            </Button>
-        </div>
-        <div>
-            <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary" onClick={handleReferAndEarn}>
-                <UserPlus className="mr-4" /> Refer & Earn
-            </Button>
-        </div>
-    </section>
-));
-ActionButtons.displayName = 'ActionButtons';
-
-const SupportCard = memo(() => (
-    <Card className="bg-card shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-lg">Support</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-muted-foreground">
-                For any issues or feedback, please email us at:
-            </p>
-            <p className="font-semibold text-primary">support@indcric.com</p>
-        </CardContent>
-    </Card>
-));
-SupportCard.displayName = 'SupportCard';
-
-const LogoutButton = memo(() => {
-    const { toast } = useToast();
+const ActionButtons = memo(() => {
     const router = useRouter();
+    const { toast } = useToast();
 
     const handleLogout = async () => {
         if (!auth) {
             toast({
                 title: "Firebase Not Configured",
-                description: "Could not connect to authentication service. Please set up your environment variables.",
+                description: "Could not connect to authentication service.",
                 variant: "destructive"
             });
             return;
         }
-
         try {
             await signOut(auth);
             toast({
@@ -323,16 +231,22 @@ const LogoutButton = memo(() => {
             });
         }
     };
-
+    
     return (
-        <div className="pt-2">
+        <section className="space-y-3 pt-4">
+            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <Link href="/rewards"><Gift className="mr-4" /> My Rewards</Link>
+            </Button>
+            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <Link href="/certificates"><Award className="mr-4" /> View Certificates</Link>
+            </Button>
             <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
                 <LogOut className="mr-2 h-5 w-5" /> Logout
             </Button>
-        </div>
+        </section>
     );
 });
-LogoutButton.displayName = 'LogoutButton';
+ActionButtons.displayName = 'ActionButtons';
 
 
 export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
@@ -343,12 +257,12 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: userProfile?.name || '',
-            phone: userProfile?.phone || '',
-            dob: userProfile?.dob || '',
-            gender: userProfile?.gender || undefined,
-            occupation: userProfile?.occupation || '',
-            upi: userProfile?.upi || '',
+            name: '',
+            phone: '',
+            dob: '',
+            gender: '',
+            occupation: '',
+            upi: '',
         },
     });
 
@@ -358,7 +272,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 name: userProfile.name || '',
                 phone: userProfile.phone || '',
                 dob: userProfile.dob || '',
-                gender: userProfile.gender || undefined,
+                gender: userProfile.gender || '',
                 occupation: userProfile.occupation || '',
                 upi: userProfile.upi || '',
             });
@@ -370,10 +284,15 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         setIsSubmitting(true);
         try {
             const userDocRef = doc(db, 'users', userProfile.uid);
+            
+            // Create a mutable copy to potentially remove the UPI field
             const dataToUpdate: Partial<ProfileFormValues> = { ...data };
-            if (userProfile.upi) {
-                delete dataToUpdate.upi; // Prevent updating UPI if it already exists
+
+            // Prevent updating UPI if it already exists and is not empty.
+            if (userProfile.upi && userProfile.upi.trim() !== '') {
+                delete dataToUpdate.upi;
             }
+            
             await updateDoc(userDocRef, dataToUpdate);
             toast({
                 title: "Profile Updated",
@@ -381,6 +300,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             });
             setOpen(false);
         } catch (error: any) {
+            console.error("Profile update failed:", error);
             toast({
                 title: "Update Failed",
                 description: "Could not save your profile. Please try again.",
@@ -390,25 +310,6 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             setIsSubmitting(false);
         }
     };
-    
-    const handleReferAndEarn = useCallback(() => {
-        const referralLink = userProfile?.referralCode || '';
-        if (navigator.share) {
-            navigator.share({
-                title: 'Join me on indcric!',
-                text: `Test your cricket knowledge and win big! Use my link to join:`,
-                url: referralLink,
-            })
-            .then(() => console.log('Successful share'))
-            .catch((error) => console.log('Error sharing', error));
-        } else {
-             navigator.clipboard.writeText(referralLink);
-             toast({
-                title: "Copied to Clipboard!",
-                description: "Your referral link has been copied. Share it with your friends!",
-            });
-        }
-    }, [userProfile, toast]);
     
     if (isLoading) {
         return <ProfileSkeleton />;
@@ -427,18 +328,11 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <div className="space-y-6 animate-fade-in-up">
-                <div><ProfileHeader userProfile={userProfile} /></div>
-                <div><StatsSummary userProfile={userProfile} /></div>
-                <div><RewardsSummary userProfile={userProfile} /></div>
-                <div><ReferralCard userProfile={userProfile} /></div>
-                <div><PayoutInfo userProfile={userProfile} /></div>
-                <div><SettingsSummary /></div>
-                
-                <ActionButtons handleReferAndEarn={handleReferAndEarn} />
-                
-                <div><SupportCard /></div>
-
-                <LogoutButton />
+                <ProfileHeader userProfile={userProfile} />
+                <StatsSummary userProfile={userProfile} />
+                <PayoutInfo userProfile={userProfile} />
+                <ReferralCard userProfile={userProfile} />
+                <ActionButtons />
             </div>
 
             <DialogContent className="sm:max-w-[425px]">
@@ -464,7 +358,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Phone</FormLabel>
-                                    <FormControl><Input placeholder="10-digit number" {...field} /></FormControl>
+                                    <FormControl><Input type="tel" placeholder="10-digit number" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -475,7 +369,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Date of Birth</FormLabel>
-                                    <FormControl><Input type="date" placeholder="YYYY-MM-DD" {...field} /></FormControl>
+                                    <FormControl><Input type="date" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -486,7 +380,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Gender</FormLabel>
-                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger><SelectValue placeholder="Select a gender" /></SelectTrigger>
                                         </FormControl>
