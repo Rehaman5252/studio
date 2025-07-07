@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, memo } from 'react';
@@ -43,27 +42,32 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
 
-  // This useEffect handles the continuous rotation of the cube.
+  // This is the core logic fix. This effect runs ONLY ONCE and sets up a stable interval.
   useEffect(() => {
-    const rotateToNextFace = () => {
-      setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
-    };
-    // The interval is set to 2 seconds to feel dynamic, while the CSS handles the 500ms animation.
-    const intervalId = setInterval(rotateToNextFace, 2000);
-    // Cleanup function to clear the interval when the component unmounts.
-    return () => clearInterval(intervalId);
-  }, [brands.length]);
-
-  useEffect(() => {
+    // Set an initial random face.
     const initialFace = Math.floor(Math.random() * brands.length);
     setCurrentFaceIndex(initialFace);
-  }, [brands.length]);
+
+    const rotateToNextFace = () => {
+      // Use the functional form of setState to get the latest index without needing it as a dependency.
+      setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
+    };
+    
+    // The cube will now change faces every 1.5 seconds.
+    const intervalId = setInterval(rotateToNextFace, 1500);
+    
+    // Cleanup function to clear the interval when the component unmounts.
+    return () => clearInterval(intervalId);
+  }, [brands.length]); // This dependency is stable and will only re-run if the number of brands changes.
 
 
+  // This effect is now ONLY for side effects when the face changes.
   useEffect(() => {
+    // 1. Apply the actual CSS transform to rotate the cube.
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[currentFaceIndex];
     }
+    // 2. Inform the parent component which face is now showing.
     onFaceSelect(currentFaceIndex);
   }, [currentFaceIndex, onFaceSelect]);
 
@@ -84,6 +88,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
+            // The animation speed for each turn is 500ms (0.5s).
             transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
