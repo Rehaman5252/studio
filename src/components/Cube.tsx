@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -44,25 +44,31 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   const cubeRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const stopRotation = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const startRotation = useCallback(() => {
+    stopRotation(); // Prevent multiple intervals
+    const rotateToNextFace = () => {
+      setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
+    };
+    intervalRef.current = setInterval(rotateToNextFace, 3000);
+  }, [brands.length, stopRotation]);
+
+
   useEffect(() => {
     const initialFace = Math.floor(Math.random() * 6);
     setCurrentFaceIndex(initialFace);
   }, []);
 
   useEffect(() => {
-    const rotateToNextFace = () => {
-      setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
-    };
-
-    // Slow down rotation to improve performance and feel more elegant
-    intervalRef.current = setInterval(rotateToNextFace, 3500);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [brands.length]);
+    startRotation();
+    return stopRotation;
+  }, [startRotation, stopRotation]);
 
 
   useEffect(() => {
@@ -81,6 +87,8 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   return (
     <div 
       className="flex justify-center items-center h-48"
+      onMouseEnter={stopRotation}
+      onMouseLeave={startRotation}
     >
       <div 
         className={cn("w-32 h-32 perspective", disabled && "opacity-50")}
@@ -89,7 +97,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)', // Slower, smoother transition
+            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
         >
