@@ -17,37 +17,46 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
 
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
+        // The user is now authenticated with Firebase Auth.
+        // Now, we handle the Firestore document creation/check.
+        // We will wrap this in its own try/catch so a network failure here doesn't block login.
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
 
-        if (!userDoc.exists()) {
-            await setDoc(userDocRef, {
-                uid: user.uid,
-                name: user.displayName,
-                email: user.email,
-                phone: user.phoneNumber || '',
-                createdAt: serverTimestamp(),
-                totalRewards: 0,
-                quizzesPlayed: 0,
-                referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
-                photoURL: user.photoURL || '',
-            });
+            if (!userDoc.exists()) {
+                await setDoc(userDocRef, {
+                    uid: user.uid,
+                    name: user.displayName,
+                    email: user.email,
+                    phone: user.phoneNumber || '',
+                    createdAt: serverTimestamp(),
+                    totalRewards: 0,
+                    quizzesPlayed: 0,
+                    referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
+                    photoURL: user.photoURL || '',
+                });
+            }
+        } catch (firestoreError: any) {
+            // Log the Firestore-specific error but don't block the user.
+            // The user is successfully logged in, their data will sync later.
+            console.warn("Firestore user document check/creation failed, but login was successful. This can happen when offline.", firestoreError.message);
         }
         
+        // Call onSuccess because the primary action (authentication) was successful.
         onSuccess();
 
-    } catch (error: any) {
-        // This specific error code means the user intentionally closed the popup.
-        // It's not a true "error" we need to show the user. We can just return.
-        if (error.code === 'auth/popup-closed-by-user') {
+    } catch (authError: any) {
+        // This block now only catches errors from signInWithPopup.
+        if (authError.code === 'auth/popup-closed-by-user') {
             console.log('Google Sign-In was cancelled by the user.');
             return;
         }
         
-        console.error("Google Sign-In Error:", error.code, error.message);
+        console.error("Google Sign-In Error:", authError.code, authError.message);
         let message = "An unexpected error occurred. Please try again.";
         
-        switch (error.code) {
+        switch (authError.code) {
             case 'auth/account-exists-with-different-credential':
                 message = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
                 break;
@@ -55,7 +64,7 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
                 message = "This app's domain is not authorized for Google Sign-In. The developer must add this website's domain to the 'Authorized domains' list in the Firebase Authentication settings.";
                 break;
             default:
-                message = `An error occurred. (Code: ${error.code})`;
+                message = `An error occurred. (Code: ${authError.code})`;
                 break;
         }
         onError(message);
