@@ -3,7 +3,6 @@
 
 import { auth, db, GoogleAuthProvider } from './firebase';
 import { signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 export const handleGoogleSignIn = async (onSuccess: () => void, onError: (message: string) => void) => {
     if (!auth || !db) {
@@ -14,48 +13,14 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
 
     const provider = new GoogleAuthProvider();
     try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-
-        // The user is now authenticated with Firebase Auth.
-        // Call onSuccess immediately to redirect the user and provide a fast experience.
+        // The only responsibility of this function is to perform the sign-in.
+        // The AuthProvider will automatically detect the new user and handle
+        // creating their database document.
+        await signInWithPopup(auth, provider);
         onSuccess();
 
-        // Now, handle the Firestore document creation/check in the background.
-        // A failure here should not block the user's login.
-        try {
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-
-            if (!userDoc.exists()) {
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    name: user.displayName || 'New User',
-                    email: user.email,
-                    phone: user.phoneNumber || '',
-                    createdAt: serverTimestamp(),
-                    totalRewards: 0,
-                    quizzesPlayed: 0,
-                    referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
-                    photoURL: user.photoURL || '',
-                    // Add default empty fields to prevent profile page errors
-                    age: '',
-                    gender: '',
-                    occupation: '',
-                    upi: '',
-                    highestStreak: 0,
-                    certificatesEarned: 0,
-                    referralEarnings: 0,
-                });
-            }
-        } catch (firestoreError: any) {
-            // Log the Firestore-specific error but don't show it to the user.
-            // The user is successfully logged in; their data will sync later.
-            console.warn("Firestore user document check/creation failed, but login was successful. This can happen when offline.", firestoreError.message);
-        }
-
     } catch (authError: any) {
-        // This block now only catches critical errors from signInWithPopup.
+        // This block catches critical errors from signInWithPopup.
         if (authError.code === 'auth/popup-closed-by-user') {
             // This is not an error, the user simply closed the window. Do nothing.
             console.log('Google Sign-In was cancelled by the user.');

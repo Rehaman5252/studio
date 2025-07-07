@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -111,28 +110,9 @@ export default function SignupForm() {
         const userCredential = await createUserWithEmailAndPassword(auth, detailsData.email, detailsData.password);
         const user = userCredential.user;
         
+        // This is important: update the user's profile in Firebase Auth.
+        // The AuthProvider will detect this new user and create their Firestore doc automatically.
         await updateProfile(user, { displayName: detailsData.name });
-
-        const userDoc = {
-            uid: user.uid,
-            name: detailsData.name,
-            email: user.email,
-            phone: `+91${detailsData.phone}`,
-            createdAt: serverTimestamp(),
-            totalRewards: 0,
-            quizzesPlayed: 0,
-            referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
-            photoURL: user.photoURL || '',
-            // Add default empty fields to prevent profile page errors
-            age: '',
-            gender: '',
-            occupation: '',
-            upi: '',
-            highestStreak: 0,
-            certificatesEarned: 0,
-            referralEarnings: 0,
-        };
-        await setDoc(doc(db, 'users', user.uid), userDoc);
 
         router.push(from || '/home');
 

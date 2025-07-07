@@ -43,45 +43,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+    // This is the single listener for authentication state changes.
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      setLoading(false); // Auth state is now known.
 
-      if (currentUser && db) {
-        // This is the self-healing logic.
-        // It ensures a user document exists for any authenticated user.
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (!userDocSnap.exists()) {
-          // Document doesn't exist, so create it.
-          try {
-            await setDoc(userDocRef, {
-              uid: currentUser.uid,
-              name: currentUser.displayName || 'New User',
-              email: currentUser.email,
-              phone: currentUser.phoneNumber || '',
-              createdAt: serverTimestamp(),
-              totalRewards: 0,
-              quizzesPlayed: 0,
-              referralCode: `indcric.com/ref/${currentUser.uid.slice(0, 8)}`,
-              photoURL: currentUser.photoURL || '',
-              // Add default empty fields to prevent profile page errors
-              age: '',
-              gender: '',
-              occupation: '',
-              upi: '',
-              highestStreak: 0,
-              certificatesEarned: 0,
-              referralEarnings: 0,
-            });
-            console.log("Created new user document for UID:", currentUser.uid);
-          } catch (error) {
-            console.error("Failed to create user document:", error);
-          }
-        }
-      } else {
-        // User is logged out, clear all data.
+      if (!currentUser) {
+        // User is logged out, clear all user-specific data and stop listening.
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
@@ -91,50 +59,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => unsubscribeAuth();
   }, []);
-  
-  useEffect(() => {
-    if (user && db) {
-      setIsUserDataLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
-        setUserData(doc.exists() ? doc.data() : null);
-        setIsUserDataLoading(false);
-      }, (error) => {
-        console.error("Firestore user data snapshot error:", error);
-        setUserData(null);
-        setIsUserDataLoading(false);
-      });
-      return () => unsubscribeFirestore();
-    } else {
-        setIsUserDataLoading(false);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (!user || !db) {
-        setQuizHistory(null);
-        setIsHistoryLoading(false);
-        return;
+      // No user or db, so we are not loading any data.
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
+      setUserData(null);
+      setQuizHistory(null);
+      return;
     }
 
+    // A user is signed in. Set up Firestore listeners.
+    setIsUserDataLoading(true);
     setIsHistoryLoading(true);
-    
-    const loadHistory = async () => {
-        try {
-            const historyCollection = collection(db, 'users', user.uid, 'quizHistory');
-            const q = query(historyCollection, orderBy('timestamp', 'desc'), limit(50));
-            const querySnapshot = await getDocs(q);
-            setQuizHistory(querySnapshot.docs.map(doc => doc.data() as QuizAttempt));
-        } catch (error) {
-            console.error("Failed to fetch quiz history:", error);
-            setQuizHistory([]);
-        } finally {
-            setIsHistoryLoading(false);
-        }
-    };
-    loadHistory();
 
-  }, [user]);
+    // 1. Listener for the user's profile document.
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUserData(docSnap.data());
+      } else {
+        // Self-healing: The user is authenticated, but their document is missing. Create it.
+        // This is a fire-and-forget write that will be queued if offline.
+        console.log(`User document for ${user.uid} not found, creating it...`);
+        const newUserDoc = {
+            uid: user.uid,
+            name: user.displayName || 'New User',
+            email: user.email,
+            phone: user.phoneNumber || '',
+            createdAt: serverTimestamp(),
+            totalRewards: 0,
+            quizzesPlayed: 0,
+            referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
+            photoURL: user.photoURL || '',
+            age: '',
+            gender: '',
+            occupation: '',
+            upi: '',
+            highestStreak: 0,
+            certificatesEarned: 0,
+            referralEarnings: 0,
+        };
+        setDoc(userDocRef, newUserDoc).catch(error => {
+          console.error("Failed to self-heal and create user document:", error);
+        });
+      }
+      setIsUserDataLoading(false);
+    }, (error) => {
+      console.error("Error listening to user profile:", error);
+      setUserData(null);
+      setIsUserDataLoading(false);
+    });
+
+    // 2. Listener for quiz history.
+    const historyCollectionRef = collection(db, 'users', user.uid, 'quizHistory');
+    const q = query(historyCollectionRef, orderBy('timestamp', 'desc'), limit(50));
+    const unsubscribeHistory = onSnapshot(q, (querySnapshot) => {
+      setQuizHistory(querySnapshot.docs.map(doc => doc.data() as QuizAttempt));
+      setIsHistoryLoading(false);
+    }, (error) => {
+      console.error("Error listening to quiz history:", error);
+      setQuizHistory([]);
+      setIsHistoryLoading(false);
+    });
+
+    // Return cleanup function to unsubscribe from listeners when user changes.
+    return () => {
+      unsubscribeProfile();
+      unsubscribeHistory();
+    };
+  }, [user]); // This entire effect re-runs ONLY when the user object changes.
 
   const value = { user, userData, loading, isUserDataLoading, quizHistory, isHistoryLoading };
 
