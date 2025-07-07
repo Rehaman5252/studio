@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -42,33 +42,22 @@ interface CubeProps {
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const stopRotation = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  const startRotation = useCallback(() => {
-    stopRotation(); // Prevent multiple intervals
+  // This useEffect handles the continuous rotation of the cube.
+  useEffect(() => {
     const rotateToNextFace = () => {
       setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
     };
-    intervalRef.current = setInterval(rotateToNextFace, 3000);
-  }, [brands.length, stopRotation]);
-
+    // The interval is set to 2 seconds to feel dynamic, while the CSS handles the 500ms animation.
+    const intervalId = setInterval(rotateToNextFace, 2000);
+    // Cleanup function to clear the interval when the component unmounts.
+    return () => clearInterval(intervalId);
+  }, [brands.length]);
 
   useEffect(() => {
-    const initialFace = Math.floor(Math.random() * 6);
+    const initialFace = Math.floor(Math.random() * brands.length);
     setCurrentFaceIndex(initialFace);
-  }, []);
-
-  useEffect(() => {
-    startRotation();
-    return stopRotation;
-  }, [startRotation, stopRotation]);
+  }, [brands.length]);
 
 
   useEffect(() => {
@@ -87,8 +76,6 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   return (
     <div 
       className="flex justify-center items-center h-48"
-      onMouseEnter={stopRotation}
-      onMouseLeave={startRotation}
     >
       <div 
         className={cn("w-32 h-32 perspective", disabled && "opacity-50")}
