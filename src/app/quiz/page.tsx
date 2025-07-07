@@ -19,7 +19,7 @@ import CricketLoading from '@/components/CricketLoading';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, collection, writeBatch, increment } from 'firebase/firestore';
 
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
@@ -97,7 +97,7 @@ QuizOption.displayName = 'QuizOption';
 function QuizComponent() {
   useRequireAuth();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const searchParams = useSearchParams();
   const brand = searchParams.get('brand') || 'indcric';
   const format = searchParams.get('format') || 'Cricket';
@@ -128,14 +128,33 @@ function QuizComponent() {
   } | null>(null);
 
   const saveAttemptInBackground = useCallback((attempt: SlotAttempt) => {
-    if (db && user) {
+    if (db && user && userData) {
+        const batch = writeBatch(db);
+
+        // 1. Save to user's private quiz history
         const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), attempt.slotId);
-        // Fire-and-forget write to Firestore, handling potential errors in the background.
-        setDoc(attemptDocRef, attempt).catch(error => {
-            console.error("Error saving quiz history in background: ", error);
+        batch.set(attemptDocRef, attempt);
+
+        // 2. Update the global live leaderboard for the current slot
+        const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
+        const leaderboardEntryRef = doc(db, 'liveLeaderboard', attempt.slotId, 'entries', user.uid);
+        batch.set(leaderboardEntryRef, {
+            name: userData.name || 'Anonymous',
+            score: attempt.score,
+            time: totalTime,
+            avatar: userData.photoURL || null,
+        });
+        
+        // 3. Increment the total quizzes played for the user
+        const userDocRef = doc(db, 'users', user.uid);
+        batch.update(userDocRef, { quizzesPlayed: increment(1) });
+
+        // Commit the batch
+        batch.commit().catch(error => {
+            console.error("Error saving quiz data in batch: ", error);
         });
     }
-  }, [user]);
+  }, [user, userData]);
 
   const goToNextQuestion = useCallback(() => {
     setSelectedOption(null);

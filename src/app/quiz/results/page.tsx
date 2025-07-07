@@ -17,6 +17,8 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import CricketLoading from '@/components/CricketLoading';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
@@ -174,6 +176,28 @@ function ResultsComponent() {
     const reason = useMemo(() => searchParams.get('reason'), [searchParams]);
     const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
     
+    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId } = useMemo(() => {
+        return {
+            ...lastAttemptInSlot,
+            totalQuestions: lastAttemptInSlot?.questions?.length || 0,
+        };
+    }, [lastAttemptInSlot]);
+    
+    const isPerfectScore = useMemo(() => score === totalQuestions && totalQuestions > 0, [score, totalQuestions]);
+    
+    useEffect(() => {
+        if (isPerfectScore && user && db) {
+            const userDocRef = doc(db, 'users', user.uid);
+            updateDoc(userDocRef, { 
+                perfectScores: increment(1),
+                certificatesEarned: increment(1),
+            }).catch(error => {
+                console.error("Error updating perfect score count:", error);
+            });
+        }
+    }, [isPerfectScore, user]);
+    
+    
     const slotTimings = useMemo(() => {
         if (!lastAttemptInSlot?.slotId) return '';
         const slotStartTime = new Date(parseInt(lastAttemptInSlot.slotId, 10));
@@ -213,13 +237,9 @@ function ResultsComponent() {
         );
     }
     
-    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, slotId } = lastAttemptInSlot;
-    const total = questions.length;
-    const isPerfectScore = score === total && total > 0;
-    
     let message = "Good effort! Keep practicing. 💪";
     if (isPerfectScore) message = "Perfect score! You're a true cricket expert! 🏆🎉";
-    else if (score >= total * 0.7) message = "Great job! You really know your cricket. 👍";
+    else if (score >= totalQuestions * 0.7) message = "Great job! You really know your cricket. 👍";
 
     return (
         <>
@@ -250,7 +270,7 @@ function ResultsComponent() {
                             <div>
                                 <p className="text-lg">You Scored</p>
                                 <p className="text-6xl font-bold my-2 text-primary">
-                                    {score} <span className="text-3xl text-muted-foreground">/ {total}</span>
+                                    {score} <span className="text-3xl text-muted-foreground">/ {totalQuestions}</span>
                                 </p>
                             </div>
                             <p className="text-lg font-medium text-primary">{message}</p>

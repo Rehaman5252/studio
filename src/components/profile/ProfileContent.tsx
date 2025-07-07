@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    Settings, Moon, Bell, Music, Vibrate, RefreshCw, LogOut, Loader2
+    Settings, Moon, Bell, Music, Vibrate, RefreshCw, LogOut, Loader2, Copy
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -150,7 +150,7 @@ const StatsSummary = memo(({ userProfile }: { userProfile: any }) => (
     <Card className="bg-card shadow-lg">
         <CardContent className="p-4 grid grid-cols-3 gap-4">
             <StatItem title="Quizzes Played" value={userProfile?.quizzesPlayed || 0} icon={Trophy} />
-            <StatItem title="Highest Streak" value={userProfile?.highestStreak || 0} icon={Star} />
+            <StatItem title="Perfect Scores" value={userProfile?.perfectScores || 0} icon={Star} />
             <StatItem title="Total Earnings" value={`₹${userProfile?.totalRewards || 0}`} icon={Banknote} />
         </CardContent>
     </Card>
@@ -182,7 +182,18 @@ const RewardsSummary = memo(({ userProfile }: { userProfile: any }) => (
 ));
 RewardsSummary.displayName = 'RewardsSummary';
 
-const ReferralCard = memo(({ userProfile }: { userProfile: any }) => (
+const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
+    const { toast } = useToast();
+    const handleCopy = () => {
+        const referralLink = userProfile?.referralCode || '';
+        navigator.clipboard.writeText(referralLink);
+        toast({
+            title: "Copied to Clipboard!",
+            description: "Your referral link has been copied.",
+        });
+    };
+
+    return (
      <Card className="bg-card shadow-lg">
         <CardHeader>
             <CardTitle className="text-lg">Referrals</CardTitle>
@@ -196,12 +207,16 @@ const ReferralCard = memo(({ userProfile }: { userProfile: any }) => (
                         <p className="text-sm text-muted-foreground">From Referrals</p>
                     </div>
                 </div>
-                <Button variant="secondary" size="sm">Copy Link</Button>
+                <Button variant="secondary" size="sm" onClick={handleCopy}>
+                    <Copy className="mr-2" />
+                    Copy Link
+                </Button>
             </div>
             <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{userProfile?.referralCode || 'No code available'}</p>
         </CardContent>
     </Card>
-));
+    );
+});
 ReferralCard.displayName = 'ReferralCard';
 
 const PayoutInfo = memo(({ userProfile }: { userProfile: any }) => (
@@ -377,11 +392,23 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     };
     
     const handleReferAndEarn = useCallback(() => {
-        toast({
-            title: "Coming Soon!",
-            description: "The referral program is not yet active. Check back later!",
-        });
-    }, [toast]);
+        const referralLink = userProfile?.referralCode || '';
+        if (navigator.share) {
+            navigator.share({
+                title: 'Join me on indcric!',
+                text: `Test your cricket knowledge and win big! Use my link to join:`,
+                url: referralLink,
+            })
+            .then(() => console.log('Successful share'))
+            .catch((error) => console.log('Error sharing', error));
+        } else {
+             navigator.clipboard.writeText(referralLink);
+             toast({
+                title: "Copied to Clipboard!",
+                description: "Your referral link has been copied. Share it with your friends!",
+            });
+        }
+    }, [userProfile, toast]);
     
     if (isLoading) {
         return <ProfileSkeleton />;

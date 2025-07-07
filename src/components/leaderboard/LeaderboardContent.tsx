@@ -1,37 +1,34 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
+import { useAuth } from '@/context/AuthProvider';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, onSnapshot, getDocs } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data based on the specification
-const liveLeaderboardData = [
-  { rank: 1, name: 'Priya K.', score: '5/5', time: 72, avatar: 'https://placehold.co/40x40.png', hint:'woman' },
-  { rank: 2, name: 'Ankit T.', score: '5/5', time: 76, avatar: 'https://placehold.co/40x40.png', hint:'man' },
-  { rank: 3, name: 'Rahul M.', score: '5/5', time: 78, avatar: 'https://placehold.co/40x40.png', hint:'man' },
-  { rank: 4, name: 'You', score: '4/5', time: 88, avatar: 'https://placehold.co/40x40.png', hint:'person', isCurrentUser: true },
-  { rank: 5, name: 'Simran R.', score: '4/5', time: 91, avatar: 'https://placehold.co/40x40.png', hint:'woman' },
-  { rank: 6, name: 'John D.', score: '4/5', time: 95, avatar: 'https://placehold.co/40x40.png', hint:'man' },
-  { rank: 7, name: 'Neha P.', score: '3/5', time: 82, avatar: 'https://placehold.co/40x40.png', hint:'woman' },
-];
+interface LivePlayer {
+    rank?: number;
+    name: string;
+    score: number;
+    time: number;
+    avatar?: string;
+    uid: string;
+}
 
-const allTimeLeaderboardData = [
-  { rank: 1, name: 'Priya K.', perfectScores: 34, totalPlayed: 48, avatar: 'https://placehold.co/40x40.png', hint:'woman' },
-  { rank: 2, name: 'Ankit T.', perfectScores: 30, totalPlayed: 41, avatar: 'https://placehold.co/40x40.png', hint:'man' },
-  { rank: 3, name: 'Neha P.', perfectScores: 29, totalPlayed: 39, avatar: 'https://placehold.co/40x40.png', hint:'woman' },
-  { rank: 4, name: 'You', perfectScores: 11, totalPlayed: 27, avatar: 'https://placehold.co/40x40.png', hint:'person', isCurrentUser: true },
-  { rank: 5, name: 'Rahul M.', perfectScores: 10, totalPlayed: 25, avatar: 'https://placehold.co/40x40.png', hint:'man' },
-];
-
-const myLeaderboardData = [
-    { rank: 1, name: 'You', perfectScores: 11, avatar: 'https://placehold.co/40x40.png', hint:'person', isCurrentUser: true },
-    { rank: 2, name: 'Friend A', perfectScores: 6, avatar: 'https://placehold.co/40x40.png', hint:'person' },
-    { rank: 3, name: 'Friend B', perfectScores: 5, avatar: 'https://placehold.co/40x40.png', hint:'person' },
-];
+interface AllTimePlayer {
+    rank?: number;
+    name: string;
+    perfectScores: number;
+    totalPlayed: number;
+    avatar?: string;
+    uid: string;
+}
 
 const RankIcon = ({ rank }: { rank: number }) => {
   if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -40,61 +37,215 @@ const RankIcon = ({ rank }: { rank: number }) => {
   return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
 
-const LiveLeaderboardItem = memo(({ player }: { player: typeof liveLeaderboardData[0] }) => (
-    <div className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
-        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-        <Avatar className="h-10 w-10 mx-4">
-            <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
-            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-            <p className="font-semibold text-foreground">{player.name}</p>
-            <p className="text-sm text-muted-foreground">Score: {player.score}</p>
+const LeaderboardItemSkeleton = () => (
+    <div className="flex items-center p-2 rounded-lg">
+        <Skeleton className="w-8 h-8 rounded-full" />
+        <Skeleton className="h-10 w-10 mx-4 rounded-full" />
+        <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
         </div>
-        <div className="text-right">
-            <p className="font-bold text-primary">{player.time}s</p>
-            <p className="text-xs text-muted-foreground">Time</p>
+        <div className="text-right space-y-2">
+            <Skeleton className="h-4 w-8" />
+            <Skeleton className="h-3 w-12" />
         </div>
     </div>
-));
-LiveLeaderboardItem.displayName = "LiveLeaderboardItem";
+);
 
-const AllTimeLeaderboardItem = memo(({ player }: { player: typeof allTimeLeaderboardData[0] }) => (
-    <div className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
-        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-        <Avatar className="h-10 w-10 mx-4">
-            <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
-            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-            <p className="font-semibold text-foreground">{player.name}</p>
-            <p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p>
-        </div>
-        <div className="text-right">
-            <p className="font-bold text-primary">{player.perfectScores}</p>
-            <p className="text-xs text-muted-foreground">Perfect Scores</p>
-        </div>
-    </div>
-));
-AllTimeLeaderboardItem.displayName = "AllTimeLeaderboardItem";
 
-const MyNetworkLeaderboardItem = memo(({ player }: { player: typeof myLeaderboardData[0] }) => (
-    <div className={cn("flex items-center p-2 rounded-lg", player.isCurrentUser && "bg-primary/20 ring-1 ring-primary")}>
-        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-        <Avatar className="h-10 w-10 mx-4">
-            <AvatarImage src={player.avatar} alt={player.name} data-ai-hint={player.hint} />
-            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-            <p className="font-semibold text-foreground">{player.name}</p>
-        </div>
-        <div className="text-right">
-            <p className="font-bold text-primary">{player.perfectScores}</p>
-            <p className="text-xs text-muted-foreground">Perfect Scores</p>
-        </div>
-    </div>
-));
-MyNetworkLeaderboardItem.displayName = "MyNetworkLeaderboardItem";
+const LiveLeaderboard = memo(() => {
+    const { user } = useAuth();
+    const [players, setPlayers] = useState<LivePlayer[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const slotId = getQuizSlotId();
+        const leaderboardRef = collection(db, 'liveLeaderboard', slotId, 'entries');
+        const q = query(leaderboardRef, orderBy('score', 'desc'), orderBy('time', 'asc'), limit(50));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetchedPlayers: LivePlayer[] = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                fetchedPlayers.push({
+                    uid: doc.id,
+                    name: data.name,
+                    score: data.score,
+                    time: data.time,
+                    avatar: data.avatar,
+                });
+            });
+            setPlayers(fetchedPlayers);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching live leaderboard:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    return (
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardHeader className="text-center">
+                <CardTitle>🏏 Current Quiz Leaderboard</CardTitle>
+                <CardDescription><LiveInfo /></CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    {loading ? (
+                        Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
+                    ) : players.length > 0 ? (
+                        players.map((player, index) => (
+                            <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
+                                <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
+                                <Avatar className="h-10 w-10 mx-4">
+                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <p className="font-semibold text-foreground">{player.name}</p>
+                                    <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-primary">{player.time}s</p>
+                                    <p className="text-xs text-muted-foreground">Time</p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+});
+LiveLeaderboard.displayName = 'LiveLeaderboard';
+
+
+const AllTimeLeaderboard = memo(() => {
+    const { user } = useAuth();
+    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAllTime = async () => {
+            try {
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, orderBy('perfectScores', 'desc'), limit(50));
+                const snapshot = await getDocs(q);
+                const fetchedPlayers: AllTimePlayer[] = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    fetchedPlayers.push({
+                        uid: doc.id,
+                        name: data.name,
+                        perfectScores: data.perfectScores || 0,
+                        totalPlayed: data.quizzesPlayed || 0,
+                        avatar: data.photoURL,
+                    });
+                });
+                setPlayers(fetchedPlayers);
+            } catch (error) {
+                console.error("Error fetching all-time leaderboard:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAllTime();
+    }, []);
+
+    return (
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardHeader className="text-center">
+                <CardTitle>🏆 All-Time Legends</CardTitle>
+                <CardDescription>Based on number of perfect scores</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    {loading ? (
+                       Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
+                    ) : players.length > 0 ? (
+                        players.map((player, index) => (
+                             <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
+                                <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
+                                <Avatar className="h-10 w-10 mx-4">
+                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <p className="font-semibold text-foreground">{player.name}</p>
+                                    <p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-primary">{player.perfectScores}</p>
+                                    <p className="text-xs text-muted-foreground">Perfect Scores</p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                         <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+});
+AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
+
+
+const MyNetworkLeaderboard = memo(() => {
+    const { user, userData } = useAuth();
+    
+    // In a real scenario, this would fetch friends' data.
+    // For now, it just shows the current user.
+    const players = userData ? [{
+        uid: user?.uid,
+        name: userData.name,
+        perfectScores: userData.perfectScores || 0,
+        avatar: userData.photoURL
+    }] : [];
+
+    return (
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardHeader className="text-center">
+                <CardTitle>🤝 My Referral Network</CardTitle>
+                <CardDescription>Your performance against friends</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                     {players.length > 0 ? (
+                        players.map((player, index) => (
+                             <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
+                                <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
+                                <Avatar className="h-10 w-10 mx-4">
+                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <p className="font-semibold text-foreground">{player.name}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-primary">{player.perfectScores}</p>
+                                    <p className="text-xs text-muted-foreground">Perfect Scores</p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <LeaderboardItemSkeleton />
+                    )}
+                </div>
+                 <div className="text-center p-4 mt-4 bg-muted rounded-lg">
+                    <p className="font-semibold">Grow your network!</p>
+                    <p className="text-sm text-muted-foreground">Share your referral code from your profile to see your friends here.</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+});
+MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
+
 
 export default function LeaderboardContent() {
   return (
@@ -106,59 +257,15 @@ export default function LeaderboardContent() {
         </TabsList>
         
         <TabsContent value="live">
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader className="text-center">
-            <CardTitle>🏏 Current Quiz Leaderboard</CardTitle>
-            <CardDescription>
-                <LiveInfo />
-            </CardDescription>
-            </CardHeader>
-            <CardContent>
-            <div 
-                className="space-y-2"
-            >
-                {liveLeaderboardData.map((player) => (
-                <LiveLeaderboardItem key={player.rank} player={player} />
-                ))}
-            </div>
-            </CardContent>
-        </Card>
+            <LiveLeaderboard />
         </TabsContent>
 
         <TabsContent value="all-time">
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader className="text-center">
-            <CardTitle>🏆 All-Time Legends</CardTitle>
-            <CardDescription>Based on number of perfect scores</CardDescription>
-            </CardHeader>
-            <CardContent>
-            <div 
-                className="space-y-2"
-            >
-                {allTimeLeaderboardData.map((player) => (
-                    <AllTimeLeaderboardItem key={player.rank} player={player} />
-                ))}
-            </div>
-            </CardContent>
-        </Card>
+            <AllTimeLeaderboard />
         </TabsContent>
 
         <TabsContent value="my-leaderboard">
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader className="text-center">
-            <CardTitle>🤝 My Referral Network</CardTitle>
-                <CardDescription>Your performance against friends</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div 
-                className="space-y-2"
-            >
-                {myLeaderboardData.map((player) => (
-                    <MyNetworkLeaderboardItem key={player.rank} player={player} />
-                ))}
-            </div>
-            </CardContent>
-        </Card>
+            <MyNetworkLeaderboard />
         </TabsContent>
     </Tabs>
   );
