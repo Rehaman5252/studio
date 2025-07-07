@@ -18,8 +18,11 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
         const user = result.user;
 
         // The user is now authenticated with Firebase Auth.
-        // Now, we handle the Firestore document creation/check.
-        // We will wrap this in its own try/catch so a network failure here doesn't block login.
+        // Call onSuccess immediately to redirect the user and provide a fast experience.
+        onSuccess();
+
+        // Now, handle the Firestore document creation/check in the background.
+        // A failure here should not block the user's login.
         try {
             const userDocRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
@@ -38,17 +41,15 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (messag
                 });
             }
         } catch (firestoreError: any) {
-            // Log the Firestore-specific error but don't block the user.
-            // The user is successfully logged in, their data will sync later.
+            // Log the Firestore-specific error but don't show it to the user.
+            // The user is successfully logged in; their data will sync later.
             console.warn("Firestore user document check/creation failed, but login was successful. This can happen when offline.", firestoreError.message);
         }
-        
-        // Call onSuccess because the primary action (authentication) was successful.
-        onSuccess();
 
     } catch (authError: any) {
-        // This block now only catches errors from signInWithPopup.
+        // This block now only catches critical errors from signInWithPopup.
         if (authError.code === 'auth/popup-closed-by-user') {
+            // This is not an error, the user simply closed the window. Do nothing.
             console.log('Google Sign-In was cancelled by the user.');
             return;
         }

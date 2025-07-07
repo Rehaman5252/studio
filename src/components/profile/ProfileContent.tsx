@@ -16,7 +16,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const maskPhone = (phone: string) => {
     if (!phone || phone.length <= 4) return phone;
@@ -37,6 +37,45 @@ const StatItem = memo(({ title, value, icon: Icon }: { title: string, value: str
     </div>
 ));
 StatItem.displayName = 'StatItem';
+
+
+const ProfileSkeleton = () => (
+    <div className="space-y-6">
+      <Card className="bg-card shadow-lg">
+          <CardContent className="p-4 flex items-center gap-4">
+              <Skeleton className="w-20 h-20 rounded-full" />
+              <div className="flex-1 space-y-2">
+                  <Skeleton className="h-7 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+              </div>
+          </CardContent>
+      </Card>
+      <Card className="bg-card shadow-lg">
+          <CardContent className="p-4 grid grid-cols-3 gap-4">
+              <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
+                  <Skeleton className="h-7 w-7 rounded-full" />
+                  <Skeleton className="h-7 w-8 mt-1" />
+                  <Skeleton className="h-3 w-16 mt-1" />
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
+                  <Skeleton className="h-7 w-7 rounded-full" />
+                  <Skeleton className="h-7 w-8 mt-1" />
+                  <Skeleton className="h-3 w-16 mt-1" />
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
+                  <Skeleton className="h-7 w-7 rounded-full" />
+                  <Skeleton className="h-7 w-8 mt-1" />
+                  <Skeleton className="h-3 w-16 mt-1" />
+              </div>
+          </CardContent>
+      </Card>
+      <Skeleton className="h-[140px] w-full" />
+      <Skeleton className="h-[124px] w-full" />
+      <Skeleton className="h-[92px] w-full" />
+    </div>
+);
+
 
 const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => (
     <Card className="bg-card shadow-lg">
@@ -238,7 +277,7 @@ const LogoutButton = memo(() => {
 LogoutButton.displayName = 'LogoutButton';
 
 
-export default function ProfileContent({ userProfile }: { userProfile: any }) {
+export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
     const { toast } = useToast();
     
     const handleReferAndEarn = useCallback(() => {
@@ -248,8 +287,18 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
         });
     }, [toast]);
     
+    if (isLoading) {
+        return <ProfileSkeleton />;
+    }
+
     if (!userProfile) {
-        return null;
+        return (
+            <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                    Could not load user profile. Please try again later.
+                </CardContent>
+            </Card>
+        );
     }
 
     return (
