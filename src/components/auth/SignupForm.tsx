@@ -162,7 +162,7 @@ export default function SignupForm() {
          <FirebaseConfigWarning />
       ) : formStep === 'details' ? (
         <div className="space-y-4">
-          <Button variant="outline" size="lg" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
+          <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
               {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
           </Button>
           <div className="relative">
@@ -201,7 +201,7 @@ export default function SignupForm() {
               <Input id="password" type="password" placeholder="••••••••" {...detailsForm.register('password')} disabled={isAuthDisabled} />
               {detailsForm.formState.errors.password && <p className="text-sm text-destructive">{detailsForm.formState.errors.password.message}</p>}
             </div>
-            <Button type="submit" size="lg" className="w-full" disabled={isAuthDisabled}>
+            <Button type="submit" className="w-full" disabled={isAuthDisabled}>
               {isOtpSending ? <Loader2 className="animate-spin mr-2" /> : 'Continue'}
             </Button>
           </form>
@@ -214,7 +214,7 @@ export default function SignupForm() {
                     <Input id="otp" type="text" placeholder="123456" {...otpForm.register('otp')} disabled={isAuthDisabled} />
                     {otpForm.formState.errors.otp && <p className="text-sm text-destructive">{otpForm.formState.errors.otp.message}</p>}
                 </div>
-                <Button type="submit" size="lg" className="w-full" disabled={isAuthDisabled}>
+                <Button type="submit" className="w-full" disabled={isAuthDisabled}>
                     {isLoading && <Loader2 className="animate-spin mr-2" />}
                     Verify & Create Account
                 </Button>

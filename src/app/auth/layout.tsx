@@ -17,14 +17,21 @@ export default function AuthLayout({
             width={600}
             height={800}
             className="h-full w-full object-cover"
+            priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-8 left-8 text-white">
-            <h1 className="text-5xl font-extrabold tracking-tight">indcric</h1>
-            <p className="mt-2 text-lg">Where Champions Are Forged.</p>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+          <div className="absolute bottom-10 left-10 text-white">
+            <h1 className="text-6xl font-extrabold tracking-tight drop-shadow-lg">
+              indcric
+            </h1>
+            <p className="mt-2 text-xl drop-shadow">
+              Where Champions Are Forged.
+            </p>
           </div>
         </div>
-        <div className="bg-card p-8 flex flex-col justify-center">{children}</div>
+        <div className="bg-card p-8 flex flex-col justify-center">
+          <div className="w-full animate-fade-in-up">{children}</div>
+        </div>
       </div>
     </main>
   );
