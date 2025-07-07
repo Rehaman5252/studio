@@ -54,7 +54,8 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
       setCurrentFaceIndex((prevIndex) => (prevIndex + 1) % brands.length);
     };
 
-    intervalRef.current = setInterval(rotateToNextFace, 500); // Continuous, faster rotation
+    // Slow down rotation to improve performance and feel more elegant
+    intervalRef.current = setInterval(rotateToNextFace, 3500);
 
     return () => {
       if (intervalRef.current) {
@@ -88,7 +89,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)', // Slower, smoother transition
             willChange: 'transform' 
           }}
         >

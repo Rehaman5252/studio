@@ -30,7 +30,7 @@ export default function BottomNav() {
                       key={label}
                       className="nav-item relative flex-1 h-full flex items-center justify-center"
                   >
-                      <Link href={href} className="w-full h-full flex flex-col items-center justify-center gap-1 z-10 rounded-lg" aria-label={label}>
+                      <Link href={href} prefetch={true} className="w-full h-full flex flex-col items-center justify-center gap-1 z-10 rounded-lg" aria-label={label}>
                           <Icon className={cn("h-6 w-6 transition-colors duration-200", isActive ? 'text-primary' : 'text-muted-foreground')} aria-hidden="true" />
                           <span className={cn("text-xs font-medium transition-colors duration-200", isActive ? 'text-primary' : 'text-muted-foreground')}>{label}</span>
                       </Link>
