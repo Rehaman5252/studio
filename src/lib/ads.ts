@@ -29,7 +29,7 @@ export const adLibrary: {
         type: 'video',
         // Royalty-free video from Pexels
         url: 'https://videos.pexels.com/video-files/8560088/8560088-hd_1366_720_30fps.mp4',
-        title: 'A break from our sponsor',
+        title: 'Strategic Timeout',
         duration: 20,
         skippableAfter: 10,
     },

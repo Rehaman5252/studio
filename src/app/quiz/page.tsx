@@ -203,7 +203,7 @@ function QuizComponent() {
           setAdConfig(null);
           goToNextQuestion();
         },
-        children: <p className="font-bold text-lg mt-4">Enjoy a short break!</p>
+        children: <p className="font-bold text-lg mt-4">Every champion needs a moment to strategize.</p>
       });
       return;
     }

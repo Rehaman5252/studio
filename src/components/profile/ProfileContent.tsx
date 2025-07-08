@@ -10,7 +10,7 @@ import { auth, db } from '@/lib/firebase';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
@@ -240,6 +240,7 @@ const SupportCard = memo(() => (
     <Card className="bg-card shadow-lg">
         <CardHeader>
             <CardTitle className="text-lg">Help & Support</CardTitle>
+            <CardDescription>Connect to reach Third Umpire.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
@@ -259,53 +260,9 @@ const SupportCard = memo(() => (
 ));
 SupportCard.displayName = "SupportCard";
 
-const ActionButtons = memo(() => {
-    const router = useRouter();
-    const { toast } = useToast();
-
-    const handleLogout = async () => {
-        if (!auth) {
-            toast({
-                title: "Firebase Not Configured",
-                description: "Could not connect to authentication service.",
-                variant: "destructive"
-            });
-            return;
-        }
-        try {
-            await signOut(auth);
-            toast({
-                title: "Logged Out",
-                description: "You have been successfully logged out.",
-            });
-            router.push('/auth/login');
-        } catch (error: any) {
-            toast({
-                title: "Logout Failed",
-                description: error.message,
-                variant: "destructive",
-            });
-        }
-    };
-    
-    return (
-        <section className="space-y-3 pt-4">
-            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Link href="/rewards"><Gift className="mr-4" /> My Rewards</Link>
-            </Button>
-            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Link href="/certificates"><Award className="mr-4" /> View Certificates</Link>
-            </Button>
-            <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
-                <LogOut className="mr-2 h-5 w-5" /> Logout
-            </Button>
-        </section>
-    );
-});
-ActionButtons.displayName = 'ActionButtons';
-
 export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
     const { toast } = useToast();
+    const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formStep, setFormStep] = useState<'details' | 'otp'>('details');
@@ -321,7 +278,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     });
 
     useEffect(() => {
-        if (userProfile) {
+        if (userProfile && open) {
             const defaults: ProfileFormValues = {} as ProfileFormValues;
             MANDATORY_PROFILE_FIELDS.forEach(field => {
                  defaults[field as keyof ProfileFormValues] = userProfile[field] || '';
@@ -396,6 +353,20 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             setIsSubmitting(false);
         }
     };
+
+    const handleLogout = async () => {
+        if (!auth) {
+            toast({ title: "Firebase Not Configured", description: "Could not connect to authentication service.", variant: "destructive" });
+            return;
+        }
+        try {
+            await signOut(auth);
+            toast({ title: "Logged Out", description: "You have been successfully logged out." });
+            router.push('/auth/login');
+        } catch (error: any) {
+            toast({ title: "Logout Failed", description: error.message, variant: "destructive" });
+        }
+    };
     
     if (isLoading) {
         return <ProfileSkeleton />;
@@ -418,8 +389,23 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 <ProfileCompletion userProfile={userProfile} />
                 <StatsSummary userProfile={userProfile} />
                 <ReferralCard userProfile={userProfile} />
+
+                <section className="space-y-3 pt-4">
+                    <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                        <Link href="/rewards"><Gift className="mr-4" /> My Rewards</Link>
+                    </Button>
+                    <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                        <Link href="/certificates"><Award className="mr-4" /> View Certificates</Link>
+                    </Button>
+                </section>
+
                 <SupportCard />
-                <ActionButtons />
+
+                <section>
+                    <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-5 w-5" /> Logout
+                    </Button>
+                </section>
             </div>
 
             <DialogContent className="sm:max-w-[425px]">
@@ -434,7 +420,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                     <Form {...detailsForm}>
                         <form onSubmit={detailsForm.handleSubmit(handleDetailsSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6">
                             {MANDATORY_PROFILE_FIELDS.map((fieldName) => {
-                                const isLocked = !!userProfile?.[fieldName];
+                                const isLocked = !!userProfile?.[fieldName] && fieldName !== 'phone'; // Allow phone to be re-verified
                                 if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
                                      const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']
                                                    : fieldName === 'occupation' ? occupations
@@ -470,7 +456,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
-                                                <FormControl><Input type={fieldName === 'dob' ? 'date' : 'text'} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
+                                                <FormControl><Input type={fieldName === 'dob' ? 'date' : fieldName === 'phone' ? 'tel' : 'text'} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

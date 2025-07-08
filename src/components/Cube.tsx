@@ -41,12 +41,11 @@ interface CubeProps {
 
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const cubeRef = useRef<HTMLDivElement>(null);
 
-  // This effect runs the rotation timer. It pauses when the user hovers over the cube.
+  // This effect runs the rotation timer.
   useEffect(() => {
-    if (isPaused || disabled) {
+    if (disabled) {
       return;
     }
     
@@ -59,7 +58,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
     const intervalId = setInterval(rotateToNextFace, 750);
     
     return () => clearInterval(intervalId);
-  }, [brands.length, isPaused, disabled]);
+  }, [brands.length, disabled]);
 
 
   // This effect is ONLY for side effects when the face changes.
@@ -80,8 +79,6 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
   return (
     <div 
       className="flex justify-center items-center h-48"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
     >
       <div 
         className={cn("w-32 h-32 perspective", disabled && "opacity-50")}

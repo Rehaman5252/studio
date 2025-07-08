@@ -92,6 +92,7 @@ Average Time Per Question: ${(totalTime / input.questions.length).toFixed(1)} se
 
     performanceData += `\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
     
+    console.log("Attempting to generate AI analysis with the following data:", performanceData);
     try {
         const { output } = await analysisPrompt(performanceData);
     
@@ -101,6 +102,7 @@ Average Time Per Question: ${(totalTime / input.questions.length).toFixed(1)} se
           console.warn("AI analysis returned a null or empty analysis string. Providing a fallback response.", { output });
         } else {
             // If we got a valid output, return it.
+            console.log("Successfully generated AI analysis.");
             return { analysis: output };
         }
 
