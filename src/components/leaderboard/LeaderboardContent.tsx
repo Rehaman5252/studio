@@ -152,16 +152,14 @@ const AllTimeLeaderboard = memo(() => {
                 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // Basic check to ensure the user has a name.
-                    if (data.name) {
-                        fetchedPlayers.push({
-                            uid: doc.id,
-                            name: data.name,
-                            perfectScores: data.perfectScores || 0,
-                            totalPlayed: data.quizzesPlayed || 0,
-                            avatar: data.photoURL,
-                        });
-                    }
+                    // Now we include everyone who has played, providing a fallback name.
+                    fetchedPlayers.push({
+                        uid: doc.id,
+                        name: data.name || 'Anonymous User', // Provide a fallback
+                        perfectScores: data.perfectScores || 0,
+                        totalPlayed: data.quizzesPlayed || 0,
+                        avatar: data.photoURL,
+                    });
                 });
 
                 setPlayers(fetchedPlayers);
