@@ -23,14 +23,16 @@ const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: z.string() },
   output: { format: 'string' },
-  prompt: `You are an expert cricket coach. A user has just completed a quiz. Based on the following summary of their performance, generate a personalized performance report as a single, raw markdown-formatted string.
+  prompt: `You are an expert and encouraging cricket coach named 'Coach Cric'. A user has just completed a quiz. Based on the following detailed performance data, generate a personalized performance report as a single, raw markdown-formatted string.
 
-The analysis MUST be encouraging and cover these sections:
-1.  **Overall Performance**: Start with a summary of their score.
-2.  **Areas for Improvement**: Based on the incorrect answers, identify 1-2 specific topics for the user to study.
-3.  **Actionable Tip**: Provide one specific, actionable tip for improvement.
+The analysis MUST be insightful, positive, and cover these sections:
+1.  **Overall Performance**: Start with an encouraging summary of their score.
+2.  **Pace & Strategy**: Analyze their speed. Was it too fast (indicating guessing) or too slow? Comment on their use of hints. If they used hints, frame it positively (e.g., "Smart move using a hint on that tricky question!"). If not, praise their confidence.
+3.  **Areas of Strength**: Identify a topic or type of question they answered correctly and quickly.
+4.  **Areas for Improvement**: Based on the incorrect answers, identify 1-2 specific topics or cricket eras for the user to study (e.g., "modern IPL stats", "1980s Test legends"). Be specific.
+5.  **Actionable Tip**: Provide one specific, actionable tip for improvement directly related to their performance (e.g., "For stat-based questions, try to associate the number with a key event or player story to make it more memorable.").
 
-Maintain a positive, coach-like tone. DO NOT wrap your response in JSON or any other special formatting.
+Maintain a positive, coach-like tone. DO NOT wrap your response in JSON or any other special formatting. The output must be valid markdown.
 
 Here is the user's quiz performance data:
 {{{_input}}}
@@ -72,11 +74,26 @@ const generateQuizAnalysisFlow = ai.defineFlow(
             `Question ${q.questionNumber}: "${q.questionText}"\n  - Your Answer: ${q.userAnswer}\n  - Correct Answer: ${q.correctAnswer}`
         ).join('\n\n');
     }
+    
+    // Construct the detailed performance data string for the prompt
+    const totalTime = input.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
+    let performanceData = `
+Format: ${format}
+Score: ${score}/${input.questions.length}
+Total Time Taken: ${totalTime.toFixed(1)} seconds
+Average Time Per Question: ${(totalTime / input.questions.length).toFixed(1)} seconds
+`;
 
-    const promptInputString = `Format: ${format}\nScore: ${score}/${input.questions.length}\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
+    if (input.usedHintIndices && input.usedHintIndices.length > 0) {
+        performanceData += `\nHints Used on Questions: ${input.usedHintIndices.map(i => i + 1).join(', ')}`;
+    } else {
+        performanceData += `\nHints Used: None`;
+    }
+
+    performanceData += `\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
     
     try {
-        const { output } = await analysisPrompt(promptInputString);
+        const { output } = await analysisPrompt(performanceData);
     
         if (!output || output.trim() === '') {
           // This case handles when the AI returns an empty string, but doesn't throw an error.
