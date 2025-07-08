@@ -17,7 +17,10 @@ import { Loader2 } from 'lucide-react';
 import { handleGoogleSignIn } from '@/lib/authUtils';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { verifyOtp } from '@/ai/flows/verify-otp-flow';
+import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
+import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -41,6 +44,7 @@ const otpSchema = z.object({
 });
 type OtpFormValues = z.infer<typeof otpSchema>;
 
+type FormStep = 'details' | 'otp_email' | 'otp_phone';
 
 export default function SignupForm() {
   const router = useRouter();
@@ -48,15 +52,30 @@ export default function SignupForm() {
   const from = searchParams.get('from');
   const { toast } = useToast();
 
-  const [formStep, setFormStep] = useState<'details' | 'otp'>('details');
+  const [formStep, setFormStep] = useState<FormStep>('details');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isOtpSending, setIsOtpSending] = useState(false);
   
   const [detailsData, setDetailsData] = useState<DetailsFormValues | null>(null);
 
   const detailsForm = useForm<DetailsFormValues>({ resolver: zodResolver(detailsSchema) });
   const otpForm = useForm<OtpFormValues>({ resolver: zodResolver(otpSchema) });
+  
+  const getStepTitle = () => {
+    switch(formStep) {
+        case 'details': return 'Join the Challenge';
+        case 'otp_email': return 'Verify Your Email';
+        case 'otp_phone': return 'Verify Your Phone';
+    }
+  }
+  
+  const getStepDescription = () => {
+    switch(formStep) {
+        case 'details': return (<>Already have an account?{' '}<Link href={`/auth/login${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">Sign in here</Link></>);
+        case 'otp_email': return `Enter the 6-digit code we sent to ${detailsData?.email}`;
+        case 'otp_phone': return `Enter the 6-digit code we sent to +91 ${detailsData?.phone}`;
+    }
+  }
 
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
@@ -67,52 +86,105 @@ export default function SignupForm() {
     setIsGoogleLoading(false);
   };
 
-  const handleSendOtp = async (data: DetailsFormValues) => {
-    setIsOtpSending(true);
+  // Step 1: User submits their details
+  const handleDetailsSubmit = async (data: DetailsFormValues) => {
+    setIsLoading(true);
     try {
         const result = await sendOtp({ email: data.email });
         if (result.success) {
-            toast({ title: 'OTP Sent', description: result.message });
+            toast({ title: 'Email OTP Sent', description: result.message });
             setDetailsData(data);
-            setFormStep('otp');
+            setFormStep('otp_email');
         } else {
             toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
         }
     } catch (error: any) {
         toast({ title: 'Error', description: 'An unexpected error occurred while sending the OTP.', variant: 'destructive' });
     } finally {
-        setIsOtpSending(false);
+        setIsLoading(false);
     }
   };
   
-  const handleVerifyAndSignup = async (otpData: OtpFormValues) => {
+  // Step 2: User verifies email, we then send phone OTP
+  const handleEmailOtpSubmit = async (otpData: OtpFormValues) => {
+    if (!detailsData) return;
+    setIsLoading(true);
+    try {
+        const verifyResult = await verifyOtp({ email: detailsData.email, otp: otpData.otp });
+        if (!verifyResult.success) {
+            toast({ title: 'Email Verification Failed', description: verifyResult.message, variant: 'destructive' });
+            return;
+        }
+
+        toast({ title: 'Email Verified!', description: 'Now, let\'s verify your phone number.' });
+        const phoneOtpResult = await sendPhoneOtp({ phone: detailsData.phone });
+        if (phoneOtpResult.success) {
+            toast({ title: 'Phone OTP Sent', description: phoneOtpResult.message });
+            setFormStep('otp_phone');
+            otpForm.reset();
+        } else {
+             toast({ title: 'Failed to Send Phone OTP', description: phoneOtpResult.message, variant: 'destructive' });
+        }
+    } catch (error) {
+        toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+  
+  // Step 3: User verifies phone, we create the account
+  const handleFinalSignup = async (otpData: OtpFormValues) => {
     if (!detailsData) return;
     setIsLoading(true);
 
     if (!auth || !db) {
-        toast({
-            title: "Service Unavailable",
-            description: "Cannot create account. Please contact support.",
-            variant: "destructive",
-        });
+        toast({ title: "Service Unavailable", description: "Cannot create account. Please contact support.", variant: "destructive" });
         setIsLoading(false);
         return;
     }
-    
+
     try {
-        const verifyResult = await verifyOtp({ email: detailsData.email, otp: otpData.otp });
+        // First, verify the phone OTP
+        const verifyResult = await verifyPhoneOtp({ phone: detailsData.phone, otp: otpData.otp });
         if (!verifyResult.success) {
-            toast({ title: 'Verification Failed', description: verifyResult.message, variant: 'destructive' });
-            setIsLoading(false);
+            toast({ title: 'Phone Verification Failed', description: verifyResult.message, variant: 'destructive' });
             return;
         }
 
+        // Create the user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, detailsData.email, detailsData.password);
         const user = userCredential.user;
         
-        // This is important: update the user's profile in Firebase Auth.
-        // The AuthProvider will detect this new user and create their Firestore doc automatically.
+        // Update the user's profile display name in Auth
         await updateProfile(user, { displayName: detailsData.name });
+
+        // Create the user document in Firestore with verified flags
+        const userDocRef = doc(db, 'users', user.uid);
+        const newUserDoc = {
+            uid: user.uid,
+            name: detailsData.name,
+            email: detailsData.email,
+            phone: detailsData.phone,
+            createdAt: serverTimestamp(),
+            photoURL: user.photoURL || '',
+            emailVerified: true, // Verified in this flow
+            phoneVerified: true, // Verified in this flow
+            totalRewards: 0,
+            quizzesPlayed: 0,
+            perfectScores: 0,
+            referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
+            dob: '',
+            gender: '',
+            occupation: '',
+            upi: '',
+            highestStreak: 0,
+            certificatesEarned: 0,
+            referralEarnings: 0,
+            favoriteFormat: '',
+            favoriteTeam: '',
+            favoriteCricketer: '',
+        };
+        await setDoc(userDocRef, newUserDoc);
 
         router.push(from || '/home');
 
@@ -127,90 +199,91 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading || isOtpSending;
+  const isAuthDisabled = isLoading || isGoogleLoading;
+  
+  const renderFormContent = () => {
+    switch (formStep) {
+        case 'details':
+            return (
+                 <form onSubmit={detailsForm.handleSubmit(handleDetailsSubmit)} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input id="name" placeholder="Sachin Tendulkar" {...detailsForm.register('name')} disabled={isAuthDisabled} />
+                        {detailsForm.formState.errors.name && <p className="text-sm text-destructive">{detailsForm.formState.errors.name.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span className="text-foreground">🇮🇳 +91</span>
+                            </div>
+                            <Input id="phone" type="tel" placeholder="9876543210" className="pl-16" {...detailsForm.register('phone')} disabled={isAuthDisabled} />
+                        </div>
+                        {detailsForm.formState.errors.phone && <p className="text-sm text-destructive">{detailsForm.formState.errors.phone.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...detailsForm.register('email')} disabled={isAuthDisabled} />
+                        {detailsForm.formState.errors.email && <p className="text-sm text-destructive">{detailsForm.formState.errors.email.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input id="password" type="password" placeholder="••••••••" {...detailsForm.register('password')} disabled={isAuthDisabled} />
+                        {detailsForm.formState.errors.password && <p className="text-sm text-destructive">{detailsForm.formState.errors.password.message}</p>}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+                        {isLoading ? <Loader2 className="animate-spin mr-2" /> : 'Continue'}
+                    </Button>
+                </form>
+            );
+        case 'otp_email':
+        case 'otp_phone':
+            return (
+                 <form onSubmit={otpForm.handleSubmit(formStep === 'otp_email' ? handleEmailOtpSubmit : handleFinalSignup)} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="otp">One-Time Password</Label>
+                        <Input id="otp" type="text" placeholder="123456" {...otpForm.register('otp')} disabled={isAuthDisabled} />
+                        {otpForm.formState.errors.otp && <p className="text-sm text-destructive">{otpForm.formState.errors.otp.message}</p>}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+                        {isLoading && <Loader2 className="animate-spin mr-2" />}
+                        Verify & Continue
+                    </Button>
+                    <Button variant="link" size="sm" onClick={() => { setFormStep('details'); otpForm.reset(); }} disabled={isAuthDisabled}>
+                        Back to details
+                    </Button>
+                </form>
+            );
+    }
+  }
 
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {formStep === 'details' ? 'Join the Challenge' : 'Check Your Email'}
-        </h1>
-        <p className="text-muted-foreground">
-          {formStep === 'details' ? (
-            <>
-              Already have an account?{' '}
-              <Link href={`/auth/login${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">
-                Sign in here
-              </Link>
-            </>
-          ) : `Enter the 6-digit code we sent to ${detailsData?.email}`}
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{getStepTitle()}</h1>
+        <p className="text-muted-foreground">{getStepDescription()}</p>
       </div>
 
       {!isFirebaseConfigured ? (
          <FirebaseConfigWarning />
-      ) : formStep === 'details' ? (
-        <div className="space-y-4">
-          <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
-              {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
-          </Button>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          <form onSubmit={detailsForm.handleSubmit(handleSendOtp)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" placeholder="Sachin Tendulkar" {...detailsForm.register('name')} disabled={isAuthDisabled} />
-              {detailsForm.formState.errors.name && <p className="text-sm text-destructive">{detailsForm.formState.errors.name.message}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <span className="text-foreground">🇮🇳 +91</span>
-                    </div>
-                    <Input id="phone" type="tel" placeholder="9876543210" className="pl-16" {...detailsForm.register('phone')} disabled={isAuthDisabled} />
-                </div>
-                {detailsForm.formState.errors.phone && <p className="text-sm text-destructive">{detailsForm.formState.errors.phone.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...detailsForm.register('email')} disabled={isAuthDisabled} />
-              {detailsForm.formState.errors.email && <p className="text-sm text-destructive">{detailsForm.formState.errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" {...detailsForm.register('password')} disabled={isAuthDisabled} />
-              {detailsForm.formState.errors.password && <p className="text-sm text-destructive">{detailsForm.formState.errors.password.message}</p>}
-            </div>
-            <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-              {isOtpSending ? <Loader2 className="animate-spin mr-2" /> : 'Continue'}
-            </Button>
-          </form>
-        </div>
       ) : (
         <div className="space-y-4">
-             <form onSubmit={otpForm.handleSubmit(handleVerifyAndSignup)} className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="otp">One-Time Password</Label>
-                    <Input id="otp" type="text" placeholder="123456" {...otpForm.register('otp')} disabled={isAuthDisabled} />
-                    {otpForm.formState.errors.otp && <p className="text-sm text-destructive">{otpForm.formState.errors.otp.message}</p>}
-                </div>
-                <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                    {isLoading && <Loader2 className="animate-spin mr-2" />}
-                    Verify & Create Account
+            {formStep === 'details' && (
+                <>
+                <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
+                    {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
                 </Button>
-             </form>
-             <Button variant="link" size="sm" onClick={() => setFormStep('details')} disabled={isAuthDisabled}>
-                Back to details
-             </Button>
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                </div>
+                </>
+            )}
+            {renderFormContent()}
         </div>
       )}
     </div>

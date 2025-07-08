@@ -38,7 +38,7 @@ const getUserDocument = async (uid: string, userDetails: { displayName?: string 
         if (docSnap.exists()) {
             return docSnap.data();
         } else {
-            // Document doesn't exist, so create it.
+            // Document doesn't exist, so create it (this path is now primarily for new Google Sign-Ins).
             console.log(`Creating new user document for UID: ${uid}`);
             const newUserDoc = {
                 uid: uid,
@@ -47,8 +47,8 @@ const getUserDocument = async (uid: string, userDetails: { displayName?: string 
                 phone: userDetails.phoneNumber || '',
                 createdAt: serverTimestamp(),
                 photoURL: userDetails.photoURL || '',
-                emailVerified: userDetails.emailVerified || false,
-                phoneVerified: false, // Phone is never verified by default
+                emailVerified: userDetails.emailVerified || false, // Will be TRUE for Google users
+                phoneVerified: false, // Phone must always be verified manually in the profile
                 // Initialize all other fields to prevent app errors
                 totalRewards: 0,
                 quizzesPlayed: 0,
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (docSnap.exists()) {
                 setUserData(docSnap.data());
             } else {
-                // Failsafe: if doc is missing (e.g., deleted from console), create it.
+                // Failsafe: if doc is missing (e.g., deleted from console or first Google sign-in), create it.
                 await getUserDocument(user.uid, { 
                     displayName: user.displayName, 
                     email: user.email, 
