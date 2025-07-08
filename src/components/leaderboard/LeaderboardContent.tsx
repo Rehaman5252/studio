@@ -9,7 +9,7 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, getDocs, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface LivePlayer {
@@ -137,8 +137,10 @@ const AllTimeLeaderboard = memo(() => {
             }
             try {
                 const usersRef = collection(db, 'users');
+                // Query for users with at least one perfect score
                 const q = query(
                     usersRef, 
+                    where('perfectScores', '>', 0),
                     orderBy('perfectScores', 'desc'), 
                     orderBy('quizzesPlayed', 'desc'), 
                     limit(50)
@@ -201,7 +203,7 @@ const AllTimeLeaderboard = memo(() => {
                             </div>
                         ))
                     ) : (
-                         <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>
+                         <p className="text-center text-muted-foreground p-4">No legends yet. Score a perfect 5/5 to appear here!</p>
                     )}
                 </div>
             </CardContent>
@@ -231,13 +233,13 @@ const MyNetworkLeaderboard = memo(() => {
             </CardHeader>
             <CardContent>
                 <div className="space-y-2">
-                     {players.length > 0 ? (
+                     {players.length > 0 && user && userData ? (
                         players.map((player, index) => (
                              <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                                 <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
                                 <Avatar className="h-10 w-10 mx-4">
-                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
-                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name || 'User'} />
+                                    <AvatarFallback>{(player.name || 'U').charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
                                     <p className="font-semibold text-foreground">{player.name}</p>

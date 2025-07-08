@@ -175,45 +175,59 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
-  const saveAttemptInBackground = useCallback((attempt: SlotAttempt) => {
-    if (db && user && userData) {
-        const batch = writeBatch(db);
-
-        // 1. Save to user's private quiz history
-        const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), attempt.slotId);
-        batch.set(attemptDocRef, attempt);
-
-        // 2. Update the global live leaderboard for the current slot
-        const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
-        const leaderboardEntryRef = doc(db, 'liveLeaderboard', attempt.slotId, 'entries', user.uid);
-        batch.set(leaderboardEntryRef, {
-            name: userData.name || 'Anonymous',
-            score: attempt.score,
-            time: totalTime,
-            avatar: userData.photoURL || null,
-        });
-        
-        // 3. Increment user's aggregate stats
-        const userDocRef = doc(db, 'users', user.uid);
-        const userStatsUpdate: DocumentData = {
-            quizzesPlayed: increment(1),
-            totalTimePlayed: increment(totalTime)
-        };
-        
-        const isPerfectScore = attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0;
-        if (isPerfectScore) {
-            userStatsUpdate.perfectScores = increment(1);
-            userStatsUpdate.certificatesEarned = increment(1);
-            userStatsUpdate.totalRewards = increment(100); // Give 100 reward points for a perfect score
-        }
-        batch.update(userDocRef, userStatsUpdate);
-
-        // Commit the batch
-        batch.commit().catch(error => {
-            console.error("Error saving quiz data in batch: ", error);
-        });
+  // This function is now defined inside the component to ensure it always has fresh scope.
+  // It is NOT wrapped in useCallback to prevent potential stale closures with user data.
+  const saveAttemptInBackground = async (attempt: SlotAttempt) => {
+    if (!db || !user || !userData) {
+      console.error("Cannot save quiz attempt: Missing user context.", { db, user, userData });
+      return;
     }
-  }, [user, userData]);
+
+    try {
+      const batch = writeBatch(db);
+
+      // 1. Save to user's private quiz history
+      const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), attempt.slotId);
+      batch.set(attemptDocRef, attempt);
+
+      // 2. Update the global live leaderboard for the current slot
+      const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
+      const leaderboardEntryRef = doc(db, 'liveLeaderboard', attempt.slotId, 'entries', user.uid);
+      batch.set(leaderboardEntryRef, {
+        name: userData.name || user.displayName || 'Anonymous',
+        score: attempt.score,
+        time: totalTime,
+        avatar: userData.photoURL || user.photoURL || null,
+      });
+      
+      // 3. Increment user's aggregate stats
+      const userDocRef = doc(db, 'users', user.uid);
+      
+      const userStatsUpdate: DocumentData = {
+          quizzesPlayed: increment(1),
+          totalTimePlayed: increment(totalTime)
+      };
+      
+      const isPerfectScore = attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0;
+
+      if (isPerfectScore) {
+          console.log(`Perfect score detected for user ${user.uid}! Incrementing stats.`);
+          userStatsUpdate.perfectScores = increment(1);
+          userStatsUpdate.certificatesEarned = increment(1);
+          userStatsUpdate.totalRewards = increment(100);
+      }
+      
+      batch.update(userDocRef, userStatsUpdate);
+
+      // Commit the batch and wait for it to complete
+      await batch.commit();
+      console.log(`Successfully saved quiz data in batch for user ${user.uid}.`);
+
+    } catch (error) {
+      console.error("FATAL: Error saving quiz data in batch: ", error);
+      // Optionally, add a toast here to inform the user of a save error.
+    }
+  };
 
   const goToNextQuestion = useCallback(() => {
     setSelectedOption(null);
@@ -222,7 +236,7 @@ function QuizComponent() {
     setTimeLeft(20);
   }, []);
   
-  const proceedToNextStep = useCallback((answer: string) => {
+  const proceedToNextStep = async (answer: string) => {
     const newAnswers = [...userAnswers, answer];
     const newTimes = [...timePerQuestion, 20 - timeLeft];
     
@@ -250,7 +264,8 @@ function QuizComponent() {
         };
 
         setLastAttemptInSlot(finalAttempt);
-        saveAttemptInBackground(finalAttempt);
+        // Wait for the data to be saved before navigating
+        await saveAttemptInBackground(finalAttempt);
         router.replace(`/quiz/results`);
         return;
     }
@@ -275,7 +290,7 @@ function QuizComponent() {
     
     goToNextQuestion();
 
-  }, [userAnswers, timePerQuestion, timeLeft, currentQuestionIndex, questions, usedHintIndices, saveAttemptInBackground, router, goToNextQuestion, brand, format, setLastAttemptInSlot]);
+  };
 
   // Fetch questions
   useEffect(() => {
