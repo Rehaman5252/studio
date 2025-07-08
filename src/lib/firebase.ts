@@ -3,8 +3,13 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, type Firestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  type Firestore 
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -30,17 +35,12 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
-    db = getFirestore(app);
+    // Use initializeFirestore with multi-tab persistence enabled.
+    // This is more robust than enableIndexedDbPersistence and avoids conflicts between tabs.
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
     storage = getStorage(app);
-    
-    enableIndexedDbPersistence(db)
-      .catch((err) => {
-        if (err.code == 'failed-precondition') {
-          console.warn('Firebase persistence failed: Multiple tabs open. Offline mode might not work correctly.');
-        } else if (err.code == 'unimplemented') {
-          console.warn('Firebase persistence is not supported in this browser.');
-        }
-      });
 
   } catch (e) {
     console.error('Firebase initialization error:', e);
