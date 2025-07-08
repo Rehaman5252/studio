@@ -92,7 +92,11 @@ export default function SignupForm() {
     try {
         const result = await sendOtp({ email: data.email });
         if (result.success) {
-            toast({ title: 'Email OTP Sent', description: result.message });
+            toast({ 
+                title: 'Email OTP Sent (For Demo)', 
+                description: 'Please use OTP: 123456 to continue.',
+                duration: 9000,
+            });
             setDetailsData(data);
             setFormStep('otp_email');
         } else {
@@ -119,7 +123,11 @@ export default function SignupForm() {
         toast({ title: 'Email Verified!', description: 'Now, let\'s verify your phone number.' });
         const phoneOtpResult = await sendPhoneOtp({ phone: detailsData.phone });
         if (phoneOtpResult.success) {
-            toast({ title: 'Phone OTP Sent', description: phoneOtpResult.message });
+            toast({ 
+                title: 'Phone OTP Sent (For Demo)', 
+                description: 'Please use OTP: 654321 to continue.',
+                duration: 9000,
+            });
             setFormStep('otp_phone');
             otpForm.reset();
         } else {
@@ -289,3 +297,5 @@ export default function SignupForm() {
     </div>
   );
 }
+
+    

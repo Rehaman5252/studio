@@ -334,12 +334,13 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
 
         setDetailsData(data);
         
-        if (phoneChanged) {
+        // Always prioritize phone verification if it changed
+        if (phoneChanged && !userProfile.phoneVerified) {
             setIsSubmitting(true);
             try {
                 const result = await sendPhoneOtp({ phone: data.phone });
                 if (result.success) {
-                    toast({ title: 'OTP Sent', description: result.message });
+                    toast({ title: 'OTP Sent (For Demo)', description: 'Please use OTP: 654321 to continue.', duration: 9000 });
                     setFormStep('otp_phone');
                 } else {
                     toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
@@ -349,12 +350,12 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             } finally {
                 setIsSubmitting(false);
             }
-        } else if (emailChanged) {
+        } else if (emailChanged && !userProfile.emailVerified) {
             setIsSubmitting(true);
             try {
                 const result = await sendOtp({ email: data.email });
                 if (result.success) {
-                    toast({ title: 'OTP Sent', description: result.message });
+                    toast({ title: 'OTP Sent (For Demo)', description: 'Please use OTP: 123456 to continue.', duration: 9000 });
                     setFormStep('otp_email');
                 } else {
                     toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
@@ -365,6 +366,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 setIsSubmitting(false);
             }
         } else {
+            // No verifiable fields changed, just save the other data
             await updateProfileData(data);
         }
     };
@@ -376,7 +378,21 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             const result = await verifyPhoneOtp({ phone: detailsData.phone, otp: otpData.otp });
             if (result.success) {
                 toast({ title: 'Phone Verified', description: result.message });
-                await updateProfileData(detailsData, 'phone');
+                // If email also needs verification and hasn't been verified, move to that step
+                const emailChanged = detailsData.email && detailsData.email !== userProfile.email;
+                if(emailChanged && !userProfile.emailVerified) {
+                     const emailResult = await sendOtp({ email: detailsData.email });
+                     if (emailResult.success) {
+                        toast({ title: 'OTP Sent (For Demo)', description: 'Please use OTP: 123456 to continue.', duration: 9000 });
+                        setFormStep('otp_email');
+                        otpForm.reset();
+                     } else {
+                        // Phone verified, but email failed. Save what we have.
+                        await updateProfileData(detailsData, 'phone');
+                     }
+                } else {
+                   await updateProfileData(detailsData, 'phone');
+                }
             } else {
                 toast({ title: 'Verification Failed', description: result.message, variant: 'destructive' });
             }
@@ -434,7 +450,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     }
 
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) setFormStep('details'); setOpen(isOpen); }}>
+        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) { otpForm.reset(); setFormStep('details'); } setOpen(isOpen); }}>
             <div className="space-y-6 animate-fade-in-up">
                 <ProfileHeader userProfile={userProfile} />
                 <ProfileCompletion userProfile={userProfile} />
@@ -468,13 +484,20 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                     <DialogHeader>
                         <DialogTitle>Edit Profile</DialogTitle>
                         <DialogDescription>
-                            Verify your email and phone to complete your profile. Verified fields are locked.
+                            Your profile must be 100% complete. Verified fields are locked.
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...detailsForm}>
                         <form onSubmit={detailsForm.handleSubmit(handleDetailsSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6">
                             {MANDATORY_PROFILE_FIELDS.map((fieldName) => {
-                                const isLocked = (fieldName === 'email' && userProfile?.emailVerified) || (fieldName === 'phone' && userProfile?.phoneVerified) || (!!userProfile?.[fieldName] && !['email', 'phone'].includes(fieldName));
+                                const isEmail = fieldName === 'email';
+                                const isPhone = fieldName === 'phone';
+                                
+                                const isVerified = (isEmail && userProfile?.emailVerified) || (isPhone && userProfile?.phoneVerified);
+                                const isNonContactFieldWithValue = !!userProfile?.[fieldName] && !isEmail && !isPhone;
+                                
+                                const isLocked = isVerified || isNonContactFieldWithValue;
+
                                 if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
                                      const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']
                                                    : fieldName === 'occupation' ? occupations
@@ -510,7 +533,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
-                                                <FormControl><Input type={fieldName === 'dob' ? 'date' : (fieldName === 'phone' ? 'tel' : fieldName === 'email' ? 'email' : 'text')} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
+                                                <FormControl><Input type={fieldName === 'dob' ? 'date' : (isPhone ? 'tel' : isEmail ? 'email' : 'text')} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -519,7 +542,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                             })}
                             <DialogFooter className="sticky bottom-0 bg-background pt-4">
                                 <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
-                                <Button type="submit" disabled={isSubmitting}>
+                                <Button type="submit" disabled={isSubmitting || !detailsForm.formState.isDirty}>
                                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Save
                                 </Button>
@@ -596,3 +619,5 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         </Dialog>
     )
 }
+
+    

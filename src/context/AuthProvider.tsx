@@ -5,7 +5,7 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import type { User } from 'firebase/auth';
 import type { DocumentData } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, getDoc, setDoc, serverTimestamp, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, setDoc, serverTimestamp, collection, query, orderBy, limit, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 
@@ -118,7 +118,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, async (docSnap) => {
             if (docSnap.exists()) {
-                setUserData(docSnap.data());
+                const firestoreData = docSnap.data();
+                // Sync verification status from Auth to Firestore if there's a mismatch
+                if (user.emailVerified && !firestoreData.emailVerified) {
+                    await updateDoc(userDocRef, { emailVerified: true });
+                    firestoreData.emailVerified = true; // Update local copy immediately for UI consistency
+                }
+                setUserData(firestoreData);
             } else {
                 // Failsafe: if doc is missing (e.g., deleted from console or first Google sign-in), create it.
                 await getUserDocument(user.uid, { 
@@ -180,3 +186,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   return useContext(AuthContext);
 };
+
+    
