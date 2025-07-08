@@ -51,6 +51,21 @@ export default function HomeWrapper() {
     }
   }, [user, userData]);
 
+  // Restore Notification and Geolocation permission prompts
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    if ('geolocation' in navigator) {
+      // This will prompt the user for permission if not already granted/denied.
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'prompt') {
+            navigator.geolocation.getCurrentPosition(() => {}, () => {}, {});
+        }
+      });
+    }
+  }, []);
+
 
   const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
     if (!user && isFirebaseConfigured) {
