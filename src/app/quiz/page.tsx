@@ -28,6 +28,20 @@ const interstitialAds: Record<number, { logo: string; hint: string }> = {
     3: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Pepsi_logo_2014.svg/1200px-Pepsi_logo_2014.svg.png', hint: 'Pepsi logo' },
 };
 
+const QuizHeader = memo(({ format, current, total }: { format: string, current: number, total: number }) => {
+    const progressValue = ((current + 1) / total) * 100;
+    return (
+        <header className="w-full max-w-2xl mx-auto mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-xl font-bold">{format} Quiz</h1>
+            <p className="font-semibold">{current + 1} / {total}</p>
+          </div>
+          <Progress value={progressValue} className="h-2 [&>div]:bg-primary" />
+        </header>
+    );
+});
+QuizHeader.displayName = 'QuizHeader';
+
 const Timer = memo(({ timeLeft }: { timeLeft: number }) => {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
@@ -93,6 +107,40 @@ const QuizOption = memo(({ option, index, isSelected, selectedOption, handleAnsw
 });
 QuizOption.displayName = 'QuizOption';
 
+const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, handleAnswerSelect, currentQuestionIndex }: {
+    question: QuizQuestion;
+    isHintVisible: boolean;
+    options: string[];
+    selectedOption: string | null;
+    handleAnswerSelect: (option: string) => void;
+    currentQuestionIndex: number;
+}) => (
+    <Card className="w-full bg-card shadow-lg">
+        <CardHeader>
+            <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
+                {question.questionText}
+            </CardTitle>
+            {isHintVisible && question.hint && (
+                <p className="text-sm text-primary pt-2 animate-in fade-in">
+                    <strong>Hint:</strong> {question.hint}
+                </p>
+            )}
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {options.map((option, index) => (
+                <QuizOption
+                    key={`${currentQuestionIndex}-${index}`}
+                    option={option}
+                    index={index}
+                    isSelected={selectedOption === option}
+                    selectedOption={selectedOption}
+                    handleAnswerSelect={handleAnswerSelect}
+                />
+            ))}
+        </CardContent>
+    </Card>
+));
+QuestionCard.displayName = 'QuestionCard';
 
 function QuizComponent() {
   useRequireAuth();
@@ -231,6 +279,8 @@ function QuizComponent() {
       } catch (error) {
         console.error("Failed to generate quiz:", error);
         setQuestions(null);
+        // Let the error boundary handle this
+        throw error;
       }
       setIsLoading(false);
     }
@@ -328,7 +378,6 @@ function QuizComponent() {
   }
   
   const currentQuestion = questions[currentQuestionIndex];
-  const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
     <>
@@ -336,43 +385,21 @@ function QuizComponent() {
         className="flex flex-col h-screen bg-background text-foreground p-4 select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
-        <header className="w-full max-w-2xl mx-auto mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-xl font-bold">{format} Quiz</h1>
-            <p className="font-semibold">{currentQuestionIndex + 1} / {questions.length}</p>
-          </div>
-          <Progress value={progressValue} className="h-2 [&>div]:bg-primary" />
-        </header>
+        <QuizHeader format={format} current={currentQuestionIndex} total={questions.length} />
 
         <main className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
           <div className="mb-8">
             <Timer timeLeft={timeLeft} />
           </div>
-
-          <Card className="w-full bg-card shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
-                {currentQuestion.questionText}
-              </CardTitle>
-              {isHintVisible && currentQuestion.hint && (
-                  <p className="text-sm text-primary pt-2 animate-in fade-in">
-                      <strong>Hint:</strong> {currentQuestion.hint}
-                  </p>
-              )}
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {currentQuestion.options.map((option, index) => (
-                    <QuizOption
-                        key={`${currentQuestionIndex}-${index}`}
-                        option={option}
-                        index={index}
-                        isSelected={selectedOption === option}
-                        selectedOption={selectedOption}
-                        handleAnswerSelect={handleAnswerSelect}
-                    />
-                ))}
-            </CardContent>
-          </Card>
+            
+          <QuestionCard
+            question={currentQuestion}
+            isHintVisible={isHintVisible}
+            options={currentQuestion.options}
+            selectedOption={selectedOption}
+            handleAnswerSelect={handleAnswerSelect}
+            currentQuestionIndex={currentQuestionIndex}
+          />
           
           <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption || !currentQuestion.hint} className="mt-6 bg-primary/20 text-primary-foreground hover:bg-primary/30">
             <Lightbulb className="mr-2" />
