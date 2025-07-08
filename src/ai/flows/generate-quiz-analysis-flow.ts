@@ -19,14 +19,15 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
   return generateQuizAnalysisFlow(input);
 }
 
-// A new, simplified schema for the prompt's structured input.
+// A more robust schema for the prompt's structured input.
 const AnalysisPromptInputSchema = z.object({
   score: z.number().describe("The user's score."),
   totalQuestions: z.number().describe('The total number of questions in the quiz.'),
   totalTime: z.number().describe('The total time taken in seconds.'),
   hintsUsed: z.number().describe('The number of hints the user used.'),
   format: z.string().describe('The cricket format of the quiz.'),
-  incorrectAnswersSummary: z.string().describe("A summary of incorrectly answered questions, with each on a new line. This will be empty if all answers were correct."),
+  incorrectAnswersSummary: z.string().describe("A summary of incorrectly answered questions, with each on a new line."),
+  hasIncorrectAnswers: z.boolean().describe("Whether the user had any incorrect answers."),
 });
 type AnalysisPromptInput = z.infer<typeof AnalysisPromptInputSchema>;
 
@@ -35,23 +36,28 @@ const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
   input: { schema: AnalysisPromptInputSchema },
   output: { schema: GenerateQuizAnalysisOutputSchema },
-  prompt: `You are 'Coach Cric', an encouraging AI cricket coach. Analyze the user's quiz performance based on the data below and generate a report for the 'analysis' field.
+  prompt: `You are 'Coach Cric', an encouraging and friendly AI cricket coach.
+Your goal is to provide a helpful and brief analysis of the user's quiz performance in markdown format for the 'analysis' field.
 
-The report must be in markdown format and include these sections in order:
-- **Overall Performance**: A brief, one-sentence summary of their score.
-- **Strengths**: Point out one specific area where they did well (e.g., speed on correct answers, knowledge on a specific topic).
-- **Improvement Areas**: Briefly mention a topic they could focus on, based on the incorrect answers.
-- **Actionable Tip**: Give one single, highly specific, and actionable tip for improving.
+The report should have four parts:
+1.  **Overall Performance**: Start with a one-sentence summary of their score.
+2.  **Strengths**: Highlight something they did well (e.g., great speed, good accuracy in a topic).
+3.  **Areas for Improvement**: Based on their wrong answers, suggest a topic to focus on. If all answers were correct, praise them for their perfect knowledge.
+4.  **A Coach's Tip**: Give a single, actionable tip for their next quiz.
 
-Keep the tone very concise, positive, and coach-like.
+Keep the entire analysis concise, positive, and easy to read.
 
-**User Performance Data:**
+Here is the user's performance data:
 - Format: {{format}}
-- Score: {{score}}/{{totalQuestions}}
-- Total Time Taken: {{totalTime}} seconds
+- Score: {{score}} out of {{totalQuestions}}
+- Time Taken: {{totalTime}} seconds
 - Hints Used: {{hintsUsed}}
-- Incorrect Answers Summary:
+- Summary of Incorrect Answers:
+{{#if hasIncorrectAnswers}}
 {{{incorrectAnswersSummary}}}
+{{else}}
+The user answered all questions correctly!
+{{/if}}
 `,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
@@ -75,21 +81,25 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     const score = input.questions.reduce((acc, q, index) => 
         (input.userAnswers[index] === q.correctAnswer) ? acc + 1 : acc, 0);
     
+    // This format detection is basic, can be improved if more formats are sponsored.
     const format = input.questions[0]?.questionText.includes('IPL') ? 'IPL' : (input.questions[0]?.questionText.includes('Test') ? 'Test' : 'General Cricket');
 
-    const incorrect = input.questions.map((q, index) => ({
+    const incorrect = input.questions
+      .map((q, index) => ({
         ...q,
         userAnswer: input.userAnswers[index] || 'Not Answered',
         isCorrect: input.userAnswers[index] === q.correctAnswer,
         questionNumber: index + 1,
-    })).filter(q => !q.isCorrect);
+      }))
+      .filter(q => !q.isCorrect);
 
-    let incorrectAnswersSummary = 'No incorrect answers! Great job!';
-    if (incorrect.length > 0) {
-        incorrectAnswersSummary = incorrect.map(q => 
-            `- Question ${q.questionNumber}: "${q.questionText}" (Correct: ${q.correctAnswer})`
-        ).join('\n');
-    }
+    const hasIncorrectAnswers = incorrect.length > 0;
+    
+    const incorrectAnswersSummary = hasIncorrectAnswers
+      ? incorrect.map(q => 
+          `- Q${q.questionNumber}: "${q.questionText}" (Correct: ${q.correctAnswer})`
+        ).join('\n')
+      : "N/A";
     
     const totalTime = input.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
     
@@ -100,24 +110,24 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         hintsUsed: input.usedHintIndices?.length || 0,
         format,
         incorrectAnswersSummary,
+        hasIncorrectAnswers,
     };
     
-    console.log("Attempting to generate AI analysis with the following structured data:", promptInput);
     try {
         const { output } = await analysisPrompt(promptInput);
     
         if (!output || !output.analysis || output.analysis.trim() === '') {
-          console.warn("AI analysis returned a null or empty analysis object. Providing a fallback response.", { output });
-        } else {
-            console.log("Successfully generated AI analysis.");
-            return output;
+            // AI returned an empty or invalid response.
+            throw new Error("AI returned a null or empty analysis object.");
         }
+        
+        return output;
 
     } catch (error) {
-        console.error("AI analysis call failed with an error. Providing a fallback response.", { error });
+        console.error("AI analysis call failed. Providing fallback response.", { error });
     }
 
-    // Fallback logic
+    // Fallback logic for any failure in the try block
     const fallbackAnalysis = `### Analysis Currently Unavailable
 
 We couldn't generate a detailed AI analysis for this quiz at the moment.
