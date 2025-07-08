@@ -7,10 +7,11 @@ import { Loader2 } from 'lucide-react';
 
 
 export default function ProfilePage() {
+    // The useRequireAuth hook protects this page.
+    // If the user is not logged in, it will automatically redirect them to the login page.
     const { user, userData, loading, isUserDataLoading } = useRequireAuth();
     
     // While the auth state is resolving, show a full-page loader.
-    // The useRequireAuth hook will handle redirection if the user is not logged in.
     if (loading) {
         return (
             <div className="flex flex-col h-screen bg-background items-center justify-center">
@@ -19,7 +20,7 @@ export default function ProfilePage() {
         );
     }
     
-    // If auth is resolved but there is no user, the hook will redirect.
+    // If auth is resolved but there is no user, the hook has already started the redirection.
     // Render nothing to avoid flashes of incorrect content.
     if (!user) {
         return null;

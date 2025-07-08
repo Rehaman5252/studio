@@ -144,6 +144,7 @@ export default function RewardsContent() {
 
   return (
     <>
+        {/* Conditionally render user-specific gifts only if logged in */}
         {user && (
             isHistoryLoading ? (
                  <section>
@@ -156,6 +157,7 @@ export default function RewardsContent() {
                 <BrandGiftsSection uniqueBrandAttempts={uniqueBrandAttempts} />
             )
         )}
+        {/* Always render generic offers for all users */}
         <GenericOffersSection />
     </>
   );

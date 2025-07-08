@@ -53,8 +53,9 @@ export default function HomeWrapper() {
 
 
   const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
-    if (!user && isFirebaseConfigured) {
-        router.push('/auth/login?from=quiz');
+    // This is the login gate for starting a quiz, as per the plan.
+    if (!user) {
+        router.push('/auth/login?from=/home');
         return;
     }
 
