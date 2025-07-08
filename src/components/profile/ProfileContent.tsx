@@ -64,6 +64,20 @@ const MANDATORY_PROFILE_FIELDS = [
     'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
+// Define default values to ensure all form fields are controlled from the start.
+const defaultFormValues = {
+  name: '',
+  email: '',
+  phone: '',
+  dob: '',
+  gender: '',
+  occupation: '',
+  upi: '',
+  favoriteFormat: '',
+  favoriteTeam: '',
+  favoriteCricketer: '',
+};
+
 const maskPhone = (phone?: string) => {
     if (!phone || phone.length < 10) return 'Not set';
     const lastFour = phone.slice(-4);
@@ -279,7 +293,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
 
     const detailsForm = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
-        defaultValues: { /* Populated by useEffect */ },
+        defaultValues: defaultFormValues as any,
     });
     
     const otpForm = useForm<OtpFormValues>({
