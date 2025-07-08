@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    LogOut, Loader2, Copy, PercentCircle, Mail, MessageSquare
+    LogOut, Loader2, Copy, PercentCircle, Mail, MessageSquare, Settings
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -252,7 +252,7 @@ const SupportCard = memo(() => (
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer">
                     <MessageSquare className="mr-4" />
-                    WhatsApp: +91 78427 22245
+                    WhatsApp: +91 7842722245
                 </a>
             </Button>
         </CardContent>
@@ -396,6 +396,9 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                     </Button>
                     <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                         <Link href="/certificates"><Award className="mr-4" /> View Certificates</Link>
+                    </Button>
+                    <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                        <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
                     </Button>
                 </section>
 
