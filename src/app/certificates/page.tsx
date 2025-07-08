@@ -3,9 +3,8 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
-import useRequireAuth from '@/hooks/useRequireAuth';
 import { Skeleton } from '@/components/ui/skeleton';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
   loading: () => (
@@ -18,17 +17,7 @@ const CertificatesContent = dynamic(() => import('@/components/certificates/Cert
   ssr: false,
 });
 
-export default function CertificatesPage() {
-  const { loading } = useRequireAuth();
-  
-  if (loading) {
-      return (
-        <div className="flex flex-col h-screen bg-background items-center justify-center">
-             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
-  
+function CertificatesPageContent() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -39,5 +28,13 @@ export default function CertificatesPage() {
         <CertificatesContent />
       </main>
     </div>
+  );
+}
+
+export default function CertificatesPage() {
+  return (
+    <AuthGuard>
+      <CertificatesPageContent />
+    </AuthGuard>
   );
 }

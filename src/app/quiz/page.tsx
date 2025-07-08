@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Lightbulb } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
-import useRequireAuth from '@/hooks/useRequireAuth';
+import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/context/AuthProvider';
 import { cn, getQuizSlotId } from '@/lib/utils';
 import { useQuizStatus, type SlotAttempt } from '@/context/QuizStatusProvider';
@@ -143,7 +143,6 @@ const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, h
 QuestionCard.displayName = 'QuestionCard';
 
 function QuizComponent() {
-  useRequireAuth();
   const router = useRouter();
   const { user, userData } = useAuth();
   const searchParams = useSearchParams();
@@ -436,8 +435,10 @@ function QuizComponent() {
 
 export default function QuizPage() {
   return (
-    <Suspense fallback={<CricketLoading message="Loading your quiz..." />}>
-      <QuizComponent />
-    </Suspense>
+    <AuthGuard>
+      <Suspense fallback={<CricketLoading message="Loading your quiz..." />}>
+        <QuizComponent />
+      </Suspense>
+    </AuthGuard>
   )
 }
