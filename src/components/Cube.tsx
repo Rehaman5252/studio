@@ -36,37 +36,28 @@ interface CubeProps {
   brands: CubeBrand[];
   onFaceSelect: (index: number) => void;
   onFaceClick: () => void;
-  disabled?: boolean;
 }
 
-function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
+function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // This effect runs the rotation timer.
+  // This effect runs the rotation timer continuously.
   useEffect(() => {
     const rotateToNextFace = () => {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
 
-    if (!disabled) {
-      // Start the timer if not disabled
-      timerRef.current = setInterval(rotateToNextFace, 1500); // 1.5 seconds per face
-    } else {
-      // Stop the timer if disabled
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
+    // The timer is ALWAYS running at 500ms.
+    timerRef.current = setInterval(rotateToNextFace, 500);
     
     return () => {
         if (timerRef.current) {
             clearInterval(timerRef.current);
         }
     };
-  }, [brands.length, disabled]);
+  }, [brands.length]);
 
 
   // This effect is ONLY for side effects when the face changes.
@@ -80,7 +71,6 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
 
 
   const handleFaceClick = () => {
-    if (disabled) return;
     onFaceClick();
   };
   
@@ -89,7 +79,7 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
       className="flex justify-center items-center h-48"
     >
       <div 
-        className={cn("w-32 h-32 perspective", disabled && "opacity-50")}
+        className="w-32 h-32 perspective"
       >
         <div 
           ref={cubeRef} 
@@ -104,12 +94,12 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
               key={brand.id}
               onClick={handleFaceClick}
               role="button"
-              tabIndex={disabled ? -1 : 0}
+              tabIndex={0}
               aria-label={`Select ${brand.format} quiz sponsored by ${brand.brand}`}
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleFaceClick()}
               className={cn(
                 "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
-                !disabled && "cursor-pointer hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"
+                "cursor-pointer hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"
               )}
               style={{
                 transform: faceTransforms[index],

@@ -12,6 +12,8 @@ import { isFirebaseConfigured } from '@/lib/firebase';
 import QuizSelection from './QuizSelection';
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -31,6 +33,7 @@ export default function HomeWrapper() {
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
+  const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
@@ -56,15 +59,11 @@ export default function HomeWrapper() {
     }
 
     if (hasPlayedInCurrentSlot) {
-        if (lastAttemptInSlot?.reason === 'malpractice') {
-            router.push(`/quiz/results?reason=malpractice`);
-        } else {
-            router.push(`/quiz/results?review=true`);
-        }
+        setShowSlotPlayedAlert(true);
     } else {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [user, router, hasPlayedInCurrentSlot, lastAttemptInSlot]);
+  }, [user, router, hasPlayedInCurrentSlot]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -98,6 +97,15 @@ export default function HomeWrapper() {
     }
   }, []);
 
+  const handleSlotAlertAction = () => {
+    if (lastAttemptInSlot?.reason === 'malpractice') {
+        router.push(`/quiz/results?reason=malpractice`);
+    } else {
+        router.push(`/quiz/results?review=true`);
+    }
+    setShowSlotPlayedAlert(false);
+  };
+
   if (isQuizStatusLoading) {
       return (
         <div className="flex flex-col flex-1 items-center justify-center py-10">
@@ -110,9 +118,31 @@ export default function HomeWrapper() {
     <>
       <QuizSelection
         onStartQuiz={handleStartQuiz}
-        isSlotPlayed={hasPlayedInCurrentSlot}
-        lastAttempt={lastAttemptInSlot}
       />
+
+      <AlertDialog open={showSlotPlayedAlert} onOpenChange={setShowSlotPlayedAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lastAttemptInSlot?.reason === 'malpractice' ? 'Slot Locked' : 'Quiz Already Attempted'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lastAttemptInSlot?.reason === 'malpractice'
+                ? "Malpractice was detected in your last attempt for this slot."
+                : "You have already completed a quiz in this slot."
+              }
+              <br/>
+              You can play again in the next slot.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSlotAlertAction}>
+              {lastAttemptInSlot?.reason === 'malpractice' ? 'View Details' : 'View Scorecard'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showProfilePrompt}>
         <AlertDialogContent>

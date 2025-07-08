@@ -10,20 +10,19 @@ import { cn } from '@/lib/utils';
 interface SelectedBrandCardProps {
     selectedBrand: CubeBrand;
     handleStartQuiz: () => void;
-    disabled?: boolean;
 }
 
-const SelectedBrandCard = ({ selectedBrand, handleStartQuiz, disabled = false }: SelectedBrandCardProps) => {
+const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCardProps) => {
     return (
         <div
             key={selectedBrand.id}
-            onClick={!disabled ? handleStartQuiz : undefined}
-            className={cn(disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}
+            onClick={handleStartQuiz}
+            className="cursor-pointer"
         >
             <Card 
                 className={cn(
                     "w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30",
-                    !disabled && "transition-colors hover:border-primary"
+                    "transition-colors hover:border-primary"
                 )}
             >
                 <CardContent className="p-6">

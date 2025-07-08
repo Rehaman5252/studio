@@ -7,7 +7,6 @@ import QuizSelector from '@/components/home/QuizSelector';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
-import type { SlotAttempt } from '@/context/QuizStatusProvider';
 
 const brands: CubeBrand[] = [
   { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/480px-Apple_logo_black.svg.png', logoWidth: 40, logoHeight: 48 },
@@ -20,11 +19,9 @@ const brands: CubeBrand[] = [
 
 interface QuizSelectionProps {
   onStartQuiz: (brand: CubeBrand) => void;
-  isSlotPlayed: boolean;
-  lastAttempt: SlotAttempt | null;
 }
 
-function QuizSelection({ onStartQuiz, isSlotPlayed, lastAttempt }: QuizSelectionProps) {
+function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
     const selectedBrand = brands[selectedBrandIndex];
     
@@ -54,14 +51,12 @@ function QuizSelection({ onStartQuiz, isSlotPlayed, lastAttempt }: QuizSelection
                 brands={brands}
                 onFaceSelect={handleFaceSelect}
                 onFaceClick={handleStart}
-                disabled={isSlotPlayed}
             />
 
             <div className="mt-8 space-y-8">
                 <SelectedBrandCard
                   selectedBrand={selectedBrand}
                   handleStartQuiz={handleStart}
-                  disabled={isSlotPlayed}
                 />
                 
                 <GlobalStats />
@@ -69,8 +64,6 @@ function QuizSelection({ onStartQuiz, isSlotPlayed, lastAttempt }: QuizSelection
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
                   onClick={handleStart}
-                  isSlotPlayed={isSlotPlayed}
-                  lastAttempt={lastAttempt}
                 />
             </div>
         </>
