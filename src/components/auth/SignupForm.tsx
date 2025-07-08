@@ -93,12 +93,13 @@ export default function SignupForm() {
         const result = await sendOtp({ email: data.email });
         if (result.success) {
             toast({ 
-                title: 'Email OTP Sent (For Demo)', 
-                description: 'Please use OTP: 123456 to continue.',
+                title: 'Demo: Email OTP Sent', 
+                description: 'This is a demo. In a real app, you would receive an email. Please use OTP: 123456 to proceed.',
                 duration: 9000,
             });
             setDetailsData(data);
             setFormStep('otp_email');
+            otpForm.reset(); // Reset OTP form to ensure it's blank
         } else {
             toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
         }
@@ -124,8 +125,8 @@ export default function SignupForm() {
         const phoneOtpResult = await sendPhoneOtp({ phone: detailsData.phone });
         if (phoneOtpResult.success) {
             toast({ 
-                title: 'Phone OTP Sent (For Demo)', 
-                description: 'Please use OTP: 654321 to continue.',
+                title: 'Demo: Phone OTP Sent', 
+                description: 'This is a demo. In a real app, you would receive an SMS. Please use OTP: 654321 to complete your signup.',
                 duration: 9000,
             });
             setFormStep('otp_phone');
@@ -297,5 +298,7 @@ export default function SignupForm() {
     </div>
   );
 }
+
+    
 
     
