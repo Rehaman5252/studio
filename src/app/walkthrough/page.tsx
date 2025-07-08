@@ -1,20 +1,10 @@
 
-'use client';
+import { redirect } from 'next/navigation';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-
-export default function WalkthroughScreen() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/home');
-  }, [router]);
-
-  return (
-    <div className="flex flex-col h-screen items-center justify-center bg-background">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-    </div>
-  );
+export default function WalkthroughPage() {
+  // This is a server component that performs an immediate redirect.
+  // This is much more efficient than the previous client-side component
+  // which required a full render cycle with a loader just to redirect.
+  // This ensures the fastest possible entry into the application.
+  redirect('/home');
 }
