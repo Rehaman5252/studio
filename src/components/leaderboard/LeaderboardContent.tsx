@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
@@ -135,17 +136,25 @@ const AllTimeLeaderboard = memo(() => {
                 return;
             }
             try {
-                // Fetch all users and sort on the client. This is less efficient
-                // but avoids the need for a specific Firestore index, making it more robust.
                 const usersRef = collection(db, 'users');
-                const snapshot = await getDocs(usersRef);
-                const allPlayers: AllTimePlayer[] = [];
+                // This query is more efficient. It requires a Firestore index.
+                // If the index doesn't exist, Firestore will log an error in the browser console
+                // with a direct link to create it, which is the standard development workflow.
+                const q = query(
+                    usersRef, 
+                    orderBy('perfectScores', 'desc'), 
+                    orderBy('quizzesPlayed', 'desc'), 
+                    limit(50)
+                );
+                
+                const snapshot = await getDocs(q);
+                const fetchedPlayers: AllTimePlayer[] = [];
                 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // Ensure the document has the necessary fields before pushing
-                    if (data.name && typeof data.perfectScores !== 'undefined') {
-                        allPlayers.push({
+                    // Basic check to ensure the user has a name.
+                    if (data.name) {
+                        fetchedPlayers.push({
                             uid: doc.id,
                             name: data.name,
                             perfectScores: data.perfectScores || 0,
@@ -155,19 +164,9 @@ const AllTimeLeaderboard = memo(() => {
                     }
                 });
 
-                // Sort by perfect scores (desc), then by total quizzes played (desc) as a tie-breaker
-                const sortedPlayers = allPlayers
-                    .sort((a, b) => {
-                        if (b.perfectScores !== a.perfectScores) {
-                            return b.perfectScores - a.perfectScores;
-                        }
-                        return (b.totalPlayed || 0) - (a.totalPlayed || 0);
-                    })
-                    .slice(0, 50); // Get top 50
-
-                setPlayers(sortedPlayers);
+                setPlayers(fetchedPlayers);
             } catch (error) {
-                console.error("Error fetching all-time leaderboard:", error);
+                console.error("Error fetching all-time leaderboard. This might be due to a missing Firestore index. Please check your browser's developer console for a link to create one.", error);
             } finally {
                 setLoading(false);
             }
