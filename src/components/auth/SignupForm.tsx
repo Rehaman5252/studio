@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -13,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn } from '@/lib/authUtils';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { verifyOtp } from '@/ai/flows/verify-otp-flow';
@@ -55,6 +54,7 @@ export default function SignupForm() {
   const [formStep, setFormStep] = useState<FormStep>('details');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const [detailsData, setDetailsData] = useState<DetailsFormValues | null>(null);
 
@@ -239,7 +239,12 @@ export default function SignupForm() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
-                        <Input id="password" type="password" placeholder="••••••••" {...detailsForm.register('password')} disabled={isAuthDisabled} />
+                        <div className="relative">
+                            <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...detailsForm.register('password')} disabled={isAuthDisabled} />
+                             <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)}>
+                                {showPassword ? <EyeOff /> : <Eye />}
+                             </Button>
+                        </div>
                         {detailsForm.formState.errors.password && <p className="text-sm text-destructive">{detailsForm.formState.errors.password.message}</p>}
                     </div>
                     <Button type="submit" className="w-full" disabled={isAuthDisabled}>
@@ -253,7 +258,7 @@ export default function SignupForm() {
                  <form onSubmit={otpForm.handleSubmit(formStep === 'otp_email' ? handleEmailOtpSubmit : handleFinalSignup)} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="otp">One-Time Password</Label>
-                        <Input id="otp" type="text" placeholder="123456" {...otpForm.register('otp')} disabled={isAuthDisabled} />
+                        <Input id="otp" type="text" placeholder="123456" {...otpForm.register('otp')} disabled={isAuthDisabled} autoComplete="one-time-code" />
                         {otpForm.formState.errors.otp && <p className="text-sm text-destructive">{otpForm.formState.errors.otp.message}</p>}
                     </div>
                     <Button type="submit" className="w-full" disabled={isAuthDisabled}>
