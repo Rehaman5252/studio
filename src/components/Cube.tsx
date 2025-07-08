@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
@@ -47,7 +46,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
     // Start the rotation interval
     timerRef.current = setInterval(() => {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
-    }, 3000); // Slower rotation for better UX
+    }, 500); // Set rotation speed to 500ms
 
     // Clear interval on component unmount
     return () => {
