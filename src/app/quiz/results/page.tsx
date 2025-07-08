@@ -190,19 +190,6 @@ function ResultsComponent() {
     
     const isPerfectScore = useMemo(() => score === totalQuestions && totalQuestions > 0, [score, totalQuestions]);
     
-    useEffect(() => {
-        if (isPerfectScore && user && db) {
-            const userDocRef = doc(db, 'users', user.uid);
-            updateDoc(userDocRef, { 
-                perfectScores: increment(1),
-                certificatesEarned: increment(1),
-            }).catch(error => {
-                console.error("Error updating perfect score count:", error);
-            });
-        }
-    }, [isPerfectScore, user]);
-    
-    
     const slotTimings = useMemo(() => {
         if (!lastAttemptInSlot?.slotId) return '';
         const slotStartTime = new Date(parseInt(lastAttemptInSlot.slotId, 10));
@@ -283,7 +270,7 @@ function ResultsComponent() {
                             {isPerfectScore && (
                                 <div className="bg-primary/20 p-4 rounded-lg border border-primary">
                                     <h3 className="font-bold text-lg text-foreground">Congratulations!</h3>
-                                    <p className="text-sm text-foreground/90">You've won a special reward!</p>
+                                    <p className="text-sm text-foreground/90">You've won ₹100 and a certificate!</p>
                                 </div>
                             )}
                             

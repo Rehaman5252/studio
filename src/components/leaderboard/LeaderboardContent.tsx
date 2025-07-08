@@ -25,7 +25,7 @@ interface AllTimePlayer {
     rank?: number;
     name: string;
     perfectScores: number;
-    totalPlayed: number;
+    averageTime: number;
     avatar?: string;
     uid: string;
 }
@@ -137,9 +137,6 @@ const AllTimeLeaderboard = memo(() => {
             }
             try {
                 const usersRef = collection(db, 'users');
-                // This query is more efficient. It requires a Firestore index.
-                // If the index doesn't exist, Firestore will log an error in the browser console
-                // with a direct link to create it, which is the standard development workflow.
                 const q = query(
                     usersRef, 
                     orderBy('perfectScores', 'desc'), 
@@ -152,12 +149,15 @@ const AllTimeLeaderboard = memo(() => {
                 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // Now we include everyone who has played, providing a fallback name.
+                    const quizzesPlayed = data.quizzesPlayed || 0;
+                    const totalTimePlayed = data.totalTimePlayed || 0;
+                    const averageTime = quizzesPlayed > 0 ? parseFloat((totalTimePlayed / quizzesPlayed).toFixed(1)) : 0;
+                    
                     fetchedPlayers.push({
                         uid: doc.id,
-                        name: data.name || 'Anonymous User', // Provide a fallback
+                        name: data.name || 'Anonymous User',
                         perfectScores: data.perfectScores || 0,
-                        totalPlayed: data.quizzesPlayed || 0,
+                        averageTime: averageTime,
                         avatar: data.photoURL,
                     });
                 });
@@ -192,11 +192,11 @@ const AllTimeLeaderboard = memo(() => {
                                 </Avatar>
                                 <div className="flex-1">
                                     <p className="font-semibold text-foreground">{player.name}</p>
-                                    <p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p>
+                                    <p className="text-sm text-muted-foreground">Perfect Scores: {player.perfectScores}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-primary">{player.perfectScores}</p>
-                                    <p className="text-xs text-muted-foreground">Perfect Scores</p>
+                                    <p className="font-bold text-primary">{player.averageTime}s</p>
+                                    <p className="text-xs text-muted-foreground">Avg. Time</p>
                                 </div>
                             </div>
                         ))

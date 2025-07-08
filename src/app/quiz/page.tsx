@@ -19,7 +19,7 @@ import CricketLoading from '@/components/CricketLoading';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, collection, writeBatch, increment } from 'firebase/firestore';
+import { doc, setDoc, collection, writeBatch, increment, type DocumentData } from 'firebase/firestore';
 
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
@@ -193,9 +193,20 @@ function QuizComponent() {
             avatar: userData.photoURL || null,
         });
         
-        // 3. Increment the total quizzes played for the user
+        // 3. Increment user's aggregate stats
         const userDocRef = doc(db, 'users', user.uid);
-        batch.update(userDocRef, { quizzesPlayed: increment(1) });
+        const userStatsUpdate: DocumentData = {
+            quizzesPlayed: increment(1),
+            totalTimePlayed: increment(totalTime)
+        };
+        
+        const isPerfectScore = attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0;
+        if (isPerfectScore) {
+            userStatsUpdate.perfectScores = increment(1);
+            userStatsUpdate.certificatesEarned = increment(1);
+            userStatsUpdate.totalRewards = increment(100); // Give 100 reward points for a perfect score
+        }
+        batch.update(userDocRef, userStatsUpdate);
 
         // Commit the batch
         batch.commit().catch(error => {
@@ -239,8 +250,8 @@ function QuizComponent() {
         };
 
         setLastAttemptInSlot(finalAttempt);
-        router.replace(`/quiz/results`);
         saveAttemptInBackground(finalAttempt);
+        router.replace(`/quiz/results`);
         return;
     }
 

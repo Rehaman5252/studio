@@ -64,6 +64,7 @@ const getUserDocument = async (uid: string, userDetails: { displayName?: string 
                 favoriteFormat: '',
                 favoriteTeam: '',
                 favoriteCricketer: '',
+                totalTimePlayed: 0,
             };
             await setDoc(userDocRef, newUserDoc);
             return newUserDoc;
@@ -119,11 +120,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeUser = onSnapshot(userDocRef, async (docSnap) => {
             if (docSnap.exists()) {
                 const firestoreData = docSnap.data();
+                const updates: DocumentData = {};
+                
                 // Sync verification status from Auth to Firestore if there's a mismatch
                 if (user.emailVerified && !firestoreData.emailVerified) {
-                    await updateDoc(userDocRef, { emailVerified: true });
-                    firestoreData.emailVerified = true; // Update local copy immediately for UI consistency
+                    updates.emailVerified = true;
                 }
+                // Backfill totalTimePlayed for existing users
+                if (firestoreData.totalTimePlayed === undefined) {
+                    updates.totalTimePlayed = 0;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    await updateDoc(userDocRef, updates);
+                    // Merge updates into local copy for immediate UI consistency
+                    Object.assign(firestoreData, updates);
+                }
+                
                 setUserData(firestoreData);
             } else {
                 // Failsafe: if doc is missing (e.g., deleted from console or first Google sign-in), create it.
@@ -186,5 +199,3 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   return useContext(AuthContext);
 };
-
-    
