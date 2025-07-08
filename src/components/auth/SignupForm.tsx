@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,7 +59,18 @@ export default function SignupForm() {
   const [detailsData, setDetailsData] = useState<DetailsFormValues | null>(null);
 
   const detailsForm = useForm<DetailsFormValues>({ resolver: zodResolver(detailsSchema) });
-  const otpForm = useForm<OtpFormValues>({ resolver: zodResolver(otpSchema) });
+  const otpForm = useForm<OtpFormValues>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { otp: '' },
+  });
+
+  useEffect(() => {
+    // This effect ensures the OTP form is reset whenever the form step changes to an OTP screen.
+    // This is more reliable than calling reset() inside the submit handlers.
+    if (formStep === 'otp_email' || formStep === 'otp_phone') {
+      otpForm.reset({ otp: '' });
+    }
+  }, [formStep, otpForm]);
   
   const getStepTitle = () => {
     switch(formStep) {
@@ -99,7 +110,6 @@ export default function SignupForm() {
             });
             setDetailsData(data);
             setFormStep('otp_email');
-            otpForm.reset(); // Reset OTP form to ensure it's blank
         } else {
             toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
         }
@@ -131,7 +141,6 @@ export default function SignupForm() {
                 duration: 9000,
             });
             setFormStep('otp_phone');
-            otpForm.reset();
         } else {
              toast({ title: 'Failed to Send Phone OTP', description: phoneOtpResult.message, variant: 'destructive' });
         }
@@ -265,7 +274,7 @@ export default function SignupForm() {
                         {isLoading && <Loader2 className="animate-spin mr-2" />}
                         Verify & Continue
                     </Button>
-                    <Button variant="link" size="sm" onClick={() => { setFormStep('details'); otpForm.reset(); }} disabled={isAuthDisabled}>
+                    <Button variant="link" size="sm" onClick={() => { setFormStep('details'); }} disabled={isAuthDisabled}>
                         Back to details
                     </Button>
                 </form>
