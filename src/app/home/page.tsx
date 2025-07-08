@@ -52,7 +52,7 @@ export default function HomeScreen() {
           <h1 className="text-6xl font-extrabold tracking-tighter text-shimmer animate-shimmer">
             indcric
           </h1>
-          <p className="text-sm text-muted-foreground">The Ultimate Cricket Challenge</p>
+          <p className="text-sm text-muted-foreground">win ₹100 for every 100 seconds!</p>
         </div>
       </header>
 
