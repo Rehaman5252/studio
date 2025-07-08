@@ -15,7 +15,12 @@ const funFacts = [
   "The first-ever cricket World Cup was held in 1975 in England.",
   "A 'hat-trick' is when a bowler takes three wickets on three consecutive deliveries.",
   "Shahid Afridi holds the record for the most sixes in ODI history.",
-  "The longest Test match in history was 9 days long between England and South Africa in 1939."
+  "The longest Test match in history was 9 days long between England and South Africa in 1939.",
+  "Chris Gayle is the only batsman to hit a six off the first ball of a Test match.",
+  "Sachin Tendulkar is the only player to have scored 100 international centuries.",
+  "Jim Laker of England holds the record for most wickets in a single Test match (19).",
+  "The term 'Googly' was named after its inventor, Bernard Bosanquet.",
+  "The fastest recorded delivery in cricket history was bowled by Shoaib Akhtar at 161.3 km/h."
 ];
 
 const RoyalSpinner = () => (

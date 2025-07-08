@@ -25,14 +25,13 @@ const analysisPrompt = ai.definePrompt({
   output: { format: 'string' },
   prompt: `You are 'Coach Cric', an encouraging AI cricket coach. Analyze the user's quiz performance below and provide a report in markdown format.
 
-The report must include these sections:
-- **Overall Performance**: A summary of their score.
-- **Pace & Strategy**: Comment on their answering speed and use of hints.
-- **Strengths**: What did they do well?
-- **Improvement Areas**: Which topics should they focus on based on incorrect answers?
-- **Actionable Tip**: One specific tip for getting better.
+The report must include these sections, in this order:
+- **Overall Performance**: A brief, one-sentence summary of their score.
+- **Strengths**: Point out one specific area where they did well (e.g., speed on correct answers, knowledge on a specific topic revealed by a correct answer).
+- **Improvement Areas**: Briefly mention a topic they could focus on, based on the incorrect answers.
+- **Actionable Tip**: Give one single, highly specific, and actionable tip for improving.
 
-Keep the tone positive and coach-like.
+Keep the tone very concise, positive, and coach-like.
 
 User Performance Data:
 {{{_input}}}
@@ -71,50 +70,39 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     let incorrectAnswersSummary = 'No incorrect answers! Great job!';
     if (incorrect.length > 0) {
         incorrectAnswersSummary = incorrect.map(q => 
-            `Question ${q.questionNumber}: "${q.questionText}"\n  - Your Answer: ${q.userAnswer}\n  - Correct Answer: ${q.correctAnswer}`
-        ).join('\n\n');
+            `Question ${q.questionNumber}: "${q.questionText}" (Correct: ${q.correctAnswer})`
+        ).join('\n');
     }
     
-    // Construct the detailed performance data string for the prompt
     const totalTime = input.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
     let performanceData = `
 Format: ${format}
 Score: ${score}/${input.questions.length}
 Total Time Taken: ${totalTime.toFixed(1)} seconds
-Average Time Per Question: ${(totalTime / input.questions.length).toFixed(1)} seconds
+Hints Used: ${input.usedHintIndices?.length || 0}
+Incorrect Answers Summary:
+${incorrectAnswersSummary}
 `;
-
-    if (input.usedHintIndices && input.usedHintIndices.length > 0) {
-        performanceData += `\nHints Used on Questions: ${input.usedHintIndices.map(i => i + 1).join(', ')}`;
-    } else {
-        performanceData += `\nHints Used: None`;
-    }
-
-    performanceData += `\n\nIncorrect Answers:\n${incorrectAnswersSummary}`;
     
     console.log("Attempting to generate AI analysis with the following data:", performanceData);
     try {
         const { output } = await analysisPrompt(performanceData);
     
         if (!output || output.trim() === '') {
-          // This case handles when the AI returns an empty string, but doesn't throw an error.
-          // We will construct the fallback and return it.
           console.warn("AI analysis returned a null or empty analysis string. Providing a fallback response.", { output });
         } else {
-            // If we got a valid output, return it.
             console.log("Successfully generated AI analysis.");
             return { analysis: output };
         }
 
     } catch (error) {
-        // This case handles when the analysisPrompt() call itself throws an error (e.g. network, auth, internal Genkit error)
         console.error("AI analysis call failed with an error. Providing a fallback response.", { error });
     }
 
-    // This is the fallback logic. It's reached if the AI returns empty/null OR if the AI call throws an error.
+    // Fallback logic
     const fallbackAnalysis = `### Analysis Currently Unavailable
 
-We couldn't generate a detailed AI analysis for this quiz at the moment. This can happen occasionally due to high traffic.
+We couldn't generate a detailed AI analysis for this quiz at the moment.
 
 **Your Score:** ${score}/${input.questions.length}
 
