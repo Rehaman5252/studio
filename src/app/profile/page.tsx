@@ -9,9 +9,9 @@ import { Loader2 } from 'lucide-react';
 export default function ProfilePage() {
     const { user, userData, loading, isUserDataLoading } = useRequireAuth();
     
-    // While the auth state is resolving, show a full-page loader.
+    // While the auth state is resolving, OR if there's no user (and redirect is in progress), show a full-page loader.
     // The useRequireAuth hook will handle redirection if the user is not logged in.
-    if (loading) {
+    if (loading || !user) {
         return (
             <div className="flex flex-col h-screen bg-background items-center justify-center">
                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -19,12 +19,6 @@ export default function ProfilePage() {
         );
     }
     
-    // If auth is resolved but there is no user, the hook will redirect.
-    // Render nothing to avoid flashes of incorrect content.
-    if (!user) {
-        return null;
-    }
-
     // Pass the specific data loading state to the content component
     // so it can show its own skeleton UI while the user document is fetching.
     return (

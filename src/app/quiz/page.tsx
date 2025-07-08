@@ -143,7 +143,7 @@ const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, h
 QuestionCard.displayName = 'QuestionCard';
 
 function QuizComponent() {
-  useRequireAuth();
+  const { loading: authLoading } = useRequireAuth();
   const router = useRouter();
   const { user, userData } = useAuth();
   const searchParams = useSearchParams();
@@ -296,7 +296,7 @@ function QuizComponent() {
   // Fetch questions
   useEffect(() => {
     async function fetchQuestions() {
-      if (hasFetchedQuestions.current) return;
+      if (hasFetchedQuestions.current || authLoading) return;
       hasFetchedQuestions.current = true;
       
       setIsLoading(true);
@@ -312,7 +312,7 @@ function QuizComponent() {
       setIsLoading(false);
     }
     fetchQuestions();
-  }, [format]);
+  }, [format, authLoading]);
   
   // Timer effect
   useEffect(() => {
@@ -388,8 +388,8 @@ function QuizComponent() {
     });
   }, [adConfig, currentQuestionIndex, usedHintIndices, questions]);
 
-  if (isLoading) {
-    return <CricketLoading message={`Generating your ${format} quiz...`} />;
+  if (authLoading || isLoading) {
+    return <CricketLoading message={authLoading ? 'Verifying your session...' : `Generating your ${format} quiz...`} />;
   }
 
   if (!questions) {
