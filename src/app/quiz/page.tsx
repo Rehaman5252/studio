@@ -264,9 +264,10 @@ function QuizComponent() {
         };
 
         setLastAttemptInSlot(finalAttempt);
-        // Wait for the data to be saved before navigating
-        await saveAttemptInBackground(finalAttempt);
+        // Navigate immediately for a faster user experience.
         router.replace(`/quiz/results`);
+        // Save the data in the background without blocking the UI.
+        saveAttemptInBackground(finalAttempt);
         return;
     }
 
