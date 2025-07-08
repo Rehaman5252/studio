@@ -175,9 +175,7 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
-  // This function is now defined inside the component to ensure it always has fresh scope.
-  // It is NOT wrapped in useCallback to prevent potential stale closures with user data.
-  const saveAttemptInBackground = async (attempt: SlotAttempt) => {
+  const saveAttemptInBackground = useCallback(async (attempt: SlotAttempt) => {
     if (!db || !user || !userData) {
       console.error("Cannot save quiz attempt: Missing user context.", { db, user, userData });
       return;
@@ -227,7 +225,7 @@ function QuizComponent() {
       console.error("FATAL: Error saving quiz data in batch: ", error);
       // Optionally, add a toast here to inform the user of a save error.
     }
-  };
+  }, [user, userData]);
 
   const goToNextQuestion = useCallback(() => {
     setSelectedOption(null);
@@ -236,27 +234,29 @@ function QuizComponent() {
     setTimeLeft(20);
   }, []);
   
-  const proceedToNextStep = async (answer: string) => {
+  const proceedToNextStep = useCallback(async (answer: string) => {
     const newAnswers = [...userAnswers, answer];
     const newTimes = [...timePerQuestion, 20 - timeLeft];
     
     setUserAnswers(newAnswers);
     setTimePerQuestion(newTimes);
     
-    if (currentQuestionIndex >= questions!.length - 1) {
+    if (!questions) return;
+
+    if (currentQuestionIndex >= questions.length - 1) {
         if (quizCompleted.current) return;
         quizCompleted.current = true;
         
         const score = newAnswers.reduce((acc, ans, index) => 
-            (questions![index] && ans === questions![index].correctAnswer) ? acc + 1 : acc, 0);
+            (questions[index] && ans === questions[index].correctAnswer) ? acc + 1 : acc, 0);
 
         const finalAttempt: SlotAttempt = {
             slotId: getQuizSlotId(),
             score,
-            totalQuestions: questions!.length,
+            totalQuestions: questions.length,
             format,
             brand,
-            questions: questions!,
+            questions: questions,
             userAnswers: newAnswers,
             timePerQuestion: newTimes,
             usedHintIndices,
@@ -290,7 +290,7 @@ function QuizComponent() {
     
     goToNextQuestion();
 
-  };
+  }, [userAnswers, timePerQuestion, timeLeft, questions, currentQuestionIndex, format, brand, usedHintIndices, setLastAttemptInSlot, saveAttemptInBackground, router, goToNextQuestion]);
 
   // Fetch questions
   useEffect(() => {

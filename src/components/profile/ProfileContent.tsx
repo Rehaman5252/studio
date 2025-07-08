@@ -349,7 +349,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         setDetailsData(data);
         
         // Always prioritize phone verification if it changed
-        if (phoneChanged && !userProfile.phoneVerified) {
+        if (phoneChanged) {
             setIsSubmitting(true);
             try {
                 const result = await sendPhoneOtp({ phone: data.phone });
@@ -364,7 +364,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             } finally {
                 setIsSubmitting(false);
             }
-        } else if (emailChanged && !userProfile.emailVerified) {
+        } else if (emailChanged) {
             setIsSubmitting(true);
             try {
                 const result = await sendOtp({ email: data.email });
@@ -394,7 +394,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 toast({ title: 'Phone Verified', description: result.message });
                 // If email also needs verification and hasn't been verified, move to that step
                 const emailChanged = detailsData.email && detailsData.email !== userProfile.email;
-                if(emailChanged && !userProfile.emailVerified) {
+                if(emailChanged) {
                      const emailResult = await sendOtp({ email: detailsData.email });
                      if (emailResult.success) {
                         toast({ title: 'OTP Sent (For Demo)', description: 'Please use OTP: 123456 to continue.', duration: 9000 });
