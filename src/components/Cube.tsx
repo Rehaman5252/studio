@@ -43,24 +43,19 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   const cubeRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const stopRotation = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
-
-  const startRotation = useCallback(() => {
-    stopRotation(); // Ensure no multiple timers
+  useEffect(() => {
+    // Start the rotation interval
     timerRef.current = setInterval(() => {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     }, 3000); // Slower rotation for better UX
-  }, [brands.length, stopRotation]);
 
-  useEffect(() => {
-    startRotation();
-    return () => stopRotation();
-  }, [startRotation, stopRotation]);
+    // Clear interval on component unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [brands.length]);
 
   useEffect(() => {
     if (cubeRef.current) {
@@ -72,8 +67,6 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   return (
     <div 
       className="flex justify-center items-center h-48"
-      onMouseEnter={stopRotation}
-      onMouseLeave={startRotation}
     >
       <div 
         className="w-32 h-32 perspective"
