@@ -42,7 +42,7 @@ const getUserDocument = async (uid: string, displayName?: string | null, email?:
             console.log(`Creating new user document for UID: ${uid}`);
             const newUserDoc = {
                 uid: uid,
-                name: displayName || 'New User',
+                name: displayName || '',
                 email: email || '',
                 phone: phoneNumber || '',
                 createdAt: serverTimestamp(),
@@ -51,7 +51,7 @@ const getUserDocument = async (uid: string, displayName?: string | null, email?:
                 totalRewards: 0,
                 quizzesPlayed: 0,
                 perfectScores: 0,
-                referralCode: `cricblitz.app/ref/${uid.slice(0, 8)}`,
+                referralCode: `indcric.app/ref/${uid.slice(0, 8)}`,
                 dob: '',
                 gender: '',
                 occupation: '',
