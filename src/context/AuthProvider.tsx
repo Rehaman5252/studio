@@ -51,7 +51,7 @@ const getUserDocument = async (uid: string, displayName?: string | null, email?:
                 totalRewards: 0,
                 quizzesPlayed: 0,
                 perfectScores: 0,
-                referralCode: `indcric.com/ref/${uid.slice(0, 8)}`,
+                referralCode: `cricblitz.app/ref/${uid.slice(0, 8)}`,
                 dob: '',
                 gender: '',
                 occupation: '',

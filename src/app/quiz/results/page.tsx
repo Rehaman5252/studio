@@ -303,7 +303,7 @@ function ResultsComponent() {
                     slotId={slotId}
                 />
 
-                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "indcric User"} date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "CricBlitz User"} date={today} slotTimings={slotTimings} />}
                 
                 {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
             </div>

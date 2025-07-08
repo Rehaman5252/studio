@@ -240,13 +240,13 @@ const SupportCard = memo(() => (
     <Card className="bg-card shadow-lg">
         <CardHeader>
             <CardTitle className="text-lg">Help & Support</CardTitle>
-            <CardDescription>Connect to reach Third Umpire.</CardDescription>
+            <CardDescription>Connect to reach the Third Umpire.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <a href="mailto:support@indcric.com">
+                <a href="mailto:support@cricblitz.app">
                     <Mail className="mr-4" />
-                    Email: support@indcric.com
+                    Email: support@cricblitz.app
                 </a>
             </Button>
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">

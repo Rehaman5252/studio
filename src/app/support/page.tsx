@@ -27,7 +27,7 @@ export default function SupportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-semibold text-primary">support@indcric.com</p>
+            <a href="mailto:support@cricblitz.app" className="text-lg font-semibold text-primary">support@cricblitz.app</a>
           </CardContent>
         </Card>
 
