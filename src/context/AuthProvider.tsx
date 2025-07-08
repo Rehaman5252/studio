@@ -29,7 +29,7 @@ const AuthContext = createContext<AuthContextType>({
 
 // This is the single source of truth for creating or getting a user document.
 // It prevents race conditions during sign-up.
-const getUserDocument = async (uid: string, displayName?: string | null, email?: string | null, photoURL?: string | null, phoneNumber?: string | null) => {
+const getUserDocument = async (uid: string, userDetails: { displayName?: string | null, email?: string | null, photoURL?: string | null, phoneNumber?: string | null, emailVerified?: boolean }) => {
     if (!db) return null;
     const userDocRef = doc(db, 'users', uid);
     
@@ -42,11 +42,13 @@ const getUserDocument = async (uid: string, displayName?: string | null, email?:
             console.log(`Creating new user document for UID: ${uid}`);
             const newUserDoc = {
                 uid: uid,
-                name: displayName || '',
-                email: email || '',
-                phone: phoneNumber || '',
+                name: userDetails.displayName || '',
+                email: userDetails.email || '',
+                phone: userDetails.phoneNumber || '',
                 createdAt: serverTimestamp(),
-                photoURL: photoURL || '',
+                photoURL: userDetails.photoURL || '',
+                emailVerified: userDetails.emailVerified || false,
+                phoneVerified: false, // Phone is never verified by default
                 // Initialize all other fields to prevent app errors
                 totalRewards: 0,
                 quizzesPlayed: 0,
@@ -119,7 +121,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setUserData(docSnap.data());
             } else {
                 // Failsafe: if doc is missing (e.g., deleted from console), create it.
-                await getUserDocument(user.uid, user.displayName, user.email, user.photoURL, user.phoneNumber);
+                await getUserDocument(user.uid, { 
+                    displayName: user.displayName, 
+                    email: user.email, 
+                    photoURL: user.photoURL, 
+                    phoneNumber: user.phoneNumber, 
+                    emailVerified: user.emailVerified 
+                });
             }
             setIsUserDataLoading(false);
             setAuthLoading(false); // Combined loading state is now false.
