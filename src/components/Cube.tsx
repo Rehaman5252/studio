@@ -42,20 +42,21 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRotating = useRef(true);
 
-  useEffect(() => {
-    // Start the rotation interval
+  const startRotation = useCallback(() => {
+    if (!isRotating.current) return;
     timerRef.current = setInterval(() => {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
-    }, 500); // Set rotation speed to 500ms
-
-    // Clear interval on component unmount
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
+    }, 3000); // Slower, more deliberate rotation
   }, [brands.length]);
+
+  useEffect(() => {
+    startRotation();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [startRotation]);
 
   useEffect(() => {
     if (cubeRef.current) {
@@ -64,14 +65,22 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
     onFaceSelect(currentFaceIndex);
   }, [currentFaceIndex, onFaceSelect]);
 
+  const handleCubeClick = useCallback(() => {
+    if (isRotating.current && timerRef.current) {
+      clearInterval(timerRef.current);
+      isRotating.current = false;
+    }
+    onFaceClick();
+  }, [onFaceClick]);
+
   return (
     <div 
       className="group flex justify-center items-center h-48 cursor-pointer"
-      onClick={onFaceClick}
+      onClick={handleCubeClick}
       role="button"
       tabIndex={0}
       aria-label="Select quiz format cube"
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFaceClick()}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCubeClick()}
     >
       <div 
         className="w-32 h-32 perspective"

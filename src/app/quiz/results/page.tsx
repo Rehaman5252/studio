@@ -11,8 +11,8 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, AlertTriangle, Download } from 'lucide-react';
-import { cn, downloadCertificate } from '@/lib/utils';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, AlertTriangle, Printer } from 'lucide-react';
+import { cn, printCertificate } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -66,8 +66,8 @@ const Certificate = memo(({ format, userName, date, slotTimings }: { format: str
             </div>
         </div>
          <div className="text-center mt-4">
-            <Button onClick={() => downloadCertificate('certificate-to-download', userName, format)}>
-                <Download className="mr-2 h-4 w-4" /> Download Certificate
+            <Button onClick={() => printCertificate('certificate-to-download')}>
+                <Printer className="mr-2 h-4 w-4" /> Print Certificate
             </Button>
         </div>
     </div>

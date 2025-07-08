@@ -9,20 +9,14 @@ import { cn } from '@/lib/utils';
 
 interface SelectedBrandCardProps {
     selectedBrand: CubeBrand;
-    handleStartQuiz: () => void;
 }
 
-const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCardProps) => {
+const SelectedBrandCard = ({ selectedBrand }: SelectedBrandCardProps) => {
     return (
-        <div
-            key={selectedBrand.id}
-            onClick={handleStartQuiz}
-            className="cursor-pointer"
-        >
+        <div key={selectedBrand.id}>
             <Card 
                 className={cn(
-                    "w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30",
-                    "transition-colors hover:border-primary"
+                    "w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30"
                 )}
             >
                 <CardContent className="p-6">

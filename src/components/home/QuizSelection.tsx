@@ -44,7 +44,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
         <>
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face to play!</p>
+                <p className="text-sm text-muted-foreground">Click the cube to play!</p>
             </div>
             
             <QuizSelector 
@@ -56,7 +56,6 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             <div className="mt-8 space-y-8">
                 <SelectedBrandCard
                   selectedBrand={selectedBrand}
-                  handleStartQuiz={handleStart}
                 />
                 
                 <GlobalStats />
