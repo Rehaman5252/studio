@@ -61,6 +61,7 @@ The user answered all questions correctly!
 {{/if}}
 `,
   config: {
+    model: 'googleai/gemini-2.0-flash',
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
