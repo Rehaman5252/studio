@@ -1,20 +1,32 @@
-
 'use client';
 
 import React from 'react';
 import ProfileContent from '@/components/profile/ProfileContent';
 import useRequireAuth from '@/hooks/useRequireAuth';
-import { useAuth } from '@/context/AuthProvider';
+import { Loader2 } from 'lucide-react';
 
 
 export default function ProfilePage() {
-    useRequireAuth();
-    const { userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
+    const { user, userData, loading, isUserDataLoading } = useRequireAuth();
     
-    // The main loading state for the profile page should depend on auth being ready
-    // and the user document fetch being complete.
-    const isLoading = isAuthLoading || isUserDataLoading;
+    // While the auth state is resolving, show a full-page loader.
+    // The useRequireAuth hook will handle redirection if the user is not logged in.
+    if (loading) {
+        return (
+            <div className="flex flex-col h-screen bg-background items-center justify-center">
+                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
+    // If auth is resolved but there is no user, the hook will redirect.
+    // Render nothing to avoid flashes of incorrect content.
+    if (!user) {
+        return null;
+    }
 
+    // Pass the specific data loading state to the content component
+    // so it can show its own skeleton UI while the user document is fetching.
     return (
         <div className="flex flex-col h-screen bg-background">
             <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
@@ -22,7 +34,7 @@ export default function ProfilePage() {
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-                <ProfileContent userProfile={userData} isLoading={isLoading} />
+                <ProfileContent userProfile={userData} isLoading={isUserDataLoading} />
             </main>
         </div>
     );

@@ -22,7 +22,20 @@ const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizH
 });
 
 export default function QuizHistoryPage() {
-  useRequireAuth();
+  const { user, loading } = useRequireAuth();
+
+  if (loading) {
+      return (
+        <div className="flex flex-col h-screen bg-background items-center justify-center">
+             <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  // If not loading and no user, hook will redirect. Render nothing.
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-screen bg-background">

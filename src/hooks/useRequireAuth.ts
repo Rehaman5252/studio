@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 
 const useRequireAuth = () => {
-  const { user, loading } = useAuth();
+  const { user, userData, loading, isUserDataLoading, quizHistory, isHistoryLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -19,7 +19,7 @@ const useRequireAuth = () => {
     }
   }, [user, loading, router, pathname]);
 
-  return { user, loading };
+  return { user, userData, loading, isUserDataLoading, quizHistory, isHistoryLoading };
 };
 
 export default useRequireAuth;

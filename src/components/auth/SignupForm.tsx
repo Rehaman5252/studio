@@ -118,6 +118,7 @@ export default function SignupForm() {
         const verifyResult = await verifyOtp({ email: detailsData.email, otp: otpData.otp });
         if (!verifyResult.success) {
             toast({ title: 'Email Verification Failed', description: verifyResult.message, variant: 'destructive' });
+            setIsLoading(false);
             return;
         }
 
@@ -157,6 +158,7 @@ export default function SignupForm() {
         const verifyResult = await verifyPhoneOtp({ phone: detailsData.phone, otp: otpData.otp });
         if (!verifyResult.success) {
             toast({ title: 'Phone Verification Failed', description: verifyResult.message, variant: 'destructive' });
+            setIsLoading(false);
             return;
         }
 
@@ -195,7 +197,7 @@ export default function SignupForm() {
         };
         await setDoc(userDocRef, newUserDoc);
 
-        router.push(from || '/home');
+        router.push('/profile');
 
     } catch (error: any) {
         let message = 'An error occurred during sign up.';
@@ -298,7 +300,3 @@ export default function SignupForm() {
     </div>
   );
 }
-
-    
-
-    
