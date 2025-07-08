@@ -1,3 +1,4 @@
+
 import {z} from 'genkit';
 
 // Schemas for generateQuizFlow
@@ -88,3 +89,28 @@ export const VerifyOtpOutputSchema = z.object({
   message: z.string(),
 });
 export type VerifyOtpOutput = z.infer<typeof VerifyOtpOutputSchema>;
+
+
+// Schemas for phone OTP
+export const SendPhoneOtpInputSchema = z.object({
+  phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.'}),
+});
+export type SendPhoneOtpInput = z.infer<typeof SendPhoneOtpInputSchema>;
+
+export const SendPhoneOtpOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+export type SendPhoneOtpOutput = z.infer<typeof SendPhoneOtpOutputSchema>;
+
+export const VerifyPhoneOtpInputSchema = z.object({
+  phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.'}),
+  otp: z.string().length(6).describe('The 6-digit OTP code.'),
+});
+export type VerifyPhoneOtpInput = z.infer<typeof VerifyPhoneOtpInputSchema>;
+
+export const VerifyPhoneOtpOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+export type VerifyPhoneOtpOutput = z.infer<typeof VerifyPhoneOtpOutputSchema>;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -9,17 +10,44 @@ import type { CubeBrand } from '@/components/Cube';
 import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import QuizSelection from './QuizSelection';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Button } from '@/components/ui/button';
 
+
+const MANDATORY_PROFILE_FIELDS = [
+    'name', 'phone', 'dob', 'gender', 'occupation', 'upi', 
+    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
+];
 
 export default function HomeWrapper() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
+  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
   }, [lastAttemptInSlot, isQuizStatusLoading]);
+
+  // Check for profile completion
+  useEffect(() => {
+    // We only want to run this check once the user data is loaded.
+    if (user && userData) {
+      const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userData[field]);
+      if (completedFields.length < MANDATORY_PROFILE_FIELDS.length) {
+        setShowProfilePrompt(true);
+      }
+    }
+  }, [user, userData]);
+
 
   const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
     if (!user && isFirebaseConfigured) {
@@ -77,6 +105,20 @@ export default function HomeWrapper() {
   return (
     <>
       <QuizSelection onStartQuiz={handleStartQuiz} />
+
+      <AlertDialog open={showProfilePrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Please Complete Your Profile</AlertDialogTitle>
+            <AlertDialogDescription>
+              To provide the best experience and enable all features, including payouts, we require all profile fields to be completed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button onClick={() => router.push('/profile')}>Go to Profile</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

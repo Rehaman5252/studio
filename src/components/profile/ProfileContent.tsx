@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -15,31 +14,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    LogOut, Loader2, Copy
+    LogOut, Loader2, Copy, PercentCircle
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
+import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
+import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
+
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.'}),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Please use YYYY-MM-DD format.' }).refine(
     (dob) => new Date(dob) < new Date(), { message: "Date of birth must be in the past."}
-  ).optional().or(z.literal('')),
-  gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say', '']),
-  occupation: z.enum(['Student', 'Employee', 'Business', 'Others', '']),
-  upi: z.string().optional(),
-  favoriteFormat: z.string().optional(),
-  favoriteTeam: z.string().optional(),
-  favoriteCricketer: z.string().min(2, { message: 'Name must be at least 2 characters.' }).optional().or(z.literal('')),
+  ),
+  gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say'], { required_error: 'Please select a gender.'}),
+  occupation: z.enum(['Student', 'Employee', 'Business', 'Others'], { required_error: 'Please select an occupation.'}),
+  upi: z.string().regex(/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/, { message: "Please enter a valid UPI ID."}),
+  favoriteFormat: z.enum(['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'], { required_error: 'Please select a format.'}),
+  favoriteTeam: z.string().min(1, 'Please select a team.'),
+  favoriteCricketer: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
 });
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const otpSchema = z.object({
+  otp: z.string().length(6, { message: 'OTP must be 6 characters.' }),
+});
+type OtpFormValues = z.infer<typeof otpSchema>;
 
 const occupations = ['Student', 'Employee', 'Business', 'Others'];
 const cricketFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
@@ -48,7 +55,10 @@ const cricketTeams = [
     'Chennai Super Kings', 'Mumbai Indians', 'Kolkata Knight Riders', 'Royal Challengers Bengaluru', 
     'Sunrisers Hyderabad', 'Punjab Kings', 'Delhi Capitals', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans'
 ];
-
+const MANDATORY_PROFILE_FIELDS = [
+    'name', 'phone', 'dob', 'gender', 'occupation', 'upi', 
+    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
+];
 
 const maskPhone = (phone?: string) => {
     if (!phone || phone.length < 10) return 'Not set';
@@ -84,7 +94,6 @@ const StatItem = memo(({ title, value, icon: Icon }: { title: string, value: str
 ));
 StatItem.displayName = 'StatItem';
 
-
 const ProfileSkeleton = () => (
     <div className="space-y-6">
       <Card className="bg-card shadow-lg">
@@ -97,6 +106,7 @@ const ProfileSkeleton = () => (
               </div>
           </CardContent>
       </Card>
+      <Skeleton className="h-[96px] w-full" />
       <Card className="bg-card shadow-lg">
           <CardContent className="p-4 grid grid-cols-3 gap-4">
               <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
@@ -120,7 +130,6 @@ const ProfileSkeleton = () => (
       <Skeleton className="h-[92px] w-full" />
     </div>
 );
-
 
 const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => {
     const age = calculateAge(userProfile?.dob);
@@ -153,6 +162,28 @@ const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => {
 });
 ProfileHeader.displayName = 'ProfileHeader';
 
+const ProfileCompletion = memo(({ userProfile }: { userProfile: any }) => {
+    const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userProfile?.[field]);
+    const completionPercentage = Math.round((completedFields.length / MANDATORY_PROFILE_FIELDS.length) * 100);
+
+    return (
+        <Card className="bg-card shadow-lg">
+            <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <PercentCircle /> Profile Completion
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                <Progress value={completionPercentage} className="h-3" />
+                <p className="text-sm text-center text-muted-foreground">
+                    {completionPercentage}% complete ({completedFields.length}/{MANDATORY_PROFILE_FIELDS.length} fields)
+                </p>
+            </CardContent>
+        </Card>
+    );
+});
+ProfileCompletion.displayName = "ProfileCompletion";
+
 const StatsSummary = memo(({ userProfile }: { userProfile: any }) => (
     <Card className="bg-card shadow-lg">
         <CardContent className="p-4 grid grid-cols-3 gap-4">
@@ -163,20 +194,6 @@ const StatsSummary = memo(({ userProfile }: { userProfile: any }) => (
     </Card>
 ));
 StatsSummary.displayName = 'StatsSummary';
-
-
-const PayoutInfo = memo(({ userProfile }: { userProfile: any }) => (
-    <Card className="bg-card shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-lg">Payout Info</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-foreground">UPI: {maskUpi(userProfile?.upi)}</p>
-            <p className="text-xs text-muted-foreground mt-1">Payout details are locked after first entry.</p>
-        </CardContent>
-    </Card>
-));
-PayoutInfo.displayName = 'PayoutInfo';
 
 const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
     const { toast } = useToast();
@@ -260,61 +277,44 @@ const ActionButtons = memo(() => {
 });
 ActionButtons.displayName = 'ActionButtons';
 
-
 export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
     const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [open, setOpen] = useState(false);
-    
-    const form = useForm<ProfileFormValues>({
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formStep, setFormStep] = useState<'details' | 'otp'>('details');
+    const [detailsData, setDetailsData] = useState<ProfileFormValues | null>(null);
+
+    const detailsForm = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
-        defaultValues: {
-            name: '',
-            phone: '',
-            dob: '',
-            gender: '',
-            occupation: '',
-            upi: '',
-            favoriteFormat: '',
-            favoriteTeam: '',
-            favoriteCricketer: '',
-        },
+        defaultValues: { /* Populated by useEffect */ },
+    });
+    
+    const otpForm = useForm<OtpFormValues>({
+        resolver: zodResolver(otpSchema),
     });
 
     useEffect(() => {
         if (userProfile) {
-            form.reset({
-                name: userProfile.name || '',
-                phone: userProfile.phone || '',
-                dob: userProfile.dob || '',
-                gender: userProfile.gender || '',
-                occupation: userProfile.occupation || '',
-                upi: userProfile.upi || '',
-                favoriteFormat: userProfile.favoriteFormat || '',
-                favoriteTeam: userProfile.favoriteTeam || '',
-                favoriteCricketer: userProfile.favoriteCricketer || '',
+            const defaults: ProfileFormValues = {} as ProfileFormValues;
+            MANDATORY_PROFILE_FIELDS.forEach(field => {
+                 defaults[field as keyof ProfileFormValues] = userProfile[field] || '';
             });
+            detailsForm.reset(defaults);
         }
-    }, [userProfile, form]);
+    }, [userProfile, detailsForm, open]); // Reset form when dialog opens
 
-    const onSubmit = async (data: ProfileFormValues) => {
+    const updateProfileData = async (data: ProfileFormValues) => {
         if (!userProfile?.uid) return;
         setIsSubmitting(true);
         try {
             const userDocRef = doc(db, 'users', userProfile.uid);
-            
-            const dataToUpdate: Partial<ProfileFormValues> = { ...data };
-
-            if (userProfile.upi && userProfile.upi.trim() !== '') {
-                delete dataToUpdate.upi;
-            }
-            
-            await updateDoc(userDocRef, dataToUpdate);
+            await updateDoc(userDocRef, data);
             toast({
                 title: "Profile Updated",
                 description: "Your information has been saved successfully.",
             });
-            setOpen(false);
+            setOpen(false); // Close the main dialog
+            setFormStep('details'); // Reset for next time
         } catch (error: any) {
             console.error("Profile update failed:", error);
             toast({
@@ -322,6 +322,49 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 description: "Could not save your profile. Please try again.",
                 variant: "destructive",
             });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDetailsSubmit = async (data: ProfileFormValues) => {
+        setIsSubmitting(true);
+        // If the phone number is being set for the first time, or is changing, we must verify it.
+        if (data.phone && data.phone !== userProfile.phone) {
+            try {
+                const result = await sendPhoneOtp({ phone: data.phone });
+                if (result.success) {
+                    toast({ title: 'OTP Sent', description: result.message });
+                    setDetailsData(data); // Store form data to be saved after OTP
+                    setFormStep('otp');
+                } else {
+                    toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
+                }
+            } catch (error) {
+                 toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
+            } finally {
+                setIsSubmitting(false);
+            }
+        } else {
+            // Phone number is not new, so we can just save the other data.
+            await updateProfileData(data);
+        }
+    };
+    
+    const handleOtpSubmit = async (otpData: OtpFormValues) => {
+        if (!detailsData) return;
+        setIsSubmitting(true);
+        try {
+            const result = await verifyPhoneOtp({ phone: detailsData.phone, otp: otpData.otp });
+            if (result.success) {
+                toast({ title: 'Phone Verified', description: result.message });
+                // Now save the full profile data
+                await updateProfileData(detailsData);
+            } else {
+                toast({ title: 'Verification Failed', description: result.message, variant: 'destructive' });
+            }
+        } catch (error) {
+             toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
         } finally {
             setIsSubmitting(false);
         }
@@ -345,166 +388,109 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         <Dialog open={open} onOpenChange={setOpen}>
             <div className="space-y-6 animate-fade-in-up">
                 <ProfileHeader userProfile={userProfile} />
+                <ProfileCompletion userProfile={userProfile} />
                 <StatsSummary userProfile={userProfile} />
-                <PayoutInfo userProfile={userProfile} />
                 <ReferralCard userProfile={userProfile} />
                 <ActionButtons />
             </div>
 
             <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Edit Profile</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[80vh] overflow-y-auto pr-6">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Name</FormLabel>
-                                    <FormControl><Input placeholder="Your Name" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="phone"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Phone</FormLabel>
-                                    <FormControl><Input type="tel" placeholder="10-digit number" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="dob"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Date of Birth</FormLabel>
-                                    <FormControl><Input type="date" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="gender"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Gender</FormLabel>
-                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select a gender" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Male">Male</SelectItem>
-                                            <SelectItem value="Female">Female</SelectItem>
-                                            <SelectItem value="Other">Other</SelectItem>
-                                            <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="occupation"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Occupation</FormLabel>
-                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select your occupation" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {occupations.map(occ => <SelectItem key={occ} value={occ}>{occ}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="upi"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>UPI ID</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                            placeholder="your-id@bank" 
-                                            {...field} 
-                                            disabled={!!userProfile?.upi || isSubmitting} 
+                {formStep === 'details' ? (
+                <>
+                    <DialogHeader>
+                        <DialogTitle>Edit Profile</DialogTitle>
+                        <DialogDescription>
+                            Please fill out all fields. Information can only be saved once and cannot be changed later.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...detailsForm}>
+                        <form onSubmit={detailsForm.handleSubmit(handleDetailsSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6">
+                            {MANDATORY_PROFILE_FIELDS.map((fieldName) => {
+                                const isLocked = !!userProfile?.[fieldName];
+                                if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
+                                     const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']
+                                                   : fieldName === 'occupation' ? occupations
+                                                   : fieldName === 'favoriteFormat' ? cricketFormats
+                                                   : cricketTeams;
+                                    return (
+                                        <FormField
+                                            key={fieldName}
+                                            control={detailsForm.control}
+                                            name={fieldName as keyof ProfileFormValues}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value} disabled={isLocked || isSubmitting}>
+                                                        <FormControl>
+                                                            <SelectTrigger><SelectValue placeholder={`Select your ${fieldName.toLowerCase()}`} /></SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
                                         />
-                                    </FormControl>
-                                    {!!userProfile?.upi && <p className="text-xs text-muted-foreground">UPI ID cannot be changed once set.</p>}
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="favoriteFormat"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Favorite Format</FormLabel>
-                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select your favorite format" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {cricketFormats.map(format => <SelectItem key={format} value={format}>{format}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="favoriteTeam"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Favorite Team</FormLabel>
-                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select your favorite team" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {cricketTeams.map(team => <SelectItem key={team} value={team}>{team}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="favoriteCricketer"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Favorite Cricketer</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Virat Kohli" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <DialogFooter className="sticky bottom-0 bg-background pt-4">
-                            <DialogClose asChild>
-                                <Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save changes
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                                    )
+                                }
+                                return (
+                                    <FormField
+                                        key={fieldName}
+                                        control={detailsForm.control}
+                                        name={fieldName as keyof ProfileFormValues}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
+                                                <FormControl><Input type={fieldName === 'dob' ? 'date' : 'text'} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                );
+                            })}
+                            <DialogFooter className="sticky bottom-0 bg-background pt-4">
+                                <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </>
+                ) : ( // OTP Step
+                <>
+                    <DialogHeader>
+                        <DialogTitle>Verify Phone Number</DialogTitle>
+                        <DialogDescription>
+                            We've sent a 6-digit code to {detailsData?.phone}. Please enter it below.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...otpForm}>
+                         <form onSubmit={otpForm.handleSubmit(handleOtpSubmit)} className="space-y-4">
+                            <FormField
+                                control={otpForm.control}
+                                name="otp"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>One-Time Password</FormLabel>
+                                        <FormControl><Input placeholder="123456" {...field} disabled={isSubmitting} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="ghost" onClick={() => setFormStep('details')} disabled={isSubmitting}>Back</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Verify & Save
+                                </Button>
+                            </DialogFooter>
+                         </form>
+                    </Form>
+                </>
+                )}
             </DialogContent>
         </Dialog>
     )
