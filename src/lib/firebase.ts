@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -25,13 +24,15 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
+let provider: GoogleAuthProvider | undefined;
 
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
   try {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
+    provider = new GoogleAuthProvider(); // Create a single instance
     
     enableIndexedDbPersistence(db)
       .catch((err) => {
@@ -47,4 +48,4 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   }
 }
 
-export { app, auth, db, storage, GoogleAuthProvider };
+export { app, auth, db, storage, provider };
