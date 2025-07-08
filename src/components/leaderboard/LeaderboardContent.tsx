@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
@@ -131,22 +130,42 @@ const AllTimeLeaderboard = memo(() => {
 
     useEffect(() => {
         const fetchAllTime = async () => {
+            if (!db) {
+                setLoading(false);
+                return;
+            }
             try {
+                // Fetch all users and sort on the client. This is less efficient
+                // but avoids the need for a specific Firestore index, making it more robust.
                 const usersRef = collection(db, 'users');
-                const q = query(usersRef, orderBy('perfectScores', 'desc'), limit(50));
-                const snapshot = await getDocs(q);
-                const fetchedPlayers: AllTimePlayer[] = [];
+                const snapshot = await getDocs(usersRef);
+                const allPlayers: AllTimePlayer[] = [];
+                
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    fetchedPlayers.push({
-                        uid: doc.id,
-                        name: data.name,
-                        perfectScores: data.perfectScores || 0,
-                        totalPlayed: data.quizzesPlayed || 0,
-                        avatar: data.photoURL,
-                    });
+                    // Ensure the document has the necessary fields before pushing
+                    if (data.name && typeof data.perfectScores !== 'undefined') {
+                        allPlayers.push({
+                            uid: doc.id,
+                            name: data.name,
+                            perfectScores: data.perfectScores || 0,
+                            totalPlayed: data.quizzesPlayed || 0,
+                            avatar: data.photoURL,
+                        });
+                    }
                 });
-                setPlayers(fetchedPlayers);
+
+                // Sort by perfect scores (desc), then by total quizzes played (desc) as a tie-breaker
+                const sortedPlayers = allPlayers
+                    .sort((a, b) => {
+                        if (b.perfectScores !== a.perfectScores) {
+                            return b.perfectScores - a.perfectScores;
+                        }
+                        return (b.totalPlayed || 0) - (a.totalPlayed || 0);
+                    })
+                    .slice(0, 50); // Get top 50
+
+                setPlayers(sortedPlayers);
             } catch (error) {
                 console.error("Error fetching all-time leaderboard:", error);
             } finally {
