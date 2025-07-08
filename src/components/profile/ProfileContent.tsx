@@ -64,16 +64,16 @@ const MANDATORY_PROFILE_FIELDS = [
     'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
-// Define default values to ensure all form fields are controlled from the start.
-const defaultFormValues = {
+// Define type-safe default values to ensure all form fields are controlled from the start.
+const defaultFormValues: Partial<ProfileFormValues> = {
   name: '',
   email: '',
   phone: '',
   dob: '',
-  gender: '',
-  occupation: '',
+  gender: undefined,
+  occupation: undefined,
   upi: '',
-  favoriteFormat: '',
+  favoriteFormat: undefined,
   favoriteTeam: '',
   favoriteCricketer: '',
 };
@@ -293,7 +293,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
 
     const detailsForm = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
-        defaultValues: defaultFormValues as any,
+        defaultValues: defaultFormValues,
     });
     
     const otpForm = useForm<OtpFormValues>({
@@ -302,11 +302,18 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
 
     useEffect(() => {
         if (userProfile && open) {
-            const defaults: ProfileFormValues = {} as ProfileFormValues;
-            MANDATORY_PROFILE_FIELDS.forEach(field => {
-                 defaults[field as keyof ProfileFormValues] = userProfile[field] || '';
+            detailsForm.reset({
+                name: userProfile.name || '',
+                email: userProfile.email || '',
+                phone: userProfile.phone || '',
+                dob: userProfile.dob || '',
+                gender: userProfile.gender || undefined,
+                occupation: userProfile.occupation || undefined,
+                upi: userProfile.upi || '',
+                favoriteFormat: userProfile.favoriteFormat || undefined,
+                favoriteTeam: userProfile.favoriteTeam || '',
+                favoriteCricketer: userProfile.favoriteCricketer || '',
             });
-            detailsForm.reset(defaults);
         }
     }, [userProfile, detailsForm, open]);
 
