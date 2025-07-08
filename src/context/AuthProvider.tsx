@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
@@ -125,14 +126,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
                 setUserData(firestoreData);
             } else {
-                // Failsafe: if doc is missing (e.g., deleted from console or first Google sign-in), create it.
-                await getUserDocument(user.uid, { 
+                // Failsafe: if doc is missing, create it and set the state immediately.
+                const newDoc = await getUserDocument(user.uid, { 
                     displayName: user.displayName, 
                     email: user.email, 
                     photoURL: user.photoURL, 
                     phoneNumber: user.phoneNumber, 
                     emailVerified: user.emailVerified 
                 });
+                if (newDoc) {
+                    setUserData(newDoc);
+                }
             }
             setIsUserDataLoading(false);
             setAuthLoading(false); // Combined loading state is now false.
