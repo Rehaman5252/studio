@@ -1,24 +1,30 @@
+
 'use client';
 
 import React, { memo } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CubeBrand } from '@/components/Cube';
+import { cn } from '@/lib/utils';
 
 interface SelectedBrandCardProps {
     selectedBrand: CubeBrand;
     handleStartQuiz: () => void;
+    disabled?: boolean;
 }
 
-const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCardProps) => {
+const SelectedBrandCard = ({ selectedBrand, handleStartQuiz, disabled = false }: SelectedBrandCardProps) => {
     return (
         <div
             key={selectedBrand.id}
-            onClick={handleStartQuiz}
-            className="cursor-pointer"
+            onClick={!disabled ? handleStartQuiz : undefined}
+            className={cn(disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}
         >
             <Card 
-                className="w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30 transition-colors hover:border-primary"
+                className={cn(
+                    "w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30",
+                    !disabled && "transition-colors hover:border-primary"
+                )}
             >
                 <CardContent className="p-6">
                     <div className="flex items-center justify-between">

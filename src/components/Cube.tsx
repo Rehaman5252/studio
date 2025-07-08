@@ -42,22 +42,30 @@ interface CubeProps {
 function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // This effect runs the rotation timer.
   useEffect(() => {
-    if (disabled) {
-      return;
-    }
-    
     const rotateToNextFace = () => {
-      // Use the functional form of setState to get the latest index without needing it as a dependency.
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
+
+    if (!disabled) {
+      // Start the timer if not disabled
+      timerRef.current = setInterval(rotateToNextFace, 1500); // 1.5 seconds per face
+    } else {
+      // Stop the timer if disabled
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
     
-    // Rotate every 750ms for a faster, more dynamic feel (2x speed).
-    const intervalId = setInterval(rotateToNextFace, 750);
-    
-    return () => clearInterval(intervalId);
+    return () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+    };
   }, [brands.length, disabled]);
 
 
@@ -87,7 +95,6 @@ function Cube({ brands, onFaceSelect, onFaceClick, disabled = false }: CubeProps
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            // The transition speed for each rotation is 500ms as requested.
             transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}

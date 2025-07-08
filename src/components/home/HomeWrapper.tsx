@@ -56,11 +56,15 @@ export default function HomeWrapper() {
     }
 
     if (hasPlayedInCurrentSlot) {
-        router.push(`/quiz/results?review=true`);
+        if (lastAttemptInSlot?.reason === 'malpractice') {
+            router.push(`/quiz/results?reason=malpractice`);
+        } else {
+            router.push(`/quiz/results?review=true`);
+        }
     } else {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [user, router, hasPlayedInCurrentSlot]);
+  }, [user, router, hasPlayedInCurrentSlot, lastAttemptInSlot]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -104,7 +108,11 @@ export default function HomeWrapper() {
 
   return (
     <>
-      <QuizSelection onStartQuiz={handleStartQuiz} />
+      <QuizSelection
+        onStartQuiz={handleStartQuiz}
+        isSlotPlayed={hasPlayedInCurrentSlot}
+        lastAttempt={lastAttemptInSlot}
+      />
 
       <AlertDialog open={showProfilePrompt}>
         <AlertDialogContent>

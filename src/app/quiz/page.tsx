@@ -203,7 +203,7 @@ function QuizComponent() {
           setAdConfig(null);
           goToNextQuestion();
         },
-        children: <p className="font-bold text-lg mt-4">Every champion needs a moment to strategize.</p>
+        children: <p className="font-bold text-lg mt-4">Strategic Timeout: A moment to strategize.</p>
       });
       return;
     }
@@ -254,8 +254,24 @@ function QuizComponent() {
     const handleVisibilityChange = () => {
       if (document.hidden && !isTerminated && questions && !quizCompleted.current) {
         setIsTerminated(true);
-        // When terminating for malpractice, we don't need to save the full attempt data,
-        // as the results page will just show the malpractice screen.
+
+        const malpracticeAttempt: SlotAttempt = {
+            slotId: getQuizSlotId(),
+            score: 0,
+            totalQuestions: questions.length,
+            format,
+            brand,
+            questions,
+            userAnswers: Array(questions.length).fill(''),
+            timePerQuestion: [],
+            usedHintIndices: [],
+            timestamp: Date.now(),
+            reason: 'malpractice',
+        };
+
+        setLastAttemptInSlot(malpracticeAttempt);
+        saveAttemptInBackground(malpracticeAttempt);
+        
         router.replace(`/quiz/results?reason=malpractice`);
       }
     };
@@ -265,7 +281,7 @@ function QuizComponent() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [router, isTerminated, questions]);
+  }, [router, isTerminated, questions, format, brand, setLastAttemptInSlot, saveAttemptInBackground]);
 
 
   const onInterstitialComplete = useCallback(() => {

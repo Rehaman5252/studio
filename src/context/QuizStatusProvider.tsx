@@ -19,6 +19,7 @@ export interface SlotAttempt {
   timePerQuestion?: number[];
   usedHintIndices?: number[];
   timestamp?: number;
+  reason?: 'malpractice';
 }
 
 interface QuizStatus {
