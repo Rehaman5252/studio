@@ -20,11 +20,11 @@ export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQu
 
 const generalPrompt = ai.definePrompt({
   name: 'generateQuizPrompt',
+  model: 'googleai/gemini-2.0-flash',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
   prompt: `Generate 5 exceptionally difficult multiple-choice quiz questions about "{{format}}" cricket. The questions must be for experts, focusing on specific statistics (runs, averages, strike rates), obscure records, historic match details, and lesser-known player achievements. The options should be very similar and plausible to truly test deep knowledge. The questions must be strictly about the sport and not mention any brands or sponsors.`,
   config: {
-    model: 'googleai/gemini-2.0-flash',
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -38,11 +38,11 @@ const generalPrompt = ai.definePrompt({
 
 const mixedFormatPrompt = ai.definePrompt({
     name: 'generateMixedQuizPrompt',
+    model: 'googleai/gemini-2.0-flash',
     input: {schema: GenerateQuizInputSchema},
     output: {schema: GenerateQuizOutputSchema},
     prompt: `Generate a 5-question, exceptionally difficult multiple-choice quiz with exactly one question from each of the following cricket formats: T20, IPL, WPL, ODI, and Test. Each question must be for experts, focusing on specific statistics (runs, averages, strike rates), obscure records, historic match details, and lesser-known player achievements. The options should be very similar and plausible to truly test deep knowledge. The questions must be strictly about the sport and not mention any brands or sponsors.`,
     config: {
-      model: 'googleai/gemini-2.0-flash',
       // Set extremely permissive safety settings to prevent the model from blocking valid responses.
       safetySettings: [
         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },

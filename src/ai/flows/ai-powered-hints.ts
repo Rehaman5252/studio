@@ -20,6 +20,7 @@ export async function generateHint(input: GenerateHintInput): Promise<GenerateHi
 
 const prompt = ai.definePrompt({
   name: 'generateHintPrompt',
+  model: 'googleai/gemini-2.0-flash',
   input: {schema: GenerateHintInputSchema},
   output: {schema: GenerateHintOutputSchema},
   prompt: `You are an AI assistant designed to provide helpful hints for a cricket quiz.
@@ -31,9 +32,6 @@ const prompt = ai.definePrompt({
 
   Ensure the hint is specific to the question and considers the format. Do not mention any brands.
   `,
-  config: {
-    model: 'googleai/gemini-2.0-flash',
-  },
 });
 
 const generateHintFlow = ai.defineFlow(

@@ -34,6 +34,7 @@ type AnalysisPromptInput = z.infer<typeof AnalysisPromptInputSchema>;
 
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
+  model: 'googleai/gemini-2.0-flash',
   input: { schema: AnalysisPromptInputSchema },
   output: { schema: GenerateQuizAnalysisOutputSchema },
   prompt: `You are 'Coach Cric', an encouraging and friendly AI cricket coach.
@@ -61,7 +62,6 @@ The user answered all questions correctly!
 {{/if}}
 `,
   config: {
-    model: 'googleai/gemini-2.0-flash',
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
