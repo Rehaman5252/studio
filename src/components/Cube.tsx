@@ -66,7 +66,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
 
   return (
     <div 
-      className="flex justify-center items-center h-48 cursor-pointer"
+      className="group flex justify-center items-center h-48 cursor-pointer"
       onClick={onFaceClick}
       role="button"
       tabIndex={0}
@@ -88,7 +88,8 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
             <div
               key={brand.id}
               className={cn(
-                "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
+                "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40 transition-all duration-300",
+                "group-hover:border-primary group-hover:shadow-2xl group-hover:shadow-primary/40"
               )}
               style={{
                 transform: faceTransforms[index],
