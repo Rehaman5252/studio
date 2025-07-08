@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    LogOut, Loader2, Copy, PercentCircle
+    LogOut, Loader2, Copy, PercentCircle, Mail, MessageSquare
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -166,6 +166,10 @@ const ProfileCompletion = memo(({ userProfile }: { userProfile: any }) => {
     const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userProfile?.[field]);
     const completionPercentage = Math.round((completedFields.length / MANDATORY_PROFILE_FIELDS.length) * 100);
 
+    if (completionPercentage === 100) {
+        return null;
+    }
+
     return (
         <Card className="bg-card shadow-lg">
             <CardHeader>
@@ -231,6 +235,29 @@ const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
     );
 });
 ReferralCard.displayName = 'ReferralCard';
+
+const SupportCard = memo(() => (
+    <Card className="bg-card shadow-lg">
+        <CardHeader>
+            <CardTitle className="text-lg">Help & Support</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <a href="mailto:support@indcric.com">
+                    <Mail className="mr-4" />
+                    Email: support@indcric.com
+                </a>
+            </Button>
+            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer">
+                    <MessageSquare className="mr-4" />
+                    WhatsApp: +91 78427 22245
+                </a>
+            </Button>
+        </CardContent>
+    </Card>
+));
+SupportCard.displayName = "SupportCard";
 
 const ActionButtons = memo(() => {
     const router = useRouter();
@@ -391,6 +418,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 <ProfileCompletion userProfile={userProfile} />
                 <StatsSummary userProfile={userProfile} />
                 <ReferralCard userProfile={userProfile} />
+                <SupportCard />
                 <ActionButtons />
             </div>
 
