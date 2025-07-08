@@ -19,22 +19,39 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
   return generateQuizAnalysisFlow(input);
 }
 
+// A new, simplified schema for the prompt's structured input.
+const AnalysisPromptInputSchema = z.object({
+  score: z.number().describe("The user's score."),
+  totalQuestions: z.number().describe('The total number of questions in the quiz.'),
+  totalTime: z.number().describe('The total time taken in seconds.'),
+  hintsUsed: z.number().describe('The number of hints the user used.'),
+  format: z.string().describe('The cricket format of the quiz.'),
+  incorrectAnswersSummary: z.string().describe("A summary of incorrectly answered questions, with each on a new line. This will be empty if all answers were correct."),
+});
+type AnalysisPromptInput = z.infer<typeof AnalysisPromptInputSchema>;
+
+
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
-  input: { schema: z.string() },
-  output: { format: 'string' },
-  prompt: `You are 'Coach Cric', an encouraging AI cricket coach. Analyze the user's quiz performance below and provide a report in markdown format.
+  input: { schema: AnalysisPromptInputSchema },
+  output: { schema: GenerateQuizAnalysisOutputSchema },
+  prompt: `You are 'Coach Cric', an encouraging AI cricket coach. Analyze the user's quiz performance based on the data below and generate a report for the 'analysis' field.
 
-The report must include these sections, in this order:
+The report must be in markdown format and include these sections in order:
 - **Overall Performance**: A brief, one-sentence summary of their score.
-- **Strengths**: Point out one specific area where they did well (e.g., speed on correct answers, knowledge on a specific topic revealed by a correct answer).
+- **Strengths**: Point out one specific area where they did well (e.g., speed on correct answers, knowledge on a specific topic).
 - **Improvement Areas**: Briefly mention a topic they could focus on, based on the incorrect answers.
 - **Actionable Tip**: Give one single, highly specific, and actionable tip for improving.
 
 Keep the tone very concise, positive, and coach-like.
 
-User Performance Data:
-{{{_input}}}
+**User Performance Data:**
+- Format: {{format}}
+- Score: {{score}}/{{totalQuestions}}
+- Total Time Taken: {{totalTime}} seconds
+- Hints Used: {{hintsUsed}}
+- Incorrect Answers Summary:
+{{{incorrectAnswersSummary}}}
 `,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
@@ -70,29 +87,30 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     let incorrectAnswersSummary = 'No incorrect answers! Great job!';
     if (incorrect.length > 0) {
         incorrectAnswersSummary = incorrect.map(q => 
-            `Question ${q.questionNumber}: "${q.questionText}" (Correct: ${q.correctAnswer})`
+            `- Question ${q.questionNumber}: "${q.questionText}" (Correct: ${q.correctAnswer})`
         ).join('\n');
     }
     
     const totalTime = input.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
-    let performanceData = `
-Format: ${format}
-Score: ${score}/${input.questions.length}
-Total Time Taken: ${totalTime.toFixed(1)} seconds
-Hints Used: ${input.usedHintIndices?.length || 0}
-Incorrect Answers Summary:
-${incorrectAnswersSummary}
-`;
     
-    console.log("Attempting to generate AI analysis with the following data:", performanceData);
+    const promptInput: AnalysisPromptInput = {
+        score,
+        totalQuestions: input.questions.length,
+        totalTime: parseFloat(totalTime.toFixed(1)),
+        hintsUsed: input.usedHintIndices?.length || 0,
+        format,
+        incorrectAnswersSummary,
+    };
+    
+    console.log("Attempting to generate AI analysis with the following structured data:", promptInput);
     try {
-        const { output } = await analysisPrompt(performanceData);
+        const { output } = await analysisPrompt(promptInput);
     
-        if (!output || output.trim() === '') {
-          console.warn("AI analysis returned a null or empty analysis string. Providing a fallback response.", { output });
+        if (!output || !output.analysis || output.analysis.trim() === '') {
+          console.warn("AI analysis returned a null or empty analysis object. Providing a fallback response.", { output });
         } else {
             console.log("Successfully generated AI analysis.");
-            return { analysis: output };
+            return output;
         }
 
     } catch (error) {
