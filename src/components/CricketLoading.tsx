@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface CricketLoadingProps {
   state?: 'loading' | 'error';
@@ -9,6 +9,14 @@ interface CricketLoadingProps {
   errorMessage?: string;
   children?: React.ReactNode;
 }
+
+const funFacts = [
+  "Don Bradman finished his Test career with an average of 99.94.",
+  "The first-ever cricket World Cup was held in 1975 in England.",
+  "A 'hat-trick' is when a bowler takes three wickets on three consecutive deliveries.",
+  "Shahid Afridi holds the record for the most sixes in ODI history.",
+  "The longest Test match in history was 9 days long between England and South Africa in 1939."
+];
 
 const RoyalSpinner = () => (
     <div className="w-24 h-24 relative">
@@ -37,6 +45,17 @@ const CricketLoading = ({
   errorMessage = "It's a wicket! Looks like there was an error.",
   children
 }: CricketLoadingProps) => {
+  const [fact, setFact] = useState(funFacts[0]);
+
+  useEffect(() => {
+    if (state === 'loading') {
+      const interval = setInterval(() => {
+        setFact(funFacts[Math.floor(Math.random() * funFacts.length)]);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [state]);
+  
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
       {state === 'loading' ? (
@@ -65,6 +84,13 @@ const CricketLoading = ({
         className="text-xl font-semibold text-foreground/80 text-center mt-4">
         {state === 'loading' ? message : errorMessage}
       </h2>
+      {state === 'loading' && (
+        <div className="mt-6 max-w-md text-center">
+            <p className="text-center text-muted-foreground mt-4 text-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
+            <strong>Did you know?</strong> {fact}
+            </p>
+        </div>
+      )}
       {children && <div className="mt-6">{children}</div>}
     </div>
   );

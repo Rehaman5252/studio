@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
@@ -74,8 +75,8 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                     {isLoading && (
                         <div className="flex flex-col items-center justify-center p-8 space-y-2">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="ml-4 text-muted-foreground">Generating your personalized report...</p>
-                            <p className="text-xs text-muted-foreground">This can take up to 30 seconds.</p>
+                            <p className="text-muted-foreground">Our AI coach is analyzing your game...</p>
+                            <p className="text-xs text-muted-foreground">This can take a moment.</p>
                         </div>
                     )}
                     {error && <p className="text-destructive font-semibold p-4 text-center">{error}</p>}

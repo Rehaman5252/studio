@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -43,25 +43,25 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   const cubeRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // This effect runs the rotation timer continuously.
-  useEffect(() => {
-    const rotateToNextFace = () => {
+  const stopRotation = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const startRotation = useCallback(() => {
+    stopRotation(); // Ensure no multiple timers
+    timerRef.current = setInterval(() => {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
-    };
+    }, 3000); // Slower rotation for better UX
+  }, [brands.length, stopRotation]);
 
-    // The timer is ALWAYS running at 500ms.
-    timerRef.current = setInterval(rotateToNextFace, 500);
-    
-    return () => {
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-        }
-    };
-  }, [brands.length]);
+  useEffect(() => {
+    startRotation();
+    return () => stopRotation();
+  }, [startRotation, stopRotation]);
 
-
-  // This effect is ONLY for side effects when the face changes.
-  // It applies the CSS transform and informs the parent of the new face.
   useEffect(() => {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[currentFaceIndex];
@@ -69,14 +69,11 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
     onFaceSelect(currentFaceIndex);
   }, [currentFaceIndex, onFaceSelect]);
 
-
-  const handleFaceClick = () => {
-    onFaceClick();
-  };
-  
   return (
     <div 
       className="flex justify-center items-center h-48"
+      onMouseEnter={stopRotation}
+      onMouseLeave={startRotation}
     >
       <div 
         className="w-32 h-32 perspective"
@@ -92,11 +89,11 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
           {brands.map((brand, index) => (
             <div
               key={brand.id}
-              onClick={handleFaceClick}
+              onClick={onFaceClick}
               role="button"
               tabIndex={0}
               aria-label={`Select ${brand.format} quiz sponsored by ${brand.brand}`}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleFaceClick()}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFaceClick()}
               className={cn(
                 "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
                 "cursor-pointer hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"

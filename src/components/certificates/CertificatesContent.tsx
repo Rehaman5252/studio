@@ -1,9 +1,9 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
+import { Award, Clock, Calendar, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 
@@ -50,6 +50,12 @@ export default function CertificatesContent() {
   
   return (
     <>
+        <Card className="bg-card/80 mb-4">
+            <CardContent className="p-4 text-center text-sm text-muted-foreground">
+                Certificates are available for download from the quiz results screen immediately after achieving a perfect score.
+            </CardContent>
+        </Card>
+
         {certificates.length > 0 ? (
           <div className="space-y-4">
             {certificates.map((cert) => (
@@ -76,16 +82,6 @@ export default function CertificatesContent() {
                         </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex justify-end gap-2">
-                    <Button variant="secondary" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Share
-                    </Button>
-                  </CardContent>
                 </Card>
               </div>
             ))}

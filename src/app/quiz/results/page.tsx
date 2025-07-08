@@ -11,8 +11,8 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Trophy, Home, Loader2, CheckCircle2, XCircle, Star, Info, MessageCircleQuestion, Sparkles, AlertTriangle, Download } from 'lucide-react';
+import { cn, downloadCertificate } from '@/lib/utils';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -50,7 +50,7 @@ MalpracticeScreen.displayName = "MalpracticeScreen";
 
 const Certificate = memo(({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => (
     <div className="w-full max-w-md">
-        <div className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
+        <div id="certificate-to-download" className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
             <Star className="absolute top-2 right-2 text-primary" size={32} />
             <Star className="absolute top-2 left-2 text-primary" size={32} />
             <Star className="absolute bottom-2 right-2 text-primary" size={32} />
@@ -64,6 +64,11 @@ const Certificate = memo(({ format, userName, date, slotTimings }: { format: str
                 <p className="text-xs mt-4 text-muted-foreground">Awarded on: {date}</p>
                 <p className="text-xs mt-1 text-muted-foreground">Quiz Slot: {slotTimings}</p>
             </div>
+        </div>
+         <div className="text-center mt-4">
+            <Button onClick={() => downloadCertificate('certificate-to-download', userName, format)}>
+                <Download className="mr-2 h-4 w-4" /> Download Certificate
+            </Button>
         </div>
     </div>
 ));
