@@ -5,6 +5,7 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 10
+source: .
 environment:
   variables:
     NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyAh35l6QoFhYoTUWDc7vA_LpnHN7ZaB92A"
