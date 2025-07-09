@@ -2,7 +2,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { initializeFirestore, memoryLocalCache, type Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -29,9 +29,8 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
-    // Explicitly disable offline persistence and use in-memory cache instead.
-    // This is often more stable in development and sandboxed environments.
-    db = initializeFirestore(app, { localCache: memoryLocalCache() });
+    // Simplified Firestore initialization to be more robust.
+    db = getFirestore(app);
     storage = getStorage(app);
 
   } catch (e) {
