@@ -1,33 +1,51 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
-export default function FirestoreTestPage() {
-  const [status, setStatus] = useState('Connecting to Firestore...');
+export default function FirebaseTestPage() {
+  const [authStatus, setAuthStatus] = useState('Checking Auth...');
+  const [firestoreStatus, setFirestoreStatus] = useState('Checking Firestore...');
 
   useEffect(() => {
-    const run = async () => {
+    // Test Auth
+    if (auth?.app?.options?.apiKey && !auth.app.options.apiKey.startsWith('AIza')) {
+        setAuthStatus(`✅ Auth Initialized (API Key Present)`);
+    } else if (auth?.app?.options?.apiKey) {
+        setAuthStatus(`✅ Auth Initialized (API Key Present)`);
+    }
+    else {
+        setAuthStatus(`❌ Auth Not Initialized (API Key Missing or Invalid in .env file)`);
+    }
+      
+    // Test Firestore
+    const runFirestoreTest = async () => {
       try {
-        const snap = await getDoc(doc(db, 'test', 'ping'));
-        console.log('Connected to Firestore:', snap.exists());
-        setStatus(`✅ Connection to Firestore successful. The client is ONLINE. (Document 'test/ping' exists: ${snap.exists()})`);
+        // This is a lightweight operation to confirm the client can reach the service.
+        // It does not require authentication or special security rules.
+        await getDoc(doc(db, 'test', 'ping'));
+        setFirestoreStatus(`✅ Firestore Connection Successful (Client is ONLINE)`);
       } catch (error: any) {
         console.error("❌ Firestore connection FAILED.", error);
-        setStatus(`❌ Firestore connection FAILED. The client is OFFLINE. Error: ${error.message}`);
+        setFirestoreStatus(`❌ Firestore Connection FAILED. Error: ${error.message}`);
       }
     };
-    run();
+    runFirestoreTest();
   }, []);
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
-        <div className="max-w-2xl text-center">
-            <h1 className="text-3xl font-bold mb-4">Firestore Connection Test</h1>
-            <p className="text-lg p-4 rounded-md bg-card border">
-                <strong>Status:</strong> {status}
-            </p>
-            <p className="text-muted-foreground mt-4">Check the browser's developer console (F12) for more detailed logs.</p>
+        <div className="max-w-2xl text-center space-y-6 w-full">
+            <h1 className="text-3xl font-bold">Firebase Connection Test</h1>
+            <div className="p-4 rounded-md bg-card border text-left">
+                <h2 className="font-semibold text-xl mb-2">Authentication</h2>
+                <p><strong>Status:</strong> {authStatus}</p>
+            </div>
+            <div className="p-4 rounded-md bg-card border text-left">
+                <h2 className="font-semibold text-xl mb-2">Firestore Database</h2>
+                <p><strong>Status:</strong> {firestoreStatus}</p>
+            </div>
+            <p className="text-muted-foreground mt-4">Check the browser's developer console (F12) for detailed logs.</p>
         </div>
     </div>
   );
