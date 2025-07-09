@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, updateDoc, type DocumentData } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
+import { getAuth, signOut } from 'firebase/auth';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -110,9 +111,15 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         }
     };
 
-    const handleLogout = () => {
-        toast({ title: "Logout Disabled", description: "This is a mock account and cannot be logged out." });
-        router.push('/auth/login');
+    const handleLogout = async () => {
+        if (!auth) return;
+        try {
+            await signOut(auth);
+            router.push('/auth/login');
+            toast({ title: "Logged Out", description: "You have been successfully logged out." });
+        } catch (error) {
+            toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
+        }
     };
     
     if (isLoading) {
@@ -152,7 +159,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 <DialogHeader>
                     <DialogTitle>Edit Profile</DialogTitle>
                     <DialogDescription>
-                        Your profile must be 100% complete. Verified fields are locked in a real app.
+                        Complete your profile to enable all features.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -161,7 +168,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                             const isEmail = fieldName === 'email';
                             const isPhone = fieldName === 'phone';
                             
-                            const isLocked = false; 
+                            const isLocked = (isEmail && userProfile?.emailVerified) || (isPhone && userProfile?.phoneVerified);
 
                             if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
                                  const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']

@@ -1,7 +1,7 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
@@ -21,12 +21,14 @@ export const isFirebaseConfigured =
   !!firebaseConfig.projectId;
 
 let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
 
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
 
@@ -35,4 +37,4 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   }
 }
 
-export { app, db, storage };
+export { app, auth, db, storage };

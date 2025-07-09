@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
 
 export default function ForgotPasswordPage() {
-  redirect('/home');
+  return <ForgotPasswordForm />;
 }

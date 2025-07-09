@@ -1,10 +1,10 @@
-
 'use client';
 
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 // Dynamically import the main content wrapper.
 // This component contains all the logic that depends on frequently updating state,
@@ -31,36 +31,35 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
   ssr: false, // This component uses hooks that rely on client-side state
 });
 
+// This is the main content of the home page, rendered inside the AuthGuard
+function HomePageContent() {
+    return (
+        <div className="flex flex-col h-screen bg-background text-foreground">
+          <header className="p-4 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-6xl font-extrabold tracking-tighter text-shimmer animate-shimmer">
+                indcric
+              </h1>
+              <p className="text-sm text-muted-foreground">win ₹100 for every 100 seconds!</p>
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-y-auto pb-24">
+            <div className="container mx-auto px-4 py-8">
+              <HomeWrapper />
+            </div>
+          </main>
+        </div>
+    )
+}
+
+
 // The actual page component is now very simple. It handles the initial auth check
 // and renders the static layout, delegating all dynamic content to HomeWrapper.
 export default function HomeScreen() {
-  const { loading: authLoading } = useAuth();
-  
-  // This is the main page loader for authentication state.
-  if (authLoading) {
-      return (
-        <div className="flex flex-col h-screen bg-background items-center justify-center">
-             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="p-4 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-6xl font-extrabold tracking-tighter text-shimmer animate-shimmer">
-            indcric
-          </h1>
-          <p className="text-sm text-muted-foreground">win ₹100 for every 100 seconds!</p>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto pb-24">
-        <div className="container mx-auto px-4 py-8">
-          <HomeWrapper />
-        </div>
-      </main>
-    </div>
+    <AuthGuard>
+        <HomePageContent />
+    </AuthGuard>
   );
 }

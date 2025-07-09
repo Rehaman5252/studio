@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -29,7 +28,7 @@ const MANDATORY_PROFILE_FIELDS = [
 ];
 
 export default function HomeWrapper() {
-  const { user, userData } = useAuth();
+  const { user, userData, isUserDataLoading } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
@@ -40,16 +39,15 @@ export default function HomeWrapper() {
     return lastAttemptInSlot.slotId === getQuizSlotId();
   }, [lastAttemptInSlot, isQuizStatusLoading]);
 
-  // Check for profile completion
+  // Check for profile completion once user data is loaded
   useEffect(() => {
-    // We only want to run this check once the user data is loaded.
-    if (user && userData) {
+    if (user && userData && !isUserDataLoading) {
       const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userData[field]);
       if (completedFields.length < MANDATORY_PROFILE_FIELDS.length) {
         setShowProfilePrompt(true);
       }
     }
-  }, [user, userData]);
+  }, [user, userData, isUserDataLoading]);
 
 
   const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
@@ -69,7 +67,7 @@ export default function HomeWrapper() {
     setShowSlotPlayedAlert(false);
   };
 
-  if (isQuizStatusLoading) {
+  if (isQuizStatusLoading || isUserDataLoading) {
       return (
         <div className="flex flex-col flex-1 items-center justify-center py-10">
              <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -116,7 +114,10 @@ export default function HomeWrapper() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button onClick={() => router.push('/profile')}>Go to Profile</Button>
+            <Button onClick={() => {
+                setShowProfilePrompt(false);
+                router.push('/profile');
+            }}>Go to Profile</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

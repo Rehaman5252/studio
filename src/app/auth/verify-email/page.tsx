@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import VerifyEmailContent from '@/components/auth/VerifyEmailContent';
 
 export default function VerifyEmailPage() {
-    redirect('/home');
+    return <VerifyEmailContent />;
 }
