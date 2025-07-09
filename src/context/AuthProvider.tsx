@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
@@ -8,6 +7,46 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc, setDoc, serverTimestamp, collection, query, orderBy, limit, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
+import { mockQuizHistory as mockHistoryData } from '@/lib/mockData';
+
+// --- MOCK AUTHENTICATION ---
+// Set this to `true` to enable mock login, `false` for real Firebase auth.
+const MOCK_AUTH = true;
+
+const mockUser = {
+  uid: 'mock-user-123',
+  displayName: 'Mock Player',
+  email: 'mock.player@indcric.app',
+  photoURL: 'https://placehold.co/100x100.png',
+  emailVerified: true,
+} as User;
+
+const mockUserData = {
+    uid: 'mock-user-123',
+    name: 'Mock Player',
+    email: 'mock.player@indcric.app',
+    phone: '9876543210',
+    createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+    photoURL: 'https://placehold.co/100x100.png',
+    emailVerified: true,
+    phoneVerified: true,
+    totalRewards: 1500,
+    quizzesPlayed: 15,
+    perfectScores: 4,
+    referralCode: 'indcric.app/ref/mock123',
+    dob: '1990-01-01',
+    gender: 'Male',
+    occupation: 'Employee',
+    upi: 'mock.player@upi',
+    highestStreak: 5,
+    certificatesEarned: 2,
+    referralEarnings: 250,
+    favoriteFormat: 'T20',
+    favoriteTeam: 'India',
+    favoriteCricketer: 'Virat Kohli',
+};
+// --- END MOCK AUTHENTICATION ---
+
 
 interface AuthContextType {
   user: User | null;
@@ -84,6 +123,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // This effect ONLY handles auth state changes.
   useEffect(() => {
+    if (MOCK_AUTH) {
+        setUser(mockUser);
+        setUserData(mockUserData);
+        setQuizHistory(mockHistoryData);
+        setAuthLoading(false);
+        setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
+        return;
+    }
+
     if (!auth) {
       // Firebase not configured.
       setAuthLoading(false);
@@ -109,6 +158,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // This effect handles ALL data fetching and listening based on the user object.
   useEffect(() => {
+    if (MOCK_AUTH) {
+        return; // If mocking, don't run Firestore listeners
+    }
+
     if (user && db) {
         // User is logged in, set up listeners.
         setIsUserDataLoading(true);
