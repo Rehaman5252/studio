@@ -8,7 +8,7 @@ import Cube from '@/components/Cube';
 interface QuizSelectorProps {
     brands: CubeBrand[];
     onFaceSelect: (index: number) => void;
-    onFaceClick: () => void;
+    onFaceClick: (index: number) => void;
 }
 
 const QuizSelector = ({ brands, onFaceSelect, onFaceClick }: QuizSelectorProps) => {

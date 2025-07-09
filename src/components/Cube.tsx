@@ -35,7 +35,7 @@ const rotationMap = [
 interface CubeProps {
   brands: CubeBrand[];
   onFaceSelect: (index: number) => void;
-  onFaceClick: () => void;
+  onFaceClick: (index: number) => void;
 }
 
 function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
@@ -49,7 +49,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
 
-    // The timer is ALWAYS running at 3000ms.
+    // The timer is ALWAYS running at 4000ms.
     timerRef.current = setInterval(rotateToNextFace, 4000);
     
     return () => {
@@ -68,11 +68,6 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
     }
     onFaceSelect(currentFaceIndex);
   }, [currentFaceIndex, onFaceSelect]);
-
-
-  const handleFaceClick = () => {
-    onFaceClick();
-  };
   
   return (
     <div 
@@ -92,11 +87,11 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
           {brands.map((brand, index) => (
             <div
               key={brand.id}
-              onClick={handleFaceClick}
+              onClick={() => onFaceClick(index)}
               role="button"
               tabIndex={0}
               aria-label={`Select ${brand.format} quiz sponsored by ${brand.brand}`}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleFaceClick()}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFaceClick(index)}
               className={cn(
                 "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
                 "cursor-pointer hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"

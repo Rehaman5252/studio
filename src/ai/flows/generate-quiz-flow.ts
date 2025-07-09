@@ -22,7 +22,7 @@ const generalPrompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `Generate 5 exceptionally difficult multiple-choice quiz questions about "{{format}}" cricket. The questions must be for experts, focusing on specific statistics (runs, averages, strike rates), obscure records, historic match details, and lesser-known player achievements. The options should be very similar and plausible to truly test deep knowledge. The questions must be strictly about the sport and not mention any brands or sponsors.`,
+  prompt: `Generate 5 challenging multiple-choice quiz questions about "{{format}}" cricket. The questions should be fun and engaging for cricket fans. Focus on interesting statistics, records, and match details. The options should be plausible but with one clear correct answer. The questions must be strictly about the sport and not mention any brands or sponsors.`,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
@@ -39,7 +39,7 @@ const mixedFormatPrompt = ai.definePrompt({
     name: 'generateMixedQuizPrompt',
     input: {schema: GenerateQuizInputSchema},
     output: {schema: GenerateQuizOutputSchema},
-    prompt: `Generate a 5-question, exceptionally difficult multiple-choice quiz with exactly one question from each of the following cricket formats: T20, IPL, WPL, ODI, and Test. Each question must be for experts, focusing on specific statistics (runs, averages, strike rates), obscure records, historic match details, and lesser-known player achievements. The options should be very similar and plausible to truly test deep knowledge. The questions must be strictly about the sport and not mention any brands or sponsors.`,
+    prompt: `Generate a 5-question, challenging multiple-choice quiz with exactly one question from each of the following cricket formats: T20, IPL, WPL, ODI, and Test. The questions should be fun and engaging for cricket fans, focusing on interesting statistics, records, and match details. The options should be plausible but with one clear correct answer. The questions must be strictly about the sport and not mention any brands or sponsors.`,
     config: {
       // Set extremely permissive safety settings to prevent the model from blocking valid responses.
       safetySettings: [

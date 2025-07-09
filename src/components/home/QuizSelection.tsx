@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, memo, useRef } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import type { CubeBrand } from '@/components/Cube';
 import QuizSelector from '@/components/home/QuizSelector';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
@@ -25,20 +25,15 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
     const selectedBrand = brands[selectedBrandIndex];
     
-    // Use a ref to hold the most up-to-date selected brand for the callback.
-    // This avoids needing to re-create the handleStart callback on every selection change.
-    const selectedBrandRef = useRef(selectedBrand);
-    selectedBrandRef.current = selectedBrand;
+    // This is the single handler for starting any quiz
+    const handleStartQuizForBrand = useCallback((brand: CubeBrand) => {
+        onStartQuiz(brand);
+    }, [onStartQuiz]);
 
-    // useCallback prevents this function from being re-created on every render.
+    // This is for the cube's auto-rotation to update the UI below
     const handleFaceSelect = useCallback((index: number) => {
         setSelectedBrandIndex(index);
     }, []);
-
-    // useCallback ensures this function is stable and not re-created unnecessarily.
-    const handleStart = useCallback(() => {
-        onStartQuiz(selectedBrandRef.current);
-    }, [onStartQuiz]);
 
     return (
         <>
@@ -50,20 +45,20 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             <QuizSelector 
                 brands={brands}
                 onFaceSelect={handleFaceSelect}
-                onFaceClick={handleStart}
+                onFaceClick={(index) => handleStartQuizForBrand(brands[index])}
             />
 
             <div className="mt-8 space-y-8">
                 <SelectedBrandCard
                   selectedBrand={selectedBrand}
-                  handleStartQuiz={handleStart}
+                  handleStartQuiz={() => handleStartQuizForBrand(selectedBrand)}
                 />
                 
                 <GlobalStats />
 
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
-                  onClick={handleStart}
+                  onClick={() => handleStartQuizForBrand(selectedBrand)}
                 />
             </div>
         </>
