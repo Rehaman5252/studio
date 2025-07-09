@@ -1,21 +1,17 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+    // Users can read, create, and update their own profile document.
     match /users/{userId} {
-      // Users can fully manage their own document
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Authenticated users can list documents for leaderboards
-      allow list: if request.auth != null;
     }
-    
-    // Live leaderboard can be read by anyone.
-    // Authenticated users can write their own score.
+
+    // Leaderboard entries can be read by anyone.
+    // An authenticated user can only create or update their own entry.
     match /liveLeaderboard/{slotId}/entries/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+        allow read: if true;
+        allow create, update: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
