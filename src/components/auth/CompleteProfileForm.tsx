@@ -80,23 +80,25 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
+        console.log("🟡 Form submitted. Starting save process...");
     
         if (!user || !user.uid) {
-            console.error("❌ User not signed in. Aborting save.");
+            console.error("🔴 ABORT: User is not signed in. user or user.uid is null/undefined.");
             toast({ title: 'Authentication Error', description: 'You must be signed in to save your profile.', variant: 'destructive'});
             setIsSubmitting(false);
             return;
         }
     
         if (!db) {
-            console.error("❌ Firestore database instance (db) is not available. Aborting save.");
+            console.error("🔴 ABORT: Firestore database instance (db) is not available.");
             toast({ title: 'Database Error', description: 'Cannot connect to the database. Please try again later.', variant: 'destructive' });
             setIsSubmitting(false);
             return;
         }
     
-        console.log("✅ UID:", user.uid);
-        console.log("📝 Attempting to save profile data:", data);
+        console.log("✅ UID is available:", user.uid);
+        console.log("✅ DB instance is available.");
+        console.log("📝 Data to be saved:", data);
     
         try {
             const userDocRef = doc(db, 'users', user.uid);
@@ -110,21 +112,24 @@ export default function CompleteProfileForm() {
             };
     
             if (data.phone !== userData?.phone) {
-                console.log("INFO: Phone number has changed. Marking as unverified.");
+                console.log("ℹ️ Phone number has changed. Marking as unverified.");
                 updatePayload.phoneVerified = false;
             }
             
-            console.log("Writing to users/" + user.uid);
+            console.log(`➡️ Attempting to write to Firestore path: users/${user.uid}`);
             await setDoc(userDocRef, updatePayload, { merge: true });
     
-            console.log("✅ Profile saved successfully in Firestore.");
+            console.log("✅ SUCCESS: Profile saved successfully in Firestore.");
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/profile');
     
-        } catch (error: any) {
-            console.error("🔥 Firestore error:", error);
-            toast({ title: 'Error Saving Profile', description: error.message, variant: 'destructive' });
-        } finally {
+        } catch (error: any)
+        {
+            console.error("🔥 FIRESTORE ERROR:", error);
+            toast({ title: 'Error Saving Profile', description: `Failed to save profile. Please check the console for details. Error: ${error.message}`, variant: 'destructive', duration: 9000 });
+        }
+        finally {
+            console.log("🔵 Save process finished. Re-enabling button.");
             setIsSubmitting(false);
         }
     };
