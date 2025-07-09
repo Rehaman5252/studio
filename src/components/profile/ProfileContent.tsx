@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, updateDoc, type DocumentData } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -84,14 +85,15 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     }, [userProfile, form, open]);
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (!userProfile?.uid) return;
+        if (!userProfile?.uid || !db) return;
         setIsSubmitting(true);
         try {
             const userDocRef = doc(db, 'users', userProfile.uid);
             
             const updatePayload: DocumentData = { ...data };
-            if (data.email !== userProfile.email) updatePayload.emailVerified = false;
-            if (data.phone !== userProfile.phone) updatePayload.phoneVerified = false;
+            if (data.phone !== userProfile.phone) {
+                updatePayload.phoneVerified = false;
+            }
 
             await updateDoc(userDocRef, updatePayload);
             toast({
@@ -166,10 +168,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6">
                         {MANDATORY_PROFILE_FIELDS.map((fieldName) => {
                             const isEmail = fieldName === 'email';
-                            const isPhone = fieldName === 'phone';
                             
-                            const isLocked = (isEmail && userProfile?.emailVerified) || (isPhone && userProfile?.phoneVerified);
-
                             if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
                                  const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']
                                                : fieldName === 'occupation' ? occupations
@@ -183,9 +182,9 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value} disabled={isLocked || isSubmitting}>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                                                     <FormControl>
-                                                        <SelectTrigger><SelectValue placeholder={`Select your ${fieldName.toLowerCase()}`} /></SelectTrigger>
+                                                        <SelectTrigger><SelectValue placeholder={`Select your ${fieldName.toLowerCase().replace('_', ' ')}`} /></SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
                                                         {options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
@@ -205,7 +204,8 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
-                                            <FormControl><Input type={fieldName === 'dob' ? 'date' : (isPhone ? 'tel' : isEmail ? 'email' : 'text')} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
+                                            <FormControl><Input type={fieldName === 'dob' ? 'date' : (fieldName === 'phone' ? 'tel' : isEmail ? 'email' : 'text')} placeholder={`Your ${fieldName}`} {...field} disabled={isSubmitting || isEmail} /></FormControl>
+                                            {isEmail && <p className="text-xs text-muted-foreground">Email cannot be changed.</p>}
                                             <FormMessage />
                                         </FormItem>
                                     )}

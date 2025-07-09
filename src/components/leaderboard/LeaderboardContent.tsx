@@ -9,7 +9,7 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface LivePlayer {
@@ -59,6 +59,10 @@ const LiveLeaderboard = memo(() => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!db) {
+            setLoading(false);
+            return;
+        }
         const slotId = getQuizSlotId();
         const leaderboardRef = collection(db, 'liveLeaderboard', slotId, 'entries');
         const q = query(leaderboardRef, orderBy('score', 'desc'), orderBy('time', 'asc'), limit(50));
@@ -108,7 +112,7 @@ const LiveLeaderboard = memo(() => {
                                     <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-primary">{player.time}s</p>
+                                    <p className="font-bold text-primary">{player.time.toFixed(1)}s</p>
                                     <p className="text-xs text-muted-foreground">Time</p>
                                 </div>
                             </div>
@@ -130,14 +134,19 @@ const AllTimeLeaderboard = memo(() => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchAllTime = async () => {
-            try {
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, orderBy('perfectScores', 'desc'), limit(50));
-                const snapshot = await getDocs(q);
-                const fetchedPlayers: AllTimePlayer[] = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
+        if (!db) {
+            setLoading(false);
+            return;
+        }
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, orderBy('perfectScores', 'desc'), limit(50));
+        
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetchedPlayers: AllTimePlayer[] = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                // Only include users who have played at least one game
+                if (data.perfectScores > 0 || data.quizzesPlayed > 0) {
                     fetchedPlayers.push({
                         uid: doc.id,
                         name: data.name,
@@ -145,15 +154,16 @@ const AllTimeLeaderboard = memo(() => {
                         totalPlayed: data.quizzesPlayed || 0,
                         avatar: data.photoURL,
                     });
-                });
-                setPlayers(fetchedPlayers);
-            } catch (error) {
-                console.error("Error fetching all-time leaderboard:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchAllTime();
+                }
+            });
+            setPlayers(fetchedPlayers);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching all-time leaderboard:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
     }, []);
 
     return (
@@ -215,7 +225,7 @@ const MyNetworkLeaderboard = memo(() => {
             </CardHeader>
             <CardContent>
                 <div className="space-y-2">
-                     {players.length > 0 ? (
+                     {players.length > 0 && players[0].name ? (
                         players.map((player, index) => (
                              <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                                 <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
