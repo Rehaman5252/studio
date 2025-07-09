@@ -124,7 +124,7 @@ export default function CompleteProfileForm() {
     
         } catch (error: any) {
             console.error("🔥 Firestore error:", error);
-            toast({ title: "Error saving profile", description: error.message, variant: "destructive" });
+            toast({ title: "Error Saving Profile", description: `Could not save your profile. Reason: ${error.message}`, variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
