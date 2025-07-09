@@ -80,24 +80,24 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🟡 Starting save profile");
+        console.log("🟡 Starting profile save...");
 
         if (!user || !user.uid) {
-            toast({ title: "Error", description: "You are not signed in. Cannot save profile.", variant: "destructive"});
-            console.error("🔴 No user or UID found");
+            toast({ title: "Error: Not Signed In", description: "You must be signed in to save your profile.", variant: "destructive"});
+            console.error("🔴 ABORT: No user or UID found during save attempt.");
             setIsSubmitting(false);
             return;
         }
 
         if (!db) {
-            toast({ title: "Error", description: "Database connection not available.", variant: "destructive"});
-            console.error("🔴 Database not initialized.");
+            toast({ title: "Error: Database Unavailable", description: "Database connection not available.", variant: "destructive"});
+            console.error("🔴 ABORT: Database not initialized.");
             setIsSubmitting(false);
             return;
         }
         
-        console.log("🟢 UID:", user.uid);
-        console.log("📦 Profile Data being sent:", data);
+        console.log("🟢 User UID:", user.uid);
+        console.log("📦 Profile data being sent to Firestore:", data);
 
         try {
             const userDocRef = doc(db, 'users', user.uid);
@@ -108,11 +108,13 @@ export default function CompleteProfileForm() {
                 profileCompleted: true,
             };
 
+            // Only mark phone as unverified if the number has changed.
             if (data.phone !== userData?.phone) {
                 console.log("Phone number changed or is new, marking as unverified.");
                 updatePayload.phoneVerified = false;
             }
 
+            // Using setDoc with merge:true is robust for both creating and updating.
             await setDoc(userDocRef, updatePayload, { merge: true });
 
             console.log("✅ Profile saved successfully to Firestore.");
@@ -120,12 +122,13 @@ export default function CompleteProfileForm() {
                 title: "Profile Saved!",
                 description: "Your information has been successfully updated.",
             });
+            // Redirect to the main profile page to see the changes.
             router.push('/profile');
         } catch (error: any) {
-            console.error("🔥 Error saving profile:", error);
+            console.error("🔥 Firestore Error: Failed to save profile:", error);
             toast({
                 title: "Update Failed",
-                description: `Could not save profile: ${error.message || 'Please check the console and ensure you are online.'}`,
+                description: `Could not save your profile. Error: ${error.message}`,
                 variant: "destructive",
                 duration: 9000,
             });

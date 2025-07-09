@@ -1,17 +1,25 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can read, create, and update their own profile document.
+
+    // Users can only read and write to their own user document.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
 
-    // Leaderboard entries can be read by anyone.
-    // An authenticated user can only create or update their own entry.
+    // Live leaderboard can be read by anyone, but only written to by authenticated users.
+    // This allows the server-side function (or a trusted client action) to update scores.
     match /liveLeaderboard/{slotId}/entries/{userId} {
         allow read: if true;
-        allow create, update: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null;
+    }
+
+    // Deny all other reads/writes by default for security.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
