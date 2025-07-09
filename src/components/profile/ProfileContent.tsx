@@ -24,10 +24,6 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
-import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
-import { sendOtp } from '@/ai/flows/send-otp-flow';
-import { verifyOtp } from '@/ai/flows/verify-otp-flow';
 
 
 const profileSchema = z.object({
@@ -45,11 +41,6 @@ const profileSchema = z.object({
   favoriteCricketer: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
 });
 type ProfileFormValues = z.infer<typeof profileSchema>;
-
-const otpSchema = z.object({
-  otp: z.string().length(6, { message: 'OTP must be 6 characters.' }),
-});
-type OtpFormValues = z.infer<typeof otpSchema>;
 
 const occupations = ['Student', 'Employee', 'Business', 'Others'];
 const cricketFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
@@ -88,7 +79,7 @@ const maskUpi = (upi?: string) => {
     const [user, domain] = upi.split('@');
     if (user.length <= 3) return `${user}••••@${domain}`;
     return `${user.substring(0, 3)}••••@${domain}`;
-}
+};
 
 const calculateAge = (dobString?: string): number | null => {
     if (!dobString || !/^\d{4}-\d{2}-\d{2}$/.test(dobString)) return null;
@@ -287,16 +278,10 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formStep, setFormStep] = useState<'details' | 'otp_email' | 'otp_phone'>('details');
-    const [detailsData, setDetailsData] = useState<ProfileFormValues | null>(null);
 
-    const detailsForm = useForm<ProfileFormValues>({
+    const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: defaultFormValues as any,
-    });
-    
-    const otpForm = useForm<OtpFormValues>({
-        resolver: zodResolver(otpSchema),
     });
 
     useEffect(() => {
@@ -305,22 +290,21 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             MANDATORY_PROFILE_FIELDS.forEach(field => {
                  defaults[field as keyof ProfileFormValues] = userProfile[field] || '';
             });
-            detailsForm.reset(defaults);
+            form.reset(defaults);
         }
-    }, [userProfile, detailsForm, open]);
+    }, [userProfile, form, open]);
 
-    const updateProfileData = async (data: ProfileFormValues, verifiedField?: 'email' | 'phone') => {
+    const onSubmit = async (data: ProfileFormValues) => {
         if (!userProfile?.uid) return;
         setIsSubmitting(true);
         try {
             const userDocRef = doc(db, 'users', userProfile.uid);
             
+            // In a real app with a real auth system, you would not allow email/phone to be
+            // updated without verification. Since this is a mock setup, we'll allow it.
             const updatePayload: DocumentData = { ...data };
-            if (verifiedField === 'email') {
-                updatePayload.emailVerified = true;
-            } else if (verifiedField === 'phone') {
-                updatePayload.phoneVerified = true;
-            }
+            if (data.email !== userProfile.email) updatePayload.emailVerified = false;
+            if (data.phone !== userProfile.phone) updatePayload.phoneVerified = false;
 
             await updateDoc(userDocRef, updatePayload);
             toast({
@@ -328,7 +312,6 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 description: "Your information has been saved successfully.",
             });
             setOpen(false);
-            setFormStep('details');
         } catch (error: any) {
             console.error("Profile update failed:", error);
             toast({
@@ -336,99 +319,6 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 description: "Could not save your profile. Please try again.",
                 variant: "destructive",
             });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleDetailsSubmit = async (data: ProfileFormValues) => {
-        const phoneChanged = data.phone && data.phone !== userProfile.phone;
-        const emailChanged = data.email && data.email !== userProfile.email;
-
-        setDetailsData(data);
-        
-        // Always prioritize phone verification if it changed
-        if (phoneChanged && !userProfile.phoneVerified) {
-            setIsSubmitting(true);
-            try {
-                const result = await sendPhoneOtp({ phone: data.phone });
-                if (result.success) {
-                    toast({ title: 'OTP Sent (For Demo)', description: 'Please use OTP: 654321 to continue.', duration: 9000 });
-                    setFormStep('otp_phone');
-                } else {
-                    toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
-                }
-            } catch (error) {
-                 toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
-            } finally {
-                setIsSubmitting(false);
-            }
-        } else if (emailChanged && !userProfile.emailVerified) {
-            setIsSubmitting(true);
-            try {
-                const result = await sendOtp({ email: data.email });
-                if (result.success) {
-                    toast({ title: 'OTP Sent (For Demo)', description: 'Please use OTP: 123456 to continue.', duration: 9000 });
-                    setFormStep('otp_email');
-                } else {
-                    toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
-                }
-            } catch (error) {
-                 toast({ title: 'Error', description: 'An unexpected error occurred while sending the OTP.', variant: 'destructive' });
-            } finally {
-                setIsSubmitting(false);
-            }
-        } else {
-            // No verifiable fields changed, just save the other data
-            await updateProfileData(data);
-        }
-    };
-    
-    const handlePhoneOtpSubmit = async (otpData: OtpFormValues) => {
-        if (!detailsData) return;
-        setIsSubmitting(true);
-        try {
-            const result = await verifyPhoneOtp({ phone: detailsData.phone, otp: otpData.otp });
-            if (result.success) {
-                toast({ title: 'Phone Verified', description: result.message });
-                // If email also needs verification and hasn't been verified, move to that step
-                const emailChanged = detailsData.email && detailsData.email !== userProfile.email;
-                if(emailChanged && !userProfile.emailVerified) {
-                     const emailResult = await sendOtp({ email: detailsData.email });
-                     if (emailResult.success) {
-                        toast({ title: 'OTP Sent (For Demo)', description: 'Please use OTP: 123456 to continue.', duration: 9000 });
-                        setFormStep('otp_email');
-                        otpForm.reset();
-                     } else {
-                        // Phone verified, but email failed. Save what we have.
-                        await updateProfileData(detailsData, 'phone');
-                     }
-                } else {
-                   await updateProfileData(detailsData, 'phone');
-                }
-            } else {
-                toast({ title: 'Verification Failed', description: result.message, variant: 'destructive' });
-            }
-        } catch (error) {
-             toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleEmailOtpSubmit = async (otpData: OtpFormValues) => {
-        if (!detailsData) return;
-        setIsSubmitting(true);
-        try {
-            const result = await verifyOtp({ email: detailsData.email, otp: otpData.otp });
-            if (result.success) {
-                toast({ title: 'Email Verified', description: result.message });
-                await updateProfileData(detailsData, 'email');
-            } else {
-                toast({ title: 'Verification Failed', description: result.message, variant: 'destructive' });
-            }
-        } catch (error) {
-            toast({ title: 'Error', description: 'An unexpected error occurred during verification.', variant: 'destructive' });
         } finally {
             setIsSubmitting(false);
         }
@@ -454,7 +344,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     }
 
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) { otpForm.reset(); setFormStep('details'); } setOpen(isOpen); }}>
+        <Dialog open={open} onOpenChange={setOpen}>
             <div className="space-y-6 animate-fade-in-up">
                 <ProfileHeader userProfile={userProfile} />
                 <ProfileCompletion userProfile={userProfile} />
@@ -483,142 +373,72 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             </div>
 
             <DialogContent className="sm:max-w-[425px]">
-                {formStep === 'details' && (
-                <>
-                    <DialogHeader>
-                        <DialogTitle>Edit Profile</DialogTitle>
-                        <DialogDescription>
-                            Your profile must be 100% complete. Verified fields are locked.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...detailsForm}>
-                        <form onSubmit={detailsForm.handleSubmit(handleDetailsSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6">
-                            {MANDATORY_PROFILE_FIELDS.map((fieldName) => {
-                                const isEmail = fieldName === 'email';
-                                const isPhone = fieldName === 'phone';
-                                
-                                const isVerified = (isEmail && userProfile?.emailVerified) || (isPhone && userProfile?.phoneVerified);
-                                const isNonContactFieldWithValue = !!userProfile?.[fieldName] && !isEmail && !isPhone;
-                                
-                                const isLocked = isVerified || isNonContactFieldWithValue;
+                <DialogHeader>
+                    <DialogTitle>Edit Profile</DialogTitle>
+                    <DialogDescription>
+                        Your profile must be 100% complete. Verified fields are locked in a real app.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6">
+                        {MANDATORY_PROFILE_FIELDS.map((fieldName) => {
+                            const isEmail = fieldName === 'email';
+                            const isPhone = fieldName === 'phone';
+                            
+                            // In this mock setup, no fields are ever truly locked.
+                            const isLocked = false; 
 
-                                if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
-                                     const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']
-                                                   : fieldName === 'occupation' ? occupations
-                                                   : fieldName === 'favoriteFormat' ? cricketFormats
-                                                   : cricketTeams;
-                                    return (
-                                        <FormField
-                                            key={fieldName}
-                                            control={detailsForm.control}
-                                            name={fieldName as keyof ProfileFormValues}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value} disabled={isLocked || isSubmitting}>
-                                                        <FormControl>
-                                                            <SelectTrigger><SelectValue placeholder={`Select your ${fieldName.toLowerCase()}`} /></SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    )
-                                }
+                            if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
+                                 const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']
+                                               : fieldName === 'occupation' ? occupations
+                                               : fieldName === 'favoriteFormat' ? cricketFormats
+                                               : fieldName === 'favoriteTeam' ? cricketTeams;
                                 return (
                                     <FormField
                                         key={fieldName}
-                                        control={detailsForm.control}
+                                        control={form.control}
                                         name={fieldName as keyof ProfileFormValues}
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
-                                                <FormControl><Input type={fieldName === 'dob' ? 'date' : (isPhone ? 'tel' : isEmail ? 'email' : 'text')} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={isLocked || isSubmitting}>
+                                                    <FormControl>
+                                                        <SelectTrigger><SelectValue placeholder={`Select your ${fieldName.toLowerCase()}`} /></SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-                                );
-                            })}
-                            <DialogFooter className="sticky bottom-0 bg-background pt-4">
-                                <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
-                                <Button type="submit" disabled={isSubmitting || !detailsForm.formState.isDirty}>
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Save
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </>
-                )}
-                {formStep === 'otp_phone' && (
-                <>
-                    <DialogHeader>
-                        <DialogTitle>Verify Phone Number</DialogTitle>
-                        <DialogDescription>
-                            We've sent a 6-digit code to {detailsData?.phone}. Please enter it below.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...otpForm}>
-                         <form onSubmit={otpForm.handleSubmit(handlePhoneOtpSubmit)} className="space-y-4">
-                            <FormField
-                                control={otpForm.control}
-                                name="otp"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>One-Time Password</FormLabel>
-                                        <FormControl><Input placeholder="123456" {...field} disabled={isSubmitting} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <DialogFooter>
-                                <Button type="button" variant="ghost" onClick={() => setFormStep('details')} disabled={isSubmitting}>Back</Button>
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Verify & Save
-                                </Button>
-                            </DialogFooter>
-                         </form>
-                    </Form>
-                </>
-                )}
-                 {formStep === 'otp_email' && (
-                <>
-                    <DialogHeader>
-                        <DialogTitle>Verify Email Address</DialogTitle>
-                        <DialogDescription>
-                            We've sent a 6-digit code to {detailsData?.email}. Please enter it below.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...otpForm}>
-                         <form onSubmit={otpForm.handleSubmit(handleEmailOtpSubmit)} className="space-y-4">
-                            <FormField
-                                control={otpForm.control}
-                                name="otp"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>One-Time Password</FormLabel>
-                                        <FormControl><Input placeholder="123456" {...field} disabled={isSubmitting} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <DialogFooter>
-                                <Button type="button" variant="ghost" onClick={() => setFormStep('details')} disabled={isSubmitting}>Back</Button>
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Verify & Save
-                                </Button>
-                            </DialogFooter>
-                         </form>
-                    </Form>
-                </>
-                )}
+                                )
+                            }
+                            return (
+                                <FormField
+                                    key={fieldName}
+                                    control={form.control}
+                                    name={fieldName as keyof ProfileFormValues}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1')}</FormLabel>
+                                            <FormControl><Input type={fieldName === 'dob' ? 'date' : (isPhone ? 'tel' : isEmail ? 'email' : 'text')} placeholder={`Your ${fieldName}`} {...field} disabled={isLocked || isSubmitting} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            );
+                        })}
+                        <DialogFooter className="sticky bottom-0 bg-background pt-4">
+                            <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
+                            <Button type="submit" disabled={isSubmitting || !form.formState.isDirty}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     )
