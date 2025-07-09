@@ -78,22 +78,8 @@ export default function LoginForm() {
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    try {
-        await handleGoogleSignIn();
-        // On success, AuthGuard handles redirection automatically.
-    } catch (error: any) {
-        let errorMessage = "An unknown error occurred during Google sign-in.";
-        if (error.code === 'auth/popup-closed-by-user') {
-            errorMessage = "Sign-in was cancelled. Please try again.";
-        } else if (error.code === 'auth/network-request-failed') {
-            errorMessage = "Network error. Please check your connection and try again.";
-        } else {
-            console.error("Google Sign-In Error:", error);
-        }
-        toast({ title: 'Google Sign-In Failed', description: errorMessage, variant: 'destructive' });
-    } finally {
-        setIsGoogleLoading(false);
-    }
+    await handleGoogleSignIn(router);
+    setIsGoogleLoading(false);
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;
