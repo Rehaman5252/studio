@@ -1,10 +1,8 @@
-
 'use client';
 
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import AuthGuard from '@/components/auth/AuthGuard';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => (
@@ -42,9 +40,5 @@ function RewardsPageContent() {
 }
 
 export default function RewardsPage() {
-  return (
-    <AuthGuard>
-      <RewardsPageContent />
-    </AuthGuard>
-  );
+  return <RewardsPageContent />;
 }

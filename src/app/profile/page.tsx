@@ -1,14 +1,17 @@
 'use client';
 
 import React from 'react';
-import AuthGuard from '@/components/auth/AuthGuard';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { useAuth } from '@/context/AuthProvider';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { User } from 'lucide-react';
+import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 
 // This is a client component that renders the main content of the profile page.
-// It's intended to be rendered *inside* AuthGuard.
 function ProfilePageContentWrapper() {
-  const { userData, isUserDataLoading } = useAuth();
+  const { user, userData, isUserDataLoading, loading: isAuthLoading } = useAuth();
+  
+  const isLoading = isAuthLoading || isUserDataLoading;
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -17,18 +20,26 @@ function ProfilePageContentWrapper() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        <ProfileContent userProfile={userData} isLoading={isUserDataLoading} />
+        {isLoading ? (
+            <ProfileSkeleton />
+        ) : !user ? (
+            <div className="flex items-center justify-center h-full">
+                 <LoginPrompt
+                    icon={User}
+                    title="View Your Pavilion"
+                    description="Before you check your stats and career highlights, you need to head to the dressing room. Please sign in or create an account."
+                />
+            </div>
+        ) : (
+            <ProfileContent userProfile={userData} isLoading={isLoading} />
+        )}
       </main>
     </div>
   );
 }
 
 
-// The main page export. It uses AuthGuard to protect the content.
+// The main page export. It no longer uses AuthGuard.
 export default function ProfilePage() {
-  return (
-    <AuthGuard>
-      <ProfilePageContentWrapper />
-    </AuthGuard>
-  );
+    return <ProfilePageContentWrapper />;
 }

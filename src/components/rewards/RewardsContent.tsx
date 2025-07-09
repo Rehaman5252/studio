@@ -1,14 +1,14 @@
-
 'use client';
 
 import React, { useState, useMemo, memo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Gift, ExternalLink, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import Link from 'next/link';
 
 const ScratchCard = memo(({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -144,7 +144,25 @@ export default function RewardsContent() {
 
   return (
     <>
-        {/* Conditionally render user-specific gifts only if logged in */}
+        {!user && (
+            <Card className="bg-card/80 border-primary/20 shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Gift className="text-primary" />
+                        Enter the Winner's Circle
+                    </CardTitle>
+                    <CardDescription>
+                        Sign in to claim special "Man of the Match" awards from our sponsors for every quiz format you conquer!
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    <Button asChild className="w-full">
+                        <Link href="/auth/login">Sign In to Unlock Rewards</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )}
+
         {user && (
             isHistoryLoading ? (
                  <section>
@@ -157,7 +175,7 @@ export default function RewardsContent() {
                 <BrandGiftsSection uniqueBrandAttempts={uniqueBrandAttempts} />
             )
         )}
-        {/* Always render generic offers for all users */}
+        
         <GenericOffersSection />
     </>
   );
