@@ -15,6 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -55,6 +56,7 @@ const cricketTeams = [
 export default function CompleteProfileForm() {
     const router = useRouter();
     const { user, userData } = useAuth();
+    const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<ProfileFormValues>({
@@ -77,25 +79,24 @@ export default function CompleteProfileForm() {
     const isEditing = userData && MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
 
     const onSubmit = async (data: ProfileFormValues) => {
-        console.log("🔥 handleSaveProfile triggered");
         setIsSubmitting(true);
     
         if (!user || !user.uid) {
-            console.error("❌ User not signed in");
-            alert("Please log in first.");
+            console.error("❌ User not signed in. Aborting save.");
+            toast({ title: 'Authentication Error', description: 'You must be signed in to save your profile.', variant: 'destructive'});
             setIsSubmitting(false);
             return;
         }
     
         if (!db) {
-            console.error("❌ Firestore database instance (db) is not available.");
-            alert("Database connection is not available. Please check the Firebase configuration.");
+            console.error("❌ Firestore database instance (db) is not available. Aborting save.");
+            toast({ title: 'Database Error', description: 'Cannot connect to the database. Please try again later.', variant: 'destructive' });
             setIsSubmitting(false);
             return;
         }
     
         console.log("✅ UID:", user.uid);
-        console.log("📝 Saving this profile data:", data);
+        console.log("📝 Attempting to save profile data:", data);
     
         try {
             const userDocRef = doc(db, 'users', user.uid);
@@ -117,12 +118,12 @@ export default function CompleteProfileForm() {
             await setDoc(userDocRef, updatePayload, { merge: true });
     
             console.log("✅ Profile saved successfully in Firestore.");
-            alert("Profile saved successfully!");
+            toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/profile');
     
         } catch (error: any) {
             console.error("🔥 Firestore error:", error);
-            alert("❌ Error saving profile: " + error.message);
+            toast({ title: 'Error Saving Profile', description: error.message, variant: 'destructive' });
         } finally {
             setIsSubmitting(false);
         }
