@@ -105,10 +105,9 @@ export default function CompleteProfileForm() {
             const updatePayload: DocumentData = { 
                 ...data,
                 updatedAt: serverTimestamp(),
-                profileCompleted: true, // Mark profile as complete
+                profileCompleted: true,
             };
 
-            // If phone number is new or changed, mark it as unverified
             if (data.phone !== userData?.phone) {
                 console.log("Phone number changed or is new, marking as unverified.");
                 updatePayload.phoneVerified = false;
@@ -121,13 +120,14 @@ export default function CompleteProfileForm() {
                 title: "Profile Saved!",
                 description: "Your information has been successfully updated.",
             });
-            router.push('/profile'); // Redirect to profile to see the changes
+            router.push('/profile');
         } catch (error: any) {
             console.error("🔥 Error saving profile:", error);
             toast({
                 title: "Update Failed",
-                description: "Could not save profile. Check the console for details and ensure you're online.",
+                description: `Could not save profile: ${error.message || 'Please check the console and ensure you are online.'}`,
                 variant: "destructive",
+                duration: 9000,
             });
         } finally {
             setIsSubmitting(false);
