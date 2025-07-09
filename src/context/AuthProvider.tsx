@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
-import { db, app } from '@/lib/firebase';
+import { db, app, isFirebaseConfigured } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, type DocumentData } from 'firebase/firestore';
 
 interface AuthContextType {
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    if (!app) {
+    if (!isFirebaseConfigured) {
       setLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);

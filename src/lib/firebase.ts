@@ -19,4 +19,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export { app, auth, db, storage };
+const isFirebaseConfigured =
+  firebaseConfig.apiKey &&
+  !firebaseConfig.apiKey.startsWith('YOUR_') &&
+  !!firebaseConfig.projectId;
+
+export { app, auth, db, storage, isFirebaseConfigured };
