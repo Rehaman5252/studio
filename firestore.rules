@@ -1,25 +1,28 @@
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Allow users to read/write only their own data
     match /users/{userId} {
       allow read, create, update, write: if request.auth != null && request.auth.uid == userId;
-      allow delete: if false;
+      allow delete: if false; // Prevent accidental deletion
     }
 
-    // Leaderboard rules
+    // Leaderboard rules for entries
     match /liveLeaderboard/{slotId}/entries/{userId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Prevent direct writing to the leaderboard collection itself
     match /liveLeaderboard/{slotId} {
-      allow read: if true;
-      allow write: if false;
+        allow read: if true;
+        allow write: if false; // Only entries can be written by users
     }
 
-    // Quiz history
+    // Quiz history rules
     match /users/{userId}/quizHistory/{attemptId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getAuth, GoogleAuthProvider, signInWithPopup, type User } from 'firebase/auth';

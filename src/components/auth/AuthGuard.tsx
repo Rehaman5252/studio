@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -5,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 
-const PROTECTED_ROUTES = ['/profile', '/quiz-history', '/certificates', '/rewards'];
+const PROTECTED_ROUTES = ['/profile', '/quiz-history', '/certificates', '/rewards', '/settings', '/support'];
 const AUTH_PAGES = ['/auth/login', '/auth/signup', '/auth/forgot-password', '/auth/verify-email'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode; }) {
