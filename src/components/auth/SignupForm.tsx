@@ -47,7 +47,6 @@ type OtpFormValues = z.infer<typeof otpSchema>;
 type FormStep = 'details' | 'otp_email' | 'otp_phone';
 
 export default function SignupForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
@@ -89,12 +88,22 @@ export default function SignupForm() {
 
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await handleGoogleSignIn(
-        // On success, AuthGuard will handle redirection
-        () => {}, 
-        (errorMsg) => toast({ title: 'Google Sign-In Failed', description: errorMsg, variant: 'destructive' })
-    );
-    setIsGoogleLoading(false);
+    try {
+        await handleGoogleSignIn();
+        // On success, AuthGuard handles redirection automatically.
+    } catch (error: any) {
+        let errorMessage = "An unknown error occurred during Google sign-in.";
+        if (error.code === 'auth/popup-closed-by-user') {
+            errorMessage = "Sign-in was cancelled. Please try again.";
+        } else if (error.code === 'auth/network-request-failed') {
+            errorMessage = "Network error. Please check your connection and try again.";
+        } else {
+            console.error("Google Sign-In Error:", error);
+        }
+        toast({ title: 'Google Sign-In Failed', description: errorMessage, variant: 'destructive' });
+    } finally {
+        setIsGoogleLoading(false);
+    }
   };
 
   const handleDetailsSubmit = async (data: DetailsFormValues) => {
@@ -169,17 +178,16 @@ export default function SignupForm() {
         
         await updateProfile(user, { displayName: detailsData.name });
         
-        // Use the centralized function to create the Firestore document
         await createNewUserDocument(user, {
             phone: detailsData.phone,
             emailVerified: true,
             phoneVerified: true
         });
         
-        toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Redirecting...' });
+        toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Please complete your profile.' });
         
-        // AuthGuard will handle redirection to /complete-profile
-        router.replace(from || '/home');
+        // AuthGuard will now correctly redirect to /complete-profile automatically.
+        // No router.push() needed here.
 
     } catch (error: any) {
         let message = error.message || 'An error occurred during sign up.';

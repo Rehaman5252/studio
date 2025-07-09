@@ -50,28 +50,19 @@ export const createNewUserDocument = async (user: User, additionalData: Record<s
   }
 };
 
-export const handleGoogleSignIn = async (onSuccess: () => void, onError: (msg: string) => void) => {
+/**
+ * Handles the Google Sign-In popup flow.
+ * Creates a user document in Firestore if it's a new user.
+ * Throws an error if sign-in fails, to be caught by the calling component.
+ */
+export const handleGoogleSignIn = async () => {
   if (!app) {
-    onError("Firebase is not configured. Cannot sign in.");
-    return;
+    throw new Error("Firebase is not configured. Cannot sign in.");
   }
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
-  try {
-    const result = await signInWithPopup(auth, provider);
-    // Create the user document if it doesn't exist, but don't navigate here.
-    // AuthGuard will handle all navigation based on profile completion status.
-    await createNewUserDocument(result.user);
-    onSuccess();
-  } catch (error: any) {
-    let errorMessage = "An unknown error occurred during Google sign-in.";
-    if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = "Sign-in was cancelled. Please try again.";
-    } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = "Network error. Please check your connection and try again.";
-    } else {
-        console.error("Google Sign-In Error:", error);
-    }
-    onError(errorMessage);
-  }
+  
+  const result = await signInWithPopup(auth, provider);
+  await createNewUserDocument(result.user);
+  // No navigation here. AuthGuard will handle redirection.
 };

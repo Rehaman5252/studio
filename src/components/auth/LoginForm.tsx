@@ -63,7 +63,7 @@ export default function LoginForm() {
 
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      router.push(from || '/home');
+      // AuthGuard will handle redirection
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -77,11 +77,22 @@ export default function LoginForm() {
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await handleGoogleSignIn(
-        () => router.push(from || '/home'),
-        (errorMsg) => toast({ title: 'Google Sign-In Failed', description: errorMsg, variant: 'destructive' })
-    );
-    setIsGoogleLoading(false);
+    try {
+        await handleGoogleSignIn();
+        // On success, AuthGuard handles redirection automatically.
+    } catch (error: any) {
+        let errorMessage = "An unknown error occurred during Google sign-in.";
+        if (error.code === 'auth/popup-closed-by-user') {
+            errorMessage = "Sign-in was cancelled. Please try again.";
+        } else if (error.code === 'auth/network-request-failed') {
+            errorMessage = "Network error. Please check your connection and try again.";
+        } else {
+            console.error("Google Sign-In Error:", error);
+        }
+        toast({ title: 'Google Sign-In Failed', description: errorMessage, variant: 'destructive' });
+    } finally {
+        setIsGoogleLoading(false);
+    }
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;
