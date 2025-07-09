@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, updateDoc, type DocumentData } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,6 @@ import {
     LogOut, Loader2, Copy, PercentCircle, Mail, MessageSquare, Settings,
     CheckCircle2, AlertCircle
 } from 'lucide-react';
-import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -435,18 +434,9 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         }
     };
 
-    const handleLogout = async () => {
-        if (!auth) {
-            toast({ title: "Firebase Not Configured", description: "Could not connect to authentication service.", variant: "destructive" });
-            return;
-        }
-        try {
-            await signOut(auth);
-            toast({ title: "Logged Out", description: "You have been successfully logged out." });
-            router.push('/auth/login');
-        } catch (error: any) {
-            toast({ title: "Logout Failed", description: error.message, variant: "destructive" });
-        }
+    const handleLogout = () => {
+        toast({ title: "Logout Disabled", description: "This is a mock account and cannot be logged out." });
+        router.push('/auth/login');
     };
     
     if (isLoading) {
@@ -633,5 +623,3 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         </Dialog>
     )
 }
-
-    
