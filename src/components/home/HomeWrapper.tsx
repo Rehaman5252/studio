@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -20,23 +21,34 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function HomeWrapper() {
-  const { isUserDataLoading } = useAuth();
+  const { user, isProfileComplete, isUserDataLoading } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
+  
   const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
+  const [showAuthAlert, setShowAuthAlert] = useState(false);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
-    if (isQuizStatusLoading || !lastAttemptInSlot) return false;
+    // This check is only relevant for logged-in users.
+    if (!user || isQuizStatusLoading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
-  }, [lastAttemptInSlot, isQuizStatusLoading]);
+  }, [user, lastAttemptInSlot, isQuizStatusLoading]);
 
   const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
+    if (!user) {
+        setShowAuthAlert(true);
+        return;
+    }
+    if (!isProfileComplete) {
+        setShowAuthAlert(true);
+        return;
+    }
     if (hasPlayedInCurrentSlot) {
         setShowSlotPlayedAlert(true);
     } else {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [router, hasPlayedInCurrentSlot]);
+  }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
 
   const handleSlotAlertAction = () => {
     if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -46,6 +58,15 @@ export default function HomeWrapper() {
     }
     setShowSlotPlayedAlert(false);
   };
+  
+  const handleAuthAlertAction = () => {
+      if (!user) {
+          router.push('/auth/login');
+      } else {
+          router.push('/complete-profile');
+      }
+      setShowAuthAlert(false);
+  }
 
   if (isQuizStatusLoading || isUserDataLoading) {
       return (
@@ -80,6 +101,28 @@ export default function HomeWrapper() {
             <AlertDialogCancel>Go Back</AlertDialogCancel>
             <AlertDialogAction onClick={handleSlotAlertAction}>
               {lastAttemptInSlot?.reason === 'malpractice' ? 'View Details' : 'View Scorecard'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={showAuthAlert} onOpenChange={setShowAuthAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {!user ? 'Login Required' : 'Profile Incomplete'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {!user 
+                ? 'You need to be logged in to play a quiz.' 
+                : 'Please complete your profile to start playing quizzes and earning rewards.'
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAuthAlertAction}>
+              {!user ? 'Go to Login' : 'Complete Profile'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

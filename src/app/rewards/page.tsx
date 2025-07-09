@@ -3,8 +3,8 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => (
@@ -27,7 +27,7 @@ const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent
   ssr: false,
 });
 
-export default function RewardsPage() {
+function RewardsPageContent() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -38,5 +38,13 @@ export default function RewardsPage() {
         <RewardsContent />
       </main>
     </div>
+  );
+}
+
+export default function RewardsPage() {
+  return (
+    <AuthGuard>
+      <RewardsPageContent />
+    </AuthGuard>
   );
 }

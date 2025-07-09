@@ -1,10 +1,9 @@
+
 'use client';
 
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import AuthGuard from '@/components/auth/AuthGuard';
 
 // Dynamically import the main content wrapper.
 // This component contains all the logic that depends on frequently updating state,
@@ -58,8 +57,6 @@ function HomePageContent() {
 // and renders the static layout, delegating all dynamic content to HomeWrapper.
 export default function HomeScreen() {
   return (
-    <AuthGuard>
-        <HomePageContent />
-    </AuthGuard>
+    <HomePageContent />
   );
 }
