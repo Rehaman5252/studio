@@ -19,7 +19,8 @@ import { verifyOtp } from '@/ai/flows/verify-otp-flow';
 import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
 import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { createNewUserDocument } from '@/lib/authUtils';
+
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -65,8 +66,6 @@ export default function SignupForm() {
   });
 
   useEffect(() => {
-    // This effect ensures the OTP form is reset whenever the form step changes to an OTP screen.
-    // This is more reliable than calling reset() inside the submit handlers.
     if (formStep === 'otp_email' || formStep === 'otp_phone') {
       otpForm.reset({ otp: '' });
     }
@@ -91,13 +90,13 @@ export default function SignupForm() {
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
     await handleGoogleSignIn(
-        () => router.replace(from || '/home'),
+        // On success, AuthGuard will handle redirection
+        () => {}, 
         (errorMsg) => toast({ title: 'Google Sign-In Failed', description: errorMsg, variant: 'destructive' })
     );
     setIsGoogleLoading(false);
   };
 
-  // Step 1: User submits their details
   const handleDetailsSubmit = async (data: DetailsFormValues) => {
     setIsLoading(true);
     try {
@@ -105,7 +104,7 @@ export default function SignupForm() {
         if (result.success) {
             toast({ 
                 title: 'Demo: Email OTP Sent', 
-                description: 'This is a demo. In a real app, you would receive an email. Please use OTP: 123456 to proceed.',
+                description: 'For this demo, use OTP: 123456 to proceed.',
                 duration: 9000,
             });
             setDetailsData(data);
@@ -114,13 +113,12 @@ export default function SignupForm() {
             toast({ title: 'Failed to Send OTP', description: result.message, variant: 'destructive' });
         }
     } catch (error: any) {
-        toast({ title: 'Error', description: 'An unexpected error occurred while sending the OTP.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
     } finally {
         setIsLoading(false);
     }
   };
   
-  // Step 2: User verifies email, we then send phone OTP
   const handleEmailOtpSubmit = async (otpData: OtpFormValues) => {
     if (!detailsData) return;
     setIsLoading(true);
@@ -128,16 +126,15 @@ export default function SignupForm() {
         const verifyResult = await verifyOtp({ email: detailsData.email, otp: otpData.otp });
         if (!verifyResult.success) {
             toast({ title: 'Email Verification Failed', description: verifyResult.message, variant: 'destructive' });
-            setIsLoading(false);
-            return;
+            return; // Stay on the same step
         }
 
-        toast({ title: 'Email Verified!', description: 'Now, let\'s verify your phone number.' });
+        toast({ title: 'Email Verified!', description: 'Now, let\'s verify your phone.' });
         const phoneOtpResult = await sendPhoneOtp({ phone: detailsData.phone });
         if (phoneOtpResult.success) {
             toast({ 
                 title: 'Demo: Phone OTP Sent', 
-                description: 'This is a demo. In a real app, you would receive an SMS. Please use OTP: 654321 to complete your signup.',
+                description: 'For this demo, use OTP: 654321 to sign up.',
                 duration: 9000,
             });
             setFormStep('otp_phone');
@@ -151,72 +148,43 @@ export default function SignupForm() {
     }
   };
   
-  // Step 3: User verifies phone, we create the account
   const handleFinalSignup = async (otpData: OtpFormValues) => {
     if (!detailsData) return;
     setIsLoading(true);
 
     if (!auth || !db) {
-        toast({ title: "Service Unavailable", description: "Cannot create account. Please contact support.", variant: "destructive" });
+        toast({ title: "Service Unavailable", description: "Cannot create account.", variant: "destructive" });
         setIsLoading(false);
         return;
     }
 
     try {
-        // First, verify the phone OTP
         const verifyResult = await verifyPhoneOtp({ phone: detailsData.phone, otp: otpData.otp });
         if (!verifyResult.success) {
-            toast({ title: 'Phone Verification Failed', description: verifyResult.message, variant: 'destructive' });
-            setIsLoading(false);
-            return;
+            throw new Error(verifyResult.message);
         }
 
-        // Create the user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, detailsData.email, detailsData.password);
         const user = userCredential.user;
         
-        // Update the user's profile display name in Auth
         await updateProfile(user, { displayName: detailsData.name });
-
-        // Create the user document in Firestore with verified flags
-        const userDocRef = doc(db, 'users', user.uid);
-        const newUserDoc = {
-            uid: user.uid,
-            name: detailsData.name,
-            email: detailsData.email,
+        
+        // Use the centralized function to create the Firestore document
+        await createNewUserDocument(user, {
             phone: detailsData.phone,
-            createdAt: serverTimestamp(),
-            photoURL: user.photoURL || '',
-            emailVerified: true, // Verified in this flow
-            phoneVerified: true, // Verified in this flow
-            totalRewards: 0,
-            quizzesPlayed: 0,
-            perfectScores: 0,
-            referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
-            dob: '',
-            gender: '',
-            occupation: '',
-            upi: '',
-            highestStreak: 0,
-            certificatesEarned: 0,
-            referralEarnings: 0,
-            favoriteFormat: '',
-            favoriteTeam: '',
-            favoriteCricketer: '',
-        };
-        await setDoc(userDocRef, newUserDoc);
+            emailVerified: true,
+            phoneVerified: true
+        });
         
-        toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Redirecting you now...' });
+        toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Redirecting...' });
         
-        // Redirect to home. HomeWrapper will prompt for profile completion.
-        router.replace('/home');
+        // AuthGuard will handle redirection to /complete-profile
+        router.replace(from || '/home');
 
     } catch (error: any) {
-        let message = 'An error occurred during sign up.';
+        let message = error.message || 'An error occurred during sign up.';
         if (error.code === 'auth/email-already-in-use') {
             message = 'This email is already registered. Please log in instead.';
-        } else {
-          console.error("Signup Error:", error);
         }
         toast({ title: 'Sign Up Failed', description: message, variant: 'destructive' });
     } finally {

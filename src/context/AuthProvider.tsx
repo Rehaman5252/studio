@@ -5,11 +5,18 @@ import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { db, isFirebaseConfigured, app } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, type DocumentData } from 'firebase/firestore';
 
+// Define the fields required for a complete profile
+const MANDATORY_PROFILE_FIELDS = [
+    'name', 'phone', 'dob', 'gender', 'occupation', 'upi', 
+    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
+];
+
 interface AuthContextType {
   user: User | null;
   userData: DocumentData | null;
   loading: boolean;
   isUserDataLoading: boolean;
+  isProfileComplete: boolean;
   quizHistory: DocumentData[] | null;
   isHistoryLoading: boolean;
 }
@@ -19,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   userData: null,
   loading: true,
   isUserDataLoading: true,
+  isProfileComplete: false,
   quizHistory: null,
   isHistoryLoading: true,
 });
@@ -28,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [quizHistory, setQuizHistory] = useState<DocumentData[] | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
@@ -55,14 +64,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
         if (doc.exists()) {
-          setUserData(doc.data());
+          const data = doc.data();
+          setUserData(data);
+          // Check if all mandatory fields are filled
+          const isComplete = MANDATORY_PROFILE_FIELDS.every(field => !!data[field]);
+          setIsProfileComplete(isComplete);
         } else {
           setUserData(null);
+          setIsProfileComplete(false);
         }
         setIsUserDataLoading(false);
       }, (error) => {
         console.error("Error fetching user data:", error);
         setUserData(null);
+        setIsProfileComplete(false);
         setIsUserDataLoading(false);
       });
 
@@ -87,9 +102,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeHistory();
       };
     } else {
-      // No user, clear data
+      // No user, clear all data
       setUserData(null);
       setQuizHistory(null);
+      setIsProfileComplete(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
     }
@@ -100,6 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     userData,
     loading,
     isUserDataLoading,
+    isProfileComplete,
     quizHistory,
     isHistoryLoading,
   };

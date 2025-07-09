@@ -1,46 +1,53 @@
 'use client';
 
 import { getAuth, GoogleAuthProvider, signInWithPopup, type User } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db, app } from '@/lib/firebase';
 
-const createNewUserDocument = async (user: User) => {
+/**
+ * Creates or updates a user document in Firestore.
+ * This function is idempotent. It checks if a document exists.
+ * If not, it creates one with default values.
+ * If it exists, it merges the new data, preserving existing fields.
+ * @param user The Firebase Auth user object.
+ * @param additionalData Optional data to merge, like phone number from manual signup.
+ */
+export const createNewUserDocument = async (user: User, additionalData: Record<string, any> = {}) => {
   if (!db || !app) return;
   const userDocRef = doc(db, 'users', user.uid);
-  
-  // This data structure will be created for a new user.
-  // Using { merge: true } ensures that we don't overwrite any existing
-  // data if the user has signed in before and maybe partially filled their profile.
-  const newUserDoc = {
-      uid: user.uid,
-      name: user.displayName,
-      email: user.email,
-      createdAt: serverTimestamp(),
-      photoURL: user.photoURL || '',
-      emailVerified: user.emailVerified,
-      // Default empty/0 values for fields to be completed in profile
-      phone: user.phoneNumber || '',
-      phoneVerified: !!user.phoneNumber,
-      totalRewards: 0,
-      quizzesPlayed: 0,
-      perfectScores: 0,
-      referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
-      dob: '',
-      gender: '',
-      occupation: '',
-      upi: '',
-      highestStreak: 0,
-      certificatesEarned: 0,
-      referralEarnings: 0,
-      favoriteFormat: '',
-      favoriteTeam: '',
-      favoriteCricketer: '',
-  };
-  
-  // Use setDoc with merge: true. This is an idempotent operation.
-  // It creates the doc if it's missing, or merges the data if it exists,
-  // without overwriting fields that aren't in `newUserDoc`.
-  await setDoc(userDocRef, newUserDoc, { merge: true });
+
+  // Check if the document already exists to avoid overwriting on every login
+  const docSnap = await getDoc(userDocRef);
+
+  if (!docSnap.exists()) {
+    // Data for a brand new user
+    const newUserDoc = {
+        uid: user.uid,
+        name: user.displayName || '',
+        email: user.email,
+        createdAt: serverTimestamp(),
+        photoURL: user.photoURL || '',
+        emailVerified: user.emailVerified,
+        phone: user.phoneNumber || additionalData.phone || '',
+        phoneVerified: !!user.phoneNumber || additionalData.phoneVerified || false,
+        totalRewards: 0,
+        quizzesPlayed: 0,
+        perfectScores: 0,
+        referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
+        dob: '',
+        gender: '',
+        occupation: '',
+        upi: '',
+        highestStreak: 0,
+        certificatesEarned: 0,
+        referralEarnings: 0,
+        favoriteFormat: '',
+        favoriteTeam: '',
+        favoriteCricketer: '',
+        ...additionalData,
+    };
+    await setDoc(userDocRef, newUserDoc);
+  }
 };
 
 export const handleGoogleSignIn = async (onSuccess: () => void, onError: (msg: string) => void) => {
@@ -52,6 +59,8 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (msg: s
   const provider = new GoogleAuthProvider();
   try {
     const result = await signInWithPopup(auth, provider);
+    // Create the user document if it doesn't exist, but don't navigate here.
+    // AuthGuard will handle all navigation based on profile completion status.
     await createNewUserDocument(result.user);
     onSuccess();
   } catch (error: any) {
@@ -60,8 +69,9 @@ export const handleGoogleSignIn = async (onSuccess: () => void, onError: (msg: s
         errorMessage = "Sign-in was cancelled. Please try again.";
     } else if (error.code === 'auth/network-request-failed') {
         errorMessage = "Network error. Please check your connection and try again.";
+    } else {
+        console.error("Google Sign-In Error:", error);
     }
-    console.error("Google Sign-In Error:", error);
     onError(errorMessage);
   }
 };

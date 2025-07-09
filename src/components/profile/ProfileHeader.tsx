@@ -1,12 +1,10 @@
-
 'use client';
 
 import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { DialogTrigger } from '@/components/ui/dialog';
-import { Edit, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 
@@ -17,7 +15,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
 
     return (
         <Card className="bg-card shadow-lg">
-            <CardContent className="p-4 flex items-center gap-4 relative">
+            <CardContent className="p-4 flex items-center gap-4">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                     <AvatarImage src={userProfile?.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
                     <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
@@ -49,11 +47,6 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                         {userProfile?.occupation && <span>&middot; {userProfile.occupation}</span>}
                     </div>
                 </div>
-                <DialogTrigger asChild>
-                    <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                </DialogTrigger>
             </CardContent>
         </Card>
     );

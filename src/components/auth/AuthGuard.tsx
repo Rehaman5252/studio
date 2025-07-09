@@ -6,29 +6,61 @@ import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthGuard({ children }: { children: React.ReactNode; }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isProfileComplete, isUserDataLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // If auth is done loading and there's no user, redirect to login
-    if (!loading && !user) {
-      const targetPath = `/auth/login?from=${encodeURIComponent(pathname)}`;
-      router.replace(targetPath);
+    // Wait until Firebase auth and user data have been checked
+    if (loading || isUserDataLoading) {
+      return;
     }
-  }, [user, loading, router, pathname]);
+    
+    // Auth check: if not logged in, redirect to login page
+    if (!user) {
+      // Allow access only to auth pages
+      if (!pathname.startsWith('/auth')) {
+        const targetPath = `/auth/login?from=${encodeURIComponent(pathname)}`;
+        router.replace(targetPath);
+      }
+      return;
+    }
 
-  // While loading, or if there's no user yet (and we're about to redirect),
-  // show a loading spinner.
-  if (loading || !user) {
+    // Profile completion check: if logged in but profile is incomplete
+    if (user && !isProfileComplete) {
+      // Redirect to completion page if not already there
+      if (pathname !== '/complete-profile') {
+        router.replace('/complete-profile');
+      }
+      return;
+    }
+    
+    // If logged in AND profile is complete
+    if (user && isProfileComplete) {
+      // Redirect away from auth pages and completion page to home
+      if (pathname.startsWith('/auth') || pathname === '/complete-profile') {
+        router.replace('/home');
+      }
+    }
+    
+  }, [user, loading, isProfileComplete, isUserDataLoading, router, pathname]);
+
+  // While loading, or if conditions for rendering haven't been met, show a loader.
+  // This prevents content flashing.
+  if (loading || isUserDataLoading) {
     return (
       <div className="flex flex-col h-screen bg-background items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Checking authentication...</p>
+        <p className="mt-4 text-muted-foreground">Initializing...</p>
       </div>
     );
   }
+  
+  // Specific rendering conditions to avoid showing content incorrectly during redirects
+  if (!user && !pathname.startsWith('/auth')) return null; // Don't render protected page if no user
+  if (user && !isProfileComplete && pathname !== '/complete-profile') return null; // Don't render page if profile incomplete and not on correct page
+  if (user && isProfileComplete && (pathname.startsWith('/auth') || pathname === '/complete-profile')) return null; // Don't render auth pages if logged in and complete
 
-  // If we have a user, render the children
+  // If all checks pass, render the children
   return <>{children}</>;
 }

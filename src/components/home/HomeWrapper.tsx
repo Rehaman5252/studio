@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { CubeBrand } from '@/components/Cube';
 import { useAuth } from '@/context/AuthProvider';
-import { isFirebaseConfigured } from '@/lib/firebase';
 import QuizSelection from './QuizSelection';
 import {
   AlertDialog,
@@ -19,36 +18,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from '@/components/ui/button';
-
-
-const MANDATORY_PROFILE_FIELDS = [
-    'name', 'phone', 'dob', 'gender', 'occupation', 'upi', 
-    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
-];
 
 export default function HomeWrapper() {
-  const { user, userData, isUserDataLoading } = useAuth();
+  const { isUserDataLoading } = useAuth();
   const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
   const router = useRouter();
-  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
   const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (isQuizStatusLoading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
   }, [lastAttemptInSlot, isQuizStatusLoading]);
-
-  // Check for profile completion once user data is loaded
-  useEffect(() => {
-    if (user && userData && !isUserDataLoading) {
-      const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userData[field]);
-      if (completedFields.length < MANDATORY_PROFILE_FIELDS.length) {
-        setShowProfilePrompt(true);
-      }
-    }
-  }, [user, userData, isUserDataLoading]);
-
 
   const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
     if (hasPlayedInCurrentSlot) {
@@ -101,23 +81,6 @@ export default function HomeWrapper() {
             <AlertDialogAction onClick={handleSlotAlertAction}>
               {lastAttemptInSlot?.reason === 'malpractice' ? 'View Details' : 'View Scorecard'}
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showProfilePrompt}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Please Complete Your Profile</AlertDialogTitle>
-            <AlertDialogDescription>
-              To provide the best experience and enable all features, including payouts, we require all profile fields to be completed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button onClick={() => {
-                setShowProfilePrompt(false);
-                router.push('/profile');
-            }}>Go to Profile</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
