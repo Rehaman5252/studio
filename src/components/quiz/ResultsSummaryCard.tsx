@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Trophy, Home, Info } from 'lucide-react';
@@ -21,7 +21,7 @@ interface ResultsSummaryCardProps {
     isViewingAnswers: boolean;
 }
 
-export const ResultsSummaryCard = ({
+const ResultsSummaryCardComponent = ({
     isReview, format, brand, score, totalQuestions, isPerfectScore, message, onGoHome, onViewAnswers, isViewingAnswers
 }: ResultsSummaryCardProps) => (
     <div className="w-full max-w-md">
@@ -73,3 +73,7 @@ export const ResultsSummaryCard = ({
         </Card>
     </div>
 );
+
+ResultsSummaryCardComponent.displayName = 'ResultsSummaryCard';
+
+export const ResultsSummaryCard = memo(ResultsSummaryCardComponent);
