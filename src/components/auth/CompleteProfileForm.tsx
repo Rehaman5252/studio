@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -114,7 +115,7 @@ export default function CompleteProfileForm() {
                 title: "Profile Saved!",
                 description: "Your information has been successfully updated.",
             });
-            router.push('/home');
+            router.push('/profile');
         } catch (error: any) {
             console.error("🔥 Error saving profile:", error);
             toast({
