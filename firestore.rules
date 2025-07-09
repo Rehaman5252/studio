@@ -1,10 +1,12 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all documents for now
-    // NOTE: This is for development purposes. You should secure your database
-    // with more specific rules before going to production.
+    // This rule allows anyone with your project ID to read and write to
+    // your database. This is good for getting started, but you will want to
+    // secure your rules before launching to production.
+    // See: https://firebase.google.com/docs/firestore/security/get-started
     match /{document=**} {
       allow read, write: if true;
     }
