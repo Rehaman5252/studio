@@ -77,16 +77,16 @@ export default function CompleteProfileForm() {
     const isEditing = userData && MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
 
     const onSubmit = async (data: ProfileFormValues) => {
-        console.log("🔥 Form submission triggered");
+        console.log("🔥 handleSaveProfile triggered");
         setIsSubmitting(true);
     
         if (!user || !user.uid) {
-            console.error("❌ User not signed in or UID is missing");
-            alert("User not signed in properly. Please try logging out and back in.");
+            console.error("❌ User not signed in");
+            alert("Please log in first.");
             setIsSubmitting(false);
             return;
         }
-        
+    
         if (!db) {
             console.error("❌ Firestore database instance (db) is not available.");
             alert("Database connection is not available. Please check the Firebase configuration.");
@@ -112,7 +112,8 @@ export default function CompleteProfileForm() {
                 console.log("INFO: Phone number has changed. Marking as unverified.");
                 updatePayload.phoneVerified = false;
             }
-    
+            
+            console.log("Writing to users/" + user.uid);
             await setDoc(userDocRef, updatePayload, { merge: true });
     
             console.log("✅ Profile saved successfully in Firestore.");
@@ -121,7 +122,7 @@ export default function CompleteProfileForm() {
     
         } catch (error: any) {
             console.error("🔥 Firestore error:", error);
-            alert(`❌ Error saving profile: ${error.message}\n\nCheck the browser console (F12) for more details.`);
+            alert("❌ Error saving profile: " + error.message);
         } finally {
             setIsSubmitting(false);
         }
