@@ -53,18 +53,12 @@ export default function HomeWrapper() {
 
 
   const handleStartQuiz = useCallback((selectedBrand: CubeBrand) => {
-    // This is the login gate for starting a quiz, as per the plan.
-    if (!user) {
-        router.push('/auth/login?from=/home');
-        return;
-    }
-
     if (hasPlayedInCurrentSlot) {
         setShowSlotPlayedAlert(true);
     } else {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [user, router, hasPlayedInCurrentSlot]);
+  }, [router, hasPlayedInCurrentSlot]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

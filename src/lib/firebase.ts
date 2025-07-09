@@ -2,7 +2,6 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
@@ -22,22 +21,18 @@ export const isFirebaseConfigured =
   !!firebaseConfig.projectId;
 
 let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
-let provider: GoogleAuthProvider | undefined;
 
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
-    provider = new GoogleAuthProvider(); // Create a single instance
 
   } catch (e) {
     console.error('Firebase initialization error:', e);
   }
 }
 
-export { app, auth, db, storage, provider };
+export { app, db, storage };
