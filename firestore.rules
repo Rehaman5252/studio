@@ -3,23 +3,24 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users can read/write their own profile, but other authenticated users can also read it for leaderboards.
+    // Users collection
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow get, list: if request.auth != null; // Allow reading for all-time leaderboard
+      // Any authenticated user can create their own document upon signup.
+      allow create: if request.auth != null;
+      
+      // Only the authenticated owner of the document can read or update it.
+      allow read, update: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Users can only read and write their own quiz history.
-    match /users/{userId}/quizHistory/{historyId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Live Leaderboard collection
+    match /liveLeaderboard/{slotId}/{document=**} {
+      // Anyone can read leaderboard data.
+      allow read: if true;
     }
 
-    // Authenticated users can read the live leaderboard.
-    match /liveLeaderboard/{slotId}/entries/{entryUserId} {
-       allow read: if request.auth != null;
-       // Users can only create or update their own entry.
-       allow write: if request.auth != null && request.auth.uid == entryUserId;
+    // Allow authenticated users to create entries in the leaderboard for themselves.
+    match /liveLeaderboard/{slotId}/entries/{userId} {
+      allow create: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
