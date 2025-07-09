@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, setDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +53,6 @@ const cricketTeams = [
 
 
 export default function CompleteProfileForm() {
-    const { toast } = useToast();
     const router = useRouter();
     const { user, userData } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,62 +77,51 @@ export default function CompleteProfileForm() {
     const isEditing = userData && MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
 
     const onSubmit = async (data: ProfileFormValues) => {
+        console.log("🔥 Form submission triggered");
         setIsSubmitting(true);
-        console.log("🟡 Starting save profile...");
-
+    
         if (!user || !user.uid) {
-            toast({ title: "Error: Not Signed In", description: "You must be signed in to save your profile.", variant: "destructive"});
-            console.error("🔴 No user or UID found");
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (!db) {
-            toast({ title: "Error: Database Unavailable", description: "Database connection not available. Please check configuration.", variant: "destructive"});
-            console.error("🔴 Database (db) object is not available.");
+            console.error("❌ User not signed in or UID is missing");
+            alert("User not signed in properly. Please try logging out and back in.");
             setIsSubmitting(false);
             return;
         }
         
-        console.log("🟢 UID:", user.uid);
-        console.log("📦 Profile Data:", data);
+        if (!db) {
+            console.error("❌ Firestore database instance (db) is not available.");
+            alert("Database connection is not available. Please check the Firebase configuration.");
+            setIsSubmitting(false);
+            return;
+        }
+    
+        console.log("✅ UID:", user.uid);
+        console.log("📝 Saving this profile data:", data);
     
         try {
             const userDocRef = doc(db, 'users', user.uid);
             
             const updatePayload: DocumentData = { 
                 ...data,
-                updatedAt: serverTimestamp(),
-                profileCompleted: true, // Mark profile as complete
                 email: user.email,
                 photoURL: user.photoURL,
+                updatedAt: serverTimestamp(),
+                profileCompleted: true,
             };
     
-            // Only mark phone as unverified if the number has changed.
             if (data.phone !== userData?.phone) {
-                console.log("INFO: Phone number is new or has changed. Setting phoneVerified to false.");
+                console.log("INFO: Phone number has changed. Marking as unverified.");
                 updatePayload.phoneVerified = false;
             }
     
             await setDoc(userDocRef, updatePayload, { merge: true });
     
-            console.log("✅ Profile saved successfully.");
-            toast({
-                title: "Profile Saved!",
-                description: "Your information has been successfully updated.",
-            });
-            
-            // Redirect to the profile page to see the changes
+            console.log("✅ Profile saved successfully in Firestore.");
+            alert("Profile saved successfully!");
             router.push('/profile');
     
         } catch (error: any) {
-            console.error("🔥 Error saving profile:", error);
-            toast({
-                title: "Update Failed",
-                description: `Could not save your profile. Error: ${error.message}`,
-                variant: "destructive",
-                duration: 9000,
-            });
+            console.error("🔥 Firestore error:", error);
+            alert(`❌ Error saving profile: ${error.message}\n\nCheck the browser console (F12) for more details.`);
         } finally {
             setIsSubmitting(false);
         }
