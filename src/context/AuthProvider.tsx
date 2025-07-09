@@ -1,9 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from 'firebase/auth';
-import type { DocumentData } from 'firebase/firestore';
-import { mockQuizHistory as mockHistoryData } from '@/lib/mockData';
+import { db } from '@/lib/firebase';
+import { collection, query, onSnapshot, orderBy, type DocumentData } from 'firebase/firestore';
 
 // --- Default Mock User ---
 const mockUser = {
@@ -50,22 +50,60 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: mockUser,
-  userData: mockUserData,
-  loading: false,
-  isUserDataLoading: false,
-  quizHistory: mockHistoryData,
-  isHistoryLoading: false,
+  user: null,
+  userData: null,
+  loading: true,
+  isUserDataLoading: true,
+  quizHistory: null,
+  isHistoryLoading: true,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [quizHistory, setQuizHistory] = useState<DocumentData[] | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  
+  // Hardcoded mock user data and loading states as auth is disabled
+  const user = mockUser;
+  const userData = mockUserData;
+  const loading = false;
+  const isUserDataLoading = false;
+
+  useEffect(() => {
+    // This effect establishes a real-time listener for the mock user's quiz history.
+    const uid = mockUser.uid;
+    if (!db) {
+        console.warn("Firestore not available, can't fetch quiz history in real-time.");
+        setIsHistoryLoading(false);
+        return;
+    }
+
+    const historyRef = collection(db, 'users', uid, 'quizHistory');
+    const q = query(historyRef, orderBy('timestamp', 'desc'));
+    
+    // onSnapshot creates a real-time subscription to the query.
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const historyData: DocumentData[] = [];
+        snapshot.forEach((doc) => {
+            historyData.push({ ...doc.data(), id: doc.id });
+        });
+        setQuizHistory(historyData);
+        setIsHistoryLoading(false);
+    }, (error) => {
+        console.error("Error fetching quiz history in real-time:", error);
+        setIsHistoryLoading(false);
+    });
+
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
+  }, []); // Empty dependency array means this runs once on mount
+
   const value = { 
-    user: mockUser,
-    userData: mockUserData,
-    loading: false,
-    isUserDataLoading: false,
-    quizHistory: mockHistoryData,
-    isHistoryLoading: false,
+    user,
+    userData,
+    loading,
+    isUserDataLoading,
+    quizHistory,
+    isHistoryLoading,
   };
 
   return (
