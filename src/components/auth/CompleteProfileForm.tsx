@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, updateDoc, type DocumentData } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -82,11 +82,16 @@ export default function CompleteProfileForm({ userProfile }: { userProfile: any 
             const userDocRef = doc(db, 'users', userProfile.uid);
             
             const updatePayload: DocumentData = { ...data };
+            // If the phone number is being changed or set for the first time, mark it as unverified.
             if (data.phone !== userProfile.phone) {
                 updatePayload.phoneVerified = false;
             }
+            updatePayload.updatedAt = serverTimestamp();
 
-            await updateDoc(userDocRef, updatePayload);
+            // Use setDoc with merge for a robust save operation.
+            // This will create or update the document without overwriting existing fields unintentionally.
+            await setDoc(userDocRef, updatePayload, { merge: true });
+
             toast({
                 title: "Profile Saved",
                 description: "Your information has been saved successfully.",
