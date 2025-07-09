@@ -80,24 +80,24 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("SUBMIT_ATTEMPT: Form submitted. Submitting state is true.");
-        console.log("SUBMIT_DATA: ", data);
-    
+        console.log("🟡 Starting save profile...");
+
         if (!user || !user.uid) {
             toast({ title: "Error: Not Signed In", description: "You must be signed in to save your profile.", variant: "destructive"});
-            console.error("SUBMIT_FAIL: No user or UID found.");
+            console.error("🔴 No user or UID found");
             setIsSubmitting(false);
             return;
         }
-    
+
         if (!db) {
             toast({ title: "Error: Database Unavailable", description: "Database connection not available. Please check configuration.", variant: "destructive"});
-            console.error("SUBMIT_FAIL: Database (db) object is not available.");
+            console.error("🔴 Database (db) object is not available.");
             setIsSubmitting(false);
             return;
         }
         
-        console.log(`SUBMIT_INFO: Attempting to write to Firestore for user UID: ${user.uid}`);
+        console.log("🟢 UID:", user.uid);
+        console.log("📦 Profile Data:", data);
     
         try {
             const userDocRef = doc(db, 'users', user.uid);
@@ -105,40 +105,37 @@ export default function CompleteProfileForm() {
             const updatePayload: DocumentData = { 
                 ...data,
                 updatedAt: serverTimestamp(),
-                profileCompleted: true,
-                email: user.email, // Ensure email is preserved
-                photoURL: user.photoURL, // Ensure photoURL is preserved
+                profileCompleted: true, // Mark profile as complete
+                email: user.email,
+                photoURL: user.photoURL,
             };
     
-            // Only mark phone as unverified if the number has changed from what's in the database.
+            // Only mark phone as unverified if the number has changed.
             if (data.phone !== userData?.phone) {
-                console.log("SUBMIT_INFO: Phone number is new or has changed. Setting phoneVerified to false.");
+                console.log("INFO: Phone number is new or has changed. Setting phoneVerified to false.");
                 updatePayload.phoneVerified = false;
             }
     
-            console.log("SUBMIT_PAYLOAD: Data being sent to Firestore:", updatePayload);
-            
-            // The actual write operation
             await setDoc(userDocRef, updatePayload, { merge: true });
     
-            console.log("SUBMIT_SUCCESS: Firestore write completed successfully.");
+            console.log("✅ Profile saved successfully.");
             toast({
                 title: "Profile Saved!",
                 description: "Your information has been successfully updated.",
             });
             
+            // Redirect to the profile page to see the changes
             router.push('/profile');
     
         } catch (error: any) {
-            console.error("SUBMIT_ERROR: An error occurred during the Firestore setDoc operation.", error);
+            console.error("🔥 Error saving profile:", error);
             toast({
                 title: "Update Failed",
-                description: `Could not save your profile. Check the browser console for details. Error: ${error.message}`,
+                description: `Could not save your profile. Error: ${error.message}`,
                 variant: "destructive",
                 duration: 9000,
             });
         } finally {
-            console.log("SUBMIT_FINALLY: Submission process finished. Setting submitting state to false.");
             setIsSubmitting(false);
         }
     };
