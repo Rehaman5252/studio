@@ -91,7 +91,7 @@ export default function SignupForm() {
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
     await handleGoogleSignIn(
-        () => router.push(from || '/home'),
+        () => router.replace(from || '/home'),
         (errorMsg) => toast({ title: 'Google Sign-In Failed', description: errorMsg, variant: 'destructive' })
     );
     setIsGoogleLoading(false);
@@ -205,13 +205,18 @@ export default function SignupForm() {
             favoriteCricketer: '',
         };
         await setDoc(userDocRef, newUserDoc);
-
-        router.push('/profile');
+        
+        toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Redirecting you now...' });
+        
+        // Redirect to home. HomeWrapper will prompt for profile completion.
+        router.replace('/home');
 
     } catch (error: any) {
         let message = 'An error occurred during sign up.';
         if (error.code === 'auth/email-already-in-use') {
             message = 'This email is already registered. Please log in instead.';
+        } else {
+          console.error("Signup Error:", error);
         }
         toast({ title: 'Sign Up Failed', description: message, variant: 'destructive' });
     } finally {

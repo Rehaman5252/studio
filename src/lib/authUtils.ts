@@ -1,23 +1,25 @@
 'use client';
 
 import { getAuth, GoogleAuthProvider, signInWithPopup, type User } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, app } from '@/lib/firebase';
 
 const createNewUserDocument = async (user: User) => {
   if (!db || !app) return;
   const userDocRef = doc(db, 'users', user.uid);
-  const userDoc = await getDoc(userDocRef);
-
-  if (!userDoc.exists()) {
-    const newUserDoc = {
+  
+  // This data structure will be created for a new user.
+  // Using { merge: true } ensures that we don't overwrite any existing
+  // data if the user has signed in before and maybe partially filled their profile.
+  const newUserDoc = {
       uid: user.uid,
       name: user.displayName,
       email: user.email,
-      phone: user.phoneNumber || '',
       createdAt: serverTimestamp(),
       photoURL: user.photoURL || '',
       emailVerified: user.emailVerified,
+      // Default empty/0 values for fields to be completed in profile
+      phone: user.phoneNumber || '',
       phoneVerified: !!user.phoneNumber,
       totalRewards: 0,
       quizzesPlayed: 0,
@@ -33,9 +35,12 @@ const createNewUserDocument = async (user: User) => {
       favoriteFormat: '',
       favoriteTeam: '',
       favoriteCricketer: '',
-    };
-    await setDoc(userDocRef, newUserDoc);
-  }
+  };
+  
+  // Use setDoc with merge: true. This is an idempotent operation.
+  // It creates the doc if it's missing, or merges the data if it exists,
+  // without overwriting fields that aren't in `newUserDoc`.
+  await setDoc(userDocRef, newUserDoc, { merge: true });
 };
 
 export const handleGoogleSignIn = async (onSuccess: () => void, onError: (msg: string) => void) => {
