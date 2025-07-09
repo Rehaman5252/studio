@@ -1,10 +1,9 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow users to read and write to their own document
+    // Allow users to read/write their own profile
     match /users/{userId} {
       allow read, create, update, write: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
@@ -18,7 +17,7 @@ service cloud.firestore {
 
     match /liveLeaderboard/{slotId} {
       allow read: if true;
-      allow write: if false; // Prevent overwriting the whole slot document
+      allow write: if false;
     }
 
     // Quiz history rules

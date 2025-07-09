@@ -13,13 +13,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn } from '@/lib/authUtils';
+import { handleGoogleSignIn, createNewUserDocument } from '@/lib/authUtils';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { verifyOtp } from '@/ai/flows/verify-otp-flow';
 import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
 import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
-import { createNewUserDocument } from '@/lib/authUtils';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -47,6 +46,7 @@ type OtpFormValues = z.infer<typeof otpSchema>;
 type FormStep = 'details' | 'otp_email' | 'otp_phone';
 
 export default function SignupForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
@@ -179,9 +179,10 @@ export default function SignupForm() {
         await updateProfile(user, { displayName: detailsData.name });
         
         await createNewUserDocument(user, {
+            name: detailsData.name,
             phone: detailsData.phone,
             emailVerified: true,
-            phoneVerified: true
+            phoneVerified: true,
         });
         
         toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Please complete your profile.' });

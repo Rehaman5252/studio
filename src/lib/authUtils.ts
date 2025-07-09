@@ -23,7 +23,7 @@ export const createNewUserDocument = async (user: User, additionalData: Record<s
     // Data for a brand new user
     const newUserDoc = {
         uid: user.uid,
-        name: user.displayName || '',
+        name: user.displayName || additionalData.name || '',
         email: user.email,
         createdAt: serverTimestamp(),
         photoURL: user.photoURL || '',
@@ -34,19 +34,19 @@ export const createNewUserDocument = async (user: User, additionalData: Record<s
         quizzesPlayed: 0,
         perfectScores: 0,
         referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
-        dob: '',
-        gender: '',
-        occupation: '',
-        upi: '',
-        highestStreak: 0,
-        certificatesEarned: 0,
-        referralEarnings: 0,
-        favoriteFormat: '',
-        favoriteTeam: '',
-        favoriteCricketer: '',
+        profileCompleted: false, // New users must complete their profile
+        // ... other fields from additionalData
         ...additionalData,
     };
     await setDoc(userDocRef, newUserDoc);
+  } else {
+    // For existing users, just merge any new data
+    // This is useful if they update their name via Google, for example
+    await setDoc(userDocRef, {
+        name: user.displayName,
+        photoURL: user.photoURL,
+        ...additionalData
+    }, { merge: true });
   }
 };
 
@@ -63,6 +63,8 @@ export const handleGoogleSignIn = async () => {
   const provider = new GoogleAuthProvider();
   
   const result = await signInWithPopup(auth, provider);
+  if (!result.user) throw new Error("Google sign-in returned no user.");
+  
   await createNewUserDocument(result.user);
   // No navigation here. AuthGuard will handle redirection.
 };
