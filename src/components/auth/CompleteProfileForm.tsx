@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/context/AuthProvider';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -51,9 +52,10 @@ const cricketTeams = [
 ];
 
 
-export default function CompleteProfileForm({ userProfile }: { userProfile: any }) {
+export default function CompleteProfileForm() {
     const { toast } = useToast();
     const router = useRouter();
+    const { user, userData } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<ProfileFormValues>({
@@ -62,46 +64,62 @@ export default function CompleteProfileForm({ userProfile }: { userProfile: any 
     });
 
     useEffect(() => {
-        if (userProfile) {
+        if (userData) {
             const defaults = { ...defaultFormValues };
             for (const field of MANDATORY_PROFILE_FIELDS) {
-                if (userProfile[field]) {
-                    (defaults as any)[field] = userProfile[field];
+                if (userData[field]) {
+                    (defaults as any)[field] = userData[field];
                 }
             }
             form.reset(defaults);
         }
-    }, [userProfile, form]);
+    }, [userData, form]);
     
-    const isEditing = userProfile && MANDATORY_PROFILE_FIELDS.every(field => !!userProfile[field]);
+    const isEditing = userData && MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (!userProfile?.uid || !db) return;
         setIsSubmitting(true);
+        console.log("Saving profile...");
+
+        if (!user || !user.uid) {
+            toast({ title: "Error", description: "You are not logged in. Cannot save profile.", variant: "destructive"});
+            console.error("Save aborted: User not signed in.");
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (!db) {
+            toast({ title: "Error", description: "Database connection not available.", variant: "destructive"});
+            console.error("Save aborted: Database not initialized.");
+            setIsSubmitting(false);
+            return;
+        }
+        
         try {
-            const userDocRef = doc(db, 'users', userProfile.uid);
+            const userDocRef = doc(db, 'users', user.uid);
+            console.log("Saving data for user UID:", user.uid);
+            console.log("Payload being sent:", data);
             
             const updatePayload: DocumentData = { ...data };
-            // If the phone number is being changed or set for the first time, mark it as unverified.
-            if (data.phone !== userProfile.phone) {
+            if (data.phone !== userData?.phone) {
+                console.log("Phone number changed, marking as unverified.");
                 updatePayload.phoneVerified = false;
             }
             updatePayload.updatedAt = serverTimestamp();
 
-            // Use setDoc with merge for a robust save operation.
-            // This will create or update the document without overwriting existing fields unintentionally.
             await setDoc(userDocRef, updatePayload, { merge: true });
 
+            console.log("✅ Profile saved successfully to Firestore.");
             toast({
-                title: "Profile Saved",
-                description: "Your information has been saved successfully.",
+                title: "Profile Saved!",
+                description: "Your information has been successfully updated.",
             });
-            router.push('/home'); // Redirect to home after saving
+            router.push('/home');
         } catch (error: any) {
-            console.error("Profile update failed:", error);
+            console.error("🔥 Error saving profile:", error);
             toast({
                 title: "Update Failed",
-                description: "Could not save your profile. Please try again.",
+                description: "Could not save profile. Please check the console for details and ensure you're online.",
                 variant: "destructive",
             });
         } finally {

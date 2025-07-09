@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 
 function CompleteProfilePageContent() {
-  const { userData, isUserDataLoading } = useAuth();
+  const { isUserDataLoading } = useAuth();
 
   if (isUserDataLoading) {
     return (
@@ -21,7 +21,7 @@ function CompleteProfilePageContent() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <main className="flex-1 flex items-center justify-center p-4">
-        <CompleteProfileForm userProfile={userData} />
+        <CompleteProfileForm />
       </main>
     </div>
   );
