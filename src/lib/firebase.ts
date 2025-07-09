@@ -2,7 +2,7 @@
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableNetwork, disableNetwork } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -19,8 +19,20 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// This check is used by auth components to show a developer-friendly warning
-// if the Firebase environment variables are not configured correctly.
 const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+
+// Hard-reset the network connection to fix issues where Firestore gets stuck offline.
+// This is safe to run on every app load.
+(async () => {
+    if (db && isFirebaseConfigured) {
+        try {
+            await disableNetwork(db);
+            await enableNetwork(db);
+            console.log('✅ Firestore network connection has been reset.');
+        } catch (err) {
+            console.warn('⚠️ Could not reset Firestore network connection:', err);
+        }
+    }
+})();
 
 export { app, auth, db, storage, isFirebaseConfigured };
