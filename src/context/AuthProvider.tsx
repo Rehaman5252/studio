@@ -1,15 +1,10 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { db, isFirebaseConfigured, app } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, type DocumentData } from 'firebase/firestore';
-
-// Define the fields required for a complete profile
-const MANDATORY_PROFILE_FIELDS = [
-    'name', 'phone', 'dob', 'gender', 'occupation', 'upi', 
-    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
-];
 
 interface AuthContextType {
   user: User | null;
@@ -66,9 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (doc.exists()) {
           const data = doc.data();
           setUserData(data);
-          // Check if all mandatory fields are filled
-          const isComplete = MANDATORY_PROFILE_FIELDS.every(field => !!data[field]);
-          setIsProfileComplete(isComplete);
+          // Check for the 'profileCompleted' flag for a more reliable status.
+          setIsProfileComplete(!!data.profileCompleted);
         } else {
           setUserData(null);
           setIsProfileComplete(false);

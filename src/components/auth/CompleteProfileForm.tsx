@@ -80,33 +80,39 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("Saving profile...");
+        console.log("🟡 Starting save profile");
 
         if (!user || !user.uid) {
-            toast({ title: "Error", description: "You are not logged in. Cannot save profile.", variant: "destructive"});
-            console.error("Save aborted: User not signed in.");
+            toast({ title: "Error", description: "You are not signed in. Cannot save profile.", variant: "destructive"});
+            console.error("🔴 No user or UID found");
             setIsSubmitting(false);
             return;
         }
 
         if (!db) {
             toast({ title: "Error", description: "Database connection not available.", variant: "destructive"});
-            console.error("Save aborted: Database not initialized.");
+            console.error("🔴 Database not initialized.");
             setIsSubmitting(false);
             return;
         }
         
+        console.log("🟢 UID:", user.uid);
+        console.log("📦 Profile Data being sent:", data);
+
         try {
             const userDocRef = doc(db, 'users', user.uid);
-            console.log("Saving data for user UID:", user.uid);
-            console.log("Payload being sent:", data);
             
-            const updatePayload: DocumentData = { ...data };
+            const updatePayload: DocumentData = { 
+                ...data,
+                updatedAt: serverTimestamp(),
+                profileCompleted: true, // Mark profile as complete
+            };
+
+            // If phone number is new or changed, mark it as unverified
             if (data.phone !== userData?.phone) {
-                console.log("Phone number changed, marking as unverified.");
+                console.log("Phone number changed or is new, marking as unverified.");
                 updatePayload.phoneVerified = false;
             }
-            updatePayload.updatedAt = serverTimestamp();
 
             await setDoc(userDocRef, updatePayload, { merge: true });
 
@@ -115,12 +121,12 @@ export default function CompleteProfileForm() {
                 title: "Profile Saved!",
                 description: "Your information has been successfully updated.",
             });
-            router.push('/profile');
+            router.push('/profile'); // Redirect to profile to see the changes
         } catch (error: any) {
             console.error("🔥 Error saving profile:", error);
             toast({
                 title: "Update Failed",
-                description: "Could not save profile. Please check the console for details and ensure you're online.",
+                description: "Could not save profile. Check the console for details and ensure you're online.",
                 variant: "destructive",
             });
         } finally {
