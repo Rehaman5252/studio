@@ -80,25 +80,25 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🟡 Starting profile save...");
-
+        console.log("SUBMIT_ATTEMPT: Form submitted. Submitting state is true.");
+        console.log("SUBMIT_DATA: ", data);
+    
         if (!user || !user.uid) {
             toast({ title: "Error: Not Signed In", description: "You must be signed in to save your profile.", variant: "destructive"});
-            console.error("🔴 ABORT: No user or UID found during save attempt.");
+            console.error("SUBMIT_FAIL: No user or UID found.");
             setIsSubmitting(false);
             return;
         }
-
+    
         if (!db) {
-            toast({ title: "Error: Database Unavailable", description: "Database connection not available.", variant: "destructive"});
-            console.error("🔴 ABORT: Database not initialized.");
+            toast({ title: "Error: Database Unavailable", description: "Database connection not available. Please check configuration.", variant: "destructive"});
+            console.error("SUBMIT_FAIL: Database (db) object is not available.");
             setIsSubmitting(false);
             return;
         }
         
-        console.log("🟢 User UID:", user.uid);
-        console.log("📦 Profile data being sent to Firestore:", data);
-
+        console.log(`SUBMIT_INFO: Attempting to write to Firestore for user UID: ${user.uid}`);
+    
         try {
             const userDocRef = doc(db, 'users', user.uid);
             
@@ -106,33 +106,39 @@ export default function CompleteProfileForm() {
                 ...data,
                 updatedAt: serverTimestamp(),
                 profileCompleted: true,
+                email: user.email, // Ensure email is preserved
+                photoURL: user.photoURL, // Ensure photoURL is preserved
             };
-
-            // Only mark phone as unverified if the number has changed.
+    
+            // Only mark phone as unverified if the number has changed from what's in the database.
             if (data.phone !== userData?.phone) {
-                console.log("Phone number changed or is new, marking as unverified.");
+                console.log("SUBMIT_INFO: Phone number is new or has changed. Setting phoneVerified to false.");
                 updatePayload.phoneVerified = false;
             }
-
-            // Using setDoc with merge:true is robust for both creating and updating.
+    
+            console.log("SUBMIT_PAYLOAD: Data being sent to Firestore:", updatePayload);
+            
+            // The actual write operation
             await setDoc(userDocRef, updatePayload, { merge: true });
-
-            console.log("✅ Profile saved successfully to Firestore.");
+    
+            console.log("SUBMIT_SUCCESS: Firestore write completed successfully.");
             toast({
                 title: "Profile Saved!",
                 description: "Your information has been successfully updated.",
             });
-            // Redirect to the main profile page to see the changes.
+            
             router.push('/profile');
+    
         } catch (error: any) {
-            console.error("🔥 Firestore Error: Failed to save profile:", error);
+            console.error("SUBMIT_ERROR: An error occurred during the Firestore setDoc operation.", error);
             toast({
                 title: "Update Failed",
-                description: `Could not save your profile. Error: ${error.message}`,
+                description: `Could not save your profile. Check the browser console for details. Error: ${error.message}`,
                 variant: "destructive",
                 duration: 9000,
             });
         } finally {
+            console.log("SUBMIT_FINALLY: Submission process finished. Setting submitting state to false.");
             setIsSubmitting(false);
         }
     };
@@ -141,6 +147,7 @@ export default function CompleteProfileForm() {
         <Card className="w-full max-w-lg">
             <CardHeader>
                 <CardTitle>{isEditing ? 'Edit Profile' : 'Complete Your Profile'}</CardTitle>
+
                 <CardDescription>
                     {isEditing 
                         ? 'Update your profile information below.'
