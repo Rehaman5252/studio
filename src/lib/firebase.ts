@@ -1,8 +1,9 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, type Firestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -33,15 +34,6 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
     db = getFirestore(app);
     storage = getStorage(app);
     provider = new GoogleAuthProvider(); // Create a single instance
-    
-    enableIndexedDbPersistence(db)
-      .catch((err) => {
-        if (err.code == 'failed-precondition') {
-          console.warn('Firebase persistence failed: Multiple tabs open. Offline mode might not work correctly.');
-        } else if (err.code == 'unimplemented') {
-          console.warn('Firebase persistence is not supported in this browser.');
-        }
-      });
 
   } catch (e) {
     console.error('Firebase initialization error:', e);
