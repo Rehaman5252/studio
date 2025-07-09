@@ -169,8 +169,8 @@ export default function SignupForm() {
         
         toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Please complete your profile.' });
         
-        // AuthGuard will now correctly redirect to /complete-profile automatically.
-        // No router.push() needed here.
+        // Explicitly redirect to solve the infinite loading issue.
+        router.push('/complete-profile');
 
     } catch (error: any) {
         let message = error.message || 'An error occurred during sign up.';

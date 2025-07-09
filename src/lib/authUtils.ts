@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getAuth, GoogleAuthProvider, signInWithPopup, type User } from 'firebase/auth';
@@ -63,18 +64,12 @@ export async function handleGoogleSignIn(router: AppRouterInstance) {
     await createUserDocument(user);
     router.push('/complete-profile');
 
-  } catch (e: any) {
-    console.error("❌ Google Sign-In failed:", e);
-    
-    let message = "An unknown error occurred during sign-in.";
-    if (e.code === 'auth/popup-closed-by-user') {
-        message = "Sign-in was cancelled. Please try again.";
-    } else if (e.code === 'auth/network-request-failed') {
-        message = "Network error. Please check your internet connection.";
-    } else if (e.message) {
-        message = e.message;
+  } catch (error: any) {
+    if (error.code === 'auth/popup-closed-by-user') {
+      console.warn("User closed the Google Sign-In popup. Not an error.");
+    } else {
+      console.error("❌ Google Sign-In failed:", error);
+      alert("Sign in failed: " + (error.message || "An unknown error occurred."));
     }
-    
-    alert("Sign in failed: " + message);
   }
 }
