@@ -4,7 +4,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
-import useRequireAuth from '@/hooks/useRequireAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {

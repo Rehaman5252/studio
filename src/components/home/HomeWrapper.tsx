@@ -60,38 +60,6 @@ export default function HomeWrapper() {
     }
   }, [router, hasPlayedInCurrentSlot]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            console.log('User location access granted:', {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          },
-          (error) => {
-            console.error('Geolocation error:', error.message);
-          }
-        );
-      } else {
-        console.log('Geolocation is not supported by this browser.');
-      }
-      
-      if ('Notification' in window && Notification.permission !== 'granted') {
-          if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                console.log('Notification permission granted.');
-                } else {
-                console.log('Notification permission denied.');
-                }
-            });
-          }
-      }
-    }
-  }, []);
-
   const handleSlotAlertAction = () => {
     if (lastAttemptInSlot?.reason === 'malpractice') {
         router.push(`/quiz/results?reason=malpractice`);

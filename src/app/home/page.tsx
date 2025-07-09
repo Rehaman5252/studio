@@ -1,6 +1,6 @@
+
 'use client';
 
-import useRequireAuth from '@/hooks/useRequireAuth';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';

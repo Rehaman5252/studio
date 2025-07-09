@@ -142,7 +142,7 @@ const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion
             <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
             <CardContent className="space-y-4">
                 {questions.map((q, i) => (
-                    <div key={i} className="text-sm p-3 rounded-lg bg-background">
+                    <div key={q.questionText} className="text-sm p-3 rounded-lg bg-background">
                         <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
                         <p className={cn("flex items-center text-foreground/90", userAnswers[i] === q.correctAnswer ? 'text-green-400' : 'text-red-400' )}>
                           {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0"/> : <XCircle className="mr-2 shrink-0"/>}

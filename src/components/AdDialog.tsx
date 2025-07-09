@@ -59,8 +59,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
       clearInterval(timer);
       clearTimeout(skippableTimer);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, duration, skippableAfter, adType]);
+  }, [open, duration, skippableAfter, adType, onAdFinished]);
 
   const handleVideoEnd = () => {
     onAdFinished();

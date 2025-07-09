@@ -107,13 +107,12 @@ const QuizOption = memo(({ option, index, isSelected, selectedOption, handleAnsw
 });
 QuizOption.displayName = 'QuizOption';
 
-const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, handleAnswerSelect, currentQuestionIndex }: {
+const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, handleAnswerSelect }: {
     question: QuizQuestion;
     isHintVisible: boolean;
     options: string[];
     selectedOption: string | null;
     handleAnswerSelect: (option: string) => void;
-    currentQuestionIndex: number;
 }) => (
     <Card className="w-full bg-card shadow-lg">
         <CardHeader>
@@ -129,7 +128,7 @@ const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, h
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {options.map((option, index) => (
                 <QuizOption
-                    key={`${currentQuestionIndex}-${index}`}
+                    key={option}
                     option={option}
                     index={index}
                     isSelected={selectedOption === option}
@@ -397,7 +396,6 @@ function QuizComponent() {
             options={currentQuestion.options}
             selectedOption={selectedOption}
             handleAnswerSelect={handleAnswerSelect}
-            currentQuestionIndex={currentQuestionIndex}
           />
           
           <Button onClick={handleUseHint} disabled={usedHintIndices.includes(currentQuestionIndex) || !!selectedOption || !currentQuestion.hint} className="mt-6 bg-primary/20 text-primary-foreground hover:bg-primary/30">
