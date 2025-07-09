@@ -1,30 +1,26 @@
-
 'use client';
 
-import React, { memo, useCallback, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, updateDoc, type DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { 
-    Edit, Award, UserPlus, Banknote, Users, Trophy, Star, Gift, 
-    LogOut, Loader2, Copy, PercentCircle, Mail, MessageSquare, Settings,
-    CheckCircle2, AlertCircle
-} from 'lucide-react';
+import { Gift, Award, Settings, LogOut, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-
+import ProfileHeader from './ProfileHeader';
+import ProfileCompletion from './ProfileCompletion';
+import StatsSummary from './StatsSummary';
+import ReferralCard from './ReferralCard';
+import SupportCard from './SupportCard';
+import ProfileSkeleton from './ProfileSkeleton';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -40,7 +36,19 @@ const profileSchema = z.object({
   favoriteTeam: z.string().min(1, 'Please select a team.'),
   favoriteCricketer: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
 });
+
 type ProfileFormValues = z.infer<typeof profileSchema>;
+
+const MANDATORY_PROFILE_FIELDS = [
+    'name', 'email', 'phone', 'dob', 'gender', 'occupation', 'upi', 
+    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
+];
+
+const defaultFormValues = {
+  name: '', email: '', phone: '', dob: '', gender: '', 
+  occupation: '', upi: '', favoriteFormat: '', 
+  favoriteTeam: '', favoriteCricketer: '',
+};
 
 const occupations = ['Student', 'Employee', 'Business', 'Others'];
 const cricketFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
@@ -49,231 +57,7 @@ const cricketTeams = [
     'Chennai Super Kings', 'Mumbai Indians', 'Kolkata Knight Riders', 'Royal Challengers Bengaluru', 
     'Sunrisers Hyderabad', 'Punjab Kings', 'Delhi Capitals', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans'
 ];
-const MANDATORY_PROFILE_FIELDS = [
-    'name', 'email', 'phone', 'dob', 'gender', 'occupation', 'upi', 
-    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
-];
 
-// Define default values to ensure all form fields are controlled from the start.
-const defaultFormValues = {
-  name: '',
-  email: '',
-  phone: '',
-  dob: '',
-  gender: '',
-  occupation: '',
-  upi: '',
-  favoriteFormat: '',
-  favoriteTeam: '',
-  favoriteCricketer: '',
-};
-
-function maskPhone(phone?: string) {
-    if (!phone || phone.length < 10) return 'Not set';
-    const lastFour = phone.slice(-4);
-    return `+91 •••• ••${lastFour.substring(0,2)} ${lastFour.substring(2,4)}`;
-}
-
-function maskUpi(upi?: string) {
-    if (!upi || !upi.includes('@')) return 'Not set';
-    const [user, domain] = upi.split('@');
-    if (user.length <= 3) return `${user}••••@${domain}`;
-    return `${user.substring(0, 3)}••••@${domain}`;
-}
-
-function calculateAge(dobString?: string): number | null {
-    if (!dobString || !/^\d{4}-\d{2}-\d{2}$/.test(dobString)) return null;
-    const birthDate = new Date(dobString);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    return age;
-}
-
-const StatItem = memo(function StatItem({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
-    return (
-        <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg bg-background/50">
-            <Icon className="h-7 w-7 text-primary" />
-            <p className="font-bold text-xl">{value}</p>
-            <p className="text-xs text-muted-foreground">{title}</p>
-        </div>
-    );
-});
-
-function ProfileSkeleton() {
-    return (
-        <div className="space-y-6">
-        <Card className="bg-card shadow-lg">
-            <CardContent className="p-4 flex items-center gap-4">
-                <Skeleton className="w-20 h-20 rounded-full" />
-                <div className="flex-1 space-y-2">
-                    <Skeleton className="h-7 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-4 w-full" />
-                </div>
-            </CardContent>
-        </Card>
-        <Skeleton className="h-[96px] w-full" />
-        <Card className="bg-card shadow-lg">
-            <CardContent className="p-4 grid grid-cols-3 gap-4">
-                <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
-                    <Skeleton className="h-7 w-7 rounded-full" />
-                    <Skeleton className="h-7 w-8 mt-1" />
-                    <Skeleton className="h-3 w-16 mt-1" />
-                </div>
-                <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
-                    <Skeleton className="h-7 w-7 rounded-full" />
-                    <Skeleton className="h-7 w-8 mt-1" />
-                    <Skeleton className="h-3 w-16 mt-1" />
-                </div>
-                <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
-                    <Skeleton className="h-7 w-7 rounded-full" />
-                    <Skeleton className="h-7 w-8 mt-1" />
-                    <Skeleton className="h-3 w-16 mt-1" />
-                </div>
-            </CardContent>
-        </Card>
-        <Skeleton className="h-[92px] w-full" />
-        <Skeleton className="h-[92px] w-full" />
-        </div>
-    );
-}
-
-const ProfileHeader = memo(function ProfileHeader({ userProfile }: { userProfile: any }) {
-    const age = calculateAge(userProfile?.dob);
-    return (
-        <Card className="bg-card shadow-lg">
-            <CardContent className="p-4 flex items-center gap-4 relative">
-                <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
-                    <AvatarImage src={userProfile?.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
-                    <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-1">
-                    <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
-                    <div className="flex items-center gap-1.5">
-                        <p className="text-muted-foreground text-sm">{maskPhone(userProfile?.phone)}</p>
-                        {userProfile?.phone ? (userProfile.phoneVerified ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-yellow-500" />) : null}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                         <p className="text-muted-foreground text-sm">{userProfile?.email || 'No email set'}</p>
-                         {userProfile?.email ? (userProfile.emailVerified ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-yellow-500" />) : null}
-                    </div>
-                    <div className="text-muted-foreground text-xs flex items-center gap-2 flex-wrap">
-                        {age && <span>{age} yrs</span>}
-                        {userProfile?.gender && <span>&middot; {userProfile.gender}</span>}
-                        {userProfile?.occupation && <span>&middot; {userProfile.occupation}</span>}
-                    </div>
-                </div>
-                <DialogTrigger asChild>
-                    <Button variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                </DialogTrigger>
-            </CardContent>
-        </Card>
-    );
-});
-
-const ProfileCompletion = memo(function ProfileCompletion({ userProfile }: { userProfile: any }) {
-    const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userProfile?.[field]);
-    const completionPercentage = Math.round((completedFields.length / MANDATORY_PROFILE_FIELDS.length) * 100);
-
-    if (completionPercentage === 100) {
-        return null;
-    }
-
-    return (
-        <Card className="bg-card shadow-lg">
-            <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <PercentCircle /> Profile Completion
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-                <Progress value={completionPercentage} className="h-3" />
-                <p className="text-sm text-center text-muted-foreground">
-                    {completionPercentage}% complete ({completedFields.length}/{MANDATORY_PROFILE_FIELDS.length} fields)
-                </p>
-            </CardContent>
-        </Card>
-    );
-});
-
-const StatsSummary = memo(function StatsSummary({ userProfile }: { userProfile: any }) {
-    return (
-        <Card className="bg-card shadow-lg">
-            <CardContent className="p-4 grid grid-cols-3 gap-4">
-                <StatItem title="Quizzes Played" value={userProfile?.quizzesPlayed || 0} icon={Trophy} />
-                <StatItem title="Perfect Scores" value={userProfile?.perfectScores || 0} icon={Star} />
-                <StatItem title="Total Earnings" value={`₹${userProfile?.totalRewards || 0}`} icon={Banknote} />
-            </CardContent>
-        </Card>
-    );
-});
-
-const ReferralCard = memo(function ReferralCard({ userProfile }: { userProfile: any }) {
-    const { toast } = useToast();
-    const handleCopy = () => {
-        const referralLink = userProfile?.referralCode || '';
-        navigator.clipboard.writeText(referralLink);
-        toast({
-            title: "Copied to Clipboard!",
-            description: "Your referral link has been copied.",
-        });
-    };
-
-    return (
-     <Card className="bg-card shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-lg">Refer & Earn</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                    <Users className="h-8 w-8 text-primary"/>
-                    <div>
-                        <p className="font-bold text-xl">₹{userProfile?.referralEarnings || 0}</p>
-                        <p className="text-sm text-muted-foreground">From Referrals</p>
-                    </div>
-                </div>
-                <Button variant="secondary" size="sm" onClick={handleCopy}>
-                    <Copy className="mr-2" />
-                    Copy Link
-                </Button>
-            </div>
-            <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{userProfile?.referralCode || 'No code available'}</p>
-        </CardContent>
-    </Card>
-    );
-});
-
-const SupportCard = memo(function SupportCard() {
-    return (
-        <Card className="bg-card shadow-lg">
-            <CardHeader>
-                <CardTitle className="text-lg">Help & Support</CardTitle>
-                <CardDescription>Connect to reach the Third Umpire.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <a href="mailto:support@indcric.com">
-                        <Mail className="mr-4" />
-                        Email: support@indcric.com
-                    </a>
-                </Button>
-                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer">
-                        <MessageSquare className="mr-4" />
-                        WhatsApp: +91 7842722245
-                    </a>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-});
 
 export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
     const { toast } = useToast();
@@ -288,10 +72,12 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
 
     useEffect(() => {
         if (userProfile && open) {
-            const defaults: ProfileFormValues = {} as ProfileFormValues;
-            MANDATORY_PROFILE_FIELDS.forEach(field => {
-                 defaults[field as keyof ProfileFormValues] = userProfile[field] || '';
-            });
+            const defaults = { ...defaultFormValues };
+            for (const field of MANDATORY_PROFILE_FIELDS) {
+                if (userProfile[field]) {
+                    (defaults as any)[field] = userProfile[field];
+                }
+            }
             form.reset(defaults);
         }
     }, [userProfile, form, open]);
@@ -331,16 +117,6 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
     
     if (isLoading) {
         return <ProfileSkeleton />;
-    }
-
-    if (!userProfile) {
-        return (
-            <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                    Could not load user profile. Please try again later.
-                </CardContent>
-            </Card>
-        );
     }
 
     return (
@@ -391,7 +167,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                  const options = fieldName === 'gender' ? ['Male', 'Female', 'Other', 'Prefer not to say']
                                                : fieldName === 'occupation' ? occupations
                                                : fieldName === 'favoriteFormat' ? cricketFormats
-                                               : fieldName === 'favoriteTeam' ? cricketTeams;
+                                               : cricketTeams;
                                 return (
                                     <FormField
                                         key={fieldName}

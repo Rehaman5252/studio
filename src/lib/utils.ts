@@ -24,3 +24,28 @@ export const getQuizSlotId = () => {
   
   return slotTime.getTime().toString();
 };
+
+export function maskPhone(phone?: string) {
+    if (!phone || phone.length < 10) return 'Not set';
+    const lastFour = phone.slice(-4);
+    return `+91 •••• ••${lastFour.substring(0,2)} ${lastFour.substring(2,4)}`;
+}
+
+export function maskUpi(upi?: string) {
+    if (!upi || !upi.includes('@')) return 'Not set';
+    const [user, domain] = upi.split('@');
+    if (user.length <= 3) return `${user}••••@${domain}`;
+    return `${user.substring(0, 3)}••••@${domain}`;
+}
+
+export function calculateAge(dobString?: string): number | null {
+    if (!dobString || !/^\d{4}-\d{2}-\d{2}$/.test(dobString)) return null;
+    const birthDate = new Date(dobString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
