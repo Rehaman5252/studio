@@ -1,4 +1,3 @@
-
 'use client';
 
 import { getAuth, GoogleAuthProvider, signInWithPopup, type User } from 'firebase/auth';
@@ -11,32 +10,35 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
  * This is idempotent and safe to call on every login.
  * @param user The Firebase Auth user object.
  */
-export const createUserDocument = async (user: User) => {
+export async function createUserDocument(user: User) {
     if (!db) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(userDocRef);
+    const userRef = doc(db, 'users', user.uid);
+    
+    // Use merge: true to avoid overwriting existing data, but combine it with a check
+    // to only set initial values for brand new users.
+    const docSnap = await getDoc(userRef);
 
-    // Only create a new document if one doesn't exist
     if (!docSnap.exists()) {
-        const newUserDoc = {
+        const defaultData = {
             uid: user.uid,
-            name: user.displayName,
             email: user.email,
+            name: user.displayName,
+            photoURL: user.photoURL || null,
             createdAt: serverTimestamp(),
-            photoURL: user.photoURL,
-            emailVerified: user.emailVerified,
-            profileCompleted: false, // Explicitly false for new users
-            // Set some default empty/zero values for other fields
+            updatedAt: serverTimestamp(),
+            profileCompleted: false,
             phone: '',
             phoneVerified: false,
             totalRewards: 0,
             quizzesPlayed: 0,
             perfectScores: 0,
+            certificatesEarned: 0,
             referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
+            referralEarnings: 0,
         };
-        await setDoc(userDocRef, newUserDoc);
+        await setDoc(userRef, defaultData, { merge: true });
     }
-};
+}
 
 
 /**
@@ -44,7 +46,7 @@ export const createUserDocument = async (user: User) => {
  * and navigates to the appropriate page.
  * @param router The Next.js router instance for navigation.
  */
-export const handleGoogleSignIn = async (router: AppRouterInstance) => {
+export async function handleGoogleSignIn(router: AppRouterInstance) {
   if (!app) {
     throw new Error("Firebase is not configured. Cannot sign in.");
   }
@@ -54,17 +56,25 @@ export const handleGoogleSignIn = async (router: AppRouterInstance) => {
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+
     if (!user) throw new Error("Google sign-in returned no user.");
     
+    console.log("✅ Signed in:", user.uid);
     await createUserDocument(user);
-    console.log("✅ Google Sign-in + Firestore Save successful");
-
-    // Explicitly navigate to complete the profile. AuthGuard will handle routing from there.
     router.push('/complete-profile');
 
-  } catch (error: any) {
-    console.error("❌ Google Sign-in failed:", error);
-    // Provide a user-friendly message
-    alert("Google Sign-in failed. Please try again. Reason: " + error?.message);
+  } catch (e: any) {
+    console.error("❌ Google Sign-In failed:", e);
+    
+    let message = "An unknown error occurred during sign-in.";
+    if (e.code === 'auth/popup-closed-by-user') {
+        message = "Sign-in was cancelled. Please try again.";
+    } else if (e.code === 'auth/network-request-failed') {
+        message = "Network error. Please check your internet connection.";
+    } else if (e.message) {
+        message = e.message;
+    }
+    
+    alert("Sign in failed: " + message);
   }
-};
+}

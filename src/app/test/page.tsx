@@ -1,4 +1,3 @@
-
 'use client';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
@@ -9,21 +8,13 @@ export default function FirestoreTestPage() {
 
   useEffect(() => {
     const run = async () => {
-      if (!db) {
-          setStatus('Firestore (db) is not initialized. Check src/lib/firebase.ts and ensure environment variables are set.');
-          return;
-      }
       try {
-        // This tests the connection. It doesn't matter if the document exists.
-        // The call itself will fail if the client is offline.
         const snap = await getDoc(doc(db, 'test', 'ping'));
-        const message = '✅ Connection to Firestore successful. The client is ONLINE.';
-        console.log(message, `(Document 'test/ping' exists: ${snap.exists()})`);
-        setStatus(message);
+        console.log('Connected to Firestore:', snap.exists());
+        setStatus(`✅ Connection to Firestore successful. The client is ONLINE. (Document 'test/ping' exists: ${snap.exists()})`);
       } catch (error: any) {
-         const message = `❌ Firestore connection FAILED. The client is OFFLINE. Error: ${error.message}`;
-         console.error(message, error);
-         setStatus(message);
+        console.error("❌ Firestore connection FAILED.", error);
+        setStatus(`❌ Firestore connection FAILED. The client is OFFLINE. Error: ${error.message}`);
       }
     };
     run();

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, app as firebaseApp } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,7 +95,7 @@ export default function LoginForm() {
         </p>
       </div>
 
-      {!isFirebaseConfigured ? (
+      {!firebaseApp ? (
         <FirebaseConfigWarning />
       ) : (
         <div className="space-y-4">

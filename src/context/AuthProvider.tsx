@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
-import { db, isFirebaseConfigured, app } from '@/lib/firebase';
+import { db, app } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, type DocumentData } from 'firebase/firestore';
 
 interface AuthContextType {
@@ -36,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !app) {
+    if (!app) {
       setLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
