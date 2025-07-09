@@ -68,20 +68,20 @@ const defaultFormValues = {
   favoriteCricketer: '',
 };
 
-const maskPhone = (phone?: string) => {
+function maskPhone(phone?: string) {
     if (!phone || phone.length < 10) return 'Not set';
     const lastFour = phone.slice(-4);
     return `+91 •••• ••${lastFour.substring(0,2)} ${lastFour.substring(2,4)}`;
-};
+}
 
-const maskUpi = (upi?: string) => {
+function maskUpi(upi?: string) {
     if (!upi || !upi.includes('@')) return 'Not set';
     const [user, domain] = upi.split('@');
     if (user.length <= 3) return `${user}••••@${domain}`;
     return `${user.substring(0, 3)}••••@${domain}`;
-};
+}
 
-const calculateAge = (dobString?: string): number | null => {
+function calculateAge(dobString?: string): number | null {
     if (!dobString || !/^\d{4}-\d{2}-\d{2}$/.test(dobString)) return null;
     const birthDate = new Date(dobString);
     const today = new Date();
@@ -91,55 +91,58 @@ const calculateAge = (dobString?: string): number | null => {
         age--;
     }
     return age;
-};
+}
 
-const StatItem = memo(({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
-    <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg bg-background/50">
-        <Icon className="h-7 w-7 text-primary" />
-        <p className="font-bold text-xl">{value}</p>
-        <p className="text-xs text-muted-foreground">{title}</p>
-    </div>
-));
-StatItem.displayName = 'StatItem';
+const StatItem = memo(function StatItem({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
+    return (
+        <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg bg-background/50">
+            <Icon className="h-7 w-7 text-primary" />
+            <p className="font-bold text-xl">{value}</p>
+            <p className="text-xs text-muted-foreground">{title}</p>
+        </div>
+    );
+});
 
-const ProfileSkeleton = () => (
-    <div className="space-y-6">
-      <Card className="bg-card shadow-lg">
-          <CardContent className="p-4 flex items-center gap-4">
-              <Skeleton className="w-20 h-20 rounded-full" />
-              <div className="flex-1 space-y-2">
-                  <Skeleton className="h-7 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-full" />
-              </div>
-          </CardContent>
-      </Card>
-      <Skeleton className="h-[96px] w-full" />
-      <Card className="bg-card shadow-lg">
-          <CardContent className="p-4 grid grid-cols-3 gap-4">
-              <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
-                  <Skeleton className="h-7 w-7 rounded-full" />
-                  <Skeleton className="h-7 w-8 mt-1" />
-                  <Skeleton className="h-3 w-16 mt-1" />
-              </div>
-              <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
-                  <Skeleton className="h-7 w-7 rounded-full" />
-                  <Skeleton className="h-7 w-8 mt-1" />
-                  <Skeleton className="h-3 w-16 mt-1" />
-              </div>
-              <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
-                  <Skeleton className="h-7 w-7 rounded-full" />
-                  <Skeleton className="h-7 w-8 mt-1" />
-                  <Skeleton className="h-3 w-16 mt-1" />
-              </div>
-          </CardContent>
-      </Card>
-      <Skeleton className="h-[92px] w-full" />
-      <Skeleton className="h-[92px] w-full" />
-    </div>
-);
+function ProfileSkeleton() {
+    return (
+        <div className="space-y-6">
+        <Card className="bg-card shadow-lg">
+            <CardContent className="p-4 flex items-center gap-4">
+                <Skeleton className="w-20 h-20 rounded-full" />
+                <div className="flex-1 space-y-2">
+                    <Skeleton className="h-7 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-full" />
+                </div>
+            </CardContent>
+        </Card>
+        <Skeleton className="h-[96px] w-full" />
+        <Card className="bg-card shadow-lg">
+            <CardContent className="p-4 grid grid-cols-3 gap-4">
+                <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
+                    <Skeleton className="h-7 w-7 rounded-full" />
+                    <Skeleton className="h-7 w-8 mt-1" />
+                    <Skeleton className="h-3 w-16 mt-1" />
+                </div>
+                <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
+                    <Skeleton className="h-7 w-7 rounded-full" />
+                    <Skeleton className="h-7 w-8 mt-1" />
+                    <Skeleton className="h-3 w-16 mt-1" />
+                </div>
+                <div className="flex flex-col items-center gap-1 text-center p-2 rounded-lg">
+                    <Skeleton className="h-7 w-7 rounded-full" />
+                    <Skeleton className="h-7 w-8 mt-1" />
+                    <Skeleton className="h-3 w-16 mt-1" />
+                </div>
+            </CardContent>
+        </Card>
+        <Skeleton className="h-[92px] w-full" />
+        <Skeleton className="h-[92px] w-full" />
+        </div>
+    );
+}
 
-const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => {
+const ProfileHeader = memo(function ProfileHeader({ userProfile }: { userProfile: any }) {
     const age = calculateAge(userProfile?.dob);
     return (
         <Card className="bg-card shadow-lg">
@@ -173,9 +176,8 @@ const ProfileHeader = memo(({ userProfile }: { userProfile: any }) => {
         </Card>
     );
 });
-ProfileHeader.displayName = 'ProfileHeader';
 
-const ProfileCompletion = memo(({ userProfile }: { userProfile: any }) => {
+const ProfileCompletion = memo(function ProfileCompletion({ userProfile }: { userProfile: any }) {
     const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userProfile?.[field]);
     const completionPercentage = Math.round((completedFields.length / MANDATORY_PROFILE_FIELDS.length) * 100);
 
@@ -199,20 +201,20 @@ const ProfileCompletion = memo(({ userProfile }: { userProfile: any }) => {
         </Card>
     );
 });
-ProfileCompletion.displayName = "ProfileCompletion";
 
-const StatsSummary = memo(({ userProfile }: { userProfile: any }) => (
-    <Card className="bg-card shadow-lg">
-        <CardContent className="p-4 grid grid-cols-3 gap-4">
-            <StatItem title="Quizzes Played" value={userProfile?.quizzesPlayed || 0} icon={Trophy} />
-            <StatItem title="Perfect Scores" value={userProfile?.perfectScores || 0} icon={Star} />
-            <StatItem title="Total Earnings" value={`₹${userProfile?.totalRewards || 0}`} icon={Banknote} />
-        </CardContent>
-    </Card>
-));
-StatsSummary.displayName = 'StatsSummary';
+const StatsSummary = memo(function StatsSummary({ userProfile }: { userProfile: any }) {
+    return (
+        <Card className="bg-card shadow-lg">
+            <CardContent className="p-4 grid grid-cols-3 gap-4">
+                <StatItem title="Quizzes Played" value={userProfile?.quizzesPlayed || 0} icon={Trophy} />
+                <StatItem title="Perfect Scores" value={userProfile?.perfectScores || 0} icon={Star} />
+                <StatItem title="Total Earnings" value={`₹${userProfile?.totalRewards || 0}`} icon={Banknote} />
+            </CardContent>
+        </Card>
+    );
+});
 
-const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
+const ReferralCard = memo(function ReferralCard({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     const handleCopy = () => {
         const referralLink = userProfile?.referralCode || '';
@@ -247,31 +249,31 @@ const ReferralCard = memo(({ userProfile }: { userProfile: any }) => {
     </Card>
     );
 });
-ReferralCard.displayName = 'ReferralCard';
 
-const SupportCard = memo(() => (
-    <Card className="bg-card shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-lg">Help & Support</CardTitle>
-            <CardDescription>Connect to reach the Third Umpire.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <a href="mailto:support@indcric.com">
-                    <Mail className="mr-4" />
-                    Email: support@indcric.com
-                </a>
-            </Button>
-            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer">
-                    <MessageSquare className="mr-4" />
-                    WhatsApp: +91 7842722245
-                </a>
-            </Button>
-        </CardContent>
-    </Card>
-));
-SupportCard.displayName = "SupportCard";
+const SupportCard = memo(function SupportCard() {
+    return (
+        <Card className="bg-card shadow-lg">
+            <CardHeader>
+                <CardTitle className="text-lg">Help & Support</CardTitle>
+                <CardDescription>Connect to reach the Third Umpire.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                    <a href="mailto:support@indcric.com">
+                        <Mail className="mr-4" />
+                        Email: support@indcric.com
+                    </a>
+                </Button>
+                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                    <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer">
+                        <MessageSquare className="mr-4" />
+                        WhatsApp: +91 7842722245
+                    </a>
+                </Button>
+            </CardContent>
+        </Card>
+    );
+});
 
 export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
     const { toast } = useToast();
@@ -300,8 +302,6 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
         try {
             const userDocRef = doc(db, 'users', userProfile.uid);
             
-            // In a real app with a real auth system, you would not allow email/phone to be
-            // updated without verification. Since this is a mock setup, we'll allow it.
             const updatePayload: DocumentData = { ...data };
             if (data.email !== userProfile.email) updatePayload.emailVerified = false;
             if (data.phone !== userProfile.phone) updatePayload.phoneVerified = false;
@@ -385,7 +385,6 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                             const isEmail = fieldName === 'email';
                             const isPhone = fieldName === 'phone';
                             
-                            // In this mock setup, no fields are ever truly locked.
                             const isLocked = false; 
 
                             if (['gender', 'occupation', 'favoriteFormat', 'favoriteTeam'].includes(fieldName)) {
@@ -413,7 +412,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                                             </FormItem>
                                         )}
                                     />
-                                )
+                                );
                             }
                             return (
                                 <FormField
@@ -433,6 +432,7 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                         <DialogFooter className="sticky bottom-0 bg-background pt-4">
                             <DialogClose asChild><Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button></DialogClose>
                             <Button type="submit" disabled={isSubmitting || !form.formState.isDirty}>
+
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save
                             </Button>
@@ -441,5 +441,5 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
                 </Form>
             </DialogContent>
         </Dialog>
-    )
+    );
 }
