@@ -1,13 +1,9 @@
 
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Dynamically import the main content wrapper.
-// This component contains all the logic that depends on frequently updating state,
-// isolating it from the static parts of the page and preventing re-renders.
 const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
   loading: () => (
     <div className="space-y-8">
@@ -17,8 +13,7 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
       </div>
       <Skeleton className="w-48 h-48 mx-auto" />
       <Skeleton className="w-full mt-8 h-[140px] rounded-2xl" />
-      <Skeleton className="w-full my-8 h-[1px]" />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 mt-8">
         <Skeleton className="w-full h-[108px] rounded-lg" />
         <Skeleton className="w-full h-[108px] rounded-lg" />
         <Skeleton className="w-full h-[108px] rounded-lg" />
@@ -30,8 +25,7 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
   ssr: false, // This component uses hooks that rely on client-side state
 });
 
-// This is the main content of the home page, rendered inside the AuthGuard
-function HomePageContent() {
+export default function HomePage() {
     return (
         <div className="flex flex-col h-screen bg-background text-foreground">
           <header className="p-4 flex items-center justify-center">
@@ -49,14 +43,5 @@ function HomePageContent() {
             </div>
           </main>
         </div>
-    )
-}
-
-
-// The actual page component is now very simple. It handles the initial auth check
-// and renders the static layout, delegating all dynamic content to HomeWrapper.
-export default function HomeScreen() {
-  return (
-    <HomePageContent />
-  );
+    );
 }

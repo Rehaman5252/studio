@@ -128,7 +128,7 @@ const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, h
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {options.map((option, index) => (
                 <QuizOption
-                    key={option}
+                    key={`${option}-${index}`}
                     option={option}
                     index={index}
                     isSelected={selectedOption === option}
