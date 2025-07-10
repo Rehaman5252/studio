@@ -8,18 +8,17 @@ import {
     type User,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db, app, isFirebaseConfigured } from '@/lib/firebase';
-import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 /**
  * Creates a user document in Firestore if it doesn't already exist.
  * This is idempotent and safe to call on every login.
  * @param user The Firebase Auth user object.
+ * @param additionalData Any extra data to add to the user document on creation.
  */
-export async function createUserDocument(user: User) {
+export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
     if (!db) return;
     const userRef = doc(db, 'users', user.uid);
     
@@ -38,30 +37,36 @@ export async function createUserDocument(user: User) {
             profileCompleted: false,
             phone: '',
             phoneVerified: false,
+            emailVerified: user.emailVerified,
             totalRewards: 0,
             quizzesPlayed: 0,
             perfectScores: 0,
             certificatesEarned: 0,
             referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
             referralEarnings: 0,
+            ...additionalData // Merge any extra data passed in
         };
         await setDoc(userRef, defaultData);
     } else {
         // If it exists, we can still update the last login time or other non-initial fields
-        await setDoc(userRef, { updatedAt: serverTimestamp() }, { merge: true });
+        await setDoc(userRef, { 
+            updatedAt: serverTimestamp(),
+            // Ensure essential details from provider are updated on login
+            email: user.email,
+            name: user.displayName,
+            photoURL: user.photoURL,
+        }, { merge: true });
     }
 }
 
 
 /**
- * Handles the Google Sign-In popup flow, creates a user document,
- * and lets AuthGuard handle redirection.
- * @param router The Next.js router instance for navigation.
+ * Handles the Google Sign-In popup flow and creates the user document.
+ * Redirection is handled by the AuthGuard.
  */
-export async function handleGoogleSignIn(router: AppRouterInstance) {
+export async function handleGoogleSignIn() {
   if (!isFirebaseConfigured || !app) {
     console.error("Firebase is not configured. Cannot sign in.");
-    // In a real app, you might show a toast notification here.
     return;
   }
   const auth = getAuth(app);
@@ -73,11 +78,10 @@ export async function handleGoogleSignIn(router: AppRouterInstance) {
 
     if (!user) throw new Error("Google sign-in returned no user.");
     
-    // Ensure a user document exists in Firestore.
+    // Ensure a user document exists in Firestore. This is safe to call every time.
     await createUserDocument(user);
     
-    // AuthGuard will handle the final redirection after state update
-    // This is more reliable than a direct push here.
+    // AuthGuard will handle the final redirection after auth state updates.
 
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user') {

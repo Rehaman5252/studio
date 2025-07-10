@@ -89,8 +89,9 @@ export default function SignupForm() {
 
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await handleGoogleSignIn(router);
+    await handleGoogleSignIn();
     setIsGoogleLoading(false);
+    // AuthGuard will handle redirection.
   };
 
   const handleDetailsSubmit = async (data: DetailsFormValues) => {
@@ -159,11 +160,17 @@ export default function SignupForm() {
         
         await updateProfile(user, { displayName: detailsData.name });
         
-        await createUserDocument(user);
+        // This creates the Firestore document with all necessary defaults.
+        await createUserDocument(user, {
+            phone: detailsData.phone,
+            phoneVerified: true,
+            emailVerified: true // Email is considered verified by OTP flow
+        });
         
         toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Please complete your profile.' });
         
-        router.push('/complete-profile');
+        // Let AuthGuard handle the redirection.
+        // router.push('/complete-profile');
 
     } catch (error: any) {
         let message = error.message || 'An error occurred during sign up.';

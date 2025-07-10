@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import CricketLoading from '../CricketLoading';
 
@@ -18,6 +18,7 @@ export default function AuthGuard({
   const { user, loading: isAuthLoading, isUserDataLoading, isProfileComplete } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const isAuthPage = AUTH_PAGES.some(route => pathname.startsWith(route));
   const isCompleteProfilePage = pathname === '/complete-profile';
@@ -32,7 +33,8 @@ export default function AuthGuard({
     if (user) {
         // User is logged in
         if (isAuthPage) {
-            router.replace('/home'); // User is on /login or /signup, send them home
+            const from = searchParams.get('from');
+            router.replace(from || '/home'); // Redirect away from auth pages if logged in
             return;
         }
         if (!isProfileComplete && !isCompleteProfilePage) {
@@ -51,7 +53,7 @@ export default function AuthGuard({
       }
     }
 
-  }, [user, isLoading, isProfileComplete, router, pathname, isAuthPage, isCompleteProfilePage, requireAuth]);
+  }, [user, isLoading, isProfileComplete, router, pathname, isAuthPage, isCompleteProfilePage, requireAuth, searchParams]);
 
   // Show a loader only under specific conditions to avoid "flash of loader" on public pages
   if (isLoading && requireAuth) {
@@ -60,13 +62,17 @@ export default function AuthGuard({
   
   // Prevent "flash of unauthenticated content" while redirects are processed.
   if (user) {
+    // If user is logged in, but we're on an auth page, we're about to redirect, so render nothing.
     if (isAuthPage) return null; 
+    // If profile isn't complete and we're not on the completion page, we're redirecting.
     if (!isProfileComplete && !isCompleteProfilePage) return <CricketLoading message="Finalizing your setup..." />;
+    // If profile is complete but we're on the completion page, we're redirecting.
     if (isProfileComplete && isCompleteProfilePage) return null; 
   } else {
-    // If we require auth, we will be redirecting, so don't render children.
+    // If we require auth, we will be redirecting away from this page, so render nothing.
     if (requireAuth) return null; 
   }
   
+  // If none of the redirect conditions are met, render the children.
   return <>{children}</>;
 }
