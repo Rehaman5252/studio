@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, SlashCircle } from 'lucide-react';
+import { AlertTriangle, Ban } from 'lucide-react';
 
 interface LivePlayer {
     rank?: number;
@@ -117,7 +117,7 @@ const LiveLeaderboard = memo(() => {
                                 player.disqualified && "opacity-60"
                             )}>
                                 <div className="w-8 text-center">
-                                    {player.disqualified ? <SlashCircle className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}
+                                    {player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}
                                 </div>
                                 <Avatar className="h-10 w-10 mx-4">
                                     <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
