@@ -21,7 +21,7 @@ export default function AuthLayout({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
           <div className="absolute bottom-10 left-10 text-white">
-            <h1 className="text-6xl font-extrabold tracking-tight drop-shadow-lg">
+            <h1 className="text-6xl font-extrabold tracking-tight drop-shadow-lg text-shimmer animate-shimmer">
               indcric
             </h1>
             <p className="mt-2 text-xl drop-shadow">

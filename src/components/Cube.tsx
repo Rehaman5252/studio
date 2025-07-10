@@ -49,8 +49,8 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
 
-    // The timer is ALWAYS running at 4000ms.
-    timerRef.current = setInterval(rotateToNextFace, 4000);
+    // The timer is ALWAYS running at 500ms.
+    timerRef.current = setInterval(rotateToNextFace, 500);
     
     return () => {
         if (timerRef.current) {
