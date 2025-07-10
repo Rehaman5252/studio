@@ -63,7 +63,7 @@ export default function AuthGuard({
   }, [user, isLoading, isProfileComplete, router, pathname, isAuthPage, isCompleteProfilePage, requireAuth]);
 
   // Render a loading state while auth status is being determined
-  if (isLoading) {
+  if (isLoading && requireAuth) {
     return <CricketLoading message="Initializing..." />;
   }
 

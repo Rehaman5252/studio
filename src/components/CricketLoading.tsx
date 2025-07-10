@@ -110,7 +110,7 @@ const CricketLoading = ({
         {state === 'loading' ? message : errorMessage}
       </h2>
 
-      {state === 'loading' && (
+      {state === 'loading' && format && (
          <div className="mt-8 text-center max-w-md p-4 bg-card/50 rounded-lg border border-primary/20 animate-fade-in-up">
           <h3 className="font-bold text-primary flex items-center justify-center gap-2 mb-2">
             {isFetchingFact ? <Loader2 className="h-5 w-5 animate-spin" /> : <Info />}
