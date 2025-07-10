@@ -9,8 +9,9 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertTriangle } from 'lucide-react';
 
 interface LivePlayer {
     rank?: number;
@@ -19,6 +20,7 @@ interface LivePlayer {
     time: number;
     avatar?: string;
     uid: string;
+    disqualified?: boolean;
 }
 
 interface AllTimePlayer {
@@ -69,15 +71,22 @@ const LiveLeaderboard = memo(() => {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedPlayers: LivePlayer[] = [];
+            let visibleRank = 1;
             snapshot.forEach(doc => {
                 const data = doc.data();
-                fetchedPlayers.push({
+                const player: LivePlayer = {
                     uid: doc.id,
                     name: data.name,
                     score: data.score,
                     time: data.time,
                     avatar: data.avatar,
-                });
+                    disqualified: data.disqualified,
+                };
+                // Assign rank only to non-disqualified players
+                if (!player.disqualified) {
+                    player.rank = visibleRank++;
+                }
+                fetchedPlayers.push(player);
             });
             setPlayers(fetchedPlayers);
             setLoading(false);
@@ -89,6 +98,8 @@ const LiveLeaderboard = memo(() => {
         return () => unsubscribe();
     }, []);
 
+    const visiblePlayers = players.filter(p => !p.disqualified);
+
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center">
@@ -99,10 +110,10 @@ const LiveLeaderboard = memo(() => {
                 <div className="space-y-2">
                     {loading ? (
                         Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
-                    ) : players.length > 0 ? (
-                        players.map((player, index) => (
+                    ) : visiblePlayers.length > 0 ? (
+                        visiblePlayers.map((player) => (
                             <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
-                                <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
+                                <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                                 <Avatar className="h-10 w-10 mx-4">
                                     <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
                                     <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
@@ -280,3 +291,5 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
+
+    

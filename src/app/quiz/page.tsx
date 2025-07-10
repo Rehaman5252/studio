@@ -176,19 +176,20 @@ function QuizComponent() {
   const saveAttemptInBackground = useCallback((attempt: SlotAttempt) => {
     if (db && user && userData) {
         const batch = writeBatch(db);
-
-        // 1. Save to user's private quiz history
-        const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'), attempt.slotId);
-        batch.set(attemptDocRef, attempt);
-
-        // 2. Update the global live leaderboard for the current slot
         const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
+
+        // 1. Save to user's private quiz history collection
+        const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'));
+        batch.set(attemptDocRef, { ...attempt, uid: user.uid, name: userData.name || 'Anonymous' });
+        
+        // 2. Upsert the global live leaderboard for the current slot
         const leaderboardEntryRef = doc(db, 'liveLeaderboard', attempt.slotId, 'entries', user.uid);
         batch.set(leaderboardEntryRef, {
             name: userData.name || 'Anonymous',
             score: attempt.score,
             time: totalTime,
             avatar: userData.photoURL || null,
+            disqualified: attempt.reason === 'malpractice'
         });
         
         // 3. Increment the total quizzes played for the user
@@ -237,8 +238,8 @@ function QuizComponent() {
         };
 
         setLastAttemptInSlot(finalAttempt);
-        router.replace(`/quiz/results`);
         saveAttemptInBackground(finalAttempt);
+        router.replace(`/quiz/results`);
         return;
     }
 
@@ -302,6 +303,7 @@ function QuizComponent() {
     const handleVisibilityChange = () => {
       if (document.hidden && !isTerminated && questions && !quizCompleted.current) {
         setIsTerminated(true);
+        quizCompleted.current = true; // Mark as completed to prevent other logic from running
 
         const malpracticeAttempt: SlotAttempt = {
             slotId: getQuizSlotId(),
@@ -440,3 +442,5 @@ export default function QuizPage() {
     </AuthGuard>
   )
 }
+
+    

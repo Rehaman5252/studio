@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
@@ -5,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
+import { cn } from '@/lib/utils';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -58,7 +60,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     return (
         <Dialog onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="secondary" size="sm">
+                <Button variant="secondary" size="sm" disabled={!!attempt.reason}>
                     <Sparkles className="mr-2 h-4 w-4" />
                     View Analysis
                 </Button>
@@ -105,34 +107,52 @@ const getSlotTimings = (timestamp: number) => {
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
 };
 
-const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => (
-    <div>
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader>
-            <CardTitle className="flex justify-between items-center text-lg">
-                <span>{attempt.format} Quiz</span>
-                <span className="text-lg font-bold text-primary">{attempt.score}/{attempt.totalQuestions}</span>
-            </CardTitle>
-            <CardDescription className="text-xs">
-                Sponsored by {attempt.brand}
-            </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-between items-center">
-                <div className="text-sm text-muted-foreground space-y-1">
-                <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
-                </div>
-                </div>
-            <AnalysisDialog attempt={attempt} />
-            </CardContent>
-        </Card>
-    </div>
-));
+const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
+    const isMalpractice = attempt.reason === 'malpractice';
+
+    return (
+        <div>
+            <Card className={cn(
+                "bg-card/80 border-primary/10 shadow-lg",
+                isMalpractice && "bg-destructive/10 border-destructive/20"
+            )}>
+                <CardHeader>
+                    <CardTitle className="flex justify-between items-center text-lg">
+                        <span>{attempt.format} Quiz</span>
+                        <span className={cn(
+                            "text-lg font-bold text-primary",
+                            isMalpractice && "text-destructive"
+                        )}>
+                            {isMalpractice ? 'Disqualified' : `${attempt.score}/${attempt.totalQuestions}`}
+                        </span>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                        Sponsored by {attempt.brand}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-between items-center">
+                    <div className="text-sm text-muted-foreground space-y-1">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
+                        </div>
+                         {isMalpractice && (
+                            <div className="flex items-center gap-2 text-destructive pt-1">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="text-xs font-semibold">Malpractice Detected</span>
+                            </div>
+                        )}
+                    </div>
+                <AnalysisDialog attempt={attempt} />
+                </CardContent>
+            </Card>
+        </div>
+    );
+});
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
 export default function QuizHistoryContent() {
@@ -146,7 +166,7 @@ export default function QuizHistoryContent() {
       return history.filter(attempt => attempt.timestamp >= sevenDaysAgo);
     }
     if (filter === 'perfect') {
-      return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0);
+      return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
     }
     return history;
   }, [quizHistory, filter]);
@@ -174,7 +194,7 @@ export default function QuizHistoryContent() {
         {filteredHistory.length > 0 ? (
           <div className="space-y-4 pt-4">
             {filteredHistory.map((attempt) => (
-              <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}`} attempt={attempt} />
+              <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
             ))}
           </div>
         ) : (
@@ -191,3 +211,5 @@ export default function QuizHistoryContent() {
     </>
   );
 }
+
+    
