@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, SlashCircle } from 'lucide-react';
 
 interface LivePlayer {
     rank?: number;
@@ -98,8 +98,6 @@ const LiveLeaderboard = memo(() => {
         return () => unsubscribe();
     }, []);
 
-    const visiblePlayers = players.filter(p => !p.disqualified);
-
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center">
@@ -110,21 +108,34 @@ const LiveLeaderboard = memo(() => {
                 <div className="space-y-2">
                     {loading ? (
                         Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
-                    ) : visiblePlayers.length > 0 ? (
-                        visiblePlayers.map((player) => (
-                            <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
-                                <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+                    ) : players.length > 0 ? (
+                        players.map((player) => (
+                            <div key={player.uid} className={cn(
+                                "flex items-center p-2 rounded-lg", 
+                                player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary",
+                                player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive",
+                                player.disqualified && "opacity-60"
+                            )}>
+                                <div className="w-8 text-center">
+                                    {player.disqualified ? <SlashCircle className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}
+                                </div>
                                 <Avatar className="h-10 w-10 mx-4">
                                     <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
                                     <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
                                     <p className="font-semibold text-foreground">{player.name}</p>
-                                    <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>
+                                    {!player.disqualified && <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>}
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-primary">{player.time.toFixed(1)}s</p>
-                                    <p className="text-xs text-muted-foreground">Time</p>
+                                    {player.disqualified ? (
+                                        <p className="font-bold text-destructive">Disqualified</p>
+                                    ) : (
+                                        <>
+                                        <p className="font-bold text-primary">{player.time.toFixed(1)}s</p>
+                                        <p className="text-xs text-muted-foreground">Time</p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         ))
