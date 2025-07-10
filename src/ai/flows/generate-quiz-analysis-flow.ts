@@ -8,11 +8,11 @@
  */
 import { ai } from '@/ai/genkit';
 import {
-    GenerateQuizAnalysisInput,
     GenerateQuizAnalysisOutput,
-    GenerateQuizAnalysisInputSchema,
     FlowGenerateQuizAnalysisInputSchema,
-    GenerateQuizAnalysisOutputSchema
+    GenerateQuizAnalysisOutputSchema,
+    GenerateQuizAnalysisInput,
+    GenerateQuizAnalysisPromptInputSchema,
 } from '@/ai/schemas';
 
 export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Promise<GenerateQuizAnalysisOutput> {
@@ -21,7 +21,7 @@ export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Pr
 
 const analysisPrompt = ai.definePrompt({
   name: 'generateQuizAnalysisPrompt',
-  input: { schema: GenerateQuizAnalysisInputSchema },
+  input: { schema: GenerateQuizAnalysisPromptInputSchema },
   output: { schema: GenerateQuizAnalysisOutputSchema },
   prompt: `You are 'Coach Cric', a friendly, encouraging, and insightful cricket coach. A user just finished a quiz and you are giving them their performance report. Your feedback must be in markdown format.
 

@@ -23,10 +23,10 @@ export async function createUserDocument(user: User) {
     if (!db) return;
     const userRef = doc(db, 'users', user.uid);
     
-    // Use merge: true to avoid overwriting existing data, but combine it with a check
-    // to only set initial values for brand new users.
+    // Check if the document already exists
     const docSnap = await getDoc(userRef);
 
+    // Only create the document if it doesn't exist to prevent overwriting data
     if (!docSnap.exists()) {
         const defaultData = {
             uid: user.uid,
@@ -45,7 +45,10 @@ export async function createUserDocument(user: User) {
             referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
             referralEarnings: 0,
         };
-        await setDoc(userRef, defaultData, { merge: true });
+        await setDoc(userRef, defaultData);
+    } else {
+        // If it exists, we can still update the last login time or other non-initial fields
+        await setDoc(userRef, { updatedAt: serverTimestamp() }, { merge: true });
     }
 }
 
@@ -73,8 +76,9 @@ export async function handleGoogleSignIn(router: AppRouterInstance) {
     // Ensure a user document exists in Firestore.
     await createUserDocument(user);
     
-    // Redirect to complete the profile after sign-in. AuthGuard will handle further navigation.
-    router.push('/complete-profile');
+    // Let AuthGuard handle the final redirection after state update
+    // This is more reliable than a direct push here.
+    // router.push('/complete-profile');
 
   } catch (error: any) {
     // This is not a "real" error, just the user closing the window.

@@ -61,7 +61,8 @@ const IncorrectAnswerSchema = z.object({
     correctAnswer: z.string(),
 });
 
-export const GenerateQuizAnalysisInputSchema = z.object({
+// This is the schema for the prompt itself, which expects pre-calculated data.
+export const GenerateQuizAnalysisPromptInputSchema = z.object({
   format: z.string().describe("The format of the quiz (e.g., T20, IPL)."),
   score: z.number().describe("The user's final score."),
   totalQuestions: z.number().describe("The total number of questions in the quiz."),
@@ -70,7 +71,7 @@ export const GenerateQuizAnalysisInputSchema = z.object({
   usedHintIndices: z.array(z.number()).optional().describe('Indices of questions where a hint was used.'),
 });
 
-// The input for the flow wrapper will still be the raw data
+// This is the input for the flow wrapper, which takes raw data to calculate the score.
 export const FlowGenerateQuizAnalysisInputSchema = z.object({
   questions: z.array(QuizQuestionSchema),
   userAnswers: z.array(z.string()),

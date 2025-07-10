@@ -3,6 +3,7 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
   loading: () => (
@@ -25,7 +26,7 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
   ssr: false, // This component uses hooks that rely on client-side state
 });
 
-export default function HomePage() {
+function HomePageContent() {
     return (
         <div className="flex flex-col h-screen bg-background text-foreground">
           <header className="p-4 flex items-center justify-center">
@@ -44,4 +45,12 @@ export default function HomePage() {
           </main>
         </div>
     );
+}
+
+export default function HomePage() {
+  return (
+    <AuthGuard requireAuth={false}>
+      <HomePageContent />
+    </AuthGuard>
+  )
 }
