@@ -15,7 +15,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -29,7 +29,6 @@ const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.project
         try {
             await disableNetwork(db);
             await enableNetwork(db);
-            console.log('✅ Firestore network connection has been reset.');
         } catch (err) {
             console.warn('⚠️ Could not reset Firestore network connection:', err);
         }

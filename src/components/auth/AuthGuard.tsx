@@ -15,54 +15,56 @@ export default function AuthGuard({
     children: React.ReactNode; 
     requireAuth?: boolean;
 }) {
-  const { user, loading, isUserDataLoading, isProfileComplete } = useAuth();
+  const { user, loading: isAuthLoading, isUserDataLoading, isProfileComplete } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   const isAuthPage = AUTH_PAGES.some(route => pathname.startsWith(route));
   const isCompleteProfilePage = pathname === '/complete-profile';
   
-  const isLoading = loading || isUserDataLoading;
+  const isLoading = isAuthLoading || isUserDataLoading;
 
   useEffect(() => {
     if (isLoading) {
-      return; // Wait until all authentication and user data is loaded
+      return; // Wait until all authentication and user data is loaded before making decisions
     }
 
     if (user) {
+        // User is logged in
         if (isAuthPage) {
-            router.replace('/home');
+            router.replace('/home'); // User is on /login or /signup, send them home
             return;
         }
         if (!isProfileComplete && !isCompleteProfilePage) {
-            router.replace('/complete-profile');
+            router.replace('/complete-profile'); // Profile is not complete, force them to the form
             return;
         }
         if (isProfileComplete && isCompleteProfilePage) {
-            router.replace('/profile');
+            router.replace('/profile'); // Profile is complete, don't let them see the form again
             return;
         }
     } else {
+      // User is not logged in
       if (requireAuth) {
+        // This is a protected page
         router.replace(`/auth/login?from=${encodeURIComponent(pathname)}`);
       }
     }
 
   }, [user, isLoading, isProfileComplete, router, pathname, isAuthPage, isCompleteProfilePage, requireAuth]);
 
-  // This is the key change: only show the full-page loader if auth is required and we are loading.
-  // For public pages (like Home), this condition will be false, preventing the "Initializing..." screen.
+  // Show a loader only under specific conditions to avoid "flash of loader" on public pages
   if (isLoading && requireAuth) {
     return <CricketLoading message="Authenticating..." />;
   }
-
-  // These conditions prevent a "flash of unauthenticated content" while redirects are being processed.
+  
+  // Prevent "flash of unauthenticated content" while redirects are processed.
   if (user) {
-    if (isAuthPage) return null; // Don't show login/signup page to a logged-in user
-    if (!isProfileComplete && !isCompleteProfilePage) return null; // Don't show other pages if profile is incomplete
-    if (isProfileComplete && isCompleteProfilePage) return null; // Don't show complete-profile page if already complete
+    if (isAuthPage) return null; 
+    if (!isProfileComplete && !isCompleteProfilePage) return <CricketLoading message="Finalizing your setup..." />;
+    if (isProfileComplete && isCompleteProfilePage) return null; 
   } else {
-    if (requireAuth) return null; // Don't show a protected page to a logged-out user
+    if (requireAuth) return null; 
   }
   
   return <>{children}</>;

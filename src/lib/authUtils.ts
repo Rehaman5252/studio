@@ -11,7 +11,7 @@ import {
     updateProfile
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { db, app } from '@/lib/firebase';
+import { db, app, isFirebaseConfigured } from '@/lib/firebase';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 /**
@@ -55,11 +55,11 @@ export async function createUserDocument(user: User) {
 
 /**
  * Handles the Google Sign-In popup flow, creates a user document,
- * and navigates to the appropriate page.
+ * and lets AuthGuard handle redirection.
  * @param router The Next.js router instance for navigation.
  */
 export async function handleGoogleSignIn(router: AppRouterInstance) {
-  if (!app) {
+  if (!isFirebaseConfigured || !app) {
     console.error("Firebase is not configured. Cannot sign in.");
     // In a real app, you might show a toast notification here.
     return;
@@ -76,17 +76,15 @@ export async function handleGoogleSignIn(router: AppRouterInstance) {
     // Ensure a user document exists in Firestore.
     await createUserDocument(user);
     
-    // Let AuthGuard handle the final redirection after state update
+    // AuthGuard will handle the final redirection after state update
     // This is more reliable than a direct push here.
     // router.push('/complete-profile');
 
   } catch (error: any) {
-    // This is not a "real" error, just the user closing the window.
     if (error.code === 'auth/popup-closed-by-user') {
       console.warn("User closed the Google Sign-In popup.");
     } else {
-      console.error("Google Sign-In failed:", error);
-      // Optionally, show a toast to the user.
+      console.error("Google Sign-In failed:", error.code, error.message);
     }
   }
 }
