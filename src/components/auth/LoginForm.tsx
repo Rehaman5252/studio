@@ -5,15 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth, isFirebaseConfigured } from '@/lib/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn } from '@/lib/authUtils';
+import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -51,18 +50,8 @@ export default function LoginForm() {
 
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
-    if (!auth) {
-        toast({
-            title: "Authentication Unavailable",
-            description: "The authentication service is not configured. Please contact the site administrator.",
-            variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-    }
-
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
+      await loginWithEmail(data.email, data.password);
       // AuthGuard will handle redirection
     } catch (error: any) {
       toast({

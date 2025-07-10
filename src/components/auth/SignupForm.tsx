@@ -7,14 +7,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn, createUserDocument } from '@/lib/authUtils';
+import { handleGoogleSignIn, createUserDocument, registerWithEmail } from '@/lib/authUtils';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { verifyOtp } from '@/ai/flows/verify-otp-flow';
 import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
@@ -148,19 +148,13 @@ export default function SignupForm() {
     if (!detailsData) return;
     setIsLoading(true);
 
-    if (!auth || !db) {
-        toast({ title: "Service Unavailable", description: "Cannot create account.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-    }
-
     try {
         const verifyResult = await verifyPhoneOtp({ phone: detailsData.phone, otp: otpData.otp });
         if (!verifyResult.success) {
             throw new Error(verifyResult.message);
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, detailsData.email, detailsData.password);
+        const userCredential = await registerWithEmail(detailsData.email, detailsData.password);
         const user = userCredential.user;
         
         await updateProfile(user, { displayName: detailsData.name });

@@ -1,7 +1,15 @@
 
 'use client';
 
-import { getAuth, GoogleAuthProvider, signInWithPopup, type User } from 'firebase/auth';
+import { 
+    getAuth, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    type User,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    updateProfile
+} from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db, app } from '@/lib/firebase';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
@@ -78,3 +86,25 @@ export async function handleGoogleSignIn(router: AppRouterInstance) {
     }
   }
 }
+
+/**
+ * Creates a new user with email and password.
+ * @param email The user's email.
+ * @param password The user's password.
+ * @returns The user credential.
+ */
+export const registerWithEmail = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth service is not available.");
+    return await createUserWithEmailAndPassword(auth, email, password);
+};
+
+/**
+ * Signs in a user with email and password.
+ * @param email The user's email.
+ * @param password The user's password.
+ * @returns The user credential.
+ */
+export const loginWithEmail = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth service is not available.");
+    return await signInWithEmailAndPassword(auth, email, password);
+};
