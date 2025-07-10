@@ -80,25 +80,19 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🔥 handleSaveProfile triggered");
 
         if (!user || !user.uid) {
-            console.error("❌ User not signed in");
             toast({ title: "Authentication Error", description: "You must be signed in to save your profile.", variant: "destructive" });
             setIsSubmitting(false);
             return;
         }
 
         if (!db) {
-            console.error("❌ Firestore DB instance is not available.");
             toast({ title: "Database Error", description: "Cannot connect to the database.", variant: "destructive" });
             setIsSubmitting(false);
             return;
         }
 
-        console.log("✅ UID:", user.uid);
-        console.log("📝 Saving this profile:", data);
-    
         try {
             const userDocRef = doc(db, 'users', user.uid);
             
@@ -111,19 +105,16 @@ export default function CompleteProfileForm() {
             };
     
             if (data.phone !== userData?.phone) {
-                console.log("ℹ️ Phone number has changed. Marking as unverified.");
                 updatePayload.phoneVerified = false;
             }
             
-            console.log(`➡️ Writing to users/${user.uid}`);
             await setDoc(userDocRef, updatePayload, { merge: true });
     
-            console.log("✅ Profile saved successfully!");
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/profile');
     
         } catch (error: any) {
-            console.error("🔥 Firestore error:", error);
+            console.error("Firestore error:", error);
             toast({ title: "Error Saving Profile", description: `Could not save your profile. Reason: ${error.message}`, variant: "destructive" });
         } finally {
             setIsSubmitting(false);

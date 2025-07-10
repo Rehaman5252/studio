@@ -5,14 +5,14 @@
 
 @layer base {
   :root {
-    --background: 120 60% 97%; /* Pale Green */
+    --background: 40 33% 97%; /* Off-white, parchment-like */
     --foreground: 240 10% 3.9%;
-    --card: 120 60% 99%;
+    --card: 40 33% 100%;
     --card-foreground: 240 10% 3.9%;
-    --popover: 120 60% 99%;
+    --popover: 40 33% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 120 61% 34%; /* Forest Green */
-    --primary-foreground: 60 90% 98%;
+    --primary: 45 93% 47%; /* Gold */
+    --primary-foreground: 45 93% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
@@ -21,9 +21,9 @@
     --accent-foreground: 60 90% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 60 90% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 120 61% 34%;
+    --border: 45 33% 88%;
+    --input: 45 33% 92%;
+    --ring: 45 93% 47%;
     --radius: 0.8rem;
   }
  
@@ -34,7 +34,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 120 61% 45%; /* A slightly brighter Forest Green for dark mode */
+    --primary: 45 93% 55%; /* A slightly brighter Gold for dark mode */
     --primary-foreground: 210 40% 98%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -46,7 +46,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 120 61% 45%;
+    --ring: 45 93% 45%;
   }
 }
 

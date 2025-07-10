@@ -42,7 +42,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
             quizzesPlayed: 0,
             perfectScores: 0,
             certificatesEarned: 0,
-            referralCode: `cricblitz.app/ref/${user.uid.slice(0, 8)}`,
+            referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
             referralEarnings: 0,
             ...additionalData // Merge any extra data passed in
         };
@@ -79,7 +79,7 @@ export async function handleGoogleSignIn() {
     if (!user) throw new Error("Google sign-in returned no user.");
     
     // Ensure a user document exists in Firestore. This is safe to call every time.
-    await createUserDocument(user);
+    await createUserDocument(user, { emailVerified: true });
     
     // AuthGuard will handle the final redirection after auth state updates.
 

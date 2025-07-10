@@ -50,7 +50,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
     };
 
     // The timer is ALWAYS running at 500ms.
-    timerRef.current = setInterval(rotateToNextFace, 500);
+    timerRef.current = setInterval(rotateToNextFace, 3000); // Slower rotation
     
     return () => {
         if (timerRef.current) {
@@ -80,7 +80,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
         >
@@ -90,7 +90,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
               onClick={() => onFaceClick(index)}
               role="button"
               tabIndex={0}
-              aria-label={`Select ${brand.format} quiz sponsored by ${brand.brand}`}
+              aria-label={`Select ${brand.format} quiz`}
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFaceClick(index)}
               className={cn(
                 "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
@@ -104,10 +104,10 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
                 <Image
                   src={brand.logoUrl}
                   alt={`${brand.brand} logo`}
+                  data-ai-hint="cricket logo"
                   width={brand.logoWidth}
                   height={brand.logoHeight}
                   className="object-contain px-2 drop-shadow-lg"
-                  style={{filter: 'brightness(0) invert(1)'}}
                   priority
                 />
                 <span className="text-xs font-semibold text-foreground opacity-90">

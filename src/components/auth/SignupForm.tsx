@@ -167,7 +167,7 @@ export default function SignupForm() {
             emailVerified: true // Email is considered verified by OTP flow
         });
         
-        toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Please complete your profile.' });
+        toast({ title: 'Account Created!', description: 'Welcome to IndCric! Please complete your profile.' });
         
         // Let AuthGuard handle the redirection.
         // router.push('/complete-profile');
