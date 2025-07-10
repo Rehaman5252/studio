@@ -69,7 +69,7 @@ const Certificate = memo(({ format, userName, date, slotTimings }: { format: str
 ));
 Certificate.displayName = 'Certificate';
 
-const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIndices, slotId }: { questions: QuizQuestion[]; userAnswers: string[], timePerQuestion?: number[], usedHintIndices?: number[], slotId: string }) => {
+const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIndices, slotId, format }: { questions: QuizQuestion[]; userAnswers: string[], timePerQuestion?: number[], usedHintIndices?: number[], slotId: string, format: string }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -87,7 +87,7 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
         setIsLoading(true);
         setError(null);
         try {
-            const result = await generateQuizAnalysis({ questions, userAnswers, timePerQuestion, usedHintIndices });
+            const result = await generateQuizAnalysis({ questions, userAnswers, format, timePerQuestion, usedHintIndices });
             setAnalysis(result.analysis);
             localStorage.setItem(getAnalysisCacheKey(), result.analysis);
         } catch (err) {
@@ -96,7 +96,7 @@ const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIn
         } finally {
             setIsLoading(false);
         }
-    }, [questions, userAnswers, timePerQuestion, usedHintIndices, getAnalysisCacheKey]);
+    }, [questions, userAnswers, timePerQuestion, usedHintIndices, getAnalysisCacheKey, format]);
     
     return (
         <div className="w-full max-w-md">
@@ -265,6 +265,7 @@ function ResultsComponent() {
                     timePerQuestion={timePerQuestion}
                     usedHintIndices={usedHintIndices}
                     slotId={slotId}
+                    format={format}
                 />
 
                 {isPerfectScore && <Certificate format={format} userName={user?.displayName || "CricBlitz User"} date={today} slotTimings={slotTimings} />}

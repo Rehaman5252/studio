@@ -51,13 +51,31 @@ export type GenerateHintOutput = z.infer<typeof GenerateHintOutputSchema>;
 
 
 // Schemas for generateQuizAnalysisFlow
+const IncorrectAnswerSchema = z.object({
+    questionNumber: z.number(),
+    questionText: z.string(),
+    userAnswer: z.string(),
+    correctAnswer: z.string(),
+});
+
 export const GenerateQuizAnalysisInputSchema = z.object({
-  questions: z.array(QuizQuestionSchema),
-  userAnswers: z.array(z.string()),
+  format: z.string().describe("The format of the quiz (e.g., T20, IPL)."),
+  score: z.number().describe("The user's final score."),
+  totalQuestions: z.number().describe("The total number of questions in the quiz."),
+  incorrectAnswers: z.array(IncorrectAnswerSchema).describe("A list of questions the user answered incorrectly."),
   timePerQuestion: z.array(z.number()).optional().describe('Time taken in seconds for each question.'),
   usedHintIndices: z.array(z.number()).optional().describe('Indices of questions where a hint was used.'),
 });
-export type GenerateQuizAnalysisInput = z.infer<typeof GenerateQuizAnalysisInputSchema>;
+
+// The input for the flow wrapper will still be the raw data
+export const FlowGenerateQuizAnalysisInputSchema = z.object({
+  questions: z.array(QuizQuestionSchema),
+  userAnswers: z.array(z.string()),
+  format: z.string(),
+  timePerQuestion: z.array(z.number()).optional().describe('Time taken in seconds for each question.'),
+  usedHintIndices: z.array(z.number()).optional().describe('Indices of questions where a hint was used.'),
+});
+export type GenerateQuizAnalysisInput = z.infer<typeof FlowGenerateQuizAnalysisInputSchema>;
 
 
 export const GenerateQuizAnalysisOutputSchema = z.object({

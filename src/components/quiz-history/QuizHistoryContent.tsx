@@ -35,6 +35,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             const result = await generateQuizAnalysis({
                 questions: attempt.questions,
                 userAnswers: attempt.userAnswers,
+                format: attempt.format,
                 timePerQuestion: attempt.timePerQuestion,
                 usedHintIndices: attempt.usedHintIndices,
             });
@@ -211,5 +212,3 @@ export default function QuizHistoryContent() {
     </>
   );
 }
-
-    
