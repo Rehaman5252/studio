@@ -2,14 +2,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
+import { generateCricketFact } from '@/ai/flows/generate-cricket-fact';
 
 interface CricketLoadingProps {
   state?: 'loading' | 'error';
   message?: string;
   errorMessage?: string;
   children?: React.ReactNode;
-  facts?: string[] | null;
+  format?: string; // The cricket format for fetching facts
 }
 
 const RoyalSpinner = () => (
@@ -37,18 +38,48 @@ const CricketLoading = ({
   message = "Generating your quiz...",
   errorMessage = "It's a wicket! Looks like there was an error.",
   children,
-  facts
+  format = 'Cricket' // Default format if not provided
 }: CricketLoadingProps) => {
-  const [currentFactIndex, setCurrentFactIndex] = useState(0);
+  const [fact, setFact] = useState<string>('Loading cricket wisdom...');
+  const [seenFacts, setSeenFacts] = useState<string[]>([]);
+  const [isFetchingFact, setIsFetchingFact] = useState(false);
 
   useEffect(() => {
-    if (facts && facts.length > 0) {
-      const interval = setInterval(() => {
-        setCurrentFactIndex((prevIndex) => (prevIndex + 1) % facts.length);
-      }, 3000); // Change fact every 3 seconds
-      return () => clearInterval(interval);
+    let isMounted = true;
+    let timer: NodeJS.Timeout;
+
+    const fetchFact = async () => {        
+        if (!isMounted || isFetchingFact) return;
+        
+        setIsFetchingFact(true);
+        try {
+            const newFact = await generateCricketFact({ format, seenFacts });
+            if (isMounted) {
+                setFact(newFact);
+                setSeenFacts(prev => [...prev, newFact]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch cricket fact:", error);
+            if (isMounted) {
+                // Set a fallback fact in case of an error
+                setFact("The first official cricket Test match was played in 1877 between Australia and England.");
+            }
+        } finally {
+            if(isMounted) setIsFetchingFact(false);
+        }
+    };
+    
+    // Fetch the first fact immediately, then set an interval
+    if(state === 'loading') {
+      fetchFact();
+      timer = setInterval(fetchFact, 5000); // Fetch a new fact every 5 seconds
     }
-  }, [facts]);
+
+    return () => {
+      isMounted = false;
+      if (timer) clearInterval(timer);
+    };
+  }, [format, seenFacts, state, isFetchingFact]);
   
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
@@ -79,11 +110,14 @@ const CricketLoading = ({
         {state === 'loading' ? message : errorMessage}
       </h2>
 
-      {state === 'loading' && facts && facts.length > 0 && (
+      {state === 'loading' && (
          <div className="mt-8 text-center max-w-md p-4 bg-card/50 rounded-lg border border-primary/20 animate-fade-in-up">
-          <h3 className="font-bold text-primary flex items-center justify-center gap-2 mb-2"><Info />Did you know?</h3>
-          <p className="text-muted-foreground transition-opacity duration-500">
-            {facts[currentFactIndex]}
+          <h3 className="font-bold text-primary flex items-center justify-center gap-2 mb-2">
+            {isFetchingFact ? <Loader2 className="h-5 w-5 animate-spin" /> : <Info />}
+            Did you know?
+          </h3>
+          <p className="text-muted-foreground transition-opacity duration-500 min-h-[40px]">
+            {fact}
           </p>
         </div>
       )}
