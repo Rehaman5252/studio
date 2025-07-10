@@ -20,7 +20,7 @@ if (process.env.NODE_ENV === 'development') {
     setLogLevel('debug');
 }
 
-// Initialize Firebase App
+// Initialize Firebase App, preventing re-initialization
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firebase services
