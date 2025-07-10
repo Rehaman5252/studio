@@ -78,7 +78,6 @@ export async function handleGoogleSignIn(router: AppRouterInstance) {
     
     // AuthGuard will handle the final redirection after state update
     // This is more reliable than a direct push here.
-    // router.push('/complete-profile');
 
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user') {
