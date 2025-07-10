@@ -35,10 +35,10 @@ const RoyalSpinner = () => (
 
 const CricketLoading = ({
   state = 'loading',
-  message = "Generating your quiz...",
+  message = "Initializing...",
   errorMessage = "It's a wicket! Looks like there was an error.",
   children,
-  format = 'Cricket' // Default format if not provided
+  format, // Default format if not provided
 }: CricketLoadingProps) => {
   const [fact, setFact] = useState<string>('Loading cricket wisdom...');
   const [seenFacts, setSeenFacts] = useState<string[]>([]);
@@ -49,7 +49,7 @@ const CricketLoading = ({
     let timer: NodeJS.Timeout;
 
     const fetchFact = async () => {        
-        if (!isMounted || isFetchingFact) return;
+        if (!isMounted || isFetchingFact || !format) return;
         
         setIsFetchingFact(true);
         try {
@@ -70,7 +70,7 @@ const CricketLoading = ({
     };
     
     // Fetch the first fact immediately, then set an interval
-    if(state === 'loading') {
+    if(state === 'loading' && format) {
       fetchFact();
       timer = setInterval(fetchFact, 5000); // Fetch a new fact every 5 seconds
     }
