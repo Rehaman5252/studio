@@ -7,19 +7,20 @@ import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Lightbulb } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/context/AuthProvider';
-import { cn, getQuizSlotId } from '@/lib/utils';
+import { getQuizSlotId } from '@/lib/utils';
 import { useQuizStatus, type SlotAttempt } from '@/context/QuizStatusProvider';
 import CricketLoading from '@/components/CricketLoading';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, collection, writeBatch, increment } from 'firebase/firestore';
+import { QuizHeader } from '@/components/quiz/QuizHeader';
+import { Timer } from '@/components/quiz/Timer';
+import { QuestionCard } from '@/components/quiz/QuestionCard';
 
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
@@ -27,119 +28,6 @@ const interstitialAds: Record<number, { logo: string; hint: string }> = {
     1: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Dominos_pizza_logo.svg/1200px-Dominos_pizza_logo.svg.png', hint: 'Dominos logo' },
     3: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Pepsi_logo_2014.svg/1200px-Pepsi_logo_2014.svg.png', hint: 'Pepsi logo' },
 };
-
-const QuizHeader = memo(({ format, current, total }: { format: string, current: number, total: number }) => {
-    const progressValue = ((current + 1) / total) * 100;
-    return (
-        <header className="w-full max-w-2xl mx-auto mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-xl font-bold">{format} Quiz</h1>
-            <p className="font-semibold">{current + 1} / {total}</p>
-          </div>
-          <Progress value={progressValue} className="h-2 [&>div]:bg-primary" />
-        </header>
-    );
-});
-QuizHeader.displayName = 'QuizHeader';
-
-const Timer = memo(({ timeLeft }: { timeLeft: number }) => {
-  const radius = 40;
-  const circumference = 2 * Math.PI * radius;
-  const offset = Math.max(0, circumference - (timeLeft / 20) * circumference);
-
-  return (
-    <div className="relative h-28 w-28">
-      <svg className="h-full w-full" viewBox="0 0 100 100">
-        <circle
-          className="stroke-current text-border"
-          strokeWidth="10"
-          cx="50"
-          cy="50"
-          r={radius}
-          fill="transparent"
-        />
-        <circle
-          className="stroke-current text-primary transition-all duration-1000 linear"
-          strokeWidth="10"
-          strokeLinecap="round"
-          cx="50"
-          cy="50"
-          r={radius}
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform="rotate(-90 50 50)"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-3xl font-bold text-foreground">{timeLeft}</span>
-      </div>
-    </div>
-  );
-});
-Timer.displayName = 'Timer';
-
-const QuizOption = memo(({ option, index, isSelected, selectedOption, handleAnswerSelect }: {
-    option: string;
-    index: number;
-    isSelected: boolean;
-    selectedOption: string | null;
-    handleAnswerSelect: (option: string) => void;
-}) => {
-    return (
-        <Button
-            onClick={() => handleAnswerSelect(option)}
-            disabled={!!selectedOption}
-            variant="outline"
-            className={cn(
-                'relative w-full h-auto py-3 text-sm whitespace-normal justify-start text-left transition-all duration-300 ease-in-out',
-                !selectedOption && 'hover:bg-primary/10 hover:border-primary',
-                selectedOption && {
-                    'opacity-50': !isSelected,
-                    'bg-primary text-primary-foreground border-primary': isSelected,
-                }
-            )}
-        >
-            <span className="font-bold mr-4">{String.fromCharCode(65 + index)}</span>
-            <span>{option}</span>
-        </Button>
-    );
-});
-QuizOption.displayName = 'QuizOption';
-
-const QuestionCard = memo(({ question, isHintVisible, options, selectedOption, handleAnswerSelect }: {
-    question: QuizQuestion;
-    isHintVisible: boolean;
-    options: string[];
-    selectedOption: string | null;
-    handleAnswerSelect: (option: string) => void;
-}) => (
-    <Card className="w-full bg-card shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
-                {question.questionText}
-            </CardTitle>
-            {isHintVisible && question.hint && (
-                <p className="text-sm text-primary pt-2 animate-in fade-in">
-                    <strong>Hint:</strong> {question.hint}
-                </p>
-            )}
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {options.map((option, index) => (
-                <QuizOption
-                    key={`${option}-${index}`}
-                    option={option}
-                    index={index}
-                    isSelected={selectedOption === option}
-                    selectedOption={selectedOption}
-                    handleAnswerSelect={handleAnswerSelect}
-                />
-            ))}
-        </CardContent>
-    </Card>
-));
-QuestionCard.displayName = 'QuestionCard';
 
 function QuizComponent() {
   const router = useRouter();
@@ -442,5 +330,3 @@ export default function QuizPage() {
     </AuthGuard>
   )
 }
-
-    

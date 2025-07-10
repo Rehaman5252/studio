@@ -9,16 +9,16 @@ import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
-import { Home, Loader2, CheckCircle2, XCircle, Star, MessageCircleQuestion, Sparkles, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
-import ReactMarkdown from 'react-markdown';
+import { Home, Loader2, Star, AlertTriangle } from 'lucide-react';
 import CricketLoading from '@/components/CricketLoading';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { ResultsSummaryCard } from '@/components/quiz/ResultsSummaryCard';
+import { Certificate } from '@/components/quiz/Certificate';
+import { AnalysisCard } from '@/components/quiz/AnalysisCard';
+import { AnswerReview } from '@/components/quiz/AnswerReview';
+
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
@@ -26,142 +26,25 @@ const MalpracticeScreen = memo(() => {
         <div 
             className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4"
         >
-            <Card className="w-full max-w-md text-center bg-card border-2 border-destructive my-4">
-                <CardHeader>
-                     <div className="mx-auto bg-destructive/20 p-4 rounded-full w-fit mb-4">
-                        <AlertTriangle className="h-12 w-12 text-destructive" />
-                    </div>
-                    <CardTitle className="text-3xl font-extrabold text-destructive">Quiz Terminated</CardTitle>
-                    <CardDescription className="text-base text-muted-foreground">Malpractice Detected</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <div className="w-full max-w-md text-center bg-card border-2 border-destructive my-4 rounded-lg p-6 shadow-lg">
+                 <div className="mx-auto bg-destructive/20 p-4 rounded-full w-fit mb-4">
+                    <AlertTriangle className="h-12 w-12 text-destructive" />
+                </div>
+                <h1 className="text-3xl font-extrabold text-destructive">Quiz Terminated</h1>
+                <p className="text-base text-muted-foreground mt-2">Malpractice Detected</p>
+                <div className="space-y-4 mt-4">
                      <p className="text-lg">Your quiz session was ended because you switched tabs or left the app.</p>
                      <p className="text-sm text-muted-foreground">To ensure fair play for all users, this is not permitted during a quiz.</p>
                      <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-4" onClick={() => router.replace('/home')}>
                         <Home className="mr-2 h-5 w-5" /> Go Home
                      </Button>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 });
 MalpracticeScreen.displayName = "MalpracticeScreen";
 
-
-const Certificate = memo(({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => (
-    <div className="w-full max-w-md">
-        <div className="bg-card text-foreground rounded-lg p-6 border-4 border-primary shadow-2xl shadow-primary/20 relative mt-4">
-            <Star className="absolute top-2 right-2 text-primary" size={32} />
-            <Star className="absolute top-2 left-2 text-primary" size={32} />
-            <Star className="absolute bottom-2 right-2 text-primary" size={32} />
-            <Star className="absolute bottom-2 left-2 text-primary" size={32} />
-            <div className="text-center">
-                <p className="text-lg font-semibold text-muted-foreground">Certificate of Achievement</p>
-                <p className="text-sm">This certifies that</p>
-                <p className="text-2xl font-bold my-2 text-primary">{userName}</p>
-                <p className="text-sm">has successfully achieved a perfect score in the</p>
-                <p className="text-xl font-bold my-2">{format} Quiz</p>
-                <p className="text-xs mt-4 text-muted-foreground">Awarded on: {date}</p>
-                <p className="text-xs mt-1 text-muted-foreground">Quiz Slot: {slotTimings}</p>
-            </div>
-        </div>
-    </div>
-));
-Certificate.displayName = 'Certificate';
-
-const AnalysisCard = memo(({ questions, userAnswers, timePerQuestion, usedHintIndices, slotId, format }: { questions: QuizQuestion[]; userAnswers: string[], timePerQuestion?: number[], usedHintIndices?: number[], slotId: string, format: string }) => {
-    const [analysis, setAnalysis] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const getAnalysisCacheKey = useCallback(() => `analysis_${slotId}`, [slotId]);
-
-    useEffect(() => {
-        const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
-        if (cachedAnalysis) {
-            setAnalysis(cachedAnalysis);
-        }
-    }, [getAnalysisCacheKey]);
-
-    const handleFetchAnalysis = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const result = await generateQuizAnalysis({ questions, userAnswers, format, timePerQuestion, usedHintIndices });
-            setAnalysis(result.analysis);
-            localStorage.setItem(getAnalysisCacheKey(), result.analysis);
-        } catch (err) {
-            console.error("Analysis generation failed:", err);
-            setError('Could not generate the analysis. Please try again later.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [questions, userAnswers, timePerQuestion, usedHintIndices, getAnalysisCacheKey, format]);
-    
-    return (
-        <div className="w-full max-w-md">
-            <Card className="w-full text-left bg-card border-0 mt-4 mb-4">
-                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="text-primary" /> AI Performance Analysis
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                {analysis ? (
-                     <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
-                        <ReactMarkdown>{analysis}</ReactMarkdown>
-                    </div>
-                ) : (
-                    <div className="text-center">
-                        <h3 className="text-lg font-bold">Want to improve?</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Get a personalized analysis of your performance from our AI coach.</p>
-                        {isLoading ? (
-                            <Button disabled className="w-full">
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating Report...
-                            </Button>
-                        ) : (
-                            <Button onClick={handleFetchAnalysis} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                                Generate Free Analysis
-                            </Button>
-                        )}
-                        {error && <p className="text-destructive text-xs mt-2">{error}</p>}
-                    </div>
-                )}
-                </CardContent>
-            </Card>
-        </div>
-    )
-});
-AnalysisCard.displayName = 'AnalysisCard';
-
-
-const AnswerReview = memo(({ questions, userAnswers }: { questions: QuizQuestion[], userAnswers: string[] }) => (
-    <div className="w-full max-w-md">
-        <Card className="w-full text-left bg-card border-0 mt-4 mb-4">
-            <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-                {questions.map((q, i) => (
-                    <div key={`${q.questionText}-${i}`} className="text-sm p-3 rounded-lg bg-background">
-                        <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
-                        <p className={cn("flex items-center text-foreground/90", userAnswers[i] === q.correctAnswer ? 'text-green-400' : 'text-red-400' )}>
-                          {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0"/> : <XCircle className="mr-2 shrink-0"/>}
-                          Your answer: {userAnswers[i] || 'Not answered'}
-                        </p>
-                        {userAnswers[i] !== q.correctAnswer && <p className="text-green-400 flex items-center"><CheckCircle2 className="mr-2 shrink-0"/> Correct: {q.correctAnswer}</p>}
-                        {q.explanation && (
-                            <div className="mt-2 pt-2 border-t border-border text-muted-foreground">
-                                <p className="font-semibold text-foreground">Explanation:</p>
-                                <p>{q.explanation}</p>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </CardContent>
-        </Card>
-    </div>
-));
-AnswerReview.displayName = 'AnswerReview';
 
 function ResultsComponent() {
     const router = useRouter();
@@ -169,14 +52,14 @@ function ResultsComponent() {
     const { user } = useAuth();
     const { lastAttemptInSlot, isLoading: isContextLoading } = useQuizStatus();
     
-    // Hooks must be called unconditionally at the top level.
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
+    
     const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
     const reason = useMemo(() => searchParams.get('reason'), [searchParams]);
     const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
     
-    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId } = useMemo(() => {
+    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp } = useMemo(() => {
         return {
             ...lastAttemptInSlot,
             totalQuestions: lastAttemptInSlot?.questions?.length || 0,
@@ -199,12 +82,20 @@ function ResultsComponent() {
     
     
     const slotTimings = useMemo(() => {
-        if (!lastAttemptInSlot?.slotId) return '';
-        const slotStartTime = new Date(parseInt(lastAttemptInSlot.slotId, 10));
+        if (!timestamp) return '';
+        const attemptDate = new Date(timestamp);
+        const minutes = attemptDate.getMinutes();
+        const slotStartMinute = Math.floor(minutes / 10) * 10;
+        
+        const slotStartTime = new Date(attemptDate);
+        slotStartTime.setMinutes(slotStartMinute, 0, 0);
+        
         const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
         const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        
         return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-    }, [lastAttemptInSlot?.slotId]);
+    }, [timestamp]);
     
     const handleViewAnswers = useCallback(() => {
         if (showAnswers) return;
@@ -218,7 +109,6 @@ function ResultsComponent() {
         });
     }, [showAnswers]);
 
-    // Conditional returns can only happen AFTER all hooks are called.
     if (reason === 'malpractice') {
         return <MalpracticeScreen />;
     }

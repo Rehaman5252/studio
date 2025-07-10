@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -8,12 +9,26 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import ProfileHeader from './ProfileHeader';
-import ProfileCompletion from './ProfileCompletion';
-import StatsSummary from './StatsSummary';
-import ReferralCard from './ReferralCard';
-import SupportCard from './SupportCard';
+import dynamic from 'next/dynamic';
 import ProfileSkeleton from './ProfileSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
+
+
+const ProfileHeader = dynamic(() => import('./ProfileHeader'), {
+    loading: () => <Skeleton className="h-[116px] w-full" />,
+});
+const ProfileCompletion = dynamic(() => import('./ProfileCompletion'), {
+    loading: () => <Skeleton className="h-[76px] w-full" />,
+});
+const StatsSummary = dynamic(() => import('./StatsSummary'), {
+    loading: () => <Skeleton className="h-[96px] w-full" />,
+});
+const ReferralCard = dynamic(() => import('./ReferralCard'), {
+    loading: () => <Skeleton className="h-[124px] w-full" />,
+});
+const SupportCard = dynamic(() => import('./SupportCard'), {
+    loading: () => <Skeleton className="h-[188px] w-full" />,
+});
 
 
 export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
