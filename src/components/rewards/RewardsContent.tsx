@@ -22,7 +22,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     'Amazon': { gift: '₹250 Amazon Pay', description: 'Added to your wallet.', link: 'https://www.amazon.in' },
     'PayPal': { gift: 'Free Shipping Voucher', description: 'On your next PayPal transaction.', link: 'https://www.paypal.com' },
     'Gucci': { gift: 'Exclusive Scarf', description: 'A special reward from Gucci.', link: 'https://www.gucci.com' },
-    'Default': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'Default': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];

@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, Settings, Send } from 'lucide-react';
+import AuthGuard from '@/components/auth/AuthGuard';
 
-export default function SupportPage() {
+function SupportPageContent() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -66,4 +67,12 @@ export default function SupportPage() {
       </main>
     </div>
   );
+}
+
+export default function SupportPage() {
+    return (
+        <AuthGuard>
+            <SupportPageContent />
+        </AuthGuard>
+    )
 }

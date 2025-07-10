@@ -42,7 +42,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
             quizzesPlayed: 0,
             perfectScores: 0,
             certificatesEarned: 0,
-            referralCode: `indcric.app/ref/${user.uid.slice(0, 8)}`,
+            referralCode: `cricblitz.app/ref/${user.uid.slice(0, 8)}`,
             referralEarnings: 0,
             ...additionalData // Merge any extra data passed in
         };
@@ -99,6 +99,7 @@ export async function handleGoogleSignIn() {
  * @returns The user credential.
  */
 export const registerWithEmail = async (email: string, password: string) => {
+    const auth = getAuth(app);
     if (!auth) throw new Error("Auth service is not available.");
     return await createUserWithEmailAndPassword(auth, email, password);
 };
@@ -110,6 +111,7 @@ export const registerWithEmail = async (email: string, password: string) => {
  * @returns The user credential.
  */
 export const loginWithEmail = async (email: string, password: string) => {
+    const auth = getAuth(app);
     if (!auth) throw new Error("Auth service is not available.");
     return await signInWithEmailAndPassword(auth, email, password);
 };

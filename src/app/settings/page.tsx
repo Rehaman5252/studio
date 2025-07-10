@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -6,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
+import AuthGuard from '@/components/auth/AuthGuard';
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -91,4 +93,12 @@ export default function SettingsPage() {
       </main>
     </div>
   );
+}
+
+export default function SettingsPage() {
+    return (
+        <AuthGuard>
+            <SettingsPageContent />
+        </AuthGuard>
+    )
 }

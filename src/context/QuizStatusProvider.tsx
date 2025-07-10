@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo, useCallback } from 'react';
@@ -44,7 +45,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
 
   const getLocalStorageKey = useCallback(() => {
     if (!user) return null;
-    return `indcric_last_attempt_${user.uid}`;
+    return `cricblitz_last_attempt_${user.uid}`;
   }, [user]);
 
   // This function will be exposed to consumers to set the attempt.
