@@ -11,6 +11,7 @@ import {
     GenerateQuizAnalysisInput,
     GenerateQuizAnalysisOutput,
     GenerateQuizAnalysisInputSchema,
+    FlowGenerateQuizAnalysisInputSchema,
     GenerateQuizAnalysisOutputSchema
 } from '@/ai/schemas';
 
@@ -56,7 +57,7 @@ Here is the user's quiz performance data:
 const generateQuizAnalysisFlow = ai.defineFlow(
   {
     name: 'generateQuizAnalysisFlow',
-    inputSchema: GenerateQuizAnalysisInputSchema,
+    inputSchema: FlowGenerateQuizAnalysisInputSchema,
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
   async (input) => {
