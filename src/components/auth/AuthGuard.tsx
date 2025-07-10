@@ -46,7 +46,7 @@ export default function AuthGuard({
     } else {
       // User is not logged in
       if (requireAuth) {
-        // This is a protected page
+        // This is a protected page, redirect to login and remember where they were coming from.
         router.replace(`/auth/login?from=${encodeURIComponent(pathname)}`);
       }
     }
@@ -64,6 +64,7 @@ export default function AuthGuard({
     if (!isProfileComplete && !isCompleteProfilePage) return <CricketLoading message="Finalizing your setup..." />;
     if (isProfileComplete && isCompleteProfilePage) return null; 
   } else {
+    // If we require auth, we will be redirecting, so don't render children.
     if (requireAuth) return null; 
   }
   

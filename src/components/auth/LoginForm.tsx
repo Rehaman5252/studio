@@ -53,7 +53,9 @@ export default function LoginForm() {
     setIsLoading(true);
     try {
       await loginWithEmail(data.email, data.password);
-      // AuthGuard will handle redirection
+      // AuthGuard will handle redirection. If the user successfully logs in,
+      // the `user` object in AuthContext will update, triggering AuthGuard's
+      // useEffect to redirect to `from` or `/home`.
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -68,6 +70,8 @@ export default function LoginForm() {
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
     await handleGoogleSignIn(router);
+    // Similar to email login, we let the AuthGuard handle the redirect
+    // after the auth state has been updated, rather than redirecting here.
     setIsGoogleLoading(false);
   }
 
