@@ -9,7 +9,7 @@ import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdDialog } from '@/components/AdDialog';
 import { Home, Loader2, CheckCircle2, XCircle, Star, MessageCircleQuestion, Sparkles, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
