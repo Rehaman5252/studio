@@ -49,7 +49,9 @@ export async function createUserDocument(user: User) {
  */
 export async function handleGoogleSignIn(router: AppRouterInstance) {
   if (!app) {
-    throw new Error("Firebase is not configured. Cannot sign in.");
+    console.error("Firebase is not configured. Cannot sign in.");
+    // In a real app, you might show a toast notification here.
+    return;
   }
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
@@ -60,16 +62,19 @@ export async function handleGoogleSignIn(router: AppRouterInstance) {
 
     if (!user) throw new Error("Google sign-in returned no user.");
     
-    console.log("✅ Signed in:", user.uid);
+    // Ensure a user document exists in Firestore.
     await createUserDocument(user);
+    
+    // Redirect to complete the profile after sign-in. AuthGuard will handle further navigation.
     router.push('/complete-profile');
 
   } catch (error: any) {
+    // This is not a "real" error, just the user closing the window.
     if (error.code === 'auth/popup-closed-by-user') {
-      console.warn("User closed the Google Sign-In popup. Not an error.");
+      console.warn("User closed the Google Sign-In popup.");
     } else {
-      console.error("❌ Google Sign-In failed:", error);
-      alert("Sign in failed: " + (error.message || "An unknown error occurred."));
+      console.error("Google Sign-In failed:", error);
+      // Optionally, show a toast to the user.
     }
   }
 }
