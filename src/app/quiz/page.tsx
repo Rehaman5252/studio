@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
@@ -39,6 +39,7 @@ function QuizComponent() {
   const { setLastAttemptInSlot } = useQuizStatus();
   
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
+  const [facts, setFacts] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -161,11 +162,13 @@ function QuizComponent() {
       
       setIsLoading(true);
       try {
-        const generatedQuestions = await generateQuiz({ format });
+        const { questions: generatedQuestions, facts: generatedFacts } = await generateQuiz({ format });
         setQuestions(generatedQuestions);
+        setFacts(generatedFacts);
       } catch (error) {
         console.error("Failed to generate quiz:", error);
         setQuestions(null);
+        setFacts(null);
         // Let the error boundary handle this
         throw error;
       }
@@ -250,7 +253,7 @@ function QuizComponent() {
   }, [adConfig, currentQuestionIndex, usedHintIndices, questions]);
 
   if (isLoading) {
-    return <CricketLoading message={`Generating your ${format} quiz...`} />;
+    return <CricketLoading message={`Generating your ${format} quiz...`} facts={facts} />;
   }
 
   if (!questions) {

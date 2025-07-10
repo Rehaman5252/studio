@@ -1,13 +1,15 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Info } from 'lucide-react';
 
 interface CricketLoadingProps {
   state?: 'loading' | 'error';
   message?: string;
   errorMessage?: string;
   children?: React.ReactNode;
+  facts?: string[] | null;
 }
 
 const RoyalSpinner = () => (
@@ -30,13 +32,24 @@ const RoyalSpinner = () => (
     </div>
 );
 
-
 const CricketLoading = ({
   state = 'loading',
   message = "Generating your quiz...",
   errorMessage = "It's a wicket! Looks like there was an error.",
-  children
+  children,
+  facts
 }: CricketLoadingProps) => {
+  const [currentFactIndex, setCurrentFactIndex] = useState(0);
+
+  useEffect(() => {
+    if (facts && facts.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentFactIndex((prevIndex) => (prevIndex + 1) % facts.length);
+      }, 3000); // Change fact every 3 seconds
+      return () => clearInterval(interval);
+    }
+  }, [facts]);
+  
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
       {state === 'loading' ? (
@@ -65,6 +78,16 @@ const CricketLoading = ({
         className="text-xl font-semibold text-foreground/80 text-center mt-4">
         {state === 'loading' ? message : errorMessage}
       </h2>
+
+      {state === 'loading' && facts && facts.length > 0 && (
+         <div className="mt-8 text-center max-w-md p-4 bg-card/50 rounded-lg border border-primary/20 animate-fade-in-up">
+          <h3 className="font-bold text-primary flex items-center justify-center gap-2 mb-2"><Info />Did you know?</h3>
+          <p className="text-muted-foreground transition-opacity duration-500">
+            {facts[currentFactIndex]}
+          </p>
+        </div>
+      )}
+
       {children && <div className="mt-6">{children}</div>}
     </div>
   );

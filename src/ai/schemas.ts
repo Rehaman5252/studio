@@ -33,7 +33,10 @@ export const QuizQuestionSchema = z.object({
 });
 export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 
-export const GenerateQuizOutputSchema = z.array(QuizQuestionSchema).length(5);
+export const GenerateQuizOutputSchema = z.object({
+  questions: z.array(QuizQuestionSchema).length(5),
+  facts: z.array(z.string()).length(5).describe('An array of 5 interesting, little-known, and engaging facts about the specified cricket format.'),
+});
 export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 
 
