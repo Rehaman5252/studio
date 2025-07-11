@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db, app, isFirebaseConfigured } from '@/lib/firebase';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * Creates a user document in Firestore if it doesn't already exist.
@@ -60,14 +61,20 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 }
 
 
+let googleSignInInProgress = false;
 /**
  * Handles the Google Sign-In popup flow and creates the user document.
+ * Includes a flag to prevent multiple popups from being opened.
  * Redirection is handled by the AuthGuard.
  */
 export async function handleGoogleSignIn() {
+  if (googleSignInInProgress) return;
+  googleSignInInProgress = true;
+
   if (!isFirebaseConfigured || !app) {
     console.error("Firebase is not configured. Cannot sign in.");
-    // In a real app, you might want to show a toast message here.
+    toast({ title: "Configuration Error", description: "Firebase is not configured.", variant: "destructive" });
+    googleSignInInProgress = false;
     throw new Error("Firebase is not configured.");
   }
   const auth = getAuth(app);
@@ -79,20 +86,18 @@ export async function handleGoogleSignIn() {
 
     if (!user) throw new Error("Google sign-in returned no user.");
     
-    // Ensure a user document exists in Firestore. This is safe to call every time.
-    await createUserDocument(user, { emailVerified: true, profileCompleted: false });
+    await createUserDocument(user, { emailVerified: true });
+    toast({ title: "Signed In", description: "Welcome back!" });
     
-    // AuthGuard will handle the final redirection after auth state updates.
-    return user;
-
   } catch (error: any) {
-    if (error.code === 'auth/popup-closed-by-user') {
-      console.warn("User closed the Google Sign-In popup.");
+    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+      console.warn("User cancelled the Google Sign-In popup.");
     } else {
       console.error("Google Sign-In failed:", error.code, error.message);
+      toast({ title: "Sign-In Failed", description: "Could not sign in with Google. Please try again.", variant: "destructive" });
     }
-    // Re-throw the error so the calling component knows the login failed.
-    throw error;
+  } finally {
+    googleSignInInProgress = false;
   }
 }
 
@@ -106,8 +111,6 @@ export const registerWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     if (!auth) throw new Error("Auth service is not available.");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // Create the user document immediately after creating the auth user.
-    // Pass additional data like phone verified status from the form flow.
     await createUserDocument(userCredential.user);
     return userCredential;
 };
@@ -122,7 +125,6 @@ export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     if (!auth) throw new Error("Auth service is not available.");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Ensure user document exists on login, which also handles updates.
     await createUserDocument(userCredential.user);
     return userCredential;
 };

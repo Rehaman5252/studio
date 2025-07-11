@@ -52,13 +52,14 @@ export default function LoginForm() {
     setIsLoading(true);
     try {
       await loginWithEmail(data.email, data.password);
-      // AuthGuard will handle redirection.
+      toast({ title: "Signed In", description: "Welcome back!" });
     } catch (error: any) {
-      toast({
-        title: 'Login Failed',
-        description: 'Invalid credentials. Please check your email and password.',
-        variant: 'destructive',
-      });
+      console.error("Login failed:", error);
+      let description = 'Invalid credentials. Please check your email and password.';
+      if (error.code === 'auth/network-request-failed') {
+        description = 'You appear to be offline. Please check your connection.';
+      }
+      toast({ title: 'Login Failed', description, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -66,18 +67,8 @@ export default function LoginForm() {
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    try {
-        await handleGoogleSignIn();
-        // AuthGuard will handle the redirection.
-    } catch (error) {
-        toast({
-            title: 'Google Sign-In Failed',
-            description: 'Could not sign in with Google. Please try again.',
-            variant: 'destructive',
-        });
-    } finally {
-        setIsGoogleLoading(false);
-    }
+    await handleGoogleSignIn();
+    setIsGoogleLoading(false);
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;

@@ -89,18 +89,8 @@ export default function SignupForm() {
 
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    try {
-        await handleGoogleSignIn();
-        // AuthGuard will handle the redirection.
-    } catch (error) {
-        toast({
-            title: 'Google Sign-In Failed',
-            description: 'Could not sign in with Google. Please try again or use another method.',
-            variant: 'destructive',
-        });
-    } finally {
-        setIsGoogleLoading(false);
-    }
+    await handleGoogleSignIn();
+    setIsGoogleLoading(false);
   };
 
   const handleDetailsSubmit = async (data: DetailsFormValues) => {
@@ -170,22 +160,21 @@ export default function SignupForm() {
         
         await updateProfile(user, { displayName: detailsData.name });
         
-        // This creates the Firestore document with all necessary defaults.
         await createUserDocument(user, {
             phone: detailsData.phone,
             phoneVerified: true,
-            emailVerified: true, // Email is considered verified by OTP flow
-            name: detailsData.name, // Pass the name explicitly
+            emailVerified: true,
+            name: detailsData.name,
         });
         
-        toast({ title: 'Account Created!', description: 'Welcome to IndCric! Please complete your profile.' });
-        
-        // Let AuthGuard handle the redirection.
+        toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile.' });
 
     } catch (error: any) {
         let message = error.message || 'An error occurred during sign up.';
         if (error.code === 'auth/email-already-in-use') {
             message = 'This email is already registered. Please log in instead.';
+        } else if (error.code === 'auth/network-request-failed') {
+            message = 'You appear to be offline. Please check your connection.';
         }
         toast({ title: 'Sign Up Failed', description: message, variant: 'destructive' });
     } finally {
