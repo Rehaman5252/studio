@@ -89,9 +89,18 @@ export default function SignupForm() {
 
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await handleGoogleSignIn();
-    setIsGoogleLoading(false);
-    // AuthGuard will handle redirection.
+    try {
+        await handleGoogleSignIn();
+        // AuthGuard will handle the redirection.
+    } catch (error) {
+        toast({
+            title: 'Google Sign-In Failed',
+            description: 'Could not sign in with Google. Please try again or use another method.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsGoogleLoading(false);
+    }
   };
 
   const handleDetailsSubmit = async (data: DetailsFormValues) => {
@@ -123,6 +132,7 @@ export default function SignupForm() {
         const verifyResult = await verifyOtp({ email: detailsData.email, otp: otpData.otp });
         if (!verifyResult.success) {
             toast({ title: 'Email Verification Failed', description: verifyResult.message, variant: 'destructive' });
+            setIsLoading(false);
             return; // Stay on the same step
         }
 
@@ -164,13 +174,13 @@ export default function SignupForm() {
         await createUserDocument(user, {
             phone: detailsData.phone,
             phoneVerified: true,
-            emailVerified: true // Email is considered verified by OTP flow
+            emailVerified: true, // Email is considered verified by OTP flow
+            name: detailsData.name, // Pass the name explicitly
         });
         
         toast({ title: 'Account Created!', description: 'Welcome to IndCric! Please complete your profile.' });
         
         // Let AuthGuard handle the redirection.
-        // router.push('/complete-profile');
 
     } catch (error: any) {
         let message = error.message || 'An error occurred during sign up.';

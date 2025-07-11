@@ -26,23 +26,28 @@ export default function AuthGuard({
   const isLoading = isAuthLoading || isUserDataLoading;
 
   useEffect(() => {
+    // Wait until all authentication and user data is loaded before making decisions.
+    // This is the most important part of the fix to prevent race conditions.
     if (isLoading) {
-      return; // Wait until all authentication and user data is loaded before making decisions
+      return; 
     }
 
     if (user) {
         // User is logged in
         if (isAuthPage) {
+            // If the user is on an auth page, send them away.
             const from = searchParams.get('from');
-            router.replace(from || '/home'); // Redirect away from auth pages if logged in
+            router.replace(from || '/home');
             return;
         }
         if (!isProfileComplete && !isCompleteProfilePage) {
-            router.replace('/complete-profile'); // Profile is not complete, force them to the form
+            // Profile is not complete, force them to the form.
+            router.replace('/complete-profile');
             return;
         }
         if (isProfileComplete && isCompleteProfilePage) {
-            router.replace('/profile'); // Profile is complete, don't let them see the form again
+            // Profile is complete, don't let them see the form again.
+            router.replace('/profile');
             return;
         }
     } else {
@@ -55,24 +60,26 @@ export default function AuthGuard({
 
   }, [user, isLoading, isProfileComplete, router, pathname, isAuthPage, isCompleteProfilePage, requireAuth, searchParams]);
 
-  // Show a loader only under specific conditions to avoid "flash of loader" on public pages
+  // Render a loading screen ONLY under specific conditions to avoid "flash of loader" on public pages.
+  // This shows a loader if we are on a page that requires auth, but we are still checking who the user is.
   if (isLoading && requireAuth) {
     return <CricketLoading message="Authenticating..." />;
   }
   
-  // Prevent "flash of unauthenticated content" while redirects are processed.
+  // This section prevents "flash of unauthenticated content" while redirects are being processed.
+  // If a redirect is about to happen, we render `null` or a loader instead of the page content.
   if (user) {
     // If user is logged in, but we're on an auth page, we're about to redirect, so render nothing.
     if (isAuthPage) return null; 
-    // If profile isn't complete and we're not on the completion page, we're redirecting.
+    // If profile isn't complete and we're not on the completion page, we're redirecting. Show a loader.
     if (!isProfileComplete && !isCompleteProfilePage) return <CricketLoading message="Finalizing your setup..." />;
-    // If profile is complete but we're on the completion page, we're redirecting.
+    // If profile is complete but we're on the completion page, we're redirecting. Render nothing.
     if (isProfileComplete && isCompleteProfilePage) return null; 
   } else {
-    // If we require auth, we will be redirecting away from this page, so render nothing.
+    // If we require auth and there's no user, we will be redirecting away from this page, so render nothing.
     if (requireAuth) return null; 
   }
   
-  // If none of the redirect conditions are met, render the children.
+  // If none of the redirect conditions are met, it's safe to render the children.
   return <>{children}</>;
 }

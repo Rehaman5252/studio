@@ -8,6 +8,7 @@ import {
     type User,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
+    updateProfile,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db, app, isFirebaseConfigured } from '@/lib/firebase';
@@ -19,13 +20,12 @@ import { db, app, isFirebaseConfigured } from '@/lib/firebase';
  * @param additionalData Any extra data to add to the user document on creation.
  */
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-    if (!db) return;
+    if (!db || !user) return;
     const userRef = doc(db, 'users', user.uid);
     
     // Check if the document already exists
     const docSnap = await getDoc(userRef);
 
-    // Only create the document if it doesn't exist to prevent overwriting data
     if (!docSnap.exists()) {
         const defaultData = {
             uid: user.uid,
@@ -48,13 +48,13 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         };
         await setDoc(userRef, defaultData);
     } else {
-        // If it exists, we can still update the last login time or other non-initial fields
+        // If it exists, we can still update key details that might change.
         await setDoc(userRef, { 
             updatedAt: serverTimestamp(),
             // Ensure essential details from provider are updated on login
             email: user.email,
-            name: user.displayName,
-            photoURL: user.photoURL,
+            name: docSnap.data().name || user.displayName, // Don't overwrite existing name with null
+            photoURL: user.photoURL || docSnap.data().photoURL, // Don't overwrite existing photoURL with null
         }, { merge: true });
     }
 }
@@ -67,7 +67,8 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 export async function handleGoogleSignIn() {
   if (!isFirebaseConfigured || !app) {
     console.error("Firebase is not configured. Cannot sign in.");
-    return;
+    // In a real app, you might want to show a toast message here.
+    throw new Error("Firebase is not configured.");
   }
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
@@ -79,9 +80,10 @@ export async function handleGoogleSignIn() {
     if (!user) throw new Error("Google sign-in returned no user.");
     
     // Ensure a user document exists in Firestore. This is safe to call every time.
-    await createUserDocument(user, { emailVerified: true });
+    await createUserDocument(user, { emailVerified: true, profileCompleted: false });
     
     // AuthGuard will handle the final redirection after auth state updates.
+    return user;
 
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user') {
@@ -89,6 +91,8 @@ export async function handleGoogleSignIn() {
     } else {
       console.error("Google Sign-In failed:", error.code, error.message);
     }
+    // Re-throw the error so the calling component knows the login failed.
+    throw error;
   }
 }
 
@@ -103,6 +107,7 @@ export const registerWithEmail = async (email: string, password: string) => {
     if (!auth) throw new Error("Auth service is not available.");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     // Create the user document immediately after creating the auth user.
+    // Pass additional data like phone verified status from the form flow.
     await createUserDocument(userCredential.user);
     return userCredential;
 };

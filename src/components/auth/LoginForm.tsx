@@ -52,9 +52,7 @@ export default function LoginForm() {
     setIsLoading(true);
     try {
       await loginWithEmail(data.email, data.password);
-      // AuthGuard will handle redirection. If the user successfully logs in,
-      // the `user` object in AuthContext will update, triggering AuthGuard's
-      // useEffect to redirect to `from` or `/home`.
+      // AuthGuard will handle redirection.
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -68,10 +66,18 @@ export default function LoginForm() {
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await handleGoogleSignIn();
-    // Similar to email login, we let the AuthGuard handle the redirect
-    // after the auth state has been updated, rather than redirecting here.
-    setIsGoogleLoading(false);
+    try {
+        await handleGoogleSignIn();
+        // AuthGuard will handle the redirection.
+    } catch (error) {
+        toast({
+            title: 'Google Sign-In Failed',
+            description: 'Could not sign in with Google. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsGoogleLoading(false);
+    }
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;
@@ -82,7 +88,7 @@ export default function LoginForm() {
         <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
         <p className="text-muted-foreground">
           New to the crease?{' '}
-          <Link href={`/auth/signup${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">
+          <Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="font-semibold text-primary hover:underline">
             Create an account
           </Link>
         </p>
