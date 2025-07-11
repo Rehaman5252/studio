@@ -93,7 +93,7 @@ export async function handleGoogleSignIn() {
 }
 
 /**
- * Creates a new user with email and password.
+ * Creates a new user with email and password and creates their Firestore document.
  * @param email The user's email.
  * @param password The user's password.
  * @returns The user credential.
@@ -101,11 +101,14 @@ export async function handleGoogleSignIn() {
 export const registerWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     if (!auth) throw new Error("Auth service is not available.");
-    return await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Create the user document immediately after creating the auth user.
+    await createUserDocument(userCredential.user);
+    return userCredential;
 };
 
 /**
- * Signs in a user with email and password.
+ * Signs in a user with email and password and ensures their Firestore document exists.
  * @param email The user's email.
  * @param password The user's password.
  * @returns The user credential.
@@ -113,5 +116,8 @@ export const registerWithEmail = async (email: string, password: string) => {
 export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     if (!auth) throw new Error("Auth service is not available.");
-    return await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // Ensure user document exists on login, which also handles updates.
+    await createUserDocument(userCredential.user);
+    return userCredential;
 };
