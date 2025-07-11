@@ -44,25 +44,19 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // This effect handles the automatic rotation of the cube.
     const rotateToNextFace = () => {
       setCurrentFaceIndex(prevIndex => {
         const nextIndex = (prevIndex + 1) % brands.length;
-        // The parent is notified of the change here, which is safe
-        // because it happens in response to the state update within this component.
         onFaceSelect(nextIndex); 
         return nextIndex;
       });
     };
     
-    // Clear any existing timer
     if (timerRef.current) {
         clearInterval(timerRef.current);
     }
-    // Start a new timer
     timerRef.current = setInterval(rotateToNextFace, 500);
     
-    // Cleanup on unmount
     return () => {
         if (timerRef.current) {
             clearInterval(timerRef.current);
@@ -72,7 +66,6 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
 
 
   useEffect(() => {
-    // This effect applies the CSS transform to the cube when the face changes.
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[currentFaceIndex];
     }
@@ -110,15 +103,17 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
               }}
             >
               <div className="flex flex-col items-center justify-center h-full text-center p-2 gap-2">
-                <Image
-                  src={brand.logoUrl}
-                  alt={`${brand.brand} logo`}
-                  data-ai-hint="cricket logo"
-                  width={brand.logoWidth}
-                  height={brand.logoHeight}
-                  className="object-contain px-2 drop-shadow-lg"
-                  priority
-                />
+                <div className="w-16 h-12 flex items-center justify-center bg-white rounded-md p-1">
+                  <Image
+                    src={brand.logoUrl}
+                    alt={`${brand.brand} logo`}
+                    data-ai-hint="cricket logo"
+                    width={brand.logoWidth}
+                    height={brand.logoHeight}
+                    className="object-contain drop-shadow-lg"
+                    priority
+                  />
+                </div>
                 <span className="text-xs font-semibold text-foreground opacity-90">
                   {brand.format}
                 </span>

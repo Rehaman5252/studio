@@ -13,25 +13,22 @@ const brands: CubeBrand[] = [
   { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg', logoWidth: 80, logoHeight: 40 },
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 80, logoHeight: 60 },
   { id: 4, brand: 'PayPal', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg', logoWidth: 80, logoHeight: 50 },
-  { id: 5, brand: 'WPL', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/5c/Women%27s_Premier_League_Logo.svg/1200px-Women%27s_Premier_League_Logo.svg.png', logoWidth: 60, logoHeight: 60 },
+  { id: 5, brand: 'Gucci', format: 'Mixed', logoUrl: 'https://www.freepnglogos.com/uploads/gucci-logo-png/gucci-logo-maison-de-luxe-italienne-1.png', logoWidth: 80, logoHeight: 50 },
   { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 80, logoHeight: 50 },
 ];
 
 interface QuizSelectionProps {
   onStartQuiz: (brand: CubeBrand) => void;
+  selectedBrandIndex: number;
+  setSelectedBrandIndex: (index: number) => void;
 }
 
-function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
-    const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
+function QuizSelection({ onStartQuiz, selectedBrandIndex, setSelectedBrandIndex }: QuizSelectionProps) {
     const selectedBrand = brands[selectedBrandIndex];
     
     const handleStartQuizForBrand = useCallback((brand: CubeBrand) => {
         onStartQuiz(brand);
     }, [onStartQuiz]);
-
-    const handleFaceSelect = useCallback((index: number) => {
-        setSelectedBrandIndex(index);
-    }, []);
 
     const handleCubeClick = useCallback((index: number) => {
         const brand = brands[index];
@@ -47,7 +44,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             
             <QuizSelector 
                 brands={brands}
-                onFaceSelect={handleFaceSelect}
+                onFaceSelect={setSelectedBrandIndex}
                 onFaceClick={handleCubeClick}
             />
 

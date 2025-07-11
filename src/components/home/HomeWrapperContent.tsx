@@ -27,6 +27,7 @@ export default function HomeWrapperContent() {
   
   const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
   const [showAuthAlert, setShowAuthAlert] = useState(false);
+  const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (!user || isQuizStatusLoading || !lastAttemptInSlot) return false;
@@ -75,6 +76,8 @@ export default function HomeWrapperContent() {
     <>
       <QuizSelection
         onStartQuiz={handleStartQuiz}
+        selectedBrandIndex={selectedBrandIndex}
+        setSelectedBrandIndex={setSelectedBrandIndex}
       />
 
       <AlertDialog open={showSlotPlayedAlert} onOpenChange={setShowSlotPlayedAlert}>
