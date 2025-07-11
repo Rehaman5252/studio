@@ -45,25 +45,33 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
 
   useEffect(() => {
     const rotateToNextFace = () => {
-      setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
+      setCurrentFaceIndex(prevIndex => {
+        const nextIndex = (prevIndex + 1) % brands.length;
+        onFaceSelect(nextIndex); // Ensure parent is notified of change
+        return nextIndex;
+      });
     };
-
-    timerRef.current = setInterval(rotateToNextFace, 3000);
+    
+    // Clear any existing timer
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+    }
+    // Start a new timer
+    timerRef.current = setInterval(rotateToNextFace, 500);
     
     return () => {
         if (timerRef.current) {
             clearInterval(timerRef.current);
         }
     };
-  }, [brands.length]);
+  }, [brands.length, onFaceSelect]);
 
 
   useEffect(() => {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[currentFaceIndex];
     }
-    onFaceSelect(currentFaceIndex);
-  }, [currentFaceIndex, onFaceSelect]);
+  }, [currentFaceIndex]);
   
   return (
     <div 

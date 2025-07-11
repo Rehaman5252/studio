@@ -9,12 +9,12 @@ import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 
 const brands: CubeBrand[] = [
-  { id: 1, brand: 'IndCric', format: 'T20', logoUrl: 'https://www.freepnglogos.com/uploads/cricket-logo-png/cricket-logo-vector-png-pixabay-2.png', logoWidth: 60, logoHeight: 60 },
-  { id: 2, brand: 'IndCric', format: 'WPL', logoUrl: 'https://www.freepnglogos.com/uploads/cricket-logo-png/cricket-logo-vector-png-pixabay-2.png', logoWidth: 60, logoHeight: 60 },
-  { id: 3, brand: 'IndCric', format: 'Test', logoUrl: 'https://www.freepnglogos.com/uploads/cricket-logo-png/cricket-logo-vector-png-pixabay-2.png', logoWidth: 60, logoHeight: 60 },
-  { id: 4, brand: 'IndCric', format: 'ODI', logoUrl: 'https://www.freepnglogos.com/uploads/cricket-logo-png/cricket-logo-vector-png-pixabay-2.png', logoWidth: 60, logoHeight: 60 },
-  { id: 5, brand: 'IndCric', format: 'Mixed', logoUrl: 'https://www.freepnglogos.com/uploads/cricket-logo-png/cricket-logo-vector-png-pixabay-2.png', logoWidth: 60, logoHeight: 60 },
-  { id: 6, brand: 'IndCric', format: 'IPL', logoUrl: 'https://www.freepnglogos.com/uploads/cricket-logo-png/cricket-logo-vector-png-pixabay-2.png', logoWidth: 60, logoHeight: 60 },
+  { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 50, logoHeight: 60 },
+  { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg', logoWidth: 80, logoHeight: 40 },
+  { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 80, logoHeight: 60 },
+  { id: 4, brand: 'PayPal', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg', logoWidth: 80, logoHeight: 50 },
+  { id: 5, brand: 'WPL', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/5c/Women%27s_Premier_League_Logo.svg/1200px-Women%27s_Premier_League_Logo.svg.png', logoWidth: 60, logoHeight: 60 },
+  { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 80, logoHeight: 50 },
 ];
 
 interface QuizSelectionProps {

@@ -15,8 +15,14 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
 
   const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
-    'IndCric': { gift: '₹50 Bonus', description: 'Bonus cash added to your wallet.', link: 'https://www.indcric.com' },
-    'Default': { gift: 'Surprise Gift!', description: 'A special reward from IndCric.', link: '#' },
+    'indcric': { gift: '₹50 Bonus', description: 'Bonus cash added to your wallet.', link: 'https://www.indcric.com' },
+    'Default': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'Apple': { gift: '10% off Accessories', description: 'On your next purchase.', link: '#' },
+    'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: '#' },
+    'SBI': { gift: '5% Cashback', description: 'On your next 3 transactions.', link: '#' },
+    'PayPal': { gift: '₹100 Voucher', description: 'For your next online payment.', link: '#' },
+    'WPL': { gift: 'Team Merchandise', description: 'Get a 20% discount coupon.', link: '#' },
+    'Amazon': { gift: '₹150 Gift Card', description: 'Credited to your Amazon Pay.', link: '#' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];

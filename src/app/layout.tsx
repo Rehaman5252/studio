@@ -11,11 +11,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'IndCric - The Ultimate Cricket Quiz Challenge',
-    template: '%s | IndCric',
+    default: 'indcric - The Ultimate Cricket Quiz Challenge',
+    template: '%s | indcric',
   },
-  description: 'Test your cricket knowledge on IndCric and win exciting prizes. Compete on the live leaderboard and become a true cricket champion. Fast, fun, and built for true cricket fans.',
-  keywords: ['cricket', 'quiz', 'ipl', 't20', 'odi', 'test cricket', 'sports trivia', 'IndCric'],
+  description: 'Test your cricket knowledge on indcric and win exciting prizes. Compete on the live leaderboard and become a true cricket champion. Fast, fun, and built for true cricket fans.',
+  keywords: ['cricket', 'quiz', 'ipl', 't20', 'odi', 'test cricket', 'sports trivia', 'indcric'],
   icons: {
     icon: '/favicon.ico',
   },
