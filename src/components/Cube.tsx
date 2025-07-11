@@ -43,14 +43,12 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   const cubeRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // This effect runs the rotation timer continuously.
   useEffect(() => {
     const rotateToNextFace = () => {
       setCurrentFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
     };
 
-    // The timer is ALWAYS running at 500ms.
-    timerRef.current = setInterval(rotateToNextFace, 3000); // Slower rotation
+    timerRef.current = setInterval(rotateToNextFace, 3000);
     
     return () => {
         if (timerRef.current) {
@@ -60,8 +58,6 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
   }, [brands.length]);
 
 
-  // This effect is ONLY for side effects when the face changes.
-  // It applies the CSS transform and informs the parent of the new face.
   useEffect(() => {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[currentFaceIndex];
@@ -80,7 +76,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 0.333s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
         >

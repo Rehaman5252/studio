@@ -25,15 +25,18 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
     const selectedBrand = brands[selectedBrandIndex];
     
-    // This is the single handler for starting any quiz
     const handleStartQuizForBrand = useCallback((brand: CubeBrand) => {
         onStartQuiz(brand);
     }, [onStartQuiz]);
 
-    // This is for the cube's auto-rotation to update the UI below
     const handleFaceSelect = useCallback((index: number) => {
         setSelectedBrandIndex(index);
     }, []);
+
+    const handleCubeClick = useCallback((index: number) => {
+        const brand = brands[index];
+        onStartQuiz(brand);
+    }, [onStartQuiz]);
 
     return (
         <>
@@ -45,7 +48,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             <QuizSelector 
                 brands={brands}
                 onFaceSelect={handleFaceSelect}
-                onFaceClick={(index) => handleStartQuizForBrand(brands[index])}
+                onFaceClick={handleCubeClick}
             />
 
             <div className="mt-8 space-y-8">
