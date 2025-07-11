@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import CricketLoading from '../CricketLoading';
@@ -25,9 +25,8 @@ export default function AuthGuard({
   
   const isLoading = isAuthLoading || isUserDataLoading;
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Wait until all authentication and user data is loaded before making decisions.
-    // This is the most important part of the fix to prevent race conditions.
     if (isLoading) {
       return; 
     }
