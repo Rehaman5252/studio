@@ -1,11 +1,22 @@
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all documents for any authenticated user.
-    // This is a good starting point for development. For production, you would
-    // likely want more granular rules (e.g., users can only write to their own documents).
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Allow users to read and write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow logged-in users to read from the live leaderboard
+    match /liveLeaderboard/{slotId}/entries/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow logged-in users to write their own quiz history
+     match /users/{userId}/quizHistory/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
