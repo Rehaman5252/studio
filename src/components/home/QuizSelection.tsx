@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
-import type { CubeBrand } from '@/components/Cube';
+import type { CubeBrand } from '@/components/home/brandData';
 import QuizSelector from '@/components/home/QuizSelector';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import GlobalStats from '@/components/home/GlobalStats';
@@ -28,8 +28,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             timerRef.current = null;
         }
         setSelectedBrandIndex(index);
-        onStartQuiz(brands[index]);
-    }, [onStartQuiz]);
+    }, []);
 
     const selectedBrand = brands[selectedBrandIndex];
 

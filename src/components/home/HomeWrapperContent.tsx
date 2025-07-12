@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
-import type { CubeBrand } from '@/components/Cube';
+import type { CubeBrand } from '@/components/home/brandData';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from './QuizSelection';
 import {

@@ -8,19 +8,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
+import HomeWrapperContent from '@/components/home/HomeWrapperContent';
 
-const QuizSelector = dynamic(() => import('@/components/home/QuizSelector'), {
-  loading: () => (
-    <div className="space-y-8 p-4">
-      <div className="text-center mb-8">
-        <Skeleton className="h-8 w-3/4 mx-auto" />
-        <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
-      </div>
-      <Skeleton className="w-full h-64 md:h-80" />
-    </div>
-  ),
-  ssr: false,
-});
 
 function HomePageContent() {
     const user = useAuth();
@@ -58,7 +47,7 @@ function HomePageContent() {
 
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-8">
-            <QuizSelector />
+            <HomeWrapperContent />
           </div>
         </main>
       </motion.div>
