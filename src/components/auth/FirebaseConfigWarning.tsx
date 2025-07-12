@@ -11,15 +11,15 @@ export default function FirebaseConfigWarning() {
             <Terminal className="h-4 w-4" />
             <AlertTitle className="text-lg font-extrabold">🔴 Action Required: Connect to Firebase</AlertTitle>
             <AlertDescription className="space-y-3 mt-2">
-                <p>The live application is not connected to your Firebase backend. This is not a code error—it's a final configuration step.</p>
+                <p>The application is not connected to a Firebase backend. This is not a code error—it's a final configuration step.</p>
                 <div>
-                    <p className="font-semibold">To fix this, you must add your Firebase credentials to your hosting provider's "Environment Variables" settings.</p>
+                    <p className="font-semibold">To fix this, you must add your Firebase web app credentials to your Environment Variables.</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                        (Your hosting provider is where your live website is deployed, for example, <strong>Firebase App Hosting</strong>, Vercel, or Netlify. It is not the Firebase Console itself.)
+                        In a real deployment, these would be in your hosting provider's settings (e.g., Firebase App Hosting, Vercel). For local development, they go in a `.env.local` file.
                     </p>
                 </div>
                 <p className="text-sm">
-                   Copy the `NEXT_PUBLIC_FIREBASE_*` variables from your local `.env` file and paste them into your hosting provider's settings to make authentication work.
+                   Ensure all `NEXT_PUBLIC_FIREBASE_*` variables are set. You can find these in your Firebase project settings.
                 </p>
             </AlertDescription>
         </Alert>

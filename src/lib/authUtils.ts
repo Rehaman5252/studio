@@ -52,7 +52,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 }
 
 let googleSignInInProgress = false;
-export const signInWithGoogle = async (): Promise<User | null> => {
+export const handleGoogleSignIn = async (): Promise<User | null> => {
     if (googleSignInInProgress) return null;
     googleSignInInProgress = true;
 
@@ -61,17 +61,17 @@ export const signInWithGoogle = async (): Promise<User | null> => {
     try {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
-        if (!user) throw new Error("No user returned from Google sign-in");
-
-        await createUserDocument(user, { emailVerified: true });
+        await createUserDocument(user); // This is idempotent
+        toast({ title: "Signed In", description: "Welcome to indcric!" });
         return user;
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
           console.warn("Google Sign-In was cancelled by the user.");
-          return null; // Return null to indicate cancellation, not an error.
+        } else {
+            console.error("Google Sign-In Error", error);
+            toast({ title: "Sign-In Error", description: "Could not sign in with Google. Please try again.", variant: "destructive" });
         }
-        console.error("Google Sign-In Error", error);
-        throw error; // Re-throw other errors to be caught by the UI
+        return null;
     } finally {
         googleSignInInProgress = false;
     }
@@ -80,7 +80,7 @@ export const signInWithGoogle = async (): Promise<User | null> => {
 export const registerWithEmail = async (email, password) => {
     const auth = getAuth(app);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await createUserDocument(userCredential.user);
+    // createUserDocument is called in the form itself after profile update
     return userCredential;
 };
 

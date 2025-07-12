@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { useRouter } from 'next/navigation';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -33,6 +34,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
@@ -53,6 +55,7 @@ export default function LoginForm() {
     try {
       await loginWithEmail(data.email, data.password);
       toast({ title: "Signed In", description: "Welcome back!" });
+      router.push(from || '/home');
     } catch (error: any) {
       console.error("Login failed:", error);
       let description = 'Invalid credentials. Please check your email and password.';
@@ -67,7 +70,10 @@ export default function LoginForm() {
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await handleGoogleSignIn();
+    const user = await handleGoogleSignIn();
+    if (user) {
+        router.push(from || '/home');
+    }
     setIsGoogleLoading(false);
   }
 
