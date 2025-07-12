@@ -9,20 +9,14 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 
-const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
+const QuizSelector = dynamic(() => import('@/components/home/QuizSelector'), {
   loading: () => (
     <div className="space-y-8 p-4">
       <div className="text-center mb-8">
         <Skeleton className="h-8 w-3/4 mx-auto" />
         <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
       </div>
-      <Skeleton className="w-48 h-48 mx-auto" />
-      <div className="grid grid-cols-2 gap-4 mt-8">
-        <Skeleton className="w-full h-[108px] rounded-lg" />
-        <Skeleton className="w-full h-[108px] rounded-lg" />
-        <Skeleton className="w-full h-[108px] rounded-lg" />
-        <Skeleton className="w-full h-[108px] rounded-lg" />
-      </div>
+      <Skeleton className="w-full h-64 md:h-80" />
     </div>
   ),
   ssr: false,
@@ -64,7 +58,7 @@ function HomePageContent() {
 
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-8">
-            <HomeWrapper />
+            <QuizSelector />
           </div>
         </main>
       </motion.div>
