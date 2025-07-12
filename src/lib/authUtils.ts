@@ -60,7 +60,11 @@ export async function handleGoogleSignIn() {
     await createUserDocument(user, { emailVerified: true });
     return user;
   } catch (error: any) {
-    console.error("Google Sign-in error:", error.message);
+    if (error.code === 'auth/popup-closed-by-user') {
+        console.warn('Google sign-in was cancelled by the user.');
+    } else {
+        console.error("Google Sign-in error:", error.message);
+    }
     return null;
   }
 }
