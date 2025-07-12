@@ -2,18 +2,7 @@
 'use client';
 
 import type { CubeBrand } from '@/components/home/brandData';
-import { Loader2 } from 'lucide-react';
-import dynamic from 'next/dynamic';
-
-const Scene = dynamic(() => import('@/components/home/Scene'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-52 flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-    </div>
-  )
-});
-
+import Scene from '@/components/home/Scene';
 
 interface QuizSelectorProps {
     brands: CubeBrand[];

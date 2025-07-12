@@ -3,12 +3,21 @@
 
 import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
 import type { CubeBrand } from '@/components/home/brandData';
-import QuizSelector from '@/components/home/QuizSelector';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import { brands } from './brandData';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
 
+const QuizSelector = dynamic(() => import('@/components/home/QuizSelector'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-52 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+    </div>
+  )
+});
 
 interface QuizSelectionProps {
   onStartQuiz: (brand: CubeBrand) => void;
