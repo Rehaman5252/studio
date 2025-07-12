@@ -88,10 +88,9 @@ function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
                     height={brand.logoHeight}
                     className="object-contain drop-shadow-lg"
                     priority
-                    style={{ filter: ['Apple', 'Nike', 'Amazon', 'Gucci', 'SBI', 'Tata', 'Coca-Cola', 'PayPal', 'ICICI Bank'].includes(brand.brand) ? 'invert(1)' : 'none' }}
                   />
                 </div>
-                {/* Brand format text removed to show only the logo */}
+                <p className="text-sm font-semibold text-foreground">{brand.format}</p>
               </div>
             </div>
           ))}

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
@@ -10,6 +10,8 @@ import type { CubeBrand } from '@/components/Cube';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelector from '@/components/home/QuizSelector';
 import GlobalStats from '@/components/home/GlobalStats';
+import SelectedBrandCard from '@/components/home/SelectedBrandCard';
+import StartQuizButton from '@/components/home/StartQuizButton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,14 +33,23 @@ export default function HomeWrapper() {
   const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
   const [showAuthAlert, setShowAuthAlert] = useState(false);
   const [visibleFaceIndex, setVisibleFaceIndex] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const hasPlayedInCurrentSlot = useMemo(() => {
     if (!user || isQuizStatusLoading || !lastAttemptInSlot) return false;
     return lastAttemptInSlot.slotId === getQuizSlotId();
   }, [user, lastAttemptInSlot, isQuizStatusLoading]);
 
-  const handleFaceClick = useCallback((index: number) => {
-    const selectedBrand = brands[index];
+  const handleInteraction = useCallback(() => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+    }
+  }, []);
+
+  const handleStartQuiz = useCallback(() => {
+    handleInteraction();
+    const selectedBrand = brands[visibleFaceIndex];
     if (!user || !isProfileComplete) {
         setShowAuthAlert(true);
         return;
@@ -48,7 +59,7 @@ export default function HomeWrapper() {
     } else {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
+  }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, visibleFaceIndex, handleInteraction]);
 
   const handleSlotAlertAction = () => {
     if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -68,6 +79,20 @@ export default function HomeWrapper() {
       setShowAuthAlert(false);
   }
 
+  useEffect(() => {
+    const rotateToNextFace = () => {
+      setVisibleFaceIndex(prevIndex => (prevIndex + 1) % brands.length);
+    };
+    
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(rotateToNextFace, 3000);
+    
+    return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+
   if (isQuizStatusLoading || isUserDataLoading) {
       return (
         <div className="flex flex-col flex-1 items-center justify-center py-10">
@@ -75,24 +100,38 @@ export default function HomeWrapper() {
         </div>
     );
   }
+  
+  const selectedBrand = brands[visibleFaceIndex];
 
   return (
     <>
       <div className="animate-fade-in-up">
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face to play!</p>
+                <p className="text-sm text-muted-foreground">Click a face or the button below to play!</p>
             </div>
             
             <QuizSelector 
                 brands={brands}
-                onFaceClick={handleFaceClick}
+                onFaceClick={(index) => {
+                    handleInteraction();
+                    setVisibleFaceIndex(index);
+                }}
                 visibleFaceIndex={visibleFaceIndex}
-                setVisibleFaceIndex={setVisibleFaceIndex}
             />
 
             <div className="mt-8 space-y-8">
+                <SelectedBrandCard
+                  selectedBrand={selectedBrand}
+                  handleStartQuiz={handleStartQuiz}
+                />
+                
                 <GlobalStats />
+
+                <StartQuizButton
+                  brandFormat={selectedBrand.format}
+                  onClick={handleStartQuiz}
+                />
             </div>
         </div>
 
