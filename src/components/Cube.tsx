@@ -41,8 +41,7 @@ interface CubeProps {
 
 function Cube({ brands, onFaceClick, onRotation, visibleFaceIndex }: CubeProps) {
   const cubeRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
+  
   useEffect(() => {
     if (cubeRef.current) {
         cubeRef.current.style.transform = rotationMap[visibleFaceIndex];
@@ -90,7 +89,7 @@ function Cube({ brands, onFaceClick, onRotation, visibleFaceIndex }: CubeProps) 
                     height={brand.logoHeight}
                     className="object-contain drop-shadow-lg"
                     priority
-                    style={{ filter: brand.brand === 'Apple' || brand.brand === 'Nike' || brand.brand === 'Amazon' || brand.brand === 'Gucci' ? 'invert(1)' : 'none' }}
+                    style={{ filter: ['Apple', 'Nike', 'Amazon', 'Gucci', 'SBI'].includes(brand.brand) ? 'invert(1)' : 'none' }}
                   />
                 </div>
                 <span className="text-xs font-semibold text-foreground opacity-90">

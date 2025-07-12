@@ -9,12 +9,12 @@ import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 
 const brands: CubeBrand[] = [
-  { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Apple_logo_white.svg', logoWidth: 50, logoHeight: 60 },
-  { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://cdn.shopify.com/s/files/1/0563/2773/5943/files/Nike-logo-png-white_480x480.png?v=1646294796', logoWidth: 80, logoHeight: 40 },
-  { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://assets.stickpng.com/images/627b74a92d20113a351119b7.png', logoWidth: 80, logoHeight: 60 },
+  { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 50, logoHeight: 60 },
+  { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg', logoWidth: 80, logoHeight: 40 },
+  { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 80, logoHeight: 60 },
   { id: 4, brand: 'PayPal', format: 'ODI', logoUrl: 'https://www.freepnglogos.com/uploads/paypal-logo-png-7.png', logoWidth: 80, logoHeight: 50 },
-  { id: 5, brand: 'Gucci', format: 'Mixed', logoUrl: 'https://cdn.worldvectorlogo.com/logos/gucci-logo-1.svg', logoWidth: 80, logoHeight: 50 },
-  { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://assets.stickpng.com/images/580b57fcd9996e24bc43c518.png', logoWidth: 80, logoHeight: 50 },
+  { id: 5, brand: 'Gucci', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/79/Gucci_logo.svg', logoWidth: 80, logoHeight: 50 },
+  { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 80, logoHeight: 50 },
 ];
 
 interface QuizSelectionProps {
