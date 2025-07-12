@@ -13,7 +13,7 @@ const brands: CubeBrand[] = [
   { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://cdn.shopify.com/s/files/1/0563/2773/5943/files/Nike-logo-png-white_480x480.png?v=1646294796', logoWidth: 80, logoHeight: 40 },
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://assets.stickpng.com/images/627b74a92d20113a351119b7.png', logoWidth: 80, logoHeight: 60 },
   { id: 4, brand: 'PayPal', format: 'ODI', logoUrl: 'https://www.freepnglogos.com/uploads/paypal-logo-png-7.png', logoWidth: 80, logoHeight: 50 },
-  { id: 5, brand: 'Colgate', format: 'Mixed', logoUrl: 'https://assets.stickpng.com/images/627a488c2d20113a35111904.png', logoWidth: 80, logoHeight: 50 },
+  { id: 5, brand: 'Gucci', format: 'Mixed', logoUrl: 'https://cdn.worldvectorlogo.com/logos/gucci-logo-1.svg', logoWidth: 80, logoHeight: 50 },
   { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://assets.stickpng.com/images/580b57fcd9996e24bc43c518.png', logoWidth: 80, logoHeight: 50 },
 ];
 
@@ -25,17 +25,21 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-    const selectedBrand = brands[selectedBrandIndex];
-
-    const handleStartQuizForBrand = useCallback(() => {
-        onStartQuiz(selectedBrand);
-    }, [onStartQuiz, selectedBrand]);
-
+    const handleRotation = useCallback((index: number) => {
+        setSelectedBrandIndex(index);
+    }, []);
+    
     const handleCubeClick = useCallback((index: number) => {
         setSelectedBrandIndex(index);
         onStartQuiz(brands[index]);
         if (timerRef.current) clearInterval(timerRef.current);
     }, [onStartQuiz]);
+
+    const selectedBrand = brands[selectedBrandIndex];
+
+    const handleStartQuizForBrand = useCallback(() => {
+        onStartQuiz(selectedBrand);
+    }, [onStartQuiz, selectedBrand]);
     
     useEffect(() => {
         const rotateToNextFace = () => {
@@ -60,6 +64,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             <QuizSelector 
                 brands={brands}
                 onFaceClick={handleCubeClick}
+                onRotation={handleRotation}
                 visibleFaceIndex={selectedBrandIndex}
             />
 
