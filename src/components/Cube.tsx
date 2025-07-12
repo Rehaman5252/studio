@@ -35,41 +35,17 @@ const rotationMap = [
 interface CubeProps {
   brands: CubeBrand[];
   onFaceClick: (index: number) => void;
-  onRotation: (index: number) => void;
+  visibleFaceIndex: number;
 }
 
-function Cube({ brands, onFaceClick, onRotation }: CubeProps) {
-  const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
+function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
   const cubeRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const rotateToNextFace = () => {
-      setCurrentFaceIndex(prevIndex => {
-        const nextIndex = (prevIndex + 1) % brands.length;
-        onRotation(nextIndex); 
-        return nextIndex;
-      });
-    };
-    
-    if (timerRef.current) {
-        clearInterval(timerRef.current);
-    }
-    timerRef.current = setInterval(rotateToNextFace, 500);
-    
-    return () => {
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-        }
-    };
-  }, [brands.length, onRotation]);
-
 
   useEffect(() => {
     if (cubeRef.current) {
-        cubeRef.current.style.transform = rotationMap[currentFaceIndex];
+        cubeRef.current.style.transform = rotationMap[visibleFaceIndex];
     }
-  }, [currentFaceIndex]);
+  }, [visibleFaceIndex]);
   
   return (
     <div 
@@ -82,7 +58,7 @@ function Cube({ brands, onFaceClick, onRotation }: CubeProps) {
           ref={cubeRef} 
           className="w-full h-full relative preserve-3d"
           style={{ 
-            transition: 'transform 0.333s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform' 
           }}
         >

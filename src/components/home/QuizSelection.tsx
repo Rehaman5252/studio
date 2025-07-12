@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
 import type { CubeBrand } from '@/components/Cube';
 import QuizSelector from '@/components/home/QuizSelector';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
@@ -19,27 +19,40 @@ const brands: CubeBrand[] = [
 
 interface QuizSelectionProps {
   onStartQuiz: (brand: CubeBrand) => void;
-  setSelectedBrandIndex: (index: number) => void;
 }
 
-function QuizSelection({ onStartQuiz, setSelectedBrandIndex }: QuizSelectionProps) {
-    const [selectedBrandIndex, _setSelectedBrandIndex] = useState(0);
+function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
+    const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     const selectedBrand = brands[selectedBrandIndex];
 
-    const handleRotation = useCallback((index: number) => {
-        _setSelectedBrandIndex(index);
-        setSelectedBrandIndex(index);
-    }, [setSelectedBrandIndex]);
-    
     const handleStartQuizForBrand = useCallback((brand: CubeBrand) => {
         onStartQuiz(brand);
     }, [onStartQuiz]);
 
     const handleCubeClick = useCallback((index: number) => {
+        setSelectedBrandIndex(index);
         const brand = brands[index];
         onStartQuiz(brand);
     }, [onStartQuiz]);
+    
+    useEffect(() => {
+        const rotateToNextFace = () => {
+          setSelectedBrandIndex(prevIndex => (prevIndex + 1) % brands.length);
+        };
+        
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+        timerRef.current = setInterval(rotateToNextFace, 3000); // Rotate every 3 seconds
+        
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, []);
 
     return (
         <>
@@ -50,8 +63,8 @@ function QuizSelection({ onStartQuiz, setSelectedBrandIndex }: QuizSelectionProp
             
             <QuizSelector 
                 brands={brands}
-                onRotation={handleRotation}
                 onFaceClick={handleCubeClick}
+                visibleFaceIndex={selectedBrandIndex}
             />
 
             <div className="mt-8 space-y-8">
