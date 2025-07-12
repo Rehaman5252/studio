@@ -46,8 +46,8 @@ const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCard
                                     src={selectedBrand.logoUrl}
                                     alt={`${selectedBrand.brand} logo`}
                                     data-ai-hint="cricket logo"
-                                    width={selectedBrand.logoWidth < 50 ? selectedBrand.logoWidth * 1.2 : selectedBrand.logoWidth}
-                                    height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
+                                    width={selectedBrand.logoWidth || 80}
+                                    height={selectedBrand.logoHeight || 80}
                                     className="object-contain"
                                     priority
                                 />
