@@ -2,7 +2,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { CubeBrand } from '@/components/home/brandData';
 
@@ -48,22 +47,19 @@ export default function Cube({ brands, visibleFaceIndex, onFaceClick }: CubeProp
                     <div
                         key={brand.id}
                         className={cn(
-                            "absolute w-36 h-36 flex items-center justify-center p-2 cursor-pointer",
+                            "absolute w-36 h-36 flex items-center justify-center cursor-pointer",
                             "bg-card/50 border-2 border-primary/30",
-                            "transition-all hover:border-primary hover:bg-primary/10"
+                            "transition-all hover:border-primary hover:bg-primary/10",
+                            "bg-no-repeat bg-center"
                         )}
-                        style={{ transform: faceTransforms[index] }}
+                        style={{
+                          transform: faceTransforms[index],
+                          backgroundImage: `url(${brand.whiteLogoUrl})`,
+                          backgroundSize: '80%',
+                        }}
                         onClick={() => onFaceClick(index)}
-                    >
-                        <Image
-                            src={brand.whiteLogoUrl}
-                            alt={`${brand.brand} white logo`}
-                            width={brand.logoWidth || 80}
-                            height={brand.logoHeight || 80}
-                            className="object-contain"
-                            priority
-                        />
-                    </div>
+                        aria-label={`Select ${brand.brand} quiz`}
+                    />
                 ))}
             </div>
         </div>
