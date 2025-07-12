@@ -27,14 +27,13 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
 
     const selectedBrand = brands[selectedBrandIndex];
 
-    const handleStartQuizForBrand = useCallback((brand: CubeBrand) => {
-        onStartQuiz(brand);
-    }, [onStartQuiz]);
+    const handleStartQuizForBrand = useCallback(() => {
+        onStartQuiz(selectedBrand);
+    }, [onStartQuiz, selectedBrand]);
 
     const handleCubeClick = useCallback((index: number) => {
         setSelectedBrandIndex(index);
-        const brand = brands[index];
-        onStartQuiz(brand);
+        onStartQuiz(brands[index]);
         // Reset and clear the auto-rotation timer on user interaction
         if (timerRef.current) clearInterval(timerRef.current);
     }, [onStartQuiz]);
@@ -69,14 +68,14 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             <div className="mt-8 space-y-8">
                 <SelectedBrandCard
                   selectedBrand={selectedBrand}
-                  handleStartQuiz={() => handleStartQuizForBrand(selectedBrand)}
+                  handleStartQuiz={handleStartQuizForBrand}
                 />
                 
                 <GlobalStats />
 
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
-                  onClick={() => handleStartQuizForBrand(selectedBrand)}
+                  onClick={handleStartQuizForBrand}
                 />
             </div>
         </div>
