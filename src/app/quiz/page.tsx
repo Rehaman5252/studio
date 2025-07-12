@@ -17,7 +17,7 @@ const QuizSkeleton = () => (
 );
 
 function QuizComponent() {
-  const user = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const brand = searchParams.get('brand') || 'default';
@@ -25,10 +25,10 @@ function QuizComponent() {
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
 
   useEffect(() => {
-    if (user === null) {
+    if (!loading && user === null) {
       router.replace('/auth/login');
     }
-  }, [user, router]);
+  }, [user, loading, router]);
   
   useEffect(() => {
     if (brand) {
@@ -43,7 +43,7 @@ function QuizComponent() {
     }
   }, [brand]);
 
-  if (!user) {
+  if (loading || !user) {
       return (
           <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

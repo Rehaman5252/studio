@@ -5,7 +5,6 @@ import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
 import { ScrollText, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -24,14 +23,22 @@ const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizH
 });
 
 function QuizHistoryPageContentWrapper() {
-    const user = useAuth();
+    const { user, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (user === null) {
+        if (!loading && user === null) {
             router.replace('/auth/login');
         }
-    }, [user, router]);
+    }, [user, loading, router]);
+
+    if (loading || !user) {
+      return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -40,13 +47,7 @@ function QuizHistoryPageContentWrapper() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-        {!user ? (
-            <div className="flex justify-center items-center h-full">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        ) : (
-             <QuizHistoryContent />
-        )}
+         <QuizHistoryContent />
       </main>
     </div>
   );
