@@ -88,6 +88,7 @@ function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
                     height={brand.logoHeight}
                     className="object-contain drop-shadow-lg"
                     priority
+                    style={{ filter: brand.brand === 'Apple' || brand.brand === 'Nike' || brand.brand === 'Amazon' ? 'invert(1)' : 'none' }}
                   />
                 </div>
                 <span className="text-xs font-semibold text-foreground opacity-90">

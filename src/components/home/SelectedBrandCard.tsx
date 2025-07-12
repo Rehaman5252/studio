@@ -50,7 +50,6 @@ const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCard
                                     height={selectedBrand.logoHeight < 50 ? selectedBrand.logoHeight * 1.2 : selectedBrand.logoHeight}
                                     className="object-contain"
                                     priority
-                                    style={{ filter: selectedBrand.brand === 'Apple' || selectedBrand.brand === 'Nike' || selectedBrand.brand === 'Amazon' ? 'invert(1)' : 'none' }}
                                 />
                             </div>
                         </motion.div>
