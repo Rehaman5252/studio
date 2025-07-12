@@ -10,12 +10,16 @@ import {
   updateProfile,
   type User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, type DocumentData, enableNetwork } from 'firebase/firestore';
 import { db, app } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!db || !user) return;
+
+  // Explicitly enable network to prevent offline errors after sign-in redirects.
+  await enableNetwork(db);
+  
   const userRef = doc(db, 'users', user.uid);
   const docSnap = await getDoc(userRef);
 
