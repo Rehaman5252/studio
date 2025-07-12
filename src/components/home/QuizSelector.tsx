@@ -30,7 +30,7 @@ export default function QuizSelector() {
     <div className="animate-fade-in-up">
         <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-            <p className="text-sm text-muted-foreground">Click a cube face to start the quiz!</p>
+            <p className="text-sm text-muted-foreground">Click a logo to start the quiz!</p>
         </div>
         
         <div className="h-64 md:h-80 w-full cursor-pointer">
