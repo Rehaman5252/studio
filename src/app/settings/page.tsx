@@ -11,16 +11,16 @@ import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
 
 function SettingsPageContent() {
-  const { user, loading } = useAuth();
+  const user = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (user === null) {
         router.replace('/auth/login');
     }
-  }, [user, loading, router]);
+  }, [user, router]);
 
-  if (loading || !user) {
+  if (!user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

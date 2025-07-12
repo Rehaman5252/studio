@@ -1,23 +1,39 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import CompleteProfileForm from '@/components/auth/CompleteProfileForm';
 import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 function CompleteProfilePageContent() {
-  const { user, loading, isUserDataLoading } = useAuth();
+  const user = useAuth();
   const router = useRouter();
+  const [userData, setUserData] = useState<DocumentData | null>(null);
+  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (user === null) {
         router.replace('/auth/login');
     }
-  }, [user, loading, router]);
+  }, [user, router]);
 
-  if (loading || isUserDataLoading || !user) {
+  useEffect(() => {
+    if (user) {
+      const unsub = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+        setUserData(doc.data() ?? null);
+        setIsUserDataLoading(false);
+      });
+      return () => unsub();
+    } else {
+        setIsUserDataLoading(false);
+    }
+  }, [user]);
+
+  if (isUserDataLoading || !user) {
     return (
       <div className="flex flex-col h-screen bg-background items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

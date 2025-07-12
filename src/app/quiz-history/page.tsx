@@ -24,11 +24,14 @@ const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizH
 });
 
 function QuizHistoryPageContentWrapper() {
-    const { user, loading } = useAuth();
+    const user = useAuth();
     const router = useRouter();
 
-    // No useEffect needed here as child components handle login prompt
-    // This page should be viewable by non-logged-in users to see the prompt.
+    useEffect(() => {
+        if (user === null) {
+            router.replace('/auth/login');
+        }
+    }, [user, router]);
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -37,17 +40,9 @@ function QuizHistoryPageContentWrapper() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-        {loading ? (
+        {!user ? (
             <div className="flex justify-center items-center h-full">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        ) : !user ? (
-            <div className="flex items-center justify-center h-full">
-                <LoginPrompt
-                    icon={ScrollText}
-                    title="Check Your Scorebook"
-                    description="You haven't faced any deliveries yet. To see your match history and past performances, please step up to the crease by signing in."
-                />
             </div>
         ) : (
              <QuizHistoryContent />

@@ -1,10 +1,13 @@
 
 import { redirect } from 'next/navigation';
+import { getAuth } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
-export default function RootPage() {
-  // This is a server component that performs an immediate redirect.
-  // This is much more efficient than the previous client-side component
-  // which required a full render cycle with a loader just to redirect.
-  // This ensures the fastest possible entry into the application.
+// This is a server component.
+// NOTE: auth.currentUser on the server will ALWAYS be null with the client SDK.
+// The redirect logic in the /home page's client component will handle
+// redirecting unauthenticated users to /auth/login.
+// This page simply provides the fastest entry into the app.
+export default async function RootPage() {
   redirect('/home');
 }

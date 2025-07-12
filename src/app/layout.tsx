@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark h-full" suppressHydrationWarning>
-      <body className={`${inter.variable} h-full bg-background font-body`}>
+      <body className={`${inter.variable} h-full bg-background font-body text-foreground`}>
         <Providers>
           {children}
         </Providers>
