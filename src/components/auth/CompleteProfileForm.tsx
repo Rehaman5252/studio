@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, setDoc, serverTimestamp, type DocumentData, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,12 +33,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const defaultFormValues = {
-  name: '', phone: '', dob: '', gender: undefined, 
-  occupation: undefined, upi: '', favoriteFormat: undefined, 
-  favoriteTeam: '', favoriteCricketer: '',
-};
-
 const occupations = ['Student', 'Employee', 'Business', 'Others'];
 const cricketFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
 const cricketTeams = [
@@ -53,7 +47,20 @@ export default function CompleteProfileForm() {
     const { user, userData, isUserDataLoading } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
     const isProfileComplete = userData?.profileCompleted || false;
+
+    const defaultFormValues = React.useMemo(() => ({
+        name: userData?.name || user?.displayName || '', 
+        phone: userData?.phone || '', 
+        dob: userData?.dob || '', 
+        gender: userData?.gender, 
+        occupation: userData?.occupation, 
+        upi: userData?.upi || '', 
+        favoriteFormat: userData?.favoriteFormat, 
+        favoriteTeam: userData?.favoriteTeam || '', 
+        favoriteCricketer: userData?.favoriteCricketer || '',
+    }), [userData, user]);
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -61,16 +68,8 @@ export default function CompleteProfileForm() {
     });
 
     useEffect(() => {
-        if (userData) {
-            const formValues: Partial<ProfileFormValues> = {};
-            for (const key of Object.keys(defaultFormValues)) {
-                if (userData[key]) {
-                    (formValues as any)[key] = userData[key];
-                }
-            }
-            form.reset(formValues);
-        }
-    }, [userData, form]);
+        form.reset(defaultFormValues);
+    }, [defaultFormValues, form]);
     
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user) {
@@ -82,19 +81,16 @@ export default function CompleteProfileForm() {
         try {
             const userDocRef = doc(db, 'users', user.uid);
             
-            // This payload only contains what the form can update.
             const payload: DocumentData = {
                 ...data,
                 updatedAt: serverTimestamp(),
                 profileCompleted: true,
             };
 
-            // If phone number has changed, it needs re-verification.
             if (userData?.phone !== data.phone) {
                 payload.phoneVerified = false;
             }
 
-            // The setDoc with merge:true will create or update the document.
             await setDoc(userDocRef, payload, { merge: true });
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});

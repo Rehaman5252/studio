@@ -10,6 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 const ScratchCard = memo(({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -31,17 +32,20 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     <div className="w-full aspect-square p-1">
         <Card className="bg-gradient-to-br from-primary to-yellow-400 text-primary-foreground p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl">
         {!isScratched ? (
-            <button
+            <motion.button
               className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
               onClick={() => setIsScratched(true)}
               role="button"
               aria-label={`Scratch to reveal gift from ${brand}`}
+              whileTap={{ scale: 0.95 }}
             >
               <p className="font-bold text-zinc-600 text-lg">Scratch to reveal!</p>
               <p className="text-zinc-500 text-sm">From {brand}</p>
-            </button>
+            </motion.button>
         ) : (
-            <div 
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
               className="h-full flex flex-col items-center justify-center p-4 text-center"
             >
               <Gift className="h-10 w-10 mb-2 text-white" />
@@ -54,7 +58,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
               >
                   Claim Now <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
-            </div>
+            </motion.div>
         )}
         </Card>
     </div>
@@ -64,7 +68,13 @@ ScratchCard.displayName = 'ScratchCard';
 
 
 const GenericOffer = memo(({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <div className="transition-transform hover:scale-103">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.3 }}
+      className="transition-transform hover:scale-103"
+    >
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardContent className="p-4 flex items-center gap-4">
                 <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
@@ -77,7 +87,7 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
                 </Button>
             </CardContent>
         </Card>
-    </div>
+    </motion.div>
 ));
 GenericOffer.displayName = 'GenericOffer';
 

@@ -12,6 +12,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Ban } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface LivePlayer {
     rank?: number;
@@ -82,7 +83,6 @@ const LiveLeaderboard = memo(() => {
                     avatar: data.avatar,
                     disqualified: data.disqualified,
                 };
-                // Assign rank only to non-disqualified players
                 if (!player.disqualified) {
                     player.rank = visibleRank++;
                 }
@@ -105,12 +105,21 @@ const LiveLeaderboard = memo(() => {
                 <CardDescription><LiveInfo /></CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ staggerChildren: 0.05 }}
+                    className="space-y-2"
+                >
                     {loading ? (
                         Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
                     ) : players.length > 0 ? (
                         players.map((player) => (
-                            <div key={player.uid} className={cn(
+                            <motion.div 
+                                key={player.uid} 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={cn(
                                 "flex items-center p-2 rounded-lg", 
                                 player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary",
                                 player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive",
@@ -137,12 +146,12 @@ const LiveLeaderboard = memo(() => {
                                         </>
                                     )}
                                 </div>
-                            </div>
+                            </motion.div>
                         ))
                     ) : (
                         <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>
                     )}
-                </div>
+                </motion.div>
             </CardContent>
         </Card>
     );
@@ -165,9 +174,9 @@ const AllTimeLeaderboard = memo(() => {
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedPlayers: AllTimePlayer[] = [];
+            let rank = 1;
             snapshot.forEach(doc => {
                 const data = doc.data();
-                // Only include users who have played at least one game
                 if (data.perfectScores > 0 || data.quizzesPlayed > 0) {
                     fetchedPlayers.push({
                         uid: doc.id,
@@ -175,6 +184,7 @@ const AllTimeLeaderboard = memo(() => {
                         perfectScores: data.perfectScores || 0,
                         totalPlayed: data.quizzesPlayed || 0,
                         avatar: data.photoURL,
+                        rank: rank++
                     });
                 }
             });
@@ -195,13 +205,23 @@ const AllTimeLeaderboard = memo(() => {
                 <CardDescription>Based on number of perfect scores</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2">
+                 <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ staggerChildren: 0.05 }}
+                    className="space-y-2"
+                >
                     {loading ? (
                        Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
                     ) : players.length > 0 ? (
-                        players.map((player, index) => (
-                             <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
-                                <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
+                        players.map((player) => (
+                             <motion.div 
+                                key={player.uid}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}
+                             >
+                                <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                                 <Avatar className="h-10 w-10 mx-4">
                                     <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
                                     <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
@@ -214,12 +234,12 @@ const AllTimeLeaderboard = memo(() => {
                                     <p className="font-bold text-primary">{player.perfectScores}</p>
                                     <p className="text-xs text-muted-foreground">Perfect Scores</p>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))
                     ) : (
                          <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>
                     )}
-                </div>
+                </motion.div>
             </CardContent>
         </Card>
     );
@@ -247,9 +267,9 @@ const MyNetworkLeaderboard = memo(() => {
             </CardHeader>
             <CardContent>
                 <div className="space-y-2">
-                     {players.length > 0 && players[0].name ? (
+                     {players.length > 0 && players[0].name && user?.uid ? (
                         players.map((player, index) => (
-                             <div key={player.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
+                             <div key={user.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                                 <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
                                 <Avatar className="h-10 w-10 mx-4">
                                     <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
@@ -302,5 +322,3 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
-
-    
