@@ -41,7 +41,7 @@ const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCard
                                 <p className="text-muted-foreground mb-2">Powered by {selectedBrand.brand}</p>
                                 <p className="text-lg font-semibold text-primary">Win Rewards!</p>
                             </div>
-                            <div className="w-20 h-20 rounded-full flex items-center justify-center p-2 shadow-inner">
+                            <div className="w-20 h-20 rounded-full flex items-center justify-center p-2 shadow-inner bg-white">
                                 <Image
                                     src={selectedBrand.logoUrl}
                                     alt={`${selectedBrand.brand} logo`}

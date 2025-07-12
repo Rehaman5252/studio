@@ -56,8 +56,8 @@ export default function Cube({ brands, visibleFaceIndex, onFaceClick }: CubeProp
                         onClick={() => onFaceClick(index)}
                     >
                         <Image
-                            src={brand.logoUrl}
-                            alt={`${brand.brand} logo`}
+                            src={brand.whiteLogoUrl}
+                            alt={`${brand.brand} white logo`}
                             width={brand.logoWidth || 60}
                             height={brand.logoHeight || 60}
                             className="object-contain"

@@ -37,12 +37,7 @@ function HomePageContent() {
         className="flex flex-col h-screen bg-background text-foreground"
       >
         <header className="p-4 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-6xl font-extrabold tracking-tighter text-shimmer animate-shimmer">
-              indcric
-            </h1>
-            <p className="text-sm text-muted-foreground">win ₹100 for every 100 seconds!</p>
-          </div>
+           {/* The indcric logo text is removed to make space for the banner card */}
         </header>
 
         <main className="flex-1 overflow-y-auto pb-24">
