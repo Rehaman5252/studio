@@ -1,14 +1,14 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { QuizQuestion } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { getQuizSlotId } from '@/lib/utils';
 import { adLibrary } from '@/lib/ads';
 import { AdDialog } from '@/components/AdDialog';
@@ -30,10 +30,10 @@ function QuizComponent() {
 
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  const [userAnswers, setUserAnswers] = useState<(string | null)[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(20);
-  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+  const [questionStartTime, setQuestionStartTime] = useState(0);
   const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
   const [isHintVisible, setIsHintVisible] = useState(false);
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
@@ -51,6 +51,8 @@ function QuizComponent() {
       try {
         const quizData = await generateQuiz({ format });
         setQuestions(quizData.questions);
+        setUserAnswers(new Array(quizData.questions.length).fill(null));
+        setQuestionStartTime(Date.now());
         setQuizState('playing');
       } catch (error) {
         console.error("Failed to generate quiz:", error);
@@ -63,48 +65,16 @@ function QuizComponent() {
     }
   }, [format, router, toast, user]);
 
-  const handleNextQuestion = () => {
-    setSelectedOption(null);
-    setIsHintVisible(false);
-    
-    if (currentQuestionIndex < questions!.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setTimeLeft(20);
-      setQuestionStartTime(Date.now());
-    } else {
-      setQuizState('submitting');
-      submitQuiz();
-    }
-  };
-
-  const handleAnswerSelect = (option: string) => {
-    if (selectedOption) return;
-    setSelectedOption(option);
-    
-    const timeTaken = (Date.now() - questionStartTime) / 1000;
-    setTimePerQuestion(prev => [...prev, timeTaken]);
-    setUserAnswers(prev => {
-        const newAnswers = [...prev];
-        newAnswers[currentQuestionIndex] = option;
-        return newAnswers;
-    });
-
-    setTimeout(() => {
-      handleNextQuestion();
-    }, 1000);
-  };
-
-  const submitQuiz = async () => {
+  const submitQuiz = useCallback(async () => {
     if (!user || !db || !questions) return;
-    const finalUserAnswers = [...userAnswers];
-    for (let i = 0; i < questions.length; i++) {
-        if (finalUserAnswers[i] === undefined) {
-            finalUserAnswers[i] = "Not Answered";
-        }
-    }
+    setQuizState('submitting');
+    
+    // Ensure all unanswered questions are marked as "Not Answered"
+    const finalUserAnswers = userAnswers.map(ans => ans === null ? "Not Answered" : ans);
 
     const score = questions.reduce((acc, q, index) => (finalUserAnswers[index] === q.correctAnswer ? acc + 1 : acc), 0);
     const slotId = getQuizSlotId();
+    const totalTime = timePerQuestion.reduce((a, b) => a + b, 0);
     
     const attemptData = {
         slotId,
@@ -117,17 +87,25 @@ function QuizComponent() {
         timestamp: serverTimestamp(),
         timePerQuestion,
         usedHintIndices,
+        totalTime,
+        uid: user.uid,
+        name: user.displayName,
+        avatar: user.photoURL,
     };
 
     try {
+        // Add to user's history
         const userHistoryRef = doc(db, 'quizHistory', user.uid);
         await setDoc(userHistoryRef, {
-            attempts: [
-                ...(await import('firebase/firestore').then(({getDoc}) => getDoc(userHistoryRef))).data()?.attempts || [],
-                attemptData
-            ]
+            attempts: arrayUnion(attemptData)
         }, { merge: true });
-        
+
+        // Update user's overall stats
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, {
+            quizzesPlayed: increment(1)
+        });
+
         router.replace('/quiz/results');
 
     } catch (error) {
@@ -135,7 +113,41 @@ function QuizComponent() {
         toast({ title: 'Submission Error', description: 'Could not save your quiz results.', variant: 'destructive' });
         setQuizState('playing');
     }
-  };
+  }, [user, db, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, router, toast]);
+
+  const handleNextQuestion = useCallback(() => {
+    if (!questions) return;
+
+    setSelectedOption(null);
+    setIsHintVisible(false);
+    
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setTimeLeft(20);
+      setQuestionStartTime(Date.now());
+    } else {
+      submitQuiz();
+    }
+  }, [questions, currentQuestionIndex, submitQuiz]);
+
+  const handleAnswerSelect = useCallback((option: string) => {
+    if (selectedOption || !questions) return;
+    
+    setSelectedOption(option);
+    
+    const timeTaken = (Date.now() - questionStartTime) / 1000;
+    setTimePerQuestion(prev => [...prev, timeTaken]);
+    
+    setUserAnswers(prev => {
+        const newAnswers = [...prev];
+        newAnswers[currentQuestionIndex] = option;
+        return newAnswers;
+    });
+
+    setTimeout(() => {
+      handleNextQuestion();
+    }, 1000);
+  }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextQuestion, questions]);
 
   useEffect(() => {
     if (quizState !== 'playing' || !questions) return;
@@ -147,7 +159,7 @@ function QuizComponent() {
 
     const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, quizState, questions]);
+  }, [timeLeft, quizState, questions, handleAnswerSelect]);
 
   const handleHintRequest = () => {
     if (!questions || isHintVisible) return;
@@ -199,7 +211,8 @@ function QuizComponent() {
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
                 <Button onClick={handleNextQuestion} disabled={!selectedOption}>
-                    Next <ChevronsRight className="ml-2" />
+                    {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} 
+                    <ChevronsRight className="ml-2" />
                 </Button>
             </div>
         </div>

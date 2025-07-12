@@ -27,7 +27,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             return;
         }
 
-        if (isLoading) return;
+        if (isLoading || !attempt.questions || !attempt.userAnswers) return;
 
         setIsLoading(true);
         setError(null);
@@ -161,7 +161,8 @@ export default function QuizHistoryContent() {
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
 
   const filteredHistory = useMemo(() => {
-    const history = (quizHistory as QuizAttempt[]) || [];
+    if (!quizHistory) return [];
+    const history = (quizHistory as QuizAttempt[]).slice().sort((a, b) => b.timestamp - a.timestamp);
     if (filter === 'recent') {
       const sevenDaysAgo = new Date().getTime() - 7 * 24 * 60 * 60 * 1000;
       return history.filter(attempt => attempt.timestamp >= sevenDaysAgo);

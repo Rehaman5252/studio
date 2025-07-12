@@ -14,21 +14,30 @@ function ProfilePageContentWrapper() {
   const router = useRouter();
   
   useEffect(() => {
+    // Wait until the initial auth check is done
     if (!isAuthLoading && user === null) {
       router.replace('/auth/login');
     }
   }, [user, isAuthLoading, router]);
 
-  const isLoading = isAuthLoading || isUserDataLoading;
+  // The page is loading if either the auth check or the user data fetch is in progress
+  const isLoading = isAuthLoading || (user && isUserDataLoading);
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="flex flex-col h-screen bg-background">
+        <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
+        </header>
+        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+          <ProfileSkeleton />
+        </main>
       </div>
     );
   }
 
+  // After loading, if there's still no user, it means they need to log in.
+  // The useEffect above should handle this, but this is a safe fallback.
   if (!user) {
     return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -48,11 +57,7 @@ function ProfilePageContentWrapper() {
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        {isUserDataLoading ? (
-          <ProfileSkeleton />
-        ) : (
-          <ProfileContent userProfile={userData} />
-        )}
+        <ProfileContent userProfile={userData} />
       </main>
     </motion.div>
   );

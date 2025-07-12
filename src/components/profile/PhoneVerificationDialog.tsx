@@ -14,7 +14,7 @@ import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
 import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
 
 export function PhoneVerificationDialog({ children, phone }: { children: React.ReactNode; phone: string }) {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [otp, setOtp] = useState('');
@@ -52,8 +52,10 @@ export function PhoneVerificationDialog({ children, phone }: { children: React.R
         await updateDoc(userDocRef, { phoneVerified: true });
         toast({ title: 'Success', description: 'Your phone number has been verified.' });
         setOpen(false);
-        setStep('initial');
-        setOtp('');
+        // Reset state after closing
+        setTimeout(() => {
+          resetState();
+        }, 300);
       } else {
         toast({ title: 'Error', description: result.message, variant: 'destructive' });
       }
@@ -70,12 +72,27 @@ export function PhoneVerificationDialog({ children, phone }: { children: React.R
     setIsLoading(false);
   }
 
+  // Prevent dialog from opening if the phone number is already verified
+  const onOpenDialog = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    if (userData?.phoneVerified) {
+        e.preventDefault();
+        toast({ title: "Already Verified", description: "This phone number is already verified."});
+        return;
+    }
+    setOpen(true);
+  }
+
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) resetState();
     }}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>
+        <div onClick={(e: any) => onOpenDialog(e)}>
+            {children}
+        </div>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Verify Phone Number</DialogTitle>

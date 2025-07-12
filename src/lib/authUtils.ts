@@ -18,6 +18,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
   if (!db || !user) return;
 
   try {
+    // Explicitly enable the network to prevent offline errors after redirects
     await enableNetwork(db);
     const userRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(userRef);
@@ -26,7 +27,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
       const defaultData = {
         uid: user.uid,
         email: user.email,
-        name: user.displayName,
+        name: user.displayName || 'New User', // Add fallback for name
         photoURL: user.photoURL,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -59,9 +60,11 @@ export async function handleGoogleSignIn() {
     return user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user') {
+        // This is a normal user action, not an error.
         console.warn('Google sign-in was cancelled by the user.');
     } else {
-        console.error("Google Sign-in error:", error.message);
+        console.error("Google Sign-in error:", error);
+        toast({ title: 'Sign-in Error', description: error.message || 'An unknown error occurred.', variant: 'destructive' });
     }
     return null;
   }
@@ -76,6 +79,7 @@ export const registerWithEmail = async (email, password) => {
 export const loginWithEmail = async (email, password) => {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // Ensure document exists on login as well
     await createUserDocument(userCredential.user);
     return userCredential;
 };

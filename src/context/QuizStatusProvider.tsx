@@ -18,30 +18,25 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const authState = useAuth();
+  const { quizHistory, isHistoryLoading, loading: isAuthLoading } = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
 
-  // Guard clause to prevent destructuring null.
-  // The provider will re-render once authState is populated.
-  if (!authState) {
-    return <>{children}</>; // Or a global loader
-  }
-
-  const { quizHistory, isHistoryLoading } = authState;
+  const isLoading = isAuthLoading || isHistoryLoading;
 
   const lastAttemptInSlot = useMemo(() => {
-    if (isHistoryLoading || !quizHistory) {
+    if (isLoading || !quizHistory) {
       return null;
     }
     
     const currentSlotId = getQuizSlotId();
     const history = quizHistory as QuizAttempt[] | null;
+    // Find the last attempt that matches the current slot ID
     return history?.find(attempt => attempt.slotId === currentSlotId) || null;
-  }, [quizHistory, isHistoryLoading]);
+  }, [quizHistory, isLoading]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -56,34 +51,30 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
 
     const diff = endTime.getTime() - now.getTime();
     
-    const minutesLeft = Math.floor((diff / 1000 / 60) % 60);
-    const secondsLeft = Math.floor((diff / 1000) % 60);
+    const minutesLeft = Math.max(0, Math.floor((diff / 1000 / 60) % 60));
+    const secondsLeft = Math.max(0, Math.floor((diff / 1000) % 60));
 
     return { minutes: minutesLeft, seconds: secondsLeft };
   }, []);
 
   useEffect(() => {
-    // Initial values
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
+    return () => clearInterval(timer);
+  }, [calculateTimeLeft]);
+
+  useEffect(() => {
     setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
     setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
     setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
-    setTimeLeft(calculateTimeLeft());
 
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    // Randomly update player counts every few seconds to simulate live data
     const playersTimer = setInterval(() => {
       setPlayersPlaying(p => Math.max(800, p + Math.floor(Math.random() * 21) - 10));
       setPlayersPlayed(p => p + Math.floor(Math.random() * 5));
     }, 3000);
 
-    return () => {
-        clearInterval(timer);
-        clearInterval(playersTimer);
-    };
-  }, [calculateTimeLeft]);
+    return () => clearInterval(playersTimer);
+  }, []);
 
   const value = {
     timeLeft,
@@ -91,7 +82,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     playersPlayed,
     totalWinners,
     lastAttemptInSlot,
-    isLoading: isHistoryLoading,
+    isLoading,
   };
 
   return <QuizStatusContext.Provider value={value}>{children}</QuizStatusContext.Provider>;

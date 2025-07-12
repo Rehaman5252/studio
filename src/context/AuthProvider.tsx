@@ -3,7 +3,7 @@
 
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import type { QuizAttempt } from '@/lib/mockData';
 
@@ -12,7 +12,7 @@ interface AuthContextType {
   userData: DocumentData | null;
   quizHistory: QuizAttempt[] | null;
   isProfileComplete: boolean;
-  loading: boolean;
+  loading: boolean; // This is the primary auth loading state
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
 }
@@ -28,22 +28,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
-  const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
   
+  // Master loading state for auth check
   const [loading, setLoading] = useState(true);
+  
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false); 
+      setLoading(false); // Auth check is complete
       if (!currentUser) {
+        // If no user, no data to load.
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
-        setIsProfileComplete(false);
       }
     });
 
@@ -57,13 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
             const data = doc.data();
             setUserData(data ?? null);
-
-            if (data) {
-                const completed = MANDATORY_PROFILE_FIELDS.every(field => !!data[field]);
-                setIsProfileComplete(completed);
-            } else {
-                setIsProfileComplete(false);
-            }
             setIsUserDataLoading(false);
         }, (error) => {
             console.error("Error fetching user data:", error);
@@ -75,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const historyCollectionRef = doc(db, 'quizHistory', user.uid);
         const unsubscribeHistory = onSnapshot(historyCollectionRef, (doc) => {
           const historyData = doc.data();
+          // Ensure attempts is always an array
           setQuizHistory(historyData?.attempts || []);
           setIsHistoryLoading(false);
         }, (error) => {
@@ -88,10 +83,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             unsubscribeHistory();
         }
     } else {
+      // No user, so finish loading states
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
     }
   }, [user]);
+
+  const isProfileComplete = useMemo(() => {
+    if (!userData) return false;
+    return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
+  }, [userData]);
 
   const value = { user, userData, quizHistory, isProfileComplete, loading, isUserDataLoading, isHistoryLoading };
 

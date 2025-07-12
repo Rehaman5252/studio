@@ -36,12 +36,17 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
         if (!auth) return;
         try {
             await signOut(auth);
+            // Redirect to login page after logout
             router.push('/auth/login');
             toast({ title: "Logged Out", description: "You have been successfully logged out." });
         } catch (error) {
             toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
         }
     };
+
+    if (!userProfile) {
+        return <ProfileSkeleton />;
+    }
 
     return (
         <div className="space-y-6 animate-fade-in-up">

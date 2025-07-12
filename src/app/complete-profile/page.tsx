@@ -26,6 +26,9 @@ function CompleteProfilePageContent() {
     );
   }
 
+  // This check is important. If loading is done and there's still no user,
+  // it might be a brief state before the redirect effect kicks in.
+  // Showing a loader here is better than a flash of content or an error.
   if (!user) {
     return (
         <div className="flex flex-col h-screen bg-background items-center justify-center">
