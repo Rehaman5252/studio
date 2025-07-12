@@ -13,12 +13,12 @@ interface CubeProps {
 }
 
 const faceTransforms = [
-  'rotateY(0deg) translateZ(75px)',      // Front
-  'rotateY(90deg) translateZ(75px)',     // Right
-  'rotateY(180deg) translateZ(75px)',    // Back
-  'rotateY(-90deg) translateZ(75px)',    // Left
-  'rotateX(90deg) translateZ(75px)',     // Top
-  'rotateX(-90deg) translateZ(75px)',    // Bottom
+  'rotateY(0deg) translateZ(50px)',      // Front
+  'rotateY(90deg) translateZ(50px)',     // Right
+  'rotateY(180deg) translateZ(50px)',    // Back
+  'rotateY(-90deg) translateZ(50px)',    // Left
+  'rotateX(90deg) translateZ(50px)',     // Top
+  'rotateX(-90deg) translateZ(50px)',    // Bottom
 ];
 
 const cubeRotation = (index: number) => {
@@ -39,16 +39,16 @@ export default function Cube({ brands, visibleFaceIndex, onFaceClick }: CubeProp
     };
 
     return (
-        <div className="w-full h-48 flex items-center justify-center perspective">
+        <div className="w-full h-32 flex items-center justify-center perspective">
             <div
-                className="relative w-40 h-40 preserve-3d transition-transform duration-1000"
+                className="relative w-24 h-24 preserve-3d transition-transform duration-1000"
                 style={rotationStyle}
             >
                 {brands.map((brand, index) => (
                     <div
                         key={brand.id}
                         className={cn(
-                            "absolute w-40 h-40 flex items-center justify-center p-4 cursor-pointer",
+                            "absolute w-24 h-24 flex items-center justify-center p-2 cursor-pointer",
                             "bg-card/50 border-2 border-primary/30",
                             "transition-all hover:border-primary hover:bg-primary/10"
                         )}
@@ -58,10 +58,9 @@ export default function Cube({ brands, visibleFaceIndex, onFaceClick }: CubeProp
                         <Image
                             src={brand.logoUrl}
                             alt={`${brand.brand} logo`}
-                            width={brand.logoWidth || 80}
-                            height={brand.logoHeight || 80}
+                            width={brand.logoWidth || 60}
+                            height={brand.logoHeight || 60}
                             className="object-contain"
-                            style={{ filter: brand.invertOnDark ? 'invert(1)' : 'none' }}
                             priority
                         />
                     </div>
