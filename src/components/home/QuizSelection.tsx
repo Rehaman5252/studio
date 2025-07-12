@@ -9,12 +9,12 @@ import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 
 const brands: CubeBrand[] = [
-  { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', logoWidth: 50, logoHeight: 60 },
-  { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg', logoWidth: 80, logoHeight: 40 },
-  { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 80, logoHeight: 60 },
-  { id: 4, brand: 'PayPal', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg', logoWidth: 80, logoHeight: 50 },
-  { id: 5, brand: 'Hindustan Unilever', format: 'Mixed', logoUrl: 'https://www.freepnglogos.com/uploads/hul-logo-png/hindustan-unilever-logo-2.png', logoWidth: 80, logoHeight: 50 },
-  { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 80, logoHeight: 50 },
+  { id: 1, brand: 'Apple', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Apple_logo_white.svg', logoWidth: 50, logoHeight: 60 },
+  { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://cdn.shopify.com/s/files/1/0563/2773/5943/files/Nike-logo-png-white_480x480.png?v=1646294796', logoWidth: 80, logoHeight: 40 },
+  { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://assets.stickpng.com/images/627b74a92d20113a351119b7.png', logoWidth: 80, logoHeight: 60 },
+  { id: 4, brand: 'PayPal', format: 'ODI', logoUrl: 'https://www.freepnglogos.com/uploads/paypal-logo-png-7.png', logoWidth: 80, logoHeight: 50 },
+  { id: 5, brand: 'Colgate', format: 'Mixed', logoUrl: 'https://assets.stickpng.com/images/627a488c2d20113a35111904.png', logoWidth: 80, logoHeight: 50 },
+  { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://assets.stickpng.com/images/580b57fcd9996e24bc43c518.png', logoWidth: 80, logoHeight: 50 },
 ];
 
 interface QuizSelectionProps {
@@ -34,7 +34,6 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const handleCubeClick = useCallback((index: number) => {
         setSelectedBrandIndex(index);
         onStartQuiz(brands[index]);
-        // Reset and clear the auto-rotation timer on user interaction
         if (timerRef.current) clearInterval(timerRef.current);
     }, [onStartQuiz]);
     
@@ -44,7 +43,6 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
         };
         
         if (timerRef.current) clearInterval(timerRef.current);
-        
         timerRef.current = setInterval(rotateToNextFace, 500);
         
         return () => {

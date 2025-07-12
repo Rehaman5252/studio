@@ -6,12 +6,18 @@ import ProfileContent from '@/components/profile/ProfileContent';
 import { useAuth } from '@/context/AuthProvider';
 import AuthGuard from '@/components/auth/AuthGuard';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
+import { motion } from 'framer-motion';
 
 function ProfilePageContentWrapper() {
   const { userData, isUserDataLoading } = useAuth();
   
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col h-screen bg-background"
+    >
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
       </header>
@@ -23,7 +29,7 @@ function ProfilePageContentWrapper() {
             <ProfileContent userProfile={userData} />
         )}
       </main>
-    </div>
+    </motion.div>
   );
 }
 

@@ -17,6 +17,8 @@ import { ResultsSummaryCard } from '@/components/quiz/ResultsSummaryCard';
 import { Certificate } from '@/components/quiz/Certificate';
 import { AnalysisCard } from '@/components/quiz/AnalysisCard';
 import { AnswerReview } from '@/components/quiz/AnswerReview';
+import { motion } from 'framer-motion';
+
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
@@ -24,7 +26,12 @@ const MalpracticeScreen = memo(() => {
         <div 
             className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4"
         >
-            <div className="w-full max-w-md text-center bg-card border-2 border-destructive my-4 rounded-lg p-6 shadow-lg">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="w-full max-w-md text-center bg-card border-2 border-destructive my-4 rounded-lg p-6 shadow-lg"
+            >
                  <div className="mx-auto bg-destructive/20 p-4 rounded-full w-fit mb-4">
                     <AlertTriangle className="h-12 w-12 text-destructive" />
                 </div>
@@ -37,7 +44,7 @@ const MalpracticeScreen = memo(() => {
                         <Home className="mr-2 h-5 w-5" /> Go Home
                      </Button>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 });
@@ -137,7 +144,10 @@ function ResultsComponent() {
 
     return (
         <>
-            <div 
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
                 className="flex flex-col items-center min-h-screen bg-background text-foreground p-4 overflow-y-auto"
             >
                 <ResultsSummaryCard
@@ -165,7 +175,7 @@ function ResultsComponent() {
                 {isPerfectScore && <Certificate format={format} userName={user?.displayName || "CricBlitz User"} date={today} slotTimings={slotTimings} />}
                 
                 {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
-            </div>
+            </motion.div>
 
             {adConfig && (
                 <AdDialog
