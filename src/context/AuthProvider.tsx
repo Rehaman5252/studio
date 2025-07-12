@@ -98,5 +98,20 @@ export const useAuth = () => {
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
+    // A check to ensure context is not null when used.
+    if (context === null) {
+        // This can happen if the component using the hook is not wrapped in the provider.
+        // Or during the initial render before the provider's state is set.
+        // We return a default structure to prevent destructuring errors.
+        return { 
+            user: null, 
+            userData: null, 
+            quizHistory: null, 
+            isProfileComplete: false,
+            loading: true, 
+            isUserDataLoading: true, 
+            isHistoryLoading: true 
+        };
+    }
     return context;
 };
