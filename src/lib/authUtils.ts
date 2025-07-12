@@ -34,9 +34,11 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         profileCompleted: false,
         phoneVerified: false,
         emailVerified: user.emailVerified,
+        guidedTourCompleted: false, // <-- ADDED THIS FIELD
         totalRewards: 0,
         quizzesPlayed: 0,
         perfectScores: 0,
+        certificatesEarned: 0,
         referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
         ...additionalData
       };
@@ -70,13 +72,13 @@ export async function handleGoogleSignIn() {
   }
 }
 
-export const registerWithEmail = async (email, password) => {
+export const registerWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
-export const loginWithEmail = async (email, password) => {
+export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     // Ensure document exists on login as well
