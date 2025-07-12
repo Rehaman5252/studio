@@ -12,6 +12,7 @@ export interface CubeBrand {
   logoUrl: string;
   logoWidth: number;
   logoHeight: number;
+  invertOnDark?: boolean;
 }
 
 const faceTransforms = [
@@ -87,6 +88,9 @@ function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
                     width={brand.logoWidth}
                     height={brand.logoHeight}
                     className="object-contain drop-shadow-lg"
+                    style={{
+                        filter: brand.invertOnDark ? 'invert(1)' : 'none'
+                    }}
                     priority
                   />
                 </div>
