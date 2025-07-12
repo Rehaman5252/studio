@@ -8,7 +8,7 @@ import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { CubeBrand } from '@/components/home/brandData';
 import { useAuth } from '@/context/AuthProvider';
-import QuizSelection from './QuizSelection';
+import QuizSelector from './QuizSelector';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,7 +73,7 @@ export default function HomeWrapperContent() {
 
   return (
     <>
-      <QuizSelection
+      <QuizSelector
         onStartQuiz={handleStartQuiz}
       />
 
