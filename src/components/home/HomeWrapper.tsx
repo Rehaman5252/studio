@@ -3,11 +3,18 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import QuizSelector from '@/components/home/QuizSelector';
+import dynamic from 'next/dynamic';
 import GlobalStats from '@/components/home/GlobalStats';
 import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 import type { CubeBrand } from '@/components/home/brandData';
+import { Skeleton } from '@/components/ui/skeleton';
+
+
+const QuizSelector = dynamic(() => import('@/components/home/QuizSelector'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-64 md:h-80 w-full" />,
+});
 
 
 export default function HomeWrapper() {
