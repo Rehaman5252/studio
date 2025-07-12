@@ -8,15 +8,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { sendOtp } from '@/ai/flows/send-otp-flow';
-import { verifyOtp } from '@/ai/flows/verify-otp-flow';
+import { Loader2 } from 'lucide-react';
 import { isFirebaseConfigured, auth } from '@/lib/firebase';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 
 // Schemas
 const emailSchema = z.object({
@@ -57,45 +56,51 @@ export default function ForgotPasswordForm() {
 
   if (isSuccess) {
     return (
-        <div className="flex h-full flex-col justify-center space-y-6 text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Check Your Inbox</h1>
-            <p className="text-muted-foreground">A password reset link has been sent to your email address.</p>
-            <Button onClick={() => router.push('/auth/login')} className="w-full">
-                Back to Login
-            </Button>
-        </div>
+        <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+                <CardTitle>Check Your Inbox</CardTitle>
+                <CardDescription>A password reset link has been sent to your email address.</CardDescription>
+            </CardHeader>
+            <CardFooter>
+                <Button onClick={() => router.push('/auth/login')} className="w-full">
+                    Back to Login
+                </Button>
+            </CardFooter>
+        </Card>
     )
   }
 
   return (
-    <div className="flex h-full flex-col justify-center space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Forgot Password</h1>
-        <p className="text-muted-foreground">Enter your email to receive a password reset link.</p>
-      </div>
-
-      {!isFirebaseConfigured ? (
-         <FirebaseConfigWarning />
-      ) : (
-         <form onSubmit={emailForm.handleSubmit(handleSendResetEmail)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...emailForm.register('email')} disabled={isLoading} />
-              {emailForm.formState.errors.email && <p className="text-sm text-destructive">{emailForm.formState.errors.email.message}</p>}
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="animate-spin mr-2" />}
-              Send Reset Link
-            </Button>
-          </form>
-      )}
-
-      <p className="text-center text-sm text-muted-foreground">
-          Remember your password?{' '}
-          <Link href="/auth/login" className="font-semibold text-primary hover:underline">
-              Sign in
-          </Link>
-      </p>
-    </div>
+    <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+            <CardTitle>Forgot Password</CardTitle>
+            <CardDescription>Enter your email to receive a password reset link.</CardDescription>
+        </CardHeader>
+        <form onSubmit={emailForm.handleSubmit(handleSendResetEmail)}>
+            <CardContent className="space-y-4">
+                 {!isFirebaseConfigured ? (
+                    <FirebaseConfigWarning />
+                ) : (
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...emailForm.register('email')} disabled={isLoading} />
+                        {emailForm.formState.errors.email && <p className="text-sm text-destructive">{emailForm.formState.errors.email.message}</p>}
+                    </div>
+                )}
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4">
+                 <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
+                    {isLoading && <Loader2 className="animate-spin mr-2" />}
+                    Send Reset Link
+                </Button>
+                 <p className="text-center text-sm text-muted-foreground">
+                    Remember your password?{' '}
+                    <Link href="/auth/login" className="font-semibold text-primary hover:underline">
+                        Sign in
+                    </Link>
+                </p>
+            </CardFooter>
+        </form>
+    </Card>
   );
 }
