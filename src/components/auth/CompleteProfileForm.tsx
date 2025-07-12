@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, setDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, type DocumentData, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -50,63 +50,59 @@ const cricketTeams = [
 
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData, isProfileComplete, isUserDataLoading } = useAuth();
+    const { user, userData, isUserDataLoading } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isProfileComplete = userData?.profileCompleted || false;
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
-        defaultValues: defaultFormValues as any,
+        defaultValues: defaultFormValues,
     });
 
     useEffect(() => {
         if (userData) {
-            const defaults = { ...defaultFormValues };
-            for (const key in defaultFormValues) {
+            const formValues: Partial<ProfileFormValues> = {};
+            for (const key of Object.keys(defaultFormValues)) {
                 if (userData[key]) {
-                    (defaults as any)[key] = userData[key];
+                    (formValues as any)[key] = userData[key];
                 }
             }
-             // Handle case where favoriteTeam might not be in the list
-            if (userData.favoriteTeam && !cricketTeams.includes(userData.favoriteTeam)) {
-                (defaults as any).favoriteTeam = ''; // Or handle as needed
-            }
-
-            form.reset(defaults);
+            form.reset(formValues);
         }
     }, [userData, form]);
     
     const onSubmit = async (data: ProfileFormValues) => {
+        if (!user) {
+            toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
+            return;
+        }
         setIsSubmitting(true);
-
-        if (!user || !user.uid) {
-            toast({ title: "Authentication Error", description: "You must be signed in to save your profile.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (!db) {
-            toast({ title: "Database Error", description: "Cannot connect to the database.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
 
         try {
             const userDocRef = doc(db, 'users', user.uid);
             
-            const updatePayload: DocumentData = { 
+            const payload: DocumentData = {
                 ...data,
+                uid: user.uid,
                 email: user.email,
                 photoURL: user.photoURL,
                 updatedAt: serverTimestamp(),
                 profileCompleted: true,
             };
-    
-            if (data.phone !== userData?.phone) {
-                updatePayload.phoneVerified = false;
+
+            // If phone number has changed, it needs re-verification
+            if (userData?.phone !== data.phone) {
+                payload.phoneVerified = false;
             }
-            
-            await setDoc(userDocRef, updatePayload, { merge: true });
+
+            // On first creation, set the createdAt field
+            const docSnap = await getDoc(userDocRef);
+            if (!docSnap.exists()) {
+                payload.createdAt = serverTimestamp();
+            }
+
+            await setDoc(userDocRef, payload, { merge: true });
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/home');
@@ -132,7 +128,6 @@ export default function CompleteProfileForm() {
         <Card className="w-full max-w-lg">
             <CardHeader>
                 <CardTitle>{isProfileComplete ? 'Edit Profile' : 'Complete Your Profile'}</CardTitle>
-
                 <CardDescription>
                     {isProfileComplete 
                         ? 'Update your profile information below.'
@@ -142,7 +137,7 @@ export default function CompleteProfileForm() {
             </CardHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-6">
                         <FormField
                             control={form.control} name="name"
                             render={({ field }) => (

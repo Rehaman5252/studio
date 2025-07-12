@@ -10,36 +10,36 @@ import {
   updateProfile,
   type User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, type DocumentData, enableNetwork } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db, app } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!db || !user) return;
 
+  const userRef = doc(db, 'users', user.uid);
+  
   try {
-    // Explicitly enable the network to prevent offline errors after redirects
-    await enableNetwork(db);
-    const userRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(userRef);
 
     if (!docSnap.exists()) {
       const defaultData = {
         uid: user.uid,
         email: user.email,
-        name: user.displayName || 'New User', // Add fallback for name
+        name: user.displayName || additionalData.name || 'New User',
         photoURL: user.photoURL,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         profileCompleted: false,
         phoneVerified: false,
         emailVerified: user.emailVerified,
-        guidedTourCompleted: false, // <-- ADDED THIS FIELD
+        guidedTourCompleted: false,
         totalRewards: 0,
         quizzesPlayed: 0,
         perfectScores: 0,
         certificatesEarned: 0,
         referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
+        referralEarnings: 0,
         ...additionalData
       };
       await setDoc(userRef, defaultData);
@@ -51,18 +51,22 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 }
 
 export async function handleGoogleSignIn() {
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
   try {
-    const provider = new GoogleAuthProvider();
-    const auth = getAuth(app);
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-
-    if (!user) throw new Error('No user returned');
+    if (!user) throw new Error('No user returned from Google Sign-In.');
+    
+    // Ensure document is created, setting emailVerified to true for Google accounts
     await createUserDocument(user, { emailVerified: true });
+    
+    toast({ title: "Signed In", description: `Welcome, ${user.displayName}!` });
     return user;
+
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user') {
-        // This is a normal user action, not an error.
         console.warn('Google sign-in was cancelled by the user.');
     } else {
         console.error("Google Sign-in error:", error);
@@ -81,7 +85,7 @@ export const registerWithEmail = async (email: string, password: string) => {
 export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Ensure document exists on login as well
+    // Ensure document exists on login as well, just in case.
     await createUserDocument(userCredential.user);
     return userCredential;
 };
