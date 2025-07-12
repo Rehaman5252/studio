@@ -1,27 +1,10 @@
 
-'use client';
-import { useAuth } from '@/context/AuthProvider';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
 export default function RootPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.replace('/home');
-      } else {
-        router.replace('/auth/login');
-      }
-    }
-  }, [user, loading, router]);
-
-  return (
-    <div className="flex h-screen w-screen items-center justify-center bg-background">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-    </div>
-  );
+  // This is a server component that performs an immediate redirect.
+  // This is much more efficient than the previous client-side component
+  // which required a full render cycle with a loader just to redirect.
+  // This ensures the fastest possible entry into the application.
+  redirect('/home');
 }
