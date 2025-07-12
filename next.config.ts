@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    // Recognize .glsl, .vs, .fs files as raw text
+    config.module.rules.push({
+      test: /\.(glsl|vs|fs|vert|frag)$/,
+      exclude: /node_modules/,
+      use: ['raw-loader', 'glslify-loader'],
+    });
+
+    return config;
+  },
   images: {
     remotePatterns: [
       {

@@ -16,19 +16,45 @@ interface QuizSelectionProps {
 
 function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
+    const [isRotating, setIsRotating] = useState(true);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    const resetRotationTimer = useCallback(() => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+        timerRef.current = setInterval(() => {
+            setIsRotating(true);
+        }, 5000); // Resume auto-rotation after 5 seconds of inactivity
+    }, []);
 
     const handleRotation = useCallback((index: number) => {
         setSelectedBrandIndex(index);
-    }, []);
+        setIsRotating(false);
+        resetRotationTimer();
+    }, [resetRotationTimer]);
     
     const handleCubeClick = useCallback((index: number) => {
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
         setSelectedBrandIndex(index);
-    }, []);
+        setIsRotating(false);
+        resetRotationTimer();
+    }, [resetRotationTimer]);
+
+    useEffect(() => {
+        if (isRotating) {
+            const rotateInterval = setInterval(() => {
+                setSelectedBrandIndex(prevIndex => (prevIndex + 1) % brands.length);
+            }, 3000); // Auto-rotate every 3 seconds
+            return () => clearInterval(rotateInterval);
+        }
+    }, [isRotating]);
+
+    useEffect(() => {
+        resetRotationTimer();
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [resetRotationTimer]);
 
     const selectedBrand = brands[selectedBrandIndex];
 
@@ -36,30 +62,18 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
         onStartQuiz(selectedBrand);
     }, [onStartQuiz, selectedBrand]);
     
-    useEffect(() => {
-        const rotateToNextFace = () => {
-          setSelectedBrandIndex(prevIndex => (prevIndex + 1) % brands.length);
-        };
-        
-        if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(rotateToNextFace, 500);
-        
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, []);
-
     return (
         <div className="animate-fade-in-up">
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face to play!</p>
+                <p className="text-sm text-muted-foreground">Click a face or use arrows to navigate!</p>
             </div>
             
             <QuizSelector 
                 brands={brands}
                 onFaceClick={handleCubeClick}
                 visibleFaceIndex={selectedBrandIndex}
+                isRotating={isRotating}
             />
 
             <div className="mt-8 space-y-8">
