@@ -1,9 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import React, { useEffect } from 'react';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { useAuth } from '@/context/AuthProvider';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
@@ -12,34 +10,33 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 function ProfilePageContentWrapper() {
-  const { user, loading: isAuthLoading } = useAuth();
+  const { user, userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
   const router = useRouter();
-  const [userData, setUserData] = useState<DocumentData | null>(null);
-  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
-
+  
   useEffect(() => {
     if (!isAuthLoading && user === null) {
       router.replace('/auth/login');
     }
   }, [user, isAuthLoading, router]);
 
-  useEffect(() => {
-    if (user) {
-      const unsub = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-        setUserData(doc.data() ?? null);
-        setIsUserDataLoading(false);
-      });
-      return () => unsub();
-    } else {
-      setIsUserDataLoading(false);
-    }
-  }, [user]);
+  // Combined loading state check
+  const isLoading = isAuthLoading || isUserDataLoading;
 
-  if (isAuthLoading || !user) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (!user) {
+    // This state is hit if auth is loaded but there's no user.
+    // The useEffect above will handle the redirect. Return a loader to avoid content flash.
+    return (
+         <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
     );
   }
 

@@ -33,11 +33,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const MANDATORY_PROFILE_FIELDS = [
-    'name', 'phone', 'dob', 'gender', 'occupation', 'upi', 
-    'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
-];
-
 const defaultFormValues = {
   name: '', phone: '', dob: '', gender: undefined, 
   occupation: undefined, upi: '', favoriteFormat: undefined, 
@@ -55,7 +50,7 @@ const cricketTeams = [
 
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData, isProfileComplete } = useAuth();
+    const { user, userData, isProfileComplete, isUserDataLoading } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,9 +62,9 @@ export default function CompleteProfileForm() {
     useEffect(() => {
         if (userData) {
             const defaults = { ...defaultFormValues };
-            for (const field of MANDATORY_PROFILE_FIELDS) {
-                if (userData[field]) {
-                    (defaults as any)[field] = userData[field];
+            for (const key in defaultFormValues) {
+                if (userData[key]) {
+                    (defaults as any)[key] = userData[key];
                 }
             }
              // Handle case where favoriteTeam might not be in the list
@@ -114,7 +109,7 @@ export default function CompleteProfileForm() {
             await setDoc(userDocRef, updatePayload, { merge: true });
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
-            router.push('/profile');
+            router.push('/home');
     
         } catch (error: any) {
             console.error("Firestore error:", error);
@@ -123,6 +118,15 @@ export default function CompleteProfileForm() {
             setIsSubmitting(false);
         }
     };
+
+    if (isUserDataLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">Loading profile form...</p>
+            </div>
+        )
+    }
 
     return (
         <Card className="w-full max-w-lg">

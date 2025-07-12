@@ -12,9 +12,9 @@ interface AuthContextType {
   userData: DocumentData | null;
   quizHistory: QuizAttempt[] | null;
   isProfileComplete: boolean;
-  loading: boolean;
-  isUserDataLoading: boolean;
-  isHistoryLoading: boolean;
+  loading: boolean; // True until the initial auth check is complete
+  isUserDataLoading: boolean; // True while user-specific data is fetching
+  isHistoryLoading: boolean; // True while history is fetching
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
   
+  // This is the main loading state for the initial auth check.
   const [loading, setLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
@@ -37,8 +38,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      // Auth check is complete, set loading to false.
+      setLoading(false); 
       if (!currentUser) {
+        // If no user, no data will be fetched, so set all loading states to false.
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
@@ -51,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    // Only fetch data if we have a user
     if (user?.uid) {
         setIsUserDataLoading(true);
         const userDocRef = doc(db, 'users', user.uid);

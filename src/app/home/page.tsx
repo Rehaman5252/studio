@@ -10,22 +10,35 @@ import HomeWrapperContent from '@/components/home/HomeWrapperContent';
 
 
 function HomePageContent() {
-    const user = useAuth();
+    const { user, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (user === null) {
+        // Wait until loading is false before checking for user
+        if (!loading && user === null) {
             router.replace('/auth/login');
         }
-    }, [user, router]);
+    }, [user, loading, router]);
 
-    if (!user) {
+    // Show a loader while auth state is being determined
+    if (loading) {
       return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       );
     }
+
+    // If not loading and no user, the redirect is in flight. 
+    // Return a loader to prevent content flash.
+    if (!user) {
+        return (
+             <div className="flex h-screen w-screen items-center justify-center bg-background">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+
 
     return (
       <motion.div 
