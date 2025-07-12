@@ -14,13 +14,11 @@ function HomePageContent() {
     const router = useRouter();
 
     useEffect(() => {
-        // Wait until loading is false before checking for user
         if (!loading && user === null) {
             router.replace('/auth/login');
         }
     }, [user, loading, router]);
 
-    // Show a loader while auth state is being determined
     if (loading) {
       return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -29,8 +27,6 @@ function HomePageContent() {
       );
     }
 
-    // If not loading and no user, the redirect is in flight. 
-    // Return a loader to prevent content flash.
     if (!user) {
         return (
              <div className="flex h-screen w-screen items-center justify-center bg-background">

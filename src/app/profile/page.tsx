@@ -19,7 +19,6 @@ function ProfilePageContentWrapper() {
     }
   }, [user, isAuthLoading, router]);
 
-  // Combined loading state check
   const isLoading = isAuthLoading || isUserDataLoading;
 
   if (isLoading) {
@@ -31,8 +30,6 @@ function ProfilePageContentWrapper() {
   }
 
   if (!user) {
-    // This state is hit if auth is loaded but there's no user.
-    // The useEffect above will handle the redirect. Return a loader to avoid content flash.
     return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

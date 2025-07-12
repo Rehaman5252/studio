@@ -5,12 +5,11 @@ import React, { Suspense, useState, useEffect, useMemo, useCallback, memo } from
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { AdDialog } from '@/components/AdDialog';
-import { Home, Loader2, Star, AlertTriangle } from 'lucide-react';
+import { Home, Loader2, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { ResultsSummaryCard } from '@/components/quiz/ResultsSummaryCard';

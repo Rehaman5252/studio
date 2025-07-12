@@ -5,7 +5,7 @@ import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { ScrollText, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {

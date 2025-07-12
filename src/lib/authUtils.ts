@@ -17,14 +17,12 @@ import { toast } from '@/hooks/use-toast';
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!db || !user) return;
 
-  // Explicitly enable network to prevent offline errors after sign-in redirects.
-  await enableNetwork(db);
-  
-  const userRef = doc(db, 'users', user.uid);
-  const docSnap = await getDoc(userRef);
+  try {
+    await enableNetwork(db);
+    const userRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(userRef);
 
-  if (!docSnap.exists()) {
-    try {
+    if (!docSnap.exists()) {
       const defaultData = {
         uid: user.uid,
         email: user.email,
@@ -42,10 +40,10 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         ...additionalData
       };
       await setDoc(userRef, defaultData);
-    } catch (error) {
-        console.error("Error creating user document:", error);
-        toast({ title: "Database Error", description: "Could not create user profile.", variant: "destructive" });
     }
+  } catch (error) {
+      console.error("Error creating user document:", error);
+      toast({ title: "Database Error", description: "Could not create user profile.", variant: "destructive" });
   }
 }
 

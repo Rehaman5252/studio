@@ -43,7 +43,7 @@ export default function HomeWrapperContent() {
     } else {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, lastAttemptInSlot]);
+  }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
 
   const handleSlotAlertAction = () => {
     if (lastAttemptInSlot?.reason === 'malpractice') {

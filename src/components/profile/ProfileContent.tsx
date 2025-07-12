@@ -10,9 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import ProfileSkeleton from './ProfileSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
-
 
 const ProfileHeader = dynamic(() => import('./ProfileHeader'), {
     loading: () => <Skeleton className="h-[116px] w-full" />,
@@ -29,7 +27,6 @@ const ReferralCard = dynamic(() => import('./ReferralCard'), {
 const SupportCard = dynamic(() => import('./SupportCard'), {
     loading: () => <Skeleton className="h-[188px] w-full" />,
 });
-
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
