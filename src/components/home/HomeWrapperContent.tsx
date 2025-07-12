@@ -8,7 +8,6 @@ import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { CubeBrand } from '@/components/home/brandData';
 import { useAuth } from '@/context/AuthProvider';
-import QuizSelection from './QuizSelection';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +18,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const QuizSelection = dynamic(() => import('./QuizSelection'), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-8">
+        <div className="text-center mb-8">
+            <Skeleton className="h-8 w-3/4 mx-auto" />
+            <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
+        </div>
+        <Skeleton className="w-full h-52" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-[92px] w-full" />
+        <Skeleton className="h-16 w-full rounded-full" />
+    </div>
+  )
+});
+
 
 export default function HomeWrapperContent() {
   const { user, isProfileComplete, isUserDataLoading } = useAuth();
