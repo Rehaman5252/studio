@@ -39,7 +39,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     }
     
     const currentSlotId = getQuizSlotId();
-    return (quizHistory as QuizAttempt[]).find(attempt => attempt.slotId === currentSlotId) || null;
+    const history = quizHistory as QuizAttempt[] | null;
+    return history?.find(attempt => attempt.slotId === currentSlotId) || null;
   }, [quizHistory, isHistoryLoading]);
   
   const calculateTimeLeft = useCallback(() => {

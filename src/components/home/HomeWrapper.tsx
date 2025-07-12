@@ -18,7 +18,7 @@ const QuizSelector = dynamic(() => import('@/components/home/QuizSelector'), {
 
 
 export default function HomeWrapper() {
-  const user = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const router = useRouter();
 
   const handleStartQuiz = (selectedBrand: CubeBrand) => {
@@ -29,7 +29,7 @@ export default function HomeWrapper() {
     }
   };
 
-  if (!user) {
+  if (isAuthLoading) {
       return (
         <div className="flex flex-col flex-1 items-center justify-center py-10">
              <Loader2 className="h-12 w-12 animate-spin text-primary" />
