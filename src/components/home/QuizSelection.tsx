@@ -13,7 +13,7 @@ const brands: CubeBrand[] = [
   { id: 2, brand: 'Nike', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg', logoWidth: 80, logoHeight: 40 },
   { id: 3, brand: 'SBI', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/SBI-logo.svg', logoWidth: 80, logoHeight: 60 },
   { id: 4, brand: 'PayPal', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg', logoWidth: 80, logoHeight: 50 },
-  { id: 5, brand: 'Gucci', format: 'Mixed', logoUrl: 'https://www.freepnglogos.com/uploads/gucci-logo-png/gucci-logo-maison-de-luxe-italienne-1.png', logoWidth: 80, logoHeight: 50 },
+  { id: 5, brand: 'Hindustan Unilever', format: 'Mixed', logoUrl: 'https://www.freepnglogos.com/uploads/hul-logo-png/hindustan-unilever-logo-2.png', logoWidth: 80, logoHeight: 50 },
   { id: 6, brand: 'Amazon', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', logoWidth: 80, logoHeight: 50 },
 ];
 
@@ -35,6 +35,8 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
         setSelectedBrandIndex(index);
         const brand = brands[index];
         onStartQuiz(brand);
+        // Reset and clear the auto-rotation timer on user interaction
+        if (timerRef.current) clearInterval(timerRef.current);
     }, [onStartQuiz]);
     
     useEffect(() => {
@@ -42,20 +44,17 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
           setSelectedBrandIndex(prevIndex => (prevIndex + 1) % brands.length);
         };
         
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-        }
-        timerRef.current = setInterval(rotateToNextFace, 3000); // Rotate every 3 seconds
+        if (timerRef.current) clearInterval(timerRef.current);
+        
+        timerRef.current = setInterval(rotateToNextFace, 500);
         
         return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-            }
+            if (timerRef.current) clearInterval(timerRef.current);
         };
     }, []);
 
     return (
-        <>
+        <div className="animate-fade-in-up">
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
                 <p className="text-sm text-muted-foreground">Click a face to play!</p>
@@ -80,7 +79,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
                   onClick={() => handleStartQuizForBrand(selectedBrand)}
                 />
             </div>
-        </>
+        </div>
     );
 };
 

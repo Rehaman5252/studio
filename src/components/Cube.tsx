@@ -79,7 +79,7 @@ function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
               }}
             >
               <div className="flex flex-col items-center justify-center h-full text-center p-2 gap-2">
-                <div className="w-16 h-12 flex items-center justify-center bg-white rounded-md p-1">
+                <div className="w-20 h-14 flex items-center justify-center p-1">
                   <Image
                     src={brand.logoUrl}
                     alt={`${brand.brand} logo`}

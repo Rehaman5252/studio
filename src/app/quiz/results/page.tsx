@@ -11,14 +11,12 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { AdDialog } from '@/components/AdDialog';
 import { Home, Loader2, Star, AlertTriangle } from 'lucide-react';
-import CricketLoading from '@/components/CricketLoading';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { ResultsSummaryCard } from '@/components/quiz/ResultsSummaryCard';
 import { Certificate } from '@/components/quiz/Certificate';
 import { AnalysisCard } from '@/components/quiz/AnalysisCard';
 import { AnswerReview } from '@/components/quiz/AnswerReview';
-
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
@@ -45,6 +43,12 @@ const MalpracticeScreen = memo(() => {
 });
 MalpracticeScreen.displayName = "MalpracticeScreen";
 
+const ResultsLoader = () => (
+    <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Calculating your score...</p>
+    </div>
+);
 
 function ResultsComponent() {
     const router = useRouter();
@@ -114,7 +118,7 @@ function ResultsComponent() {
     }
 
     if (isContextLoading) {
-        return <CricketLoading message="Calculating your score..." />;
+        return <ResultsLoader />;
     }
 
     if (!lastAttemptInSlot) {
@@ -183,7 +187,7 @@ function ResultsComponent() {
 
 export default function ResultsPage() {
     return (
-        <Suspense fallback={<CricketLoading message="Calculating your score..." />}>
+        <Suspense fallback={<ResultsLoader />}>
             <ResultsComponent />
         </Suspense>
     )

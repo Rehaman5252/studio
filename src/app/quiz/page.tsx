@@ -7,13 +7,12 @@ import type { QuizQuestion } from '@/ai/schemas';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Loader2 } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/context/AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { useQuizStatus, type SlotAttempt } from '@/context/QuizStatusProvider';
-import CricketLoading from '@/components/CricketLoading';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { db } from '@/lib/firebase';
@@ -21,7 +20,32 @@ import { doc, setDoc, collection, writeBatch, increment } from 'firebase/firesto
 import { QuizHeader } from '@/components/quiz/QuizHeader';
 import { Timer } from '@/components/quiz/Timer';
 import { QuestionCard } from '@/components/quiz/QuestionCard';
+import { Skeleton } from '@/components/ui/skeleton';
 
+const QuizSkeleton = () => (
+  <div className="flex flex-col h-screen bg-background text-foreground p-4">
+    <header className="w-full max-w-2xl mx-auto mb-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-6 w-12" />
+      </div>
+      <Skeleton className="h-2 w-full" />
+    </header>
+    <main className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto w-full">
+      <Skeleton className="h-28 w-28 rounded-full mb-8" />
+      <div className="w-full space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+        <Skeleton className="h-10 w-32 mx-auto mt-6" />
+      </div>
+    </main>
+  </div>
+);
 
 const interstitialAds: Record<number, { logo: string; hint: string }> = {
     0: { logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/600px-BMW.svg.png', hint: 'BMW logo' },
@@ -66,11 +90,9 @@ function QuizComponent() {
         const batch = writeBatch(db);
         const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
 
-        // 1. Save to user's private quiz history collection
         const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizHistory'));
         batch.set(attemptDocRef, { ...attempt, uid: user.uid, name: userData.name || 'Anonymous' });
         
-        // 2. Upsert the global live leaderboard for the current slot
         const leaderboardEntryRef = doc(db, 'liveLeaderboard', attempt.slotId, 'entries', user.uid);
         batch.set(leaderboardEntryRef, {
             name: userData.name || 'Anonymous',
@@ -80,11 +102,9 @@ function QuizComponent() {
             disqualified: attempt.reason === 'malpractice'
         });
         
-        // 3. Increment the total quizzes played for the user
         const userDocRef = doc(db, 'users', user.uid);
         batch.update(userDocRef, { quizzesPlayed: increment(1) });
 
-        // Commit the batch
         batch.commit().catch(error => {
             console.error("Error saving quiz data in batch: ", error);
         });
@@ -153,7 +173,6 @@ function QuizComponent() {
 
   }, [userAnswers, timePerQuestion, timeLeft, currentQuestionIndex, questions, usedHintIndices, saveAttemptInBackground, router, goToNextQuestion, brand, format, setLastAttemptInSlot]);
 
-  // Fetch questions
   useEffect(() => {
     async function fetchQuestions() {
       if (hasFetchedQuestions.current) return;
@@ -166,7 +185,6 @@ function QuizComponent() {
       } catch (error) {
         console.error("Failed to generate quiz:", error);
         setQuestions(null);
-        // Let the error boundary handle this
         throw error;
       }
       setIsLoading(false);
@@ -174,7 +192,6 @@ function QuizComponent() {
     fetchQuestions();
   }, [format]);
   
-  // Timer effect
   useEffect(() => {
     if (selectedOption || adConfig || interstitialConfig || !questions || isTerminated) return;
 
@@ -186,12 +203,11 @@ function QuizComponent() {
     }
   }, [timeLeft, selectedOption, adConfig, interstitialConfig, questions, isTerminated, proceedToNextStep]);
 
-  // Anti-cheat effect and unmount save
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && !isTerminated && questions && !quizCompleted.current) {
         setIsTerminated(true);
-        quizCompleted.current = true; // Mark as completed to prevent other logic from running
+        quizCompleted.current = true;
 
         const malpracticeAttempt: SlotAttempt = {
             slotId: getQuizSlotId(),
@@ -250,19 +266,25 @@ function QuizComponent() {
   }, [adConfig, currentQuestionIndex, usedHintIndices, questions]);
 
   if (isLoading) {
-    return <CricketLoading message={`Generating your ${format} quiz...`} format={format} />;
+    return <QuizSkeleton />;
   }
 
   if (!questions) {
-    return (
-        <CricketLoading state="error" errorMessage="Could not load quiz questions.">
-            <Button onClick={() => router.push('/home')}>Go Home</Button>
-      </CricketLoading>
+     return (
+        <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
+            <h1 className="text-2xl font-bold mb-4">Quiz Generation Failed</h1>
+            <p>We couldn't generate the quiz questions. Please try again later.</p>
+            <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
+        </div>
     );
   }
   
   if (isTerminated) {
-     return <CricketLoading state="error" errorMessage="Quiz Terminated." />;
+     return (
+        <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
+            <h1 className="text-2xl font-bold mb-4">Quiz Terminated</h1>
+        </div>
+     );
   }
   
   const currentQuestion = questions[currentQuestionIndex];
@@ -321,10 +343,16 @@ function QuizComponent() {
   );
 }
 
+const QuizPageFallback = () => (
+  <div className="flex h-screen w-screen items-center justify-center bg-background">
+    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  </div>
+);
+
 export default function QuizPage() {
   return (
     <AuthGuard>
-      <Suspense fallback={<CricketLoading message="Loading your quiz..." />}>
+      <Suspense fallback={<QuizPageFallback />}>
         <QuizComponent />
       </Suspense>
     </AuthGuard>

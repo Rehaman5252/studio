@@ -7,7 +7,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 
 const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
   loading: () => (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4">
       <div className="text-center mb-8">
         <Skeleton className="h-8 w-3/4 mx-auto" />
         <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
@@ -28,27 +28,29 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
 
 function HomePageContent() {
     return (
-      <AuthGuard>
-        <div className="flex flex-col h-screen bg-background text-foreground">
-          <header className="p-4 flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-6xl font-extrabold tracking-tighter text-shimmer animate-shimmer">
-                indcric
-              </h1>
-              <p className="text-sm text-muted-foreground">win ₹100 for every 100 seconds!</p>
-            </div>
-          </header>
+      <div className="flex flex-col h-screen bg-background text-foreground">
+        <header className="p-4 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-6xl font-extrabold tracking-tighter text-shimmer animate-shimmer">
+              indcric
+            </h1>
+            <p className="text-sm text-muted-foreground">win ₹100 for every 100 seconds!</p>
+          </div>
+        </header>
 
-          <main className="flex-1 overflow-y-auto pb-24">
-            <div className="container mx-auto px-4 py-8">
-              <HomeWrapper />
-            </div>
-          </main>
-        </div>
-      </AuthGuard>
+        <main className="flex-1 overflow-y-auto pb-24">
+          <div className="container mx-auto px-4 py-8">
+            <HomeWrapper />
+          </div>
+        </main>
+      </div>
     );
 }
 
 export default function HomePage() {
-  return <HomePageContent />
+  return (
+    <AuthGuard>
+      <HomePageContent />
+    </AuthGuard>
+  );
 }

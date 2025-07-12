@@ -4,9 +4,16 @@
 import React, { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import CricketLoading from '../CricketLoading';
+import { Loader2 } from 'lucide-react';
 
 const AUTH_PAGES = ['/auth/login', '/auth/signup'];
+
+// A minimal, fast-rendering loading indicator for the guard.
+const AuthGuardLoader = () => (
+  <div className="flex h-screen w-screen items-center justify-center bg-background">
+    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  </div>
+);
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -24,23 +31,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       // If user is logged in and on an auth page, redirect to home
       router.replace('/home');
     } else if (!user && !isAuthPage) {
-      // If user is not logged in and not on an auth page, redirect to login
+      // If user is not logged in and not on a protected page, redirect to login
       router.replace('/auth/login');
     }
   }, [user, loading, isAuthPage, router, pathname]);
 
   if (loading) {
-    return <CricketLoading message="Authenticating..." />;
+    return <AuthGuardLoader />;
   }
 
-  // If user is logged in, but we are on an auth page, we are redirecting, so don't show children
-  if (user && isAuthPage) {
-    return <CricketLoading message="Redirecting..." />;
-  }
-
-  // If user is not logged in, and we are on a protected page, we are redirecting, so don't show children
-  if (!user && !isAuthPage) {
-    return <CricketLoading message="Redirecting..." />;
+  // If we are redirecting, show the loader instead of the page content
+  if ((user && isAuthPage) || (!user && !isAuthPage)) {
+    return <AuthGuardLoader />;
   }
 
   return <>{children}</>;

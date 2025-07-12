@@ -31,7 +31,7 @@ const SupportCard = dynamic(() => import('./SupportCard'), {
 });
 
 
-export default function ProfileContent({ userProfile, isLoading }: { userProfile: any, isLoading: boolean }) {
+export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     const router = useRouter();
 
@@ -45,10 +45,6 @@ export default function ProfileContent({ userProfile, isLoading }: { userProfile
             toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
         }
     };
-    
-    if (isLoading) {
-        return <ProfileSkeleton />;
-    }
 
     return (
         <div className="space-y-6 animate-fade-in-up">

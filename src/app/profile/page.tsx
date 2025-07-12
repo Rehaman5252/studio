@@ -7,9 +7,8 @@ import { useAuth } from '@/context/AuthProvider';
 import AuthGuard from '@/components/auth/AuthGuard';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 
-// This is a client component that renders the main content of the profile page.
 function ProfilePageContentWrapper() {
-  const { user, userData, loading: isAuthLoading } = useAuth();
+  const { userData, isUserDataLoading } = useAuth();
   
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -18,18 +17,16 @@ function ProfilePageContentWrapper() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        {isAuthLoading ? (
+        {isUserDataLoading ? (
             <ProfileSkeleton />
         ) : (
-            <ProfileContent userProfile={userData} isLoading={isAuthLoading} />
+            <ProfileContent userProfile={userData} />
         )}
       </main>
     </div>
   );
 }
 
-
-// The main page export.
 export default function ProfilePage() {
     return (
       <AuthGuard>
