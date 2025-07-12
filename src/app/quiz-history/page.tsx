@@ -1,12 +1,13 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import { ScrollText } from 'lucide-react';
+import { ScrollText, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
   loading: () => (
@@ -23,8 +24,11 @@ const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizH
 });
 
 function QuizHistoryPageContentWrapper() {
-    const { user, isHistoryLoading, loading: isAuthLoading } = useAuth();
-    const isLoading = isAuthLoading || isHistoryLoading;
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    // No useEffect needed here as child components handle login prompt
+    // This page should be viewable by non-logged-in users to see the prompt.
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -33,14 +37,9 @@ function QuizHistoryPageContentWrapper() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-        {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full max-w-md mx-auto" />
-              <div className="space-y-4 pt-4">
-                <Skeleton className="h-[148px] w-full" />
-                <Skeleton className="h-[148px] w-full" />
-                <Skeleton className="h-[148px] w-full" />
-              </div>
+        {loading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         ) : !user ? (
             <div className="flex items-center justify-center h-full">

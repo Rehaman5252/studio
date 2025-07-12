@@ -89,7 +89,10 @@ export default function SignupForm() {
 
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await handleGoogleSignIn();
+    const user = await handleGoogleSignIn();
+    if(user){
+      router.push('/home');
+    }
     setIsGoogleLoading(false);
   };
 
@@ -168,6 +171,7 @@ export default function SignupForm() {
         });
         
         toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile.' });
+        router.push('/complete-profile');
 
     } catch (error: any) {
         let message = error.message || 'An error occurred during sign up.';

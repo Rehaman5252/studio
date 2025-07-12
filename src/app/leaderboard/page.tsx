@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
@@ -31,16 +31,13 @@ function LeaderboardPageContent() {
     const { user, loading } = useAuth();
     const router = useRouter();
 
-    if (loading) {
-      return (
-         <div className="flex h-screen w-screen items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
-    }
+    useEffect(() => {
+        if (!loading && !user) {
+            router.replace('/auth/login');
+        }
+    }, [user, loading, router]);
 
-    if (!user) {
-      router.replace('/auth/login');
+    if (loading || !user) {
       return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

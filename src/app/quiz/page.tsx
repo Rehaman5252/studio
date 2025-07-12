@@ -84,6 +84,13 @@ function QuizComponent() {
     children?: React.ReactNode;
   } | null>(null);
 
+  useEffect(() => {
+      if (!loading && !user) {
+          router.replace('/auth/login');
+      }
+  }, [user, loading, router]);
+
+
   const saveAttemptInBackground = useCallback((attempt: SlotAttempt) => {
     if (db && user && userData) {
         const batch = writeBatch(db);
@@ -264,12 +271,7 @@ function QuizComponent() {
     });
   }, [adConfig, currentQuestionIndex, usedHintIndices, questions]);
 
-  if (loading) {
-    return <QuizSkeleton />;
-  }
-
-  if (!user) {
-    router.replace('/auth/login');
+  if (loading || !user) {
     return <QuizSkeleton />;
   }
 
