@@ -4,12 +4,31 @@
 import React from 'react';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { useAuth } from '@/context/AuthProvider';
-import AuthGuard from '@/components/auth/AuthGuard';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 function ProfilePageContentWrapper() {
-  const { userData, isUserDataLoading } = useAuth();
+  const { user, userData, loading, isUserDataLoading } = useAuth();
+  const router = useRouter();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.replace('/auth/login');
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   return (
     <motion.div 
@@ -34,9 +53,5 @@ function ProfilePageContentWrapper() {
 }
 
 export default function ProfilePage() {
-    return (
-      <AuthGuard>
-        <ProfilePageContentWrapper />
-      </AuthGuard>
-    );
+    return <ProfilePageContentWrapper />;
 }

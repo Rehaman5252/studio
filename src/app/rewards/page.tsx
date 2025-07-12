@@ -4,7 +4,9 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import AuthGuard from '@/components/auth/AuthGuard';
+import { useAuth } from '@/context/AuthProvider';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => (
@@ -28,6 +30,26 @@ const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent
 });
 
 function RewardsPageContent() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.replace('/auth/login');
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -42,9 +64,5 @@ function RewardsPageContent() {
 }
 
 export default function RewardsPage() {
-    return (
-        <AuthGuard>
-            <RewardsPageContent />
-        </AuthGuard>
-    );
+    return <RewardsPageContent />;
 }

@@ -6,10 +6,31 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, Settings, Send } from 'lucide-react';
-import AuthGuard from '@/components/auth/AuthGuard';
+import { Mail, Settings, Send, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 function SupportPageContent() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.replace('/auth/login');
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -70,9 +91,5 @@ function SupportPageContent() {
 }
 
 export default function SupportPage() {
-    return (
-        <AuthGuard>
-            <SupportPageContent />
-        </AuthGuard>
-    )
+    return <SupportPageContent />;
 }

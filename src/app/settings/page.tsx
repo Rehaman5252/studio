@@ -6,10 +6,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
-import AuthGuard from '@/components/auth/AuthGuard';
+import { Moon, Bell, Music, Vibrate, RefreshCw, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 function SettingsPageContent() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.replace('/auth/login');
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -96,9 +117,5 @@ function SettingsPageContent() {
 }
 
 export default function SettingsPage() {
-    return (
-        <AuthGuard>
-            <SettingsPageContent />
-        </AuthGuard>
-    )
+    return <SettingsPageContent />;
 }

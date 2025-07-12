@@ -8,7 +8,8 @@ import { Loader2 } from 'lucide-react';
 
 const AUTH_PAGES = ['/auth/login', '/auth/signup'];
 
-// A minimal, fast-rendering loading indicator for the guard.
+// This component is now DEPRECATED and will be removed in a future update.
+// The logic has been moved directly into page components for faster performance.
 const AuthGuardLoader = () => (
   <div className="flex h-screen w-screen items-center justify-center bg-background">
     <Loader2 className="h-12 w-12 animate-spin text-primary" />

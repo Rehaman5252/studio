@@ -3,8 +3,10 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import AuthGuard from '@/components/auth/AuthGuard';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthProvider';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
   loading: () => (
@@ -28,6 +30,26 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
 });
 
 function HomePageContent() {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    if (loading) {
+      return (
+         <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    if (!user) {
+      router.replace('/auth/login');
+      return (
+         <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
+
     return (
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -54,9 +76,5 @@ function HomePageContent() {
 }
 
 export default function HomePage() {
-  return (
-    <AuthGuard>
-      <HomePageContent />
-    </AuthGuard>
-  );
+  return <HomePageContent />;
 }

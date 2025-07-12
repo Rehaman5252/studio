@@ -4,8 +4,10 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import AuthGuard from '@/components/auth/AuthGuard';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthProvider';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
   loading: () => (
@@ -26,6 +28,26 @@ const LeaderboardContent = dynamic(() => import('@/components/leaderboard/Leader
 
 
 function LeaderboardPageContent() {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    if (loading) {
+      return (
+         <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    if (!user) {
+      router.replace('/auth/login');
+      return (
+         <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
+
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -45,9 +67,5 @@ function LeaderboardPageContent() {
 }
 
 export default function LeaderboardPage() {
-    return (
-        <AuthGuard>
-            <LeaderboardPageContent />
-        </AuthGuard>
-    )
+    return <LeaderboardPageContent />
 }

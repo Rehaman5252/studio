@@ -9,7 +9,6 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { Lightbulb, Loader2 } from 'lucide-react';
 import { AdDialog } from '@/components/AdDialog';
-import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/context/AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { useQuizStatus, type SlotAttempt } from '@/context/QuizStatusProvider';
@@ -55,7 +54,7 @@ const interstitialAds: Record<number, { logo: string; hint: string }> = {
 
 function QuizComponent() {
   const router = useRouter();
-  const { user, userData } = useAuth();
+  const { user, loading, userData } = useAuth();
   const searchParams = useSearchParams();
   const brand = searchParams.get('brand') || 'indcric';
   const format = searchParams.get('format') || 'Cricket';
@@ -265,6 +264,15 @@ function QuizComponent() {
     });
   }, [adConfig, currentQuestionIndex, usedHintIndices, questions]);
 
+  if (loading) {
+    return <QuizSkeleton />;
+  }
+
+  if (!user) {
+    router.replace('/auth/login');
+    return <QuizSkeleton />;
+  }
+
   if (isLoading) {
     return <QuizSkeleton />;
   }
@@ -351,10 +359,8 @@ const QuizPageFallback = () => (
 
 export default function QuizPage() {
   return (
-    <AuthGuard>
-      <Suspense fallback={<QuizPageFallback />}>
-        <QuizComponent />
-      </Suspense>
-    </AuthGuard>
+    <Suspense fallback={<QuizPageFallback />}>
+      <QuizComponent />
+    </Suspense>
   )
 }

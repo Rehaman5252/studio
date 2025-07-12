@@ -35,11 +35,10 @@ const rotationMap = [
 interface CubeProps {
   brands: CubeBrand[];
   onFaceClick: (index: number) => void;
-  onRotation: (index: number) => void;
   visibleFaceIndex: number;
 }
 
-function Cube({ brands, onFaceClick, onRotation, visibleFaceIndex }: CubeProps) {
+function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
   const cubeRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -89,12 +88,10 @@ function Cube({ brands, onFaceClick, onRotation, visibleFaceIndex }: CubeProps) 
                     height={brand.logoHeight}
                     className="object-contain drop-shadow-lg"
                     priority
-                    style={{ filter: ['Apple', 'Nike', 'Amazon', 'Gucci', 'SBI'].includes(brand.brand) ? 'invert(1)' : 'none' }}
+                    style={{ filter: ['Apple', 'Nike', 'Amazon', 'Gucci', 'SBI', 'Tata', 'Coca-Cola', 'PayPal', 'ICICI Bank'].includes(brand.brand) ? 'invert(1)' : 'none' }}
                   />
                 </div>
-                <span className="text-xs font-semibold text-foreground opacity-90">
-                  {brand.format}
-                </span>
+                {/* Brand format text removed to show only the logo */}
               </div>
             </div>
           ))}
