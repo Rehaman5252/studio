@@ -10,7 +10,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 function CompleteProfilePageContent() {
-  const user = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
