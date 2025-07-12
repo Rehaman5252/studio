@@ -12,16 +12,16 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 function ProfilePageContentWrapper() {
-  const user = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const router = useRouter();
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
 
   useEffect(() => {
-    if (user === null) {
+    if (!isAuthLoading && user === null) {
       router.replace('/auth/login');
     }
-  }, [user, router]);
+  }, [user, isAuthLoading, router]);
 
   useEffect(() => {
     if (user) {
@@ -35,7 +35,7 @@ function ProfilePageContentWrapper() {
     }
   }, [user]);
 
-  if (!user) {
+  if (isAuthLoading || !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
