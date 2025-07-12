@@ -15,5 +15,5 @@ export const brands: CubeBrand[] = [
     { id: 3, brand: 'ICICI Bank', format: 'Mixed', logoUrl: '/logos/white/icici.svg', invertOnDark: true },
     { id: 4, brand: 'Gucci', format: 'Test', logoUrl: '/logos/white/gucci.svg', invertOnDark: true },
     { id: 5, brand: 'Amazon', format: 'IPL', logoUrl: '/logos/white/amazon.svg', invertOnDark: true },
-    { id: 6, brand: 'PayPal', format: 'ODI', logoUrl: '/logos/white/paypal.svg', invertOnDark: true },
+    { id: 6, brand: 'Tata', format: 'ODI', logoUrl: '/logos/white/tata.svg', invertOnDark: true },
 ];

@@ -42,7 +42,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
         };
         
         if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(rotateToNextFace, 4000);
+        timerRef.current = setInterval(rotateToNextFace, 500);
         
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
