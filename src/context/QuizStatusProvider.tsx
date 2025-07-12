@@ -18,7 +18,7 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { quizHistory, isHistoryLoading } = useAuth();
+  const authState = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -26,11 +26,14 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [totalWinners, setTotalWinners] = useState(0);
 
   const lastAttemptInSlot = useMemo(() => {
-    if (isHistoryLoading || !quizHistory) return null;
+    // Guard clause: Don't compute until auth is loaded and history is available.
+    if (!authState || authState.isHistoryLoading || !authState.quizHistory) {
+      return null;
+    }
     
     const currentSlotId = getQuizSlotId();
-    return (quizHistory as QuizAttempt[]).find(attempt => attempt.slotId === currentSlotId) || null;
-  }, [quizHistory, isHistoryLoading]);
+    return (authState.quizHistory as QuizAttempt[]).find(attempt => attempt.slotId === currentSlotId) || null;
+  }, [authState]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -80,7 +83,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     playersPlayed,
     totalWinners,
     lastAttemptInSlot,
-    isLoading: isHistoryLoading,
+    // The loading state is now tied to the history loading from the auth context.
+    isLoading: authState ? authState.isHistoryLoading : true,
   };
 
   return <QuizStatusContext.Provider value={value}>{children}</QuizStatusContext.Provider>;
