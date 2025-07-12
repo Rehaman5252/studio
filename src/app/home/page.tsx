@@ -23,11 +23,12 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
        <Skeleton className="w-full mt-8 h-[60px] rounded-full" />
     </div>
   ),
-  ssr: false, // This component uses hooks that rely on client-side state
+  ssr: false,
 });
 
 function HomePageContent() {
     return (
+      <AuthGuard>
         <div className="flex flex-col h-screen bg-background text-foreground">
           <header className="p-4 flex items-center justify-center">
             <div className="text-center">
@@ -44,13 +45,10 @@ function HomePageContent() {
             </div>
           </main>
         </div>
+      </AuthGuard>
     );
 }
 
 export default function HomePage() {
-  return (
-    <AuthGuard requireAuth={false}>
-      <HomePageContent />
-    </AuthGuard>
-  )
+  return <HomePageContent />
 }
