@@ -42,7 +42,7 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
         };
         
         if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(rotateToNextFace, 3000);
+        timerRef.current = setInterval(rotateToNextFace, 4000);
         
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
@@ -59,7 +59,6 @@ function QuizSelection({ onStartQuiz }: QuizSelectionProps) {
             <QuizSelector 
                 brands={brands}
                 onFaceClick={handleCubeClick}
-                onRotation={handleRotation}
                 visibleFaceIndex={selectedBrandIndex}
             />
 

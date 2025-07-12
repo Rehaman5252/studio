@@ -8,7 +8,7 @@ import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { CubeBrand } from '@/components/home/brandData';
 import { useAuth } from '@/context/AuthProvider';
-import QuizSelector from './QuizSelector';
+import QuizSelection from './QuizSelection';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +43,7 @@ export default function HomeWrapperContent() {
     } else {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }
-  }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
+  }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, lastAttemptInSlot]);
 
   const handleSlotAlertAction = () => {
     if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -73,7 +73,7 @@ export default function HomeWrapperContent() {
 
   return (
     <>
-      <QuizSelector
+      <QuizSelection
         onStartQuiz={handleStartQuiz}
       />
 
