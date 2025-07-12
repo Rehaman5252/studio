@@ -17,7 +17,7 @@ interface AuthContextType {
   isHistoryLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const MANDATORY_PROFILE_FIELDS = [
     'name', 'phone', 'dob', 'gender', 'occupation', 'upi', 
@@ -36,13 +36,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setLoading(false);
       setUser(currentUser);
+      setLoading(false);
       if (!currentUser) {
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
+        setIsProfileComplete(false);
       }
     });
 
@@ -65,6 +66,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsProfileComplete(false);
             }
             setIsUserDataLoading(false);
+        }, (error) => {
+            console.error("Error fetching user data:", error);
+            setUserData(null);
+            setIsUserDataLoading(false);
         });
 
         setIsHistoryLoading(true);
@@ -83,11 +88,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             unsubscribeUser();
             unsubscribeHistory();
         }
+    } else {
+      // If there's no user, we are not loading user-specific data.
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
     }
   }, [user]);
 
+  const value = { user, userData, quizHistory, isProfileComplete, loading, isUserDataLoading, isHistoryLoading };
+
   return (
-    <AuthContext.Provider value={{ user, userData, quizHistory, isProfileComplete, loading, isUserDataLoading, isHistoryLoading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -97,21 +108,6 @@ export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
-    }
-    // A check to ensure context is not null when used.
-    if (context === null) {
-        // This can happen if the component using the hook is not wrapped in the provider.
-        // Or during the initial render before the provider's state is set.
-        // We return a default structure to prevent destructuring errors.
-        return { 
-            user: null, 
-            userData: null, 
-            quizHistory: null, 
-            isProfileComplete: false,
-            loading: true, 
-            isUserDataLoading: true, 
-            isHistoryLoading: true 
-        };
     }
     return context;
 };

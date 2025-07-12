@@ -10,16 +10,16 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 function CompleteProfilePageContent() {
-  const { user } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const router = useRouter();
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
 
   useEffect(() => {
-    if (user === null) {
+    if (!isAuthLoading && user === null) {
         router.replace('/auth/login');
     }
-  }, [user, router]);
+  }, [user, isAuthLoading, router]);
 
   useEffect(() => {
     if (user) {
@@ -28,12 +28,13 @@ function CompleteProfilePageContent() {
         setIsUserDataLoading(false);
       });
       return () => unsub();
-    } else {
+    } else if (!isAuthLoading) {
+        // If there's no user and we're not in an auth loading state, stop loading.
         setIsUserDataLoading(false);
     }
-  }, [user]);
+  }, [user, isAuthLoading]);
 
-  if (isUserDataLoading || !user) {
+  if (isAuthLoading || isUserDataLoading) {
     return (
       <div className="flex flex-col h-screen bg-background items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -41,7 +41,7 @@ const MANDATORY_PROFILE_FIELDS = [
 const defaultFormValues = {
   name: '', phone: '', dob: '', gender: undefined, 
   occupation: undefined, upi: '', favoriteFormat: undefined, 
-  favoriteTeam: undefined, favoriteCricketer: '',
+  favoriteTeam: '', favoriteCricketer: '',
 };
 
 const occupations = ['Student', 'Employee', 'Business', 'Others'];
@@ -55,7 +55,7 @@ const cricketTeams = [
 
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData } = useAuth();
+    const { user, userData, isProfileComplete } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -72,12 +72,15 @@ export default function CompleteProfileForm() {
                     (defaults as any)[field] = userData[field];
                 }
             }
+             // Handle case where favoriteTeam might not be in the list
+            if (userData.favoriteTeam && !cricketTeams.includes(userData.favoriteTeam)) {
+                (defaults as any).favoriteTeam = ''; // Or handle as needed
+            }
+
             form.reset(defaults);
         }
     }, [userData, form]);
     
-    const isEditing = userData && MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
-
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
 
@@ -124,10 +127,10 @@ export default function CompleteProfileForm() {
     return (
         <Card className="w-full max-w-lg">
             <CardHeader>
-                <CardTitle>{isEditing ? 'Edit Profile' : 'Complete Your Profile'}</CardTitle>
+                <CardTitle>{isProfileComplete ? 'Edit Profile' : 'Complete Your Profile'}</CardTitle>
 
                 <CardDescription>
-                    {isEditing 
+                    {isProfileComplete 
                         ? 'Update your profile information below.'
                         : 'Please fill in the details below to continue. This is required for payouts and a personalized experience.'
                     }
