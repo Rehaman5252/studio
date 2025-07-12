@@ -2,6 +2,9 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  experimental: {
+    turbo: true,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -1,104 +1,65 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, memo } from 'react';
-import Image from 'next/image';
-import { cn } from '@/lib/utils';
-
-export interface CubeBrand {
-  id: number;
-  brand: string;
-  format: string;
-  logoUrl: string;
-  logoWidth: number;
-  logoHeight: number;
-  invertOnDark?: boolean;
-}
-
-const faceTransforms = [
-  'rotateY(0deg) translateZ(64px)',
-  'rotateY(90deg) translateZ(64px)',
-  'rotateY(180deg) translateZ(64px)',
-  'rotateY(-90deg) translateZ(64px)',
-  'rotateX(90deg) translateZ(64px)',
-  'rotateX(-90deg) translateZ(64px)',
-];
-
-const rotationMap = [
-    'rotateX(0deg) rotateY(0deg)',
-    'rotateX(0deg) rotateY(-90deg)',
-    'rotateX(0deg) rotateY(-180deg)',
-    'rotateX(0deg) rotateY(90deg)',
-    'rotateX(-90deg) rotateY(0deg)',
-    'rotateX(90deg) rotateY(0deg)',
-];
+import React, { useRef, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { TextureLoader } from 'three';
+import { useTexture } from '@react-three/drei';
+import type { CubeBrand } from '@/components/home/brandData';
+import * as THREE from 'three';
 
 interface CubeProps {
   brands: CubeBrand[];
-  onFaceClick: (index: number) => void;
-  visibleFaceIndex: number;
+  onFaceClick: (brand: CubeBrand) => void;
 }
 
-function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
-  const cubeRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    if (cubeRef.current) {
-        cubeRef.current.style.transform = rotationMap[visibleFaceIndex];
+const faceMaterials = (textures: (THREE.Texture | null)[]) => {
+  return textures.map(texture => {
+    if (texture) {
+        return new THREE.MeshStandardMaterial({ map: texture, transparent: true });
     }
-  }, [visibleFaceIndex]);
-  
+    return new THREE.MeshStandardMaterial({ color: 'black' });
+  });
+};
+
+export default function Cube({ brands, onFaceClick }: CubeProps) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const [hoveredFace, setHoveredFace] = useState<number | null>(null);
+
+  const logoUrls = brands.map(b => b.logoUrl);
+  const textures = useTexture(logoUrls);
+
+  useFrame((state, delta) => {
+    // You can add animations here if needed, but auto-rotate is handled by OrbitControls
+    if (meshRef.current) {
+        // Example: meshRef.current.rotation.y += delta * 0.1;
+    }
+  });
+
+  const handleClick = (event: any) => {
+    if (event.faceIndex !== undefined) {
+      const faceIndex = Math.floor(event.faceIndex / 2);
+      onFaceClick(brands[faceIndex]);
+    }
+  };
+
+  const materials = React.useMemo(() => {
+    return brands.map(brand => {
+      const texture = new TextureLoader().load(brand.logoUrl);
+      return new THREE.MeshStandardMaterial({
+        map: texture,
+        color: 'white',
+        transparent: true
+      });
+    });
+  }, [brands]);
+
   return (
-    <div 
-      className="flex justify-center items-center h-48"
-    >
-      <div 
-        className="w-32 h-32 perspective"
-      >
-        <div 
-          ref={cubeRef} 
-          className="w-full h-full relative preserve-3d"
-          style={{ 
-            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            willChange: 'transform' 
-          }}
-        >
-          {brands.map((brand, index) => (
-            <div
-              key={brand.id}
-              onClick={() => onFaceClick(index)}
-              role="button"
-              tabIndex={0}
-              aria-label={`Select ${brand.format} quiz`}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFaceClick(index)}
-              className={cn(
-                "absolute w-32 h-32 left-0 top-0 rounded-xl border backface-hidden bg-card/80 border-primary/20 shadow-xl shadow-black/40",
-                "cursor-pointer hover:border-primary hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring"
-              )}
-              style={{
-                transform: faceTransforms[index],
-              }}
-            >
-              <div className="flex flex-col items-center justify-center h-full text-center p-2 gap-2">
-                <div className="w-20 h-14 flex items-center justify-center p-1">
-                  <Image
-                    src={brand.logoUrl}
-                    alt={`${brand.brand} logo`}
-                    data-ai-hint="cricket logo"
-                    width={brand.logoWidth}
-                    height={brand.logoHeight}
-                    className={cn("object-contain drop-shadow-lg", brand.invertOnDark && 'dark:invert')}
-                    priority
-                  />
-                </div>
-                <p className="text-sm font-semibold text-foreground">{brand.format}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <mesh ref={meshRef} onClick={handleClick}>
+      <boxGeometry args={[2.5, 2.5, 2.5]} />
+      {materials.map((material, index) => (
+        <primitive key={index} attach={`material-${index}`} object={material} />
+      ))}
+    </mesh>
   );
 }
-
-export default memo(Cube);

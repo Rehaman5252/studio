@@ -19,8 +19,6 @@ export default function RootPage() {
     }
   }, [user, loading, router]);
 
-  // Render a minimal, fast-rendering loading indicator.
-  // This avoids a full-page component like CricketLoading for the initial route.
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background">
       <Loader2 className="h-12 w-12 animate-spin text-primary" />

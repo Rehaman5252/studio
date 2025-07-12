@@ -17,14 +17,12 @@ const HomeWrapper = dynamic(() => import('@/components/home/HomeWrapper'), {
         <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
       </div>
       <Skeleton className="w-48 h-48 mx-auto" />
-      <Skeleton className="w-full mt-8 h-[140px] rounded-2xl" />
       <div className="grid grid-cols-2 gap-4 mt-8">
         <Skeleton className="w-full h-[108px] rounded-lg" />
         <Skeleton className="w-full h-[108px] rounded-lg" />
         <Skeleton className="w-full h-[108px] rounded-lg" />
         <Skeleton className="w-full h-[108px] rounded-lg" />
       </div>
-       <Skeleton className="w-full mt-8 h-[60px] rounded-full" />
     </div>
   ),
   ssr: false,
