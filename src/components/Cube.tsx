@@ -87,10 +87,7 @@ function Cube({ brands, onFaceClick, visibleFaceIndex }: CubeProps) {
                     data-ai-hint="cricket logo"
                     width={brand.logoWidth}
                     height={brand.logoHeight}
-                    className="object-contain drop-shadow-lg"
-                    style={{
-                        filter: brand.invertOnDark ? 'invert(1)' : 'none'
-                    }}
+                    className={cn("object-contain drop-shadow-lg", brand.invertOnDark && 'dark:invert')}
                     priority
                   />
                 </div>
