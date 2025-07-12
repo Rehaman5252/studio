@@ -19,12 +19,18 @@ const brands: CubeBrand[] = [
 
 interface QuizSelectionProps {
   onStartQuiz: (brand: CubeBrand) => void;
-  selectedBrandIndex: number;
   setSelectedBrandIndex: (index: number) => void;
 }
 
-function QuizSelection({ onStartQuiz, selectedBrandIndex, setSelectedBrandIndex }: QuizSelectionProps) {
+function QuizSelection({ onStartQuiz, setSelectedBrandIndex }: QuizSelectionProps) {
+    const [selectedBrandIndex, _setSelectedBrandIndex] = useState(0);
+
     const selectedBrand = brands[selectedBrandIndex];
+
+    const handleRotation = useCallback((index: number) => {
+        _setSelectedBrandIndex(index);
+        setSelectedBrandIndex(index);
+    }, [setSelectedBrandIndex]);
     
     const handleStartQuizForBrand = useCallback((brand: CubeBrand) => {
         onStartQuiz(brand);
@@ -44,7 +50,7 @@ function QuizSelection({ onStartQuiz, selectedBrandIndex, setSelectedBrandIndex 
             
             <QuizSelector 
                 brands={brands}
-                onFaceSelect={setSelectedBrandIndex}
+                onRotation={handleRotation}
                 onFaceClick={handleCubeClick}
             />
 

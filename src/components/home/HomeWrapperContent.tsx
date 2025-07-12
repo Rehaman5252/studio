@@ -76,7 +76,6 @@ export default function HomeWrapperContent() {
     <>
       <QuizSelection
         onStartQuiz={handleStartQuiz}
-        selectedBrandIndex={selectedBrandIndex}
         setSelectedBrandIndex={setSelectedBrandIndex}
       />
 

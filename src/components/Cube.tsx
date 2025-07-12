@@ -34,11 +34,11 @@ const rotationMap = [
 
 interface CubeProps {
   brands: CubeBrand[];
-  onFaceSelect: (index: number) => void;
   onFaceClick: (index: number) => void;
+  onRotation: (index: number) => void;
 }
 
-function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
+function Cube({ brands, onFaceClick, onRotation }: CubeProps) {
   const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
   const cubeRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,7 +47,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
     const rotateToNextFace = () => {
       setCurrentFaceIndex(prevIndex => {
         const nextIndex = (prevIndex + 1) % brands.length;
-        onFaceSelect(nextIndex); 
+        onRotation(nextIndex); 
         return nextIndex;
       });
     };
@@ -62,7 +62,7 @@ function Cube({ brands, onFaceSelect, onFaceClick }: CubeProps) {
             clearInterval(timerRef.current);
         }
     };
-  }, [brands.length, onFaceSelect]);
+  }, [brands.length, onRotation]);
 
 
   useEffect(() => {
