@@ -82,26 +82,19 @@ export default function CompleteProfileForm() {
         try {
             const userDocRef = doc(db, 'users', user.uid);
             
+            // This payload only contains what the form can update.
             const payload: DocumentData = {
                 ...data,
-                uid: user.uid,
-                email: user.email,
-                photoURL: user.photoURL,
                 updatedAt: serverTimestamp(),
                 profileCompleted: true,
             };
 
-            // If phone number has changed, it needs re-verification
+            // If phone number has changed, it needs re-verification.
             if (userData?.phone !== data.phone) {
                 payload.phoneVerified = false;
             }
 
-            // On first creation, set the createdAt field
-            const docSnap = await getDoc(userDocRef);
-            if (!docSnap.exists()) {
-                payload.createdAt = serverTimestamp();
-            }
-
+            // The setDoc with merge:true will create or update the document.
             await setDoc(userDocRef, payload, { merge: true });
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
@@ -109,7 +102,11 @@ export default function CompleteProfileForm() {
     
         } catch (error: any) {
             console.error("Firestore error:", error);
-            toast({ title: "Error Saving Profile", description: `Could not save your profile. Reason: ${error.message}`, variant: "destructive" });
+            let description = "Could not save your profile. Please try again.";
+            if (error.code === 'permission-denied') {
+                description = "You do not have permission to save this profile. Please re-login.";
+            }
+            toast({ title: "Error Saving Profile", description, variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }

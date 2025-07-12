@@ -33,7 +33,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         profileCompleted: false,
         phoneVerified: false,
         emailVerified: user.emailVerified,
-        guidedTourCompleted: false,
+        guidedTourCompleted: false, // New field for the tour
         totalRewards: 0,
         quizzesPlayed: 0,
         perfectScores: 0,
