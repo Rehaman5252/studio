@@ -23,12 +23,12 @@ export default function SignupPage() {
   const handleGoogle = async () => {
     setIsGoogleLoading(true);
     try {
-      const result = await signInWithGoogle();
-      if (result) {
+      const user = await signInWithGoogle();
+      if (user) {
         toast({ title: "Success", description: "Google Sign-up successful!" });
         router.push('/home');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Google Sign-up error:", err.message);
       toast({ title: "Error", description: "Google Sign-up failed.", variant: "destructive" });
     } finally {
@@ -36,7 +36,7 @@ export default function SignupPage() {
     }
   };
 
-  const handleEmail = async (e) => {
+  const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
@@ -44,9 +44,15 @@ export default function SignupPage() {
       await updateProfile(userCredential.user, { displayName: name });
       toast({ title: "Success", description: "Account created successfully!" });
       router.push('/home');
-    } catch (err) {
+    } catch (err: any) {
+      let errorMessage = "An unknown error occurred.";
+      if (err.code === "auth/email-already-in-use") {
+        errorMessage = "This email is already in use. Please log in instead.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
       console.error("Email signup error:", err.message);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

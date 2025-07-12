@@ -52,23 +52,23 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 }
 
 let googleSignInInProgress = false;
-export const signInWithGoogle = async () => {
-    if (googleSignInInProgress) return;
+export const signInWithGoogle = async (): Promise<User | null> => {
+    if (googleSignInInProgress) return null;
     googleSignInInProgress = true;
+
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
-        await createUserDocument(result.user, { emailVerified: true });
-        return result;
+        const user = result.user;
+        if (!user) throw new Error("No user returned from Google sign-in");
+
+        await createUserDocument(user, { emailVerified: true });
+        return user;
     } catch (error: any) {
-        if (error.code === 'auth/popup-closed-by-user') {
-          console.warn("User cancelled the Google Sign-In popup.");
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+          console.warn("Google Sign-In was cancelled by the user.");
           return null; // Return null to indicate cancellation, not an error.
-        }
-        if (error.code === 'auth/cancelled-popup-request') {
-          console.warn("A popup sign-in request was canceled by a new request.");
-          return null;
         }
         console.error("Google Sign-In Error", error);
         throw error; // Re-throw other errors to be caught by the UI

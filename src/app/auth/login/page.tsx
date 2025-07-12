@@ -21,13 +21,13 @@ export default function LoginPage() {
   const handleGoogle = async () => {
     setIsGoogleLoading(true);
     try {
-      const result = await signInWithGoogle();
-      if (result) {
+      const user = await signInWithGoogle();
+      if (user) {
         toast({ title: "Success", description: "Google Sign-in successful!" });
         router.push('/home');
       }
-      // If result is null, it means the user cancelled, so we do nothing.
-    } catch (err) {
+      // If user is null, it means the user cancelled, so we do nothing.
+    } catch (err: any) {
       console.error("Google Sign-in error:", err.message);
       toast({ title: "Error", description: "Google Sign-in failed.", variant: "destructive" });
     } finally {
@@ -35,14 +35,14 @@ export default function LoginPage() {
     }
   };
 
-  const handleEmail = async (e) => {
+  const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       await loginWithEmail(email, password);
       toast({ title: "Success", description: "Email login successful!" });
       router.push('/home');
-    } catch (err) {
+    } catch (err: any) {
       console.error("Email login error:", err.message);
       toast({ title: "Error", description: "Invalid email or password.", variant: "destructive" });
     } finally {
