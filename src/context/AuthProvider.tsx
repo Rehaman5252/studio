@@ -44,6 +44,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // This would handle real auth state changes
   }, []);
 
+  const calculatedStats = useMemo(() => {
+    if (!quizHistory) return { quizzesPlayed: 0, perfectScores: 0, totalRewards: 0 };
+
+    const quizzesPlayed = quizHistory.length;
+    const perfectScores = quizHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0).length;
+    
+    // Assuming 100 for each perfect score
+    const scoreRewards = perfectScores * 100;
+    const referralEarnings = userData?.referralEarnings || 0;
+    const totalRewards = scoreRewards + referralEarnings;
+
+    return { quizzesPlayed, perfectScores, totalRewards };
+  }, [quizHistory, userData?.referralEarnings]);
+
+  const enhancedUserData = useMemo(() => {
+    if (!userData) return null;
+    return {
+      ...userData,
+      ...calculatedStats,
+    };
+  }, [userData, calculatedStats]);
+
   // Unified loading flag, always false with mock data
   const loading = useMemo(() => {
     return !isAuthResolved || (user?.uid && (isUserDataLoading || isHistoryLoading));
@@ -51,14 +73,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Profile completeness check
   const isProfileComplete = useMemo(() => {
-    if (!userData) return false;
-    // Use `userData[field] == null` to allow empty strings `""` but not `null` or `undefined`.
-    return MANDATORY_PROFILE_FIELDS.every((field) => userData[field] != null);
+    if (!userData) {
+      console.log('❌ userData is null');
+      return false;
+    }
+
+    const missingFields = MANDATORY_PROFILE_FIELDS.filter(field => userData[field] == null);
+    if (missingFields.length > 0) {
+      console.log('❌ Missing profile fields:', missingFields);
+      return false;
+    }
+
+    console.log('✅ Profile complete!');
+    return true;
   }, [userData]);
 
   const value = {
     user,
-    userData,
+    userData: enhancedUserData,
     quizHistory,
     isProfileComplete,
     loading,

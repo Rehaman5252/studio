@@ -164,8 +164,7 @@ export default function QuizHistoryContent() {
     if (!quizHistory) return [];
     const history = (quizHistory as QuizAttempt[]).slice().sort((a, b) => b.timestamp - a.timestamp);
     if (filter === 'recent') {
-      const sevenDaysAgo = new Date().getTime() - 7 * 24 * 60 * 60 * 1000;
-      return history.filter(attempt => attempt.timestamp >= sevenDaysAgo);
+      return history.slice(0, 5);
     }
     if (filter === 'perfect') {
       return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
