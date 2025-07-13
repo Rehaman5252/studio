@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  email: z.string().email(),
   phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.'}),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Please use YYYY-MM-DD format.' }).refine(
     (dob) => new Date(dob) < new Date(), { message: "Date of birth must be in the past."}
@@ -50,26 +51,38 @@ export default function CompleteProfileForm() {
     
     const isProfileComplete = userData?.profileCompleted || false;
 
-    const defaultFormValues = React.useMemo(() => ({
-        name: userData?.name || user?.displayName || '', 
-        phone: userData?.phone || '', 
-        dob: userData?.dob || '', 
-        gender: userData?.gender, 
-        occupation: userData?.occupation, 
-        upi: userData?.upi || '', 
-        favoriteFormat: userData?.favoriteFormat, 
-        favoriteTeam: userData?.favoriteTeam || '', 
-        favoriteCricketer: userData?.favoriteCricketer || '',
-    }), [userData, user]);
-
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
-        defaultValues: defaultFormValues,
+        defaultValues: {
+            name: '',
+            email: '',
+            phone: '',
+            dob: '',
+            upi: '',
+            favoriteCricketer: '',
+            gender: undefined,
+            occupation: undefined,
+            favoriteFormat: undefined,
+            favoriteTeam: undefined,
+        },
     });
 
     useEffect(() => {
-        form.reset(defaultFormValues);
-    }, [defaultFormValues, form]);
+        if (userData) {
+            form.reset({
+                name: userData.name || '',
+                email: userData.email || '',
+                phone: userData.phone || '',
+                dob: userData.dob || '',
+                gender: userData.gender,
+                occupation: userData.occupation,
+                upi: userData.upi || '',
+                favoriteFormat: userData.favoriteFormat,
+                favoriteTeam: userData.favoriteTeam,
+                favoriteCricketer: userData.favoriteCricketer || '',
+            });
+        }
+    }, [userData, form]);
     
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user) {
@@ -81,17 +94,20 @@ export default function CompleteProfileForm() {
         try {
             const userDocRef = doc(db, 'users', user.uid);
             
-            const payload: DocumentData = {
-                ...data,
+            // Exclude read-only email from the payload
+            const { email, ...payload } = data;
+
+            const finalPayload: DocumentData = {
+                ...payload,
                 updatedAt: serverTimestamp(),
                 profileCompleted: true,
             };
 
             if (userData?.phone !== data.phone) {
-                payload.phoneVerified = false;
+                finalPayload.phoneVerified = false;
             }
 
-            await setDoc(userDocRef, payload, { merge: true });
+            await setDoc(userDocRef, finalPayload, { merge: true });
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/profile');
@@ -146,6 +162,16 @@ export default function CompleteProfileForm() {
                                 <FormItem>
                                     <FormLabel>Full Name</FormLabel>
                                     <FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={isSubmitting} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control} name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl><Input placeholder="sachin@tendulkar.com" {...field} disabled={true} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

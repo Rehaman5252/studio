@@ -17,7 +17,7 @@ export interface QuizAttempt {
 
 export const mockUserData = {
     uid: 'mock-user-123',
-    email: 'rehaman.syed@example.com',
+    email: 'rehaman@360-creations.com',
     emailVerified: true,
     displayName: 'Rehaman Syed',
     photoURL: 'https://placehold.co/100x100.png',
@@ -25,10 +25,10 @@ export const mockUserData = {
     phone: '8050298115',
     dob: '2000-02-06',
     gender: 'Male',
-    occupation: 'Private Employee',
+    occupation: 'Employee',
     upi: '7842722245@ybl',
     favoriteFormat: 'IPL',
-    favoriteTeam: 'Royal Challengers Bangalore',
+    favoriteTeam: 'Royal Challengers Bengaluru',
     favoriteCricketer: 'Virat Kohli',
     profileCompleted: true,
     phoneVerified: true,
