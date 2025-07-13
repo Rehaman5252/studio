@@ -26,7 +26,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
       const defaultData = {
         uid: user.uid,
         email: user.email,
-        name: user.displayName || additionalData.name || 'New User',
+        name: additionalData.name || user.displayName || 'New User',
         photoURL: user.photoURL,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -38,7 +38,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         quizzesPlayed: 0,
         perfectScores: 0,
         certificatesEarned: 0,
-        referralCode: `indcric.com/ref/${user.uid.slice(0, 8)}`,
+        referralCode: `cricblitz.com/ref/${user.uid.slice(0, 8)}`,
         referralEarnings: 0,
         ...additionalData
       };

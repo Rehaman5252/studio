@@ -71,7 +71,7 @@ export default function SignupForm() {
         
         await createUserDocument(user, { name: data.name }); 
         
-        toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile to continue.' });
+        toast({ title: 'Account Created!', description: 'Welcome to CricBlitz! Please complete your profile to continue.' });
         router.push('/complete-profile');
 
     } catch (error: any) {
