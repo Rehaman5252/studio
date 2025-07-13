@@ -1,24 +1,22 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read and write to their own document.
+    // Allow users to read and write to their own user document
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Allow logged-in users to create their own quiz history document
-    // and update it by adding new attempts.
+    // Allow users to read their own quiz history
     match /quizHistory/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Live leaderboard data should be readable by anyone, but writable only by server-side logic (which is not restricted by these rules).
-    // For this app, we will allow any authenticated user to write to the live leaderboard for demo purposes.
+    // Allow any authenticated user to read the live leaderboard
     match /liveLeaderboard/{slotId}/{entry} {
-        allow read: if true;
+        allow read: if request.auth != null;
+        // Writes to the live leaderboard should be handled by a secure backend function
+        // but for client-side demo purposes, we'll allow authenticated writes.
         allow write: if request.auth != null;
     }
   }
