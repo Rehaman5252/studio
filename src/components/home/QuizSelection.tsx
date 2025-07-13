@@ -73,6 +73,7 @@ const QuizSelectionComponent = () => {
 
     useEffect(() => {
         const rotateCube = () => {
+            if (isChanging) return;
             const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
             let nextBrandIndex;
             do {
@@ -84,7 +85,7 @@ const QuizSelectionComponent = () => {
 
         const intervalId = setInterval(rotateCube, 5000);
         return () => clearInterval(intervalId);
-    }, [selectedBrand.id, handleSelectBrand]);
+    }, [selectedBrand.id, handleSelectBrand, isChanging]);
 
 
     const hasPlayedInCurrentSlot = useMemo(() => {
