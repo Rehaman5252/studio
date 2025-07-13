@@ -19,7 +19,7 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'TATA Motors',
+        brand: 'TATA',
         format: 'IPL',
         logoUrl: 'https://www.freepnglogos.com/uploads/tata-logo-png/tata-logo-white-21.png',
         logoWidth: 100,
@@ -29,7 +29,7 @@ export const brandData: CubeBrand[] = [
         id: 3,
         brand: 'Netflix',
         format: 'T20',
-        logoUrl: 'https://cdn.icon-icons.com/icons2/2699/PNG/512/netflix_logo_icon_170919.png',
+        logoUrl: 'https://cdn.shopify.com/s/files/1/0452/6487/9923/files/Netflix-Logo-small_1.png?v=168623 Netflix Logo small',
         logoWidth: 80,
         logoHeight: 80,
     },
