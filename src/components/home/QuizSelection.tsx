@@ -46,7 +46,7 @@ const QuizSelectionComponent = () => {
     useEffect(() => {
         const intervalId = setInterval(() => {
             setIsChanging(true);
-
+            
             // Select a new random brand that is different from the current one
             let nextBrandIndex;
             const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
@@ -65,7 +65,7 @@ const QuizSelectionComponent = () => {
                 setIsChanging(false);
             }, 250); // A small delay to allow the state to update
 
-        }, 500); // The user requested a 500ms cycle
+        }, 500);
 
         return () => clearInterval(intervalId);
     }, [selectedBrand]);
@@ -118,7 +118,7 @@ const QuizSelectionComponent = () => {
 
     return (
         <>
-            <div className="text-center mb-4">
+            <div className="text-center mb-8 -mt-8">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
                 <p className="text-sm text-muted-foreground">click the face of cube to play</p>
             </div>
