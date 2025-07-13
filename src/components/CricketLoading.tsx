@@ -40,7 +40,7 @@ const CricketLoading = ({
   children,
   format = 'Mixed',
 }: CricketLoadingProps) => {
-  const [fact, setFact] = useState<string>('Loading cricket wisdom...');
+  const [fact, setFact] = useState<string>('');
   const [seenFacts, setSeenFacts] = useState<string[]>([]);
   const [isFetchingFact, setIsFetchingFact] = useState(false);
 
@@ -113,11 +113,11 @@ const CricketLoading = ({
       {state === 'loading' && format && (
          <div className="mt-8 text-center max-w-md p-4 bg-card/50 rounded-lg border border-primary/20 animate-fade-in-up">
           <h3 className="font-bold text-primary flex items-center justify-center gap-2 mb-2">
-            {isFetchingFact ? <Loader2 className="h-5 w-5 animate-spin" /> : <Info />}
+            {isFetchingFact && !fact ? <Loader2 className="h-5 w-5 animate-spin" /> : <Info />}
             Did you know?
           </h3>
           <p className="text-muted-foreground transition-opacity duration-500 min-h-[40px]">
-            {fact}
+            {fact || 'Loading cricket wisdom...'}
           </p>
         </div>
       )}

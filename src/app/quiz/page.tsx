@@ -175,8 +175,11 @@ function QuizComponent() {
     if (!questions || isHintVisible) return;
     const adForHint = adLibrary.hintAds[currentQuestionIndex] || adLibrary.hintAds[0];
     setAdConfig({
-        ...adForHint,
+        adType: 'video',
+        adUrl: adForHint.url,
         adTitle: adForHint.title,
+        duration: adForHint.duration,
+        skippableAfter: adForHint.skippableAfter,
         onFinished: () => {
             setIsHintVisible(true);
             setUsedHintIndices(prev => [...prev, currentQuestionIndex]);

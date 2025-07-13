@@ -8,11 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Ban } from 'lucide-react';
+import { Ban } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { QuizAttempt } from '@/lib/mockData';
 
 interface LivePlayer {
     rank?: number;
@@ -57,23 +56,52 @@ const LeaderboardItemSkeleton = () => (
 
 
 const LiveLeaderboard = memo(() => {
-    const { user } = useAuth();
+    const { user, quizHistory, isHistoryLoading, userData } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
-    const [loading, setLoading] = useState(true);
-
+    
     useEffect(() => {
-        // Mocking live players since we don't have a real-time backend source
+        if (isHistoryLoading) return;
+        
+        const currentSlotId = getQuizSlotId();
+        const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
+        
+        // Find the user's attempt in the current slot
+        const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
+
+        const livePlayers: LivePlayer[] = [];
+
+        if (userAttempt) {
+            livePlayers.push({
+                uid: user!.uid,
+                name: userData?.name || 'You',
+                score: userAttempt.score,
+                time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                avatar: userData?.photoURL,
+                disqualified: userAttempt.reason === 'malpractice'
+            });
+        }
+        
+        // Add a few more mock players for a lively leaderboard
         const mockLivePlayers: LivePlayer[] = [
             { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
             { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-            { uid: 'mock-user-123', name: 'Rehaman Syed', score: 4, time: 61.1, avatar: user?.photoURL },
             { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
             { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
-        ].map((p, index) => ({...p, rank: index + 1}));
+        ];
+        
+        livePlayers.push(...mockLivePlayers.filter(p => p.uid !== user?.uid));
+        
+        // Sort and rank
+        const sortedPlayers = livePlayers.sort((a, b) => {
+             if (a.disqualified && !b.disqualified) return 1;
+             if (!a.disqualified && b.disqualified) return -1;
+             if (a.score !== b.score) return b.score - a.score;
+             return a.time - b.time;
+        }).map((p, index) => ({...p, rank: index + 1}));
 
-        setPlayers(mockLivePlayers);
-        setLoading(false);
-    }, [user]);
+        setPlayers(sortedPlayers);
+        
+    }, [quizHistory, isHistoryLoading, user, userData]);
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -88,7 +116,7 @@ const LiveLeaderboard = memo(() => {
                     transition={{ staggerChildren: 0.05 }}
                     className="space-y-2"
                 >
-                    {loading ? (
+                    {isHistoryLoading ? (
                         Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
                     ) : players.length > 0 ? (
                         players.map((player) => (
