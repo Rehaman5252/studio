@@ -41,37 +41,35 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
     const [rotation, setRotation] = useState({ x: 0, y: 0 });
-    const [isRotating, setIsRotating] = useState(true);
+    const [isChanging, setIsChanging] = useState(false);
     
     useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
+        const intervalId = setInterval(() => {
+            setIsChanging(true);
 
-        const rotateCube = () => {
+            // Select a new random brand that is different from the current one
+            let nextBrandIndex;
             const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
-            let nextBrandIndex = currentBrandIndex;
+            do {
+                nextBrandIndex = Math.floor(Math.random() * 6);
+            } while (nextBrandIndex === currentBrandIndex);
 
-            while (nextBrandIndex === currentBrandIndex) {
-                 nextBrandIndex = Math.floor(Math.random() * 6);
-            }
-            
             const nextRotation = faceIndexToRotation[nextBrandIndex];
-            const randomDelay = Math.random() * 1500 + 2000;
             
-            setIsRotating(true);
+            // Set the rotation
             setRotation(nextRotation);
-            
+
+            // After the rotation animation starts, update the brand and re-enable the button
             setTimeout(() => {
                 setSelectedBrand(brandData[nextBrandIndex]);
-                setIsRotating(false);
+                setIsChanging(false);
+            }, 250); // A small delay to allow the state to update
 
-                timeoutId = setTimeout(rotateCube, randomDelay);
-            }, 1000);
-        };
+        }, 500); // The user requested a 500ms cycle
 
-        timeoutId = setTimeout(rotateCube, 1000);
-
-        return () => clearTimeout(timeoutId);
+        return () => clearInterval(intervalId);
     }, [selectedBrand]);
+
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
@@ -79,7 +77,7 @@ const QuizSelectionComponent = () => {
     }, [user, lastAttemptInSlot]);
 
     const handleStartQuiz = useCallback(() => {
-        if (isRotating) return; 
+        if (isChanging) return; 
 
         if (!user || !isProfileComplete) {
             setShowAuthAlert(true);
@@ -90,7 +88,7 @@ const QuizSelectionComponent = () => {
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
         }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand, isRotating]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand, isChanging]);
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -140,7 +138,7 @@ const QuizSelectionComponent = () => {
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
                   onClick={handleStartQuiz}
-                  isDisabled={isRotating}
+                  isDisabled={isChanging}
                 />
             </div>
 
