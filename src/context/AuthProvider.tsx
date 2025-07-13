@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
+      // If no user, no data will be loaded, so set those flags to false.
       if (!currentUser) {
         setUserData(null);
         setQuizHistory(null);
@@ -49,6 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    if (isAuthLoading) return; // Wait for auth to resolve first.
+
     if (user?.uid) {
         setIsUserDataLoading(true);
         const userDocRef = doc(db, 'users', user.uid);
@@ -77,9 +80,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             unsubscribeUser();
             unsubscribeHistory();
         }
-    } else if (!isAuthLoading) {
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
     }
   }, [user, isAuthLoading]);
 
