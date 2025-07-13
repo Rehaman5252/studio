@@ -18,7 +18,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const getAnalysisCacheKey = useCallback(() => `analysis_${attempt.slotId}`, [attempt.slotId]);
+    const getAnalysisCacheKey = useCallback(() => `analysis_${attempt.format}_${attempt.slotId}`, [attempt.slotId, attempt.format]);
 
     const handleFetchAnalysis = useCallback(async () => {
         const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());

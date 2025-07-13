@@ -29,7 +29,7 @@ Your tone must be positive and motivating, like a real coach talking to a promis
 
 Based on the user's performance data, generate a personalized performance report. The report MUST include the following sections:
 
-1.  **Overall Summary:** Start with a brief, encouraging summary of their performance. Mention their final score.
+1.  **Overall Summary:** Start with a brief, encouraging summary of their performance. Mention their final score and the quiz format.
 2.  **Key Strength (What Went Well):** Identify one specific area where the user did well. This could be quick answering on the questions they *did* answer, not needing hints, or simply their determination to finish the quiz. **If the score is 0, focus on their effort or speed as a strength.**
 3.  **Area for Improvement (Focus for Next Innings):** Identify the single most important area for improvement. Don't just say "incorrect answers." Analyze *why* they might have gotten questions wrong by looking at the incorrectly answered questions (e.g., "It looks like questions about historic Test matches were a bit tricky," or "You were so fast on the buzzer, you might be rushing a bit.").
 4.  **Coach's Tip:** Provide one actionable, concrete tip to help them with their area for improvement. For example, "To brush up on your '90s cricket knowledge, try watching the highlights of the 1996 World Cup on YouTube."
@@ -64,8 +64,6 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     const score = input.questions.reduce((acc, q, index) => 
         (input.userAnswers[index] === q.correctAnswer) ? acc + 1 : acc, 0);
     
-    const format = input.format;
-
     const incorrectAnswers = input.questions.map((q, index) => ({
         questionNumber: index + 1,
         questionText: q.questionText,
@@ -73,8 +71,8 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         correctAnswer: q.correctAnswer,
     })).filter((q, index) => input.userAnswers[index] !== input.questions[index].correctAnswer);
     
-    const promptInput = {
-        format,
+    const promptInput: GenerateQuizAnalysisPromptInputSchema = {
+        format: input.format,
         score,
         totalQuestions: input.questions.length,
         timePerQuestion: input.timePerQuestion || [],

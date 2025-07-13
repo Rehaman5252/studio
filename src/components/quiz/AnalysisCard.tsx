@@ -15,7 +15,7 @@ const AnalysisCardComponent = ({ questions, userAnswers, timePerQuestion, usedHi
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const getAnalysisCacheKey = useCallback(() => `analysis_${slotId}`, [slotId]);
+    const getAnalysisCacheKey = useCallback(() => `analysis_${format}_${slotId}`, [slotId, format]);
 
     useEffect(() => {
         const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
