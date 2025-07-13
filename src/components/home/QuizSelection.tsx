@@ -39,7 +39,6 @@ const QuizSelectionComponent = () => {
     
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
     const [rotation, setRotation] = useState({ x: 0, y: 0 });
-    const [isChanging, setIsChanging] = useState(false);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
@@ -60,17 +59,21 @@ const QuizSelectionComponent = () => {
         }
     }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
     
-    const handleSelectBrand = useCallback((brand: CubeBrand) => {
-        if (isChanging) return;
-        setIsChanging(true);
+    useEffect(() => {
+        let faceIndex = 0;
+        const intervalId = setInterval(() => {
+            faceIndex = (faceIndex + 1) % brandData.length;
+            
+            const newBrand = brandData[faceIndex];
+            const newRotation = faceRotations[faceIndex];
+            
+            setRotation(newRotation);
+            setSelectedBrand(newBrand);
+        }, 750); // 4500ms / 6 faces = 750ms per face
 
-        const brandIndex = brandData.findIndex(b => b.id === brand.id);
-        if (brandIndex !== -1) {
-            setRotation(faceRotations[brandIndex]);
-            setSelectedBrand(brand);
-        }
-        setTimeout(() => setIsChanging(false), 500);
-    }, [isChanging]);
+        return () => clearInterval(intervalId);
+    }, []);
+
 
     const handleFaceClick = (brand: CubeBrand) => {
         handleStartQuiz(brand);
@@ -79,35 +82,6 @@ const QuizSelectionComponent = () => {
     const handleBannerOrButtonClick = () => {
         handleStartQuiz(selectedBrand);
     };
-
-    useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-
-        const setRandomRotation = () => {
-            if (isChanging) return;
-        
-            setIsChanging(true);
-            const randomIndex = Math.floor(Math.random() * brandData.length);
-            const newBrand = brandData[randomIndex];
-            const newRotation = faceRotations[randomIndex];
-            
-            setRotation(newRotation);
-            setSelectedBrand(newBrand);
-
-            // This schedules the next rotation after this one is complete
-            timeoutId = setTimeout(() => {
-                setIsChanging(false);
-                setRandomRotation(); 
-            }, Math.random() * 1000 + 500); // 0.5 to 1.5 seconds
-        };
-        
-        // Start the first rotation
-        const initialDelay = Math.random() * 1000 + 500;
-        timeoutId = setTimeout(setRandomRotation, initialDelay);
-
-        return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
