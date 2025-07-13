@@ -148,10 +148,11 @@ function QuizComponent() {
         return newAnswers;
     });
 
-    // Don't use a timeout here, which causes flickering.
-    // Instead, handleNextWithAdCheck will either show an ad or call goToNextQuestion,
-    // which resets the state for the next question.
-    handleNextWithAdCheck();
+    // Use a timeout to allow the user to see their selection before moving on.
+    // This addresses the "flickering" issue by providing visual feedback.
+    setTimeout(() => {
+      handleNextWithAdCheck();
+    }, 300);
   }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextWithAdCheck, questions]);
   
   const handleAdComplete = useCallback(() => {
