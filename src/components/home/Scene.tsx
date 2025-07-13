@@ -15,12 +15,18 @@ interface SceneProps {
 
 export default function Scene({ brands, visibleFaceIndex, onFaceClick, isRotating }: SceneProps) {
   return (
-    <Canvas camera={{ position: [0, 0, 4], fov: 50 }}>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={1} />
-      <directionalLight position={[-10, -10, -5]} intensity={0.5} />
-      <pointLight position={[0, 10, 5]} intensity={0.8} />
-
+    <Canvas camera={{ position: [0, 0, 4.5], fov: 45 }} shadows>
+      <ambientLight intensity={1.2} />
+      <directionalLight 
+        position={[10, 10, 5]} 
+        intensity={1.5} 
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
+      <directionalLight position={[-10, -10, -5]} intensity={0.7} />
+      <pointLight position={[0, 10, 5]} intensity={1} />
+      
       <RotatingCube
         brands={brands}
         visibleFaceIndex={visibleFaceIndex}
@@ -28,7 +34,6 @@ export default function Scene({ brands, visibleFaceIndex, onFaceClick, isRotatin
         isRotating={isRotating}
       />
       
-      {/* OrbitControls allows manual rotation for debugging/interaction, can be disabled */}
       <OrbitControls 
         enableZoom={false} 
         enablePan={false}

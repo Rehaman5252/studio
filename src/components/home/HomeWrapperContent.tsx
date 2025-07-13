@@ -24,14 +24,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 const QuizSelection = dynamic(() => import('./QuizSelection'), {
   ssr: false,
   loading: () => (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-pulse">
         <div className="text-center mb-8">
             <Skeleton className="h-8 w-3/4 mx-auto" />
             <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
         </div>
-        <Skeleton className="w-full h-52" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-[92px] w-full" />
+        <div className="flex justify-center items-center h-[288px]">
+            <Skeleton className="w-52 h-52 rounded-full" />
+        </div>
+        <Skeleton className="h-[124px] w-full rounded-2xl" />
+        <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-[92px] w-full" />
+            <Skeleton className="h-[92px] w-full" />
+            <Skeleton className="h-[92px] w-full" />
+            <Skeleton className="h-[92px] w-full" />
+        </div>
         <Skeleton className="h-16 w-full rounded-full" />
     </div>
   )

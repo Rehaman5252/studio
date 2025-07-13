@@ -9,11 +9,12 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import { brands } from './brandData';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 const QuizSelector = dynamic(() => import('@/components/home/QuizSelector'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-52 flex items-center justify-center">
+    <div className="w-full h-[288px] flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
     </div>
   )

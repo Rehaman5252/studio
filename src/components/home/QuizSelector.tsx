@@ -13,11 +13,13 @@ interface QuizSelectorProps {
 
 export default function QuizSelector({ brands, onFaceClick, visibleFaceIndex, isRotating }: QuizSelectorProps) {    
     return (
-        <Scene 
-            brands={brands}
-            onFaceClick={onFaceClick}
-            visibleFaceIndex={visibleFaceIndex}
-            isRotating={isRotating}
-        />
+        <div className="w-full h-[288px]">
+            <Scene 
+                brands={brands}
+                onFaceClick={onFaceClick}
+                visibleFaceIndex={visibleFaceIndex}
+                isRotating={isRotating}
+            />
+        </div>
     );
 };
