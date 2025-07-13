@@ -40,7 +40,7 @@ function HomePage() {
       <div className="flex flex-col h-screen bg-background text-foreground">
         <header className="p-4 flex items-center justify-center">
           <div className="text-center">
-              <h1 className="text-5xl font-extrabold tracking-tight text-shimmer animate-shimmer">
+              <h1 className="text-6xl font-extrabold tracking-tight text-shimmer animate-shimmer">
                 indcric
               </h1>
               <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
