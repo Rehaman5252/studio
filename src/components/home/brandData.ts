@@ -29,7 +29,7 @@ export const brandData: CubeBrand[] = [
         id: 3,
         brand: 'Netflix',
         format: 'T20',
-        logoUrl: 'https://assets.stickpng.com/images/580b57fcd9996e24bc43c529.png',
+        logoUrl: 'https://cdn.icon-icons.com/icons2/2699/PNG/512/netflix_logo_icon_170919.png',
         logoWidth: 80,
         logoHeight: 80,
     },
