@@ -9,7 +9,7 @@ import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import ProfileContent from '@/components/profile/ProfileContent';
 
 function ProfilePage() {
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, isProfileComplete } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
@@ -30,11 +30,11 @@ function ProfilePage() {
   
     if (!user) {
       // This case can be hit if the user document doesn't exist or there was an error.
-      // A redirect to profile completion might be appropriate here if that's a required step.
+      // The useEffect will handle the redirect.
       return null;
     }
   
-    if (!userData || Object.keys(userData).length === 0) {
+    if (!userData || !isProfileComplete) {
         return (
             <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
                 <p className="text-center text-muted-foreground">No profile data found. Please complete your profile.</p>

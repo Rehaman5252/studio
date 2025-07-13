@@ -4,7 +4,7 @@
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
-import { doc, onSnapshot, setDoc, DocumentData } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc, DocumentData } from 'firebase/firestore';
 import type { QuizAttempt } from '@/lib/mockData';
 
 interface AuthContextType {
@@ -57,9 +57,14 @@ const runDataMigration = async (uid: string, data: DocumentData) => {
     delete newData.FavoriteCricketer;
     
     try {
-        await setDoc(doc(db, 'users', uid), newData, { merge: true });
-        console.log("Data migration successful. User document updated.");
-        return newData;
+        const docRef = doc(db, 'users', uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            await setDoc(docRef, newData, { merge: true });
+            console.log("Data migration successful. User document updated.");
+            return newData;
+        }
+        return data;
     } catch (error) {
         console.error("Error during data migration:", error);
         return data; // Return original data on error
@@ -139,7 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // ✅ Profile completeness check
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
-    return MANDATORY_PROFILE_FIELDS.every((field) => !!userData[field]);
+    // Use `userData[field] == null` to allow empty strings `""` but not `null` or `undefined`.
+    return MANDATORY_PROFILE_FIELDS.every((field) => userData[field] != null);
   }, [userData]);
 
   const value = {
