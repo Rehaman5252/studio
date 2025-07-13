@@ -22,7 +22,6 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
-import MovingBanner from './MovingBanner';
 
 const QuizSelectionComponent = () => {
     const { user, isProfileComplete, isUserDataLoading } = useAuth();
@@ -100,8 +99,6 @@ const QuizSelectionComponent = () => {
             <div className="flex justify-center items-center my-4 h-52">
                 <BrandCube rotation={rotation} />
             </div>
-            
-            <MovingBanner />
 
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
