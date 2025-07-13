@@ -68,24 +68,35 @@ const QuizSelectionComponent = () => {
         setTimeout(() => {
             setSelectedBrand(brand);
             setIsChanging(false);
-        }, 500); // Animation transition time
+        }, 125); // Animation transition time
     }, []);
 
     useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+    
         const rotateCube = () => {
-            if (isChanging) return;
-            const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
-            let nextBrandIndex;
-            do {
-                nextBrandIndex = Math.floor(Math.random() * 6);
-            } while (nextBrandIndex === currentBrandIndex);
-            
-            handleSelectBrand(brandData[nextBrandIndex]);
+          if (isChanging) {
+            timeoutId = setTimeout(rotateCube, 1000);
+            return;
+          }
+    
+          const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
+          let nextBrandIndex;
+          do {
+            nextBrandIndex = Math.floor(Math.random() * 6);
+          } while (nextBrandIndex === currentBrandIndex);
+    
+          handleSelectBrand(brandData[nextBrandIndex]);
+    
+          const randomDelay = Math.random() * 4000 + 3000; // 3 to 7 seconds
+          timeoutId = setTimeout(rotateCube, randomDelay);
         };
-
-        const intervalId = setInterval(rotateCube, 5000);
-        return () => clearInterval(intervalId);
-    }, [selectedBrand.id, handleSelectBrand, isChanging]);
+    
+        // Start the first rotation after a delay
+        timeoutId = setTimeout(rotateCube, Math.random() * 4000 + 3000);
+    
+        return () => clearTimeout(timeoutId);
+      }, [selectedBrand.id, handleSelectBrand, isChanging]);
 
 
     const hasPlayedInCurrentSlot = useMemo(() => {
