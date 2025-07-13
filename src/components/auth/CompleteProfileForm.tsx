@@ -54,16 +54,16 @@ export default function CompleteProfileForm() {
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: '',
-            email: '',
-            phone: '',
-            dob: '',
-            upi: '',
-            favoriteCricketer: '',
-            gender: undefined,
-            occupation: undefined,
-            favoriteFormat: undefined,
-            favoriteTeam: undefined,
+            name: userData?.name || '',
+            email: userData?.email || '',
+            phone: userData?.phone || '',
+            dob: userData?.dob || '',
+            upi: userData?.upi || '',
+            favoriteCricketer: userData?.favoriteCricketer || '',
+            gender: userData?.gender,
+            occupation: userData?.occupation,
+            favoriteFormat: userData?.favoriteFormat,
+            favoriteTeam: userData?.favoriteTeam,
         },
     });
 
@@ -103,6 +103,7 @@ export default function CompleteProfileForm() {
                 profileCompleted: true,
             };
 
+            // If the phone number has been changed, it must be re-verified.
             if (userData?.phone !== data.phone) {
                 finalPayload.phoneVerified = false;
             }
@@ -233,7 +234,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>UPI ID for Payouts</FormLabel>
-                                    <FormControl><Input placeholder="yourname@bank" {...field} disabled={isSubmitting} /></FormControl>
+                                    <FormControl><Input placeholder="yourname@bank" {...field} disabled={isSubmitting || !!userData?.upi} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -290,3 +291,5 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
+
+    
