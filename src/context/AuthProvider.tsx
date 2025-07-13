@@ -15,6 +15,7 @@ interface AuthContextType {
   loading: boolean;
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
+  updateUserData: (newData: Partial<DocumentData>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +34,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthResolved, setIsAuthResolved] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  
+  const updateUserData = (newData: Partial<DocumentData>) => {
+    setUserData(prevData => ({ ...prevData, ...newData }));
+  };
   
   // No-op useEffects as we are using mock data
   useEffect(() => {
@@ -59,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     isUserDataLoading,
     isHistoryLoading,
+    updateUserData,
   };
 
   return (

@@ -45,7 +45,7 @@ const cricketTeams = [
 
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData, isUserDataLoading } = useAuth();
+    const { user, userData, isUserDataLoading, updateUserData } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -54,16 +54,12 @@ export default function CompleteProfileForm() {
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: userData?.name || '',
-            email: userData?.email || '',
-            phone: userData?.phone || '',
-            dob: userData?.dob || '',
-            upi: userData?.upi || '',
-            favoriteCricketer: userData?.favoriteCricketer || '',
-            gender: userData?.gender,
-            occupation: userData?.occupation,
-            favoriteFormat: userData?.favoriteFormat,
-            favoriteTeam: userData?.favoriteTeam,
+            name: '',
+            email: '',
+            phone: '',
+            dob: '',
+            upi: '',
+            favoriteCricketer: '',
         },
     });
 
@@ -92,14 +88,14 @@ export default function CompleteProfileForm() {
         setIsSubmitting(true);
 
         try {
-            const userDocRef = doc(db, 'users', user.uid);
+            // Since we are using mock data, we will update the context state directly
+            // In a real app, you would write to Firestore here.
             
             // Exclude read-only email from the payload
             const { email, ...payload } = data;
 
             const finalPayload: DocumentData = {
                 ...payload,
-                updatedAt: serverTimestamp(),
                 profileCompleted: true,
             };
 
@@ -108,18 +104,14 @@ export default function CompleteProfileForm() {
                 finalPayload.phoneVerified = false;
             }
 
-            await setDoc(userDocRef, finalPayload, { merge: true });
+            updateUserData(finalPayload);
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/profile');
     
         } catch (error: any) {
-            console.error("Firestore error:", error);
-            let description = "Could not save your profile. Please try again.";
-            if (error.code === 'permission-denied') {
-                description = "You do not have permission to save this profile. Please re-login.";
-            }
-            toast({ title: "Error Saving Profile", description, variant: "destructive" });
+            console.error("Profile update error:", error);
+            toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
