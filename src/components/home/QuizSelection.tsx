@@ -19,43 +19,29 @@ import {
 
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
-import { Card, CardContent } from '@/components/ui/card';
-import Image from 'next/image';
+import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 
 const QuizSelectionComponent = () => {
     const { user, isProfileComplete } = useAuth();
     const { lastAttemptInSlot } = useQuizStatus();
     const router = useRouter();
 
-    const [api, setApi] = useState<CarouselApi>();
-    const [current, setCurrent] = useState(0);
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
-
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
     
     useEffect(() => {
-        if (!api) return;
-
-        const handleSelect = () => {
-            const newIndex = api.selectedScrollSnap();
-            setCurrent(newIndex);
-            setSelectedBrand(brandData[newIndex]);
-        };
-
-        api.on('select', handleSelect);
-
         const interval = setInterval(() => {
-            api.scrollNext();
+            setSelectedBrand(prevBrand => {
+                const currentIndex = brandData.findIndex(b => b.id === prevBrand.id);
+                const nextIndex = (currentIndex + 1) % brandData.length;
+                return brandData[nextIndex];
+            });
         }, 500);
 
-        return () => {
-            clearInterval(interval);
-            api.off('select', handleSelect);
-        };
-    }, [api]);
+        return () => clearInterval(interval);
+    }, []);
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
@@ -99,39 +85,10 @@ const QuizSelectionComponent = () => {
                 <p className="text-sm text-muted-foreground">click on the face of cube</p>
             </div>
             
-             <Carousel setApi={setApi} className="w-full" opts={{ loop: true }}>
-                <CarouselContent>
-                    {brandData.map((brand) => (
-                        <CarouselItem key={brand.id}>
-                             <Card 
-                                className="w-full mx-auto rounded-2xl shadow-xl bg-card border-2 border-primary/30 overflow-hidden"
-                            >
-                                <CardContent className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-foreground">{brand.format} Cricket Quiz</h3>
-                                            <p className="text-muted-foreground mb-2">Powered by {brand.brand}</p>
-                                            <p className="text-lg font-semibold text-primary">Win Rewards!</p>
-                                        </div>
-                                        <div className="w-20 h-20 rounded-full flex items-center justify-center p-2 shadow-inner bg-white">
-                                            <Image
-                                                src={brand.logoUrl}
-                                                alt={`${brand.brand} logo`}
-                                                data-ai-hint="cricket logo"
-                                                width={brand.logoWidth}
-                                                height={brand.logoHeight}
-                                                className="object-contain"
-                                                priority
-                                            />
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </CarouselItem>
-                    ))}
-                </CarouselContent>
-            </Carousel>
-
+            <SelectedBrandCard 
+                selectedBrand={selectedBrand} 
+                handleStartQuiz={handleStartQuiz} 
+            />
 
             <div className="mt-8 space-y-8">
                 <GlobalStats />
