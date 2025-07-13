@@ -19,9 +19,9 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'Samsung',
+        brand: 'Swiggy',
         format: 'IPL',
-        logoUrl: 'https://cdn.icon-icons.com/icons2/2429/PNG/512/samsung_logo_icon_147285.png',
+        logoUrl: 'https://www.pngkey.com/png/full/238-2383214_swiggy-logo-white-swiggy-white-logo-png.png',
         logoWidth: 90,
         logoHeight: 90,
     },
