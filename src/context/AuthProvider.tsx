@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
-  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading;
+  const loading = isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
 
   const value = { 
     user, 

@@ -60,9 +60,9 @@ const QuizSelectionComponent = () => {
             setTimeout(() => {
                 setSelectedBrand(brandData[nextBrandIndex]);
                 setIsChanging(false);
-            }, 250);
+            }, 500); // This delay should match the button disable duration
 
-        }, 500);
+        }, 5000); // Rotate every 5 seconds
 
         return () => clearInterval(intervalId);
     }, [selectedBrand]);
