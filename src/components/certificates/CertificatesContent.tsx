@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function CertificatesContent() {
-  const { quizHistory, isHistoryLoading } = useAuth();
+  const { quizHistory, isHistoryLoading, userData } = useAuth();
+  const { toast } = useToast();
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -39,6 +41,59 @@ export default function CertificatesContent() {
         format: attempt.format,
       }));
   }, [quizHistory]);
+
+  const handleDownload = (cert: typeof certificates[0]) => {
+    const certificateText = `
+    *****************************************
+          CERTIFICATE OF ACHIEVEMENT
+    *****************************************
+
+    This certifies that
+    ${userData?.name || 'Valued Player'}
+
+    has successfully achieved a perfect score in the
+    ${cert.format} Quiz (${cert.brand})
+
+    Awarded on: ${cert.date}
+    Quiz Slot: ${cert.slot}
+
+    CricBlitz - The Ultimate Cricket Quiz
+    `;
+
+    const blob = new Blob([certificateText.trim()], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CricBlitz_${cert.format}_Certificate.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+        title: "Download Started",
+        description: "Your certificate is being downloaded.",
+    });
+  };
+
+  const handleShare = async (cert: typeof certificates[0]) => {
+    const shareData = {
+        title: `I earned a CricBlitz Certificate!`,
+        text: `I just got a perfect score in the ${cert.format} quiz on CricBlitz! Think you can beat me?`,
+        url: window.location.href,
+    }
+    try {
+        if (navigator.share) {
+            await navigator.share(shareData);
+            toast({ title: "Shared!", description: "Certificate shared successfully." });
+        } else {
+            throw new Error("Web Share API not supported");
+        }
+    } catch (error) {
+        console.error('Share failed:', error);
+        toast({ title: "Sharing not available", description: "Could not share. Please try copying the link.", variant: "destructive" });
+    }
+  };
 
   if (isHistoryLoading) {
     return (
@@ -77,11 +132,11 @@ export default function CertificatesContent() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex justify-end gap-2">
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" onClick={() => handleDownload(cert)}>
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleShare(cert)}>
                       <Share2 className="mr-2 h-4 w-4" />
                       Share
                     </Button>
