@@ -19,10 +19,10 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'Reliance Industries',
+        brand: 'Adani',
         format: 'IPL',
-        logoUrl: 'https://cdn.icon-icons.com/icons2/2699/PNG/512/reliance_industries_logo_icon_170582.png',
-        logoWidth: 80,
+        logoUrl: 'https://www.pngkey.com/png/full/828-8285514_adani-logo-white-png-adani-group-logo-png.png',
+        logoWidth: 90,
         logoHeight: 80,
     },
     {
