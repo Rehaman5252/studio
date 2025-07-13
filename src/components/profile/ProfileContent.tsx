@@ -2,8 +2,6 @@
 'use client';
 
 import React from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -20,15 +18,11 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const router = useRouter();
 
     const handleLogout = async () => {
-        if (!auth) return;
-        try {
-            await signOut(auth);
-            // This would redirect to a real login page. For now, it will show the logged-out state.
-            router.push('/auth/login');
-            toast({ title: "Logged Out", description: "You have been successfully logged out." });
-        } catch (error) {
-            toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
-        }
+        toast({ 
+            title: "Logout Disabled", 
+            description: "You cannot log out from the demo account.",
+            variant: "destructive"
+        });
     };
 
     return (

@@ -1,10 +1,9 @@
 
 'use client';
 
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
-import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import type { DocumentData } from 'firebase/firestore';
 import { mockUserData, mockQuizHistory, type QuizAttempt } from '@/lib/mockData';
 
 interface AuthContextType {
@@ -32,9 +31,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userData, setUserData] = useState<DocumentData | null>(mockUserData);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(mockQuizHistory);
 
-  const [isAuthResolved, setIsAuthResolved] = useState(true);
-  const [isUserDataLoading, setIsUserDataLoading] = useState(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  // Since this is a demo with a permanent mock user, loading states are always false.
+  const isUserDataLoading = false;
+  const isHistoryLoading = false;
   
   const updateUserData = useCallback((newData: Partial<DocumentData>) => {
     setUserData(prevData => ({ ...prevData, ...newData }));
@@ -42,18 +41,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const addQuizAttempt = useCallback((attempt: QuizAttempt) => {
     setQuizHistory(prevHistory => {
-        // Add new attempt to the beginning of the array
         const newHistory = [attempt, ...(prevHistory || [])];
-        console.log("New quiz history:", newHistory);
         return newHistory;
     });
   }, []);
   
-  // No-op useEffects as we are using mock data
-  useEffect(() => {
-    // This would handle real auth state changes
-  }, []);
-
   const calculatedStats = useMemo(() => {
     if (!quizHistory) return { quizzesPlayed: 0, perfectScores: 0, totalRewards: 0 };
 
@@ -72,13 +64,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!userData) return null;
     
     const newStats = calculatedStats;
-    // We update the userData state if the calculated stats are different from what's stored
     if (
       userData.quizzesPlayed !== newStats.quizzesPlayed ||
       userData.perfectScores !== newStats.perfectScores ||
       userData.totalRewards !== newStats.totalRewards
     ) {
-      // Return a new object to trigger re-renders, but don't call setUserData here to avoid render loops
       return {
         ...userData,
         ...newStats
@@ -90,17 +80,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [userData, calculatedStats]);
   
   useEffect(() => {
-      // This effect syncs the calculated stats back to the main userData state
-      // It runs only when `enhancedUserData` changes.
       setUserData(enhancedUserData);
   }, [enhancedUserData]);
 
-  // Unified loading flag, always false with mock data
-  const loading = useMemo(() => {
-    return !isAuthResolved || (user?.uid && (isUserDataLoading || isHistoryLoading));
-  }, [isAuthResolved, user?.uid, isUserDataLoading, isHistoryLoading]);
+  const loading = false; // Never in a loading state for the demo account
 
-  // Profile completeness check
   const isProfileComplete = useMemo(() => {
     if (!userData) {
       return false;
