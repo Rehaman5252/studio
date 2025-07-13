@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -7,6 +8,7 @@ import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react'
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 
 export default function CertificatesContent() {
@@ -43,36 +45,70 @@ export default function CertificatesContent() {
   }, [quizHistory]);
 
   const handleDownload = (cert: typeof certificates[0]) => {
-    const certificateText = `
-    *****************************************
-          CERTIFICATE OF ACHIEVEMENT
-    *****************************************
+    const doc = new jsPDF();
 
-    This certifies that
-    ${userData?.name || 'Valued Player'}
+    // Add a border
+    doc.setDrawColor(34, 139, 34); // Forest Green
+    doc.setLineWidth(1.5);
+    doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
 
-    has successfully achieved a perfect score in the
-    ${cert.format} Quiz (${cert.brand})
+    // Add title
+    doc.setFontSize(26);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(34, 139, 34);
+    doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
 
-    Awarded on: ${cert.date}
-    Quiz Slot: ${cert.slot}
+    // Add introductory text
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
+    
+    // Add user's name
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 69, 0); // Sunset Orange
+    doc.text(userData?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
+    
+    // Add achievement details
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text('has successfully achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
+    
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${cert.format} Quiz (${cert.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
+    
+    // Add date and slot
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Awarded on: ${cert.date}`, 30, 130);
+    doc.text(`Quiz Slot: ${cert.slot}`, 30, 137);
 
-    CricBlitz - The Ultimate Cricket Quiz
-    `;
+    // Add signature line
+    doc.setLineWidth(0.5);
+    doc.line(130, 135, 180, 135);
+    doc.setFontSize(10);
+    doc.text('Authorized Signature', 135, 140);
 
-    const blob = new Blob([certificateText.trim()], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `CricBlitz_${cert.format}_Certificate.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
 
+    // Add footer
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(34, 139, 34);
+    doc.text('CricBlitz', doc.internal.pageSize.width / 2, 160, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150, 150, 150);
+    doc.text('The Ultimate Cricket Quiz', doc.internal.pageSize.width / 2, 165, { align: 'center' });
+    
+    doc.save(`CricBlitz_${cert.format}_Certificate.pdf`);
+    
     toast({
         title: "Download Started",
-        description: "Your certificate is being downloaded.",
+        description: "Your certificate is being downloaded as a PDF.",
     });
   };
 
