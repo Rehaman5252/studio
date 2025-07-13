@@ -57,6 +57,12 @@ const nextConfig: NextConfig = {
         hostname: 'www.pngkey.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'logolook.net',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

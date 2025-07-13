@@ -21,7 +21,7 @@ export const brandData: CubeBrand[] = [
         id: 2,
         brand: 'State Bank of India',
         format: 'IPL',
-        logoUrl: 'https://www.pngkey.com/png/full/29-291107_sbi-logo-sbi-logo-white-png.png',
+        logoUrl: 'https://logolook.net/wp-content/uploads/2021/11/SBI-Logo-White.png',
         logoWidth: 80,
         logoHeight: 80,
     },
