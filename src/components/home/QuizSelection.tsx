@@ -23,15 +23,62 @@ import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
 
+const faceRotations = [
+    { x: 0, y: 0 },    // Front
+    { x: 0, y: -90 },  // Right
+    { x: 0, y: -180 }, // Back
+    { x: 0, y: 90 },   // Left
+    { x: -90, y: 0 },  // Top
+    { x: 90, y: 0 }    // Bottom
+];
+
 const QuizSelectionComponent = () => {
     const { user, isProfileComplete, isUserDataLoading } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
-
+    
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
+    const [rotation, setRotation] = useState({ x: 0, y: 0 });
+    const [isChanging, setIsChanging] = useState(false);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
+
+    const handleRotation = useCallback(() => {
+        if (isChanging) return;
     
+        setIsChanging(true);
+        const randomIndex = Math.floor(Math.random() * brandData.length);
+        const newBrand = brandData[randomIndex];
+        const newRotation = faceRotations[randomIndex];
+        
+        setRotation(newRotation);
+        setSelectedBrand(newBrand);
+        
+        setTimeout(() => {
+            setIsChanging(false);
+        }, 125); // Match this to the cube's transition duration in globals.css
+    }, [isChanging]);
+
+    useEffect(() => {
+        const rotate = () => {
+            handleRotation();
+            // Set a random timeout for the next rotation
+            const randomInterval = Math.random() * (7000 - 3000) + 3000; // between 3 and 7 seconds
+            setTimeout(rotate, randomInterval);
+        };
+
+        // Start the first rotation after a short delay
+        const initialTimeout = setTimeout(rotate, 3000);
+
+        // Cleanup function to clear the timeout if the component unmounts
+        return () => {
+            clearTimeout(initialTimeout);
+            // Since we're using recursive setTimeouts, we don't have an interval ID to clear,
+            // but the chain will stop because the component is unmounted.
+        };
+    }, [handleRotation]);
+
+
     const handleStartQuiz = useCallback(() => {
         if (!user || !isProfileComplete) {
             setShowAuthAlert(true);
@@ -45,8 +92,16 @@ const QuizSelectionComponent = () => {
     }, [router, user, isProfileComplete, lastAttemptInSlot, selectedBrand]);
     
     const handleSelectBrand = useCallback((brand: CubeBrand) => {
-        setSelectedBrand(brand);
-    }, []);
+        if (isChanging) return;
+        setIsChanging(true);
+
+        const brandIndex = brandData.findIndex(b => b.id === brand.id);
+        if (brandIndex !== -1) {
+            setRotation(faceRotations[brandIndex]);
+            setSelectedBrand(brand);
+        }
+        setTimeout(() => setIsChanging(false), 125);
+    }, [isChanging]);
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
@@ -84,11 +139,11 @@ const QuizSelectionComponent = () => {
         <>
             <div className="text-center mb-8 -mt-8">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Hover to pause, click a face to play</p>
+                <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
             
             <div className="flex justify-center items-center mt-20 mb-12 h-48 w-full transition-transform duration-300 hover:scale-105">
-                <BrandCube onFaceClick={handleSelectBrand} onQuizStart={handleStartQuiz} />
+                <BrandCube onFaceClick={handleSelectBrand} rotation={rotation} />
             </div>
 
             <SelectedBrandCard 

@@ -145,9 +145,6 @@
   /* 3D Cube Styles */
   .scene {
     perspective: 800px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
   }
 
   .cube {
@@ -155,20 +152,7 @@
     height: 150px;
     position: relative;
     transform-style: preserve-3d;
-    animation: continuous-spin 20s linear infinite;
-  }
-  
-  .cube:hover {
-    animation-play-state: paused;
-  }
-
-  @keyframes continuous-spin {
-    from {
-      transform: rotateY(0deg) rotateX(10deg);
-    }
-    to {
-      transform: rotateY(360deg) rotateX(370deg);
-    }
+    transition: transform 0.125s ease-in-out;
   }
 
   .cube-face {
@@ -182,7 +166,7 @@
     border: 2px solid transparent;
     border-radius: 12px;
     color: hsl(var(--foreground));
-    transition: box-shadow 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out;
+    transition: box-shadow 0.25s ease-in-out, border-color 0.25s ease-in-out, color 0.25s ease-in-out;
   }
   
   .cube-face:hover {
