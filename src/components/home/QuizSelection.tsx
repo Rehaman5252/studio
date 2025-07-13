@@ -35,7 +35,7 @@ const QuizSelectionComponent = () => {
     
     useEffect(() => {
         const interval = setInterval(() => {
-            setRotation(prev => prev - 60);
+            setRotation(prev => prev - 60); // Increment rotation for continuous spin
             setSelectedBrand(prevBrand => {
                 const currentIndex = brandData.findIndex(b => b.id === prevBrand.id);
                 const nextIndex = (currentIndex + 1) % brandData.length;
@@ -97,10 +97,6 @@ const QuizSelectionComponent = () => {
             </div>
 
             <BrandCube rotation={rotation} />
-
-            <div className="text-center mt-4 mb-8">
-                <p className="text-lg font-bold text-primary">{selectedBrand.format}</p>
-            </div>
             
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 

@@ -27,16 +27,18 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
       >
         {faces.map((face) => (
           <div key={face.brand.id} className={`cube-face ${face.class}`}>
-             <div className="w-24 h-24 rounded-full flex items-center justify-center p-2 shadow-inner bg-white">
-                <Image
-                    src={face.brand.logoUrl}
-                    alt={`${face.brand.brand} logo`}
-                    data-ai-hint="cricket logo"
-                    width={face.brand.logoWidth}
-                    height={face.brand.logoHeight}
-                    className="object-contain"
-                    priority
-                />
+             <div className="w-24 h-24 rounded-full flex flex-col items-center justify-center p-2 shadow-inner bg-white text-black">
+                <div className="w-full h-1/2 relative">
+                    <Image
+                        src={face.brand.logoUrl}
+                        alt={`${face.brand.brand} logo`}
+                        data-ai-hint="cricket logo"
+                        fill
+                        className="object-contain"
+                        priority
+                    />
+                </div>
+                <p className="font-bold text-lg text-primary mt-1">{face.brand.format}</p>
             </div>
           </div>
         ))}
