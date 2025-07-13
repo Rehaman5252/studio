@@ -20,14 +20,14 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
   ];
 
   return (
-    <div className="scene h-52 w-full flex items-center justify-center">
+    <div className="scene h-52 w-52">
       <div
         className="cube"
         style={{ transform: `rotateY(${rotation}deg) rotateX(-15deg)` }}
       >
         {faces.map((face) => (
           <div key={face.brand.id} className={`cube-face ${face.class}`}>
-             <div className="w-24 h-24 rounded-full flex flex-col items-center justify-center p-2 shadow-inner bg-white text-black">
+             <div className="w-full h-full rounded-full flex flex-col items-center justify-center p-2 shadow-inner bg-white text-black">
                 <div className="w-full h-1/2 relative">
                     <Image
                         src={face.brand.logoUrl}

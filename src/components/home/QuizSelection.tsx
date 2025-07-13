@@ -22,6 +22,7 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
+import MovingBanner from './MovingBanner';
 
 const QuizSelectionComponent = () => {
     const { user, isProfileComplete, isUserDataLoading } = useAuth();
@@ -35,7 +36,7 @@ const QuizSelectionComponent = () => {
     
     useEffect(() => {
         const interval = setInterval(() => {
-            setRotation(prev => prev - 60); // Increment rotation for continuous spin
+            setRotation(prev => prev - 60); 
             setSelectedBrand(prevBrand => {
                 const currentIndex = brandData.findIndex(b => b.id === prevBrand.id);
                 const nextIndex = (currentIndex + 1) % brandData.length;
@@ -95,9 +96,13 @@ const QuizSelectionComponent = () => {
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
                 <p className="text-sm text-muted-foreground">The cube will decide your fate!</p>
             </div>
-
-            <BrandCube rotation={rotation} />
             
+            <div className="flex justify-center items-center my-4 h-52">
+                <BrandCube rotation={rotation} />
+            </div>
+            
+            <MovingBanner />
+
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
                 onClick={handleStartQuiz} 
