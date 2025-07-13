@@ -123,7 +123,7 @@ const QuizSelectionComponent = () => {
                 <p className="text-sm text-muted-foreground">click the face of cube to play</p>
             </div>
             
-            <div className="flex justify-center items-center my-10 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
+            <div className="flex justify-center items-center my-12 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
                 <BrandCube rotation={rotation} />
             </div>
 
