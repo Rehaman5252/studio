@@ -15,7 +15,7 @@ import { motion } from 'framer-motion';
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
   // Create a unique key for each specific quiz attempt
-  const storageKey = `scratch-card-${slotId}-${brand}-${timestamp}`;
+  const storageKey = useMemo(() => `scratch-card-${slotId}-${brand}-${timestamp}`, [slotId, brand, timestamp]);
 
   useEffect(() => {
     const savedState = localStorage.getItem(storageKey);
@@ -123,8 +123,8 @@ const BrandGiftsSection = memo(({ perfectScoreAttempts }: { perfectScoreAttempts
           className="w-full max-w-full"
       >
           <CarouselContent className="-ml-4">
-              {perfectScoreAttempts.map((attempt) => (
-              <CarouselItem key={`${attempt.brand}-${attempt.timestamp}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+              {perfectScoreAttempts.map((attempt, index) => (
+              <CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
                   <ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} />
               </CarouselItem>
               ))}

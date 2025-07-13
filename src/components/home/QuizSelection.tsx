@@ -73,7 +73,7 @@ const QuizSelectionComponent = () => {
             
             setRotation(newRotation);
             setSelectedBrand(newBrand);
-        }, 4500); // Rotate every 4.5 seconds
+        }, 750); // 4.5 seconds / 6 faces = 0.75 seconds per face
 
         return () => clearInterval(intervalId);
     }, []);

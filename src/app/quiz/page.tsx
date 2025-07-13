@@ -83,7 +83,7 @@ function QuizComponent() {
     };
 
     try {
-        addQuizAttempt(attemptData);
+        await addQuizAttempt(attemptData);
         // Using replace to prevent back navigation to the quiz
         router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
     } catch (error) {
