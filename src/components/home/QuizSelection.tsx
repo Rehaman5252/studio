@@ -77,8 +77,8 @@ function QuizSelectionComponent() {
     return (
         <>
             <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold">Today's Challenge</h2>
-                <p className="text-sm text-muted-foreground">A mixed-format quiz to test your all-round knowledge.</p>
+                <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
+                <p className="text-sm text-muted-foreground">click on the face of cube</p>
             </div>
             
              <Card 
