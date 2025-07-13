@@ -94,19 +94,20 @@ const QuizSelectionComponent = () => {
             setRotation(newRotation);
             setSelectedBrand(newBrand);
 
-            setTimeout(() => {
+            // This schedules the next rotation after this one is complete
+            timeoutId = setTimeout(() => {
                 setIsChanging(false);
-            }, 500);
-            
-            const randomDelay = Math.random() * 1000 + 500; // 0.5 to 1.5 seconds
-            timeoutId = setTimeout(setRandomRotation, randomDelay);
+                setRandomRotation(); 
+            }, Math.random() * 1000 + 500); // 0.5 to 1.5 seconds
         };
         
-        const randomDelay = Math.random() * 1000 + 500;
-        timeoutId = setTimeout(setRandomRotation, randomDelay);
+        // Start the first rotation
+        const initialDelay = Math.random() * 1000 + 500;
+        timeoutId = setTimeout(setRandomRotation, initialDelay);
 
         return () => clearTimeout(timeoutId);
-    }, [isChanging]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
