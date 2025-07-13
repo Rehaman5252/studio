@@ -120,7 +120,7 @@ const QuizSelectionComponent = () => {
         <>
             <div className="text-center mb-4">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">The cube will decide your fate!</p>
+                <p className="text-sm text-muted-foreground">click the face of cube to play</p>
             </div>
             
             <div className="flex justify-center items-center my-10 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
