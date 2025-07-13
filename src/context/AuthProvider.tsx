@@ -70,13 +70,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           unsubscribeUser();
           unsubscribeHistory();
       };
-    } else if (!isAuthLoading) {
+    } else {
+      // No user is signed in.
       setUserData(null);
       setQuizHistory(null);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
     }
-  }, [user, isAuthLoading]);
+  }, [user]);
 
   const loading = isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
 
