@@ -4,25 +4,24 @@
 import React, { useEffect } from 'react';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { useAuth } from '@/context/AuthProvider';
-import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 function ProfilePageContentWrapper() {
-  const { user, userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
+  const { user, userData, loading: authLoading } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
-    // Wait until the initial auth check is done
-    if (!isAuthLoading && user === null) {
+    // Wait until the initial auth check is done, then redirect if not logged in.
+    if (!authLoading && !user) {
       router.replace('/auth/login');
     }
-  }, [user, isAuthLoading, router]);
+  }, [user, authLoading, router]);
 
-  const isLoading = isAuthLoading || isUserDataLoading;
-
-  if (isLoading || !user) {
+  // The primary loading condition should be the presence of user data.
+  // The auth check (authLoading) is handled by the redirect logic.
+  if (!userData) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -41,7 +40,7 @@ function ProfilePageContentWrapper() {
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        {isUserDataLoading ? <ProfileSkeleton /> : <ProfileContent userProfile={userData} />}
+        <ProfileContent userProfile={userData} />
       </main>
     </motion.div>
   );
