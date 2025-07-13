@@ -157,8 +157,8 @@
 
   .cube-face {
     position: absolute;
-    width: 200px;
-    height: 200px;
+    width: 150px;
+    height: 150px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -168,21 +168,21 @@
   }
 
   .cube-face-front {
-    transform: rotateY(0deg) translateZ(100px);
+    transform: rotateY(0deg) translateZ(75px);
   }
   .cube-face-right {
-    transform: rotateY(90deg) translateZ(100px);
+    transform: rotateY(90deg) translateZ(75px);
   }
   .cube-face-back {
-    transform: rotateY(180deg) translateZ(100px);
+    transform: rotateY(180deg) translateZ(75px);
   }
   .cube-face-left {
-    transform: rotateY(-90deg) translateZ(100px);
+    transform: rotateY(-90deg) translateZ(75px);
   }
   .cube-face-top {
-    transform: rotateX(90deg) translateZ(100px);
+    transform: rotateX(90deg) translateZ(75px);
   }
   .cube-face-bottom {
-    transform: rotateX(-90deg) translateZ(100px);
+    transform: rotateX(-90deg) translateZ(75px);
   }
 }
