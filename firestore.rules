@@ -1,23 +1,20 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read and write to their own document.
+    
+    // Users can read and write to their own user document.
     match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Users can only read and write their own quiz history.
+    
+    // Users can create and update their own quiz history document.
     match /quizHistory/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Live leaderboard can be read by anyone, but only written to by authenticated users.
-    // This assumes a server-side process or Cloud Function handles the writes,
-    // but for client-side, we can restrict writes to authenticated users.
-    // A more secure rule would be `allow write: if false;` and use a backend.
+    
+    // Live leaderboard data can be read by anyone, but only written to by authenticated users.
+    // This is a simplified rule for the demo. In production, you'd likely use a Cloud Function.
     match /liveLeaderboard/{slotId}/{entry} {
       allow read: if true;
       allow write: if request.auth != null;

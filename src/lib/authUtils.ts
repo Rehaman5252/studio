@@ -33,7 +33,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         profileCompleted: false,
         phoneVerified: false,
         emailVerified: user.emailVerified,
-        guidedTourCompleted: false, // New field for the tour
+        guidedTourCompleted: false,
         totalRewards: 0,
         quizzesPlayed: 0,
         perfectScores: 0,
@@ -59,7 +59,6 @@ export async function handleGoogleSignIn() {
     const user = result.user;
     if (!user) throw new Error('No user returned from Google Sign-In.');
     
-    // Ensure document is created, setting emailVerified to true for Google accounts
     await createUserDocument(user, { emailVerified: true });
     
     toast({ title: "Signed In", description: `Welcome, ${user.displayName}!` });
@@ -85,7 +84,6 @@ export const registerWithEmail = async (email: string, password: string) => {
 export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Ensure document exists on login as well, just in case.
     await createUserDocument(userCredential.user);
     return userCredential;
 };
