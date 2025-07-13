@@ -12,17 +12,30 @@ import ProfileCompletion from './ProfileCompletion';
 import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider';
+
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     const router = useRouter();
 
     const handleLogout = async () => {
-        toast({ 
-            title: "Logout Disabled", 
-            description: "You cannot log out from the demo account.",
-            variant: "destructive"
-        });
+        try {
+            await signOut(auth);
+            toast({ 
+                title: "Signed Out", 
+                description: "You have been logged out successfully.",
+            });
+            router.push('/auth/login');
+        } catch (error) {
+             toast({ 
+                title: "Logout Failed", 
+                description: "Could not log you out. Please try again.",
+                variant: "destructive"
+            });
+        }
     };
 
     return (

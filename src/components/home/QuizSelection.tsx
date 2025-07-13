@@ -48,7 +48,11 @@ const QuizSelectionComponent = () => {
     }, [user, lastAttemptInSlot]);
 
     const handleStartQuiz = useCallback((brandToStart: CubeBrand) => {
-        if (!user || !isProfileComplete) {
+        if (!user) {
+            router.push(`/auth/login?from=/home`);
+            return;
+        }
+        if (!isProfileComplete) {
             setShowAuthAlert(true);
             return;
         }
@@ -94,7 +98,7 @@ const QuizSelectionComponent = () => {
   
     const handleAuthAlertAction = () => {
         if (!user) {
-            router.push('/auth/login');
+            router.push('/auth/login?from=/home');
         } else {
             router.push('/complete-profile');
         }

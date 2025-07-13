@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { type DocumentData } from 'firebase/firestore';
+import type { DocumentData } from 'firebase/firestore';
 import { Loader2, X, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,16 +55,12 @@ export default function CompleteProfileForm() {
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: userData?.name || '',
-            email: userData?.email || '',
-            phone: userData?.phone || '',
-            dob: userData?.dob || '',
-            upi: userData?.upi || '',
-            favoriteCricketer: userData?.favoriteCricketer || '',
-            gender: userData?.gender,
-            occupation: userData?.occupation,
-            favoriteFormat: userData?.favoriteFormat,
-            favoriteTeam: userData?.favoriteTeam,
+            name: '',
+            email: user?.email || '',
+            phone: '',
+            dob: '',
+            upi: '',
+            favoriteCricketer: '',
         },
     });
     
@@ -75,7 +71,7 @@ export default function CompleteProfileForm() {
         if (userData) {
             form.reset({
                 name: userData.name || '',
-                email: userData.email || '',
+                email: userData.email || user?.email || '',
                 phone: userData.phone || '',
                 dob: userData.dob || '',
                 gender: userData.gender,
@@ -86,8 +82,14 @@ export default function CompleteProfileForm() {
                 favoriteCricketer: userData.favoriteCricketer || '',
             });
             setPhoneVerifiedInForm(userData.phoneVerified);
+        } else if (user) {
+            form.reset({
+                ...form.getValues(),
+                email: user.email || '',
+                name: user.displayName || '',
+            })
         }
-    }, [userData, form.reset]);
+    }, [userData, user, form]);
     
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user) {
@@ -112,7 +114,7 @@ export default function CompleteProfileForm() {
             };
 
             if (updateUserData) {
-                updateUserData(finalPayload);
+                await updateUserData(finalPayload);
             }
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});

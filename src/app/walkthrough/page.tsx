@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Home, Zap, Award, BarChart3, Gift, Lightbulb } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
+import { Loader2 } from 'lucide-react';
 
 const tourSteps = [
   {
@@ -44,7 +45,7 @@ const tourSteps = [
 const WalkthroughPage = () => {
   const [step, setStep] = useState(0);
   const router = useRouter();
-  const { userData, updateUserData } = useAuth();
+  const { user, userData, updateUserData, isUserDataLoading } = useAuth();
   
   const handleNext = () => {
     if (step < tourSteps.length - 1) {
@@ -54,21 +55,26 @@ const WalkthroughPage = () => {
     }
   };
 
-  const finishTour = () => {
-    if (updateUserData) {
-      updateUserData({ guidedTourCompleted: true });
+  const finishTour = async () => {
+    if (user && updateUserData) {
+      await updateUserData({ guidedTourCompleted: true });
     }
     router.replace('/home');
   };
   
-  // This is a failsafe. If a user has completed the tour and somehow lands here,
-  // or if the userData is slow to load, we don't want them stuck.
   useEffect(() => {
-    if (userData?.guidedTourCompleted) {
+    if (!isUserDataLoading && userData?.guidedTourCompleted) {
       router.replace('/home');
     }
-  }, [userData, router]);
+  }, [userData, isUserDataLoading, router]);
 
+  if (isUserDataLoading) {
+     return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+  }
 
   const currentStep = tourSteps[step];
   const Icon = currentStep.icon;

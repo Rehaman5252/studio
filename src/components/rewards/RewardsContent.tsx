@@ -12,9 +12,9 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-const ScratchCard = memo(({ brand }: { brand: string }) => {
+const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) => {
   const [isScratched, setIsScratched] = useState(false);
-  const storageKey = `scratch-card-${brand}`;
+  const storageKey = `scratch-card-${slotId}-${brand}`;
 
   useEffect(() => {
     const savedState = localStorage.getItem(storageKey);
@@ -121,8 +121,8 @@ const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: 
       >
           <CarouselContent className="-ml-4">
               {uniqueBrandAttempts.map((attempt) => (
-              <CarouselItem key={attempt.brand} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                  <ScratchCard brand={attempt.brand} />
+              <CarouselItem key={`${attempt.brand}-${attempt.slotId}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                  <ScratchCard brand={attempt.brand} slotId={attempt.slotId} />
               </CarouselItem>
               ))}
           </CarouselContent>
@@ -155,17 +155,11 @@ GenericOffersSection.displayName = 'GenericOffersSection';
 export default function RewardsContent() {
   const { user, quizHistory, isHistoryLoading } = useAuth();
   
-  const uniqueBrandAttempts = useMemo(() => {
-    const history = (quizHistory as QuizAttempt[]) || [];
-    const seenBrands = new Set<string>();
-    return history.filter(attempt => {
-        if (!attempt.brand || seenBrands.has(attempt.brand)) {
-            return false;
-        } else {
-            seenBrands.add(attempt.brand);
-            return true;
-        }
-    });
+  const perfectScoreAttempts = useMemo(() => {
+    if (!quizHistory) return [];
+    return (quizHistory as QuizAttempt[]).filter(attempt => 
+        attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason
+    );
   }, [quizHistory]);
 
 
@@ -199,7 +193,7 @@ export default function RewardsContent() {
                     </div>
                 </section>
             ) : (
-                <BrandGiftsSection uniqueBrandAttempts={uniqueBrandAttempts} />
+                <BrandGiftsSection uniqueBrandAttempts={perfectScoreAttempts} />
             )
         )}
         

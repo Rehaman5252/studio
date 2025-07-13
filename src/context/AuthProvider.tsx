@@ -3,8 +3,11 @@
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
-import type { DocumentData } from 'firebase/firestore';
-import { mockUserData, mockQuizHistory, type QuizAttempt } from '@/lib/mockData';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion, serverTimestamp, type DocumentData } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import type { QuizAttempt } from '@/lib/mockData';
+import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -14,8 +17,8 @@ interface AuthContextType {
   loading: boolean;
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
-  updateUserData: (newData: Partial<DocumentData>) => void;
-  addQuizAttempt: (attempt: QuizAttempt) => void;
+  updateUserData: (newData: Partial<DocumentData>) => Promise<void>;
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,80 +28,118 @@ const MANDATORY_PROFILE_FIELDS = [
   'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(mockUserData as any);
-  const [userData, setUserData] = useState<DocumentData | null>(mockUserData);
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(mockQuizHistory);
+  const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<DocumentData | null>(null);
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
-  // Since this is a demo with a permanent mock user, loading states are always false.
-  const isUserDataLoading = false;
-  const isHistoryLoading = false;
-  
-  const updateUserData = useCallback((newData: Partial<DocumentData>) => {
-    setUserData(prevData => ({ ...prevData, ...newData }));
-  }, []);
-  
-  const addQuizAttempt = useCallback((attempt: QuizAttempt) => {
-    setQuizHistory(prevHistory => {
-        const newHistory = [attempt, ...(prevHistory || [])];
-        return newHistory;
-    });
-  }, []);
-  
-  const calculatedStats = useMemo(() => {
-    if (!quizHistory) return { quizzesPlayed: 0, perfectScores: 0, totalRewards: 0 };
-
-    const quizzesPlayed = quizHistory.length;
-    const perfectScores = quizHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason).length;
-    
-    // Assuming 100 for each perfect score
-    const scoreRewards = perfectScores * 100;
-    const referralEarnings = userData?.referralEarnings || 0;
-    const totalRewards = scoreRewards + referralEarnings;
-
-    return { quizzesPlayed, perfectScores, totalRewards };
-  }, [quizHistory, userData?.referralEarnings]);
-
-  const enhancedUserData = useMemo(() => {
-    if (!userData) return null;
-    
-    const newStats = calculatedStats;
-    if (
-      userData.quizzesPlayed !== newStats.quizzesPlayed ||
-      userData.perfectScores !== newStats.perfectScores ||
-      userData.totalRewards !== newStats.totalRewards
-    ) {
-      return {
-        ...userData,
-        ...newStats
-      };
-    }
-    
-    return userData;
-
-  }, [userData, calculatedStats]);
-  
   useEffect(() => {
-      setUserData(enhancedUserData);
-  }, [enhancedUserData]);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+      if (user) {
+        // Ensure user document exists before setting up listeners
+        await createUserDocument(user);
+      }
+      setLoading(false);
+    });
 
-  const loading = false; // Never in a loading state for the demo account
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user?.uid) {
+      setIsUserDataLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubUser = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          setUserData(doc.data());
+        } else {
+          setUserData(null);
+        }
+        setIsUserDataLoading(false);
+      });
+
+      setIsHistoryLoading(true);
+      const historyDocRef = doc(db, 'quizHistory', user.uid);
+      const unsubHistory = onSnapshot(historyDocRef, (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setQuizHistory(data.attempts || []);
+        } else {
+          setQuizHistory([]);
+        }
+        setIsHistoryLoading(false);
+      });
+
+      return () => {
+        unsubUser();
+        unsubHistory();
+      };
+    } else {
+      setUserData(null);
+      setQuizHistory(null);
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
+    }
+  }, [user]);
+
+  const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
+    if (!user) return;
+    const userDocRef = doc(db, 'users', user.uid);
+    await updateDoc(userDocRef, {
+      ...newData,
+      updatedAt: serverTimestamp(),
+    });
+  }, [user]);
+
+  const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
+    if (!user) return;
+    const historyDocRef = doc(db, 'quizHistory', user.uid);
+    
+    try {
+        const docSnap = await getDoc(historyDocRef);
+        if (docSnap.exists()) {
+            await updateDoc(historyDocRef, {
+                attempts: arrayUnion(attempt)
+            });
+        } else {
+            await setDoc(historyDocRef, { attempts: [attempt] });
+        }
+
+        // Also update the summary stats on the user document
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+            const currentData = userDocSnap.data();
+            const isPerfect = attempt.score === attempt.totalQuestions;
+            const newStats = {
+                quizzesPlayed: (currentData.quizzesPlayed || 0) + 1,
+                perfectScores: (currentData.perfectScores || 0) + (isPerfect ? 1 : 0),
+                totalRewards: (currentData.totalRewards || 0) + (isPerfect ? 100 : 0)
+            };
+            await updateDoc(userDocRef, newStats);
+        }
+
+    } catch (error) {
+        console.error("Error adding quiz attempt:", error);
+    }
+
+  }, [user]);
 
   const isProfileComplete = useMemo(() => {
-    if (!userData) {
-      return false;
-    }
-    const missingFields = MANDATORY_PROFILE_FIELDS.filter(field => !userData[field]);
-    return missingFields.length === 0;
+    if (!userData) return false;
+    return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
   const value = {
     user,
-    userData: enhancedUserData,
+    userData,
     quizHistory,
     isProfileComplete,
-    loading,
+    loading: loading || (!!user && (isUserDataLoading || isHistoryLoading)),
     isUserDataLoading,
     isHistoryLoading,
     updateUserData,
