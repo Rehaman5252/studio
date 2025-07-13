@@ -5,48 +5,48 @@
 
 @layer base {
   :root {
-    --background: 120 60% 97%; /* Pale Green */
-    --foreground: 222 84% 4%;
-    --card: 120 60% 99%;
-    --card-foreground: 222 84% 4%;
-    --popover: 120 60% 97%;
-    --popover-foreground: 222 84% 4%;
-    --primary: 120 61% 34%; /* Forest Green */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 120 40% 88%;
-    --secondary-foreground: 120 61% 34%;
-    --muted: 120 40% 88%;
-    --muted-foreground: 222 84% 20%;
-    --accent: 16 100% 50%; /* Sunset Orange */
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 120 60% 85%;
-    --input: 120 60% 85%;
-    --ring: 120 61% 34%;
+    --background: 240 10% 3.9%; /* Rich Black */
+    --foreground: 0 0% 98%; /* Almost White */
+    --card: 240 4.8% 12%; /* Darker Card background */
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 45 93% 58%; /* Gold */
+    --primary-foreground: 240 10% 3.9%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 45 93% 58%; /* Gold */
+    --accent-foreground: 240 10% 3.9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 45 93% 58%;
     --radius: 0.8rem;
   }
  
   .dark {
-    --background: 120 60% 97%; /* Pale Green */
-    --foreground: 222 84% 4%;
-    --card: 120 60% 99%;
-    --card-foreground: 222 84% 4%;
-    --popover: 120 60% 97%;
-    --popover-foreground: 222 84% 4%;
-    --primary: 120 61% 34%; /* Forest Green */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 120 40% 88%;
-    --secondary-foreground: 120 61% 34%;
-    --muted: 120 40% 88%;
-    --muted-foreground: 222 84% 20%;
-    --accent: 16 100% 50%; /* Sunset Orange */
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 120 60% 85%;
-    --input: 120 60% 85%;
-    --ring: 120 61% 34%;
+    --background: 240 10% 3.9%; /* Rich Black */
+    --foreground: 0 0% 98%; /* Almost White */
+    --card: 240 4.8% 12%; /* Darker Card background */
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 45 93% 58%; /* Gold */
+    --primary-foreground: 240 10% 3.9%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 45 93% 58%; /* Gold */
+    --accent-foreground: 240 10% 3.9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 45 93% 58%;
   }
 }
 

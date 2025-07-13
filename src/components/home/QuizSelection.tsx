@@ -43,6 +43,20 @@ const QuizSelectionComponent = () => {
     const [rotation, setRotation] = useState({ x: 0, y: 0 });
     const [isChanging, setIsChanging] = useState(false);
     
+    const handleStartQuiz = useCallback(() => {
+        if (isChanging) return; 
+
+        if (!user || !isProfileComplete) {
+            setShowAuthAlert(true);
+            return;
+        }
+        if (hasPlayedInCurrentSlot) {
+            setShowSlotPlayedAlert(true);
+        } else {
+            router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
+        }
+    }, [router, user, isProfileComplete, lastAttemptInSlot, selectedBrand, isChanging]);
+    
     const handleSelectBrand = useCallback((brand: CubeBrand) => {
         const brandIndex = brandData.findIndex(b => b.id === brand.id);
         if (brandIndex === -1) return;
@@ -78,19 +92,6 @@ const QuizSelectionComponent = () => {
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
-    const handleStartQuiz = useCallback(() => {
-        if (isChanging) return; 
-
-        if (!user || !isProfileComplete) {
-            setShowAuthAlert(true);
-            return;
-        }
-        if (hasPlayedInCurrentSlot) {
-            setShowSlotPlayedAlert(true);
-        } else {
-            router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
-        }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand, isChanging]);
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -122,7 +123,7 @@ const QuizSelectionComponent = () => {
         <>
             <div className="text-center mb-8 -mt-8">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">click the face of cube to play</p>
+                <p className="text-sm text-muted-foreground">Click the cube face to play</p>
             </div>
             
             <div className="flex justify-center items-center mt-20 mb-12 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">

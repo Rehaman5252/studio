@@ -35,7 +35,7 @@ export const mockUserData = {
     quizzesPlayed: 4,
     perfectScores: 1,
     totalRewards: 150,
-    referralCode: 'cricblitz.com/ref/mock123',
+    referralCode: 'indcric.com/ref/mock123',
     referralEarnings: 50,
 };
 
