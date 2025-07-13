@@ -42,11 +42,13 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         referralEarnings: 0,
         ...additionalData
       };
+      // This is the critical part - if this fails, we need to throw an error
       await setDoc(userRef, defaultData);
     }
   } catch (error) {
       console.error("Error creating user document:", error);
-      toast({ title: "Database Error", description: "Could not create user profile.", variant: "destructive" });
+      // Re-throw the error so the calling function can handle it
+      throw new Error("Could not create user profile in the database.");
   }
 }
 
@@ -84,6 +86,7 @@ export const registerWithEmail = async (email: string, password: string) => {
 export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    await createUserDocument(userCredential.user);
+    // Don't create a document on login if it might not exist.
+    // The AuthProvider handles fetching/creating the document state.
     return userCredential;
 };
