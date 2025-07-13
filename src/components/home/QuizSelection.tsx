@@ -22,23 +22,41 @@ import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import { brands } from './brandData';
-import QuizSelector from '@/components/home/QuizSelector';
+import { Card, CardContent } from '@/components/ui/card';
+import Image from 'next/image';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 
 function QuizSelectionComponent() {
     const { user, isProfileComplete } = useAuth();
     const { lastAttemptInSlot } = useQuizStatus();
     const router = useRouter();
 
+    const [api, setApi] = useState<CarouselApi>()
+    const [current, setCurrent] = useState(0)
     const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
-    const [isRotating, setIsRotating] = useState(true);
+
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
     
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
+
+    useEffect(() => {
+        if (!api) {
+          return
+        }
+    
+        setCurrent(api.selectedScrollSnap())
+        setSelectedBrandIndex(api.selectedScrollSnap())
+    
+        api.on("select", () => {
+          const selectedIndex = api.selectedScrollSnap()
+          setCurrent(selectedIndex)
+          setSelectedBrandIndex(selectedIndex)
+        })
+    }, [api])
 
     const handleStartQuiz = useCallback(() => {
         if (!user || !isProfileComplete) {
@@ -70,53 +88,40 @@ function QuizSelectionComponent() {
         }
         setShowAuthAlert(false);
     }
-
-    const resetRotationTimer = useCallback(() => {
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-        }
-        timerRef.current = setInterval(() => {
-            setIsRotating(true);
-        }, 5000); // Resume auto-rotation after 5 seconds of inactivity
-    }, []);
-
-    const handleFaceClick = useCallback((index: number) => {
-        setSelectedBrandIndex(index);
-        setIsRotating(false);
-        resetRotationTimer();
-    }, [resetRotationTimer]);
-
-    useEffect(() => {
-        if (isRotating) {
-            const rotateInterval = setInterval(() => {
-                setSelectedBrandIndex(prevIndex => (prevIndex + 1) % brands.length);
-            }, 3000); // Auto-rotate every 3 seconds
-            return () => clearInterval(rotateInterval);
-        }
-    }, [isRotating]);
-
-    useEffect(() => {
-        resetRotationTimer();
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [resetRotationTimer]);
-
+    
     const selectedBrand = brands[selectedBrandIndex];
     
     return (
         <>
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face or use the arrows to navigate!</p>
+                <p className="text-sm text-muted-foreground">Use the arrows to navigate the available quizzes!</p>
             </div>
             
-            <QuizSelector 
-                brands={brands}
-                onFaceClick={handleFaceClick}
-                visibleFaceIndex={selectedBrandIndex}
-                isRotating={isRotating}
-            />
+            <Carousel setApi={setApi} className="w-full max-w-xs mx-auto">
+              <CarouselContent>
+                {brands.map((brand, index) => (
+                  <CarouselItem key={index}>
+                    <Card>
+                      <CardContent className="flex aspect-square items-center justify-center p-6 bg-primary rounded-lg">
+                        <Image
+                            src={brand.whiteLogoUrl}
+                            alt={`${brand.brand} logo`}
+                            data-ai-hint="cricket logo"
+                            width={150}
+                            height={150}
+                            className="object-contain"
+                            priority={index === 0}
+                        />
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+
 
             <div className="mt-8 space-y-8">
                 <SelectedBrandCard
