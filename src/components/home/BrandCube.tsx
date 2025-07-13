@@ -3,13 +3,15 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { brandData } from './brandData';
+import { brandData, type CubeBrand } from './brandData';
 
 interface BrandCubeProps {
   rotation: { x: number; y: number };
+  onFaceClick: (brand: CubeBrand) => void;
+  onQuizStart: () => void;
 }
 
-const BrandCube = ({ rotation }: BrandCubeProps) => {
+const BrandCube = ({ rotation, onFaceClick, onQuizStart }: BrandCubeProps) => {
   const faces = [
     { class: 'cube-face-front', brand: brandData[0] },
     { class: 'cube-face-right', brand: brandData[1] },
@@ -19,6 +21,12 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
     { class: 'cube-face-bottom', brand: brandData[5] },
   ];
 
+  const handleFaceClick = (e: React.MouseEvent, brand: CubeBrand) => {
+    e.stopPropagation(); // Prevent the click from bubbling up if needed
+    onFaceClick(brand);
+    onQuizStart(); // Directly attempt to start the quiz
+  };
+
   return (
     <div className="scene h-full w-full">
       <div
@@ -26,7 +34,12 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
         style={{ transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
       >
         {faces.map((face) => (
-          <div key={face.brand.id} className={`cube-face ${face.class}`}>
+          <button
+            key={face.brand.id}
+            className={`cube-face ${face.class}`}
+            onClick={(e) => handleFaceClick(e, face.brand)}
+            aria-label={`Play ${face.brand.format} Quiz`}
+          >
              <div className="flex flex-col items-center justify-between p-2 text-inherit w-full h-full">
                 <div className="w-full h-2/3 relative">
                     <Image
@@ -40,7 +53,7 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
                 </div>
                 <p className="font-bold text-lg text-inherit">{face.brand.format}</p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

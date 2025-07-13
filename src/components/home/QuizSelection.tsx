@@ -43,29 +43,34 @@ const QuizSelectionComponent = () => {
     const [rotation, setRotation] = useState({ x: 0, y: 0 });
     const [isChanging, setIsChanging] = useState(false);
     
+    const handleSelectBrand = useCallback((brand: CubeBrand) => {
+        const brandIndex = brandData.findIndex(b => b.id === brand.id);
+        if (brandIndex === -1) return;
+
+        setIsChanging(true);
+        const nextRotation = faceIndexToRotation[brandIndex];
+        setRotation(nextRotation);
+
+        setTimeout(() => {
+            setSelectedBrand(brand);
+            setIsChanging(false);
+        }, 500); // Animation transition time
+    }, []);
+
     useEffect(() => {
         const rotateCube = () => {
-            setIsChanging(true);
-
             const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
             let nextBrandIndex;
             do {
                 nextBrandIndex = Math.floor(Math.random() * 6);
             } while (nextBrandIndex === currentBrandIndex);
-
-            const nextRotation = faceIndexToRotation[nextBrandIndex];
-            setRotation(nextRotation);
-
-            setTimeout(() => {
-                setSelectedBrand(brandData[nextBrandIndex]);
-                setIsChanging(false);
-            }, 500); // Animation transition time
+            
+            handleSelectBrand(brandData[nextBrandIndex]);
         };
 
         const intervalId = setInterval(rotateCube, 5000);
-
         return () => clearInterval(intervalId);
-    }, [selectedBrand.id]);
+    }, [selectedBrand.id, handleSelectBrand]);
 
 
     const hasPlayedInCurrentSlot = useMemo(() => {
@@ -121,7 +126,7 @@ const QuizSelectionComponent = () => {
             </div>
             
             <div className="flex justify-center items-center mt-20 mb-12 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
-                <BrandCube rotation={rotation} />
+                <BrandCube rotation={rotation} onFaceClick={handleSelectBrand} onQuizStart={handleStartQuiz} />
             </div>
 
             <SelectedBrandCard 
