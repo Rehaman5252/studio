@@ -1,33 +1,15 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, Settings, Send, Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthProvider';
-import { useRouter } from 'next/navigation';
+import { Mail, Settings, Send } from 'lucide-react';
+import withAuth from '@/components/auth/withAuth';
 
-function SupportPageContent() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user === null) {
-        router.replace('/auth/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+function SupportPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -87,6 +69,4 @@ function SupportPageContent() {
   );
 }
 
-export default function SupportPage() {
-    return <SupportPageContent />;
-}
+export default withAuth(SupportPage);

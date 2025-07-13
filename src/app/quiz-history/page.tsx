@@ -1,12 +1,10 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import withAuth from '@/components/auth/withAuth';
 
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
   loading: () => (
@@ -22,24 +20,7 @@ const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizH
   ssr: false,
 });
 
-function QuizHistoryPageContentWrapper() {
-    const { user, loading } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (!loading && user === null) {
-            router.replace('/auth/login');
-        }
-    }, [user, loading, router]);
-
-    if (loading || !user) {
-      return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
-    }
-
+function QuizHistoryPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -53,6 +34,4 @@ function QuizHistoryPageContentWrapper() {
   );
 }
 
-export default function QuizHistoryPage() {
-    return <QuizHistoryPageContentWrapper />;
-}
+export default withAuth(QuizHistoryPage);

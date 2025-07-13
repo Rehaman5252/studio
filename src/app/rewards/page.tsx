@@ -1,12 +1,10 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import withAuth from '@/components/auth/withAuth';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => (
@@ -29,24 +27,7 @@ const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent
   ssr: false,
 });
 
-function RewardsPageContent() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user === null) {
-        router.replace('/auth/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+function RewardsPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -60,6 +41,4 @@ function RewardsPageContent() {
   );
 }
 
-export default function RewardsPage() {
-    return <RewardsPageContent />;
-}
+export default withAuth(RewardsPage);

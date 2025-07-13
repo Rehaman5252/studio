@@ -18,9 +18,10 @@ import { Button } from '@/components/ui/button';
 import { Lightbulb, ChevronsRight } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
+import withAuth from '@/components/auth/withAuth';
 
 function QuizComponent() {
-  const { user, addQuizAttempt, loading: authLoading } = useAuth();
+  const { user, addQuizAttempt } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -41,12 +42,6 @@ function QuizComponent() {
   const [quizState, setQuizState] = useState<'loading' | 'playing' | 'ad' | 'submitting'>('loading');
 
   useEffect(() => {
-    if (!authLoading && user === null) {
-      router.replace('/auth/login');
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
     async function fetchQuiz() {
       try {
         const quizData = await generateQuiz({ format });
@@ -60,10 +55,8 @@ function QuizComponent() {
         router.push('/home');
       }
     }
-    if (user) {
-      fetchQuiz();
-    }
-  }, [format, router, toast, user]);
+    fetchQuiz();
+  }, [format, router, toast]);
 
   const submitQuiz = useCallback(async (reason?: 'malpractice') => {
     if (!user || !questions || !addQuizAttempt) return;
@@ -148,8 +141,6 @@ function QuizComponent() {
         return newAnswers;
     });
 
-    // Use a timeout to allow the user to see their selection before moving on.
-    // This addresses the "flickering" issue by providing visual feedback.
     setTimeout(() => {
       handleNextWithAdCheck();
     }, 300);
@@ -202,7 +193,7 @@ function QuizComponent() {
     };
   }, [quizState, submitQuiz]);
 
-  if (authLoading || quizState === 'loading') {
+  if (quizState === 'loading') {
     return <CricketLoading message="Warming up the bowlers..." format={format} />;
   }
 
@@ -215,7 +206,6 @@ function QuizComponent() {
     if (adConfig && adConfig.type === 'static' && adConfig.logoUrl) {
       return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint!} duration={adConfig.durationMs || 2000} onComplete={handleAdComplete} />;
     }
-    // This case should not be hit for video, but as a fallback, proceed.
     goToNextQuestion();
     return null;
   }
@@ -272,11 +262,12 @@ function QuizComponent() {
   );
 }
 
+const AuthProtectedQuiz = withAuth(QuizComponent);
 
 export default function QuizPage() {
     return (
       <Suspense fallback={<CricketLoading message="Setting the field..." />}>
-          <QuizComponent />
+          <AuthProtectedQuiz />
       </Suspense>
     )
 }

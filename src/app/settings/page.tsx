@@ -1,33 +1,15 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Moon, Bell, Music, Vibrate, RefreshCw, Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthProvider';
-import { useRouter } from 'next/navigation';
+import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
+import withAuth from '@/components/auth/withAuth';
 
-function SettingsPageContent() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user === null) {
-        router.replace('/auth/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+function SettingsPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -113,6 +95,4 @@ function SettingsPageContent() {
   );
 }
 
-export default function SettingsPage() {
-    return <SettingsPageContent />;
-}
+export default withAuth(SettingsPage);
