@@ -91,6 +91,8 @@ function QuizComponent() {
     try {
         // Add to the central state via AuthProvider
         addQuizAttempt(attemptData);
+        // Remove the interstitial loader logic before finishing
+        // setQuizState('submitting');
         router.replace('/quiz/results');
 
     } catch (error) {
@@ -117,7 +119,17 @@ function QuizComponent() {
   const handleNextQuestion = useCallback(() => {
     const adToShow = interstitialAds[currentQuestionIndex];
     if (adToShow) {
-        setQuizState('ad');
+        if (adToShow.type === 'video') {
+             setAdConfig({
+                ...adLibrary.midQuizAd,
+                onFinished: () => {
+                    setAdConfig(null);
+                    goToNextQuestion();
+                },
+             });
+        } else {
+            setQuizState('ad');
+        }
     } else {
         goToNextQuestion();
     }
@@ -183,7 +195,12 @@ function QuizComponent() {
   
   if (quizState === 'ad') {
     const adConfig = interstitialAds[currentQuestionIndex];
-    return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint} duration={adConfig.duration} onComplete={handleAdComplete} />;
+    if (adConfig && adConfig.type === 'static' && adConfig.logoUrl) {
+      return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint} duration={adConfig.duration} onComplete={handleAdComplete} />;
+    }
+    // If it's a video ad, it's handled by the AdDialog, so we just proceed.
+    goToNextQuestion();
+    return null;
   }
 
   if (!questions) {
