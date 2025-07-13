@@ -55,42 +55,26 @@ export default function CompleteProfileForm() {
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: '',
-            email: user?.email || '',
-            phone: '',
-            dob: '',
-            upi: '',
-            favoriteCricketer: '',
+            name: userData?.name || user?.displayName || '',
+            email: userData?.email || user?.email || '',
+            phone: userData?.phone || '',
+            dob: userData?.dob || '',
+            gender: userData?.gender,
+            occupation: userData?.occupation,
+            upi: userData?.upi || '',
+            favoriteFormat: userData?.favoriteFormat,
+            favoriteTeam: userData?.favoriteTeam,
+            favoriteCricketer: userData?.favoriteCricketer || '',
         },
     });
     
     const watchedPhone = form.watch('phone');
     const needsVerification = watchedPhone !== userData?.phone || !userData?.phoneVerified;
-
-    useEffect(() => {
-        if (userData) {
-            form.reset({
-                name: userData.name || '',
-                email: userData.email || user?.email || '',
-                phone: userData.phone || '',
-                dob: userData.dob || '',
-                gender: userData.gender,
-                occupation: userData.occupation,
-                upi: userData.upi || '',
-                favoriteFormat: userData.favoriteFormat,
-                favoriteTeam: userData.favoriteTeam,
-                favoriteCricketer: userData.favoriteCricketer || '',
-            });
-            setPhoneVerifiedInForm(userData.phoneVerified);
-        } else if (user) {
-            form.reset({
-                ...form.getValues(),
-                email: user.email || '',
-                name: user.displayName || '',
-            })
-        }
-    }, [userData, user, form]);
     
+    useEffect(() => {
+        setPhoneVerifiedInForm(userData?.phoneVerified || false);
+    }, [userData?.phoneVerified])
+
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user) {
             toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
