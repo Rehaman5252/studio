@@ -2,38 +2,38 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import ProfileContent from '@/components/profile/ProfileContent';
 import { useAuth } from '@/context/AuthProvider';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
+import ProfileContent from '@/components/profile/ProfileContent';
 
-function ProfilePageContentWrapper() {
-  const { user, userData, isUserDataLoading, isAuthLoading } = useAuth();
+function ProfilePage() {
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
-    if (!isAuthLoading && !user) {
+    // Redirect if auth is resolved and there's no user
+    if (!loading && !user) {
       router.replace('/auth/login');
     }
-  }, [user, isAuthLoading, router]);
+  }, [user, loading, router]);
 
-  if (isUserDataLoading) {
+  // Show a skeleton if the initial app-wide load is happening or if there's no user data yet.
+  if (loading || !userData) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="flex flex-col h-screen bg-background">
+            <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
+            </header>
+            <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+                <ProfileSkeleton />
+            </main>
       </div>
     );
   }
-  
-  if (!userData) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    )
-  }
 
+  // If we have userData, render the full content.
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -51,6 +51,4 @@ function ProfilePageContentWrapper() {
   );
 }
 
-export default function ProfilePage() {
-  return <ProfilePageContentWrapper />;
-}
+export default ProfilePage;

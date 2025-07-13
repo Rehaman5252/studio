@@ -9,25 +9,11 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-import ProfileSkeleton from './ProfileSkeleton';
-
-const ProfileHeader = dynamic(() => import('./ProfileHeader'), {
-    loading: () => <Skeleton className="h-[116px] w-full" />,
-});
-const ProfileCompletion = dynamic(() => import('./ProfileCompletion'), {
-    loading: () => <Skeleton className="h-[76px] w-full" />,
-});
-const StatsSummary = dynamic(() => import('./StatsSummary'), {
-    loading: () => <Skeleton className="h-[96px] w-full" />,
-});
-const ReferralCard = dynamic(() => import('./ReferralCard'), {
-    loading: () => <Skeleton className="h-[124px] w-full" />,
-});
-const SupportCard = dynamic(() => import('./SupportCard'), {
-    loading: () => <Skeleton className="h-[188px] w-full" />,
-});
+import ProfileHeader from './ProfileHeader';
+import ProfileCompletion from './ProfileCompletion';
+import StatsSummary from './StatsSummary';
+import ReferralCard from './ReferralCard';
+import SupportCard from './SupportCard';
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
@@ -45,12 +31,8 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
         }
     };
 
-    if (!userProfile) {
-        return <ProfileSkeleton />;
-    }
-
     return (
-        <div className="space-y-6 animate-fade-in-up">
+        <div className="space-y-6">
             <div className="relative">
                 <ProfileHeader userProfile={userProfile} />
                 <Button asChild variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
@@ -59,6 +41,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                     </Link>
                 </Button>
             </div>
+            
             <ProfileCompletion userProfile={userProfile} />
             <StatsSummary userProfile={userProfile} />
             <ReferralCard userProfile={userProfile} />
