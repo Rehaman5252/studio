@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, setDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -94,7 +94,7 @@ export default function CompleteProfileForm() {
             await setDoc(userDocRef, payload, { merge: true });
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
-            router.push('/home');
+            router.push('/profile');
     
         } catch (error: any) {
             console.error("Firestore error:", error);
@@ -118,7 +118,16 @@ export default function CompleteProfileForm() {
     }
 
     return (
-        <Card className="w-full max-w-lg">
+        <Card className="w-full max-w-lg relative">
+            <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 text-muted-foreground hover:bg-muted"
+                onClick={() => router.push('/profile')}
+                aria-label="Close"
+            >
+                <X className="h-5 w-5" />
+            </Button>
             <CardHeader>
                 <CardTitle>{isProfileComplete ? 'Edit Profile' : 'Complete Your Profile'}</CardTitle>
                 <CardDescription>
