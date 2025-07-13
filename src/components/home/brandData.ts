@@ -19,11 +19,11 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'Adani',
+        brand: 'Samsung',
         format: 'IPL',
-        logoUrl: 'https://www.pngkey.com/png/full/828-8285514_adani-logo-white-png-adani-group-logo-png.png',
+        logoUrl: 'https://cdn.icon-icons.com/icons2/2429/PNG/512/samsung_logo_icon_147285.png',
         logoWidth: 90,
-        logoHeight: 80,
+        logoHeight: 90,
     },
     {
         id: 3,

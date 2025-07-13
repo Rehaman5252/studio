@@ -152,7 +152,7 @@
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.5s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    transition: transform 0.25s cubic-bezier(0.45, 0.05, 0.55, 0.95);
   }
 
   .cube-face {
