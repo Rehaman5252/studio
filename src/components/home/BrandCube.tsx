@@ -27,8 +27,8 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
       >
         {faces.map((face) => (
           <div key={face.brand.id} className={`cube-face ${face.class}`}>
-             <div className="flex flex-col items-center justify-center p-2 text-white">
-                <div className="w-full h-1/2 relative mb-2">
+             <div className="flex flex-col items-center justify-between p-2 text-white w-full h-full">
+                <div className="w-full h-2/3 relative">
                     <Image
                         src={face.brand.logoUrl}
                         alt={`${face.brand.brand} logo`}
@@ -38,7 +38,7 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
                         priority
                     />
                 </div>
-                <p className="font-bold text-lg text-primary mt-1">{face.brand.format}</p>
+                <p className="font-bold text-lg text-primary">{face.brand.format}</p>
             </div>
           </div>
         ))}
