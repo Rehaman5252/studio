@@ -9,51 +9,23 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
-import { db, app } from '@/lib/firebase';
+import { app } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
+import type { DocumentData } from 'firebase/firestore';
 
+// This function is now a placeholder as we are using mock data.
+// In a real Firestore implementation, this would create a user document.
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  if (!db || !user) return;
-
-  const userRef = doc(db, 'users', user.uid);
-  
-  try {
-    const docSnap = await getDoc(userRef);
-
-    if (!docSnap.exists()) {
-      // This logic runs ONLY if the user document does not already exist.
-      // It's the critical step for creating a new user's profile.
-      const defaultData = {
-        uid: user.uid,
-        email: user.email,
-        name: additionalData.name || user.displayName || 'New User',
-        photoURL: user.photoURL,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        profileCompleted: false,
-        phoneVerified: false,
-        emailVerified: user.emailVerified,
-        guidedTourCompleted: false,
-        totalRewards: 0,
-        quizzesPlayed: 0,
-        perfectScores: 0,
-        certificatesEarned: 0,
-        referralCode: `cricblitz.com/ref/${user.uid.slice(0, 8)}`,
-        referralEarnings: 0,
-        // Ensure any additional data from the signup form (like name) is included
-        ...additionalData
-      };
-      
-      // Create the document with the default data.
-      await setDoc(userRef, defaultData);
-      console.log('User document created for:', user.email);
-    }
-  } catch (error) {
-      console.error("Error creating or checking user document:", error);
-      // Re-throw the error so the calling function (e.g., in SignupForm) can catch it and notify the user.
-      throw new Error("Could not create user profile in the database.");
-  }
+  if (!user) return;
+  console.log(`[Mock] Creating user document for ${user.email} with data:`, {
+    uid: user.uid,
+    email: user.email,
+    name: additionalData.name || user.displayName || 'New User',
+    ...additionalData,
+  });
+  // In a real app, this is where you'd `setDoc` to Firestore.
+  // For now, we do nothing as the AuthProvider uses mockUserData.
+  return Promise.resolve();
 }
 
 export async function handleGoogleSignIn() {
@@ -66,8 +38,8 @@ export async function handleGoogleSignIn() {
     const user = result.user;
     if (!user) throw new Error('No user returned from Google Sign-In.');
     
-    // This will create the document if it's the user's first time.
-    await createUserDocument(user, { emailVerified: true });
+    // We call this, but it won't write to a DB in the mock setup.
+    await createUserDocument(user);
     
     return user;
 
@@ -76,7 +48,7 @@ export async function handleGoogleSignIn() {
         console.warn('Google sign-in was cancelled by the user.');
     } else {
         console.error("Google Sign-in error:", error);
-        toast({ title: 'Sign-in Error', description: error.message || 'An unknown error occurred.', variant: 'destructive' });
+        toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
     }
     return null;
   }
@@ -91,7 +63,5 @@ export const registerWithEmail = async (email: string, password: string) => {
 export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // On login, we don't need to create a document. The AuthProvider's onAuthStateChanged
-    // will handle fetching the existing document.
     return userCredential;
 };

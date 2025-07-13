@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
 import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
 
-export function PhoneVerificationDialog({ children, phone, onVerified, isInitiallyVerified }: { children: React.ReactNode; phone: string; onVerified: () => void; isInitiallyVerified?: boolean; }) {
+export function PhoneVerificationDialog({ children, phone, onVerified }: { children: React.ReactNode; phone: string; onVerified: () => void; }) {
   const { user, userData } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -67,7 +67,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified, isInitial
   }
 
   const onOpenDialog = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
-    if (isInitiallyVerified) {
+    if (userData?.phoneVerified && userData?.phone === phone) {
         e.preventDefault();
         toast({ title: "Already Verified", description: "This phone number is already verified."});
         return;
@@ -125,5 +125,3 @@ export function PhoneVerificationDialog({ children, phone, onVerified, isInitial
     </Dialog>
   );
 }
-
-    

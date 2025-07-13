@@ -4,10 +4,9 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion, serverTimestamp, type DocumentData } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-import type { QuizAttempt } from '@/lib/mockData';
-import { createUserDocument } from '@/lib/authUtils';
+import { auth } from '@/lib/firebase';
+import { mockUserData, mockQuizHistory, type QuizAttempt } from '@/lib/mockData';
+import type { DocumentData } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -29,105 +28,68 @@ const MANDATORY_PROFILE_FIELDS = [
 ];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  // Mock user object for demonstration purposes
+  const mockUser: User = {
+      uid: mockUserData.uid,
+      email: mockUserData.email,
+      emailVerified: mockUserData.emailVerified,
+      displayName: mockUserData.displayName,
+      photoURL: mockUserData.photoURL,
+      // Add other required User properties with mock values
+      isAnonymous: false,
+      phoneNumber: null,
+      providerData: [],
+      providerId: 'password',
+      tenantId: null,
+      metadata: {},
+      delete: async () => {},
+      getIdToken: async () => '',
+      getIdTokenResult: async () => ({} as any),
+      reload: async () => {},
+      toJSON: () => ({} as any),
+  };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        // Ensure user document exists before setting up listeners
-        await createUserDocument(user);
-      }
-      setLoading(false);
-    });
+    // We'll simulate a logged-in user with mock data
+    // In a real app, you'd use onAuthStateChanged
+    const timer = setTimeout(() => {
+        setUser(mockUser);
+        setUserData(mockUserData);
+        setQuizHistory(mockQuizHistory);
+        setLoading(false);
+    }, 500); // Simulate loading delay
 
-    return () => unsubscribe();
+    return () => clearTimeout(timer);
+  }, []);
+  
+  const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
+    // Simulate updating user data in our mock state
+    setUserData(prevData => {
+        const updatedData = { ...prevData, ...newData };
+        console.log("Mock user data updated:", updatedData);
+        return updatedData;
+    });
   }, []);
 
-  useEffect(() => {
-    if (user?.uid) {
-      setIsUserDataLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
-      const unsubUser = onSnapshot(userDocRef, (doc) => {
-        if (doc.exists()) {
-          setUserData(doc.data());
-        } else {
-          setUserData(null);
-        }
-        setIsUserDataLoading(false);
-      });
-
-      setIsHistoryLoading(true);
-      const historyDocRef = doc(db, 'quizHistory', user.uid);
-      const unsubHistory = onSnapshot(historyDocRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setQuizHistory(data.attempts || []);
-        } else {
-          setQuizHistory([]);
-        }
-        setIsHistoryLoading(false);
-      });
-
-      return () => {
-        unsubUser();
-        unsubHistory();
-      };
-    } else {
-      setUserData(null);
-      setQuizHistory(null);
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
-    }
-  }, [user]);
-
-  const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    await updateDoc(userDocRef, {
-      ...newData,
-      updatedAt: serverTimestamp(),
-    });
-  }, [user]);
-
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) return;
-    const historyDocRef = doc(db, 'quizHistory', user.uid);
-    
-    try {
-        const docSnap = await getDoc(historyDocRef);
-        if (docSnap.exists()) {
-            await updateDoc(historyDocRef, {
-                attempts: arrayUnion(attempt)
-            });
-        } else {
-            await setDoc(historyDocRef, { attempts: [attempt] });
-        }
-
-        // Also update the summary stats on the user document
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            const currentData = userDocSnap.data();
-            const isPerfect = attempt.score === attempt.totalQuestions;
-            const newStats = {
-                quizzesPlayed: (currentData.quizzesPlayed || 0) + 1,
-                perfectScores: (currentData.perfectScores || 0) + (isPerfect ? 1 : 0),
-                totalRewards: (currentData.totalRewards || 0) + (isPerfect ? 100 : 0)
-            };
-            await updateDoc(userDocRef, newStats);
-        }
-
-    } catch (error) {
-        console.error("Error adding quiz attempt:", error);
-    }
-
-  }, [user]);
+    // Simulate adding a quiz attempt to our mock history
+    setQuizHistory(prevHistory => {
+        const newHistory = [attempt, ...(prevHistory || [])];
+        console.log("Mock quiz attempt added:", newHistory);
+        return newHistory;
+    });
+    // Also update summary stats
+    updateUserData({
+        quizzesPlayed: (userData?.quizzesPlayed || 0) + 1,
+        perfectScores: (userData?.perfectScores || 0) + (attempt.score === attempt.totalQuestions ? 1 : 0),
+        totalRewards: (userData?.totalRewards || 0) + (attempt.score === attempt.totalQuestions ? 100 : 0)
+    })
+  }, [userData, updateUserData]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
@@ -139,9 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     userData,
     quizHistory,
     isProfileComplete,
-    loading: loading || (!!user && (isUserDataLoading || isHistoryLoading)),
-    isUserDataLoading,
-    isHistoryLoading,
+    loading,
+    isUserDataLoading: loading,
+    isHistoryLoading: loading,
     updateUserData,
     addQuizAttempt,
   };
