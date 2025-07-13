@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Gift, ExternalLink, Loader2 } from 'lucide-react';
@@ -14,6 +14,19 @@ import { motion } from 'framer-motion';
 
 const ScratchCard = memo(({ brand }: { brand: string }) => {
   const [isScratched, setIsScratched] = useState(false);
+  const storageKey = `scratch-card-${brand}`;
+
+  useEffect(() => {
+    const savedState = localStorage.getItem(storageKey);
+    if (savedState === 'true') {
+      setIsScratched(true);
+    }
+  }, [storageKey]);
+
+  const handleScratch = () => {
+    setIsScratched(true);
+    localStorage.setItem(storageKey, 'true');
+  };
 
   const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
     'indcric': { gift: '₹50 Bonus', description: 'Bonus cash added to your wallet.', link: 'https://www.indcric.com' },
@@ -24,6 +37,9 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     'PayPal': { gift: '₹100 Voucher', description: 'For your next online payment.', link: '#' },
     'WPL': { gift: 'Team Merchandise', description: 'Get a 20% discount coupon.', link: '#' },
     'Amazon': { gift: '₹150 Gift Card', description: 'Credited to your Amazon Pay.', link: '#' },
+    'TATA': { gift: '₹200 Coupon', description: 'On TATA Cliq.', link: '#' },
+    'ICICI': { gift: 'Exclusive Card Offers', description: 'Check your iMobile app.', link: '#' },
+    'Gucci': { gift: '5% off Perfumes', description: 'On your next purchase.', link: '#' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
@@ -34,7 +50,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
         {!isScratched ? (
             <motion.button
               className="absolute inset-0 bg-zinc-300 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-90 rounded-2xl p-2 text-center"
-              onClick={() => setIsScratched(true)}
+              onClick={handleScratch}
               role="button"
               aria-label={`Scratch to reveal gift from ${brand}`}
               whileTap={{ scale: 0.95 }}
