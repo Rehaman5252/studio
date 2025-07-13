@@ -48,11 +48,17 @@ export default function SignupForm() {
 
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
-    const user = await handleGoogleSignIn();
-    if (user) {
-        router.push(from || '/home');
+    try {
+        const user = await handleGoogleSignIn();
+        if (user) {
+            toast({ title: 'Account Created!', description: `Welcome, ${user.displayName}!` });
+            router.push('/complete-profile');
+        }
+    } catch (error) {
+         console.error("Google signup process failed on the signup page.");
+    } finally {
+        setIsGoogleLoading(false);
     }
-    setIsGoogleLoading(false);
   };
 
   const onEmailSignUp = async (data: SignupFormValues) => {
@@ -63,18 +69,28 @@ export default function SignupForm() {
         
         await updateProfile(user, { displayName: data.name });
         
-        // This creates the doc with the name. Important for post-signup experience.
         await createUserDocument(user, { name: data.name }); 
         
         toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile to continue.' });
         router.push('/complete-profile');
 
     } catch (error: any) {
-        let message = error.message || 'An error occurred during sign up.';
-        if (error.code === 'auth/email-already-in-use') {
-            message = 'This email is already registered. Please log in instead.';
+        let description = 'An unexpected error occurred. Please try again.';
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                description = 'This email is already registered. Please log in instead.';
+                break;
+            case 'auth/weak-password':
+                description = 'The password is too weak. Please use at least 6 characters.';
+                break;
+            case 'auth/invalid-email':
+                description = 'The email address is not valid.';
+                break;
+            default:
+                description = 'An error occurred during sign up.';
+                break;
         }
-        toast({ title: 'Sign Up Failed', description: message, variant: 'destructive' });
+        toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
     } finally {
         setIsLoading(false);
     }

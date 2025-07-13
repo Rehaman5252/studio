@@ -57,10 +57,20 @@ export default function LoginForm() {
       toast({ title: "Signed In", description: "Welcome back!" });
       router.push(from || '/home');
     } catch (error: any) {
-      console.error("Login failed:", error);
-      let description = 'Invalid credentials. Please check your email and password.';
-      if (error.code === 'auth/network-request-failed') {
-        description = 'You appear to be offline. Please check your connection.';
+      console.error("Login failed:", error.code, error.message);
+      let description = 'An unexpected error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/invalid-credential':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          description = 'Invalid credentials. Please check your email and password.';
+          break;
+        case 'auth/network-request-failed':
+          description = 'You appear to be offline. Please check your connection.';
+          break;
+        default:
+          description = 'Login failed. Please try again later.';
+          break;
       }
       toast({ title: 'Login Failed', description, variant: 'destructive' });
     } finally {
@@ -70,11 +80,18 @@ export default function LoginForm() {
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    const user = await handleGoogleSignIn();
-    if (user) {
-        router.push(from || '/home');
+    try {
+        const user = await handleGoogleSignIn();
+        if (user) {
+            toast({ title: "Signed In", description: `Welcome back, ${user.displayName}!` });
+            router.push(from || '/home');
+        }
+    } catch (error) {
+        // Error handling is done within handleGoogleSignIn, so no need for a toast here unless you want a generic one
+        console.error("Google login process failed on the login page.");
+    } finally {
+        setIsGoogleLoading(false);
     }
-    setIsGoogleLoading(false);
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;

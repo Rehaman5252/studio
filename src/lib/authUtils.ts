@@ -61,7 +61,6 @@ export async function handleGoogleSignIn() {
     
     await createUserDocument(user, { emailVerified: true });
     
-    toast({ title: "Signed In", description: `Welcome, ${user.displayName}!` });
     return user;
 
   } catch (error: any) {
