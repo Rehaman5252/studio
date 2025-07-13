@@ -44,28 +44,28 @@ const QuizSelectionComponent = () => {
     const [isChanging, setIsChanging] = useState(false);
     
     useEffect(() => {
-        const intervalId = setInterval(() => {
+        const rotateCube = () => {
             setIsChanging(true);
-            
+
             const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
             let nextBrandIndex;
             do {
                 nextBrandIndex = Math.floor(Math.random() * 6);
             } while (nextBrandIndex === currentBrandIndex);
-            
+
             const nextRotation = faceIndexToRotation[nextBrandIndex];
-            
             setRotation(nextRotation);
-            
+
             setTimeout(() => {
                 setSelectedBrand(brandData[nextBrandIndex]);
                 setIsChanging(false);
-            }, 500); // This delay should match the button disable duration
+            }, 500); // Animation transition time
+        };
 
-        }, 5000); // Rotate every 5 seconds
+        const intervalId = setInterval(rotateCube, 5000);
 
         return () => clearInterval(intervalId);
-    }, [selectedBrand]);
+    }, [selectedBrand.id]);
 
 
     const hasPlayedInCurrentSlot = useMemo(() => {
