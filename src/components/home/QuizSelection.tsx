@@ -16,15 +16,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
+import { Loader2 } from 'lucide-react';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 
 const QuizSelectionComponent = () => {
-    const { user, isProfileComplete } = useAuth();
-    const { lastAttemptInSlot } = useQuizStatus();
+    const { user, isProfileComplete, isUserDataLoading } = useAuth();
+    const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
 
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
@@ -78,16 +78,24 @@ const QuizSelectionComponent = () => {
         setShowAuthAlert(false);
     }
     
+    if (isUserDataLoading || isQuizStatusLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-64">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        )
+    }
+
     return (
         <>
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">click on the face of cube</p>
+                <p className="text-sm text-muted-foreground">The selection cycles automatically. Click to start.</p>
             </div>
             
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
-                handleStartQuiz={handleStartQuiz} 
+                onClick={handleStartQuiz} 
             />
 
             <div className="mt-8 space-y-8">

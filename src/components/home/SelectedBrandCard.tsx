@@ -10,14 +10,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface SelectedBrandCardProps {
     selectedBrand: CubeBrand;
-    handleStartQuiz: () => void;
+    onClick: () => void;
 }
 
-const SelectedBrandCard = ({ selectedBrand, handleStartQuiz }: SelectedBrandCardProps) => {
+const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) => {
     return (
         <div
-            key={selectedBrand.id}
-            onClick={handleStartQuiz}
+            onClick={onClick}
             className="cursor-pointer"
         >
             <Card 

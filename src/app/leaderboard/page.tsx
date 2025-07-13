@@ -37,21 +37,12 @@ function LeaderboardPageContent() {
         }
     }, [user, loading, router]);
 
-    if (loading) {
+    if (loading || !user) {
       return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       );
-    }
-    
-    // Fallback if user is null after loading
-    if (!user) {
-        return (
-            <div className="flex h-screen w-screen items-center justify-center bg-background">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        )
     }
 
     return (
