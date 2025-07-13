@@ -7,7 +7,6 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  updateProfile,
   type User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, type DocumentData } from 'firebase/firestore';
@@ -23,6 +22,8 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
     const docSnap = await getDoc(userRef);
 
     if (!docSnap.exists()) {
+      // This logic runs ONLY if the user document does not already exist.
+      // It's the critical step for creating a new user's profile.
       const defaultData = {
         uid: user.uid,
         email: user.email,
@@ -40,14 +41,17 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         certificatesEarned: 0,
         referralCode: `cricblitz.com/ref/${user.uid.slice(0, 8)}`,
         referralEarnings: 0,
+        // Ensure any additional data from the signup form (like name) is included
         ...additionalData
       };
-      // This is the critical part - if this fails, we need to throw an error
+      
+      // Create the document with the default data.
       await setDoc(userRef, defaultData);
+      console.log('User document created for:', user.email);
     }
   } catch (error) {
-      console.error("Error creating user document:", error);
-      // Re-throw the error so the calling function can handle it
+      console.error("Error creating or checking user document:", error);
+      // Re-throw the error so the calling function (e.g., in SignupForm) can catch it and notify the user.
       throw new Error("Could not create user profile in the database.");
   }
 }
@@ -62,6 +66,7 @@ export async function handleGoogleSignIn() {
     const user = result.user;
     if (!user) throw new Error('No user returned from Google Sign-In.');
     
+    // This will create the document if it's the user's first time.
     await createUserDocument(user, { emailVerified: true });
     
     return user;
@@ -86,7 +91,7 @@ export const registerWithEmail = async (email: string, password: string) => {
 export const loginWithEmail = async (email: string, password: string) => {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Don't create a document on login if it might not exist.
-    // The AuthProvider handles fetching/creating the document state.
+    // On login, we don't need to create a document. The AuthProvider's onAuthStateChanged
+    // will handle fetching the existing document.
     return userCredential;
 };
