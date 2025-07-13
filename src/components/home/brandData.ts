@@ -19,11 +19,11 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'Swiggy',
+        brand: 'UPI',
         format: 'IPL',
-        logoUrl: 'https://www.pngkey.com/png/full/238-2383214_swiggy-logo-white-swiggy-white-logo-png.png',
-        logoWidth: 90,
-        logoHeight: 90,
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-white.svg/2560px-UPI-Logo-white.svg.png',
+        logoWidth: 100,
+        logoHeight: 40,
     },
     {
         id: 3,
