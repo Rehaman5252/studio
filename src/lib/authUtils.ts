@@ -53,6 +53,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 export async function handleGoogleSignIn() {
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
 
   try {
     const result = await signInWithPopup(auth, provider);
