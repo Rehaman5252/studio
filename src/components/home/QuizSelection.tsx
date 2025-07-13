@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, memo, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
@@ -69,11 +69,10 @@ const QuizSelectionComponent = () => {
             setRotation(faceRotations[brandIndex]);
             setSelectedBrand(brand);
         }
-        setTimeout(() => setIsChanging(false), 125);
+        setTimeout(() => setIsChanging(false), 250);
     }, [isChanging]);
 
     const handleFaceClick = (brand: CubeBrand) => {
-        setSelectedBrand(brand);
         handleStartQuiz(brand);
     };
 
@@ -82,7 +81,7 @@ const QuizSelectionComponent = () => {
     };
 
     useEffect(() => {
-        const handleRotation = () => {
+        const interval = setInterval(() => {
             if (isChanging) return;
         
             setIsChanging(true);
@@ -95,23 +94,10 @@ const QuizSelectionComponent = () => {
             
             setTimeout(() => {
                 setIsChanging(false);
-            }, 125); // Match this to the cube's transition duration in globals.css
-        };
+            }, 250);
+        }, 5000);
 
-        const rotate = () => {
-            handleRotation();
-            // Set a random timeout for the next rotation
-            const randomInterval = Math.random() * (7000 - 3000) + 3000; // between 3 and 7 seconds
-            setTimeout(rotate, randomInterval);
-        };
-
-        // Start the first rotation after a short delay
-        const initialTimeout = setTimeout(rotate, 3000);
-
-        // Cleanup function to clear the timeout if the component unmounts
-        return () => {
-            clearTimeout(initialTimeout);
-        };
+        return () => clearInterval(interval);
     }, [isChanging]);
 
     const handleSlotAlertAction = () => {
