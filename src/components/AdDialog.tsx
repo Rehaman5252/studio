@@ -22,7 +22,7 @@ interface AdDialogProps {
 export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle, adType, adUrl, adHint, children }: AdDialogProps) {
   const [adTimeLeft, setAdTimeLeft] = useState(duration);
   const [isSkippable, setIsSkippable] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // Play with sound by default
+  const [isMuted, setIsMuted] = useState(true); // Mute by default
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -128,7 +128,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                         </Button>
                     ) : (
                          <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
-                           {adType === 'video' ? `Skip in ${adTimeLeft - (duration - skippableAfter)}s` : `Skip in ${adTimeLeft - (duration - skippableAfter)}s`}
+                           {`Skip in ${adTimeLeft - (duration - skippableAfter)}s`}
                         </Button>
                     )}
                 </div>
