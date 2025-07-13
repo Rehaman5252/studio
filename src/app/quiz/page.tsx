@@ -7,8 +7,6 @@ import { useAuth } from '@/context/AuthProvider';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { QuizQuestion } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { getQuizSlotId } from '@/lib/utils';
 import { adLibrary } from '@/lib/ads';
 import { AdDialog } from '@/components/AdDialog';
@@ -18,9 +16,10 @@ import { Timer } from '@/components/quiz/Timer';
 import CricketLoading from '@/components/CricketLoading';
 import { Button } from '@/components/ui/button';
 import { Lightbulb, ChevronsRight, Loader2 } from 'lucide-react';
+import type { QuizAttempt } from '@/lib/mockData';
 
 function QuizComponent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, addQuizAttempt, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -66,7 +65,7 @@ function QuizComponent() {
   }, [format, router, toast, user]);
 
   const submitQuiz = useCallback(async () => {
-    if (!user || !db || !questions) return;
+    if (!user || !questions || !addQuizAttempt) return;
     setQuizState('submitting');
     
     // Ensure all unanswered questions are marked as "Not Answered"
@@ -74,9 +73,8 @@ function QuizComponent() {
 
     const score = questions.reduce((acc, q, index) => (finalUserAnswers[index] === q.correctAnswer ? acc + 1 : acc), 0);
     const slotId = getQuizSlotId();
-    const totalTime = timePerQuestion.reduce((a, b) => a + b, 0);
     
-    const attemptData = {
+    const attemptData: QuizAttempt = {
         slotId,
         brand,
         format,
@@ -84,28 +82,14 @@ function QuizComponent() {
         totalQuestions: questions.length,
         questions,
         userAnswers: finalUserAnswers,
-        timestamp: serverTimestamp(),
+        timestamp: Date.now(),
         timePerQuestion,
         usedHintIndices,
-        totalTime,
-        uid: user.uid,
-        name: user.displayName,
-        avatar: user.photoURL,
     };
 
     try {
-        // Add to user's history
-        const userHistoryRef = doc(db, 'quizHistory', user.uid);
-        await setDoc(userHistoryRef, {
-            attempts: arrayUnion(attemptData)
-        }, { merge: true });
-
-        // Update user's overall stats
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, {
-            quizzesPlayed: increment(1)
-        });
-
+        // Add to the central state via AuthProvider
+        addQuizAttempt(attemptData);
         router.replace('/quiz/results');
 
     } catch (error) {
@@ -113,7 +97,7 @@ function QuizComponent() {
         toast({ title: 'Submission Error', description: 'Could not save your quiz results.', variant: 'destructive' });
         setQuizState('playing');
     }
-  }, [user, db, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, router, toast]);
+  }, [user, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt]);
 
   const handleNextQuestion = useCallback(() => {
     if (!questions) return;

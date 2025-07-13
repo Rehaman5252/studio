@@ -33,9 +33,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     }
     
     const currentSlotId = getQuizSlotId();
-    const history = quizHistory as QuizAttempt[] | null;
-    // Find the last attempt that matches the current slot ID
-    return history?.find(attempt => attempt.slotId === currentSlotId) || null;
+    // The history is now sorted with the most recent attempt first.
+    return quizHistory.find(attempt => attempt.slotId === currentSlotId) || null;
   }, [quizHistory, isLoading]);
   
   const calculateTimeLeft = useCallback(() => {

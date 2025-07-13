@@ -10,8 +10,6 @@ import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { AdDialog } from '@/components/AdDialog';
 import { Home, Loader2, AlertTriangle } from 'lucide-react';
-import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { ResultsSummaryCard } from '@/components/quiz/ResultsSummaryCard';
 import { Certificate } from '@/components/quiz/Certificate';
 import { AnalysisCard } from '@/components/quiz/AnalysisCard';
@@ -77,24 +75,6 @@ function ResultsComponent() {
     }, [lastAttemptInSlot]);
     
     const isPerfectScore = useMemo(() => score === totalQuestions && totalQuestions > 0, [score, totalQuestions]);
-    
-    useEffect(() => {
-        if (isPerfectScore && user && db && !isReview) {
-            const userDocRef = doc(db, 'users', user.uid);
-            // We only increment counts if this is a new perfect score, not a review
-            const updateUserStats = async () => {
-                try {
-                    await updateDoc(userDocRef, { 
-                        perfectScores: increment(1),
-                        certificatesEarned: increment(1),
-                    });
-                } catch(error) {
-                    console.error("Error updating perfect score count:", error);
-                }
-            };
-            updateUserStats();
-        }
-    }, [isPerfectScore, user, isReview]);
     
     
     const slotTimings = useMemo(() => {
