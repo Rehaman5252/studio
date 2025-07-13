@@ -20,7 +20,7 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
   ];
 
   return (
-    <div className="scene h-52 w-full flex items-center justify-center mb-8">
+    <div className="scene h-52 w-full flex items-center justify-center">
       <div
         className="cube"
         style={{ transform: `rotateY(${rotation}deg) rotateX(-15deg)` }}
@@ -32,8 +32,8 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
                     src={face.brand.logoUrl}
                     alt={`${face.brand.brand} logo`}
                     data-ai-hint="cricket logo"
-                    width={face.brand.logoWidth * 1.5}
-                    height={face.brand.logoHeight * 1.5}
+                    width={face.brand.logoWidth}
+                    height={face.brand.logoHeight}
                     className="object-contain"
                     priority
                 />

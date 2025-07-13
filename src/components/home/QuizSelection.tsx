@@ -35,24 +35,10 @@ const QuizSelectionComponent = () => {
     
     useEffect(() => {
         const interval = setInterval(() => {
+            setRotation(prev => prev - 60);
             setSelectedBrand(prevBrand => {
                 const currentIndex = brandData.findIndex(b => b.id === prevBrand.id);
                 const nextIndex = (currentIndex + 1) % brandData.length;
-                
-                // For a 6-sided cube, each face turn is 60 degrees.
-                // We rotate on Y and X axis to show different faces.
-                if (nextIndex < 4) { // Rotate around Y axis for first 4 faces
-                    setRotation(prev => prev - 90);
-                } else { // Tilt up/down for top/bottom faces
-                    // This is a simplification. A true cube would need more complex rotation logic.
-                    // For now, we'll stick to Y-axis rotation.
-                    if(nextIndex === 0) { // Reset rotation
-                         setRotation(0);
-                    } else {
-                         setRotation(prev => prev - 90);
-                    }
-                }
-                
                 return brandData[nextIndex];
             });
         }, 500);
@@ -105,12 +91,16 @@ const QuizSelectionComponent = () => {
 
     return (
         <>
-            <div className="text-center mb-8">
+            <div className="text-center mb-4">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">click on the face of cube</p>
+                <p className="text-sm text-muted-foreground">The cube will decide your fate!</p>
             </div>
 
             <BrandCube rotation={rotation} />
+
+            <div className="text-center mt-4 mb-8">
+                <p className="text-lg font-bold text-primary">{selectedBrand.format}</p>
+            </div>
             
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
