@@ -12,9 +12,10 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) => {
+const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
-  const storageKey = `scratch-card-${slotId}-${brand}`;
+  // Create a unique key for each specific quiz attempt
+  const storageKey = `scratch-card-${slotId}-${brand}-${timestamp}`;
 
   useEffect(() => {
     const savedState = localStorage.getItem(storageKey);
@@ -40,6 +41,8 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
     'TATA': { gift: '₹200 Coupon', description: 'On TATA Cliq.', link: '#' },
     'ICICI': { gift: 'Exclusive Card Offers', description: 'Check your iMobile app.', link: '#' },
     'Gucci': { gift: '5% off Perfumes', description: 'On your next purchase.', link: '#' },
+    'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
+    'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
   };
 
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
@@ -107,12 +110,12 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: QuizAttempt[] }) => (
+const BrandGiftsSection = memo(({ perfectScoreAttempts }: { perfectScoreAttempts: QuizAttempt[] }) => (
   <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-    <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift from each brand you've played with. Scratch to reveal!</p>
+    <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift for every quiz you've perfected. Scratch to reveal!</p>
     
-    {uniqueBrandAttempts.length > 0 ? (
+    {perfectScoreAttempts.length > 0 ? (
       <Carousel
           opts={{
               align: 'start',
@@ -120,9 +123,9 @@ const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: 
           className="w-full max-w-full"
       >
           <CarouselContent className="-ml-4">
-              {uniqueBrandAttempts.map((attempt) => (
-              <CarouselItem key={`${attempt.brand}-${attempt.slotId}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                  <ScratchCard brand={attempt.brand} slotId={attempt.slotId} />
+              {perfectScoreAttempts.map((attempt) => (
+              <CarouselItem key={`${attempt.brand}-${attempt.timestamp}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                  <ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} />
               </CarouselItem>
               ))}
           </CarouselContent>
@@ -132,7 +135,7 @@ const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: 
     ) : (
       <Card className="bg-card/80">
         <CardContent className="p-6 text-center text-muted-foreground">
-          <p>Play a quiz to unlock a special brand gift!</p>
+          <p>Get a perfect score in a quiz to unlock a special brand gift!</p>
         </CardContent>
       </Card>
     )}
@@ -193,7 +196,7 @@ export default function RewardsContent() {
                     </div>
                 </section>
             ) : (
-                <BrandGiftsSection uniqueBrandAttempts={perfectScoreAttempts} />
+                <BrandGiftsSection perfectScoreAttempts={perfectScoreAttempts} />
             )
         )}
         
