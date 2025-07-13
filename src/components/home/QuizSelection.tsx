@@ -47,23 +47,20 @@ const QuizSelectionComponent = () => {
         const intervalId = setInterval(() => {
             setIsChanging(true);
             
-            // Select a new random brand that is different from the current one
-            let nextBrandIndex;
             const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
+            let nextBrandIndex;
             do {
                 nextBrandIndex = Math.floor(Math.random() * 6);
             } while (nextBrandIndex === currentBrandIndex);
-
+            
             const nextRotation = faceIndexToRotation[nextBrandIndex];
             
-            // Set the rotation
             setRotation(nextRotation);
-
-            // After the rotation animation starts, update the brand and re-enable the button
+            
             setTimeout(() => {
                 setSelectedBrand(brandData[nextBrandIndex]);
                 setIsChanging(false);
-            }, 250); // A small delay to allow the state to update
+            }, 250);
 
         }, 500);
 
@@ -123,7 +120,7 @@ const QuizSelectionComponent = () => {
                 <p className="text-sm text-muted-foreground">click the face of cube to play</p>
             </div>
             
-            <div className="flex justify-center items-center my-12 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
+            <div className="flex justify-center items-center mt-20 mb-12 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
                 <BrandCube rotation={rotation} />
             </div>
 
