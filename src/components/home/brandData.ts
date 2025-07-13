@@ -19,11 +19,11 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'Flipkart',
+        brand: 'Reliance Industries',
         format: 'IPL',
-        logoUrl: 'https://www.pngkey.com/png/full/231-2315735_flipkart-logo-flipkart-logo-white-png.png',
-        logoWidth: 100,
-        logoHeight: 40,
+        logoUrl: 'https://cdn.icon-icons.com/icons2/2699/PNG/512/reliance_industries_logo_icon_170582.png',
+        logoWidth: 80,
+        logoHeight: 80,
     },
     {
         id: 3,
