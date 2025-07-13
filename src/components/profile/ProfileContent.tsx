@@ -23,7 +23,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
         if (!auth) return;
         try {
             await signOut(auth);
-            // Redirect to login page after logout
+            // This would redirect to a real login page. For now, it will show the logged-out state.
             router.push('/auth/login');
             toast({ title: "Logged Out", description: "You have been successfully logged out." });
         } catch (error) {

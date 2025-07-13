@@ -12,7 +12,33 @@ export interface QuizAttempt {
   timestamp: number;
   timePerQuestion?: number[];
   usedHintIndices?: number[];
+  reason?: 'malpractice';
 }
+
+export const mockUserData = {
+    uid: 'mock-user-123',
+    email: 'rehaman.syed@example.com',
+    emailVerified: true,
+    displayName: 'Rehaman Syed',
+    photoURL: 'https://placehold.co/100x100.png',
+    name: 'Rehaman Syed',
+    phone: '8050298115',
+    dob: '2000-02-06',
+    gender: 'Male',
+    occupation: 'Private Employee',
+    upi: '7842722245@ybl',
+    favoriteFormat: 'IPL',
+    favoriteTeam: 'Royal Challengers Bangalore',
+    favoriteCricketer: 'Virat Kohli',
+    profileCompleted: true,
+    phoneVerified: true,
+    quizzesPlayed: 28,
+    perfectScores: 4,
+    totalRewards: 350,
+    referralCode: 'cricblitz.com/ref/mock123',
+    referralEarnings: 50,
+};
+
 
 export const mockQuestions: QuizQuestion[] = [
     {

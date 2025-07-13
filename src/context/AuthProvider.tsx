@@ -4,8 +4,8 @@
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
-import { doc, onSnapshot, setDoc, getDoc, DocumentData } from 'firebase/firestore';
-import type { QuizAttempt } from '@/lib/mockData';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { mockUserData, mockQuizHistory, type QuizAttempt } from '@/lib/mockData';
 
 interface AuthContextType {
   user: User | null;
@@ -24,124 +24,27 @@ const MANDATORY_PROFILE_FIELDS = [
   'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
-// Helper to migrate old, capitalized field names to new lowercase ones.
-const runDataMigration = async (uid: string, data: DocumentData) => {
-    // Check if migration is needed by looking for an old, capitalized key.
-    if (!data || !data.Name) { 
-        return data; // No migration needed
-    }
-
-    console.log("Migration needed: Found old data structure. Correcting field names...");
-    const newData = {
-        ...data,
-        name: data.Name || data.name || '',
-        phone: data.Phone || data.phone || '',
-        dob: data.DoB || data.dob || '',
-        gender: data.Gender || data.gender || '',
-        occupation: data.Occupation || data.occupation || '',
-        upi: data.UPI || data.upi || '',
-        favoriteFormat: data.FavoriteFormat || data.favoriteFormat || '',
-        favoriteTeam: data.FavoriteTeam || data.favoriteTeam || '',
-        favoriteCricketer: data.FavoriteCricketer || data.favoriteCricketer || '',
-    };
-    
-    // Remove old capitalized fields
-    delete newData.Name;
-    delete newData.Phone;
-    delete newData.DoB;
-    delete newData.Gender;
-    delete newData.Occupation;
-    delete newData.UPI;
-    delete newData.FavoriteFormat;
-    delete newData.FavoriteTeam;
-    delete newData.FavoriteCricketer;
-    
-    try {
-        const docRef = doc(db, 'users', uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            await setDoc(docRef, newData, { merge: true });
-            console.log("Data migration successful. User document updated.");
-            return newData;
-        }
-        return data;
-    } catch (error) {
-        console.error("Error during data migration:", error);
-        return data; // Return original data on error
-    }
-}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<DocumentData | null>(null);
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
+  const [user, setUser] = useState<User | null>(mockUserData as any);
+  const [userData, setUserData] = useState<DocumentData | null>(mockUserData);
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(mockQuizHistory);
 
-  const [isAuthResolved, setIsAuthResolved] = useState(false);
+  const [isAuthResolved, setIsAuthResolved] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-
-  // 🔐 1. Wait for Firebase Auth to resolve
+  
+  // No-op useEffects as we are using mock data
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setIsAuthResolved(true);
-    });
-    return () => unsubscribe();
+    // This would handle real auth state changes
   }, []);
 
-  // 📡 2. Load Firestore data AFTER auth is resolved
-  useEffect(() => {
-    if (!isAuthResolved) return;
-
-    if (user?.uid) {
-      setIsUserDataLoading(true);
-      setIsHistoryLoading(true);
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribeUser = onSnapshot(userDocRef, async (docSnapshot) => {
-        let data = docSnapshot.data() ?? null;
-        if (data) {
-            // Run a one-time migration check
-            data = await runDataMigration(user.uid, data);
-        }
-        setUserData(data);
-        setIsUserDataLoading(false);
-      }, (error) => {
-        console.error('Error fetching user data:', error);
-        setUserData(null);
-        setIsUserDataLoading(false);
-      });
-
-      const historyDocRef = doc(db, 'quizHistory', user.uid);
-      const unsubscribeHistory = onSnapshot(historyDocRef, (doc) => {
-        const historyData = doc.data();
-        setQuizHistory(historyData?.attempts || []);
-        setIsHistoryLoading(false);
-      }, (error) => {
-        console.error('Error fetching quiz history:', error);
-        setQuizHistory([]);
-        setIsHistoryLoading(false);
-      });
-
-      return () => {
-        unsubscribeUser();
-        unsubscribeHistory();
-      };
-    } else {
-      // No user signed in
-      setUserData(null);
-      setQuizHistory(null);
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
-    }
-  }, [user, isAuthResolved]);
-
-  // ✅ Unified loading flag
+  // Unified loading flag, always false with mock data
   const loading = useMemo(() => {
     return !isAuthResolved || (user?.uid && (isUserDataLoading || isHistoryLoading));
   }, [isAuthResolved, user?.uid, isUserDataLoading, isHistoryLoading]);
 
-  // ✅ Profile completeness check
+  // Profile completeness check
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
     // Use `userData[field] == null` to allow empty strings `""` but not `null` or `undefined`.

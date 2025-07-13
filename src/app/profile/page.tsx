@@ -9,7 +9,6 @@ import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import ProfileContent from '@/components/profile/ProfileContent';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 function ProfilePage() {
   const { user, userData, isProfileComplete, loading } = useAuth();
@@ -26,26 +25,19 @@ function ProfilePage() {
   );
 
   const renderAuthenticated = () => {
-    // This check is important. If loading is done and there's still no user,
-    // it might be a brief state before redirect effect kicks in.
-    if (!user) {
-        return <ProfileSkeleton />;
-    }
-
-    if (!isProfileComplete) {
+    if (!userData || !isProfileComplete) {
       return (
         <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 text-center">
             <div className="bg-destructive/10 border border-destructive/50 text-destructive p-4 rounded-lg">
                 <h3 className="font-bold">Profile Incomplete</h3>
                 <p>Please complete your profile to view your stats and rewards.</p>
-                <Button
+                <button
                     onClick={() => router.push('/complete-profile')}
                     className="mt-2 bg-destructive text-destructive-foreground font-bold py-2 px-4 rounded hover:bg-destructive/90"
                 >
                     Complete Profile
-                </Button>
+                </button>
             </div>
-            {userData && <ProfileContent userProfile={userData} /> }
         </main>
       );
     }
