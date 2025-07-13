@@ -45,7 +45,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                     <Link href="/rewards"><Gift className="mr-4" /> My Rewards</Link>
                 </Button>
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <Link href="/certificates"><Award className="mr-4" /> View Certificates</Link>
+                    <Link href="/certificates" prefetch={true}><Award className="mr-4" /> View Certificates</Link>
                 </Button>
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>

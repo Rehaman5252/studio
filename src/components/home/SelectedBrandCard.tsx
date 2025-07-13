@@ -29,10 +29,9 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={selectedBrand.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.1 }}
+                            initial={{ opacity: 0, x: -30 }}
+                            animate={{ opacity: 1, x: 0, transition: { type: 'spring', stiffness: 120, damping: 15 } }}
+                            exit={{ opacity: 0, x: 30, transition: { duration: 0.15 } }}
                             className="flex items-center justify-between"
                         >
                             <div>
