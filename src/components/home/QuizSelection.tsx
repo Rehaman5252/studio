@@ -21,6 +21,7 @@ import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
+import BrandCube from './BrandCube';
 
 const QuizSelectionComponent = () => {
     const { user, isProfileComplete, isUserDataLoading } = useAuth();
@@ -30,12 +31,28 @@ const QuizSelectionComponent = () => {
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
+    const [rotation, setRotation] = useState(0);
     
     useEffect(() => {
         const interval = setInterval(() => {
             setSelectedBrand(prevBrand => {
                 const currentIndex = brandData.findIndex(b => b.id === prevBrand.id);
                 const nextIndex = (currentIndex + 1) % brandData.length;
+                
+                // For a 6-sided cube, each face turn is 60 degrees.
+                // We rotate on Y and X axis to show different faces.
+                if (nextIndex < 4) { // Rotate around Y axis for first 4 faces
+                    setRotation(prev => prev - 90);
+                } else { // Tilt up/down for top/bottom faces
+                    // This is a simplification. A true cube would need more complex rotation logic.
+                    // For now, we'll stick to Y-axis rotation.
+                    if(nextIndex === 0) { // Reset rotation
+                         setRotation(0);
+                    } else {
+                         setRotation(prev => prev - 90);
+                    }
+                }
+                
                 return brandData[nextIndex];
             });
         }, 500);
@@ -90,8 +107,10 @@ const QuizSelectionComponent = () => {
         <>
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">The selection cycles automatically. Click to start.</p>
+                <p className="text-sm text-muted-foreground">click on the face of cube</p>
             </div>
+
+            <BrandCube rotation={rotation} />
             
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
