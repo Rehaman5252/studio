@@ -19,11 +19,11 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'UPI',
+        brand: 'SBI',
         format: 'IPL',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-white.svg/2560px-UPI-Logo-white.svg.png',
-        logoWidth: 100,
-        logoHeight: 40,
+        logoUrl: 'https://www.pngkey.com/png/full/29-291107_sbi-logo-sbi-logo-white-png.png',
+        logoWidth: 80,
+        logoHeight: 80,
     },
     {
         id: 3,
