@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, memo, useEffect } from 'react';
+import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
@@ -69,7 +69,7 @@ const QuizSelectionComponent = () => {
             setRotation(faceRotations[brandIndex]);
             setSelectedBrand(brand);
         }
-        setTimeout(() => setIsChanging(false), 250);
+        setTimeout(() => setIsChanging(false), 125);
     }, [isChanging]);
 
     const handleFaceClick = (brand: CubeBrand) => {
@@ -81,7 +81,9 @@ const QuizSelectionComponent = () => {
     };
 
     useEffect(() => {
-        const interval = setInterval(() => {
+        let timeoutId: NodeJS.Timeout;
+
+        const setRandomRotation = () => {
             if (isChanging) return;
         
             setIsChanging(true);
@@ -91,13 +93,21 @@ const QuizSelectionComponent = () => {
             
             setRotation(newRotation);
             setSelectedBrand(newBrand);
-            
+
             setTimeout(() => {
                 setIsChanging(false);
-            }, 250);
-        }, 5000);
+            }, 125);
+            
+            // Set the next random rotation
+            const randomDelay = Math.random() * 4000 + 3000; // 3 to 7 seconds
+            timeoutId = setTimeout(setRandomRotation, randomDelay);
+        };
+        
+        // Start the first rotation
+        const randomDelay = Math.random() * 4000 + 3000;
+        timeoutId = setTimeout(setRandomRotation, randomDelay);
 
-        return () => clearInterval(interval);
+        return () => clearTimeout(timeoutId);
     }, [isChanging]);
 
     const handleSlotAlertAction = () => {
