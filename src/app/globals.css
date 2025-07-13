@@ -162,9 +162,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: hsla(var(--card), 0.8);
-    border: 1px solid hsl(var(--border));
+    background-color: transparent;
+    border: 2px solid hsl(var(--primary));
     border-radius: 12px;
+    transition: box-shadow 0.3s ease-in-out;
+  }
+  
+  .cube-face:hover {
+    box-shadow: 0 0 15px 5px hsla(var(--primary), 0.7);
   }
 
   .cube-face-front {

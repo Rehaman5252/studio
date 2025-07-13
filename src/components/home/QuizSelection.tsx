@@ -96,7 +96,7 @@ const QuizSelectionComponent = () => {
                 <p className="text-sm text-muted-foreground">The cube will decide your fate!</p>
             </div>
             
-            <div className="flex justify-center items-center my-4 h-48 w-48 mx-auto">
+            <div className="flex justify-center items-center my-4 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
                 <BrandCube rotation={rotation} />
             </div>
 
