@@ -19,9 +19,9 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'State Bank of India',
+        brand: 'Mastercard',
         format: 'IPL',
-        logoUrl: 'https://logolook.net/wp-content/uploads/2021/11/SBI-Logo-White.png',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png',
         logoWidth: 80,
         logoHeight: 80,
     },
