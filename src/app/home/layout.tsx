@@ -1,4 +1,6 @@
 
+'use client';
+
 import React from 'react';
 import BottomNav from '@/components/BottomNav';
 import { motion } from 'framer-motion';
