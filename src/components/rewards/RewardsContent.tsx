@@ -110,12 +110,12 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const BrandGiftsSection = memo(({ perfectScoreAttempts }: { perfectScoreAttempts: QuizAttempt[] }) => (
+const BrandGiftsSection = memo(({ rewardableAttempts }: { rewardableAttempts: QuizAttempt[] }) => (
   <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-    <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift for every quiz you've perfected. Scratch to reveal!</p>
+    <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt (one per brand per day). Scratch to reveal!</p>
     
-    {perfectScoreAttempts.length > 0 ? (
+    {rewardableAttempts.length > 0 ? (
       <Carousel
           opts={{
               align: 'start',
@@ -123,7 +123,7 @@ const BrandGiftsSection = memo(({ perfectScoreAttempts }: { perfectScoreAttempts
           className="w-full max-w-full"
       >
           <CarouselContent className="-ml-4">
-              {perfectScoreAttempts.map((attempt, index) => (
+              {rewardableAttempts.map((attempt, index) => (
               <CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
                   <ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} />
               </CarouselItem>
@@ -135,7 +135,7 @@ const BrandGiftsSection = memo(({ perfectScoreAttempts }: { perfectScoreAttempts
     ) : (
       <Card className="bg-card/80">
         <CardContent className="p-6 text-center text-muted-foreground">
-          <p>Get a perfect score in a quiz to unlock a special brand gift!</p>
+          <p>Play any quiz to unlock a special brand gift!</p>
         </CardContent>
       </Card>
     )}
@@ -158,11 +158,24 @@ GenericOffersSection.displayName = 'GenericOffersSection';
 export default function RewardsContent() {
   const { user, quizHistory, isHistoryLoading } = useAuth();
   
-  const perfectScoreAttempts = useMemo(() => {
+  const rewardableAttempts = useMemo(() => {
     if (!quizHistory) return [];
-    return (quizHistory as QuizAttempt[]).filter(attempt => 
-        attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason
-    );
+
+    const uniqueAttempts = new Map<string, QuizAttempt>();
+    const allAttempts = (quizHistory as QuizAttempt[]).filter(attempt => !attempt.reason);
+
+    for (const attempt of allAttempts) {
+      const attemptDate = new Date(attempt.timestamp).toDateString(); // 'Fri Jul 26 2024'
+      const key = `${attempt.brand}-${attemptDate}`;
+
+      // Only add the first attempt for a given brand on a given day
+      if (!uniqueAttempts.has(key)) {
+        uniqueAttempts.set(key, attempt);
+      }
+    }
+
+    // Return the attempts, sorted by most recent first
+    return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory]);
 
 
@@ -196,7 +209,7 @@ export default function RewardsContent() {
                     </div>
                 </section>
             ) : (
-                <BrandGiftsSection perfectScoreAttempts={perfectScoreAttempts} />
+                <BrandGiftsSection rewardableAttempts={rewardableAttempts} />
             )
         )}
         
