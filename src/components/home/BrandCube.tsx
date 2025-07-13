@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { brandData } from './brandData';
 
 interface BrandCubeProps {
-  rotation: number;
+  rotation: { x: number; y: number };
 }
 
 const BrandCube = ({ rotation }: BrandCubeProps) => {
@@ -23,18 +23,18 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
     <div className="scene h-full w-full">
       <div
         className="cube"
-        style={{ transform: `rotateY(${rotation}deg)` }}
+        style={{ transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
       >
         {faces.map((face) => (
           <div key={face.brand.id} className={`cube-face ${face.class}`}>
-             <div className="flex flex-col items-center justify-between p-2 text-white w-full h-full">
+             <div className="flex flex-col items-center justify-between p-2 text-inherit w-full h-full">
                 <div className="w-full h-2/3 relative">
                     <Image
                         src={face.brand.logoUrl}
                         alt={`${face.brand.brand} logo`}
                         data-ai-hint="cricket logo"
                         fill
-                        className="object-contain opacity-75"
+                        className="object-contain"
                         priority
                     />
                 </div>

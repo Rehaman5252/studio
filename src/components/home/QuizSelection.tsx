@@ -23,13 +23,13 @@ import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
 
-const faceIndexToRotation: { [key: number]: number } = {
-    0: 0, // Front
-    1: -90, // Right
-    2: -180, // Back
-    3: -270, // Left
-    4: 90, // Top
-    5: -90 // Bottom - this will rotate Y like right face
+const faceIndexToRotation: { [key: number]: { x: number; y: number } } = {
+    0: { x: 0, y: 0 },      // Front
+    1: { x: 0, y: -90 },     // Right
+    2: { x: 0, y: -180 },    // Back
+    3: { x: 0, y: 90 },     // Left
+    4: { x: -90, y: 0 },    // Top
+    5: { x: 90, y: 0 },     // Bottom
 };
 
 const QuizSelectionComponent = () => {
@@ -40,7 +40,7 @@ const QuizSelectionComponent = () => {
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
-    const [rotation, setRotation] = useState(0);
+    const [rotation, setRotation] = useState({ x: 0, y: 0 });
     const [isRotating, setIsRotating] = useState(true);
     
     useEffect(() => {
@@ -49,28 +49,25 @@ const QuizSelectionComponent = () => {
         const rotateCube = () => {
             const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
             let nextBrandIndex = currentBrandIndex;
-            // Ensure we don't pick the same face twice in a row
+
             while (nextBrandIndex === currentBrandIndex) {
                  nextBrandIndex = Math.floor(Math.random() * 6);
             }
             
             const nextRotation = faceIndexToRotation[nextBrandIndex];
-            const randomDelay = Math.random() * 1500 + 1500; // 1.5s to 3s
+            const randomDelay = Math.random() * 1500 + 2000;
             
             setIsRotating(true);
             setRotation(nextRotation);
             
-            // Wait for rotation animation to finish (1s) before updating brand
             setTimeout(() => {
                 setSelectedBrand(brandData[nextBrandIndex]);
                 setIsRotating(false);
 
-                // Schedule next rotation
                 timeoutId = setTimeout(rotateCube, randomDelay);
             }, 1000);
         };
 
-        // Start the first rotation
         timeoutId = setTimeout(rotateCube, 1000);
 
         return () => clearTimeout(timeoutId);
@@ -82,7 +79,7 @@ const QuizSelectionComponent = () => {
     }, [user, lastAttemptInSlot]);
 
     const handleStartQuiz = useCallback(() => {
-        if (isRotating) return; // Prevent starting quiz while cube is moving
+        if (isRotating) return; 
 
         if (!user || !isProfileComplete) {
             setShowAuthAlert(true);
