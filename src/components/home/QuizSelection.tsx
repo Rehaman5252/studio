@@ -148,15 +148,13 @@ const QuizSelectionComponent = () => {
                 <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                    {lastAttemptInSlot?.reason === 'malpractice' ? 'Slot Locked' : 'Quiz Already Attempted'}
+                    {lastAttemptInSlot?.reason === 'malpractice' ? 'Slot Locked: Unfair Play' : 'Quiz Already Attempted'}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                     {lastAttemptInSlot?.reason === 'malpractice'
-                        ? "Malpractice was detected in your last attempt for this slot."
-                        : "You have already completed a quiz in this slot."
+                        ? "Your previous attempt in this slot was terminated due to unfair play (like switching tabs). Please try again in the next slot."
+                        : "You have already completed a quiz in this 10-minute slot. You can play again in the next one!"
                     }
-                    <br/>
-                    You can play again in the next slot.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

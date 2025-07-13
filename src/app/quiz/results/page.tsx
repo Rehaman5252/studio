@@ -32,13 +32,13 @@ const MalpracticeScreen = memo(() => {
                  <div className="mx-auto bg-destructive/20 p-4 rounded-full w-fit mb-4">
                     <AlertTriangle className="h-12 w-12 text-destructive" />
                 </div>
-                <h1 className="text-3xl font-extrabold text-destructive">Quiz Terminated</h1>
-                <p className="text-base text-muted-foreground mt-2">Malpractice Detected</p>
-                <div className="space-y-4 mt-4">
-                     <p className="text-lg">Your quiz session was ended because you switched tabs or left the app.</p>
-                     <p className="text-sm text-muted-foreground">To ensure fair play for all users, this is not permitted during a quiz.</p>
-                     <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-4" onClick={() => router.replace('/home')}>
-                        <Home className="mr-2 h-5 w-5" /> Go Home
+                <h1 className="text-3xl font-extrabold text-destructive">It's a Wicket!</h1>
+                <p className="text-base text-muted-foreground mt-2">Quiz Terminated for Unfair Play</p>
+                <div className="space-y-4 mt-4 text-left">
+                     <p className="text-lg">Like a batsman leaving the crease, you strayed from the quiz tab.</p>
+                     <p className="text-sm text-muted-foreground">To ensure a fair game for everyone, this quiz attempt has been declared void. You can start a fresh innings in the next quiz slot.</p>
+                     <Button size="lg" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-4" onClick={() => router.replace('/home')}>
+                        <Home className="mr-2 h-5 w-5" /> Back to the Pavilion
                      </Button>
                 </div>
             </motion.div>

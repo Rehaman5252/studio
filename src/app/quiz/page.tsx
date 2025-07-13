@@ -65,7 +65,7 @@ function QuizComponent() {
     }
   }, [format, router, toast, user]);
 
-  const submitQuiz = useCallback(async () => {
+  const submitQuiz = useCallback(async (reason?: 'malpractice') => {
     if (!user || !questions || !addQuizAttempt) return;
     setQuizState('submitting');
     
@@ -85,11 +85,12 @@ function QuizComponent() {
         timestamp: Date.now(),
         timePerQuestion,
         usedHintIndices,
+        reason,
     };
 
     try {
         addQuizAttempt(attemptData);
-        router.replace('/quiz/results');
+        router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
     } catch (error) {
         console.error("Error submitting quiz results:", error);
         toast({ title: 'Submission Error', description: 'Could not save your quiz results.', variant: 'destructive' });
@@ -184,6 +185,18 @@ function QuizComponent() {
     });
   };
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && quizState === 'playing') {
+        submitQuiz('malpractice');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [quizState, submitQuiz]);
+
   if (authLoading || quizState === 'loading') {
     return <CricketLoading message="Warming up the bowlers..." format={format} />;
   }
@@ -238,7 +251,7 @@ function QuizComponent() {
         </div>
       </main>
 
-      {adConfig && (
+      {adConfig && adConfig.adType === 'video' && (
           <AdDialog
               open={!!adConfig}
               onAdFinished={adConfig.onFinished}
