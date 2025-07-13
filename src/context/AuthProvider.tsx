@@ -37,60 +37,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
-      // If no user, no data will be loaded, so set those flags to false.
-      if (!currentUser) {
-        setUserData(null);
-        setQuizHistory(null);
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-      }
     });
 
     return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
-    // Don't run listeners if auth is still loading or if there's no user.
-    if (isAuthLoading || !user?.uid) {
-        // If there's no user, ensure data loading states are false.
-        if (!user?.uid) {
-            setIsUserDataLoading(false);
-            setIsHistoryLoading(false);
-        }
-        return;
-    }
+    if (user?.uid) {
+      // User is logged in, start fetching data
+      setIsUserDataLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
+          setUserData(doc.data() ?? null);
+          setIsUserDataLoading(false);
+      }, (error) => {
+          console.error("Error fetching user data:", error);
+          setUserData(null);
+          setIsUserDataLoading(false);
+      });
 
-    // Auth is resolved and we have a user UID, start loading data.
-    setIsUserDataLoading(true);
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
-        setUserData(doc.data() ?? null);
-        setIsUserDataLoading(false);
-    }, (error) => {
-        console.error("Error fetching user data:", error);
-        setUserData(null);
-        setIsUserDataLoading(false);
-    });
-
-    setIsHistoryLoading(true);
-    const historyDocRef = doc(db, 'quizHistory', user.uid);
-    const unsubscribeHistory = onSnapshot(historyDocRef, (doc) => {
-      const historyData = doc.data();
-      // Ensure we set an empty array if attempts are null/undefined
-      setQuizHistory(historyData?.attempts || []);
-      setIsHistoryLoading(false);
-    }, (error) => {
-        console.error("Error fetching quiz history:", error);
-        setQuizHistory([]);
+      setIsHistoryLoading(true);
+      const historyDocRef = doc(db, 'quizHistory', user.uid);
+      const unsubscribeHistory = onSnapshot(historyDocRef, (doc) => {
+        const historyData = doc.data();
+        setQuizHistory(historyData?.attempts || []);
         setIsHistoryLoading(false);
-    });
+      }, (error) => {
+          console.error("Error fetching quiz history:", error);
+          setQuizHistory([]);
+          setIsHistoryLoading(false);
+      });
 
-    // Cleanup function
-    return () => {
-        unsubscribeUser();
-        unsubscribeHistory();
-    };
-  }, [user, isAuthLoading]);
+      // Cleanup listeners on unmount or user change
+      return () => {
+          unsubscribeUser();
+          unsubscribeHistory();
+      };
+    } else {
+      // No user, reset data and loading states
+      setUserData(null);
+      setQuizHistory(null);
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
+    }
+  }, [user]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
