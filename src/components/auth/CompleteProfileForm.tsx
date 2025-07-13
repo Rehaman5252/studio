@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { type DocumentData } from 'firebase/firestore';
-import { Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, X, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -55,16 +55,16 @@ export default function CompleteProfileForm() {
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: '',
-            email: '',
-            phone: '',
-            dob: '',
-            upi: '',
-            gender: undefined,
-            occupation: undefined,
-            favoriteFormat: undefined,
-            favoriteTeam: undefined,
-            favoriteCricketer: '',
+            name: userData?.name || '',
+            email: userData?.email || '',
+            phone: userData?.phone || '',
+            dob: userData?.dob || '',
+            upi: userData?.upi || '',
+            favoriteCricketer: userData?.favoriteCricketer || '',
+            gender: userData?.gender,
+            occupation: userData?.occupation,
+            favoriteFormat: userData?.favoriteFormat,
+            favoriteTeam: userData?.favoriteTeam,
         },
     });
     
@@ -87,7 +87,7 @@ export default function CompleteProfileForm() {
             });
             setPhoneVerifiedInForm(userData.phoneVerified);
         }
-    }, [userData, form]);
+    }, [userData, form.reset]);
     
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user) {
@@ -111,7 +111,9 @@ export default function CompleteProfileForm() {
                 phoneVerified: phoneVerifiedInForm,
             };
 
-            updateUserData(finalPayload);
+            if (updateUserData) {
+                updateUserData(finalPayload);
+            }
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/profile');
@@ -320,7 +322,3 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
-
-    
-
-    
