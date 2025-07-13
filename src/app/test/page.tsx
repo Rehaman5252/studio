@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/context/AuthProvider';
@@ -40,7 +39,7 @@ export default function FirebaseTestPage() {
                 <AlertTitle>Firestore Status</AlertTitle>
                 <AlertDescription>
                     {user && userData && `User document found for ${userData.name}. Firestore is connected.`}
-                    {user && !userData && 'Auth is working, but no Firestore document was found for this user. (This is normal for a user who hasn't completed their profile).'}
+                    {user && !userData && 'Auth is working, but no Firestore document was found for this user. (This is normal for a user who hasn\'t completed their profile).'}
                     {!user && 'Waiting for an authenticated user to check Firestore.'}
                 </AlertDescription>
             </Alert>
