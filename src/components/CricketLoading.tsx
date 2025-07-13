@@ -42,16 +42,13 @@ const CricketLoading = ({
 }: CricketLoadingProps) => {
   const [fact, setFact] = useState<string>('');
   const [seenFacts, setSeenFacts] = useState<string[]>([]);
-  const [isFetchingFact, setIsFetchingFact] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    let timer: NodeJS.Timeout;
 
-    const fetchFact = async () => {        
-        if (!isMounted || isFetchingFact || !format) return;
+    async function fetchAndSetFact() {
+        if (!isMounted || !format) return;
         
-        setIsFetchingFact(true);
         try {
             const newFact = await generateCricketFact({ format, seenFacts });
             if (isMounted) {
@@ -61,24 +58,19 @@ const CricketLoading = ({
         } catch (error) {
             console.error("Failed to fetch cricket fact:", error);
             if (isMounted) {
-                // Set a fallback fact in case of an error
                 setFact("The first official cricket Test match was played in 1877 between Australia and England.");
             }
-        } finally {
-            if(isMounted) setIsFetchingFact(false);
         }
-    };
-    
-    // Fetch the first fact immediately, then set an interval
-    if(state === 'loading' && format) {
-      fetchFact();
-      timer = setInterval(fetchFact, 7000); // Fetch a new fact every 7 seconds
     }
-
-    return () => {
-      isMounted = false;
-      if (timer) clearInterval(timer);
-    };
+    
+    if (state === 'loading') {
+      fetchAndSetFact();
+      const timer = setInterval(fetchAndSetFact, 7000);
+      return () => {
+        isMounted = false;
+        clearInterval(timer);
+      };
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [format, state]);
   
@@ -114,7 +106,7 @@ const CricketLoading = ({
       {state === 'loading' && format && (
          <div className="mt-8 text-center max-w-md p-4 bg-card/50 rounded-lg border border-primary/20 animate-fade-in-up">
           <h3 className="font-bold text-primary flex items-center justify-center gap-2 mb-2">
-            {isFetchingFact && !fact ? <Loader2 className="h-5 w-5 animate-spin" /> : <Info />}
+            {!fact ? <Loader2 className="h-5 w-5 animate-spin" /> : <Info />}
             Did you know?
           </h3>
           <p className="text-muted-foreground transition-opacity duration-500 min-h-[40px]">
