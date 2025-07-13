@@ -12,9 +12,9 @@ interface AuthContextType {
   userData: DocumentData | null;
   quizHistory: QuizAttempt[] | null;
   isProfileComplete: boolean;
-  loading: boolean; // Combines auth, user data, and history loading for initial load
-  isUserDataLoading: boolean; // Specific loading state for user data updates
-  isHistoryLoading: boolean; // Specific loading state for history updates
+  loading: boolean; // Simplified single loading state
+  isUserDataLoading: boolean; // Kept for specific UI elements if needed
+  isHistoryLoading: boolean; // Kept for specific UI elements if needed
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,17 +28,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  // Specific loading states can still be useful for granular UI updates
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setLoading(true); // Start loading whenever auth state might change
       setUser(currentUser);
-      setIsAuthLoading(false);
+      if (!currentUser) {
+        // If no user, reset all data and stop loading
+        setUserData(null);
+        setQuizHistory(null);
+        setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
+        setLoading(false);
+      }
     });
-
     return () => unsubscribeAuth();
   }, []);
 
@@ -46,6 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user?.uid) {
       // User is logged in, start fetching data
       setIsUserDataLoading(true);
+      setIsHistoryLoading(true);
+      
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
           setUserData(doc.data() ?? null);
@@ -56,7 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsUserDataLoading(false);
       });
 
-      setIsHistoryLoading(true);
       const historyDocRef = doc(db, 'quizHistory', user.uid);
       const unsubscribeHistory = onSnapshot(historyDocRef, (doc) => {
         const historyData = doc.data();
@@ -73,21 +82,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           unsubscribeUser();
           unsubscribeHistory();
       };
-    } else {
-      // No user, reset data and loading states
-      setUserData(null);
-      setQuizHistory(null);
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    // This effect determines the final loading state
+    if (user === undefined) { // Auth state not yet determined
+        setLoading(true);
+    } else if (user === null) { // User is logged out
+        setLoading(false);
+    } else { // User is logged in, wait for data
+        if (!isUserDataLoading && !isHistoryLoading) {
+            setLoading(false);
+        }
+    }
+  }, [user, isUserDataLoading, isHistoryLoading]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
     return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
-
-  const loading = isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
 
   const value = { 
     user, 

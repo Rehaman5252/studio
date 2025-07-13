@@ -19,9 +19,26 @@ function ProfilePage() {
     }
   }, [user, loading, router]);
 
-  // Show a skeleton if the initial app-wide load is happening or if there's no user data yet.
-  if (loading || !userData) {
+  // Show a skeleton if the initial app-wide load is happening.
+  // This is the most reliable way to handle the loading state.
+  if (loading) {
     return (
+        <div className="flex flex-col h-screen bg-background">
+            <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
+            </header>
+            <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+                <ProfileSkeleton />
+            </main>
+      </div>
+    );
+  }
+
+  // After loading, if there's still no user or user data, it means something is wrong
+  // or the user needs to create a profile. The redirect effect will handle the !user case.
+  // For !userData, we show the skeleton to avoid errors before the redirect or profile completion push.
+  if (!userData) {
+     return (
         <div className="flex flex-col h-screen bg-background">
             <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
