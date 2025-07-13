@@ -23,15 +23,6 @@ import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
 
-const faceIndexToRotation: { [key: number]: { x: number; y: number } } = {
-    0: { x: 0, y: 0 },      // Front
-    1: { x: 0, y: -90 },     // Right
-    2: { x: 0, y: -180 },    // Back
-    3: { x: 0, y: 90 },     // Left
-    4: { x: -90, y: 0 },    // Top
-    5: { x: 90, y: 0 },     // Bottom
-};
-
 const QuizSelectionComponent = () => {
     const { user, isProfileComplete, isUserDataLoading } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
@@ -40,12 +31,8 @@ const QuizSelectionComponent = () => {
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
-    const [rotation, setRotation] = useState({ x: 0, y: 0 });
-    const [isChanging, setIsChanging] = useState(false);
     
     const handleStartQuiz = useCallback(() => {
-        if (isChanging) return; 
-
         if (!user || !isProfileComplete) {
             setShowAuthAlert(true);
             return;
@@ -55,49 +42,11 @@ const QuizSelectionComponent = () => {
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
         }
-    }, [router, user, isProfileComplete, lastAttemptInSlot, selectedBrand, isChanging]);
+    }, [router, user, isProfileComplete, lastAttemptInSlot, selectedBrand]);
     
     const handleSelectBrand = useCallback((brand: CubeBrand) => {
-        const brandIndex = brandData.findIndex(b => b.id === brand.id);
-        if (brandIndex === -1) return;
-
-        setIsChanging(true);
-        const nextRotation = faceIndexToRotation[brandIndex];
-        setRotation(nextRotation);
-
-        setTimeout(() => {
-            setSelectedBrand(brand);
-            setIsChanging(false);
-        }, 125); // Animation transition time
+        setSelectedBrand(brand);
     }, []);
-
-    useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-    
-        const rotateCube = () => {
-          if (isChanging) {
-            timeoutId = setTimeout(rotateCube, 1000);
-            return;
-          }
-    
-          const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
-          let nextBrandIndex;
-          do {
-            nextBrandIndex = Math.floor(Math.random() * 6);
-          } while (nextBrandIndex === currentBrandIndex);
-    
-          handleSelectBrand(brandData[nextBrandIndex]);
-    
-          const randomDelay = Math.random() * 4000 + 3000; // 3 to 7 seconds
-          timeoutId = setTimeout(rotateCube, randomDelay);
-        };
-    
-        // Start the first rotation after a delay
-        timeoutId = setTimeout(rotateCube, Math.random() * 4000 + 3000);
-    
-        return () => clearTimeout(timeoutId);
-      }, [selectedBrand.id, handleSelectBrand, isChanging]);
-
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
@@ -135,11 +84,11 @@ const QuizSelectionComponent = () => {
         <>
             <div className="text-center mb-8 -mt-8">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Click the cube face to play</p>
+                <p className="text-sm text-muted-foreground">Hover to pause, click a face to play</p>
             </div>
             
-            <div className="flex justify-center items-center mt-20 mb-12 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
-                <BrandCube rotation={rotation} onFaceClick={handleSelectBrand} onQuizStart={handleStartQuiz} />
+            <div className="flex justify-center items-center mt-20 mb-12 h-48 w-full transition-transform duration-300 hover:scale-105">
+                <BrandCube onFaceClick={handleSelectBrand} onQuizStart={handleStartQuiz} />
             </div>
 
             <SelectedBrandCard 
@@ -153,7 +102,6 @@ const QuizSelectionComponent = () => {
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
                   onClick={handleStartQuiz}
-                  isDisabled={isChanging}
                 />
             </div>
 
