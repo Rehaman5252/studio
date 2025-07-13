@@ -41,7 +41,7 @@ function HomePage() {
         <header className="p-4 flex items-center justify-center">
           <div className="text-center">
               <h1 className="text-6xl font-extrabold tracking-tight text-shimmer animate-shimmer">
-                CricBlitz
+                indcric
               </h1>
               <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
           </div>
