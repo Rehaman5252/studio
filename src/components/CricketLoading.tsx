@@ -38,7 +38,7 @@ const CricketLoading = ({
   message = "Initializing...",
   errorMessage = "It's a wicket! Looks like there was an error.",
   children,
-  format, // Default format if not provided
+  format = 'Mixed',
 }: CricketLoadingProps) => {
   const [fact, setFact] = useState<string>('Loading cricket wisdom...');
   const [seenFacts, setSeenFacts] = useState<string[]>([]);

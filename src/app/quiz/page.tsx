@@ -8,7 +8,7 @@ import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import type { QuizQuestion } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { getQuizSlotId } from '@/lib/utils';
-import { adLibrary } from '@/lib/ads';
+import { adLibrary, interstitialAds } from '@/lib/ads';
 import { AdDialog } from '@/components/AdDialog';
 import { QuestionCard } from '@/components/quiz/QuestionCard';
 import { QuizHeader } from '@/components/quiz/QuizHeader';
@@ -17,6 +17,7 @@ import CricketLoading from '@/components/CricketLoading';
 import { Button } from '@/components/ui/button';
 import { Lightbulb, ChevronsRight, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
+import InterstitialLoader from '@/components/InterstitialLoader';
 
 function QuizComponent() {
   const { user, addQuizAttempt, loading: authLoading } = useAuth();
@@ -37,7 +38,7 @@ function QuizComponent() {
   const [isHintVisible, setIsHintVisible] = useState(false);
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
   const [adConfig, setAdConfig] = useState<any | null>(null);
-  const [quizState, setQuizState] = useState<'loading' | 'playing' | 'submitting'>('loading');
+  const [quizState, setQuizState] = useState<'loading' | 'playing' | 'ad' | 'submitting'>('loading');
 
   useEffect(() => {
     if (!authLoading && user === null) {
@@ -99,20 +100,28 @@ function QuizComponent() {
     }
   }, [user, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt]);
 
-  const handleNextQuestion = useCallback(() => {
+  const goToNextQuestion = useCallback(() => {
     if (!questions) return;
-
     setSelectedOption(null);
     setIsHintVisible(false);
-    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setTimeLeft(20);
       setQuestionStartTime(Date.now());
+      setQuizState('playing');
     } else {
       submitQuiz();
     }
   }, [questions, currentQuestionIndex, submitQuiz]);
+
+  const handleNextQuestion = useCallback(() => {
+    const adToShow = interstitialAds[currentQuestionIndex];
+    if (adToShow) {
+        setQuizState('ad');
+    } else {
+        goToNextQuestion();
+    }
+  }, [currentQuestionIndex, goToNextQuestion]);
 
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption || !questions) return;
@@ -132,6 +141,12 @@ function QuizComponent() {
       handleNextQuestion();
     }, 1000);
   }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextQuestion, questions]);
+  
+  const handleAdComplete = useCallback(() => {
+      setQuizState('playing');
+      goToNextQuestion();
+  }, [goToNextQuestion]);
+
 
   useEffect(() => {
     if (quizState !== 'playing' || !questions) return;
@@ -164,6 +179,11 @@ function QuizComponent() {
 
   if (quizState === 'submitting') {
       return <CricketLoading message="The umpire is checking... calculating your score!" format={format} />;
+  }
+  
+  if (quizState === 'ad') {
+    const adConfig = interstitialAds[currentQuestionIndex];
+    return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint} duration={adConfig.duration} onComplete={handleAdComplete} />;
   }
 
   if (!questions) {
