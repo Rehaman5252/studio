@@ -11,6 +11,7 @@ import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import ProfileSkeleton from './ProfileSkeleton';
 
 const ProfileHeader = dynamic(() => import('./ProfileHeader'), {
     loading: () => <Skeleton className="h-[116px] w-full" />,
