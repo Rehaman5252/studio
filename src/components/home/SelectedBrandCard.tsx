@@ -21,7 +21,7 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
         >
             <Card 
                 className={cn(
-                    "w-full mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30 overflow-hidden",
+                    "w-full mt-4 rounded-2xl shadow-xl bg-card border-2 border-primary/30 overflow-hidden",
                     "transition-colors hover:border-primary"
                 )}
             >
