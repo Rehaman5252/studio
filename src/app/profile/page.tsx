@@ -28,16 +28,20 @@ function ProfilePage() {
         );
     }
   
-    if (!userData) {
+    if (!user) {
       // This case can be hit if the user document doesn't exist or there was an error.
       // A redirect to profile completion might be appropriate here if that's a required step.
-      return (
-        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-          <ProfileSkeleton />
-        </main>
-      );
+      return null;
     }
   
+    if (!userData || Object.keys(userData).length === 0) {
+        return (
+            <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+                <p className="text-center text-muted-foreground">No profile data found. Please complete your profile.</p>
+            </main>
+        )
+    }
+
     return (
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <ProfileContent userProfile={userData} />
