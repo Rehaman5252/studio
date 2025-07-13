@@ -30,7 +30,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
 
   const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
     'indcric': { gift: '₹50 Bonus', description: 'Bonus cash added to your wallet.', link: 'https://www.indcric.com' },
-    'Default': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
     'Apple': { gift: '10% off Accessories', description: 'On your next purchase.', link: '#' },
     'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: '#' },
     'SBI': { gift: '5% Cashback', description: 'On your next 3 transactions.', link: '#' },
@@ -42,7 +42,7 @@ const ScratchCard = memo(({ brand }: { brand: string }) => {
     'Gucci': { gift: '5% off Perfumes', description: 'On your next purchase.', link: '#' },
   };
 
-  const reward = rewardsByBrand[brand] || rewardsByBrand['Default'];
+  const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
   return (
     <div className="w-full aspect-square p-1">
@@ -107,7 +107,7 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: { brand: string }[] }) => (
+const BrandGiftsSection = memo(({ uniqueBrandAttempts }: { uniqueBrandAttempts: QuizAttempt[] }) => (
   <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
     <p className="text-sm text-muted-foreground mb-4">You've earned a unique gift from each brand you've played with. Scratch to reveal!</p>
@@ -156,9 +156,9 @@ export default function RewardsContent() {
   const { user, quizHistory, isHistoryLoading } = useAuth();
   
   const uniqueBrandAttempts = useMemo(() => {
-    const localHistory = (quizHistory as QuizAttempt[]) || [];
+    const history = (quizHistory as QuizAttempt[]) || [];
     const seenBrands = new Set<string>();
-    return localHistory.filter(attempt => {
+    return history.filter(attempt => {
         if (!attempt.brand || seenBrands.has(attempt.brand)) {
             return false;
         } else {
