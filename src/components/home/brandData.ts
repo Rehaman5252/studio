@@ -19,9 +19,9 @@ export const brandData: CubeBrand[] = [
     },
     {
         id: 2,
-        brand: 'TATA',
+        brand: 'Flipkart',
         format: 'IPL',
-        logoUrl: 'https://www.freepnglogos.com/uploads/tata-logo-png/tata-logo-white-21.png',
+        logoUrl: 'https://www.pngkey.com/png/full/231-2315735_flipkart-logo-flipkart-logo-white-png.png',
         logoWidth: 100,
         logoHeight: 40,
     },
