@@ -4,7 +4,7 @@
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
-import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, DocumentData } from 'firebase/firestore';
 import type { QuizAttempt } from '@/lib/mockData';
 
 interface AuthContextType {
@@ -23,6 +23,48 @@ const MANDATORY_PROFILE_FIELDS = [
   'name', 'phone', 'dob', 'gender', 'occupation',
   'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
+
+// Helper to migrate old, capitalized field names to new lowercase ones.
+const runDataMigration = async (uid: string, data: DocumentData) => {
+    // Check if migration is needed by looking for an old, capitalized key.
+    if (!data || !data.Name) { 
+        return data; // No migration needed
+    }
+
+    console.log("Migration needed: Found old data structure. Correcting field names...");
+    const newData = {
+        ...data,
+        name: data.Name || data.name || '',
+        phone: data.Phone || data.phone || '',
+        dob: data.DoB || data.dob || '',
+        gender: data.Gender || data.gender || '',
+        occupation: data.Occupation || data.occupation || '',
+        upi: data.UPI || data.upi || '',
+        favoriteFormat: data.FavoriteFormat || data.favoriteFormat || '',
+        favoriteTeam: data.FavoriteTeam || data.favoriteTeam || '',
+        favoriteCricketer: data.FavoriteCricketer || data.favoriteCricketer || '',
+    };
+    
+    // Remove old capitalized fields
+    delete newData.Name;
+    delete newData.Phone;
+    delete newData.DoB;
+    delete newData.Gender;
+    delete newData.Occupation;
+    delete newData.UPI;
+    delete newData.FavoriteFormat;
+    delete newData.FavoriteTeam;
+    delete newData.FavoriteCricketer;
+    
+    try {
+        await setDoc(doc(db, 'users', uid), newData, { merge: true });
+        console.log("Data migration successful. User document updated.");
+        return newData;
+    } catch (error) {
+        console.error("Error during data migration:", error);
+        return data; // Return original data on error
+    }
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -51,8 +93,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsHistoryLoading(true);
 
       const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
-        setUserData(doc.data() ?? null);
+      const unsubscribeUser = onSnapshot(userDocRef, async (docSnapshot) => {
+        let data = docSnapshot.data() ?? null;
+        if (data) {
+            // Run a one-time migration check
+            data = await runDataMigration(user.uid, data);
+        }
+        setUserData(data);
         setIsUserDataLoading(false);
       }, (error) => {
         console.error('Error fetching user data:', error);
