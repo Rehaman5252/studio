@@ -9,19 +9,19 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 function ProfilePageContentWrapper() {
-  const { user, userData, loading: authLoading } = useAuth();
+  const { user, userData, isUserDataLoading, isAuthLoading } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
     // Wait until the initial auth check is done, then redirect if not logged in.
-    if (!authLoading && !user) {
+    if (!isAuthLoading && !user) {
       router.replace('/auth/login');
     }
-  }, [user, authLoading, router]);
+  }, [user, isAuthLoading, router]);
 
   // The primary loading condition should be the presence of user data.
-  // The auth check (authLoading) is handled by the redirect logic.
-  if (!userData) {
+  // The auth check (isAuthLoading) is handled by the redirect logic.
+  if (isUserDataLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

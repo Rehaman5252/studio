@@ -6,18 +6,20 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import HomeClientContent from '@/components/home/HomeClientContent';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 function HomePage() {
-    const { user, loading } = useAuth();
+    const { user, loading: isAuthLoading } = useAuth();
+    const { isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && user === null) {
+        if (!isAuthLoading && user === null) {
             router.replace('/auth/login');
         }
-    }, [user, loading, router]);
+    }, [user, isAuthLoading, router]);
 
-    if (loading || !user) {
+    if (isAuthLoading || isQuizStatusLoading) {
       return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
