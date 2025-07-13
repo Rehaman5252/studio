@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React, 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 interface StartQuizButtonProps {
     brandFormat: string;
@@ -23,20 +23,11 @@ const StartQuizButton = ({ brandFormat, onClick, isDisabled = false }: StartQuiz
                 onClick={onClick}
                 disabled={isDisabled}
             >
-                {isDisabled ? (
-                    <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        <span>Deciding Fate...</span>
-                    </>
-                ) : (
-                    <>
-                        {`Start ${brandFormat} Quiz`}
-                        <ChevronRight className="ml-2 h-5 w-5" />
-                    </>
-                )}
+                {`Start ${brandFormat} Quiz`}
+                <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
         </div>
     );
 };
 
-export default memo(StartQuizButton);
+export default React.memo(StartQuizButton);
