@@ -69,7 +69,7 @@ const QuizSelectionComponent = () => {
             setRotation(faceRotations[brandIndex]);
             setSelectedBrand(brand);
         }
-        setTimeout(() => setIsChanging(false), 500); // Increased to match transition
+        setTimeout(() => setIsChanging(false), 500);
     }, [isChanging]);
 
     const handleFaceClick = (brand: CubeBrand) => {
@@ -96,15 +96,13 @@ const QuizSelectionComponent = () => {
 
             setTimeout(() => {
                 setIsChanging(false);
-            }, 500); // Increased to match transition
+            }, 500);
             
-            // Set the next random rotation
-            const randomDelay = Math.random() * 4000 + 3000; // 3 to 7 seconds
+            const randomDelay = Math.random() * 1000 + 500; // 0.5 to 1.5 seconds
             timeoutId = setTimeout(setRandomRotation, randomDelay);
         };
         
-        // Start the first rotation
-        const randomDelay = Math.random() * 4000 + 3000;
+        const randomDelay = Math.random() * 1000 + 500;
         timeoutId = setTimeout(setRandomRotation, randomDelay);
 
         return () => clearTimeout(timeoutId);
