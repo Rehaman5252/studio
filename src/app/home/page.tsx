@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/context/AuthProvider';
@@ -6,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import HomeClientContent from '@/components/home/HomeClientContent';
-import MovingBanner from '@/components/home/MovingBanner';
-
 
 function HomePage() {
     const { user, loading } = useAuth();
@@ -37,8 +34,6 @@ function HomePage() {
               <p className="text-sm text-muted-foreground">win ₹100 for every 100 seconds</p>
           </div>
         </header>
-
-        <MovingBanner />
 
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-8">
