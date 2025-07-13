@@ -28,7 +28,7 @@ const MANDATORY_PROFILE_FIELDS = [
 ];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null(null);
+  const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
   const [loading, setLoading] = useState(true);
