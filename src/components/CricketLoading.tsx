@@ -72,14 +72,15 @@ const CricketLoading = ({
     // Fetch the first fact immediately, then set an interval
     if(state === 'loading' && format) {
       fetchFact();
-      timer = setInterval(fetchFact, 5000); // Fetch a new fact every 5 seconds
+      timer = setInterval(fetchFact, 7000); // Fetch a new fact every 7 seconds
     }
 
     return () => {
       isMounted = false;
       if (timer) clearInterval(timer);
     };
-  }, [format, seenFacts, state, isFetchingFact]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [format, state]);
   
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">

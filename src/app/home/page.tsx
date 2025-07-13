@@ -43,7 +43,7 @@ function HomePage() {
               <h1 className="text-5xl font-extrabold tracking-tight text-shimmer animate-shimmer">
                 indcric
               </h1>
-              <p className="text-sm text-muted-foreground">Win ₹ every 100 rupees</p>
+              <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
           </div>
         </header>
 
