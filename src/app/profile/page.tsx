@@ -1,45 +1,52 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import ProfileContent from '@/components/profile/ProfileContent';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { User } from 'lucide-react';
 
 function ProfilePage() {
-  const { user, userData, loading, isProfileComplete } = useAuth();
+  const { user, userData, isProfileComplete, loading } = useAuth();
   const router = useRouter();
-  
-  useEffect(() => {
-    // Redirect if auth is resolved and there's no user
-    if (!loading && !user) {
-      router.replace('/auth/login');
-    }
-  }, [user, loading, router]);
 
-  const renderContent = () => {
-    if (loading) {
-        return (
-            <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-                <ProfileSkeleton />
-            </main>
-        );
-    }
-  
+  const renderUnauthenticated = () => (
+    <main className="flex-1 flex items-center justify-center p-4 pb-20">
+      <LoginPrompt 
+        icon={User}
+        title="View Your Profile"
+        description="Log in to see your stats, manage rewards, and view quiz history."
+      />
+    </main>
+  );
+
+  const renderAuthenticated = () => {
+    // This check is important. If loading is done and there's still no user,
+    // it might be a brief state before redirect effect kicks in.
     if (!user) {
-      // This case can be hit if the user document doesn't exist or there was an error.
-      // The useEffect will handle the redirect.
-      return null;
+        return <ProfileSkeleton />;
     }
-  
-    if (!userData || !isProfileComplete) {
-        return (
-            <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-                <p className="text-center text-muted-foreground">No profile data found. Please complete your profile.</p>
-            </main>
-        )
+
+    if (!isProfileComplete) {
+      return (
+        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 text-center">
+            <div className="bg-destructive/10 border border-destructive/50 text-destructive p-4 rounded-lg">
+                <h3 className="font-bold">Profile Incomplete</h3>
+                <p>Please complete your profile to view your stats and rewards.</p>
+                <button
+                    onClick={() => router.push('/complete-profile')}
+                    className="mt-2 bg-destructive text-destructive-foreground font-bold py-2 px-4 rounded"
+                >
+                    Complete Profile
+                </button>
+            </div>
+            {userData && <ProfileContent userProfile={userData} /> }
+        </main>
+      );
     }
 
     return (
@@ -49,6 +56,21 @@ function ProfilePage() {
     );
   };
 
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+          <ProfileSkeleton />
+        </main>
+      );
+    }
+
+    if (!user) {
+      return renderUnauthenticated();
+    }
+    
+    return renderAuthenticated();
+  };
 
   return (
     <motion.div
