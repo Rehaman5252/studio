@@ -100,9 +100,9 @@ function QuizComponent() {
 
   const goToNextQuestion = useCallback(() => {
     if (!questions) return;
-    setSelectedOption(null);
-    setIsHintVisible(false);
     if (currentQuestionIndex < questions.length - 1) {
+      setSelectedOption(null);
+      setIsHintVisible(false);
       setCurrentQuestionIndex(prev => prev + 1);
       setTimeLeft(20);
       setQuestionStartTime(Date.now());
@@ -112,7 +112,7 @@ function QuizComponent() {
     }
   }, [questions, currentQuestionIndex, submitQuiz]);
 
-  const handleNextQuestion = useCallback(() => {
+  const handleNextWithAdCheck = useCallback(() => {
     const adToShow = interstitialAds[currentQuestionIndex];
     if (adToShow?.type === 'video' && adToShow.videoUrl) {
       setAdConfig({
@@ -148,10 +148,11 @@ function QuizComponent() {
         return newAnswers;
     });
 
-    setTimeout(() => {
-      handleNextQuestion();
-    }, 1000);
-  }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextQuestion, questions]);
+    // Don't use a timeout here, which causes flickering.
+    // Instead, handleNextWithAdCheck will either show an ad or call goToNextQuestion,
+    // which resets the state for the next question.
+    handleNextWithAdCheck();
+  }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextWithAdCheck, questions]);
   
   const handleAdComplete = useCallback(() => {
       setQuizState('playing');
@@ -246,7 +247,7 @@ function QuizComponent() {
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
-                <Button onClick={handleNextQuestion} disabled={!selectedOption}>
+                <Button onClick={handleNextWithAdCheck} disabled={!selectedOption}>
                     {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} 
                     <ChevronsRight className="ml-2" />
                 </Button>

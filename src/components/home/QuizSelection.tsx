@@ -43,43 +43,12 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
-    const handleRotation = useCallback(() => {
-        if (isChanging) return;
-    
-        setIsChanging(true);
-        const randomIndex = Math.floor(Math.random() * brandData.length);
-        const newBrand = brandData[randomIndex];
-        const newRotation = faceRotations[randomIndex];
-        
-        setRotation(newRotation);
-        setSelectedBrand(newBrand);
-        
-        setTimeout(() => {
-            setIsChanging(false);
-        }, 125); // Match this to the cube's transition duration in globals.css
-    }, [isChanging]);
+    const hasPlayedInCurrentSlot = useMemo(() => {
+        if (!user || !lastAttemptInSlot) return false;
+        return lastAttemptInSlot.slotId === getQuizSlotId();
+    }, [user, lastAttemptInSlot]);
 
-    useEffect(() => {
-        const rotate = () => {
-            handleRotation();
-            // Set a random timeout for the next rotation
-            const randomInterval = Math.random() * (7000 - 3000) + 3000; // between 3 and 7 seconds
-            setTimeout(rotate, randomInterval);
-        };
-
-        // Start the first rotation after a short delay
-        const initialTimeout = setTimeout(rotate, 3000);
-
-        // Cleanup function to clear the timeout if the component unmounts
-        return () => {
-            clearTimeout(initialTimeout);
-            // Since we're using recursive setTimeouts, we don't have an interval ID to clear,
-            // but the chain will stop because the component is unmounted.
-        };
-    }, [handleRotation]);
-
-
-    const handleStartQuiz = useCallback(() => {
+    const handleStartQuiz = useCallback((brandToStart: CubeBrand) => {
         if (!user || !isProfileComplete) {
             setShowAuthAlert(true);
             return;
@@ -87,9 +56,9 @@ const QuizSelectionComponent = () => {
         if (hasPlayedInCurrentSlot) {
             setShowSlotPlayedAlert(true);
         } else {
-            router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
+            router.push(`/quiz?brand=${encodeURIComponent(brandToStart.brand)}&format=${encodeURIComponent(brandToStart.format)}`);
         }
-    }, [router, user, isProfileComplete, lastAttemptInSlot, selectedBrand]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
     
     const handleSelectBrand = useCallback((brand: CubeBrand) => {
         if (isChanging) return;
@@ -103,11 +72,47 @@ const QuizSelectionComponent = () => {
         setTimeout(() => setIsChanging(false), 125);
     }, [isChanging]);
 
-    const hasPlayedInCurrentSlot = useMemo(() => {
-        if (!user || !lastAttemptInSlot) return false;
-        return lastAttemptInSlot.slotId === getQuizSlotId();
-    }, [user, lastAttemptInSlot]);
+    const handleFaceClick = (brand: CubeBrand) => {
+        setSelectedBrand(brand);
+        handleStartQuiz(brand);
+    };
 
+    const handleBannerOrButtonClick = () => {
+        handleStartQuiz(selectedBrand);
+    };
+
+    useEffect(() => {
+        const handleRotation = () => {
+            if (isChanging) return;
+        
+            setIsChanging(true);
+            const randomIndex = Math.floor(Math.random() * brandData.length);
+            const newBrand = brandData[randomIndex];
+            const newRotation = faceRotations[randomIndex];
+            
+            setRotation(newRotation);
+            setSelectedBrand(newBrand);
+            
+            setTimeout(() => {
+                setIsChanging(false);
+            }, 125); // Match this to the cube's transition duration in globals.css
+        };
+
+        const rotate = () => {
+            handleRotation();
+            // Set a random timeout for the next rotation
+            const randomInterval = Math.random() * (7000 - 3000) + 3000; // between 3 and 7 seconds
+            setTimeout(rotate, randomInterval);
+        };
+
+        // Start the first rotation after a short delay
+        const initialTimeout = setTimeout(rotate, 3000);
+
+        // Cleanup function to clear the timeout if the component unmounts
+        return () => {
+            clearTimeout(initialTimeout);
+        };
+    }, [isChanging]);
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -137,18 +142,18 @@ const QuizSelectionComponent = () => {
 
     return (
         <>
-            <div className="text-center mb-8 -mt-8">
+            <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
                 <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
             
             <div className="flex justify-center items-center mt-6 mb-8 h-48 w-full transition-transform duration-300 hover:scale-105">
-                <BrandCube onFaceClick={handleSelectBrand} rotation={rotation} />
+                <BrandCube onFaceClick={handleFaceClick} rotation={rotation} />
             </div>
 
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
-                onClick={handleStartQuiz} 
+                onClick={handleBannerOrButtonClick} 
             />
 
             <div className="mt-8 space-y-8">
@@ -156,7 +161,7 @@ const QuizSelectionComponent = () => {
 
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
-                  onClick={handleStartQuiz}
+                  onClick={handleBannerOrButtonClick}
                 />
             </div>
 
