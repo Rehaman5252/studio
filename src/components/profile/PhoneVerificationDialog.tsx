@@ -2,8 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
@@ -13,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { sendPhoneOtp } from '@/ai/flows/send-phone-otp-flow';
 import { verifyPhoneOtp } from '@/ai/flows/verify-phone-otp-flow';
 
-export function PhoneVerificationDialog({ children, phone }: { children: React.ReactNode; phone: string }) {
+export function PhoneVerificationDialog({ children, phone, onVerified, isInitiallyVerified }: { children: React.ReactNode; phone: string; onVerified: () => void; isInitiallyVerified?: boolean; }) {
   const { user, userData } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -43,19 +41,15 @@ export function PhoneVerificationDialog({ children, phone }: { children: React.R
   };
 
   const handleVerifyOtp = async () => {
-    if (!user || !db) return;
+    if (!user) return;
     setIsLoading(true);
     try {
       const result = await verifyPhoneOtp({ phone, otp });
       if (result.success) {
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, { phoneVerified: true });
         toast({ title: 'Success', description: 'Your phone number has been verified.' });
+        onVerified();
         setOpen(false);
-        // Reset state after closing
-        setTimeout(() => {
-          resetState();
-        }, 300);
+        setTimeout(resetState, 300);
       } else {
         toast({ title: 'Error', description: result.message, variant: 'destructive' });
       }
@@ -72,16 +66,14 @@ export function PhoneVerificationDialog({ children, phone }: { children: React.R
     setIsLoading(false);
   }
 
-  // Prevent dialog from opening if the phone number is already verified
-  const onOpenDialog = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    if (userData?.phoneVerified) {
+  const onOpenDialog = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
+    if (isInitiallyVerified) {
         e.preventDefault();
         toast({ title: "Already Verified", description: "This phone number is already verified."});
         return;
     }
     setOpen(true);
   }
-
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
@@ -133,3 +125,5 @@ export function PhoneVerificationDialog({ children, phone }: { children: React.R
     </Dialog>
   );
 }
+
+    
