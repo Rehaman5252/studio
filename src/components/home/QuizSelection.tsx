@@ -1,9 +1,8 @@
 
 'use client';
 
-import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, memo, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import type { CubeBrand } from '@/components/home/brandData';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
@@ -18,22 +17,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
-import { brands } from './brandData';
 import { Card, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
+
+const defaultBrand = {
+    id: 1,
+    brand: 'CricBlitz',
+    format: 'Mixed',
+    logoUrl: 'https://www.freepnglogos.com/uploads/cricket-logo-png/cricket-logo-transparent-png-images-icons-25.png',
+    logoWidth: 80,
+    logoHeight: 80,
+};
 
 function QuizSelectionComponent() {
     const { user, isProfileComplete } = useAuth();
     const { lastAttemptInSlot } = useQuizStatus();
     const router = useRouter();
-
-    const [api, setApi] = useState<CarouselApi>()
-    const [current, setCurrent] = useState(0)
-    const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
 
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
@@ -43,21 +44,6 @@ function QuizSelectionComponent() {
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
-    useEffect(() => {
-        if (!api) {
-          return
-        }
-    
-        setCurrent(api.selectedScrollSnap())
-        setSelectedBrandIndex(api.selectedScrollSnap())
-    
-        api.on("select", () => {
-          const selectedIndex = api.selectedScrollSnap()
-          setCurrent(selectedIndex)
-          setSelectedBrandIndex(selectedIndex)
-        })
-    }, [api])
-
     const handleStartQuiz = useCallback(() => {
         if (!user || !isProfileComplete) {
             setShowAuthAlert(true);
@@ -66,10 +52,9 @@ function QuizSelectionComponent() {
         if (hasPlayedInCurrentSlot) {
             setShowSlotPlayedAlert(true);
         } else {
-            const selectedBrand = brands[selectedBrandIndex];
-            router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
+            router.push(`/quiz?brand=${encodeURIComponent(defaultBrand.brand)}&format=${encodeURIComponent(defaultBrand.format)}`);
         }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrandIndex]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -89,53 +74,47 @@ function QuizSelectionComponent() {
         setShowAuthAlert(false);
     }
     
-    const selectedBrand = brands[selectedBrandIndex];
-    
     return (
         <>
             <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold">Select Your Cricket Format</h2>
-                <p className="text-sm text-muted-foreground">Use the arrows to navigate the available quizzes!</p>
+                <h2 className="text-2xl font-bold">Today's Challenge</h2>
+                <p className="text-sm text-muted-foreground">A mixed-format quiz to test your all-round knowledge.</p>
             </div>
             
-            <Carousel setApi={setApi} className="w-full max-w-xs mx-auto">
-              <CarouselContent>
-                {brands.map((brand, index) => (
-                  <CarouselItem key={index}>
-                    <Card>
-                      <CardContent className="flex aspect-square items-center justify-center p-6 bg-primary rounded-lg">
-                        <Image
-                            src={brand.whiteLogoUrl}
-                            alt={`${brand.brand} logo`}
-                            data-ai-hint="cricket logo"
-                            width={150}
-                            height={150}
-                            className="object-contain"
-                            priority={index === 0}
-                        />
-                      </CardContent>
-                    </Card>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
+             <Card 
+                className="w-full max-w-sm mx-auto mt-8 rounded-2xl shadow-xl bg-card border-2 border-primary/30 overflow-hidden"
+            >
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-2xl font-bold text-foreground">{defaultBrand.format} Cricket Quiz</h3>
+                            <p className="text-muted-foreground mb-2">Powered by {defaultBrand.brand}</p>
+                            <p className="text-lg font-semibold text-primary">Win Rewards!</p>
+                        </div>
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center p-2 shadow-inner bg-white">
+                            <Image
+                                src={defaultBrand.logoUrl}
+                                alt={`${defaultBrand.brand} logo`}
+                                data-ai-hint="cricket logo"
+                                width={defaultBrand.logoWidth}
+                                height={defaultBrand.logoHeight}
+                                className="object-contain"
+                                priority
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-
-            <div className="mt-8 space-y-8">
-                <SelectedBrandCard
-                  selectedBrand={selectedBrand}
-                  handleStartQuiz={handleStartQuiz}
-                />
-                
+            <div className="mt-8 space-y-8 max-w-sm mx-auto">
                 <GlobalStats />
 
                 <StartQuizButton
-                  brandFormat={selectedBrand.format}
+                  brandFormat={defaultBrand.format}
                   onClick={handleStartQuiz}
                 />
             </div>
+
              <AlertDialog open={showSlotPlayedAlert} onOpenChange={setShowSlotPlayedAlert}>
                 <AlertDialogContent>
                 <AlertDialogHeader>
