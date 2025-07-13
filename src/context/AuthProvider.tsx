@@ -50,37 +50,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (isAuthLoading) return; // Wait for auth to resolve first.
-
-    if (user?.uid) {
-        setIsUserDataLoading(true);
-        const userDocRef = doc(db, 'users', user.uid);
-        const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
-            setUserData(doc.data() ?? null);
+    // Don't run listeners if auth is still loading or if there's no user.
+    if (isAuthLoading || !user?.uid) {
+        // If there's no user, ensure data loading states are false.
+        if (!user?.uid) {
             setIsUserDataLoading(false);
-        }, (error) => {
-            console.error("Error fetching user data:", error);
-            setUserData(null);
-            setIsUserDataLoading(false);
-        });
-
-        setIsHistoryLoading(true);
-        const historyDocRef = doc(db, 'quizHistory', user.uid);
-        const unsubscribeHistory = onSnapshot(historyDocRef, (doc) => {
-          const historyData = doc.data();
-          setQuizHistory(historyData?.attempts || []);
-          setIsHistoryLoading(false);
-        }, (error) => {
-            console.error("Error fetching quiz history:", error);
-            setQuizHistory([]);
             setIsHistoryLoading(false);
-        });
-
-        return () => {
-            unsubscribeUser();
-            unsubscribeHistory();
         }
+        return;
     }
+
+    // Auth is resolved and we have a user UID, start loading data.
+    setIsUserDataLoading(true);
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
+        setUserData(doc.data() ?? null);
+        setIsUserDataLoading(false);
+    }, (error) => {
+        console.error("Error fetching user data:", error);
+        setUserData(null);
+        setIsUserDataLoading(false);
+    });
+
+    setIsHistoryLoading(true);
+    const historyDocRef = doc(db, 'quizHistory', user.uid);
+    const unsubscribeHistory = onSnapshot(historyDocRef, (doc) => {
+      const historyData = doc.data();
+      // Ensure we set an empty array if attempts are null/undefined
+      setQuizHistory(historyData?.attempts || []);
+      setIsHistoryLoading(false);
+    }, (error) => {
+        console.error("Error fetching quiz history:", error);
+        setQuizHistory([]);
+        setIsHistoryLoading(false);
+    });
+
+    // Cleanup function
+    return () => {
+        unsubscribeUser();
+        unsubscribeHistory();
+    };
   }, [user, isAuthLoading]);
 
   const isProfileComplete = useMemo(() => {
