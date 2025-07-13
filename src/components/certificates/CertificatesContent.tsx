@@ -4,7 +4,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
+import { Award, Download, Share2, Clock, Calendar, Loader2, Copy } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -117,19 +117,31 @@ export default function CertificatesContent() {
         title: `I earned an indcric Certificate!`,
         text: `I just got a perfect score in the ${cert.format} quiz on indcric! Think you can beat me?`,
         url: window.location.href,
-    }
+    };
+
+    const fallbackCopy = () => {
+        navigator.clipboard.writeText(shareData.text + ' ' + shareData.url);
+        toast({ title: 'Copied to clipboard', description: 'Sharing is not available, so we copied the text for you!' });
+    };
+
     try {
         if (navigator.share) {
             await navigator.share(shareData);
             toast({ title: "Shared!", description: "Certificate shared successfully." });
         } else {
-            throw new Error("Web Share API not supported");
+           fallbackCopy();
         }
-    } catch (error) {
-        console.error('Share failed:', error);
-        toast({ title: "Sharing not available", description: "Could not share. Please try copying the link.", variant: "destructive" });
+    } catch (error: any) {
+        // Handle specific error when user cancels the share dialog
+        if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
+            toast({ title: 'Sharing Canceled', description: 'You have canceled the share action.', variant: 'default' });
+        } else {
+            console.error('Share failed:', error);
+            fallbackCopy();
+        }
     }
   };
+
 
   if (isHistoryLoading) {
     return (
