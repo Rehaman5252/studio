@@ -15,7 +15,7 @@ import { QuizHeader } from '@/components/quiz/QuizHeader';
 import { Timer } from '@/components/quiz/Timer';
 import CricketLoading from '@/components/CricketLoading';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, ChevronsRight, Loader2 } from 'lucide-react';
+import { Lightbulb, ChevronsRight } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
 
@@ -69,7 +69,6 @@ function QuizComponent() {
     if (!user || !questions || !addQuizAttempt) return;
     setQuizState('submitting');
     
-    // Ensure all unanswered questions are marked as "Not Answered"
     const finalUserAnswers = userAnswers.map(ans => ans === null ? "Not Answered" : ans);
 
     const score = questions.reduce((acc, q, index) => (finalUserAnswers[index] === q.correctAnswer ? acc + 1 : acc), 0);
@@ -89,12 +88,8 @@ function QuizComponent() {
     };
 
     try {
-        // Add to the central state via AuthProvider
         addQuizAttempt(attemptData);
-        // Remove the interstitial loader logic before finishing
-        // setQuizState('submitting');
         router.replace('/quiz/results');
-
     } catch (error) {
         console.error("Error submitting quiz results:", error);
         toast({ title: 'Submission Error', description: 'Could not save your quiz results.', variant: 'destructive' });
@@ -118,22 +113,25 @@ function QuizComponent() {
 
   const handleNextQuestion = useCallback(() => {
     const adToShow = interstitialAds[currentQuestionIndex];
-    if (adToShow) {
-        if (adToShow.type === 'video') {
-             setAdConfig({
-                ...adLibrary.midQuizAd,
-                onFinished: () => {
-                    setAdConfig(null);
-                    goToNextQuestion();
-                },
-             });
-        } else {
-            setQuizState('ad');
-        }
+    if (adToShow?.type === 'video' && adToShow.videoUrl) {
+      setAdConfig({
+        adType: 'video',
+        adUrl: adToShow.videoUrl,
+        adTitle: adToShow.videoTitle || 'Advertisement',
+        duration: adToShow.durationSec || 15,
+        skippableAfter: adToShow.skippableAfterSec || 10,
+        onFinished: () => {
+          setAdConfig(null);
+          goToNextQuestion();
+        },
+      });
+    } else if (adToShow?.type === 'static' && adToShow.logoUrl) {
+      setQuizState('ad');
     } else {
-        goToNextQuestion();
+      goToNextQuestion();
     }
   }, [currentQuestionIndex, goToNextQuestion]);
+
 
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption || !questions) return;
@@ -177,6 +175,7 @@ function QuizComponent() {
     const adForHint = adLibrary.hintAds[currentQuestionIndex] || adLibrary.hintAds[0];
     setAdConfig({
         ...adForHint,
+        adTitle: adForHint.title,
         onFinished: () => {
             setIsHintVisible(true);
             setUsedHintIndices(prev => [...prev, currentQuestionIndex]);
@@ -196,9 +195,9 @@ function QuizComponent() {
   if (quizState === 'ad') {
     const adConfig = interstitialAds[currentQuestionIndex];
     if (adConfig && adConfig.type === 'static' && adConfig.logoUrl) {
-      return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint} duration={adConfig.duration} onComplete={handleAdComplete} />;
+      return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint!} duration={adConfig.durationMs || 2000} onComplete={handleAdComplete} />;
     }
-    // If it's a video ad, it's handled by the AdDialog, so we just proceed.
+    // This case should not be hit for video, but as a fallback, proceed.
     goToNextQuestion();
     return null;
   }

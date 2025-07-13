@@ -3,14 +3,15 @@ export interface Ad {
     type: 'image' | 'video';
     url: string;
     title: string;
-    duration: number;
-    skippableAfter: number;
+    duration: number; // in seconds
+    skippableAfter: number; // in seconds
     hint?: string; // for image data-ai-hint
 }
 
+// This adLibrary is for ads that are shown for specific actions,
+// like getting a hint or viewing results.
 export const adLibrary: {
     hintAds: Ad[];
-    midQuizAd: Ad;
     resultsAd: Ad;
 } = {
     hintAds: [
@@ -25,17 +26,8 @@ export const adLibrary: {
         // Question 5 Hint
         { type: 'image', url: 'https://placehold.co/400x225.png', title: 'Hint by HDFC Bank', hint: 'finance bank', duration: 7, skippableAfter: 5 },
     ],
-    midQuizAd: {
-        type: 'video',
-        // Royalty-free video from Pexels
-        url: 'https://videos.pexels.com/video-files/8560088/8560088-hd_1366_720_30fps.mp4',
-        title: 'Strategic Timeout',
-        duration: 20,
-        skippableAfter: 10,
-    },
     resultsAd: {
         type: 'video',
-        // Royalty-free video from Pexels
         url: 'https://videos.pexels.com/video-files/5993356/5993356-hd_1920_1080_25fps.mp4',
         title: 'Answers sponsored by: Indigo Airlines',
         duration: 30,
@@ -43,45 +35,48 @@ export const adLibrary: {
     }
 };
 
-
+// This interstitialAds config is for ads shown between questions.
 export interface InterstitialAdConfig {
-    logoUrl: string;
-    logoHint: string;
-    duration: number;
     type: 'static' | 'video';
+    // For static ads
+    logoUrl?: string;
+    logoHint?: string;
+    durationMs?: number; // duration in milliseconds for static loader
+    // For video ads
     videoUrl?: string;
-    skippableAfter?: number;
+    videoTitle?: string;
+    durationSec?: number; // duration in seconds for video
+    skippableAfterSec?: number; // skippable after seconds for video
 }
   
 export const interstitialAds: { [key: number]: InterstitialAdConfig } = {
-    // After question 1 (index 0)
+    // After question 1 (index 0) -> Show BMW static ad for 2s
     0: {
+        type: 'static',
         logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/2048px-BMW.svg.png',
         logoHint: 'BMW logo',
-        duration: 2000,
-        type: 'static',
+        durationMs: 2000,
     },
-    // After question 2 (index 1)
+    // After question 2 (index 1) -> Show Domino's static ad for 2s
     1: {
+        type: 'static',
         logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Domino%27s_pizza_logo.svg/2048px-Domino%27s_pizza_logo.svg.png',
         logoHint: 'Dominos logo',
-        duration: 2000,
-        type: 'static',
+        durationMs: 2000,
     },
-    // After question 3 (index 2)
+    // After question 3 (index 2) -> Show a 15s video ad, skippable after 10s
     2: {
-        logoUrl: '', // Not used for video ad dialog
-        logoHint: '',
-        duration: 15000,
         type: 'video',
         videoUrl: 'https://videos.pexels.com/video-files/8560088/8560088-hd_1366_720_30fps.mp4',
-        skippableAfter: 10,
+        videoTitle: 'Strategic Timeout',
+        durationSec: 15,
+        skippableAfterSec: 10,
     },
-    // After question 4 (index 3)
+    // After question 4 (index 3) -> Show Pepsi static ad for 2s
     3: {
+        type: 'static',
         logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Pepsi_logo_2014.svg/2560px-Pepsi_logo_2014.svg.png',
         logoHint: 'Pepsi logo',
-        duration: 2000,
-        type: 'static',
+        durationMs: 2000,
     },
 };

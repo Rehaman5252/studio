@@ -22,7 +22,7 @@ interface AdDialogProps {
 export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle, adType, adUrl, adHint, children }: AdDialogProps) {
   const [adTimeLeft, setAdTimeLeft] = useState(duration);
   const [isSkippable, setIsSkippable] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // Play with sound by default
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -39,25 +39,23 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
 
     const timer = setInterval(() => {
       setAdTimeLeft((prev) => {
-        if (prev <= 1) {
+        const newTime = prev - 1;
+        if (newTime <= duration - skippableAfter) {
+            setIsSkippable(true);
+        }
+        if (newTime <= 0) {
           clearInterval(timer);
-          // For image ads, finish when timer runs out. For video, wait for onEnded event.
           if (adType === 'image') {
             onAdFinished();
           }
           return 0;
         }
-        return prev - 1;
+        return newTime;
       });
     }, 1000);
 
-    const skippableTimer = setTimeout(() => {
-      setIsSkippable(true);
-    }, skippableAfter * 1000);
-
     return () => {
       clearInterval(timer);
-      clearTimeout(skippableTimer);
     };
   }, [open, duration, skippableAfter, adType, onAdFinished]);
 
@@ -83,7 +81,9 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
     }}>
         <DialogContent
             className="bg-background text-foreground p-0 max-w-sm"
-            onInteractOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => {
+                 if (!isSkippable) e.preventDefault();
+            }}
             onEscapeKeyDown={(e) => {
                 if (!isSkippable) {
                     e.preventDefault();
@@ -128,7 +128,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                         </Button>
                     ) : (
                          <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
-                            Skip in {skippableAfter - (duration - adTimeLeft)}s
+                           {adType === 'video' ? `Skip in ${adTimeLeft - (duration - skippableAfter)}s` : `Skip in ${adTimeLeft - (duration - skippableAfter)}s`}
                         </Button>
                     )}
                 </div>
