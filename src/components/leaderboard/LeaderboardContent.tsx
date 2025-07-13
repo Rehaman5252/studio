@@ -160,43 +160,24 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 
 const AllTimeLeaderboard = memo(() => {
-    const { user } = useAuth();
-    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!db) {
-            setLoading(false);
-            return;
+    const { user, userData, loading: isAuthLoading } = useAuth();
+    
+    // Using mock data from AuthProvider for consistency
+    const players: AllTimePlayer[] = useMemo(() => {
+        if (!userData || userData.perfectScores === 0) {
+            return [];
         }
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, orderBy('perfectScores', 'desc'), limit(50));
-        
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedPlayers: AllTimePlayer[] = [];
-            let rank = 1;
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.perfectScores > 0 || data.quizzesPlayed > 0) {
-                    fetchedPlayers.push({
-                        uid: doc.id,
-                        name: data.name,
-                        perfectScores: data.perfectScores || 0,
-                        totalPlayed: data.quizzesPlayed || 0,
-                        avatar: data.photoURL,
-                        rank: rank++
-                    });
-                }
-            });
-            setPlayers(fetchedPlayers);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching all-time leaderboard:", error);
-            setLoading(false);
-        });
+        return [{
+            uid: user!.uid,
+            name: userData.name,
+            perfectScores: userData.perfectScores,
+            totalPlayed: userData.quizzesPlayed,
+            avatar: userData.photoURL,
+            rank: 1
+        }];
+    }, [user, userData]);
 
-        return () => unsubscribe();
-    }, []);
+    const loading = isAuthLoading;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -212,7 +193,7 @@ const AllTimeLeaderboard = memo(() => {
                     className="space-y-2"
                 >
                     {loading ? (
-                       Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
+                       Array.from({ length: 1 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
                     ) : players.length > 0 ? (
                         players.map((player) => (
                              <motion.div 
