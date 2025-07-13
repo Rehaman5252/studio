@@ -118,7 +118,7 @@ function ResultsComponent() {
             <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
                 <h1 className="text-2xl font-bold mb-4">No Recent Quiz Found</h1>
                 <p>Could not find data for your last quiz attempt.</p>
-                <Button onClick={() => router.push('/home')} className="mt-6">Go Home</Button>
+                <Button onClick={() => router.replace('/home')} className="mt-6">Go Home</Button>
             </div>
         );
     }

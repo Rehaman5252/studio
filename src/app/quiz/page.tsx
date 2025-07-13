@@ -19,6 +19,7 @@ import { Lightbulb, ChevronsRight } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import withAuth from '@/components/auth/withAuth';
+import { AnimatePresence, motion } from 'framer-motion';
 
 function QuizComponent() {
   const { user, addQuizAttempt } = useAuth();
@@ -83,6 +84,7 @@ function QuizComponent() {
 
     try {
         addQuizAttempt(attemptData);
+        // Using replace to prevent back navigation to the quiz
         router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
     } catch (error) {
         console.error("Error submitting quiz results:", error);
@@ -226,13 +228,23 @@ function QuizComponent() {
                 <Timer timeLeft={timeLeft} />
             </div>
 
-            <QuestionCard
-                question={currentQuestion}
-                isHintVisible={isHintVisible}
-                options={currentQuestion.options}
-                selectedOption={selectedOption}
-                handleAnswerSelect={handleAnswerSelect}
-            />
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentQuestionIndex}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <QuestionCard
+                        question={currentQuestion}
+                        isHintVisible={isHintVisible}
+                        options={currentQuestion.options}
+                        selectedOption={selectedOption}
+                        handleAnswerSelect={handleAnswerSelect}
+                    />
+                </motion.div>
+            </AnimatePresence>
 
             <div className="mt-6 flex justify-between items-center">
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible}>
