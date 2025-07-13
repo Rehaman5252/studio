@@ -23,6 +23,15 @@ import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
 
+const faceIndexToRotation: { [key: number]: number } = {
+    0: 0, // Front
+    1: -90, // Right
+    2: -180, // Back
+    3: -270, // Left
+    4: 90, // Top
+    5: -90 // Bottom - this will rotate Y like right face
+};
+
 const QuizSelectionComponent = () => {
     const { user, isProfileComplete, isUserDataLoading } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
@@ -32,19 +41,40 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
     const [rotation, setRotation] = useState(0);
+    const [isRotating, setIsRotating] = useState(true);
     
     useEffect(() => {
-        const interval = setInterval(() => {
-            setRotation(prev => prev - 60); 
-            setSelectedBrand(prevBrand => {
-                const currentIndex = brandData.findIndex(b => b.id === prevBrand.id);
-                const nextIndex = (currentIndex + 1) % brandData.length;
-                return brandData[nextIndex];
-            });
-        }, 500);
+        let timeoutId: NodeJS.Timeout;
 
-        return () => clearInterval(interval);
-    }, []);
+        const rotateCube = () => {
+            const currentBrandIndex = brandData.findIndex(b => b.id === selectedBrand.id);
+            let nextBrandIndex = currentBrandIndex;
+            // Ensure we don't pick the same face twice in a row
+            while (nextBrandIndex === currentBrandIndex) {
+                 nextBrandIndex = Math.floor(Math.random() * 6);
+            }
+            
+            const nextRotation = faceIndexToRotation[nextBrandIndex];
+            const randomDelay = Math.random() * 1500 + 1500; // 1.5s to 3s
+            
+            setIsRotating(true);
+            setRotation(nextRotation);
+            
+            // Wait for rotation animation to finish (1s) before updating brand
+            setTimeout(() => {
+                setSelectedBrand(brandData[nextBrandIndex]);
+                setIsRotating(false);
+
+                // Schedule next rotation
+                timeoutId = setTimeout(rotateCube, randomDelay);
+            }, 1000);
+        };
+
+        // Start the first rotation
+        timeoutId = setTimeout(rotateCube, 1000);
+
+        return () => clearTimeout(timeoutId);
+    }, [selectedBrand]);
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
@@ -52,6 +82,8 @@ const QuizSelectionComponent = () => {
     }, [user, lastAttemptInSlot]);
 
     const handleStartQuiz = useCallback(() => {
+        if (isRotating) return; // Prevent starting quiz while cube is moving
+
         if (!user || !isProfileComplete) {
             setShowAuthAlert(true);
             return;
@@ -61,7 +93,7 @@ const QuizSelectionComponent = () => {
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
         }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand, isRotating]);
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
@@ -96,7 +128,7 @@ const QuizSelectionComponent = () => {
                 <p className="text-sm text-muted-foreground">The cube will decide your fate!</p>
             </div>
             
-            <div className="flex justify-center items-center my-8 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
+            <div className="flex justify-center items-center my-10 h-48 w-48 mx-auto transition-transform duration-300 hover:scale-105">
                 <BrandCube rotation={rotation} />
             </div>
 
@@ -111,6 +143,7 @@ const QuizSelectionComponent = () => {
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
                   onClick={handleStartQuiz}
+                  isDisabled={isRotating}
                 />
             </div>
 

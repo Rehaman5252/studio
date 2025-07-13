@@ -23,7 +23,7 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
     <div className="scene h-full w-full">
       <div
         className="cube"
-        style={{ transform: `rotateY(${rotation}deg) rotateX(-15deg)` }}
+        style={{ transform: `rotateY(${rotation}deg)` }}
       >
         {faces.map((face) => (
           <div key={face.brand.id} className={`cube-face ${face.class}`}>
@@ -38,7 +38,7 @@ const BrandCube = ({ rotation }: BrandCubeProps) => {
                         priority
                     />
                 </div>
-                <p className="font-bold text-lg text-primary">{face.brand.format}</p>
+                <p className="font-bold text-lg text-inherit">{face.brand.format}</p>
             </div>
           </div>
         ))}
