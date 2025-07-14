@@ -10,7 +10,28 @@ import { Skeleton } from '@/components/ui/skeleton';
 // This is the boundary between server and client.
 const QuizSelection = dynamic(() => import('./QuizSelection'), {
   ssr: false,
-  loading: () => (
+  loading: () => <QuizSelectionSkeleton />
+});
+
+export default function HomeClientContent({ isLoading }: { isLoading: boolean }) {
+  if (isLoading) {
+    return <QuizSelectionSkeleton />;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="mt-10"
+    >
+      <QuizSelection />
+    </motion.div>
+  );
+}
+
+
+const QuizSelectionSkeleton = () => (
     <div className="space-y-8 animate-pulse">
         <div className="text-center mb-8">
             <Skeleton className="h-8 w-3/4 mx-auto" />
@@ -28,18 +49,4 @@ const QuizSelection = dynamic(() => import('./QuizSelection'), {
         </div>
         <Skeleton className="h-16 w-full rounded-full" />
     </div>
-  )
-});
-
-export default function HomeClientContent() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="mt-10"
-    >
-      <QuizSelection />
-    </motion.div>
-  );
-}
+);

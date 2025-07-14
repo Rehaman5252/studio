@@ -22,7 +22,6 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db: Firestore = getFirestore(app);
 const storage = getStorage(app);
 
 const isFirebaseConfigured: boolean = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
@@ -33,6 +32,7 @@ let dbInitialized: Promise<Firestore> | null = null;
 export const getInitializedDb = (): Promise<Firestore> => {
   if (!dbInitialized) {
     dbInitialized = (async () => {
+      const db = getFirestore(app);
       if (typeof window !== 'undefined') {
         try {
           await enableIndexedDbPersistence(db);

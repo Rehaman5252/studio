@@ -222,21 +222,26 @@ function QuizComponent() {
 
   return (
     <>
-      <main className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
+      <main className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 overflow-hidden">
         <div className="w-full max-w-2xl mx-auto">
             <QuizHeader format={format} current={currentQuestionIndex} total={questions.length} />
             
-            <div className="flex justify-center my-6">
+            <motion.div 
+              className="flex justify-center my-6"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', damping: 10, stiffness: 100, delay: 0.2 }}
+            >
                 <Timer timeLeft={timeLeft} />
-            </div>
+            </motion.div>
 
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentQuestionIndex}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.3, type: 'spring', damping: 15, stiffness: 100 }}
                 >
                     <QuestionCard
                         question={currentQuestion}
@@ -248,7 +253,12 @@ function QuizComponent() {
                 </motion.div>
             </AnimatePresence>
 
-            <div className="mt-6 flex justify-between items-center">
+            <motion.div 
+              className="mt-6 flex justify-between items-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+            >
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
@@ -256,7 +266,7 @@ function QuizComponent() {
                     {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} 
                     <ChevronsRight className="ml-2" />
                 </Button>
-            </div>
+            </motion.div>
         </div>
       </main>
 

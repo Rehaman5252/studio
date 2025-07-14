@@ -9,7 +9,6 @@ import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
-import { Loader2 } from 'lucide-react';
 
 interface AuthContextType {
   user: User | null;
@@ -125,7 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) return;
+    if (!user) throw new Error("User not authenticated");
     
     const db = await getInitializedDb();
     
@@ -172,21 +171,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLastAttempt,
     isProfileComplete,
     loading,
-    isUserDataLoading: isUserDataLoading,
-    isHistoryLoading: isHistoryLoading,
+    isUserDataLoading,
+    isHistoryLoading,
     updateUserData,
     addQuizAttempt,
   }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
-  if (isAuthLoading) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4">Initializing Connection...</p>
-      </div>
-    );
-  }
-  
   return (
     <AuthContext.Provider value={value}>
       {children}
