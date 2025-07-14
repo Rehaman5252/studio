@@ -96,13 +96,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) return;
+    if (!user) {
+        console.error("[updateUserData] Aborted: No user is signed in.");
+        throw new Error("User not authenticated");
+    }
+    console.log("[updateUserData] Attempting to update profile for user UID:", user.uid);
     const userDocRef = doc(db, 'users', user.uid);
+    console.log("[updateUserData] Writing to document path:", userDocRef.path);
     try {
         await enableNetwork(db);
+        console.log("[updateUserData] Network enabled. Proceeding with updateDoc.");
         await updateDoc(userDocRef, newData);
+        console.log("[updateUserData] updateDoc successful.");
     } catch (error) {
-        console.error("Error updating user data:", error);
+        console.error("[updateUserData] Firestore update failed:", error);
+        // Re-throw the error so the calling component's catch block can handle it
         throw error;
     }
   }, [user]);
