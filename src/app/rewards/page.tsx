@@ -5,7 +5,6 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
 import { Gift, Loader2 } from 'lucide-react';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
@@ -43,16 +42,8 @@ export default function RewardsPage() {
             <div className="flex flex-col items-center justify-center h-full py-10">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
-         ) : user ? (
-            <RewardsContent />
          ) : (
-            <div className="flex flex-col items-center justify-center">
-                <LoginPrompt 
-                    icon={Gift}
-                    title="Unlock Your Rewards"
-                    description="Sign in to claim special awards from our sponsors for every quiz you conquer!"
-                />
-            </div>
+            <RewardsContent />
          )}
       </main>
     </div>

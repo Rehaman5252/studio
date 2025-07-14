@@ -45,11 +45,11 @@ export default function QuizHistoryPage() {
             <CardContent className="p-8 text-center text-muted-foreground">
               <ScrollText className="h-12 w-12 mx-auto mb-4 text-primary/50" />
               <p className="font-semibold text-lg text-foreground">Track Your Innings</p>
-              <p className="mb-4">No quizzes in your history. Sign in for an in-depth look at your performance.</p>
+              <p className="mb-4">Your quiz performance and stats will appear here once you've played.</p>
               <Button asChild>
                 <Link href="/auth/login">
                   <LogIn className="mr-2" />
-                  Sign In to View History
+                  Sign In to Start Playing
                 </Link>
               </Button>
             </CardContent>
