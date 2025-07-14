@@ -14,6 +14,8 @@ interface AuthContextType {
   user: User | null;
   userData: DocumentData | null;
   quizHistory: QuizAttempt[] | null;
+  lastAttempt: QuizAttempt | null;
+  setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
   loading: boolean;
   isUserDataLoading: boolean;
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
+  const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
@@ -107,8 +110,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Update the summary stats in the user's profile document
     const userDocRef = doc(db, 'users', user.uid);
     const newQuizzesPlayed = (userData?.quizzesPlayed || 0) + 1;
-    const newPerfectScores = (userData?.perfectScores || 0) + (attempt.score === attempt.totalQuestions ? 1 : 0);
-    const newTotalRewards = (userData?.totalRewards || 0) + (attempt.score === attempt.totalQuestions ? 100 : 0);
+    const newPerfectScores = (userData?.perfectScores || 0) + (attempt.score === attempt.totalQuestions && !attempt.reason ? 1 : 0);
+    const newTotalRewards = (userData?.totalRewards || 0) + (attempt.score === attempt.totalQuestions && !attempt.reason ? 100 : 0);
 
     await updateDoc(userDocRef, {
         quizzesPlayed: newQuizzesPlayed,
@@ -116,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         totalRewards: newTotalRewards
     });
 
-  }, [user, quizHistory, userData, updateUserData]);
+  }, [user, quizHistory, userData]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
@@ -129,6 +132,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     userData,
     quizHistory,
+    lastAttempt,
+    setLastAttempt,
     isProfileComplete,
     loading,
     isUserDataLoading,

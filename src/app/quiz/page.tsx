@@ -22,7 +22,7 @@ import withAuth from '@/components/auth/withAuth';
 import { AnimatePresence, motion } from 'framer-motion';
 
 function QuizComponent() {
-  const { user, addQuizAttempt } = useAuth();
+  const { user, addQuizAttempt, setLastAttempt } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -60,7 +60,7 @@ function QuizComponent() {
   }, [format, router, toast]);
 
   const submitQuiz = useCallback(async (reason?: 'malpractice') => {
-    if (!user || !questions || !addQuizAttempt) return;
+    if (!user || !questions || !addQuizAttempt || !setLastAttempt) return;
     setQuizState('submitting');
     
     const finalUserAnswers = userAnswers.map(ans => ans === null ? "Not Answered" : ans);
@@ -84,6 +84,8 @@ function QuizComponent() {
 
     try {
         await addQuizAttempt(attemptData);
+        // Set the last attempt in the client state for instant access on results page
+        setLastAttempt(attemptData);
         // Using replace to prevent back navigation to the quiz
         router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
     } catch (error) {
@@ -91,7 +93,7 @@ function QuizComponent() {
         toast({ title: 'Submission Error', description: 'Could not save your quiz results.', variant: 'destructive' });
         setQuizState('playing');
     }
-  }, [user, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt]);
+  }, [user, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt]);
 
   const goToNextQuestion = useCallback(() => {
     if (!questions) return;

@@ -57,7 +57,7 @@ const ResultsLoader = () => (
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user } = useAuth();
+    const { user, lastAttempt } = useAuth();
     const { lastAttemptInSlot, isLoading: isContextLoading } = useQuizStatus();
     
     const [showAnswers, setShowAnswers] = useState(false);
@@ -66,13 +66,16 @@ function ResultsComponent() {
     const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
     const reason = useMemo(() => searchParams.get('reason'), [searchParams]);
     const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
+
+    // Prioritize the instantly available `lastAttempt` from context, fall back to the one from QuizStatusProvider
+    const finalAttempt = lastAttempt || lastAttemptInSlot;
     
     const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp } = useMemo(() => {
         return {
-            ...lastAttemptInSlot,
-            totalQuestions: lastAttemptInSlot?.questions?.length || 0,
+            ...finalAttempt,
+            totalQuestions: finalAttempt?.questions?.length || 0,
         };
-    }, [lastAttemptInSlot]);
+    }, [finalAttempt]);
     
     const isPerfectScore = useMemo(() => score === totalQuestions && totalQuestions > 0, [score, totalQuestions]);
     
@@ -109,11 +112,12 @@ function ResultsComponent() {
         return <MalpracticeScreen />;
     }
 
-    if (isContextLoading) {
+    // Show loader only if neither attempt is available yet
+    if (isContextLoading && !finalAttempt) {
         return <ResultsLoader />;
     }
 
-    if (!lastAttemptInSlot) {
+    if (!finalAttempt) {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
                 <h1 className="text-2xl font-bold mb-4">No Recent Quiz Found</h1>
