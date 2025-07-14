@@ -71,17 +71,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user || !firebaseReady) return;
 
-    setIsUserDataLoading(true);
-    setIsHistoryLoading(true);
-    
     const setupListeners = async () => {
         const db = await getInitializedDb();
+        
+        setIsUserDataLoading(true);
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setUserData(docSnap.data());
           } else {
-            // This case might happen for a very brief moment if a new user signs up
             console.log("User document doesn't exist, attempting to create...");
             createUserDocument(user);
           }
@@ -91,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsUserDataLoading(false);
         });
 
+        setIsHistoryLoading(true);
         const historyDocRef = doc(db, 'quizHistory', user.uid);
         const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
           if (docSnap.exists()) {
@@ -136,7 +135,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const db = await getInitializedDb();
     
-    // Get the latest history and user data directly inside the function
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
