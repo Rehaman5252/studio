@@ -4,9 +4,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-
-// Use the FULL Firestore SDK, not the 'lite' version
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, enableNetwork } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -18,12 +16,24 @@ const firebaseConfig = {
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-// Create and export the initialized db instance directly
-const db = getFirestore(app);
-
 const auth = getAuth(app);
 const storage = getStorage(app);
+const db = getFirestore(app);
+
+// Enable persistence and network as a one-time setup
+if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+            console.warn('Firestore persistence can only be enabled in one tab at a time.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('The current browser does not support all of the features required to enable persistence.');
+        }
+    });
+    enableNetwork(db).catch((err) => {
+        console.error("Failed to enable Firestore network", err);
+    });
+}
+
 
 export const isFirebaseConfigured: boolean = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 

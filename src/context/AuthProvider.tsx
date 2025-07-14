@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
@@ -42,6 +42,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setIsAuthLoading(false);
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
+      return;
+    }
+
     const authSub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
@@ -58,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !isFirebaseConfigured) {
       return;
     }
 
@@ -110,7 +117,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
-    
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
   }, [user]);
