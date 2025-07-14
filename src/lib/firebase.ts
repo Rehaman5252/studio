@@ -20,37 +20,34 @@ const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const storage = getStorage(app);
 
-let dbInitialized: Promise<void> | null = null;
 const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-const initializeFirebaseServices = async () => {
-    if (typeof window !== 'undefined') {
-        try {
-            await enableIndexedDbPersistence(db);
-            console.log('✅ Firestore persistence enabled.');
-        } catch (err: any) {
-            if (err.code === 'failed-precondition') {
-                console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
-            } else if (err.code === 'unimplemented') {
-                console.warn('⚠️ Firestore persistence not available in this browser.');
-            } else {
-                console.error('🔥 An unknown error occurred with Firestore persistence:', err);
-            }
-        }
+let firebaseInitialized = false;
+
+export const getInitializedFirebase = async () => {
+  if (!firebaseInitialized && isFirebaseConfigured) {
+    try {
+      await enableIndexedDbPersistence(db);
+      console.log('✅ Firestore persistence enabled.');
+    } catch (err: any) {
+      if (err.code === 'failed-precondition') {
+        console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('⚠️ Firestore persistence not available in this browser.');
+      } else {
+        console.error('🔥 An unknown error occurred with Firestore persistence:', err);
+      }
     }
+
     try {
         await enableNetwork(db);
         console.log('📶 Firestore network connection enabled.');
     } catch (err) {
         console.error('❌ Failed to enable Firestore network:', err);
     }
+    firebaseInitialized = true;
+  }
+  return { db, auth, storage, app };
 };
-
-export const getInitializedDb = (): Promise<void> => {
-    if (!dbInitialized) {
-        dbInitialized = initializeFirebaseServices();
-    }
-    return dbInitialized;
-}
 
 export { app, auth, db, storage, isFirebaseConfigured };
