@@ -43,12 +43,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    // This effect only handles auth state changes, which is safe to do early.
+    // This effect handles auth state changes and sets up Firestore listeners correctly.
     const authSub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
+      
       if (!currentUser) {
-        // Clear data if user logs out
+        // Clear data and stop loading if user logs out
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
@@ -60,15 +61,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    // This effect sets up Firestore listeners and depends on a logged-in user.
-    if (!user) return;
+    if (!user) {
+      // No user, no need for Firestore listeners.
+      return;
+    }
 
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
     const setupFirestoreListeners = async () => {
       try {
-        const db = await getInitializedDb(); // Ensure DB is ready
+        // This is the critical step: wait for the DB to be ready.
+        const db = await getInitializedDb();
         
         // User document listener
         setIsUserDataLoading(true);
@@ -78,7 +82,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUserData(docSnap.data());
           } else {
             console.log("User document doesn't exist, creating...");
-            createUserDocument(user); // This will also await getInitializedDb
+            // createUserDocument now also awaits getInitializedDb
+            createUserDocument(user);
           }
           setIsUserDataLoading(false);
         }, (error) => {
@@ -123,8 +128,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const db = await getInitializedDb();
     const userDocRef = doc(db, 'users', user.uid);
     
-    console.log("💡 Firebase DB initialized?", !!db);
-    console.log("👤 Current user?", user?.uid);
+    console.log("💡 Firebase DB initialized for update?", !!db);
+    console.log("👤 Current user for update?", user?.uid);
     console.log("📦 Payload being saved:", newData);
     console.log('🗂️ Writing to Firestore path: ', userDocRef.path);
     await updateDoc(userDocRef, newData);
