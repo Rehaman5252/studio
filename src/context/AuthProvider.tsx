@@ -101,25 +101,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) return;
-    
-    // Add the quiz attempt to the history
+
     const historyDocRef = doc(db, 'quizHistory', user.uid);
-    const newHistory = [attempt, ...(quizHistory || [])];
-    await setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
-
-    // Update the summary stats in the user's profile document
     const userDocRef = doc(db, 'users', user.uid);
-    const newQuizzesPlayed = (userData?.quizzesPlayed || 0) + 1;
-    const newPerfectScores = (userData?.perfectScores || 0) + (attempt.score === attempt.totalQuestions && !attempt.reason ? 1 : 0);
-    const newTotalRewards = (userData?.totalRewards || 0) + (attempt.score === attempt.totalQuestions && !attempt.reason ? 100 : 0);
-
-    await updateDoc(userDocRef, {
-        quizzesPlayed: newQuizzesPlayed,
-        perfectScores: newPerfectScores,
-        totalRewards: newTotalRewards
+    
+    // Using a function with setQuizHistory to ensure we have the latest state
+    setQuizHistory(currentHistory => {
+        const newHistory = [attempt, ...(currentHistory || [])];
+        setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
+        return newHistory;
     });
 
-  }, [user, quizHistory, userData]);
+    setUserData(currentUserData => {
+        const newQuizzesPlayed = (currentUserData?.quizzesPlayed || 0) + 1;
+        const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
+        const newPerfectScores = (currentUserData?.perfectScores || 0) + (isPerfect ? 1 : 0);
+        const newTotalRewards = (currentUserData?.totalRewards || 0) + (isPerfect ? 100 : 0);
+        
+        const updatedStats = {
+            quizzesPlayed: newQuizzesPlayed,
+            perfectScores: newPerfectScores,
+            totalRewards: newTotalRewards
+        };
+
+        updateDoc(userDocRef, updatedStats);
+        
+        return { ...currentUserData, ...updatedStats };
+    });
+
+  }, [user]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
@@ -128,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loading = isAuthLoading || isUserDataLoading || isHistoryLoading;
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     userData,
     quizHistory,
@@ -140,7 +150,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isHistoryLoading,
     updateUserData,
     addQuizAttempt,
-  };
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
   return (
     <AuthContext.Provider value={value}>
