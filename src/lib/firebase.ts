@@ -15,12 +15,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
+// Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
 // Enable persistence and network as a one-time setup
+// This is safe to call on every instantiation
 if (typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
         if (err.code === 'failed-precondition') {

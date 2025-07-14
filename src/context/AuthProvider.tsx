@@ -66,48 +66,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user || !isFirebaseConfigured) {
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
       return;
     }
 
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
-    try {
-      setIsUserDataLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
-      unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          setUserData(docSnap.data());
-        } else {
-          console.log("User document doesn't exist, creating...");
-          createUserDocument(user);
-        }
-        setIsUserDataLoading(false);
-      }, (error) => {
-        console.error("Error listening to user document:", error);
-        setIsUserDataLoading(false);
-      });
+    // This function will only be called when `user` is confirmed to exist.
+    const setupListeners = () => {
+        try {
+            setIsUserDataLoading(true);
+            const userDocRef = doc(db, 'users', user.uid);
+            unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    setUserData(docSnap.data());
+                } else {
+                    console.log("User document doesn't exist, creating...");
+                    createUserDocument(user);
+                }
+                setIsUserDataLoading(false);
+            }, (error) => {
+                console.error("Error listening to user document:", error);
+                setIsUserDataLoading(false);
+            });
 
-      setIsHistoryLoading(true);
-      const historyDocRef = doc(db, 'quizHistory', user.uid);
-      unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setQuizHistory(data.attempts || []);
-        } else {
-          setQuizHistory([]);
+            setIsHistoryLoading(true);
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    setQuizHistory(data.attempts || []);
+                } else {
+                    setQuizHistory([]);
+                }
+                setIsHistoryLoading(false);
+            }, (error) => {
+                console.error("Error listening to quiz history:", error);
+                setIsHistoryLoading(false);
+            });
+        } catch (error) {
+            console.error("Failed to set up Firestore listeners:", error);
+            setIsUserDataLoading(false);
+            setIsHistoryLoading(false);
         }
-        setIsHistoryLoading(false);
-      }, (error) => {
-          console.error("Error listening to quiz history:", error);
-          setIsHistoryLoading(false);
-      });
-
-    } catch (error) {
-      console.error("Failed to set up Firestore listeners:", error)
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
-    }
+    };
+    
+    setupListeners();
 
     return () => {
       if (unsubscribeUser) unsubscribeUser();
