@@ -8,13 +8,15 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { app, db, auth } from '@/lib/firebase';
+import { app, db, auth, getInitializedDb } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) return;
+
+  await getInitializedDb(); // Ensure DB is ready before write
   
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);

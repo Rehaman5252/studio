@@ -118,6 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
     
+    await getInitializedDb(); // Ensure DB is ready before write
     const userDocRef = doc(db, 'users', user.uid);
     
     console.log("👤 [updateUserData] Auth user UID:", user.uid);
@@ -135,6 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) return;
+    await getInitializedDb(); // Ensure DB is ready before write
 
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
