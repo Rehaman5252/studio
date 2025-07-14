@@ -4,7 +4,7 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Gift, ExternalLink, Loader2, User } from 'lucide-react';
+import { Gift, ExternalLink, Loader2, Play } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
@@ -111,32 +111,38 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const BrandGiftsSection = memo(({ rewardableAttempts }: { rewardableAttempts: QuizAttempt[] }) => (
+const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts }: { isLoggedIn: boolean, rewardableAttempts: QuizAttempt[] }) => (
   <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
     <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt (one per brand per day). Scratch to reveal!</p>
     
-    {rewardableAttempts.length > 0 ? (
-      <Carousel
-          opts={{
-              align: 'start',
-          }}
-          className="w-full max-w-full"
-      >
-          <CarouselContent className="-ml-4">
-              {rewardableAttempts.map((attempt, index) => (
-              <CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                  <ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} />
-              </CarouselItem>
-              ))}
-          </CarouselContent>
-          <CarouselPrevious className="hidden sm:flex" />
-          <CarouselNext className="hidden sm:flex" />
-      </Carousel>
+    {isLoggedIn ? (
+        rewardableAttempts.length > 0 ? (
+            <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+                <CarouselContent className="-ml-4">
+                    {rewardableAttempts.map((attempt, index) => (
+                    <CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                        <ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} />
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+        ) : (
+            <Card className="bg-card/80 border-dashed border-primary/30">
+                <CardContent className="p-6 text-center text-muted-foreground">
+                    <p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p>
+                    <p>Play any quiz to unlock a special brand gift!</p>
+                </CardContent>
+            </Card>
+        )
     ) : (
-      <Card className="bg-card/80">
+      <Card className="bg-card/80 border-dashed border-primary/30">
         <CardContent className="p-6 text-center text-muted-foreground">
-          <p>Play any quiz to unlock a special brand gift!</p>
+            <Play className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+            <p className="font-semibold text-lg text-foreground">Step up to the crease!</p>
+            <p>Play a quiz to unlock exclusive brand gifts from our partners.</p>
         </CardContent>
       </Card>
     )}
@@ -191,23 +197,8 @@ export default function RewardsContent() {
 
   return (
     <>
-        {!user ? (
-            <div className="flex flex-col items-center justify-center">
-                <LoginPrompt 
-                    icon={Gift}
-                    title="Unlock Your Rewards"
-                    description="Sign in to claim special awards from our sponsors for every quiz you conquer!"
-                />
-                 <div className="w-full mt-8">
-                    <GenericOffersSection />
-                 </div>
-            </div>
-        ) : (
-            <>
-                <BrandGiftsSection rewardableAttempts={rewardableAttempts} />
-                <GenericOffersSection />
-            </>
-        )}
+      <BrandGiftsSection isLoggedIn={!!user} rewardableAttempts={rewardableAttempts} />
+      <GenericOffersSection />
     </>
   );
 }

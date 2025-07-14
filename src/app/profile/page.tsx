@@ -28,7 +28,7 @@ function ProfilePage() {
     return (
       <main className="flex flex-1 flex-col p-4 space-y-6 pb-20">
           <Button asChild size="lg" className="w-full justify-center text-base py-6">
-              <Link href="/auth/login"><LogIn className="mr-4" /> Login / Sign Up</Link>
+              <Link href="/auth/login"><LogIn className="mr-4" /> Pad Up & Sign In</Link>
           </Button>
           <section className="space-y-3 pt-4">
               <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">

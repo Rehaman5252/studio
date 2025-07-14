@@ -44,12 +44,12 @@ export default function QuizHistoryPage() {
           <Card className="bg-card/80">
             <CardContent className="p-8 text-center text-muted-foreground">
               <ScrollText className="h-12 w-12 mx-auto mb-4 text-primary/50" />
-              <p className="font-semibold text-lg text-foreground">View Your Quiz History</p>
-              <p className="mb-4">No quizzes taken. Sign in to have an in-depth look at your performance.</p>
+              <p className="font-semibold text-lg text-foreground">Track Your Innings</p>
+              <p className="mb-4">No quizzes in your history. Sign in for an in-depth look at your performance.</p>
               <Button asChild>
                 <Link href="/auth/login">
                   <LogIn className="mr-2" />
-                  Login / Sign Up
+                  Sign In to View History
                 </Link>
               </Button>
             </CardContent>
