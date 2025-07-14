@@ -1,14 +1,14 @@
 'use client';
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import {
   getFirestore,
   enableIndexedDbPersistence,
   enableNetwork,
   Firestore,
 } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -19,11 +19,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-const auth: Auth = getAuth(app);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
 const db: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
+const storage = getStorage(app);
 
 const isFirebaseConfigured: boolean = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
@@ -35,8 +34,8 @@ export const getInitializedDb = (): Promise<Firestore> => {
     dbInitialized = (async () => {
       if (typeof window !== 'undefined') {
         try {
-          await enableIndexedDbPersistence(db);
-          console.log('✅ Firestore persistence enabled.');
+          // await enableIndexedDbPersistence(db); // Temporarily disabled for debugging
+          // console.log('✅ Firestore persistence enabled.');
         } catch (err: any) {
           if (err.code === 'failed-precondition') {
             console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
