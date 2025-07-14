@@ -49,6 +49,13 @@ export default function CompleteProfileForm() {
     const { toast } = useToast();
     const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(userData?.phoneVerified || false);
     
+    const isMounted = useRef(true);
+    useEffect(() => {
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
     const isProfileComplete = userData?.profileCompleted || false;
 
     const form = useForm<ProfileFormValues>({
@@ -103,17 +110,17 @@ export default function CompleteProfileForm() {
 
             await updateUserData(finalPayload);
             
-            toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
-            
-            // Fix: Delay form.reset() until the next tick to allow RHF to finish its cycle.
-            requestAnimationFrame(() => {
+            if (isMounted.current) {
+                toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
                 form.reset(finalPayload);
-                setTimeout(() => router.push('/profile'), 50); // Navigate after a short delay
-            });
+                router.push('/profile');
+            }
 
         } catch (error) {
             console.error("Profile update error:", error);
-            toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
+            if (isMounted.current) {
+                toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
+            }
         }
     };
 
@@ -313,5 +320,3 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
-
-    
