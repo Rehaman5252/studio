@@ -38,26 +38,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   
-  const [firebaseReady, setFirebaseReady] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    const initialize = async () => {
-      await getInitializedDb();
-      setFirebaseReady(true);
-    };
-    initialize();
-  }, []);
-  
-  useEffect(() => {
-    if (!firebaseReady) return;
-
+    // This effect only handles auth state changes, which is safe to do early.
     const authSub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
       if (!currentUser) {
+        // Clear data if user logs out
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
@@ -66,22 +57,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => authSub();
-  }, [firebaseReady]);
+  }, []);
 
   useEffect(() => {
-    if (!user || !firebaseReady) return;
+    // This effect sets up Firestore listeners and depends on a logged-in user.
+    if (!user) return;
 
-    const setupListeners = async () => {
-        const db = await getInitializedDb();
+    let unsubscribeUser: () => void;
+    let unsubscribeHistory: () => void;
+
+    const setupFirestoreListeners = async () => {
+      try {
+        const db = await getInitializedDb(); // Ensure DB is ready
         
+        // User document listener
         setIsUserDataLoading(true);
         const userDocRef = doc(db, 'users', user.uid);
-        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+        unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setUserData(docSnap.data());
           } else {
-            console.log("User document doesn't exist, attempting to create...");
-            createUserDocument(user);
+            console.log("User document doesn't exist, creating...");
+            createUserDocument(user); // This will also await getInitializedDb
           }
           setIsUserDataLoading(false);
         }, (error) => {
@@ -89,9 +86,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsUserDataLoading(false);
         });
 
+        // Quiz history listener
         setIsHistoryLoading(true);
         const historyDocRef = doc(db, 'quizHistory', user.uid);
-        const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
+        unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setQuizHistory(data.attempts || []);
@@ -104,18 +102,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsHistoryLoading(false);
         });
 
-        return () => {
-          unsubscribeUser();
-          unsubscribeHistory();
-        };
+      } catch (error) {
+        console.error("Failed to set up Firestore listeners:", error)
+        setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
+      }
     };
     
-    const unsubscribePromise = setupListeners();
+    setupFirestoreListeners();
 
     return () => {
-        unsubscribePromise.then(unsub => unsub && unsub());
+      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, firebaseReady]);
+  }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
@@ -168,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
-  const loading = !firebaseReady || isAuthLoading;
+  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading;
 
   const value = useMemo(() => ({
     user,
@@ -184,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     addQuizAttempt,
   }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
-  if (!firebaseReady) {
+  if (isAuthLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

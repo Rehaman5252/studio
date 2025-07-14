@@ -35,7 +35,8 @@ export const getInitializedDb = (): Promise<Firestore> => {
     dbInitialized = (async () => {
       if (typeof window !== 'undefined') {
         try {
-          // await enableIndexedDbPersistence(db); // Temporarily disabled for debugging
+          // Temporarily disabled for debugging.
+          // await enableIndexedDbPersistence(db);
           // console.log('✅ Firestore persistence enabled.');
         } catch (err: any) {
           if (err.code === 'failed-precondition') {
