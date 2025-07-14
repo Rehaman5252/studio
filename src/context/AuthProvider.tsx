@@ -7,7 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
@@ -100,16 +100,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("[updateUserData] Aborted: No user is signed in.");
         throw new Error("User not authenticated");
     }
-    console.log("[updateUserData] Attempting to update profile for user UID:", user.uid);
+    console.log("👤 Auth user UID:", user.uid);
+    console.log("📦 Payload being saved:", newData);
     const userDocRef = doc(db, 'users', user.uid);
-    console.log("[updateUserData] Writing to document path:", userDocRef.path);
+    console.log("🗂️ Writing to Firestore path: ", userDocRef.path);
     try {
-        await enableNetwork(db);
-        console.log("[updateUserData] Network enabled. Proceeding with updateDoc.");
         await updateDoc(userDocRef, newData);
-        console.log("[updateUserData] updateDoc successful.");
+        console.log("✅ Firestore document updated successfully.");
     } catch (error) {
-        console.error("[updateUserData] Firestore update failed:", error);
+        console.error("🔥 Firestore update failed:", error);
         // Re-throw the error so the calling component's catch block can handle it
         throw error;
     }
@@ -137,7 +136,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        await enableNetwork(db);
         await Promise.all([
             setDoc(historyDocRef, { attempts: newHistory }, { merge: true }),
             updateDoc(userDocRef, userUpdatePayload)

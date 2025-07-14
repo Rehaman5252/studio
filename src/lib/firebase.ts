@@ -38,7 +38,9 @@ if (typeof window !== 'undefined') {
     
     // Forcefully enable the network connection. This is crucial for resolving
     // cases where the client gets stuck in an offline state.
-    enableNetwork(db).catch(err => console.error("Firestore: Failed to enable network.", err));
+    enableNetwork(db)
+        .then(() => console.log('📶 Firestore network enabled'))
+        .catch(err => console.error("❌ Firestore: Failed to enable network.", err));
 }
 
 
