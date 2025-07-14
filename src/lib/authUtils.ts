@@ -16,7 +16,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) return;
 
-  // Use the imported db directly
+  // Use the directly imported, correctly initialized db instance
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
@@ -46,7 +46,16 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
   }
 }
 
+// Guard to prevent multiple popups
+let isPopupOpen = false;
+
 export async function handleGoogleSignIn() {
+  if (isPopupOpen) {
+    console.warn("Google Sign-In popup is already open.");
+    return null;
+  }
+  isPopupOpen = true;
+
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -60,13 +69,15 @@ export async function handleGoogleSignIn() {
     return user;
 
   } catch (error: any) {
-    if (error.code === 'auth/popup-closed-by-user') {
+    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
     } else {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
     }
     return null;
+  } finally {
+    isPopupOpen = false;
   }
 }
 

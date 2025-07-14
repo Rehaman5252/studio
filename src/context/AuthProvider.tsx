@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
-    // Use the directly imported db instance
+    // Use the directly imported, correctly initialized db instance
     try {
       setIsUserDataLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
     
-    // Use the imported db directly
+    // Use the directly imported, correctly initialized db instance
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
   }, [user]);

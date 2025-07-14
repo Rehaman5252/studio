@@ -5,7 +5,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
-// Use the full Firestore SDK
+// Use the FULL Firestore SDK, not the 'lite' version
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
