@@ -63,7 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const db = await getInitializedDb();
         
-        // User data listener
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
@@ -77,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsUserDataLoading(false);
         });
 
-        // Quiz history listener
         const historyDocRef = doc(db, 'quizHistory', user.uid);
         const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
           if (docSnap.exists()) {

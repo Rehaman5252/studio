@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, enableNetwork } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, enableNetwork, Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -18,17 +18,17 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db: Firestore = getFirestore(app);
 const storage = getStorage(app);
 
-let isFirebaseInitialized = false;
+let persistenceEnabled = false;
 
-// This function now returns a promise that resolves when initialization is complete.
 const initializeFirebaseServices = async () => {
-  if (typeof window !== 'undefined' && !isFirebaseInitialized) {
+  if (typeof window !== 'undefined' && !persistenceEnabled) {
     try {
       await enableIndexedDbPersistence(db);
       console.log('✅ Firestore persistence enabled.');
+      persistenceEnabled = true;
     } catch (err: any) {
       if (err.code === 'failed-precondition') {
         console.warn('⚠️ Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a time.');
@@ -38,24 +38,26 @@ const initializeFirebaseServices = async () => {
         console.error('🔥 An unknown error occurred with Firestore persistence:', err);
       }
     }
-    
-    try {
-      await enableNetwork(db);
-      console.log('📶 Firestore network connection enabled.');
-    } catch (err) {
-      console.error('❌ Failed to enable Firestore network:', err);
-    }
-    isFirebaseInitialized = true;
+  }
+  try {
+    await enableNetwork(db);
+    console.log('📶 Firestore network connection enabled.');
+  } catch (err) {
+    console.error('❌ Failed to enable Firestore network:', err);
   }
 };
 
-
+let dbInitialized: Promise<Firestore> | null = null;
 const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-// Do not export db directly. Export a getter that ensures initialization.
-export const getInitializedDb = async () => {
-    await initializeFirebaseServices();
-    return db;
+export const getInitializedDb = (): Promise<Firestore> => {
+    if (!dbInitialized) {
+        dbInitialized = new Promise(async (resolve) => {
+            await initializeFirebaseServices();
+            resolve(db);
+        });
+    }
+    return dbInitialized;
 }
 
 export { app, auth, storage, isFirebaseConfigured };
