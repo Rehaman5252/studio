@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,7 +47,6 @@ export default function CompleteProfileForm() {
     const router = useRouter();
     const { user, userData, isUserDataLoading, updateUserData } = useAuth();
     const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(userData?.phoneVerified || false);
     
     const isProfileComplete = userData?.profileCompleted || false;
@@ -68,6 +67,7 @@ export default function CompleteProfileForm() {
         },
     });
     
+    const { isSubmitting } = form.formState;
     const watchedPhone = form.watch('phone');
     const needsVerification = watchedPhone !== userData?.phone || !userData?.phoneVerified;
     
@@ -82,7 +82,7 @@ export default function CompleteProfileForm() {
     }, [userData, form]);
 
 
-    const onSubmit = (data: ProfileFormValues) => {
+    const onSubmit = async (data: ProfileFormValues) => {
         if (!user || !updateUserData) {
             toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
             return;
@@ -93,31 +93,28 @@ export default function CompleteProfileForm() {
             return;
         }
 
-        setIsSubmitting(true);
+        try {
+            const { email, ...payload } = data;
+            const finalPayload: DocumentData = {
+                ...payload,
+                profileCompleted: true,
+                phoneVerified: phoneVerifiedInForm,
+            };
 
-        const { email, ...payload } = data;
-        const finalPayload: DocumentData = {
-            ...payload,
-            profileCompleted: true,
-            phoneVerified: phoneVerifiedInForm,
-        };
-
-        updateUserData(finalPayload)
-            .then(() => {
-                toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
-                // Manually reset the form with the new data to ensure UI consistency
+            await updateUserData(finalPayload);
+            
+            toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
+            
+            // Fix: Delay form.reset() until the next tick to allow RHF to finish its cycle.
+            requestAnimationFrame(() => {
                 form.reset(finalPayload);
-                // We can now safely navigate
-                router.push('/profile');
-            })
-            .catch((error) => {
-                console.error("Profile update error:", error);
-                toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
-            })
-            .finally(() => {
-                // This block will now reliably execute.
-                setIsSubmitting(false);
+                setTimeout(() => router.push('/profile'), 50); // Navigate after a short delay
             });
+
+        } catch (error) {
+            console.error("Profile update error:", error);
+            toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
+        }
     };
 
     if (isUserDataLoading) {
