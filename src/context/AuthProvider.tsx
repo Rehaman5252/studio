@@ -4,10 +4,10 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db, initializeFirebaseServices } from '@/lib/firebase';
+import { auth, getInitializedDb } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 import { Loader2 } from 'lucide-react';
 
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initialize = async () => {
-      await initializeFirebaseServices();
+      await getInitializedDb();
       setFirebaseReady(true);
     };
     initialize();
@@ -74,44 +74,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsUserDataLoading(true);
     setIsHistoryLoading(true);
     
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setUserData(docSnap.data());
-      } else {
-        createUserDocument(user);
-      }
-      setIsUserDataLoading(false);
-    }, (error) => {
-      console.error("Error listening to user document:", error);
-      setIsUserDataLoading(false);
-    });
+    const setupListeners = async () => {
+        const db = await getInitializedDb();
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          } else {
+            createUserDocument(user);
+          }
+          setIsUserDataLoading(false);
+        }, (error) => {
+          console.error("Error listening to user document:", error);
+          setIsUserDataLoading(false);
+        });
 
-    const historyDocRef = doc(db, 'quizHistory', user.uid);
-    const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setQuizHistory(data.attempts || []);
-      } else {
-        setQuizHistory([]);
-      }
-      setIsHistoryLoading(false);
-    }, (error) => {
-        console.error("Error listening to quiz history:", error);
-        setIsHistoryLoading(false);
-    });
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setQuizHistory(data.attempts || []);
+          } else {
+            setQuizHistory([]);
+          }
+          setIsHistoryLoading(false);
+        }, (error) => {
+            console.error("Error listening to quiz history:", error);
+            setIsHistoryLoading(false);
+        });
+
+        return () => {
+          unsubscribeUser();
+          unsubscribeHistory();
+        };
+    };
+    
+    const unsubscribePromise = setupListeners();
 
     return () => {
-      unsubscribeUser();
-      unsubscribeHistory();
+        unsubscribePromise.then(unsub => unsub && unsub());
     };
   }, [user, firebaseReady]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
     
-    // Ensure services are initialized before critical write
-    await initializeFirebaseServices();
+    const db = await getInitializedDb();
     
     const userDocRef = doc(db, 'users', user.uid);
     console.log("💡 Firebase DB initialized?", db.app.name);
@@ -124,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) return;
     
-    await initializeFirebaseServices();
+    const db = await getInitializedDb();
     
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
