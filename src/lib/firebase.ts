@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, setLogLevel } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, enableNetwork } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -21,7 +21,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Enable offline persistence
+// Enable offline persistence and network
 if (typeof window !== 'undefined') {
     enableIndexedDbPersistence(db)
       .catch((err) => {
@@ -35,6 +35,10 @@ if (typeof window !== 'undefined') {
           console.warn('Firestore persistence not available in this browser.');
         }
       });
+    
+    // Forcefully enable the network connection. This is crucial for resolving
+    // cases where the client gets stuck in an offline state.
+    enableNetwork(db).catch(err => console.error("Firestore: Failed to enable network.", err));
 }
 
 
