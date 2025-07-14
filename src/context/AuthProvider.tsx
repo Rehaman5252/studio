@@ -4,10 +4,10 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, getInitializedDb } from '@/lib/firebase';
+import { app, getInitializedDb } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
@@ -41,23 +41,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setIsAuthLoading(false);
-      if (!user) {
-        setUserData(null);
-        setQuizHistory(null);
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-      }
-    });
+    const initialize = async () => {
+      await getInitializedDb();
+      const auth = (await import('@/lib/firebase')).auth;
+      
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
+        setIsAuthLoading(false);
+        if (!user) {
+          setUserData(null);
+          setQuizHistory(null);
+          setIsUserDataLoading(false);
+          setIsHistoryLoading(false);
+        }
+      });
+      return unsubscribe;
+    };
 
-    return () => unsubscribe();
+    const unsubscribePromise = initialize();
+
+    return () => {
+      unsubscribePromise.then(unsub => unsub());
+    };
   }, []);
 
   useEffect(() => {
     if (user) {
-      const initializeAndListen = async () => {
+      const listenToData = async () => {
         setIsUserDataLoading(true);
         setIsHistoryLoading(true);
 
@@ -96,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
       };
 
-      const unsubscribePromise = initializeAndListen();
+      const unsubscribePromise = listenToData();
       
       return () => {
         unsubscribePromise.then(unsub => unsub && unsub());
@@ -107,14 +117,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
     
-    console.log("👤 [updateUserData] Auth user UID:", user.uid);
-    console.log("📦 [updateUserData] Payload being saved:", newData);
-    
     const db = await getInitializedDb();
     const userDocRef = doc(db, 'users', user.uid);
     
+    console.log("👤 [updateUserData] Auth user UID:", user.uid);
     console.log("🗂️ [updateUserData] Writing to Firestore path: ", userDocRef.path);
-    
+    console.log("📦 [updateUserData] Payload being saved:", newData);
+
     try {
         await updateDoc(userDocRef, newData);
         console.log("✅ [updateUserData] Firestore document updated successfully.");

@@ -21,17 +21,17 @@ const auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const storage = getStorage(app);
 
-let persistenceEnabled = false;
+let dbInitialized: Promise<Firestore> | null = null;
+const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
 const initializeFirebaseServices = async () => {
-  if (typeof window !== 'undefined' && !persistenceEnabled) {
+  if (typeof window !== 'undefined') {
     try {
       await enableIndexedDbPersistence(db);
       console.log('✅ Firestore persistence enabled.');
-      persistenceEnabled = true;
     } catch (err: any) {
       if (err.code === 'failed-precondition') {
-        console.warn('⚠️ Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a time.');
+        console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
       } else if (err.code === 'unimplemented') {
         console.warn('⚠️ Firestore persistence not available in this browser.');
       } else {
@@ -46,9 +46,6 @@ const initializeFirebaseServices = async () => {
     console.error('❌ Failed to enable Firestore network:', err);
   }
 };
-
-let dbInitialized: Promise<Firestore> | null = null;
-const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
 export const getInitializedDb = (): Promise<Firestore> => {
     if (!dbInitialized) {
