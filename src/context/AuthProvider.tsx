@@ -82,7 +82,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUserData(docSnap.data());
           } else {
             console.log("User document doesn't exist, creating...");
-            // createUserDocument now also awaits getInitializedDb
             createUserDocument(user);
           }
           setIsUserDataLoading(false);
@@ -128,10 +127,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const db = await getInitializedDb();
     const userDocRef = doc(db, 'users', user.uid);
     
-    console.log("💡 Firebase DB initialized for update?", !!db);
-    console.log("👤 Current user for update?", user?.uid);
-    console.log("📦 Payload being saved:", newData);
-    console.log('🗂️ Writing to Firestore path: ', userDocRef.path);
     await updateDoc(userDocRef, newData);
   }, [user]);
 

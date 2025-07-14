@@ -33,21 +33,20 @@ let dbInitialized: Promise<Firestore> | null = null;
 export const getInitializedDb = (): Promise<Firestore> => {
   if (!dbInitialized) {
     dbInitialized = (async () => {
-      // Temporarily disabled for debugging.
-      // if (typeof window !== 'undefined') {
-      //   try {
-      //     await enableIndexedDbPersistence(db);
-      //     console.log('✅ Firestore persistence enabled.');
-      //   } catch (err: any) {
-      //     if (err.code === 'failed-precondition') {
-      //       console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
-      //     } else if (err.code === 'unimplemented') {
-      //       console.warn('⚠️ Firestore persistence not available in this browser.');
-      //     } else {
-      //       console.error('🔥 Unknown Firestore persistence error:', err);
-      //     }
-      //   }
-      // }
+      if (typeof window !== 'undefined') {
+        try {
+          await enableIndexedDbPersistence(db);
+          console.log('✅ Firestore persistence enabled.');
+        } catch (err: any) {
+          if (err.code === 'failed-precondition') {
+            console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
+          } else if (err.code === 'unimplemented') {
+            console.warn('⚠️ Firestore persistence not available in this browser.');
+          } else {
+            console.error('🔥 Unknown Firestore persistence error:', err);
+          }
+        }
+      }
       try {
         await enableNetwork(db);
         console.log('📶 Firestore network enabled');
