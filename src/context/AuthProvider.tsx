@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, getInitializedDb } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase'; // Import the initialized db
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
@@ -65,48 +65,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
-    const setupFirestoreListeners = async () => {
-      try {
-        const db = await getInitializedDb();
-        
-        setIsUserDataLoading(true);
-        const userDocRef = doc(db, 'users', user.uid);
-        unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setUserData(docSnap.data());
-          } else {
-            console.log("User document doesn't exist, creating...");
-            createUserDocument(user);
-          }
-          setIsUserDataLoading(false);
-        }, (error) => {
-          console.error("Error listening to user document:", error);
-          setIsUserDataLoading(false);
-        });
-
-        setIsHistoryLoading(true);
-        const historyDocRef = doc(db, 'quizHistory', user.uid);
-        unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setQuizHistory(data.attempts || []);
-          } else {
-            setQuizHistory([]);
-          }
-          setIsHistoryLoading(false);
-        }, (error) => {
-            console.error("Error listening to quiz history:", error);
-            setIsHistoryLoading(false);
-        });
-
-      } catch (error) {
-        console.error("Failed to set up Firestore listeners:", error)
+    // Use the directly imported db instance
+    try {
+      setIsUserDataLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
+      unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setUserData(docSnap.data());
+        } else {
+          console.log("User document doesn't exist, creating...");
+          createUserDocument(user);
+        }
         setIsUserDataLoading(false);
+      }, (error) => {
+        console.error("Error listening to user document:", error);
+        setIsUserDataLoading(false);
+      });
+
+      setIsHistoryLoading(true);
+      const historyDocRef = doc(db, 'quizHistory', user.uid);
+      unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setQuizHistory(data.attempts || []);
+        } else {
+          setQuizHistory([]);
+        }
         setIsHistoryLoading(false);
-      }
-    };
-    
-    setupFirestoreListeners();
+      }, (error) => {
+          console.error("Error listening to quiz history:", error);
+          setIsHistoryLoading(false);
+      });
+
+    } catch (error) {
+      console.error("Failed to set up Firestore listeners:", error)
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
+    }
 
     return () => {
       if (unsubscribeUser) unsubscribeUser();
@@ -117,16 +112,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
     
-    const db = await getInitializedDb();
+    // Use the imported db directly
     const userDocRef = doc(db, 'users', user.uid);
-    
     await updateDoc(userDocRef, newData);
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated");
-    
-    const db = await getInitializedDb();
     
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};

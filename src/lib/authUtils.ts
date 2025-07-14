@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, getInitializedDb } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase'; // Import the initialized db
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -16,15 +16,15 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) return;
 
-  try {
-    const db = await getInitializedDb();
-    const userDocRef = doc(db, 'users', user.uid);
-    const snapshot = await getDoc(userDocRef);
+  // Use the imported db directly
+  const userDocRef = doc(db, 'users', user.uid);
+  const snapshot = await getDoc(userDocRef);
 
-    if (!snapshot.exists()) {
-      const { email, displayName, photoURL } = user;
-      const createdAt = new Date();
-      
+  if (!snapshot.exists()) {
+    const { email, displayName, photoURL } = user;
+    const createdAt = new Date();
+    
+    try {
       await setDoc(userDocRef, {
         uid: user.uid,
         email,
@@ -39,10 +39,10 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         referralEarnings: 0,
         ...additionalData
       });
+    } catch (error) {
+      console.error("Error creating user document:", error);
+      toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
     }
-  } catch (error) {
-    console.error("Error creating user document:", error);
-    toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
   }
 }
 

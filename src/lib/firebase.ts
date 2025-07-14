@@ -3,13 +3,10 @@
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import {
-  getFirestore,
-  enableIndexedDbPersistence,
-  enableNetwork,
-  Firestore,
-} from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+
+// Use the full Firestore SDK
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -21,43 +18,13 @@ const firebaseConfig = {
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// Create and export the initialized db instance directly
+const db = getFirestore(app);
+
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-const isFirebaseConfigured: boolean = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+export const isFirebaseConfigured: boolean = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-// GUARANTEED async-safe initialization
-let dbInitialized: Promise<Firestore> | null = null;
-
-export const getInitializedDb = (): Promise<Firestore> => {
-  if (!dbInitialized) {
-    dbInitialized = (async () => {
-      const db = getFirestore(app);
-      if (typeof window !== 'undefined') {
-        try {
-          await enableIndexedDbPersistence(db);
-          console.log('✅ Firestore persistence enabled.');
-        } catch (err: any) {
-          if (err.code === 'failed-precondition') {
-            console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
-          } else if (err.code === 'unimplemented') {
-            console.warn('⚠️ Firestore persistence not available in this browser.');
-          } else {
-            console.error('🔥 Unknown Firestore persistence error:', err);
-          }
-        }
-      }
-      try {
-        await enableNetwork(db);
-        console.log('📶 Firestore network enabled');
-      } catch (err) {
-        console.error('❌ Firestore network enable failed:', err);
-      }
-
-      return db;
-    })();
-  }
-  return dbInitialized;
-};
-
-export { app, auth, storage, isFirebaseConfigured };
+export { app, auth, storage, db };
