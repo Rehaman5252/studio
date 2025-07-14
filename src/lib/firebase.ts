@@ -21,15 +21,15 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+let isFirebaseInitialized = false;
+
 // This function now returns a promise that resolves when initialization is complete.
-export const initializeFirebaseServices = async () => {
-  if (typeof window !== 'undefined') {
+const initializeFirebaseServices = async () => {
+  if (typeof window !== 'undefined' && !isFirebaseInitialized) {
     try {
-      // First, try to enable persistence.
       await enableIndexedDbPersistence(db);
       console.log('✅ Firestore persistence enabled.');
     } catch (err: any) {
-      // Handle known persistence errors.
       if (err.code === 'failed-precondition') {
         console.warn('⚠️ Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a time.');
       } else if (err.code === 'unimplemented') {
@@ -40,15 +40,22 @@ export const initializeFirebaseServices = async () => {
     }
     
     try {
-      // ALWAYS try to enable the network, regardless of persistence success.
       await enableNetwork(db);
       console.log('📶 Firestore network connection enabled.');
     } catch (err) {
       console.error('❌ Failed to enable Firestore network:', err);
     }
+    isFirebaseInitialized = true;
   }
 };
 
+
 const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-export { app, auth, db, storage, isFirebaseConfigured };
+// Do not export db directly. Export a getter that ensures initialization.
+export const getInitializedDb = async () => {
+    await initializeFirebaseServices();
+    return db;
+}
+
+export { app, auth, storage, isFirebaseConfigured };

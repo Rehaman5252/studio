@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db, initializeFirebaseServices } from '@/lib/firebase';
+import { auth, getInitializedDb } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
@@ -39,17 +39,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  const [isFirebaseInitialized, setIsFirebaseInitialized] = useState(false);
 
   useEffect(() => {
-    initializeFirebaseServices().then(() => {
-      setIsFirebaseInitialized(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isFirebaseInitialized) return;
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsAuthLoading(false);
@@ -62,54 +53,70 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [isFirebaseInitialized]);
+  }, []);
 
   useEffect(() => {
-    if (user && isFirebaseInitialized) {
-      setIsUserDataLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          setUserData(docSnap.data());
-        } else {
-          createUserDocument(user);
-        }
-        setIsUserDataLoading(false);
-      }, (error) => {
-        console.error("Error listening to user document:", error);
-        setIsUserDataLoading(false);
-      });
+    if (user) {
+      const initializeAndListen = async () => {
+        setIsUserDataLoading(true);
+        setIsHistoryLoading(true);
 
-      setIsHistoryLoading(true);
-      const historyDocRef = doc(db, 'quizHistory', user.uid);
-      const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setQuizHistory(data.attempts || []);
-        } else {
-          setQuizHistory([]);
-        }
-        setIsHistoryLoading(false);
-      }, (error) => {
-          console.error("Error listening to quiz history:", error);
+        const db = await getInitializedDb();
+        
+        // User data listener
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          } else {
+            createUserDocument(user);
+          }
+          setIsUserDataLoading(false);
+        }, (error) => {
+          console.error("Error listening to user document:", error);
+          setIsUserDataLoading(false);
+        });
+
+        // Quiz history listener
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setQuizHistory(data.attempts || []);
+          } else {
+            setQuizHistory([]);
+          }
           setIsHistoryLoading(false);
-      });
+        }, (error) => {
+            console.error("Error listening to quiz history:", error);
+            setIsHistoryLoading(false);
+        });
 
+        return () => {
+          unsubscribeUser();
+          unsubscribeHistory();
+        };
+      };
+
+      const unsubscribePromise = initializeAndListen();
+      
       return () => {
-        unsubscribeUser();
-        unsubscribeHistory();
+        unsubscribePromise.then(unsub => unsub && unsub());
       };
     }
-  }, [user, isFirebaseInitialized]);
+  }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
+    if (!user) throw new Error("User not authenticated");
+    
     console.log("👤 [updateUserData] Auth user UID:", user.uid);
     console.log("📦 [updateUserData] Payload being saved:", newData);
+    
+    const db = await getInitializedDb();
     const userDocRef = doc(db, 'users', user.uid);
+    
     console.log("🗂️ [updateUserData] Writing to Firestore path: ", userDocRef.path);
+    
     try {
         await updateDoc(userDocRef, newData);
         console.log("✅ [updateUserData] Firestore document updated successfully.");
@@ -121,6 +128,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) return;
+    const db = await getInitializedDb();
+
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
@@ -154,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
-  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading || !isFirebaseInitialized;
+  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading;
 
   const value = useMemo(() => ({
     user,
