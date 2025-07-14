@@ -5,7 +5,6 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import withAuth from '@/components/auth/withAuth';
 
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
   loading: () => (
@@ -24,7 +23,7 @@ const LeaderboardContent = dynamic(() => import('@/components/leaderboard/Leader
   ssr: false,
 });
 
-function LeaderboardPage() {
+export default function LeaderboardPage() {
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -42,5 +41,3 @@ function LeaderboardPage() {
         </motion.div>
     );
 }
-
-export default withAuth(LeaderboardPage);

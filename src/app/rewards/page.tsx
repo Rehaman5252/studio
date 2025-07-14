@@ -4,7 +4,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import withAuth from '@/components/auth/withAuth';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => (
@@ -27,7 +26,7 @@ const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent
   ssr: false,
 });
 
-function RewardsPage() {
+export default function RewardsPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -40,5 +39,3 @@ function RewardsPage() {
     </div>
   );
 }
-
-export default withAuth(RewardsPage);

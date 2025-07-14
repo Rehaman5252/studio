@@ -4,13 +4,14 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import withAuth from '@/components/auth/withAuth';
 import { useAuth } from '@/context/AuthProvider';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import ProfileContent from '@/components/profile/ProfileContent';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { User } from 'lucide-react';
 
 function ProfilePage() {
-  const { userData, isProfileComplete, loading } = useAuth();
+  const { user, userData, isProfileComplete, loading } = useAuth();
   const router = useRouter();
 
   if (loading) {
@@ -19,6 +20,18 @@ function ProfilePage() {
         <ProfileSkeleton />
       </main>
     );
+  }
+  
+  if (!user) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-4 h-full">
+          <LoginPrompt 
+            icon={User}
+            title="View Your Profile"
+            description="Log in to see your stats, manage your account, and view your rewards."
+          />
+      </main>
+    )
   }
 
   // With `withAuth`, we know `user` exists. We now check if the profile is complete.
@@ -47,7 +60,7 @@ function ProfilePage() {
 }
 
 
-function ProfilePageWrapper() {
+export default function ProfilePageWrapper() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -62,5 +75,3 @@ function ProfilePageWrapper() {
     </motion.div>
   );
 }
-
-export default withAuth(ProfilePageWrapper);

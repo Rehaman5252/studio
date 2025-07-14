@@ -4,8 +4,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { Loader2, User } from 'lucide-react';
-import LoginPrompt from './LoginPrompt';
+import { Loader2 } from 'lucide-react';
 
 interface WithAuthProps {
   // Add any additional props you might want to pass to the wrapped component
@@ -24,24 +23,12 @@ const withAuth = <P extends object>(
       }
     }, [user, loading, router]);
 
-    if (loading) {
+    if (loading || !user) {
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       );
-    }
-    
-    if (!user) {
-        return (
-             <main className="flex-1 flex items-center justify-center p-4 pb-20 h-screen">
-                <LoginPrompt
-                    icon={User}
-                    title="Authentication Required"
-                    description="Please log in to access this page."
-                />
-            </main>
-        )
     }
 
     return <WrappedComponent {...props} />;

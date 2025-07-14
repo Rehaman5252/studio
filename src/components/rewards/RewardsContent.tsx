@@ -4,13 +4,14 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Gift, ExternalLink, Loader2 } from 'lucide-react';
+import { Gift, ExternalLink, Loader2, User } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import LoginPrompt from '../auth/LoginPrompt';
 
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -156,7 +157,7 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user, quizHistory, isHistoryLoading } = useAuth();
+  const { user, quizHistory, isHistoryLoading, loading: isAuthLoading } = useAuth();
   
   const rewardableAttempts = useMemo(() => {
     if (!quizHistory) return [];
@@ -178,42 +179,35 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory]);
 
+  const isLoading = isAuthLoading || isHistoryLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-10">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
-        {!user && (
-            <Card className="bg-card/80 border-primary/20 shadow-lg">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Gift className="text-primary" />
-                        Enter the Winner's Circle
-                    </CardTitle>
-                    <CardDescription>
-                        Sign in to claim special "Man of the Match" awards from our sponsors for every quiz format you conquer!
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    <Button asChild className="w-full">
-                        <Link href="/auth/login">Sign In to Unlock Rewards</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        )}
-
-        {user && (
-            isHistoryLoading ? (
-                 <section>
-                    <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-                    <div className="w-full flex justify-center items-center h-40">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    </div>
-                </section>
-            ) : (
+        {!user ? (
+            <div className="flex flex-col items-center justify-center">
+                <LoginPrompt 
+                    icon={Gift}
+                    title="Unlock Your Rewards"
+                    description="Sign in to claim special awards from our sponsors for every quiz you conquer!"
+                />
+                 <div className="w-full mt-8">
+                    <GenericOffersSection />
+                 </div>
+            </div>
+        ) : (
+            <>
                 <BrandGiftsSection rewardableAttempts={rewardableAttempts} />
-            )
+                <GenericOffersSection />
+            </>
         )}
-        
-        <GenericOffersSection />
     </>
   );
 }

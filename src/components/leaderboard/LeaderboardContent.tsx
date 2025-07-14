@@ -66,7 +66,7 @@ const LiveLeaderboard = memo(() => {
         const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
         
         // Find the user's attempt in the current slot
-        const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
+        const userAttempt = user ? currentSlotHistory.find(a => a.userAnswers && a.questions) : null;
 
         const livePlayers: LivePlayer[] = [];
 
@@ -286,12 +286,14 @@ MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
 
 
 export default function LeaderboardContent() {
+  const { user, loading } = useAuth();
+
   return (
     <Tabs defaultValue="live" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="live">Current</TabsTrigger>
-        <TabsTrigger value="all-time">All-Time</TabsTrigger>
-        <TabsTrigger value="my-leaderboard">My Network</TabsTrigger>
+        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-2")}>
+            <TabsTrigger value="live">Current</TabsTrigger>
+            <TabsTrigger value="all-time">All-Time</TabsTrigger>
+            {user && <TabsTrigger value="my-leaderboard">My Network</TabsTrigger>}
         </TabsList>
         
         <TabsContent value="live">
@@ -302,9 +304,11 @@ export default function LeaderboardContent() {
             <AllTimeLeaderboard />
         </TabsContent>
 
-        <TabsContent value="my-leaderboard">
-            <MyNetworkLeaderboard />
-        </TabsContent>
+        {user && 
+            <TabsContent value="my-leaderboard">
+                <MyNetworkLeaderboard />
+            </TabsContent>
+        }
     </Tabs>
   );
 }
