@@ -2,12 +2,12 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
@@ -99,18 +99,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
     try {
+        await enableNetwork(db);
         await updateDoc(userDocRef, newData);
     } catch (error) {
         console.error("Error updating user data:", error);
-        // Re-throw the error so the calling component can handle it (e.g., show a toast)
         throw error;
     }
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) return;
-
-    // Use a function to get the latest state to avoid stale closures
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
@@ -131,6 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
+        await enableNetwork(db);
         await Promise.all([
             setDoc(historyDocRef, { attempts: newHistory }, { merge: true }),
             updateDoc(userDocRef, userUpdatePayload)
