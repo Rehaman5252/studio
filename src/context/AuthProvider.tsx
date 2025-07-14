@@ -72,8 +72,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         } else {
-          // If the document doesn't exist, create it.
-          // This handles new sign-ups gracefully.
           createUserDocument(user);
         }
         setIsUserDataLoading(false);
@@ -113,7 +111,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userDocRef = doc(db, 'users', user.uid);
     console.log("🗂️ [updateUserData] Writing to Firestore path: ", userDocRef.path);
     try {
-        await enableNetwork(db);
         await updateDoc(userDocRef, newData);
         console.log("✅ [updateUserData] Firestore document updated successfully.");
     } catch (error) {
