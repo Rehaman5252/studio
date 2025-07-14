@@ -1,10 +1,16 @@
-
-'use client';
-
+// lib/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
-import { getFirestore, enableIndexedDbPersistence, enableNetwork } from 'firebase/firestore';
+import {
+  getAuth,
+  connectAuthEmulator,
+  browserLocalPersistence,
+  setPersistence,
+} from 'firebase/auth';
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  enableIndexedDbPersistence,
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -15,32 +21,33 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// --- 🔥 Firebase Auth Setup ---
 const auth = getAuth(app);
-const storage = getStorage(app);
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.error('Auth persistence error:', err);
+});
+
+// --- 🗃️ Firestore Setup ---
 const db = getFirestore(app);
 
-// Enable persistence and network as a one-time setup
-// This is safe to call on every instantiation
+// --- ⚙️ Offline Persistence ---
 if (typeof window !== 'undefined') {
-    try {
-        enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code === 'failed-precondition') {
-                console.warn('Firestore persistence can only be enabled in one tab at a time.');
-            } else if (err.code === 'unimplemented') {
-                console.warn('The current browser does not support all of the features required to enable persistence.');
-            }
-        });
-        enableNetwork(db).catch((err) => {
-            console.error("Failed to enable Firestore network", err);
-        });
-    } catch(e) {
-        console.error("Error initializing firestore persistence", e)
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Multiple tabs open; offline persistence disabled.');
+    } else if (err.code === 'unimplemented') {
+      console.warn('This browser doesn’t support offline mode.');
     }
+  });
 }
 
+// --- ⚙️ Emulator Setup (Optional) ---
+if (process.env.NEXT_PUBLIC_USE_EMULATOR === 'true') {
+  console.log('%c🔥 Firebase Emulator Enabled', 'color: orange; font-weight: bold;');
+  connectAuthEmulator(auth, 'http://localhost:9099');
+  connectFirestoreEmulator(db, 'localhost', 8080);
+}
 
-export const isFirebaseConfigured: boolean = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
-
-export { app, auth, storage, db };
+export { app, auth, db };
