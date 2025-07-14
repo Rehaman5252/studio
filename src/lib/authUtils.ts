@@ -16,16 +16,15 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) return;
 
-  const db = await getInitializedDb();
-  
-  const userDocRef = doc(db, 'users', user.uid);
-  const snapshot = await getDoc(userDocRef);
+  try {
+    const db = await getInitializedDb();
+    const userDocRef = doc(db, 'users', user.uid);
+    const snapshot = await getDoc(userDocRef);
 
-  if (!snapshot.exists()) {
-    const { email, displayName, photoURL } = user;
-    const createdAt = new Date();
-    
-    try {
+    if (!snapshot.exists()) {
+      const { email, displayName, photoURL } = user;
+      const createdAt = new Date();
+      
       await setDoc(userDocRef, {
         uid: user.uid,
         email,
@@ -40,10 +39,10 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         referralEarnings: 0,
         ...additionalData
       });
-    } catch (error) {
-      console.error("Error creating user document:", error);
-      toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
     }
+  } catch (error) {
+    console.error("Error creating user document:", error);
+    toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
   }
 }
 

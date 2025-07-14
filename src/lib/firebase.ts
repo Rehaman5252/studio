@@ -1,14 +1,14 @@
 'use client';
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
 import {
   getFirestore,
   enableIndexedDbPersistence,
   enableNetwork,
   Firestore,
 } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -19,38 +19,47 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Initialize Firebase App
+const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// Get Firebase services
+const auth: Auth = getAuth(app);
+const storage: FirebaseStorage = getStorage(app);
+const db: Firestore = getFirestore(app);
 
-const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+const isFirebaseConfigured: boolean = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-let firebaseReady: Promise<Firestore> | null = null;
+// GUARANTEED async-safe initialization
+let dbInitialized: Promise<Firestore> | null = null;
 
 export const getInitializedDb = (): Promise<Firestore> => {
-  if (!firebaseReady && typeof window !== 'undefined' && isFirebaseConfigured) {
-    firebaseReady = (async () => {
-      try {
-        await enableIndexedDbPersistence(db);
-        console.log('✅ IndexedDB persistence enabled');
-      } catch (e) {
-        console.warn('⚠️ IndexedDB persistence failed:', e);
+  if (!dbInitialized) {
+    dbInitialized = (async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          await enableIndexedDbPersistence(db);
+          console.log('✅ Firestore persistence enabled.');
+        } catch (err: any) {
+          if (err.code === 'failed-precondition') {
+            console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
+          } else if (err.code === 'unimplemented') {
+            console.warn('⚠️ Firestore persistence not available in this browser.');
+          } else {
+            console.error('🔥 Unknown Firestore persistence error:', err);
+          }
+        }
       }
-
       try {
         await enableNetwork(db);
         console.log('📶 Firestore network enabled');
-      } catch (e) {
-        console.error('❌ Failed to enable network:', e);
+      } catch (err) {
+        console.error('❌ Firestore network enable failed:', err);
       }
 
       return db;
     })();
   }
-
-  return firebaseReady || Promise.resolve(db);
+  return dbInitialized;
 };
 
-export { app, auth, db, storage, isFirebaseConfigured };
+export { app, auth, storage, isFirebaseConfigured };

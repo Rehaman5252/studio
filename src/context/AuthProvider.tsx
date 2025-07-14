@@ -81,6 +81,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (docSnap.exists()) {
             setUserData(docSnap.data());
           } else {
+            // This case might happen for a very brief moment if a new user signs up
+            console.log("User document doesn't exist, attempting to create...");
             createUserDocument(user);
           }
           setIsUserDataLoading(false);
@@ -120,9 +122,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) throw new Error("User not authenticated");
     
     const db = await getInitializedDb();
-    
     const userDocRef = doc(db, 'users', user.uid);
-    console.log("💡 Firebase DB initialized?", db.app.name);
+    
+    console.log("💡 Firebase DB initialized?", !!db);
     console.log("👤 Current user?", user?.uid);
     console.log("📦 Payload being saved:", newData);
     console.log('🗂️ Writing to Firestore path: ', userDocRef.path);
@@ -134,6 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const db = await getInitializedDb();
     
+    // Get the latest history and user data directly inside the function
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
@@ -177,11 +180,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLastAttempt,
     isProfileComplete,
     loading,
-    isUserDataLoading: isUserDataLoading || !firebaseReady,
-    isHistoryLoading: isHistoryLoading || !firebaseReady,
+    isUserDataLoading: isUserDataLoading,
+    isHistoryLoading: isHistoryLoading,
     updateUserData,
     addQuizAttempt,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt, firebaseReady]);
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
   if (!firebaseReady) {
     return (
