@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { getInitializedDb } from '@/lib/firebase';
+import { getInitializedDb, auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
@@ -54,7 +54,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!firebaseReady) return;
 
-    const auth = require('firebase/auth').getAuth(); // Using require to avoid top-level import issues
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsAuthLoading(false);
@@ -74,8 +73,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const listenToData = async () => {
         setIsUserDataLoading(true);
         setIsHistoryLoading(true);
-
-        const db = await getInitializedDb();
         
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
@@ -121,7 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
     
-    const db = await getInitializedDb();
     const userDocRef = doc(db, 'users', user.uid);
     
     console.log("👤 [updateUserData] Auth user UID:", user.uid);
@@ -139,7 +135,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) return;
-    const db = await getInitializedDb();
 
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
@@ -174,7 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
-  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading;
+  const loading = !firebaseReady || isAuthLoading;
 
   const value = useMemo(() => ({
     user,
@@ -184,11 +179,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLastAttempt,
     isProfileComplete,
     loading,
-    isUserDataLoading,
-    isHistoryLoading,
+    isUserDataLoading: isUserDataLoading || !firebaseReady,
+    isHistoryLoading: isHistoryLoading || !firebaseReady,
     updateUserData,
     addQuizAttempt,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt, firebaseReady]);
 
   if (!firebaseReady) {
     return (

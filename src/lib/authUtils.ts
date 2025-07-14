@@ -2,14 +2,13 @@
 'use client';
 
 import {
-  getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { app, getInitializedDb } from '@/lib/firebase';
+import { app, db, auth } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -17,7 +16,6 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) return;
   
-  const db = await getInitializedDb();
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
@@ -48,7 +46,6 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 }
 
 export async function handleGoogleSignIn() {
-  const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -73,13 +70,11 @@ export async function handleGoogleSignIn() {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    const auth = getAuth(app);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password: string) => {
-    const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
