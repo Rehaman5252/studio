@@ -74,7 +74,6 @@ export default function CompleteProfileForm() {
         },
     });
     
-    const { isSubmitting } = form.formState;
     const watchedPhone = form.watch('phone');
     const needsVerification = watchedPhone !== userData?.phone || !userData?.phoneVerified;
     
@@ -90,13 +89,17 @@ export default function CompleteProfileForm() {
 
 
     const onSubmit = async (data: ProfileFormValues) => {
+        console.log("Submitting with data:", data);
+
         if (!user || !updateUserData) {
             toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
+            console.warn("Missing user or updateUserData");
             return;
         }
 
         if (watchedPhone && needsVerification && !phoneVerifiedInForm) {
             toast({ title: "Verification Required", description: "Please verify your new phone number before saving.", variant: "destructive" });
+            console.warn("Phone not verified");
             return;
         }
 
@@ -107,9 +110,11 @@ export default function CompleteProfileForm() {
                 profileCompleted: true,
                 phoneVerified: phoneVerifiedInForm,
             };
+            
+            console.log("Final payload to save:", finalPayload);
 
             await updateUserData(finalPayload);
-            
+
             if (isMounted.current) {
                 toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
                 form.reset(finalPayload);
@@ -133,7 +138,7 @@ export default function CompleteProfileForm() {
         )
     }
 
-    const isSaveDisabled = isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm);
+    const isSaveDisabled = form.formState.isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm);
 
     return (
         <Card className="w-full max-w-lg relative">
@@ -163,7 +168,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Full Name</FormLabel>
-                                    <FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={isSubmitting} /></FormControl>
+                                    <FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={form.formState.isSubmitting} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -189,7 +194,7 @@ export default function CompleteProfileForm() {
                                                 type="tel" 
                                                 placeholder="9876543210" 
                                                 {...field} 
-                                                disabled={isSubmitting} 
+                                                disabled={form.formState.isSubmitting} 
                                                 onChange={(e) => {
                                                     field.onChange(e);
                                                     if (e.target.value !== userData?.phone) {
@@ -222,7 +227,7 @@ export default function CompleteProfileForm() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Date of Birth</FormLabel>
-                                        <FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl>
+                                        <FormControl><Input type="date" {...field} disabled={form.formState.isSubmitting} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -232,7 +237,7 @@ export default function CompleteProfileForm() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Gender</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={form.formState.isSubmitting}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {['Male', 'Female', 'Other', 'Prefer not to say'].map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
@@ -248,7 +253,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Occupation</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={form.formState.isSubmitting}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select occupation" /></SelectTrigger></FormControl>
                                         <SelectContent>
                                             {occupations.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
@@ -263,7 +268,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>UPI ID for Payouts</FormLabel>
-                                    <FormControl><Input placeholder="yourname@bank" {...field} disabled={isSubmitting || !!userData?.upi} /></FormControl>
+                                    <FormControl><Input placeholder="yourname@bank" {...field} disabled={form.formState.isSubmitting || !!userData?.upi} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -273,7 +278,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Favorite Cricket Format</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={form.formState.isSubmitting}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select format" /></SelectTrigger></FormControl>
                                         <SelectContent>
                                             {cricketFormats.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
@@ -288,7 +293,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Favorite Team</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={form.formState.isSubmitting}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select team" /></SelectTrigger></FormControl>
                                         <SelectContent>
                                             {cricketTeams.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
@@ -303,7 +308,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Favorite Cricketer</FormLabel>
-                                    <FormControl><Input placeholder="Virat Kohli" {...field} disabled={isSubmitting} /></FormControl>
+                                    <FormControl><Input placeholder="Virat Kohli" {...field} disabled={form.formState.isSubmitting} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -311,7 +316,7 @@ export default function CompleteProfileForm() {
                     </CardContent>
                     <CardFooter>
                          <Button type="submit" className="w-full" disabled={isSaveDisabled}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Save Profile
                         </Button>
                     </CardFooter>
@@ -320,3 +325,5 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
+
+    
