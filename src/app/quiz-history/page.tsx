@@ -5,8 +5,10 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { Loader2, ScrollText } from 'lucide-react';
-import LoginPrompt from '@/components/auth/LoginPrompt';
+import { Loader2, ScrollText, LogIn } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
   loading: () => (
@@ -39,13 +41,19 @@ export default function QuizHistoryPage() {
         ) : user ? (
           <QuizHistoryContent />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <LoginPrompt 
-              icon={ScrollText}
-              title="View Your History"
-              description="Please log in to see your past quiz attempts and performance analysis."
-            />
-          </div>
+          <Card className="bg-card/80">
+            <CardContent className="p-8 text-center text-muted-foreground">
+              <ScrollText className="h-12 w-12 mx-auto mb-4 text-primary/50" />
+              <p className="font-semibold text-lg text-foreground">View Your Quiz History</p>
+              <p className="mb-4">No quizzes taken. Sign in to have an in-depth look at your performance.</p>
+              <Button asChild>
+                <Link href="/auth/login">
+                  <LogIn className="mr-2" />
+                  Login / Sign Up
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </main>
     </div>

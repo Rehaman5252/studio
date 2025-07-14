@@ -7,11 +7,13 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import ProfileContent from '@/components/profile/ProfileContent';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import SupportCard from '@/components/profile/SupportCard';
+import { Settings, LogIn } from 'lucide-react';
 
 function ProfilePage() {
-  const { user, userData, isProfileComplete, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
 
   if (loading) {
@@ -24,32 +26,18 @@ function ProfilePage() {
   
   if (!user) {
     return (
-      <main className="flex flex-1 items-center justify-center p-4 h-full">
-          <LoginPrompt 
-            icon={User}
-            title="View Your Profile"
-            description="Log in to see your stats, manage your account, and view your rewards."
-          />
+      <main className="flex flex-1 flex-col p-4 space-y-6 pb-20">
+          <Button asChild size="lg" className="w-full justify-center text-base py-6">
+              <Link href="/auth/login"><LogIn className="mr-4" /> Login / Sign Up</Link>
+          </Button>
+          <section className="space-y-3 pt-4">
+              <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                  <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
+              </Button>
+          </section>
+          <SupportCard />
       </main>
     )
-  }
-
-  // With `withAuth`, we know `user` exists. We now check if the profile is complete.
-  if (!isProfileComplete) {
-    return (
-      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 text-center">
-          <div className="bg-destructive/10 border border-destructive/50 text-destructive p-4 rounded-lg">
-              <h3 className="font-bold">Profile Incomplete</h3>
-              <p>Please complete your profile to view your stats and rewards.</p>
-              <button
-                  onClick={() => router.push('/complete-profile')}
-                  className="mt-2 bg-destructive text-destructive-foreground font-bold py-2 px-4 rounded hover:bg-destructive/90"
-              >
-                  Complete Profile
-              </button>
-          </div>
-      </main>
-    );
   }
 
   return (
@@ -58,7 +46,6 @@ function ProfilePage() {
     </main>
   );
 }
-
 
 export default function ProfilePageWrapper() {
   return (

@@ -2,38 +2,23 @@
 'use client';
 
 import { useAuth } from '@/context/AuthProvider';
-import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
 import HomeClientContent from '@/components/home/HomeClientContent';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 function HomePage() {
-    const { user, loading: isAuthLoading } = useAuth();
+    const { loading: isAuthLoading } = useAuth();
     const { isLoading: isQuizStatusLoading } = useQuizStatus();
-    const router = useRouter();
 
-    useEffect(() => {
-        if (!isAuthLoading && user === null) {
-            router.replace('/auth/login');
-        }
-    }, [user, isAuthLoading, router]);
+    // The combined loading state.
+    const isLoading = isAuthLoading || isQuizStatusLoading;
 
-    if (isAuthLoading || isQuizStatusLoading) {
+    if (isLoading) {
       return (
          <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       );
-    }
-
-    if (!user) {
-        // This can happen briefly before the redirect kicks in.
-        return (
-            <div className="flex h-screen w-screen items-center justify-center bg-background">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
     }
 
     return (
