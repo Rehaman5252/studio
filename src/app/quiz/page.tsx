@@ -103,7 +103,6 @@ function QuizComponent() {
       setCurrentQuestionIndex(prev => prev + 1);
       setTimeLeft(20);
       setQuestionStartTime(Date.now());
-      setQuizState('playing');
     } else {
       submitQuiz();
     }
@@ -112,6 +111,7 @@ function QuizComponent() {
   const handleNextWithAdCheck = useCallback(() => {
     const adToShow = interstitialAds[currentQuestionIndex];
     if (adToShow?.type === 'video' && adToShow.videoUrl) {
+      setQuizState('ad'); // Trigger AdDialog
       setAdConfig({
         adType: 'video',
         adUrl: adToShow.videoUrl,
@@ -120,11 +120,12 @@ function QuizComponent() {
         skippableAfter: adToShow.skippableAfterSec || 10,
         onFinished: () => {
           setAdConfig(null);
+          setQuizState('playing');
           goToNextQuestion();
         },
       });
     } else if (adToShow?.type === 'static' && adToShow.logoUrl) {
-      setQuizState('ad');
+      setQuizState('ad'); // Trigger InterstitialLoader
     } else {
       goToNextQuestion();
     }
@@ -205,7 +206,7 @@ function QuizComponent() {
       return <CricketLoading message="The umpire is checking... calculating your score!" format={format} />;
   }
   
-  if (quizState === 'ad') {
+  if (quizState === 'ad' && !adConfig) {
     const adConfig = interstitialAds[currentQuestionIndex];
     if (adConfig && adConfig.type === 'static' && adConfig.logoUrl) {
       return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint!} duration={adConfig.durationMs || 2000} onComplete={handleAdComplete} />;

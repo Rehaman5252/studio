@@ -5,6 +5,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 // Dynamically import the main interactive component with SSR turned off.
 // This is the boundary between server and client.
@@ -13,7 +15,12 @@ const QuizSelection = dynamic(() => import('./QuizSelection'), {
   loading: () => <QuizSelectionSkeleton />
 });
 
-export default function HomeClientContent({ isLoading }: { isLoading: boolean }) {
+export default function HomeClientContent() {
+  const { loading: isAuthLoading } = useAuth();
+  const { isLoading: isQuizStatusLoading } = useQuizStatus();
+
+  const isLoading = isAuthLoading || isQuizStatusLoading;
+
   if (isLoading) {
     return <QuizSelectionSkeleton />;
   }

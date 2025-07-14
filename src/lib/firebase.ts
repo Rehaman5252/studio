@@ -24,16 +24,20 @@ const db = getFirestore(app);
 // Enable persistence and network as a one-time setup
 // This is safe to call on every instantiation
 if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-            console.warn('Firestore persistence can only be enabled in one tab at a time.');
-        } else if (err.code === 'unimplemented') {
-            console.warn('The current browser does not support all of the features required to enable persistence.');
-        }
-    });
-    enableNetwork(db).catch((err) => {
-        console.error("Failed to enable Firestore network", err);
-    });
+    try {
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code === 'failed-precondition') {
+                console.warn('Firestore persistence can only be enabled in one tab at a time.');
+            } else if (err.code === 'unimplemented') {
+                console.warn('The current browser does not support all of the features required to enable persistence.');
+            }
+        });
+        enableNetwork(db).catch((err) => {
+            console.error("Failed to enable Firestore network", err);
+        });
+    } catch(e) {
+        console.error("Error initializing firestore persistence", e)
+    }
 }
 
 

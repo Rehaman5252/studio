@@ -74,8 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
-    // This function will only be called when `user` is confirmed to exist.
-    const setupListeners = () => {
+    const setupListeners = async () => {
         try {
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
