@@ -15,39 +15,43 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const storage = getStorage(app);
 
 const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-let firebaseInitialized = false;
+let firebaseReadyPromise: Promise<void> | null = null;
 
-export const getInitializedFirebase = async () => {
-  if (!firebaseInitialized && isFirebaseConfigured) {
-    try {
-      await enableIndexedDbPersistence(db);
-      console.log('✅ Firestore persistence enabled.');
-    } catch (err: any) {
-      if (err.code === 'failed-precondition') {
-        console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('⚠️ Firestore persistence not available in this browser.');
-      } else {
-        console.error('🔥 An unknown error occurred with Firestore persistence:', err);
+export const initializeFirebaseServices = (): Promise<void> => {
+  if (!firebaseReadyPromise && isFirebaseConfigured) {
+    firebaseReadyPromise = (async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          await enableIndexedDbPersistence(db);
+          console.log('✅ Firestore persistence enabled.');
+        } catch (err: any) {
+          if (err.code === 'failed-precondition') {
+            console.warn('⚠️ Firestore persistence failed: Multiple tabs open.');
+          } else if (err.code === 'unimplemented') {
+            console.warn('⚠️ Firestore persistence not available in this browser.');
+          } else {
+            console.error('🔥 An unknown error occurred with Firestore persistence:', err);
+          }
+        }
       }
-    }
 
-    try {
+      try {
         await enableNetwork(db);
         console.log('📶 Firestore network connection enabled.');
-    } catch (err) {
+      } catch (err) {
         console.error('❌ Failed to enable Firestore network:', err);
-    }
-    firebaseInitialized = true;
+      }
+    })();
   }
-  return { db, auth, storage, app };
+  return firebaseReadyPromise || Promise.resolve();
 };
+
 
 export { app, auth, db, storage, isFirebaseConfigured };

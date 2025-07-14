@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { getInitializedFirebase } from '@/lib/firebase';
+import { auth, db, initializeFirebaseServices } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -16,7 +16,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) return;
 
-  const { db } = await getInitializedFirebase(); 
+  // Ensure services are initialized before critical write
+  await initializeFirebaseServices();
   
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
@@ -48,7 +49,6 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 }
 
 export async function handleGoogleSignIn() {
-  const { auth } = await getInitializedFirebase();
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -73,13 +73,11 @@ export async function handleGoogleSignIn() {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    const { auth } = await getInitializedFirebase();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password: string) => {
-    const { auth } = await getInitializedFirebase();
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
