@@ -43,13 +43,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    // This effect handles auth state changes and sets up Firestore listeners correctly.
     const authSub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
       
       if (!currentUser) {
-        // Clear data and stop loading if user logs out
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
@@ -62,7 +60,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user) {
-      // No user, no need for Firestore listeners.
       return;
     }
 
@@ -71,10 +68,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupFirestoreListeners = async () => {
       try {
-        // This is the critical step: wait for the DB to be ready.
         const db = await getInitializedDb();
         
-        // User document listener
         setIsUserDataLoading(true);
         const userDocRef = doc(db, 'users', user.uid);
         unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
@@ -90,7 +85,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsUserDataLoading(false);
         });
 
-        // Quiz history listener
         setIsHistoryLoading(true);
         const historyDocRef = doc(db, 'quizHistory', user.uid);
         unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
