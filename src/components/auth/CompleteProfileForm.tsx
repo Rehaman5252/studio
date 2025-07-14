@@ -82,7 +82,7 @@ export default function CompleteProfileForm() {
     }, [userData, form]);
 
 
-    const onSubmit = async (data: ProfileFormValues) => {
+    const onSubmit = (data: ProfileFormValues) => {
         if (!user || !updateUserData) {
             toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
             return;
@@ -95,32 +95,29 @@ export default function CompleteProfileForm() {
 
         setIsSubmitting(true);
 
-        try {
-            const { email, ...payload } = data;
+        const { email, ...payload } = data;
+        const finalPayload: DocumentData = {
+            ...payload,
+            profileCompleted: true,
+            phoneVerified: phoneVerifiedInForm,
+        };
 
-            const finalPayload: DocumentData = {
-                ...payload,
-                profileCompleted: true,
-                phoneVerified: phoneVerifiedInForm,
-            };
-            
-            await updateUserData(finalPayload);
-
-            // Manually reset the form with the new data to ensure UI consistency
-            form.reset(finalPayload);
-    
-            toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
-
-            // Temporarily commented out to prevent premature unmounting
-            // router.push('/profile');
-    
-        } catch (error: any) {
-            console.error("Profile update error:", error);
-            toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
-        } finally {
-            // This will now be reached correctly.
-            setIsSubmitting(false);
-        }
+        updateUserData(finalPayload)
+            .then(() => {
+                toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
+                // Manually reset the form with the new data to ensure UI consistency
+                form.reset(finalPayload);
+                // We can now safely navigate
+                router.push('/profile');
+            })
+            .catch((error) => {
+                console.error("Profile update error:", error);
+                toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
+            })
+            .finally(() => {
+                // This block will now reliably execute.
+                setIsSubmitting(false);
+            });
     };
 
     if (isUserDataLoading) {
@@ -319,3 +316,5 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
+
+    
