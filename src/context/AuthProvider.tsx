@@ -20,8 +20,8 @@ interface AuthContextType {
   loading: boolean;
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
-  updateUserData: (newData: Partial<DocumentData>) => Promise<void>;
-  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
+  updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
+  addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,7 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         } else {
-          // If user exists in Auth but not Firestore, create their doc
           createUserDocument(user);
         }
         setIsUserDataLoading(false);
@@ -74,7 +73,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // The history is stored in a field, e.g., 'attempts'
           setQuizHistory(data.attempts || []);
         } else {
           setQuizHistory([]);
@@ -96,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await updateDoc(userDocRef, newData);
     } catch (error) {
         console.error("Error updating user data:", error);
+        throw error; // Re-throw to be caught by the form
     }
   }, [user]);
 
@@ -105,31 +104,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const historyDocRef = doc(db, 'quizHistory', user.uid);
     const userDocRef = doc(db, 'users', user.uid);
     
-    // Using a function with setQuizHistory to ensure we have the latest state
-    setQuizHistory(currentHistory => {
-        const newHistory = [attempt, ...(currentHistory || [])];
-        setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
-        return newHistory;
-    });
+    const currentHistory = (quizHistory || []);
+    const newHistory = [attempt, ...currentHistory];
+    
+    const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
+    const newQuizzesPlayed = (userData?.quizzesPlayed || 0) + 1;
+    const newPerfectScores = (userData?.perfectScores || 0) + (isPerfect ? 1 : 0);
+    const newTotalRewards = (userData?.totalRewards || 0) + (isPerfect ? 100 : 0);
 
-    setUserData(currentUserData => {
-        const newQuizzesPlayed = (currentUserData?.quizzesPlayed || 0) + 1;
-        const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
-        const newPerfectScores = (currentUserData?.perfectScores || 0) + (isPerfect ? 1 : 0);
-        const newTotalRewards = (currentUserData?.totalRewards || 0) + (isPerfect ? 100 : 0);
-        
-        const updatedStats = {
-            quizzesPlayed: newQuizzesPlayed,
-            perfectScores: newPerfectScores,
-            totalRewards: newTotalRewards
-        };
+    const userUpdatePayload = {
+        quizzesPlayed: newQuizzesPlayed,
+        perfectScores: newPerfectScores,
+        totalRewards: newTotalRewards
+    };
 
-        updateDoc(userDocRef, updatedStats);
-        
-        return { ...currentUserData, ...updatedStats };
-    });
-
-  }, [user]);
+    try {
+        // Perform both writes concurrently
+        await Promise.all([
+            setDoc(historyDocRef, { attempts: newHistory }, { merge: true }),
+            updateDoc(userDocRef, userUpdatePayload)
+        ]);
+    } catch (error) {
+        console.error("Error adding quiz attempt:", error);
+    }
+  }, [user, userData, quizHistory]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;

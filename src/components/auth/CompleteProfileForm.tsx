@@ -76,7 +76,7 @@ export default function CompleteProfileForm() {
     }, [userData?.phoneVerified])
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (!user) {
+        if (!user || !updateUserData) {
             toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
             return;
         }
@@ -97,9 +97,7 @@ export default function CompleteProfileForm() {
                 phoneVerified: phoneVerifiedInForm,
             };
 
-            if (updateUserData) {
-                await updateUserData(finalPayload);
-            }
+            await updateUserData(finalPayload);
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
             router.push('/profile');
@@ -108,6 +106,7 @@ export default function CompleteProfileForm() {
             console.error("Profile update error:", error);
             toast({ title: "Error Saving Profile", description: "Could not save your profile.", variant: "destructive" });
         } finally {
+            // This will now be reached correctly.
             setIsSubmitting(false);
         }
     };
