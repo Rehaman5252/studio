@@ -4,11 +4,12 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { app, getInitializedDb } from '@/lib/firebase';
+import { getInitializedDb } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
+import { Loader2 } from 'lucide-react';
 
 interface AuthContextType {
   user: User | null;
@@ -36,6 +37,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
+  
+  const [firebaseReady, setFirebaseReady] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
@@ -43,30 +46,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initialize = async () => {
       await getInitializedDb();
-      const auth = (await import('@/lib/firebase')).auth;
-      
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        setUser(user);
-        setIsAuthLoading(false);
-        if (!user) {
-          setUserData(null);
-          setQuizHistory(null);
-          setIsUserDataLoading(false);
-          setIsHistoryLoading(false);
-        }
-      });
-      return unsubscribe;
+      setFirebaseReady(true);
     };
-
-    const unsubscribePromise = initialize();
-
-    return () => {
-      unsubscribePromise.then(unsub => unsub());
-    };
+    initialize();
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (!firebaseReady) return;
+
+    const auth = require('firebase/auth').getAuth(); // Using require to avoid top-level import issues
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsAuthLoading(false);
+      if (!user) {
+        setUserData(null);
+        setQuizHistory(null);
+        setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [firebaseReady]);
+
+  useEffect(() => {
+    if (user && firebaseReady) {
       const listenToData = async () => {
         setIsUserDataLoading(true);
         setIsHistoryLoading(true);
@@ -112,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribePromise.then(unsub => unsub && unsub());
       };
     }
-  }, [user]);
+  }, [user, firebaseReady]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
@@ -186,6 +190,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     addQuizAttempt,
   }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
+  if (!firebaseReady) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-4">Initializing Connection...</p>
+      </div>
+    );
+  }
+  
   return (
     <AuthContext.Provider value={value}>
       {children}
