@@ -1,7 +1,7 @@
 
 'use client';
 
-import { initializeApp, getApps, getApp, setLogLevel } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence, enableNetwork } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -21,28 +21,36 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Enable offline persistence and network
-if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db)
-      .catch((err) => {
-        if (err.code == 'failed-precondition') {
-          // Multiple tabs open, persistence can only be enabled
-          // in one tab at a time.
-          console.warn('Firestore persistence failed: Multiple tabs open.');
-        } else if (err.code == 'unimplemented') {
-          // The current browser does not support all of the
-          // features required to enable persistence
-          console.warn('Firestore persistence not available in this browser.');
-        }
-      });
+// This function now returns a promise that resolves when initialization is complete.
+const initializeFirebaseServices = async () => {
+  if (typeof window !== 'undefined') {
+    try {
+      // First, try to enable persistence.
+      await enableIndexedDbPersistence(db);
+      console.log('✅ Firestore persistence enabled.');
+    } catch (err: any) {
+      // Handle known persistence errors.
+      if (err.code === 'failed-precondition') {
+        console.warn('⚠️ Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a time.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('⚠️ Firestore persistence not available in this browser.');
+      } else {
+        console.error('🔥 An unknown error occurred with Firestore persistence:', err);
+      }
+    }
     
-    // Forcefully enable the network connection. This is crucial for resolving
-    // cases where the client gets stuck in an offline state.
-    enableNetwork(db)
-        .then(() => console.log('📶 Firestore network enabled'))
-        .catch(err => console.error("❌ Firestore: Failed to enable network.", err));
-}
+    try {
+      // ALWAYS try to enable the network, regardless of persistence success.
+      await enableNetwork(db);
+      console.log('📶 Firestore network connection enabled.');
+    } catch (err) {
+      console.error('❌ Failed to enable Firestore network:', err);
+    }
+  }
+};
 
+// Start the async initialization.
+initializeFirebaseServices();
 
 const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 

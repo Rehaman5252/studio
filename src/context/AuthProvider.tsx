@@ -7,7 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
@@ -97,20 +97,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) {
-        console.error("[updateUserData] Aborted: No user is signed in.");
-        throw new Error("User not authenticated");
+      throw new Error("User not authenticated");
     }
-    console.log("👤 Auth user UID:", user.uid);
-    console.log("📦 Payload being saved:", newData);
+    console.log("👤 [updateUserData] Auth user UID:", user.uid);
+    console.log("📦 [updateUserData] Payload being saved:", newData);
     const userDocRef = doc(db, 'users', user.uid);
-    console.log("🗂️ Writing to Firestore path: ", userDocRef.path);
+    console.log("🗂️ [updateUserData] Writing to Firestore path: ", userDocRef.path);
     try {
         await updateDoc(userDocRef, newData);
-        console.log("✅ Firestore document updated successfully.");
+        console.log("✅ [updateUserData] Firestore document updated successfully.");
     } catch (error) {
-        console.error("🔥 Firestore update failed:", error);
-        // Re-throw the error so the calling component's catch block can handle it
-        throw error;
+        console.error("🔥 [updateUserData] Firestore update failed. Forcing network online and retrying...", error);
+        try {
+            await enableNetwork(db);
+            console.log("📶 [updateUserData] Network forcefully enabled. Retrying update...");
+            await updateDoc(userDocRef, newData);
+            console.log("✅ [updateUserData] Firestore document updated successfully on retry.");
+        } catch (retryError) {
+             console.error("🔥 [updateUserData] Firestore update failed on retry:", retryError);
+             throw retryError;
+        }
     }
   }, [user]);
 
