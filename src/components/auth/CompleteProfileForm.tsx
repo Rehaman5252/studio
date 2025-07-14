@@ -74,6 +74,13 @@ export default function CompleteProfileForm() {
     useEffect(() => {
         setPhoneVerifiedInForm(userData?.phoneVerified || false);
     }, [userData?.phoneVerified])
+    
+    useEffect(() => {
+        if (userData) {
+            form.reset(userData);
+        }
+    }, [userData, form]);
+
 
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user || !updateUserData) {
@@ -96,11 +103,16 @@ export default function CompleteProfileForm() {
                 profileCompleted: true,
                 phoneVerified: phoneVerifiedInForm,
             };
-
+            
             await updateUserData(finalPayload);
+
+            // Manually reset the form with the new data to ensure UI consistency
+            form.reset(finalPayload);
     
             toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
-            router.push('/profile');
+
+            // Temporarily commented out to prevent premature unmounting
+            // router.push('/profile');
     
         } catch (error: any) {
             console.error("Profile update error:", error);

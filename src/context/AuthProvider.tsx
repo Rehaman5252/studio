@@ -63,8 +63,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         } else {
+          // If the document doesn't exist, create it.
+          // This handles new sign-ups gracefully.
           createUserDocument(user);
         }
+        setIsUserDataLoading(false);
+      }, (error) => {
+        console.error("Error listening to user document:", error);
         setIsUserDataLoading(false);
       });
 
@@ -78,6 +83,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setQuizHistory([]);
         }
         setIsHistoryLoading(false);
+      }, (error) => {
+          console.error("Error listening to quiz history:", error);
+          setIsHistoryLoading(false);
       });
 
       return () => {
@@ -94,23 +102,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await updateDoc(userDocRef, newData);
     } catch (error) {
         console.error("Error updating user data:", error);
-        throw error; // Re-throw to be caught by the form
+        // Re-throw the error so the calling component can handle it (e.g., show a toast)
+        throw error;
     }
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) return;
 
+    // Use a function to get the latest state to avoid stale closures
+    const currentHistory = quizHistory || [];
+    const currentUserData = userData || {};
+
     const historyDocRef = doc(db, 'quizHistory', user.uid);
     const userDocRef = doc(db, 'users', user.uid);
     
-    const currentHistory = (quizHistory || []);
     const newHistory = [attempt, ...currentHistory];
     
     const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
-    const newQuizzesPlayed = (userData?.quizzesPlayed || 0) + 1;
-    const newPerfectScores = (userData?.perfectScores || 0) + (isPerfect ? 1 : 0);
-    const newTotalRewards = (userData?.totalRewards || 0) + (isPerfect ? 100 : 0);
+    const newQuizzesPlayed = (currentUserData?.quizzesPlayed || 0) + 1;
+    const newPerfectScores = (currentUserData?.perfectScores || 0) + (isPerfect ? 1 : 0);
+    const newTotalRewards = (currentUserData?.totalRewards || 0) + (isPerfect ? 100 : 0);
 
     const userUpdatePayload = {
         quizzesPlayed: newQuizzesPlayed,
@@ -119,15 +131,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        // Perform both writes concurrently
         await Promise.all([
             setDoc(historyDocRef, { attempts: newHistory }, { merge: true }),
             updateDoc(userDocRef, userUpdatePayload)
         ]);
     } catch (error) {
         console.error("Error adding quiz attempt:", error);
+        throw error;
     }
-  }, [user, userData, quizHistory]);
+  }, [user, quizHistory, userData]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
