@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase'; // Import the initialized db
+import { auth, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
@@ -65,7 +65,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
-    // Use the directly imported, correctly initialized db instance
     try {
       setIsUserDataLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
@@ -112,7 +111,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("User not authenticated");
     
-    // Use the directly imported, correctly initialized db instance
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
   }, [user]);
