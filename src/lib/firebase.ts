@@ -22,7 +22,7 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 // This function now returns a promise that resolves when initialization is complete.
-const initializeFirebaseServices = async () => {
+export const initializeFirebaseServices = async () => {
   if (typeof window !== 'undefined') {
     try {
       // First, try to enable persistence.
@@ -48,9 +48,6 @@ const initializeFirebaseServices = async () => {
     }
   }
 };
-
-// Start the async initialization.
-initializeFirebaseServices();
 
 const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 

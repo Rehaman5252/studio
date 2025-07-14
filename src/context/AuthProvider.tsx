@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, initializeFirebaseServices } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
@@ -39,8 +39,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isFirebaseInitialized, setIsFirebaseInitialized] = useState(false);
 
   useEffect(() => {
+    initializeFirebaseServices().then(() => {
+      setIsFirebaseInitialized(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isFirebaseInitialized) return;
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsAuthLoading(false);
@@ -53,10 +62,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isFirebaseInitialized]);
 
   useEffect(() => {
-    if (user) {
+    if (user && isFirebaseInitialized) {
       setIsUserDataLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
@@ -93,7 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeHistory();
       };
     }
-  }, [user]);
+  }, [user, isFirebaseInitialized]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) {
@@ -104,19 +113,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userDocRef = doc(db, 'users', user.uid);
     console.log("🗂️ [updateUserData] Writing to Firestore path: ", userDocRef.path);
     try {
+        await enableNetwork(db);
         await updateDoc(userDocRef, newData);
         console.log("✅ [updateUserData] Firestore document updated successfully.");
     } catch (error) {
-        console.error("🔥 [updateUserData] Firestore update failed. Forcing network online and retrying...", error);
-        try {
-            await enableNetwork(db);
-            console.log("📶 [updateUserData] Network forcefully enabled. Retrying update...");
-            await updateDoc(userDocRef, newData);
-            console.log("✅ [updateUserData] Firestore document updated successfully on retry.");
-        } catch (retryError) {
-             console.error("🔥 [updateUserData] Firestore update failed on retry:", retryError);
-             throw retryError;
-        }
+       console.error("🔥 [updateUserData] Firestore update failed:", error);
+       throw error;
     }
   }, [user]);
 
@@ -142,10 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        await Promise.all([
-            setDoc(historyDocRef, { attempts: newHistory }, { merge: true }),
-            updateDoc(userDocRef, userUpdatePayload)
-        ]);
+        await setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
+        await updateDoc(userDocRef, userUpdatePayload);
     } catch (error) {
         console.error("Error adding quiz attempt:", error);
         throw error;
@@ -157,7 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
-  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading;
+  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading || !isFirebaseInitialized;
 
   const value = useMemo(() => ({
     user,
