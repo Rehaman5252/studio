@@ -4,6 +4,9 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { Gift, Loader2 } from 'lucide-react';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => (
@@ -27,6 +30,8 @@ const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent
 });
 
 export default function RewardsPage() {
+  const { user, loading } = useAuth();
+  
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -34,7 +39,21 @@ export default function RewardsPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
-        <RewardsContent />
+         {loading ? (
+            <div className="flex flex-col items-center justify-center h-full py-10">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+         ) : user ? (
+            <RewardsContent />
+         ) : (
+            <div className="flex flex-col items-center justify-center">
+                <LoginPrompt 
+                    icon={Gift}
+                    title="Unlock Your Rewards"
+                    description="Sign in to claim special awards from our sponsors for every quiz you conquer!"
+                />
+            </div>
+         )}
       </main>
     </div>
   );
