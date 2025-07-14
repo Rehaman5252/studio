@@ -7,7 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getInitializedDb } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, DocumentReference } from 'firebase/firestore';
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, enableNetwork } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
