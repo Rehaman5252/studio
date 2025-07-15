@@ -1,3 +1,4 @@
+
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -34,11 +35,11 @@ if (typeof window !== "undefined") {
   try {
     db = initializeFirestore(app, {
       localCache: persistentLocalCache({
+        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
         tabManager: persistentSingleTabManager({
           forceOwnership: true,
         }),
-      }),
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+      })
     });
     console.log("Firestore persistence enabled.");
   } catch(error: any) {
