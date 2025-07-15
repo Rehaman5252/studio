@@ -4,10 +4,10 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, isFirebaseConfigured, app } from '@/lib/firebase';
+import { auth, isFirebaseConfigured, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
-import { doc, onSnapshot, updateDoc, setDoc, getDoc, getFirestore } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !db) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
@@ -76,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupListeners = async () => {
         try {
-            const db = getFirestore(app); // Get instance here for safety
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
 
@@ -124,16 +123,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) throw new Error("User not authenticated");
-    const db = getFirestore(app);
+    if (!user || !db) throw new Error("User not authenticated or DB not ready");
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) throw new Error("User not authenticated");
+    if (!user || !db) throw new Error("User not authenticated or DB not ready");
     
-    const db = getFirestore(app);
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 

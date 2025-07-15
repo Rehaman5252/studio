@@ -43,13 +43,11 @@ if (typeof window !== "undefined") {
     console.log("Firestore persistence enabled.");
   } catch(error: any) {
     if (error.code === 'failed-precondition') {
-        // This is a normal scenario when multiple tabs are open.
-        // We can fall back to a non-persistent Firestore instance.
         console.warn('Firestore persistence failed, likely due to multiple tabs. Falling back to memory-only cache.');
         db = getFirestore(app);
     } else {
         console.error("Error enabling Firestore persistence", error);
-        db = getFirestore(app); // Fallback in case of other errors
+        db = getFirestore(app);
     }
   }
   
@@ -59,5 +57,6 @@ if (typeof window !== "undefined") {
     console.error("Error initializing Realtime Database", error);
   }
 }
+
 
 export { app, auth, db, rtdb };

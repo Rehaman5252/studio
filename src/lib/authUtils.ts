@@ -8,14 +8,13 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, app } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
-import { doc, getDoc, setDoc, getFirestore } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  if (!user) return;
-  const db = getFirestore(app); // Get instance here for safety
+  if (!user || !db) return;
 
   const userDocRef = doc(db, 'users', user.uid);
   
@@ -47,7 +46,6 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
   }
 }
 
-// Guard to prevent multiple popups
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn() {
@@ -62,8 +60,6 @@ export async function handleGoogleSignIn() {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    // The user document creation is now handled by the AuthProvider
-    // to prevent race conditions. We just return the user here.
     return result.user;
 
   } catch (error: any) {
