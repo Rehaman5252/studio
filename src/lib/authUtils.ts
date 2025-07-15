@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, waitUntilOnline } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -17,6 +17,11 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
   if (!user) return;
 
   const userDocRef = doc(db, 'users', user.uid);
+  
+  // Wait for Firestore to establish a connection before trying to read/write.
+  // This prevents the "client is offline" error.
+  await waitUntilOnline();
+
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
@@ -70,6 +75,8 @@ export async function handleGoogleSignIn() {
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
+    } else if (error.message?.includes("offline") || error.code === 'auth/network-request-failed') {
+        toast({ title: 'Offline Error', description: 'Please check your internet connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });

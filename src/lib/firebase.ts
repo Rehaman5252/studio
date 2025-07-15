@@ -1,8 +1,7 @@
-
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, onSnapshot, doc } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig: FirebaseOptions = {
@@ -25,6 +24,39 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 let rtdb;
+
+/**
+ * Helper function to wait for Firestore to come online.
+ * It uses a "ping" document to check for a successful connection.
+ * @param timeout - The maximum time to wait in milliseconds.
+ * @returns A promise that resolves to true when connected.
+ */
+export const waitUntilOnline = (timeout = 3000): Promise<boolean> => {
+    return new Promise((resolve) => {
+      // A document that likely doesn't exist but can be used to check connectivity.
+      const pingDocRef = doc(db, '__ping__', 'connectivity');
+      const unsubscribe = onSnapshot(pingDocRef, 
+        () => {
+            // Success! We received a snapshot, so Firestore is connected.
+            unsubscribe();
+            resolve(true);
+        },
+        (error) => {
+            // This error handler will also be called on timeout, which is fine.
+            console.warn("Firestore connectivity check timed out or failed, proceeding anyway.", error);
+            unsubscribe();
+            resolve(true); // Resolve anyway after timeout.
+        }
+      );
+
+      // Fallback timeout in case the connection never resolves.
+      setTimeout(() => {
+        unsubscribe();
+        resolve(true);
+      }, timeout);
+    });
+};
+
 
 // Prevent Firebase RTDB errors during server-side rendering
 if (typeof window !== 'undefined') {
