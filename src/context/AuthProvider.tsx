@@ -42,7 +42,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  const db = isFirebaseConfigured ? getFirestoreInstance() : null;
+  const [db, setDb] = useState<Firestore | null>(null);
+
+  useEffect(() => {
+    if (isFirebaseConfigured) {
+      setDb(getFirestoreInstance());
+    }
+  }, []);
 
   const handleCreateUserDocument = useCallback(async (userToCreate: User, additionalData?: DocumentData) => {
     if (!db) throw new Error("Database not initialized");
@@ -91,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [db]);
   
   useEffect(() => {
-    if (!isFirebaseConfigured || !db) {
+    if (!isFirebaseConfigured) {
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
@@ -102,10 +108,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       setIsAuthLoading(false);
       
-      if (currentUser) {
+      if (currentUser && db) {
         // Ensure user document is created on sign in
         await handleCreateUserDocument(currentUser);
-      } else {
+      } else if (!currentUser) {
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
@@ -118,8 +124,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user || !db) {
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
+      if (user) { // only set loading to false if we have a user but no db yet
+        setIsUserDataLoading(true);
+        setIsHistoryLoading(true);
+      } else {
+        setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
+      }
       return;
     }
     
