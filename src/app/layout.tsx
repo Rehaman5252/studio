@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/context/Providers';
-import FirebasePersistence from '@/components/FirebasePersistence';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -38,7 +37,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={`${inter.variable} h-full bg-background font-sans text-foreground`}>
-        <FirebasePersistence />
         <Providers>
           {children}
         </Providers>
