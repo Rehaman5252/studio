@@ -108,9 +108,9 @@ export default function CompleteProfileForm() {
                 profileCompleted: true,
                 phoneVerified: phoneVerifiedInForm,
             };
-
+            
             await updateUserData(finalPayload);
-
+            
             if (isMounted.current) {
                 toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
                 form.reset(finalPayload);
