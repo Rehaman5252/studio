@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, isFirebaseConfigured, db } from '@/lib/firebase';
+import { auth, isFirebaseConfigured, app } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc, getDoc, getFirestore } from 'firebase/firestore';
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
@@ -76,10 +76,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupListeners = async () => {
         try {
+            const db = getFirestore(app); // Get instance here for safety
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
 
-            // Check if document exists. If not, create it. This handles new sign-ups.
             const initialDocSnap = await getDoc(userDocRef);
             if (!initialDocSnap.exists()) {
               console.log("User document doesn't exist, creating...");
@@ -124,14 +124,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not available");
+    if (!user) throw new Error("User not authenticated");
+    const db = getFirestore(app);
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not available");
+    if (!user) throw new Error("User not authenticated");
     
+    const db = getFirestore(app);
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
