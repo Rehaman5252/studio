@@ -7,6 +7,7 @@ import {
   persistentSingleTabManager,
   CACHE_SIZE_UNLIMITED,
   type Firestore,
+  getFirestore,
 } from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
@@ -26,6 +27,6 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
-// Note: Firestore is now initialized within AuthProvider to ensure it's client-side only.
+// Firestore is now initialized within AuthProvider to ensure it's client-side only.
 
 export { app, auth };
