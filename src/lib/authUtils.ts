@@ -61,12 +61,9 @@ export async function handleGoogleSignIn() {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    if (!user) throw new Error('No user returned from Google Sign-In.');
-    
-    await createUserDocument(user);
-    
-    return user;
+    // The user document creation is now handled by the AuthProvider
+    // to prevent race conditions. We just return the user here.
+    return result.user;
 
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {

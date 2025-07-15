@@ -7,7 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, isFirebaseConfigured, db } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
-import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, getDoc, getFirestore } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user || !isFirebaseConfigured || !db) {
+    if (!user || !db) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
@@ -78,13 +78,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
+
+            // Check if document exists. If not, create it. This handles new sign-ups.
+            const initialDocSnap = await getDoc(userDocRef);
+            if (!initialDocSnap.exists()) {
+              console.log("User document doesn't exist, creating...");
+              await createUserDocument(user);
+            }
+
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    setUserData(docSnap.data());
-                } else {
-                    console.log("User document doesn't exist, creating...");
-                    createUserDocument(user);
-                }
+                setUserData(docSnap.data() || null);
                 setIsUserDataLoading(false);
             }, (error) => {
                 console.error("Error listening to user document:", error);
