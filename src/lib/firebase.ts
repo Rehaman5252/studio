@@ -23,7 +23,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
 const db = getFirestore(app);
-let rtdb;
+const rtdb = typeof window !== 'undefined' ? getDatabase(app) : null;
 
 /**
  * Helper function to wait for Firestore to come online.
@@ -56,25 +56,5 @@ export const waitUntilOnline = (timeout = 3000): Promise<boolean> => {
       }, timeout);
     });
 };
-
-
-// Prevent Firebase RTDB errors during server-side rendering
-if (typeof window !== 'undefined') {
-    rtdb = getDatabase(app);
-    // Enable offline persistence for Firestore.
-    // This is the key to preventing "client is offline" errors on initial load.
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code == 'failed-precondition') {
-            // Multiple tabs open, persistence can only be enabled
-            // in one tab at a a time.
-            console.warn('Firebase persistence failed: multiple tabs open.');
-        } else if (err.code == 'unimplemented') {
-            // The current browser does not support all of the
-            // features required to enable persistence
-            console.warn('Firebase persistence not supported in this browser.');
-        }
-    });
-}
-
 
 export { app, auth, db, rtdb };
