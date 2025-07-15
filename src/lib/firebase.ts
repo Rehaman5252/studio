@@ -6,7 +6,7 @@ import {
   persistentLocalCache,
   persistentSingleTabManager,
   CACHE_SIZE_UNLIMITED,
-  getFirestore,
+  getFirestore as getFS, // renamed to avoid conflict
   type Firestore,
 } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
@@ -45,10 +45,10 @@ if (typeof window !== "undefined") {
   } catch(error: any) {
     if (error.code === 'failed-precondition') {
         console.warn('Firestore persistence failed, likely due to multiple tabs. Falling back to memory-only cache.');
-        db = getFirestore(app);
+        db = getFS(app);
     } else {
         console.error("Error enabling Firestore persistence", error);
-        db = getFirestore(app);
+        db = getFS(app);
     }
   }
   
@@ -59,5 +59,19 @@ if (typeof window !== "undefined") {
   }
 }
 
+// Function to get the db instance, ensuring it's not null on the client.
+const getFirestore = () => {
+    if (!db) {
+        // This will only happen on the server, where db is not used by these utils.
+        // On the client, db is initialized above.
+        if (typeof window === 'undefined') {
+            return null;
+        }
+        // Fallback for any client-side race conditions, though unlikely with this setup.
+        db = getFS(app);
+    }
+    return db;
+};
 
-export { app, auth, db, rtdb };
+
+export { app, auth, db, rtdb, getFirestore };

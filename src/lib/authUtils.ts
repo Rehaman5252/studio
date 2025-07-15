@@ -8,12 +8,13 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, getFirestore } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
+  const db = getFirestore();
   if (!user || !db) return;
 
   const userDocRef = doc(db, 'users', user.uid);
@@ -60,7 +61,11 @@ export async function handleGoogleSignIn() {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    return result.user;
+    const user = result.user;
+    if (user) {
+        await createUserDocument(user);
+    }
+    return user;
 
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
