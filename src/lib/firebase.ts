@@ -1,3 +1,4 @@
+
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -7,7 +8,6 @@ import {
   persistentSingleTabManager,
   CACHE_SIZE_UNLIMITED,
   type Firestore,
-  getFirestore as getFirebaseFirestore, // renamed to avoid conflict
 } from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
@@ -33,10 +33,10 @@ let dbInstance: Firestore | null = null;
 // The single, reliable way to get the Firestore instance on the client.
 export function getFirestoreInstance(): Firestore {
   if (typeof window === 'undefined') {
-    // Return a non-persistent instance or throw an error for server-side access if not desired.
-    // For this app, client-side only is the pattern.
+    // This is a server-side render, return a non-persistent instance or handle as needed.
+    // For this app, client-side only is the main pattern, but this prevents SSR errors.
     if (!dbInstance) {
-      dbInstance = getFirebaseFirestore(app);
+        dbInstance = initializeFirestore(app, {});
     }
     return dbInstance;
   }
@@ -55,10 +55,10 @@ export function getFirestoreInstance(): Firestore {
     } catch (error: any) {
         if (error.code === 'failed-precondition') {
           console.warn('Firestore persistence failed, likely due to multiple tabs. Falling back to memory-only cache.');
-          dbInstance = getFirebaseFirestore(app);
+          dbInstance = initializeFirestore(app, {}); // Fallback to memory cache
         } else {
           console.error("Error enabling Firestore persistence", error);
-          dbInstance = getFirebaseFirestore(app);
+          dbInstance = initializeFirestore(app, {}); // Fallback to memory cache
         }
     }
   }

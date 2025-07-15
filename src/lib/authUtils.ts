@@ -10,6 +10,50 @@ import {
 } from 'firebase/auth';
 import { auth, getFirestoreInstance } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
+import type { DocumentData, Firestore } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+
+export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
+  console.log("🔥 createUserDocument:", user);
+  if (!user || !db) {
+    console.error("❌ createUserDocument failed: User or DB object is missing.", { user, db });
+    return;
+  };
+  
+  const userDocRef = doc(db, 'users', user.uid);
+  
+  try {
+      const snapshot = await getDoc(userDocRef);
+
+      if (!snapshot.exists()) {
+          const { email, displayName, photoURL } = user;
+          const createdAt = new Date();
+          
+          await setDoc(userDocRef, {
+              uid: user.uid,
+              email,
+              name: additionalData.name || displayName || 'New User',
+              photoURL: photoURL || `https://placehold.co/100x100.png`,
+              createdAt,
+              emailVerified: user.emailVerified,
+              quizzesPlayed: 0,
+              perfectScores: 0,
+              totalRewards: 0,
+              profileCompleted: false,
+              referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0,4)}`,
+              referralEarnings: 0,
+              ...additionalData
+          });
+          console.log("✅ User document created in Firestore");
+      }
+  } catch (error) {
+      console.error("❌ Error creating user document:", error);
+      toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+      throw error;
+  }
+}
+
 
 let isPopupOpen = false;
 

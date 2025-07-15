@@ -9,6 +9,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
+import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -32,44 +33,6 @@ const MANDATORY_PROFILE_FIELDS = [
   'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
-async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
-    console.log("🔥 createUserDocument:", user);
-    if (!user) return;
-    
-    const userDocRef = doc(db, 'users', user.uid);
-    
-    try {
-        const snapshot = await getDoc(userDocRef);
-
-        if (!snapshot.exists()) {
-            const { email, displayName, photoURL } = user;
-            const createdAt = new Date();
-            
-            await setDoc(userDocRef, {
-                uid: user.uid,
-                email,
-                name: additionalData.name || displayName || 'New User',
-                photoURL: photoURL || `https://placehold.co/100x100.png`,
-                createdAt,
-                emailVerified: user.emailVerified,
-                quizzesPlayed: 0,
-                perfectScores: 0,
-                totalRewards: 0,
-                profileCompleted: false,
-                referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0,4)}`,
-                referralEarnings: 0,
-                ...additionalData
-            });
-            console.log("✅ User document created in Firestore");
-        }
-    } catch (error) {
-        console.error("❌ Error creating user document:", error);
-        toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
-        throw error;
-    }
-}
-
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
@@ -79,9 +42,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-
+  
   const db = useMemo(() => isFirebaseConfigured ? getFirestoreInstance() : null, []);
 
+  const handleCreateUserDocument = useCallback(async (userToCreate: User, additionalData?: DocumentData) => {
+    if (!db) throw new Error("Database not initialized");
+    await createUserDocument(db, userToCreate, additionalData);
+  }, [db]);
+  
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
       setIsAuthLoading(false);
@@ -96,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (currentUser) {
         // Ensure user document is created on sign in
-        await createUserDocument(db, currentUser);
+        await handleCreateUserDocument(currentUser);
       } else {
         setUserData(null);
         setQuizHistory(null);
@@ -106,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => authSub();
-  }, [db]);
+  }, [db, handleCreateUserDocument]);
 
   useEffect(() => {
     if (!user || !db) {
@@ -199,11 +167,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
     }
   }, [user, quizHistory, userData, db]);
-
-  const handleCreateUserDocument = useCallback(async (userToCreate: User, additionalData?: DocumentData) => {
-    if (!db) throw new Error("Database not initialized");
-    await createUserDocument(db, userToCreate, additionalData);
-  }, [db]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
