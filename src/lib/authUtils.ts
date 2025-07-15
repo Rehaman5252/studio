@@ -8,15 +8,14 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, getFirestore } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
-import type { DocumentData } from 'firebase/firestore';
+import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  const db = getFirestore();
-  if (!user || !db) {
-    console.error("Cannot create user document, user or db is not available.");
+export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
+  if (!user) {
+    console.error("Cannot create user document, user is not available.");
     return;
   };
 
@@ -65,9 +64,8 @@ export async function handleGoogleSignIn() {
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    if (user) {
-        await createUserDocument(user);
-    }
+    // createUserDocument is now called from AuthProvider, so we don't call it here.
+    // This ensures db is ready.
     return user;
 
   } catch (error: any) {

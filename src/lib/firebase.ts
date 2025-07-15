@@ -6,7 +6,6 @@ import {
   persistentLocalCache,
   persistentSingleTabManager,
   CACHE_SIZE_UNLIMITED,
-  getFirestore as getFS, // renamed to avoid conflict
   type Firestore,
 } from "firebase/firestore";
 
@@ -27,39 +26,6 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
-let db: Firestore | null = null;
+// Note: Firestore is now initialized within AuthProvider to ensure it's client-side only.
 
-// Function to get the db instance, ensuring it's not null on the client.
-const getFirestore = () => {
-    if (typeof window === 'undefined') {
-        // On the server, we don't initialize Firestore.
-        // This is to prevent server-side code from trying to access it.
-        return null;
-    }
-    if (!db) {
-        // Initialize Firestore only on the client, and only once.
-        try {
-            db = initializeFirestore(app, {
-                localCache: persistentLocalCache({
-                    tabManager: persistentSingleTabManager({
-                        forceOwnership: true,
-                    }),
-                    cacheSizeBytes: CACHE_SIZE_UNLIMITED
-                })
-            });
-            console.log("Firestore persistence enabled.");
-        } catch(error: any) {
-            if (error.code === 'failed-precondition') {
-                console.warn('Firestore persistence failed, likely due to multiple tabs. Falling back to memory-only cache.');
-                db = getFS(app);
-            } else {
-                console.error("Error enabling Firestore persistence", error);
-                db = getFS(app);
-            }
-        }
-    }
-    return db;
-};
-
-
-export { app, auth, getFirestore };
+export { app, auth };
