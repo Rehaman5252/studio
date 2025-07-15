@@ -1,3 +1,4 @@
+
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -65,6 +66,7 @@ const getFirestore = () => {
         // This will only happen on the server, where db is not used by these utils.
         // On the client, db is initialized above.
         if (typeof window === 'undefined') {
+            console.error("Firestore is not available on the server. This function should only be called on the client.");
             return null;
         }
         // Fallback for any client-side race conditions, though unlikely with this setup.

@@ -15,7 +15,10 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   const db = getFirestore();
-  if (!user || !db) return;
+  if (!user || !db) {
+    console.error("Cannot create user document, user or db is not available.");
+    return;
+  };
 
   const userDocRef = doc(db, 'users', user.uid);
   
