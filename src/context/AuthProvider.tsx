@@ -9,7 +9,6 @@ import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
-import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -43,11 +42,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  const db = useMemo(() => isFirebaseConfigured ? getFirestoreInstance() : null, []);
+  const db = isFirebaseConfigured ? getFirestoreInstance() : null;
 
   const handleCreateUserDocument = useCallback(async (userToCreate: User, additionalData?: DocumentData) => {
     if (!db) throw new Error("Database not initialized");
-    await createUserDocument(db, userToCreate, additionalData);
+    
+    console.log("🔥 createUserDocument:", userToCreate);
+    if (!userToCreate) {
+        console.error("❌ createUserDocument failed: User object is missing.");
+        return;
+    };
+    
+    const userDocRef = doc(db, 'users', userToCreate.uid);
+    
+    try {
+        const snapshot = await getDoc(userDocRef);
+        
+        if (!snapshot.exists()) {
+            const { email, displayName, photoURL } = userToCreate;
+            const createdAt = new Date();
+            
+            const payload = {
+                uid: userToCreate.uid,
+                email,
+                name: additionalData?.name || displayName || 'New User',
+                photoURL: photoURL || `https://placehold.co/100x100.png`,
+                createdAt,
+                emailVerified: userToCreate.emailVerified,
+                quizzesPlayed: 0,
+                perfectScores: 0,
+                totalRewards: 0,
+                profileCompleted: false,
+                referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${userToCreate.uid.substring(0,4)}`,
+                referralEarnings: 0,
+                ...additionalData
+            };
+            
+            await setDoc(userDocRef, payload);
+            console.log("✅ User document created in Firestore with payload:", payload);
+        } else {
+            console.log("User document already exists.");
+        }
+    } catch (error) {
+        console.error("❌ Error in createUserDocument:", error);
+        toast({ title: "Error", description: "Could not create or check user profile.", variant: "destructive" });
+        throw error;
+    }
   }, [db]);
   
   useEffect(() => {
