@@ -1,12 +1,13 @@
 // lib/firebase.ts
-import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import {
   initializeFirestore,
   persistentLocalCache,
   persistentSingleTabManager,
   CACHE_SIZE_UNLIMITED,
-  getFirestore
+  getFirestore,
+  type Firestore,
 } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 
@@ -27,17 +28,17 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
-let db: any = null;
+let db: Firestore | null = null;
 let rtdb: any = null;
 
 if (typeof window !== "undefined") {
   try {
     db = initializeFirestore(app, {
       localCache: persistentLocalCache({
-        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
         tabManager: persistentSingleTabManager({
           forceOwnership: true,
         }),
+        cacheSizeBytes: CACHE_SIZE_UNLIMITED
       })
     });
     console.log("Firestore persistence enabled.");
