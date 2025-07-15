@@ -14,8 +14,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn, createUserDocument, registerWithEmail } from '@/lib/authUtils';
+import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { useAuth } from '@/context/AuthProvider';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -39,6 +40,7 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
+  const { createUserDocument } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -51,11 +53,15 @@ export default function SignupForm() {
     try {
         const user = await handleGoogleSignIn();
         if (user) {
-            toast({ title: 'Account Created!', description: `Welcome, ${user.displayName}!` });
+            // AuthProvider will create the document via onAuthStateChanged
+            toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
             router.push('/complete-profile');
         }
-    } catch (error) {
-         console.error("Google signup process failed on the signup page.");
+    } catch (error: any) {
+         // Error is already logged in authUtils, but we can show a toast
+         if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+             toast({ title: 'Sign Up Failed', description: 'Could not sign in with Google. Please try again.', variant: 'destructive' });
+         }
     } finally {
         setIsGoogleLoading(false);
     }
@@ -69,6 +75,7 @@ export default function SignupForm() {
         
         await updateProfile(user, { displayName: data.name });
         
+        // Explicitly create the document with the name from the form
         await createUserDocument(user, { name: data.name }); 
         
         toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile to continue.' });

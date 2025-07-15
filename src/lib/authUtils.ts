@@ -10,52 +10,10 @@ import {
 } from 'firebase/auth';
 import { auth, getFirestoreInstance } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
-import type { DocumentData, Firestore } from 'firebase/firestore';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-
-export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  if (!user) {
-    console.error("Cannot create user document, user is not available.");
-    return;
-  };
-  
-  const db = getFirestoreInstance();
-  const userDocRef = doc(db, 'users', user.uid);
-  
-  try {
-    const snapshot = await getDoc(userDocRef);
-
-    if (!snapshot.exists()) {
-      const { email, displayName, photoURL } = user;
-      const createdAt = new Date();
-      
-      await setDoc(userDocRef, {
-        uid: user.uid,
-        email,
-        name: additionalData.name || displayName || 'New User',
-        photoURL: photoURL || `https://placehold.co/100x100.png`,
-        createdAt,
-        emailVerified: user.emailVerified,
-        quizzesPlayed: 0,
-        perfectScores: 0,
-        totalRewards: 0,
-        profileCompleted: false, // Explicitly set on creation
-        referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0,4)}`,
-        referralEarnings: 0,
-        ...additionalData
-      });
-      console.log("✅ User document created in Firestore");
-    }
-  } catch (error) {
-    console.error("❌ Error creating user document:", error);
-    toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
-    throw error; // Re-throw to be caught by calling function
-  }
-}
 
 let isPopupOpen = false;
 
-export async function handleGoogleSignIn() {
+export async function handleGoogleSignIn(): Promise<User | null> {
   if (isPopupOpen) {
     console.warn("Google Sign-In popup is already open.");
     return null;
@@ -67,14 +25,8 @@ export async function handleGoogleSignIn() {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    
-    // Create user document immediately after sign-in.
-    // This is now safe because createUserDocument gets its own valid db instance.
-    await createUserDocument(user);
-    
-    return user;
-
+    // The AuthProvider's onAuthStateChanged will handle document creation.
+    return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
@@ -84,14 +36,16 @@ export async function handleGoogleSignIn() {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
     }
-    return null;
+    throw error; // Propagate error to the caller component
   } finally {
     isPopupOpen = false;
   }
 }
 
+
 export const registerWithEmail = async (email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // The AuthProvider's onAuthStateChanged will handle document creation.
     return userCredential;
 };
 

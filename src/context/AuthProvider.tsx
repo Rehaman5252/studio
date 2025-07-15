@@ -8,7 +8,7 @@ import { auth, isFirebaseConfigured, getFirestoreInstance } from '@/lib/firebase
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
-import { createUserDocument } from '@/lib/authUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +22,7 @@ interface AuthContextType {
   isHistoryLoading: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
+  createUserDocument: (user: User, additionalData?: DocumentData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +31,44 @@ const MANDATORY_PROFILE_FIELDS = [
   'name', 'phone', 'dob', 'gender', 'occupation',
   'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
+
+async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
+    console.log("🔥 createUserDocument:", user);
+    if (!user) return;
+    
+    const userDocRef = doc(db, 'users', user.uid);
+    
+    try {
+        const snapshot = await getDoc(userDocRef);
+
+        if (!snapshot.exists()) {
+            const { email, displayName, photoURL } = user;
+            const createdAt = new Date();
+            
+            await setDoc(userDocRef, {
+                uid: user.uid,
+                email,
+                name: additionalData.name || displayName || 'New User',
+                photoURL: photoURL || `https://placehold.co/100x100.png`,
+                createdAt,
+                emailVerified: user.emailVerified,
+                quizzesPlayed: 0,
+                perfectScores: 0,
+                totalRewards: 0,
+                profileCompleted: false,
+                referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0,4)}`,
+                referralEarnings: 0,
+                ...additionalData
+            });
+            console.log("✅ User document created in Firestore");
+        }
+    } catch (error) {
+        console.error("❌ Error creating user document:", error);
+        toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+        throw error;
+    }
+}
+
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -41,19 +80,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
+  const db = useMemo(() => isFirebaseConfigured ? getFirestoreInstance() : null, []);
+
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !db) {
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
     }
 
-    const authSub = onAuthStateChanged(auth, (currentUser) => {
+    const authSub = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
       
-      if (!currentUser) {
+      if (currentUser) {
+        // Ensure user document is created on sign in
+        await createUserDocument(db, currentUser);
+      } else {
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
@@ -62,18 +106,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => authSub();
-  }, []);
+  }, [db]);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !db) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
     }
     
-    // getFirestoreInstance will ensure db is ready on client
-    const db = getFirestoreInstance();
-
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
@@ -81,9 +122,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
-
-            // This ensures the user document exists before we listen to it.
-            await createUserDocument(user);
 
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                 setUserData(docSnap.data() || null);
@@ -120,19 +158,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user]);
+  }, [user, db]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) throw new Error("User not authenticated");
-    const db = getFirestoreInstance();
+    if (!user) throw new Error("Not authenticated");
+    if (!db) throw new Error("Database not initialized");
     const userDocRef = doc(db, 'users', user.uid);
+    console.log('Backend update:', newData);
     await updateDoc(userDocRef, newData);
-  }, [user]);
+  }, [user, db]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated");
+    if (!db) throw new Error("Database not initialized");
     
-    const db = getFirestoreInstance();
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
@@ -159,7 +198,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error adding quiz attempt:", error);
         throw error;
     }
-  }, [user, quizHistory, userData]);
+  }, [user, quizHistory, userData, db]);
+
+  const handleCreateUserDocument = useCallback(async (userToCreate: User, additionalData?: DocumentData) => {
+    if (!db) throw new Error("Database not initialized");
+    await createUserDocument(db, userToCreate, additionalData);
+  }, [db]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
@@ -180,7 +224,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isHistoryLoading,
     updateUserData,
     addQuizAttempt,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
+    createUserDocument: handleCreateUserDocument,
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt, handleCreateUserDocument]);
 
   return (
     <AuthContext.Provider value={value}>
