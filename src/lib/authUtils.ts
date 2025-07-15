@@ -8,26 +8,27 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, getFirestoreInstance } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
+export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) {
     console.error("Cannot create user document, user is not available.");
     return;
   };
-
+  
+  const db = getFirestoreInstance();
   const userDocRef = doc(db, 'users', user.uid);
   
-  const snapshot = await getDoc(userDocRef);
+  try {
+    const snapshot = await getDoc(userDocRef);
 
-  if (!snapshot.exists()) {
-    const { email, displayName, photoURL } = user;
-    const createdAt = new Date();
-    
-    try {
+    if (!snapshot.exists()) {
+      const { email, displayName, photoURL } = user;
+      const createdAt = new Date();
+      
       await setDoc(userDocRef, {
         uid: user.uid,
         email,
@@ -38,14 +39,17 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
         quizzesPlayed: 0,
         perfectScores: 0,
         totalRewards: 0,
+        profileCompleted: false, // Explicitly set on creation
         referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0,4)}`,
         referralEarnings: 0,
         ...additionalData
       });
-    } catch (error) {
-      console.error("Error creating user document:", error);
-      toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
+      console.log("✅ User document created in Firestore");
     }
+  } catch (error) {
+    console.error("❌ Error creating user document:", error);
+    toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
+    throw error; // Re-throw to be caught by calling function
   }
 }
 
@@ -64,8 +68,11 @@ export async function handleGoogleSignIn() {
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    // createUserDocument is now called from AuthProvider, so we don't call it here.
-    // This ensures db is ready.
+    
+    // Create user document immediately after sign-in.
+    // This is now safe because createUserDocument gets its own valid db instance.
+    await createUserDocument(user);
+    
     return user;
 
   } catch (error: any) {
@@ -88,7 +95,7 @@ export const registerWithEmail = async (email: string, password: string) => {
     return userCredential;
 };
 
-export const loginWithEmail = async (email: string, password: string) => {
+export const loginWithEmail = async (email: string, password:string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

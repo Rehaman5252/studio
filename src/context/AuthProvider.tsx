@@ -4,10 +4,10 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, app, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, isFirebaseConfigured, getFirestoreInstance } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, Firestore } from 'firebase/firestore';
-import { doc, onSnapshot, updateDoc, setDoc, getDoc, initializeFirestore, persistentLocalCache, persistentSingleTabManager, CACHE_SIZE_UNLIMITED, getFirestore } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 
 interface AuthContextType {
@@ -36,37 +36,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
-  const [db, setDb] = useState<Firestore | null>(null);
   
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-
-  useEffect(() => {
-    // Initialize Firestore only on the client
-    if (typeof window !== 'undefined' && isFirebaseConfigured) {
-      try {
-        const firestoreDb = initializeFirestore(app, {
-            localCache: persistentLocalCache({
-                tabManager: persistentSingleTabManager({
-                    forceOwnership: true,
-                }),
-                cacheSizeBytes: CACHE_SIZE_UNLIMITED
-            })
-        });
-        setDb(firestoreDb);
-        console.log("Firestore persistence enabled.");
-      } catch (error: any) {
-         if (error.code === 'failed-precondition') {
-            console.warn('Firestore persistence failed, likely due to multiple tabs. Falling back to memory-only cache.');
-            setDb(getFirestore(app));
-        } else {
-            console.error("Error enabling Firestore persistence", error);
-            setDb(getFirestore(app));
-        }
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -92,11 +65,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
     }
+    
+    // getFirestoreInstance will ensure db is ready on client
+    const db = getFirestoreInstance();
 
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
@@ -106,11 +82,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
 
-            const initialDocSnap = await getDoc(userDocRef);
-            if (!initialDocSnap.exists()) {
-              console.log("User document doesn't exist, creating...");
-              await createUserDocument(db, user);
-            }
+            // This ensures the user document exists before we listen to it.
+            await createUserDocument(user);
 
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                 setUserData(docSnap.data() || null);
@@ -147,17 +120,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, db]);
+  }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not ready");
+    if (!user) throw new Error("User not authenticated");
+    const db = getFirestoreInstance();
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
-  }, [user, db]);
+  }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not ready");
+    if (!user) throw new Error("User not authenticated");
     
+    const db = getFirestoreInstance();
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
@@ -184,14 +159,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error adding quiz attempt:", error);
         throw error;
     }
-  }, [user, db, quizHistory, userData]);
+  }, [user, quizHistory, userData]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
-    return MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
+    return userData.profileCompleted || MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
-  const loading = isAuthLoading || isUserDataLoading || isHistoryLoading || !db;
+  const loading = isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
 
   const value = useMemo(() => ({
     user,
