@@ -24,11 +24,13 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
 const db = getFirestore(app);
-const rtdb = getDatabase(app);
+let rtdb;
 
-// Enable offline persistence for Firestore.
-// This is the key to preventing "client is offline" errors on initial load.
+// Prevent Firebase RTDB errors during server-side rendering
 if (typeof window !== 'undefined') {
+    rtdb = getDatabase(app);
+    // Enable offline persistence for Firestore.
+    // This is the key to preventing "client is offline" errors on initial load.
     enableIndexedDbPersistence(db).catch((err) => {
         if (err.code == 'failed-precondition') {
             // Multiple tabs open, persistence can only be enabled
