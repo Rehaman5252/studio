@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user || !isFirebaseConfigured) {
+    if (!user || !isFirebaseConfigured || typeof window === 'undefined') {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;

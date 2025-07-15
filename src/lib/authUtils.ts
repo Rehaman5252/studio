@@ -14,7 +14,8 @@ import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc, getFirestore } from 'firebase/firestore';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  if (!user) return;
+  if (!user || typeof window === 'undefined') return;
+
   const db = getFirestore(app);
   const userDocRef = doc(db, 'users', user.uid);
   
