@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, db, waitUntilOnline } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -18,10 +18,6 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 
   const userDocRef = doc(db, 'users', user.uid);
   
-  // Wait for Firestore to establish a connection before trying to read/write.
-  // This prevents the "client is offline" error.
-  await waitUntilOnline();
-
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
