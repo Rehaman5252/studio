@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, isFirebaseConfigured, db } from '@/lib/firebase';
+import { auth, isFirebaseConfigured, getFirestore } from '@/lib/firebase';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    const db = getFirestore();
     if (!user || !db) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
@@ -123,12 +124,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
+    const db = getFirestore();
     if (!user || !db) throw new Error("User not authenticated or DB not ready");
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
+    const db = getFirestore();
     if (!user || !db) throw new Error("User not authenticated or DB not ready");
     
     const currentHistory = quizHistory || [];
