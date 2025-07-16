@@ -14,9 +14,7 @@ import {
   updateDoc, 
   setDoc,
   initializeFirestore,
-  persistentLocalCache,
-  persistentSingleTabManager,
-  CACHE_SIZE_UNLIMITED 
+  memoryLocalCache
 } from 'firebase/firestore';
 
 interface AuthContextType {
@@ -54,24 +52,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (isFirebaseConfigured && app && typeof window !== 'undefined' && !db) {
+      console.log("Attempting to initialize Firestore on the client...");
       try {
         const firestoreInstance = initializeFirestore(app, {
-          localCache: persistentLocalCache({
-              tabManager: persistentSingleTabManager({
-                  forceOwnership: true,
-              }),
-              cacheSizeBytes: CACHE_SIZE_UNLIMITED
-          })
+          localCache: memoryLocalCache(), // Disable offline persistence as instructed for debugging
         });
         setDb(firestoreInstance);
-        console.log("✅ Firestore persistence enabled and db instance created.");
+        console.log("✅ Firestore initialized successfully with memory cache.");
       } catch (error: any) {
-        console.error("❌ Error enabling Firestore persistence", error);
-        // Fallback to memory-only cache if persistence fails
-        const firestoreInstance = initializeFirestore(app, {});
-        setDb(firestoreInstance);
+        console.error("❌ Error initializing Firestore", error);
+        setDb(null); // Ensure db is null if initialization fails
       }
     } else if (!isFirebaseConfigured) {
+        console.warn("Firebase is not configured. Skipping initialization.");
         setIsAuthLoading(false);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
@@ -80,11 +73,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     if (!auth) {
+      console.log("Auth service not available, skipping auth state listener.");
       setIsAuthLoading(false);
       return;
     };
 
     const authSub = onAuthStateChanged(auth, (currentUser) => {
+      console.log("Auth state changed. User:", currentUser?.uid || 'null');
       setUser(currentUser);
       setIsAuthLoading(false);
       
@@ -108,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
+    console.log(`Setting up Firestore listeners for user ${user.uid} because DB is ready.`);
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
@@ -118,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+                console.log("Received user data snapshot.");
                 setUserData(docSnap.data() || null);
                 setIsUserDataLoading(false);
             }, (error) => {
@@ -128,6 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsHistoryLoading(true);
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
+                console.log("Received quiz history snapshot.");
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setQuizHistory(data.attempts || []);
@@ -149,15 +147,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setupListeners();
 
     return () => {
+      console.log("Cleaning up Firestore listeners.");
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
   }, [user, db]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user || !db) throw new Error("Not authenticated or DB not ready");
+    if (!user || !db) {
+      console.error("updateUserData failed: User not authenticated or DB not ready.", { user, db });
+      throw new Error("Not authenticated or DB not ready");
+    }
+    console.log("Updating user data for:", user.uid);
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
+    console.log("User data updated successfully.");
   }, [user, db]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {

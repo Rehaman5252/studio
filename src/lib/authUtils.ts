@@ -26,6 +26,7 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
       const snapshot = await getDoc(userDocRef);
 
       if (!snapshot.exists()) {
+          console.log(`Creating document for new user: ${user.uid}`);
           const { email, displayName, photoURL } = user;
           const createdAt = new Date();
           

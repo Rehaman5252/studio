@@ -1,4 +1,3 @@
-
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -16,8 +15,11 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.authDomain &&
   !!firebaseConfig.projectId;
 
+// Initialize Firebase App
 const app = isFirebaseConfigured ? (!getApps().length ? initializeApp(firebaseConfig) : getApp()) : null;
+
+// Initialize Auth
 const auth = app ? getAuth(app) : null;
 
-// db instance will be initialized and managed in AuthProvider to ensure it's client-side only.
+// Firestore DB instance will be initialized and managed in AuthProvider to ensure it's client-side only.
 export { app, auth };
