@@ -105,7 +105,7 @@ export default function CompleteProfileForm() {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
         }
-
+        
         setIsSubmitting(true);
         
         const finalPayload: DocumentData = {
@@ -113,29 +113,38 @@ export default function CompleteProfileForm() {
             profileCompleted: true,
             phoneVerified: phoneVerifiedInForm,
         };
-        
+
         try {
             await updateUserData(finalPayload);
-            toast({ title: "Profile Saved!", description: "Your information has been updated. Redirecting..." });
-            
-            // This order is crucial. Reset the state, *then* navigate.
-            if (isMounted.current) {
-                setIsSubmitting(false);
-            }
-            router.push('/profile');
-
+            toast({ 
+                title: "Profile Saved!", 
+                description: "Your information has been updated successfully."
+            });
+            // The router.push will be called in the finally block.
         } catch (error: any) {
             console.error("🔥 Error in onSubmit during update:", error);
+            toast({
+                title: "Save Failed",
+                description: error.message || "Could not save profile. Please try again.",
+                variant: "destructive"
+            });
+            // Reset submitting state on failure
             if (isMounted.current) {
-                toast({
-                    title: "Save Failed",
-                    description: error.message || "Could not save profile. Check security rules or network.",
-                    variant: "destructive"
-                });
-                // Ensure submission state is reset on failure
                 setIsSubmitting(false);
             }
+            return; // Stop execution on failure
         }
+        
+        // This logic runs only on successful update.
+        // It's placed outside the try/catch but will only be reached on success.
+        if (isMounted.current) {
+            setIsSubmitting(false);
+        }
+
+        // Delay navigation slightly to allow the UI to update
+        setTimeout(() => {
+            router.push('/profile');
+        }, 100);
     };
 
     if (isUserDataLoading) {
@@ -345,3 +354,5 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
+
+    
