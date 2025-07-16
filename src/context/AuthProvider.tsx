@@ -48,7 +48,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  // This state is just to signal to the UI that the db connection is available.
   const [isDbReady, setIsDbReady] = useState(false);
   
   useEffect(() => {
@@ -59,7 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const authSub = onAuthStateChanged(auth, (currentUser) => {
-      console.log("Auth state changed. User:", currentUser?.uid || 'null');
       setUser(currentUser);
       setIsAuthLoading(false);
       
@@ -86,7 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupListeners = async () => {
         try {
-            console.log(`Setting up listeners for user ${user.uid}.`);
             const db = await getFirestoreClient();
             setIsDbReady(true);
             
@@ -94,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-                console.log("Received user data snapshot.");
                 setUserData(docSnap.data() || null);
                 setIsUserDataLoading(false);
             }, (error) => {
@@ -104,7 +100,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
-                console.log("Received quiz history snapshot.");
                 setQuizHistory(docSnap.exists() ? (docSnap.data().attempts || []) : []);
                 setIsHistoryLoading(false);
             }, (error) => {
@@ -122,18 +117,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setupListeners();
 
     return () => {
-      console.log("Cleaning up Firestore listeners.");
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) throw new Error("User not authenticated");
+    if (!user) {
+        console.error("updateUserData failed: No user found");
+        throw new Error('User not authenticated');
+    }
+
+    console.log("📡 updateUserData called with payload:", newData);
+
     const db = await getFirestoreClient();
-    const userDocRef = doc(db, 'users', user.uid);
-    await updateDoc(userDocRef, newData);
-    console.log("✅ User data updated successfully.");
+    const ref = doc(db, 'users', user.uid);
+    console.log("✅ Firestore doc ref:", ref.path);
+
+    await updateDoc(ref, newData);
+
+    console.log("✅ updateUserData: Firestore update complete.");
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {

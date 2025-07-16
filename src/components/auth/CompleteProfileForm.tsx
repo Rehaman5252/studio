@@ -120,6 +120,7 @@ export default function CompleteProfileForm() {
                 phoneVerified: phoneVerifiedInForm,
             };
             
+            console.log("🚀 Final payload about to be saved:", finalPayload);
             await updateUserData(finalPayload);
             
             if (isMounted.current) {
@@ -135,6 +136,7 @@ export default function CompleteProfileForm() {
             }
         } finally {
             if (isMounted.current) {
+                console.log("📤 Submission done, unblocking save button");
                 setIsSubmitting(false);
             }
         }
