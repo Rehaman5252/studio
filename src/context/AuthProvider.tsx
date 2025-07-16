@@ -18,7 +18,6 @@ import {
   persistentSingleTabManager,
   CACHE_SIZE_UNLIMITED 
 } from 'firebase/firestore';
-import { toast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -109,13 +108,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // User is logged in and DB is ready, set up listeners.
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
     const setupListeners = async () => {
         try {
-            await createUserDocument(db, user); // Ensure doc exists before listening
+            await createUserDocument(db, user);
 
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
@@ -157,16 +155,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, db]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) throw new Error("Not authenticated");
-    if (!db) throw new Error("Database not initialized");
+    if (!user || !db) throw new Error("Not authenticated or DB not ready");
     const userDocRef = doc(db, 'users', user.uid);
     console.log('Backend update:', newData);
     await updateDoc(userDocRef, newData);
   }, [user, db]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) throw new Error("User not authenticated");
-    if (!db) throw new Error("Database not initialized");
+    if (!user || !db) throw new Error("User not authenticated or DB not ready");
     
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
@@ -194,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error adding quiz attempt:", error);
         throw error;
     }
-  }, [user, quizHistory, userData, db]);
+  }, [user, db, quizHistory, userData]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
