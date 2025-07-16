@@ -100,11 +100,15 @@ export default function CompleteProfileForm() {
     }, [userData, form, user]);
 
 
-    const onSubmit = async (data: ProfileFormValues) => {
+    const onSubmit = (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        
-        console.log("Form values:", data);
-        console.log("Form errors:", form.formState.errors);
+        console.log("🟡 Form submitted. Payload:", data);
+
+        if (!user || !updateUserData) {
+            toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
+            setIsSubmitting(false);
+            return;
+        }
 
         if (Object.keys(form.formState.errors).length > 0) {
             toast({ title: "Invalid Form", description: "Please correct the errors before saving.", variant: "destructive" });
@@ -112,48 +116,40 @@ export default function CompleteProfileForm() {
             return;
         }
 
-        try {
-            if (!user || !updateUserData) {
-                throw new Error("Not authenticated or update function is missing.");
-            }
+        const finalPayload: DocumentData = {
+            ...data,
+            profileCompleted: true,
+            phoneVerified: phoneVerifiedInForm,
+        };
+        
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Save timed out. Please check your network and Firebase Security Rules.')), 7000)
+        );
 
-            if (watchedPhone && needsVerification && !phoneVerifiedInForm) {
-                toast({ title: "Verification Required", description: "Please verify your phone number before saving.", variant: "destructive" });
-                setIsSubmitting(false);
-                return;
-            }
-
-            const { email, ...payload } = data;
-            const finalPayload: DocumentData = {
-                ...payload,
-                profileCompleted: true,
-                phoneVerified: phoneVerifiedInForm,
-            };
-
-            console.log("📦 Final payload to updateUserData:", finalPayload);
-            
-            await updateUserData(finalPayload);
-            console.log("✅ updateUserData finished successfully in component.");
-            
-            if (isMounted.current) {
-                toast({ title: "Profile Saved!" });
-                router.push('/profile');
-            }
-        } catch (error: any) {
-            console.error("🔥 Error in onSubmit:", error);
-            if (isMounted.current) {
-                toast({ 
-                    title: "Error Saving Profile", 
-                    description: error.message || "Could not save your profile. Please try again.", 
-                    variant: "destructive"
-                });
-            }
-        } finally {
-            if (isMounted.current) {
-                console.log("🔚 Finally block: Unsetting isSubmitting");
-                setIsSubmitting(false);
-            }
-        }
+        Promise.race([updateUserData(finalPayload), timeoutPromise])
+            .then(() => {
+                console.log("✅ Profile saved successfully.");
+                toast({ title: "Profile Saved!", description: "Your information has been updated." });
+                if (isMounted.current) {
+                    router.push('/profile');
+                }
+            })
+            .catch((error) => {
+                console.error("🔥 Error saving profile:", error);
+                if (isMounted.current) {
+                    toast({
+                        title: "Save Failed",
+                        description: error.message || "Could not save your profile. Please try again.",
+                        variant: "destructive"
+                    });
+                }
+            })
+            .finally(() => {
+                console.log("🔚 Re-enabling save button.");
+                if (isMounted.current) {
+                    setIsSubmitting(false);
+                }
+            });
     };
 
     if (isUserDataLoading) {
@@ -363,3 +359,5 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
+
+    
