@@ -10,24 +10,20 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
-import type { DocumentData, Firestore } from 'firebase/firestore';
+import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestoreClient } from './firebaseClient';
 
 
-export async function createUserDocument(db: Firestore | null, user: User, additionalData: DocumentData = {}) {
+export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) {
     console.error("❌ createUserDocument failed: User is missing.");
     return;
   }
   
-  if (!db) {
-      console.error("❌ createUserDocument failed: Firestore DB instance is not available.");
-      return;
-  }
-  
-  const userDocRef = doc(db, 'users', user.uid);
-
   try {
+    const db = await getFirestoreClient();
+    const userDocRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userDocRef);
 
     if (!snapshot.exists()) {

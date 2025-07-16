@@ -2,20 +2,19 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { app, auth, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
-import type { DocumentData, Firestore } from 'firebase/firestore';
+import type { DocumentData } from 'firebase/firestore';
 import { 
   doc, 
   onSnapshot, 
   updateDoc, 
   setDoc,
-  initializeFirestore,
-  memoryLocalCache
 } from 'firebase/firestore';
+import { getFirestoreClient } from '@/lib/firebaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -50,30 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [isDbReady, setIsDbReady] = useState(false);
   
-  const dbRef = useRef<Firestore | null>(null);
-
-  useEffect(() => {
-    if (isFirebaseConfigured && app && typeof window !== 'undefined' && !dbRef.current) {
-      console.log("Attempting to initialize Firestore on the client...");
-      try {
-        const firestoreInstance = initializeFirestore(app, {
-          localCache: memoryLocalCache(),
-        });
-        dbRef.current = firestoreInstance;
-        setIsDbReady(true);
-        console.log("✅ Firestore initialized successfully and stored in ref.");
-      } catch (error: any) {
-        console.error("❌ Error initializing Firestore", error);
-        dbRef.current = null;
-      }
-    } else if (!isFirebaseConfigured) {
-        console.warn("Firebase is not configured. Skipping initialization.");
-        setIsAuthLoading(false);
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-    }
-  }, []);
-  
   useEffect(() => {
     if (!auth) {
       console.log("Auth service not available, skipping auth state listener.");
@@ -98,29 +73,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user || !dbRef.current) {
-      if (!user) { 
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-      }
+    if (!user) {
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
       return;
     }
     
-    console.log(`Setting up Firestore listeners for user ${user.uid} because DB and user are ready.`);
-    let unsubscribeUser: () => void;
-    let unsubscribeHistory: () => void;
+    let unsubscribeUser: (() => void) | undefined;
+    let unsubscribeHistory: (() => void) | undefined;
 
     const setupListeners = async () => {
-        const db = dbRef.current;
-        if (!user || !db) {
-            console.warn("⛔️ Cannot set up listeners, user or db is missing.");
-            return;
-        }
-
         try {
-            await createUserDocument(db, user, {});
+            console.log(`Setting up listeners for user ${user.uid}.`);
+            const db = await getFirestoreClient();
+            setIsDbReady(true);
+            
+            // Ensure user document exists before listening
+            await createUserDocument(user, {});
 
-            setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                 console.log("Received user data snapshot.");
@@ -131,16 +101,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsUserDataLoading(false);
             });
 
-            setIsHistoryLoading(true);
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
                 console.log("Received quiz history snapshot.");
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    setQuizHistory(data.attempts || []);
-                } else {
-                    setQuizHistory([]);
-                }
+                setQuizHistory(docSnap.exists() ? (docSnap.data().attempts || []) : []);
                 setIsHistoryLoading(false);
             }, (error) => {
                 console.error("Error listening to quiz history:", error);
@@ -150,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Failed to set up Firestore listeners:", error);
             setIsUserDataLoading(false);
             setIsHistoryLoading(false);
+            setIsDbReady(false);
         }
     };
     
@@ -160,24 +125,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, isDbReady]);
+  }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    const db = dbRef.current;
-    if (!user || !db) {
-        console.error("❌ updateUserData failed. DB or user not available.");
-        throw new Error("DB or user not available");
-    }
-    console.log("✅ updateUserData: DB is ready. Updating user data with payload:", newData);
+    if (!user) throw new Error("User not authenticated");
+    const db = await getFirestoreClient();
     const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
     console.log("✅ User data updated successfully.");
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    const db = dbRef.current;
-    if (!user || !db) throw new Error("User not authenticated or DB not ready");
+    if (!user) throw new Error("User not authenticated");
     
+    const db = await getFirestoreClient();
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 
