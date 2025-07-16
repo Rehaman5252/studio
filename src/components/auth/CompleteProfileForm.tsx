@@ -116,7 +116,14 @@ export default function CompleteProfileForm() {
         
         try {
             await updateUserData(finalPayload);
-            toast({ title: "Profile Saved!", description: "Your information has been updated." });
+            toast({ title: "Profile Saved!", description: "Your information has been updated. Redirecting..." });
+            
+            // This order is crucial. Reset the state, *then* navigate.
+            if (isMounted.current) {
+                setIsSubmitting(false);
+            }
+            router.push('/profile');
+
         } catch (error: any) {
             console.error("🔥 Error in onSubmit during update:", error);
             if (isMounted.current) {
@@ -125,19 +132,10 @@ export default function CompleteProfileForm() {
                     description: error.message || "Could not save profile. Check security rules or network.",
                     variant: "destructive"
                 });
-            }
-             // Ensure submission state is reset on failure
-            if (isMounted.current) {
+                // Ensure submission state is reset on failure
                 setIsSubmitting(false);
             }
-            return; // Stop execution if there was an error
         }
-
-        // This will only run on success
-        if (isMounted.current) {
-            setIsSubmitting(false);
-        }
-        router.push('/profile');
     };
 
     if (isUserDataLoading) {
