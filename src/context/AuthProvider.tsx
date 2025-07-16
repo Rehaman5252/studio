@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, app, isFirebaseConfigured } from '@/lib/firebase';
+import { app, auth, isFirebaseConfigured } from '@/lib/firebase';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, Firestore } from 'firebase/firestore';
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [db, setDb] = useState<Firestore | null>(null);
 
   useEffect(() => {
-    if (isFirebaseConfigured && typeof window !== 'undefined' && !db) {
+    if (isFirebaseConfigured && app && typeof window !== 'undefined' && !db) {
       try {
         const firestoreInstance = initializeFirestore(app, {
           localCache: persistentLocalCache({
@@ -80,9 +80,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [db]);
   
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
+    if (!auth) {
+      setIsAuthLoading(false);
+      return;
+    };
 
-    const authSub = onAuthStateChanged(auth, async (currentUser) => {
+    const authSub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
       

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { isFirebaseConfigured } from '@/lib/firebase';
+import { isFirebaseConfigured, auth } from '@/lib/firebase';
 import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,10 +71,12 @@ export default function SignupForm() {
         const userCredential = await registerWithEmail(data.email, data.password);
         const user = userCredential.user;
         
-        await updateProfile(user, { displayName: data.name });
+        // This update is crucial for new email sign-ups
+        if (auth?.currentUser) {
+            await updateProfile(auth.currentUser, { displayName: data.name });
+        }
         
         // AuthProvider will now handle document creation when user state changes.
-        // We no longer need an explicit call here.
         
         toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile to continue.' });
         router.push('/complete-profile');
@@ -101,7 +103,7 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading;
+  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
   
   return (
     <div className="flex h-full flex-col justify-center space-y-6">

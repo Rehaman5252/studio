@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { isFirebaseConfigured } from '@/lib/firebase';
+import { isFirebaseConfigured, auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,7 +94,7 @@ export default function LoginForm() {
     }
   }
 
-  const isAuthDisabled = isLoading || isGoogleLoading;
+  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
 
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
