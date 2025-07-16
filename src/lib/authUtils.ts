@@ -8,14 +8,13 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, getFirestoreInstance } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
-export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  const db = getFirestoreInstance();
+export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
   console.log("🔥 createUserDocument:", user);
   if (!user || !db) {
     console.error("❌ createUserDocument failed: User or DB object is missing.", { user, db });
@@ -47,9 +46,11 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
               ...additionalData
           });
           console.log("✅ User document created in Firestore");
+      } else {
+        console.log("User document already exists, skipping creation.");
       }
   } catch (error) {
-      console.error("❌ Error creating user document:", error);
+      console.error("❌ Error in createUserDocument:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
   }

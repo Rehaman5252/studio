@@ -16,7 +16,6 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
-import { useAuth } from '@/context/AuthProvider';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -40,7 +39,6 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { createUserDocument } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -75,8 +73,8 @@ export default function SignupForm() {
         
         await updateProfile(user, { displayName: data.name });
         
-        // Explicitly create the document with the name from the form
-        await createUserDocument(user, { name: data.name }); 
+        // AuthProvider will now handle document creation when user state changes.
+        // We no longer need an explicit call here.
         
         toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile to continue.' });
         router.push('/complete-profile');

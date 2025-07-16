@@ -5,14 +5,14 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, app, isFirebaseConfigured } from '@/lib/firebase';
+import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { 
   doc, 
   onSnapshot, 
   updateDoc, 
-  setDoc, 
-  getDoc,
+  setDoc,
   initializeFirestore,
   persistentLocalCache,
   persistentSingleTabManager,
@@ -32,7 +32,6 @@ interface AuthContextType {
   isHistoryLoading: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
-  createUserDocument: (user: User, additionalData?: DocumentData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [db, setDb] = useState<Firestore | null>(null);
 
   useEffect(() => {
-    if (isFirebaseConfigured && typeof window !== 'undefined') {
+    if (isFirebaseConfigured && typeof window !== 'undefined' && !db) {
       try {
         const firestoreInstance = initializeFirestore(app, {
           localCache: persistentLocalCache({
@@ -66,62 +65,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           })
         });
         setDb(firestoreInstance);
-        console.log("Firestore persistence enabled.");
+        console.log("✅ Firestore persistence enabled and db instance created.");
       } catch (error: any) {
-        console.error("Error enabling Firestore persistence", error);
-        // Fallback to memory cache if persistence fails
-        setDb(initializeFirestore(app, {}));
+        console.error("❌ Error enabling Firestore persistence", error);
+        // Fallback to memory-only cache if persistence fails
+        const firestoreInstance = initializeFirestore(app, {});
+        setDb(firestoreInstance);
       }
-    } else {
+    } else if (!isFirebaseConfigured) {
         setIsAuthLoading(false);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
-    }
-  }, []);
-
-  const handleCreateUserDocument = useCallback(async (userToCreate: User, additionalData?: DocumentData) => {
-    if (!db) throw new Error("Database not initialized");
-    
-    console.log("🔥 createUserDocument:", userToCreate);
-    if (!userToCreate) {
-        console.error("❌ createUserDocument failed: User object is missing.");
-        return;
-    };
-    
-    const userDocRef = doc(db, 'users', userToCreate.uid);
-    
-    try {
-        const snapshot = await getDoc(userDocRef);
-        
-        if (!snapshot.exists()) {
-            const { email, displayName, photoURL } = userToCreate;
-            const createdAt = new Date();
-            
-            const payload = {
-                uid: userToCreate.uid,
-                email,
-                name: additionalData?.name || displayName || 'New User',
-                photoURL: photoURL || `https://placehold.co/100x100.png`,
-                createdAt,
-                emailVerified: userToCreate.emailVerified,
-                quizzesPlayed: 0,
-                perfectScores: 0,
-                totalRewards: 0,
-                profileCompleted: false,
-                referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${userToCreate.uid.substring(0,4)}`,
-                referralEarnings: 0,
-                ...additionalData
-            };
-            
-            await setDoc(userDocRef, payload);
-            console.log("✅ User document created in Firestore with payload:", payload);
-        } else {
-            console.log("User document already exists.");
-        }
-    } catch (error) {
-        console.error("❌ Error in createUserDocument:", error);
-        toast({ title: "Error", description: "Could not create or check user profile.", variant: "destructive" });
-        throw error;
     }
   }, [db]);
   
@@ -158,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupListeners = async () => {
         try {
-            await handleCreateUserDocument(user); // Ensure doc exists before listening
+            await createUserDocument(db, user); // Ensure doc exists before listening
 
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
@@ -197,7 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, db, handleCreateUserDocument]);
+  }, [user, db]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) throw new Error("Not authenticated");
@@ -258,8 +212,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isHistoryLoading,
     updateUserData,
     addQuizAttempt,
-    createUserDocument: handleCreateUserDocument,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt, handleCreateUserDocument]);
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
   return (
     <AuthContext.Provider value={value}>
