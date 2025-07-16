@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!db || !user) {
+    if (!user || !db) {
       if (!user) { 
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
@@ -104,13 +104,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    console.log(`Setting up Firestore listeners for user ${user.uid} because DB is ready.`);
+    console.log(`Setting up Firestore listeners for user ${user.uid} because DB and user are ready.`);
     let unsubscribeUser: () => void;
     let unsubscribeHistory: () => void;
 
     const setupListeners = async () => {
+        // Guard against running if user or db isn't ready
+        if (!user || !db) {
+            console.warn("⛔️ Cannot set up listeners, user or db is missing.");
+            return;
+        }
+
         try {
-            await createUserDocument(db, user);
+            // Pass the db instance explicitly
+            await createUserDocument(db, user, {});
 
             setIsUserDataLoading(true);
             const userDocRef = doc(db, 'users', user.uid);
@@ -162,18 +169,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     let readyDb = db;
     if (!readyDb) {
-      console.warn("⏳ Waiting for Firestore to initialize...");
+      console.warn("⏳ Waiting for Firestore to initialize in updateUserData...");
       // Wait up to 2 seconds for db to be ready
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         const start = Date.now();
         const interval = setInterval(() => {
-          // This check needs to happen against the state variable that is being updated,
-          // so we can't use the local `db` variable here. We use a function to get the current state.
           setDb(currentDb => {
             if (currentDb) {
               readyDb = currentDb;
               clearInterval(interval);
-              resolve(true);
+              resolve();
             } else if (Date.now() - start > 2000) {
               clearInterval(interval);
               reject(new Error("Firestore failed to initialize in time."));
@@ -184,7 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    if (!readyDb) throw new Error("Firestore still not ready");
+    if (!readyDb) throw new Error("Firestore still not ready after waiting.");
 
     console.log("✅ Updating user data with payload:", newData);
     const userDocRef = doc(readyDb, "users", user.uid);
