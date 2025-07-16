@@ -14,40 +14,15 @@ import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
-export async function createUserDocument(db: Firestore | null, user: User, additionalData: DocumentData = {}) {
-  console.log("DBG createUserDocument - db:", db, "user:", user);
+export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
   if (!user) {
     console.error("❌ createUserDocument failed: User is missing.");
     return;
   }
-
-  // ✅ Wait up to 2 seconds for db to be ready
-  if (!db) {
-    console.warn("⏳ Waiting for Firestore to be initialized...");
-    const start = Date.now();
-    await new Promise<void>((resolve, reject) => {
-      const interval = setInterval(() => {
-        // This check needs to be against the db instance passed in, which might be updated.
-        // In a real scenario, we'd need a way to get the latest instance.
-        // For this architecture, we trust the AuthProvider will re-trigger effects.
-        // However, this polling logic can be a fallback.
-        if (db) {
-          clearInterval(interval);
-          resolve();
-        } else if (Date.now() - start > 2000) {
-          clearInterval(interval);
-          reject(new Error("Firestore failed to initialize within 2 seconds"));
-        }
-      }, 100);
-    });
-  }
-
-  if (!db) {
-    console.error("❌ Still no Firestore instance. Aborting.");
-    toast({ title: "Error", description: "Database connection failed. Please refresh.", variant: "destructive" });
-    return;
-  }
-
+  
+  // This function now assumes a valid `db` instance is passed in.
+  // The waiting logic is now handled by the caller if necessary.
+  
   const userDocRef = doc(db, 'users', user.uid);
 
   try {

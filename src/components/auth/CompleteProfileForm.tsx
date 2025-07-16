@@ -102,7 +102,6 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("DBG form submit - calling updateUserData, user:", user, "userData:", userData);
         try {
             if (!user || !updateUserData) {
                 toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });

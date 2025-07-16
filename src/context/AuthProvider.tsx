@@ -162,7 +162,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, db]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    console.log("DBG updateUserData - db:", db, "user:", user);
     if (!user) {
       console.error("updateUserData failed: User not authenticated");
       throw new Error("Not authenticated");
@@ -170,17 +169,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     let readyDb = db;
     if (!readyDb) {
-      console.warn("⏳ Waiting for Firestore to initialize in updateUserData...");
-      // Wait up to 2 seconds for db to be ready
+      console.warn("⏳ DB not ready in updateUserData. Waiting...");
       await new Promise<void>((resolve, reject) => {
         const start = Date.now();
         const interval = setInterval(() => {
+          // This logic is tricky because `db` from closure is stale.
+          // We rely on the `setDb` in the other effect to eventually populate it.
+          // A better pattern might involve a ref or a different state management.
+          // For now, we'll poll the state setter's completion.
           setDb(currentDb => {
             if (currentDb) {
               readyDb = currentDb;
               clearInterval(interval);
               resolve();
-            } else if (Date.now() - start > 2000) {
+            } else if (Date.now() - start > 3000) { // 3 second timeout
               clearInterval(interval);
               reject(new Error("Firestore failed to initialize in time."));
             }
