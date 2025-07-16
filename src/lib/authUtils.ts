@@ -15,6 +15,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 export async function createUserDocument(db: Firestore | null, user: User, additionalData: DocumentData = {}) {
+  console.log("DBG createUserDocument - db:", db, "user:", user);
   if (!user) {
     console.error("❌ createUserDocument failed: User is missing.");
     return;

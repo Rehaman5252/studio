@@ -162,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, db]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
+    console.log("DBG updateUserData - db:", db, "user:", user);
     if (!user) {
       console.error("updateUserData failed: User not authenticated");
       throw new Error("Not authenticated");
