@@ -102,17 +102,16 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🟡 onSubmit triggered with data:", data);
+        console.log("🟡 onSubmit triggered");
+
         try {
             if (!user || !updateUserData) {
-                console.error("❌ Not authenticated or missing updateUserData");
-                toast({ title: "Not Authenticated", variant: "destructive" });
-                return;
+                throw new Error("Not authenticated or missing updateUserData function.");
             }
 
             if (watchedPhone && needsVerification && !phoneVerifiedInForm) {
-                console.warn("📴 Phone not verified");
-                toast({ title: "Verification Required", variant: "destructive" });
+                toast({ title: "Verification Required", description: "Please verify your phone number before saving.", variant: "destructive" });
+                setIsSubmitting(false); // Stop submission
                 return;
             }
 
@@ -123,23 +122,35 @@ export default function CompleteProfileForm() {
                 phoneVerified: phoneVerifiedInForm,
             };
 
-            console.log("📦 Final payload to updateUserData:", finalPayload);
-            await updateUserData(finalPayload);
-            console.log("✅ updateUserData finished");
+            console.log("📦 Payload ready, attempting to save:", finalPayload);
+
+            // Add a timeout to the update operation
+            const updatePromise = updateUserData(finalPayload);
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Save operation timed out. This often means Firestore security rules are blocking the request.")), 7000)
+            );
+
+            await Promise.race([updatePromise, timeoutPromise]);
+            
+            console.log("✅ updateUserData promise resolved.");
 
             if (isMounted.current) {
                 toast({ title: "Profile Saved!" });
-                form.reset(finalPayload);
                 router.push('/profile');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("🔥 Error in onSubmit:", error);
             if (isMounted.current) {
-                toast({ title: "Error", description: "Could not save your profile", variant: "destructive" });
+                toast({ 
+                    title: "Error Saving Profile", 
+                    description: error.message || "Could not save your profile. Please try again.", 
+                    variant: "destructive",
+                    duration: 9000
+                });
             }
         } finally {
             if (isMounted.current) {
-                console.log("🔚 Finally block: Unsetting isSubmitting");
+                console.log("🔚 Submission flow finished. Unsetting isSubmitting.");
                 setIsSubmitting(false);
             }
         }
