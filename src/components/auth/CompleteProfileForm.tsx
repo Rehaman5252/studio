@@ -50,13 +50,6 @@ export default function CompleteProfileForm() {
     const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(userData?.phoneVerified || false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const isMounted = useRef(true);
-    useEffect(() => {
-        return () => {
-            isMounted.current = false;
-        };
-    }, []);
-
     const isProfileComplete = userData?.profileCompleted || false;
 
     const form = useForm<ProfileFormValues>({
@@ -107,43 +100,34 @@ export default function CompleteProfileForm() {
         }
 
         setIsSubmitting(true);
-        console.log("Submitting profile...");
 
         const finalPayload: DocumentData = {
             ...data,
             profileCompleted: true,
             phoneVerified: phoneVerifiedInForm,
+            updatedAt: new Date(),
         };
 
         try {
             await updateUserData(finalPayload);
-            console.log('Profile saved.');
             toast({ 
                 title: "Profile Saved!", 
-                description: "Your information has been updated successfully. Redirecting..."
+                description: "Your information has been updated successfully."
             });
         } catch (error: any) {
-            console.error("🔥 Error in onSubmit during update:", error);
             toast({
                 title: "Save Failed",
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-            setIsSubmitting(false); // Only set to false on error, success will navigate
-            return; // Stop execution on failure
+            setIsSubmitting(false); // Stop on failure
+            return;
         }
 
-        // This ensures the state update is processed before navigation
-        if (isMounted.current) {
-            setIsSubmitting(false);
-            console.log('isSubmitting set to false');
-        }
-        
-        // Delay navigation slightly to allow UI to update
-        setTimeout(() => {
-            console.log('Redirecting now...');
-            router.push('/profile');
-        }, 100);
+        // State update and delayed navigation to prevent UI race condition
+        setIsSubmitting(false);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        router.push('/profile');
     };
 
     if (isUserDataLoading) {
