@@ -107,7 +107,7 @@ export default function CompleteProfileForm() {
         }
 
         setIsSubmitting(true);
-        console.log("Submitting profile...", data);
+        console.log("Submitting profile...");
 
         const finalPayload: DocumentData = {
             ...data,
@@ -117,15 +117,11 @@ export default function CompleteProfileForm() {
 
         try {
             await updateUserData(finalPayload);
-            console.log("Profile saved successfully to Firestore.");
+            console.log('Profile saved.');
             toast({ 
                 title: "Profile Saved!", 
-                description: "Your information has been updated successfully."
+                description: "Your information has been updated successfully. Redirecting..."
             });
-            // State must be updated before navigation
-            if (isMounted.current) {
-                setIsSubmitting(false);
-            }
         } catch (error: any) {
             console.error("🔥 Error in onSubmit during update:", error);
             toast({
@@ -133,17 +129,19 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-            if (isMounted.current) {
-                setIsSubmitting(false);
-            }
+            setIsSubmitting(false); // Only set to false on error, success will navigate
             return; // Stop execution on failure
         }
+
+        // This ensures the state update is processed before navigation
+        if (isMounted.current) {
+            setIsSubmitting(false);
+            console.log('isSubmitting set to false');
+        }
         
-        // Use a timeout to allow React to re-render before navigating away.
-        // This ensures the "Saving..." state is visually removed.
-        console.log("isSubmitting set to false. Preparing to redirect...");
+        // Delay navigation slightly to allow UI to update
         setTimeout(() => {
-            console.log("Redirecting now...");
+            console.log('Redirecting now...');
             router.push('/profile');
         }, 100);
     };
@@ -355,7 +353,3 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
-
-    
-
-    
