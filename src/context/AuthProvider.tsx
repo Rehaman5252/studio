@@ -47,6 +47,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  
+  // This state is just to signal to the UI that the db connection is available.
   const [isDbReady, setIsDbReady] = useState(false);
   
   useEffect(() => {
