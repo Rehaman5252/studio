@@ -102,16 +102,14 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🟡 onSubmit triggered");
-
         try {
             if (!user || !updateUserData) {
-                throw new Error("Not authenticated or missing updateUserData function.");
+                throw new Error("Not authenticated or update function is missing.");
             }
 
             if (watchedPhone && needsVerification && !phoneVerifiedInForm) {
                 toast({ title: "Verification Required", description: "Please verify your phone number before saving.", variant: "destructive" });
-                setIsSubmitting(false); // Stop submission
+                setIsSubmitting(false);
                 return;
             }
 
@@ -122,35 +120,31 @@ export default function CompleteProfileForm() {
                 phoneVerified: phoneVerifiedInForm,
             };
 
-            console.log("📦 Payload ready, attempting to save:", finalPayload);
-
-            // Add a timeout to the update operation
             const updatePromise = updateUserData(finalPayload);
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("Save operation timed out. This often means Firestore security rules are blocking the request.")), 7000)
+                setTimeout(() => reject(new Error("Save operation timed out. This often means Firestore security rules are misconfigured.")), 7000)
             );
 
             await Promise.race([updatePromise, timeoutPromise]);
             
-            console.log("✅ updateUserData promise resolved.");
-
             if (isMounted.current) {
                 toast({ title: "Profile Saved!" });
                 router.push('/profile');
             }
         } catch (error: any) {
-            console.error("🔥 Error in onSubmit:", error);
+            console.error("Error in onSubmit:", error);
             if (isMounted.current) {
                 toast({ 
                     title: "Error Saving Profile", 
-                    description: error.message || "Could not save your profile. Please try again.", 
+                    description: error.message.includes("timed out") 
+                        ? "The save took too long. This is likely due to Firestore security rules. Please update them in your Firebase project to allow writes to the 'users' collection."
+                        : "Could not save your profile. Please try again.", 
                     variant: "destructive",
                     duration: 9000
                 });
             }
         } finally {
             if (isMounted.current) {
-                console.log("🔚 Submission flow finished. Unsetting isSubmitting.");
                 setIsSubmitting(false);
             }
         }
