@@ -148,15 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
   
       const ref = doc(db, 'users', user.uid);
-      console.log("🟢 updateUserData: Updating", ref.path);
-  
-      // Add timeout wrapper
-      await Promise.race([
-        updateDoc(ref, newData),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('⏱ updateUserData timed out')), 5000))
-      ]);
-  
-      console.log("✅ updateUserData: Success");
+      await updateDoc(ref, newData);
+
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       throw err;
