@@ -101,16 +101,13 @@ export default function CompleteProfileForm() {
 
 
     const onSubmit = async (data: ProfileFormValues) => {
-        setIsSubmitting(true);
-        console.log("🟡 onSubmit triggered with data:", data);
-        
         if (!user || !updateUserData) {
-            console.error("❌ Not authenticated or missing updateUserData");
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
-            setIsSubmitting(false);
             return;
         }
 
+        setIsSubmitting(true);
+        
         const finalPayload: DocumentData = {
             ...data,
             profileCompleted: true,
@@ -118,9 +115,7 @@ export default function CompleteProfileForm() {
         };
         
         try {
-            console.log("📦 Final payload to updateUserData:", finalPayload);
             await updateUserData(finalPayload);
-            console.log("✅ updateUserData finished successfully.");
             toast({ title: "Profile Saved!", description: "Your information has been updated." });
         } catch (error: any) {
             console.error("🔥 Error in onSubmit during update:", error);
@@ -131,20 +126,17 @@ export default function CompleteProfileForm() {
                     variant: "destructive"
                 });
             }
-            // Stop execution if there was an error
-            setIsSubmitting(false);
-            return;
-        } finally {
-            // This block will now run before router.push, but we also ensure
-            // isSubmitting is set to false before any early returns.
+             // Ensure submission state is reset on failure
             if (isMounted.current) {
-                console.log("🔚 Finally block: Unsetting isSubmitting");
                 setIsSubmitting(false);
             }
+            return; // Stop execution if there was an error
         }
-    
-        // Only navigate AFTER the try/catch/finally block has fully completed.
-        console.log("✅ Navigating to profile page.");
+
+        // This will only run on success
+        if (isMounted.current) {
+            setIsSubmitting(false);
+        }
         router.push('/profile');
     };
 
