@@ -105,9 +105,10 @@ export default function CompleteProfileForm() {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
         }
-        
+
         setIsSubmitting(true);
-        
+        console.log("Submitting profile...", data);
+
         const finalPayload: DocumentData = {
             ...data,
             profileCompleted: true,
@@ -116,11 +117,15 @@ export default function CompleteProfileForm() {
 
         try {
             await updateUserData(finalPayload);
+            console.log("Profile saved successfully to Firestore.");
             toast({ 
                 title: "Profile Saved!", 
                 description: "Your information has been updated successfully."
             });
-            // The router.push will be called in the finally block.
+            // State must be updated before navigation
+            if (isMounted.current) {
+                setIsSubmitting(false);
+            }
         } catch (error: any) {
             console.error("🔥 Error in onSubmit during update:", error);
             toast({
@@ -128,21 +133,17 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-            // Reset submitting state on failure
             if (isMounted.current) {
                 setIsSubmitting(false);
             }
             return; // Stop execution on failure
         }
         
-        // This logic runs only on successful update.
-        // It's placed outside the try/catch but will only be reached on success.
-        if (isMounted.current) {
-            setIsSubmitting(false);
-        }
-
-        // Delay navigation slightly to allow the UI to update
+        // Use a timeout to allow React to re-render before navigating away.
+        // This ensures the "Saving..." state is visually removed.
+        console.log("isSubmitting set to false. Preparing to redirect...");
         setTimeout(() => {
+            console.log("Redirecting now...");
             router.push('/profile');
         }, 100);
     };
@@ -354,5 +355,7 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
+
+    
 
     
