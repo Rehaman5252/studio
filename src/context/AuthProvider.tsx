@@ -157,7 +157,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user || !db) throw new Error("Not authenticated or DB not ready");
     const userDocRef = doc(db, 'users', user.uid);
-    console.log('Backend update:', newData);
     await updateDoc(userDocRef, newData);
   }, [user, db]);
 

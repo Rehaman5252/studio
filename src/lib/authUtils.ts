@@ -15,7 +15,6 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
-  console.log("🔥 createUserDocument:", user);
   if (!user || !db) {
     console.error("❌ createUserDocument failed: User or DB object is missing.", { user, db });
     return;
@@ -46,8 +45,6 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
               ...additionalData
           });
           console.log("✅ User document created in Firestore");
-      } else {
-        console.log("User document already exists, skipping creation.");
       }
   } catch (error) {
       console.error("❌ Error in createUserDocument:", error);
@@ -87,7 +84,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
     }
-    throw error; // Propagate error to the caller component
+    return null; // Return null on error
   } finally {
     isPopupOpen = false;
   }

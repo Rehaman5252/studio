@@ -85,9 +85,11 @@ export default function LoginForm() {
         if (user) {
             toast({ title: "Signed In", description: `Welcome back, ${user.displayName}!` });
             router.push(from || '/home');
+        } else {
+            toast({ title: 'Sign In Cancelled', description: 'Google sign in was cancelled or failed.', variant: 'destructive' });
         }
     } catch (error) {
-        // Error handling is done within handleGoogleSignIn, so no need for a toast here unless you want a generic one
+        // Error handling is done within handleGoogleSignIn
         console.error("Google login process failed on the login page.");
     } finally {
         setIsGoogleLoading(false);

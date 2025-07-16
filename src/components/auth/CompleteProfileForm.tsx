@@ -84,9 +84,20 @@ export default function CompleteProfileForm() {
     
     useEffect(() => {
         if (userData) {
-            form.reset(userData);
+            form.reset({
+                name: userData?.name || user?.displayName || '',
+                email: userData?.email || user?.email || '',
+                phone: userData?.phone || '',
+                dob: userData?.dob || '',
+                gender: userData?.gender,
+                occupation: userData?.occupation,
+                upi: userData?.upi || '',
+                favoriteFormat: userData?.favoriteFormat,
+                favoriteTeam: userData?.favoriteTeam,
+                favoriteCricketer: userData?.favoriteCricketer || '',
+            });
         }
-    }, [userData, form]);
+    }, [userData, form, user]);
 
 
     const onSubmit = async (data: ProfileFormValues) => {
