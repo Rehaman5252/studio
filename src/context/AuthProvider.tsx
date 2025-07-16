@@ -15,6 +15,19 @@ import {
 } from 'firebase/firestore';
 import { getFirestoreClient } from '@/lib/firebaseClient';
 
+/**
+ * Removes properties with `undefined` values from an object.
+ * Firestore does not support `undefined` and will throw an error.
+ * @param obj The object to sanitize.
+ * @returns A new object with `undefined` properties removed.
+ */
+function removeUndefined(obj: any): any {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+}
+
 interface AuthContextType {
   user: User | null;
   userData: DocumentData | null;
@@ -174,8 +187,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        await setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
-        await setDoc(userDocRef, userUpdatePayload, { merge: true });
+        // Sanitize payloads to remove any 'undefined' values before sending to Firestore
+        const sanitizedHistory = { attempts: newHistory.map(a => removeUndefined(a)) };
+        const sanitizedUserUpdate = removeUndefined(userUpdatePayload);
+
+        await setDoc(historyDocRef, sanitizedHistory, { merge: true });
+        await setDoc(userDocRef, sanitizedUserUpdate, { merge: true });
     } catch (error) {
         console.error("Error adding quiz attempt:", error);
         throw error;

@@ -100,11 +100,12 @@ export default function CompleteProfileForm() {
     }, [userData, form, user]);
 
 
-    const onSubmit = (data: ProfileFormValues) => {
+    const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🟡 Form submitted. Validated data:", data);
-
+        console.log("🟡 onSubmit triggered with data:", data);
+        
         if (!user || !updateUserData) {
+            console.error("❌ Not authenticated or missing updateUserData");
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             setIsSubmitting(false);
             return;
@@ -116,28 +117,35 @@ export default function CompleteProfileForm() {
             phoneVerified: phoneVerifiedInForm,
         };
         
-        updateUserData(finalPayload)
-            .then(() => {
-                if (isMounted.current) {
-                    toast({ title: "Profile Saved!", description: "Your information has been updated." });
-                    router.push('/profile');
-                }
-            })
-            .catch((error) => {
-                if (isMounted.current) {
-                    console.error("🔥 Error saving profile:", error);
-                    toast({
-                        title: "Save Failed",
-                        description: error.message || "Could not save profile. Check security rules.",
-                        variant: "destructive"
-                    });
-                }
-            })
-            .finally(() => {
-                 if (isMounted.current) {
-                    setIsSubmitting(false);
-                 }
-            });
+        try {
+            console.log("📦 Final payload to updateUserData:", finalPayload);
+            await updateUserData(finalPayload);
+            console.log("✅ updateUserData finished successfully.");
+            toast({ title: "Profile Saved!", description: "Your information has been updated." });
+        } catch (error: any) {
+            console.error("🔥 Error in onSubmit during update:", error);
+            if (isMounted.current) {
+                toast({
+                    title: "Save Failed",
+                    description: error.message || "Could not save profile. Check security rules or network.",
+                    variant: "destructive"
+                });
+            }
+            // Stop execution if there was an error
+            setIsSubmitting(false);
+            return;
+        } finally {
+            // This block will now run before router.push, but we also ensure
+            // isSubmitting is set to false before any early returns.
+            if (isMounted.current) {
+                console.log("🔚 Finally block: Unsetting isSubmitting");
+                setIsSubmitting(false);
+            }
+        }
+    
+        // Only navigate AFTER the try/catch/finally block has fully completed.
+        console.log("✅ Navigating to profile page.");
+        router.push('/profile');
     };
 
     if (isUserDataLoading) {
