@@ -112,7 +112,7 @@ export default function CompleteProfileForm() {
             await updateUserData(finalPayload);
             toast({ 
                 title: "Profile Saved!", 
-                description: "Your information has been updated successfully."
+                description: "Your information has been updated successfully. Redirecting..."
             });
         } catch (error: any) {
             toast({
@@ -124,10 +124,12 @@ export default function CompleteProfileForm() {
             return;
         }
 
-        // State update and delayed navigation to prevent UI race condition
+        // This is the critical fix.
+        // We ensure the state is set to false, then wait a moment for React to re-render the UI
+        // before we navigate away. This prevents the "stuck" button state.
         setIsSubmitting(false);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        router.push('/profile');
+        await new Promise((resolve) => setTimeout(resolve, 50)); 
+        router.push('/home');
     };
 
     if (isUserDataLoading) {
