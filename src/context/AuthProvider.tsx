@@ -123,20 +123,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) {
-        console.error("updateUserData failed: No user found");
-        throw new Error('User not authenticated');
-    }
+      console.log("⚙️ updateUserData called");
+      if (!user) {
+        console.error("❌ No user found in updateUserData");
+        throw new Error("User not authenticated");
+      }
 
-    console.log("📡 updateUserData called with payload:", newData);
+      const db = await getFirestoreClient();
+      console.log("✅ Got Firestore DB");
 
-    const db = await getFirestoreClient();
-    const ref = doc(db, 'users', user.uid);
-    console.log("✅ Firestore doc ref:", ref.path);
+      const userRef = doc(db, 'users', user.uid);
+      console.log("📌 Updating document at path:", userRef.path);
 
-    await updateDoc(ref, newData);
-
-    console.log("✅ updateUserData: Firestore update complete.");
+      await updateDoc(userRef, newData);
+      console.log("✅ Document updated successfully");
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {

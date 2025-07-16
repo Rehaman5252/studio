@@ -102,14 +102,17 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
+        console.log("🟡 onSubmit triggered with data:", data);
         try {
             if (!user || !updateUserData) {
-                toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
+                console.error("❌ Not authenticated or missing updateUserData");
+                toast({ title: "Not Authenticated", variant: "destructive" });
                 return;
             }
 
             if (watchedPhone && needsVerification && !phoneVerifiedInForm) {
-                toast({ title: "Verification Required", description: "Please verify your new phone number before saving.", variant: "destructive" });
+                console.warn("📴 Phone not verified");
+                toast({ title: "Verification Required", variant: "destructive" });
                 return;
             }
 
@@ -119,24 +122,24 @@ export default function CompleteProfileForm() {
                 profileCompleted: true,
                 phoneVerified: phoneVerifiedInForm,
             };
-            
-            console.log("🚀 Final payload about to be saved:", finalPayload);
+
+            console.log("📦 Final payload to updateUserData:", finalPayload);
             await updateUserData(finalPayload);
-            
+            console.log("✅ updateUserData finished");
+
             if (isMounted.current) {
-                toast({ title: 'Profile Saved!', description: 'Your profile has been updated successfully.'});
+                toast({ title: "Profile Saved!" });
                 form.reset(finalPayload);
                 router.push('/profile');
             }
-
         } catch (error) {
-            console.error("Profile update error:", error);
+            console.error("🔥 Error in onSubmit:", error);
             if (isMounted.current) {
-                toast({ title: "Error Saving Profile", description: "Could not save your profile. Please try again.", variant: "destructive" });
+                toast({ title: "Error", description: "Could not save your profile", variant: "destructive" });
             }
         } finally {
             if (isMounted.current) {
-                console.log("📤 Submission done, unblocking save button");
+                console.log("🔚 Finally block: Unsetting isSubmitting");
                 setIsSubmitting(false);
             }
         }
@@ -151,7 +154,7 @@ export default function CompleteProfileForm() {
         )
     }
 
-    const isSaveDisabled = isSubmitting || !isDbReady || (watchedPhone && needsVerification && !phoneVerifiedInForm);
+    const isSaveDisabled = isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm);
 
     return (
         <Card className="w-full max-w-lg relative">
@@ -333,11 +336,6 @@ export default function CompleteProfileForm() {
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Saving...
-                                </>
-                            ) : !isDbReady ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Connecting...
                                 </>
                             ) : (
                                 'Save Profile'
