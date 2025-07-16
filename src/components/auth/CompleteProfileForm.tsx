@@ -102,6 +102,13 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
+        console.log("🟡 onSubmit triggered with data:", data);
+        
+        // Log validation errors if any
+        if (Object.keys(form.formState.errors).length > 0) {
+            console.error("❌ Form validation errors:", form.formState.errors);
+        }
+
         try {
             if (!user || !updateUserData) {
                 throw new Error("Not authenticated or update function is missing.");
@@ -120,31 +127,26 @@ export default function CompleteProfileForm() {
                 phoneVerified: phoneVerifiedInForm,
             };
 
-            const updatePromise = updateUserData(finalPayload);
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("Save operation timed out. This often means Firestore security rules are misconfigured.")), 7000)
-            );
-
-            await Promise.race([updatePromise, timeoutPromise]);
+            console.log("📦 Final payload to updateUserData:", finalPayload);
+            await updateUserData(finalPayload);
+            console.log("✅ updateUserData finished successfully in component.");
             
             if (isMounted.current) {
                 toast({ title: "Profile Saved!" });
                 router.push('/profile');
             }
         } catch (error: any) {
-            console.error("Error in onSubmit:", error);
+            console.error("🔥 Error in onSubmit:", error);
             if (isMounted.current) {
                 toast({ 
                     title: "Error Saving Profile", 
-                    description: error.message.includes("timed out") 
-                        ? "The save took too long. This is likely due to Firestore security rules. Please update them in your Firebase project to allow writes to the 'users' collection."
-                        : "Could not save your profile. Please try again.", 
-                    variant: "destructive",
-                    duration: 9000
+                    description: "Could not save your profile. Please check the console for details and try again.", 
+                    variant: "destructive"
                 });
             }
         } finally {
             if (isMounted.current) {
+                console.log("🔚 Finally block: Unsetting isSubmitting");
                 setIsSubmitting(false);
             }
         }

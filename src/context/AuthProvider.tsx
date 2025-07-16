@@ -11,7 +11,6 @@ import type { DocumentData } from 'firebase/firestore';
 import { 
   doc, 
   onSnapshot, 
-  updateDoc, 
   setDoc,
 } from 'firebase/firestore';
 import { getFirestoreClient } from '@/lib/firebaseClient';
@@ -143,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const db = await getFirestoreClient();
       const ref = doc(db, 'users', user.uid);
-      await updateDoc(ref, newData);
+      await setDoc(ref, newData, { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       throw err;
@@ -175,7 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
         await setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
-        await updateDoc(userDocRef, userUpdatePayload);
+        await setDoc(userDocRef, userUpdatePayload, { merge: true });
     } catch (error) {
         console.error("Error adding quiz attempt:", error);
         throw error;

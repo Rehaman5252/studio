@@ -31,6 +31,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
       const { email, displayName, photoURL } = user;
       const createdAt = new Date();
 
+      // Using setDoc which will create the document
       await setDoc(userDocRef, {
         uid: user.uid,
         email,

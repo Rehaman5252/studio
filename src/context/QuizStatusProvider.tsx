@@ -18,7 +18,7 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { quizHistory, isHistoryLoading, loading: isAuthLoading } = useAuth();
+  const { user, quizHistory, isHistoryLoading, loading: isAuthLoading } = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -28,14 +28,14 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   const lastAttemptInSlot = useMemo(() => {
-    if (isLoading || !quizHistory) {
+    if (isLoading || !quizHistory || !user) {
       return null;
     }
     
     const currentSlotId = getQuizSlotId();
     // The history is now sorted with the most recent attempt first.
     return quizHistory.find(attempt => attempt.slotId === currentSlotId) || null;
-  }, [quizHistory, isLoading]);
+  }, [quizHistory, isLoading, user]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
