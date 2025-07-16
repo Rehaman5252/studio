@@ -122,30 +122,27 @@ export default function CompleteProfileForm() {
             phoneVerified: phoneVerifiedInForm,
         };
         
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Save timed out. Please check your network and Firebase Security Rules.')), 7000)
-        );
-
-        Promise.race([updateUserData(finalPayload), timeoutPromise])
+        // Use a more robust .then().catch().finally() chain
+        updateUserData(finalPayload)
             .then(() => {
-                console.log("✅ Profile saved successfully.");
-                toast({ title: "Profile Saved!", description: "Your information has been updated." });
+                console.log("✅ Profile saved successfully via .then().");
                 if (isMounted.current) {
+                    toast({ title: "Profile Saved!", description: "Your information has been updated." });
                     router.push('/profile');
                 }
             })
             .catch((error) => {
-                console.error("🔥 Error saving profile:", error);
+                console.error("🔥 Error saving profile via .catch():", error);
                 if (isMounted.current) {
                     toast({
                         title: "Save Failed",
-                        description: error.message || "Could not save your profile. Please try again.",
+                        description: error.message || "Could not save your profile. Please check the console and Firebase Rules.",
                         variant: "destructive"
                     });
                 }
             })
             .finally(() => {
-                console.log("🔚 Re-enabling save button.");
+                 console.log("🔚 Re-enabling save button via .finally().");
                 if (isMounted.current) {
                     setIsSubmitting(false);
                 }
