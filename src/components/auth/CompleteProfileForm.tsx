@@ -105,11 +105,13 @@ export default function CompleteProfileForm() {
         try {
             if (!user || !updateUserData) {
                 toast({ title: "Not Authenticated", description: "You must be signed in to save your profile.", variant: "destructive" });
+                setIsSubmitting(false); // Stop loading on early return
                 return;
             }
 
             if (watchedPhone && needsVerification && !phoneVerifiedInForm) {
                 toast({ title: "Verification Required", description: "Please verify your new phone number before saving.", variant: "destructive" });
+                setIsSubmitting(false); // Stop loading on early return
                 return;
             }
 
