@@ -51,6 +51,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isDbReady, setIsDbReady] = useState(false);
   
   useEffect(() => {
+    async function checkDb() {
+        try {
+            await getFirestoreClient();
+            setIsDbReady(true);
+        } catch (error) {
+            console.error("DB readiness check failed:", error);
+            setIsDbReady(false);
+        }
+    }
+    checkDb();
+  }, [])
+
+
+  useEffect(() => {
     if (!auth) {
       console.log("Auth service not available, skipping auth state listener.");
       setIsAuthLoading(false);
@@ -85,7 +99,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const setupListeners = async () => {
         try {
             const db = await getFirestoreClient();
-            setIsDbReady(true);
             
             await createUserDocument(user);
 
@@ -110,7 +123,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Failed to set up Firestore listeners:", error);
             setIsUserDataLoading(false);
             setIsHistoryLoading(false);
-            setIsDbReady(false);
         }
     };
     
@@ -123,20 +135,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-      console.log("⚙️ updateUserData called");
-      if (!user) {
-        console.error("❌ No user found in updateUserData");
-        throw new Error("User not authenticated");
-      }
-
+    if (!user) {
+      console.error("❌ updateUserData: No user");
+      throw new Error("User not authenticated");
+    }
+  
+    try {
       const db = await getFirestoreClient();
-      console.log("✅ Got Firestore DB");
-
-      const userRef = doc(db, 'users', user.uid);
-      console.log("📌 Updating document at path:", userRef.path);
-
-      await updateDoc(userRef, newData);
-      console.log("✅ Document updated successfully");
+      if (!db) {
+        console.error("❌ updateUserData: db is null");
+        throw new Error("Firestore DB not ready");
+      }
+  
+      const ref = doc(db, 'users', user.uid);
+      console.log("🟢 updateUserData: Updating", ref.path);
+  
+      // Add timeout wrapper
+      await Promise.race([
+        updateDoc(ref, newData),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('⏱ updateUserData timed out')), 5000))
+      ]);
+  
+      console.log("✅ updateUserData: Success");
+    } catch (err) {
+      console.error("🔥 updateUserData error:", err);
+      throw err;
+    }
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
