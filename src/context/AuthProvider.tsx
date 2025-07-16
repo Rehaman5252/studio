@@ -142,14 +142,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
     try {
       const db = await getFirestoreClient();
-      if (!db) {
-        console.error("❌ updateUserData: db is null");
-        throw new Error("Firestore DB not ready");
-      }
-  
       const ref = doc(db, 'users', user.uid);
       await updateDoc(ref, newData);
-
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       throw err;
