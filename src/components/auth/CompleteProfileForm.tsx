@@ -102,16 +102,10 @@ export default function CompleteProfileForm() {
 
     const onSubmit = (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🟡 Form submitted. Payload:", data);
+        console.log("🟡 Form submitted. Validated data:", data);
 
         if (!user || !updateUserData) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (Object.keys(form.formState.errors).length > 0) {
-            toast({ title: "Invalid Form", description: "Please correct the errors before saving.", variant: "destructive" });
             setIsSubmitting(false);
             return;
         }
@@ -122,30 +116,27 @@ export default function CompleteProfileForm() {
             phoneVerified: phoneVerifiedInForm,
         };
         
-        // Use a more robust .then().catch().finally() chain
         updateUserData(finalPayload)
             .then(() => {
-                console.log("✅ Profile saved successfully via .then().");
                 if (isMounted.current) {
                     toast({ title: "Profile Saved!", description: "Your information has been updated." });
                     router.push('/profile');
                 }
             })
             .catch((error) => {
-                console.error("🔥 Error saving profile via .catch():", error);
                 if (isMounted.current) {
+                    console.error("🔥 Error saving profile:", error);
                     toast({
                         title: "Save Failed",
-                        description: error.message || "Could not save your profile. Please check the console and Firebase Rules.",
+                        description: error.message || "Could not save profile. Check security rules.",
                         variant: "destructive"
                     });
                 }
             })
             .finally(() => {
-                 console.log("🔚 Re-enabling save button via .finally().");
-                if (isMounted.current) {
+                 if (isMounted.current) {
                     setIsSubmitting(false);
-                }
+                 }
             });
     };
 
@@ -181,7 +172,7 @@ export default function CompleteProfileForm() {
                 </CardDescription>
             </CardHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
+                <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.log("Form validation errors:", errors))}>
                     <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-6">
                         <FormField
                             control={form.control} name="name"
@@ -356,5 +347,3 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
-
-    
