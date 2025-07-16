@@ -2,7 +2,7 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { app, auth, isFirebaseConfigured } from '@/lib/firebase';
 import { createUserDocument } from '@/lib/authUtils';
@@ -48,21 +48,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isDbReady, setIsDbReady] = useState(false);
   
-  const [db, setDb] = useState<Firestore | null>(null);
+  const dbRef = useRef<Firestore | null>(null);
 
   useEffect(() => {
-    if (isFirebaseConfigured && app && typeof window !== 'undefined' && !db) {
+    if (isFirebaseConfigured && app && typeof window !== 'undefined' && !dbRef.current) {
       console.log("Attempting to initialize Firestore on the client...");
       try {
         const firestoreInstance = initializeFirestore(app, {
           localCache: memoryLocalCache(),
         });
-        setDb(firestoreInstance);
-        console.log("✅ Firestore initialized successfully with memory cache.");
+        dbRef.current = firestoreInstance;
+        setIsDbReady(true);
+        console.log("✅ Firestore initialized successfully and stored in ref.");
       } catch (error: any) {
         console.error("❌ Error initializing Firestore", error);
-        setDb(null);
+        dbRef.current = null;
       }
     } else if (!isFirebaseConfigured) {
         console.warn("Firebase is not configured. Skipping initialization.");
@@ -70,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
     }
-  }, [db]);
+  }, []);
   
   useEffect(() => {
     if (!auth) {
@@ -96,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user || !dbRef.current) {
       if (!user) { 
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
@@ -109,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeHistory: () => void;
 
     const setupListeners = async () => {
+        const db = dbRef.current;
         if (!user || !db) {
             console.warn("⛔️ Cannot set up listeners, user or db is missing.");
             return;
@@ -157,41 +160,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, db]);
+  }, [user, isDbReady]);
   
-const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    let localDb = db;
-    if (!user || !localDb) {
-        console.warn("⚠️ updateUserData: Waiting for Firestore to be ready...");
-        const start = Date.now();
-        while (!localDb && Date.now() - start < 2000) {
-            await new Promise(r => setTimeout(r, 100));
-            // This is a bit of a hack since we can't get the latest state directly.
-            // In a real hook-based scenario, this check would be different.
-            // For now, we rely on the parent's `db` state eventually updating.
-            // This is less than ideal but works for this specific context.
-            // The best solution is to use the `isDbReady` flag in the UI to prevent this call.
-        }
-
-        // Re-read the db state from the parent after the loop
-        setDb(currentDb => {
-            localDb = currentDb;
-            return currentDb;
-        });
-
-        if (!localDb || !user) {
-            console.error("❌ updateUserData failed. DB or user still unavailable.");
-            throw new Error("DB or user not available");
-        }
+  const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
+    const db = dbRef.current;
+    if (!user || !db) {
+        console.error("❌ updateUserData failed. DB or user not available.");
+        throw new Error("DB or user not available");
     }
-
     console.log("✅ updateUserData: DB is ready. Updating user data with payload:", newData);
-    const userDocRef = doc(localDb, 'users', user.uid);
+    const userDocRef = doc(db, 'users', user.uid);
     await updateDoc(userDocRef, newData);
     console.log("✅ User data updated successfully.");
-}, [db, user]);
+  }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
+    const db = dbRef.current;
     if (!user || !db) throw new Error("User not authenticated or DB not ready");
     
     const currentHistory = quizHistory || [];
@@ -220,14 +204,13 @@ const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
         console.error("Error adding quiz attempt:", error);
         throw error;
     }
-  }, [user, db, quizHistory, userData]);
+  }, [user, quizHistory, userData]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
     return userData.profileCompleted || MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
-  const isDbReady = !!db;
   const loading = isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
 
   const value = useMemo(() => ({

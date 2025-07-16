@@ -14,7 +14,7 @@ import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
-export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
+export async function createUserDocument(db: Firestore | null, user: User, additionalData: DocumentData = {}) {
   if (!user) {
     console.error("❌ createUserDocument failed: User is missing.");
     return;
@@ -22,8 +22,6 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
   
   if (!db) {
       console.error("❌ createUserDocument failed: Firestore DB instance is not available.");
-      // This function now relies on the caller (AuthProvider) to ensure db is ready.
-      // The waiting logic is centralized in the provider.
       return;
   }
   
