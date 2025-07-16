@@ -54,8 +54,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isFirebaseConfigured && app && typeof window !== 'undefined' && !db) {
       console.log("Attempting to initialize Firestore on the client...");
       try {
+        // Use initializeFirestore with memoryLocalCache to disable offline persistence
         const firestoreInstance = initializeFirestore(app, {
-          localCache: memoryLocalCache(), // Disable offline persistence as instructed for debugging
+          localCache: memoryLocalCache(),
         });
         setDb(firestoreInstance);
         console.log("✅ Firestore initialized successfully with memory cache.");

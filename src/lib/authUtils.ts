@@ -41,6 +41,7 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
               perfectScores: 0,
               totalRewards: 0,
               profileCompleted: false,
+              phoneVerified: false,
               referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0,4)}`,
               referralEarnings: 0,
               ...additionalData
