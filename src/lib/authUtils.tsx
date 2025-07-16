@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -9,12 +10,12 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { app, db } from '@/lib/firebase';
+import { app } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
-import type { DocumentData } from 'firebase/firestore';
+import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
+export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
   if (!user) return;
   
   const userDocRef = doc(db, 'users', user.uid);
@@ -47,7 +48,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 }
 
 export async function handleGoogleSignIn() {
-  const auth = getAuth(app);
+  const auth = getAuth(app!);
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -56,7 +57,7 @@ export async function handleGoogleSignIn() {
     const user = result.user;
     if (!user) throw new Error('No user returned from Google Sign-In.');
     
-    await createUserDocument(user);
+    // AuthProvider will now handle document creation.
     
     return user;
 
@@ -72,13 +73,13 @@ export async function handleGoogleSignIn() {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    const auth = getAuth(app);
+    const auth = getAuth(app!);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password: string) => {
-    const auth = getAuth(app);
+    const auth = getAuth(app!);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

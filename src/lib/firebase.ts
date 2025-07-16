@@ -19,4 +19,5 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
 const app = isFirebaseConfigured ? (!getApps().length ? initializeApp(firebaseConfig) : getApp()) : null;
 const auth = app ? getAuth(app) : null;
 
+// db instance will be initialized and managed in AuthProvider to ensure it's client-side only.
 export { app, auth };
