@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const db = await getFirestoreClient();
             setIsDbReady(true);
             
-            await createUserDocument(user, {});
+            await createUserDocument(user);
 
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
