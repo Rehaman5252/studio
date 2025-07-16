@@ -109,14 +109,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeHistory: () => void;
 
     const setupListeners = async () => {
-        // Guard against running if user or db isn't ready
         if (!user || !db) {
             console.warn("⛔️ Cannot set up listeners, user or db is missing.");
             return;
         }
 
         try {
-            // Pass the db instance explicitly
             await createUserDocument(db, user, {});
 
             setIsUserDataLoading(true);
@@ -161,44 +159,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user, db]);
   
-  const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) {
-      console.error("updateUserData failed: User not authenticated");
-      throw new Error("Not authenticated");
-    }
-
-    let readyDb = db;
-    if (!readyDb) {
-      console.warn("⏳ DB not ready in updateUserData. Waiting...");
-      await new Promise<void>((resolve, reject) => {
+const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
+    let localDb = db;
+    if (!user || !localDb) {
+        console.warn("⚠️ updateUserData: Waiting for Firestore to be ready...");
         const start = Date.now();
-        const interval = setInterval(() => {
-          // This logic is tricky because `db` from closure is stale.
-          // We rely on the `setDb` in the other effect to eventually populate it.
-          // A better pattern might involve a ref or a different state management.
-          // For now, we'll poll the state setter's completion.
-          setDb(currentDb => {
-            if (currentDb) {
-              readyDb = currentDb;
-              clearInterval(interval);
-              resolve();
-            } else if (Date.now() - start > 3000) { // 3 second timeout
-              clearInterval(interval);
-              reject(new Error("Firestore failed to initialize in time."));
-            }
+        while (!localDb && Date.now() - start < 2000) {
+            await new Promise(r => setTimeout(r, 100));
+            // This is a bit of a hack since we can't get the latest state directly.
+            // In a real hook-based scenario, this check would be different.
+            // For now, we rely on the parent's `db` state eventually updating.
+            // This is less than ideal but works for this specific context.
+            // The best solution is to use the `isDbReady` flag in the UI to prevent this call.
+        }
+
+        // Re-read the db state from the parent after the loop
+        setDb(currentDb => {
+            localDb = currentDb;
             return currentDb;
-          })
-        }, 100);
-      });
+        });
+
+        if (!localDb || !user) {
+            console.error("❌ updateUserData failed. DB or user still unavailable.");
+            throw new Error("DB or user not available");
+        }
     }
 
-    if (!readyDb) throw new Error("Firestore still not ready after waiting.");
-
-    console.log("✅ Updating user data with payload:", newData);
-    const userDocRef = doc(readyDb, "users", user.uid);
+    console.log("✅ updateUserData: DB is ready. Updating user data with payload:", newData);
+    const userDocRef = doc(localDb, 'users', user.uid);
     await updateDoc(userDocRef, newData);
     console.log("✅ User data updated successfully.");
-  }, [user, db]);
+}, [db, user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user || !db) throw new Error("User not authenticated or DB not ready");

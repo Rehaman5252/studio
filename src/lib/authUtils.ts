@@ -20,8 +20,12 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
     return;
   }
   
-  // This function now assumes a valid `db` instance is passed in.
-  // The waiting logic is now handled by the caller if necessary.
+  if (!db) {
+      console.error("❌ createUserDocument failed: Firestore DB instance is not available.");
+      // This function now relies on the caller (AuthProvider) to ensure db is ready.
+      // The waiting logic is centralized in the provider.
+      return;
+  }
   
   const userDocRef = doc(db, 'users', user.uid);
 
@@ -78,7 +82,6 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    // The AuthProvider's onAuthStateChanged will handle document creation.
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -89,7 +92,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
     }
-    return null; // Return null on error
+    return null;
   } finally {
     isPopupOpen = false;
   }
@@ -99,7 +102,6 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 export const registerWithEmail = async (email: string, password: string) => {
     if (!auth) throw new Error("Auth service is not initialized.");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // The AuthProvider's onAuthStateChanged will handle document creation.
     return userCredential;
 };
 
