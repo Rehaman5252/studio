@@ -88,7 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const db = await getFirestoreClient();
             setIsDbReady(true);
             
-            // Ensure user document exists before listening
             await createUserDocument(user, {});
 
             const userDocRef = doc(db, 'users', user.uid);
