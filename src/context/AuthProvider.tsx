@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
@@ -142,6 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const db = await getFirestoreClient();
       const ref = doc(db, 'users', user.uid);
+      // Use setDoc with merge:true to safely create or update the document.
       await setDoc(ref, newData, { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);

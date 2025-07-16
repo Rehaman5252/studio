@@ -102,11 +102,14 @@ export default function CompleteProfileForm() {
 
     const onSubmit = async (data: ProfileFormValues) => {
         setIsSubmitting(true);
-        console.log("🟡 onSubmit triggered with data:", data);
         
-        // Log validation errors if any
+        console.log("Form values:", data);
+        console.log("Form errors:", form.formState.errors);
+
         if (Object.keys(form.formState.errors).length > 0) {
-            console.error("❌ Form validation errors:", form.formState.errors);
+            toast({ title: "Invalid Form", description: "Please correct the errors before saving.", variant: "destructive" });
+            setIsSubmitting(false);
+            return;
         }
 
         try {
@@ -128,6 +131,7 @@ export default function CompleteProfileForm() {
             };
 
             console.log("📦 Final payload to updateUserData:", finalPayload);
+            
             await updateUserData(finalPayload);
             console.log("✅ updateUserData finished successfully in component.");
             
@@ -140,7 +144,7 @@ export default function CompleteProfileForm() {
             if (isMounted.current) {
                 toast({ 
                     title: "Error Saving Profile", 
-                    description: "Could not save your profile. Please check the console for details and try again.", 
+                    description: error.message || "Could not save your profile. Please try again.", 
                     variant: "destructive"
                 });
             }
@@ -161,7 +165,7 @@ export default function CompleteProfileForm() {
         )
     }
 
-    const isSaveDisabled = isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm);
+    const isSaveDisabled = isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm) || !isDbReady;
 
     return (
         <Card className="w-full max-w-lg relative">
@@ -343,6 +347,11 @@ export default function CompleteProfileForm() {
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Saving...
+                                </>
+                             ) : !isDbReady ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Connecting...
                                 </>
                             ) : (
                                 'Save Profile'
