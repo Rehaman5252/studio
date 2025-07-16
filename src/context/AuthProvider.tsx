@@ -27,6 +27,7 @@ interface AuthContextType {
   loading: boolean;
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
+  isDbReady: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
 }
@@ -54,7 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isFirebaseConfigured && app && typeof window !== 'undefined' && !db) {
       console.log("Attempting to initialize Firestore on the client...");
       try {
-        // Use initializeFirestore with memoryLocalCache to disable offline persistence
         const firestoreInstance = initializeFirestore(app, {
           localCache: memoryLocalCache(),
         });
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("✅ Firestore initialized successfully with memory cache.");
       } catch (error: any) {
         console.error("❌ Error initializing Firestore", error);
-        setDb(null); // Ensure db is null if initialization fails
+        setDb(null);
       }
     } else if (!isFirebaseConfigured) {
         console.warn("Firebase is not configured. Skipping initialization.");
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!db || !user) {
-      if (!user) { // If no user, loading is done.
+      if (!user) { 
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
       }
@@ -155,14 +155,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, db]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user || !db) {
-      console.error("updateUserData failed: User not authenticated or DB not ready.", { user, db });
-      throw new Error("Not authenticated or DB not ready");
+    if (!user) {
+      console.error("updateUserData failed: User not authenticated");
+      throw new Error("Not authenticated");
     }
-    console.log("Updating user data for:", user.uid);
-    const userDocRef = doc(db, 'users', user.uid);
+
+    let readyDb = db;
+    if (!readyDb) {
+      console.warn("⏳ Waiting for Firestore to initialize...");
+      // Wait up to 2 seconds for db to be ready
+      await new Promise((resolve, reject) => {
+        const start = Date.now();
+        const interval = setInterval(() => {
+          // This check needs to happen against the state variable that is being updated,
+          // so we can't use the local `db` variable here. We use a function to get the current state.
+          setDb(currentDb => {
+            if (currentDb) {
+              readyDb = currentDb;
+              clearInterval(interval);
+              resolve(true);
+            } else if (Date.now() - start > 2000) {
+              clearInterval(interval);
+              reject(new Error("Firestore failed to initialize in time."));
+            }
+            return currentDb;
+          })
+        }, 100);
+      });
+    }
+
+    if (!readyDb) throw new Error("Firestore still not ready");
+
+    console.log("✅ Updating user data with payload:", newData);
+    const userDocRef = doc(readyDb, "users", user.uid);
     await updateDoc(userDocRef, newData);
-    console.log("User data updated successfully.");
+    console.log("✅ User data updated successfully.");
   }, [user, db]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
@@ -201,6 +228,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return userData.profileCompleted || MANDATORY_PROFILE_FIELDS.every(field => !!userData[field]);
   }, [userData]);
 
+  const isDbReady = !!db;
   const loading = isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
 
   const value = useMemo(() => ({
@@ -213,9 +241,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     isUserDataLoading,
     isHistoryLoading,
+    isDbReady,
     updateUserData,
     addQuizAttempt,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, isDbReady, updateUserData, addQuizAttempt]);
 
   return (
     <AuthContext.Provider value={value}>
