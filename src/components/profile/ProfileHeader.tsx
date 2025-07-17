@@ -9,15 +9,36 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
+import { getFirebaseClient } from '@/lib/firebaseClient';
+import { useToast } from '@/hooks/use-toast';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user } = useAuth(); // Get the auth user object
+    const { toast } = useToast();
     const age = calculateAge(userProfile?.dob);
     const isPhoneSet = !!userProfile?.phone;
     const isPhoneVerified = !!userProfile?.phoneVerified;
 
-    // Use the `emailVerified` property from the Firebase `User` object
     const isEmailVerified = user?.emailVerified || false;
+
+    const handleResendVerification = async () => {
+        if (!user) {
+            toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
+            return;
+        }
+        try {
+            const { sendEmailVerification } = await import('firebase/auth');
+            await sendEmailVerification(user);
+            toast({ title: 'Verification Email Sent', description: 'Please check your inbox to verify your email address.' });
+        } catch (error: any) {
+            console.error("Error resending verification email:", error);
+            let message = "Could not send verification email.";
+            if (error.code === 'auth/too-many-requests') {
+                message = "You've requested this too many times. Please wait before trying again.";
+            }
+            toast({ title: 'Error', description: message, variant: 'destructive' });
+        }
+    };
 
     return (
         <Card className="bg-card shadow-lg">
@@ -45,7 +66,16 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                     </div>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">
                          <p className="text-muted-foreground text-sm">{userProfile?.email || 'No email set'}</p>
-                         {userProfile?.email ? (isEmailVerified ? <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified"/> : <AlertCircle className="h-4 w-4 text-yellow-500" title="Not Verified"/>) : null}
+                         {userProfile?.email ? (
+                            isEmailVerified ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified"/>
+                            ) : (
+                                <Button variant="link" className="p-0 h-auto text-yellow-500 text-sm hover:no-underline" onClick={handleResendVerification}>
+                                    <AlertCircle className="h-4 w-4 mr-1" />
+                                    Resend Link
+                                </Button>
+                            )
+                         ) : null}
                     </div>
                     <div className="text-muted-foreground text-xs flex items-center gap-2 flex-wrap justify-center sm:justify-start">
                         {age && <span>{age} yrs</span>}
