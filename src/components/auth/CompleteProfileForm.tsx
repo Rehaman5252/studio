@@ -94,14 +94,11 @@ export default function CompleteProfileForm() {
 
 
     const onSubmit = async (data: ProfileFormValues) => {
-        console.log("👉 [1] onSubmit triggered.");
         if (!user || !updateUserData) {
-            console.error("🔥 [2] Submission failed: User not logged in or updateUserData function is missing.");
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
         }
 
-        console.log("👉 [2] Setting isSubmitting to TRUE.");
         setIsSubmitting(true);
 
         try {
@@ -111,32 +108,25 @@ export default function CompleteProfileForm() {
                 phoneVerified: phoneVerifiedInForm,
                 updatedAt: new Date(),
             };
-            console.log("👉 [3] Attempting to save payload:", finalPayload);
+            
             await updateUserData(finalPayload);
             
-            console.log("✅ [4] updateUserData successful.");
             toast({ 
                 title: "Profile Saved!", 
                 description: "Your information has been updated successfully."
             });
             
-            console.log("👉 [5] Setting isSubmitting to FALSE.");
+            // This is the key change: update state BEFORE redirecting.
             setIsSubmitting(false);
-
-            console.log("👉 [6] Will redirect in 500ms.");
-            setTimeout(() => {
-                console.log("👉 [7] Redirecting to /home now.");
-                router.replace('/home');
-            }, 500);
+            router.replace('/home');
 
         } catch (error: any) {
-            console.error("🔥 [8] Save Failed:", error);
+            console.error("🔥 Save Failed:", error);
             toast({
                 title: "Save Failed",
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-             console.log("👉 [9] Setting isSubmitting to FALSE after error.");
             setIsSubmitting(false);
         }
     };
