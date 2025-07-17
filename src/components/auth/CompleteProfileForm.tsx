@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -94,6 +94,8 @@ export default function CompleteProfileForm() {
 
 
     const onSubmit = async (data: ProfileFormValues) => {
+        if (isSubmitting) return; // Prevent double submits
+
         if (!user || !updateUserData) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
@@ -116,9 +118,10 @@ export default function CompleteProfileForm() {
                 description: "Your information has been updated successfully."
             });
             
-            // This is the key change: update state BEFORE redirecting.
             setIsSubmitting(false);
-            router.replace('/home');
+            startTransition(() => {
+                router.replace('/home');
+            });
 
         } catch (error: any) {
             console.error("🔥 Save Failed:", error);
@@ -338,5 +341,3 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
-
-    
