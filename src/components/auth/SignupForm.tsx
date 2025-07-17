@@ -75,15 +75,12 @@ export default function SignupForm() {
         const userCredential = await registerWithEmail(data.email, data.password);
         const { auth } = await getFirebaseClient();
         
-        // This update is crucial for new email sign-ups
         if (auth.currentUser) {
             await updateProfile(auth.currentUser, { displayName: data.name });
         }
         
-        // AuthProvider will now handle document creation when user state changes.
-        
-        toast({ title: 'Account Created!', description: 'Welcome to indcric! Please complete your profile to continue.' });
-        router.push('/complete-profile');
+        toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
+        router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
 
     } catch (error: any) {
         let description = 'An unexpected error occurred. Please try again.';

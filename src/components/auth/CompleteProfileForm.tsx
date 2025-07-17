@@ -120,7 +120,7 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-            setIsSubmitting(false); // Stop on failure
+            setIsSubmitting(false);
             return;
         }
 
@@ -162,7 +162,7 @@ export default function CompleteProfileForm() {
                 </CardDescription>
             </CardHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.log("Form validation errors:", errors))}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-6">
                         <FormField
                             control={form.control} name="name"
