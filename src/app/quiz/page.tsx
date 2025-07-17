@@ -59,7 +59,7 @@ function QuizComponent() {
     fetchQuiz();
   }, [format, router, toast]);
 
-  const submitQuiz = useCallback(async (currentAnswers: (string | null)[], reason?: 'malpractice') => {
+  const submitQuiz = useCallback((currentAnswers: (string | null)[], reason?: 'malpractice') => {
     if (!user || !questions || !addQuizAttempt || !setLastAttempt) return;
     
     setQuizState('submitting');
@@ -88,15 +88,14 @@ function QuizComponent() {
     // Using replace to prevent back navigation to the quiz
     router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
 
-    // Save to DB in the background, don't await it here to ensure instant navigation
-    try {
-        await addQuizAttempt(attemptData);
-    } catch (error) {
+    // Save to DB in the background. DO NOT await this.
+    // This is a "fire-and-forget" operation to ensure instant navigation.
+    addQuizAttempt(attemptData).catch(error => {
         console.error("Error submitting quiz results to DB:", error);
         // The user is already on the results page, but we can toast a warning
         // This is a silent failure from the user's perspective, but good for debugging
         toast({ title: 'Sync Error', description: 'Could not save your quiz results to your history.', variant: 'destructive' });
-    }
+    });
   }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt]);
 
   const handleFinalAnswerAndSubmit = useCallback((option: string) => {
@@ -110,6 +109,7 @@ function QuizComponent() {
     finalAnswers[currentQuestionIndex] = option;
     setUserAnswers(finalAnswers);
 
+    // Call submitQuiz with the final, updated state
     submitQuiz(finalAnswers);
 
   }, [questionStartTime, timePerQuestion, userAnswers, currentQuestionIndex, questions, submitQuiz]);
@@ -242,6 +242,11 @@ function QuizComponent() {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
+  
+  if (!currentQuestion) {
+    // This handles the edge case where questions are loaded but the index is out of bounds.
+    return <CricketLoading state="error" errorMessage="There was a problem with the next question." />;
+  }
 
   return (
     <>
