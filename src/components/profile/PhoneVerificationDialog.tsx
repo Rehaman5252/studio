@@ -26,22 +26,20 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-
-  // Use a ref to hold the verifier instance and the confirmation result
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || step !== 'initial') {
       return;
     }
 
     const setupRecaptcha = async () => {
-      // Clean up previous instance if it exists
+      // Clean up previous instance if it exists to prevent memory leaks
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
       }
-
+      
       if (!recaptchaContainerRef.current) return;
 
       try {
@@ -55,10 +53,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           },
           'expired-callback': () => {
             toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-            recaptchaVerifierRef.current?.clear();
+            if (recaptchaVerifierRef.current) {
+              recaptchaVerifierRef.current.clear();
+            }
           }
         });
 
+        // Must render before use
         await verifier.render();
         recaptchaVerifierRef.current = verifier;
 
@@ -68,15 +69,17 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       }
     };
 
-    setupRecaptcha();
+    // Delay setup slightly to ensure the container is in the DOM
+    const timeoutId = setTimeout(setupRecaptcha, 100);
 
     return () => {
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
+        clearTimeout(timeoutId);
+        if (recaptchaVerifierRef.current) {
+            recaptchaVerifierRef.current.clear();
+            recaptchaVerifierRef.current = null;
+        }
     };
-  }, [open, toast]);
+  }, [open, toast, step]);
 
   const handleSendOtp = async () => {
     setIsLoading(true);
@@ -107,9 +110,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       } else if (error.code === 'auth/too-many-requests') {
         message = 'Too many requests. Please try again later.';
       } else if (error.code === 'auth/internal-error') {
-         message = 'An internal error occurred. This can happen if the app is not properly configured for phone auth in your Firebase project (e.g., missing SHA-1 keys in the console).';
+         message = 'An internal error occurred. This can happen if the app domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth.';
       }
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      toast({ title: 'Error', description: message, variant: 'destructive', duration: 9000 });
     } finally {
       setIsLoading(false);
     }
