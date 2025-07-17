@@ -21,6 +21,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -36,24 +37,23 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
 
-        // Ensure the container is clean before rendering
-        if (recaptchaVerifierRef.current) {
-            recaptchaVerifierRef.current.clear();
+        // Ensure the verifier is only created once per dialog session
+        if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
+            recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+                'size': 'invisible',
+                'callback': () => {
+                  // reCAPTCHA solved, ready to send OTP.
+                },
+                'expired-callback': () => {
+                  toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+                  setIsLoading(false);
+                }
+            });
+            await recaptchaVerifierRef.current.render();
+            console.log("✅ reCAPTCHA verifier rendered.");
         }
-
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': () => {
-              // reCAPTCHA solved, ready to send OTP.
-            },
-            'expired-callback': () => {
-              toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-              setIsLoading(false);
-            }
-        });
-        await recaptchaVerifierRef.current.render();
       } catch (error) {
-        console.error("reCAPTCHA setup error:", error);
+        console.error("❌ reCAPTCHA setup error:", error);
         toast({ title: 'Verification Error', description: 'Could not initialize phone verification system.', variant: 'destructive' });
         setIsLoading(false);
       }
@@ -93,7 +93,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       });
       setStep('verify');
     } catch (error: any) {
-      console.error("Error sending OTP:", error);
+      console.error("🔥 Error sending OTP:", error);
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/too-many-requests') {
           description = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
@@ -123,7 +123,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       setOpen(false);
 
     } catch (error: any) {
-      console.error("Error verifying OTP:", error);
+      console.error("🔥 Error verifying OTP:", error);
       let description = 'Failed to verify OTP.';
       if (error.code === 'auth/invalid-verification-code') {
         description = 'The code you entered is incorrect.';
@@ -173,7 +173,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             />
           </div>
         )}
-        <div id="recaptcha-container"></div>
+        <div ref={recaptchaContainerRef}></div>
         
         <DialogFooter>
           {step === 'initial' ? (
