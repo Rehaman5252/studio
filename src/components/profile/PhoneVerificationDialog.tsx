@@ -11,13 +11,6 @@ import { Loader2 } from 'lucide-react';
 import { getFirebaseClient } from '@/lib/firebaseClient';
 import type { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
-}
-
 export function PhoneVerificationDialog({ children, phone, onVerified }: { children: React.ReactNode; phone: string; onVerified: () => void; }) {
   const { user, userData, updateUserData } = useAuth();
   const { toast } = useToast();
@@ -26,13 +19,17 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+  // Use useRef for stable instances of verifier and container
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
+      // Cleanup when dialog is closed
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
       }
       return;
     }
@@ -42,8 +39,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
         
-        if (recaptchaContainerRef.current && !window.recaptchaVerifier) {
-            const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+        // Initialize only if it hasn't been already and the container exists
+        if (recaptchaContainerRef.current && !recaptchaVerifierRef.current) {
+            recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
                 'size': 'invisible',
                 'callback': () => {
                   console.log("reCAPTCHA solved, ready to send OTP.");
@@ -52,8 +50,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
                   toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
                 }
             });
-            await verifier.render();
-            window.recaptchaVerifier = verifier;
+            await recaptchaVerifierRef.current.render();
             console.log("RecaptchaVerifier rendered.");
         }
       } catch (error) {
@@ -68,7 +65,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   const handleSendOtp = async () => {
     setIsLoading(true);
-    const appVerifier = window.recaptchaVerifier;
+    const appVerifier = recaptchaVerifierRef.current;
 
     if (!appVerifier) {
       toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait a moment and try again.', variant: 'destructive' });
@@ -79,7 +76,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     try {
       const { auth } = await getFirebaseClient();
       const { signInWithPhoneNumber } = await import('firebase/auth');
-
       const fullPhoneNumber = `+91${phone}`;
       
       const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
@@ -159,7 +155,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   return (
     <>
-      <div id="recaptcha-container" ref={recaptchaContainerRef}></div>
+      <div id="recaptcha-container-parent">
+        <div ref={recaptchaContainerRef}></div>
+      </div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <div onClick={(e: any) => onOpenDialog(e)}>
