@@ -47,7 +47,7 @@ const cricketTeams = [
 
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData, isUserDataLoading, updateUserData } = useAuth();
+    const { user, userData, isUserDataLoading } = useAuth();
     const { toast } = useToast();
     const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +67,12 @@ export default function CompleteProfileForm() {
             email: '',
             phone: '',
             dob: '',
+            gender: undefined, // Controlled by Select, so undefined is fine here
+            occupation: undefined,
+            upi: '',
+            favoriteFormat: undefined,
+            favoriteTeam: '',
+            favoriteCricketer: '',
         },
     });
     
@@ -108,7 +114,6 @@ export default function CompleteProfileForm() {
                 updatedAt: new Date(),
             };
             
-            // Using getFirebaseClient directly to ensure DB instance is available
             const { db } = await getFirebaseClient();
             const ref = doc(db, 'users', user.uid);
             await setDoc(ref, finalPayload, { merge: true });
@@ -129,7 +134,6 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-        } finally {
             setIsSubmitting(false);
         }
     };
