@@ -26,46 +26,41 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    let isMounted = true;
-
     const setupRecaptcha = async () => {
       try {
-        if (window.recaptchaVerifier) {
-          window.recaptchaVerifier.clear();
-        }
-
-        if (!isMounted) return;
-        
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
 
-        // Dynamically create the container div if it doesn't exist
+        // Ensure container exists
         let recaptchaContainer = document.getElementById('recaptcha-container');
         if (!recaptchaContainer) {
-          recaptchaContainer = document.createElement('div');
-          recaptchaContainer.id = 'recaptcha-container';
-          document.body.appendChild(recaptchaContainer);
+            recaptchaContainer = document.createElement('div');
+            recaptchaContainer.id = 'recaptcha-container';
+            document.body.appendChild(recaptchaContainer);
         }
 
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
-          'size': 'invisible',
-          'callback': () => {
-            console.log("reCAPTCHA solved, ready to send OTP.");
-          },
-          'expired-callback': () => {
-            toast({ title: 'reCAPTCHA Expired', description: 'Please close and re-open the dialog to try again.', variant: 'destructive' });
-          }
-        });
-        
-        window.recaptchaVerifier = verifier;
-        await verifier.render(); // Explicitly render the invisible reCAPTCHA
-
+        // Initialize verifier only if it doesn't exist
+        if (!window.recaptchaVerifier) {
+          console.log("Initializing new RecaptchaVerifier...");
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+            'callback': () => {
+              console.log("reCAPTCHA solved, ready to send OTP.");
+            },
+            'expired-callback': () => {
+              toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+            }
+          });
+          await window.recaptchaVerifier.render();
+          console.log("RecaptchaVerifier rendered.");
+        }
       } catch (error) {
         console.error("reCAPTCHA setup error:", error);
         toast({ title: 'Verification Error', description: 'Could not initialize phone verification. Please refresh and try again.', variant: 'destructive' });
@@ -75,10 +70,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     setupRecaptcha();
 
     return () => {
-      isMounted = false;
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-      }
+        // Don't clear on every close, only when component unmounts fully
+        // if (window.recaptchaVerifier) {
+        //   window.recaptchaVerifier.clear();
+        // }
     };
   }, [open, toast]);
 
@@ -96,9 +91,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
       const appVerifier = window.recaptchaVerifier;
       const fullPhoneNumber = `+91${phone}`;
-
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
-      window.confirmationResult = confirmationResult;
+      
+      const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
+      setConfirmationResult(result);
 
       toast({
         title: 'OTP Sent',
@@ -122,10 +117,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   };
 
   const handleVerifyOtp = async () => {
-    if (!user || !window.confirmationResult) return;
+    if (!user || !confirmationResult) return;
     setIsLoading(true);
     try {
-      await window.confirmationResult.confirm(otp);
+      await confirmationResult.confirm(otp);
       
       if(updateUserData) {
         await updateUserData({ phoneVerified: true, phone: phone });
@@ -153,7 +148,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     setStep('initial');
     setOtp('');
     setIsLoading(false);
-    window.confirmationResult = undefined;
+    setConfirmationResult(null);
   };
   
   const onOpenChange = (isOpen: boolean) => {
@@ -174,6 +169,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   return (
     <>
+      <div id="recaptcha-container" />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <div onClick={(e: any) => onOpenDialog(e)}>
