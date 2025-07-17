@@ -20,56 +20,57 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  // Use a ref to hold the verifier instance to ensure it persists across re-renders
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
-    // Only run this effect when the dialog is opened
     if (!open) {
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
       return;
     }
 
     const setupRecaptcha = async () => {
-        try {
-            const { auth } = await getFirebaseClient();
-            const { RecaptchaVerifier } = await import('firebase/auth');
-            
-            // Initialize only if it hasn't been initialized yet
-            if (!recaptchaVerifierRef.current) {
-                // Create a new verifier instance and store it in the ref
-                recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                    'size': 'invisible',
-                    'callback': () => {
-                      // reCAPTCHA solved, ready to send OTP.
-                    },
-                    'expired-callback': () => {
-                      toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                      setIsLoading(false);
-                    }
-                });
-                await recaptchaVerifierRef.current.render();
-            }
-        } catch (error) {
-            console.error("reCAPTCHA setup error:", error);
-            toast({ title: 'Verification Error', description: 'Could not initialize phone verification. Please check console for details.', variant: 'destructive' });
-            setIsLoading(false);
+      try {
+        const { auth } = await getFirebaseClient();
+        const { RecaptchaVerifier } = await import('firebase/auth');
+
+        // Ensure the container is clean before rendering
+        if (recaptchaVerifierRef.current) {
+            recaptchaVerifierRef.current.clear();
         }
+
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+            'callback': () => {
+              // reCAPTCHA solved, ready to send OTP.
+            },
+            'expired-callback': () => {
+              toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+              setIsLoading(false);
+            }
+        });
+        await recaptchaVerifierRef.current.render();
+      } catch (error) {
+        console.error("reCAPTCHA setup error:", error);
+        toast({ title: 'Verification Error', description: 'Could not initialize phone verification system.', variant: 'destructive' });
+        setIsLoading(false);
+      }
     };
 
     setupRecaptcha();
-    
-    // Cleanup function: clear the verifier when the dialog closes
+
     return () => {
-        if (recaptchaVerifierRef.current) {
-            recaptchaVerifierRef.current.clear();
-            recaptchaVerifierRef.current = null;
-        }
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
     };
   }, [open, toast]);
 
   const handleSendOtp = async () => {
     setIsLoading(true);
-    // Use the instance from the ref
     const appVerifier = recaptchaVerifierRef.current;
 
     if (!appVerifier) {
@@ -96,7 +97,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/too-many-requests') {
           description = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
-      } else if (error.code === 'auth/internal-error') {
+      } else if (error.code === 'auth/internal-error' || error.code === 'auth/internal-error-encountered.') {
          description = "An internal error occurred. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth. Please check your Firebase console.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number provided is not valid.';
@@ -172,7 +173,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             />
           </div>
         )}
-        {/* This div is required by Firebase for the invisible reCAPTCHA */}
         <div id="recaptcha-container"></div>
         
         <DialogFooter>
