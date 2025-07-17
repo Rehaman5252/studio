@@ -17,6 +17,7 @@ import { getFirebaseClient } from '@/lib/firebaseClient';
 /**
  * Removes properties with `undefined` values from an object.
  * Firestore does not support `undefined` and will throw an error.
+ * This is crucial for sanitizing data before sending it to Firestore.
  * @param obj The object to sanitize.
  * @returns A new object with `undefined` properties removed.
  */
@@ -131,7 +132,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
-                setQuizHistory(docSnap.exists() ? (docSnap.data().attempts || []) : []);
+                const historyData = docSnap.exists() ? (docSnap.data().attempts || []) : [];
+                // Sort history by timestamp descending to have the latest attempt first
+                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                setQuizHistory(historyData);
                 setIsHistoryLoading(false);
             }, (error) => {
                 console.error("Error listening to quiz history:", error);

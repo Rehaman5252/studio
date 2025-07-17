@@ -101,19 +101,22 @@ export default function CompleteProfileForm() {
 
         setIsSubmitting(true);
 
-        const finalPayload: DocumentData = {
-            ...data,
-            profileCompleted: true,
-            phoneVerified: phoneVerifiedInForm,
-            updatedAt: new Date(),
-        };
-
         try {
+            const finalPayload: DocumentData = {
+                ...data,
+                profileCompleted: true,
+                phoneVerified: phoneVerifiedInForm,
+                updatedAt: new Date(),
+            };
             await updateUserData(finalPayload);
             toast({ 
                 title: "Profile Saved!", 
                 description: "Your information has been updated successfully. Redirecting..."
             });
+            // THIS IS THE CRITICAL FIX: Ensure state update happens before navigation
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            router.replace('/home');
+
         } catch (error: any) {
             toast({
                 title: "Save Failed",
@@ -121,13 +124,7 @@ export default function CompleteProfileForm() {
                 variant: "destructive"
             });
             setIsSubmitting(false);
-            return;
         }
-
-        // Definitive fix for the UI race condition
-        setIsSubmitting(false);
-        await new Promise((resolve) => setTimeout(resolve, 50)); 
-        router.push('/home');
     };
 
     if (isUserDataLoading) {
