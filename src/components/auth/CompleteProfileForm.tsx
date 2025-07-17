@@ -109,24 +109,23 @@ export default function CompleteProfileForm() {
                 updatedAt: new Date(),
             };
             await updateUserData(finalPayload);
+            
             toast({ 
                 title: "Profile Saved!", 
                 description: "Your information has been updated successfully."
             });
+            
+            // This is the critical change: redirect *after* success and state update
+            router.replace('/home');
+
         } catch (error: any) {
             toast({
                 title: "Save Failed",
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-            setIsSubmitting(false);
-            return; // Stop execution on error
+            setIsSubmitting(false); // Only set back to false on error
         }
-
-        // The definitive fix: Update state, wait for UI to flush, then navigate.
-        setIsSubmitting(false);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        router.replace('/home');
     };
 
     if (isUserDataLoading) {
