@@ -45,7 +45,7 @@ const cricketTeams = [
 
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData, isUserDataLoading, updateUserData, isDbReady } = useAuth();
+    const { user, userData, isUserDataLoading, updateUserData } = useAuth();
     const { toast } = useToast();
     const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(userData?.phoneVerified || false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,7 +143,7 @@ export default function CompleteProfileForm() {
         )
     }
 
-    const isSaveDisabled = isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm) || !isDbReady;
+    const isSaveDisabled = isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm);
 
     return (
         <Card className="w-full max-w-lg relative">
@@ -326,12 +326,7 @@ export default function CompleteProfileForm() {
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Saving...
                                 </>
-                             ) : !isDbReady ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Connecting...
-                                </>
-                            ) : (
+                             ) : (
                                 'Save Profile'
                             )}
                         </Button>

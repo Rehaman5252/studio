@@ -58,8 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  
+
   useEffect(() => {
+    // This effect now runs only once to initialize the auth state listener.
     const initializeAuth = async () => {
         try {
             const { auth } = await getFirebaseClient();
