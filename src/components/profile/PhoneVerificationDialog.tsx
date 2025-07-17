@@ -10,13 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { getFirebaseClient } from '@/lib/firebaseClient';
 import type { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
-import { signInWithPhoneNumber } from 'firebase/auth';
-
-declare global {
-  interface Window {
-    confirmationResult?: ConfirmationResult;
-  }
-}
 
 export function PhoneVerificationDialog({ children, phone, onVerified }: { children: React.ReactNode; phone: string; onVerified: () => void; }) {
   const { user, userData, updateUserData } = useAuth();
@@ -25,77 +18,92 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  
+  // Use a ref to hold the verifier instance to prevent re-initialization on re-renders
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
-    if (!open || step !== 'initial') {
+    // This effect runs only when the dialog opens, to set up reCAPTCHA
+    if (!open) {
       return;
     }
 
+    let isMounted = true;
+
     const setupRecaptcha = async () => {
-      // Clean up previous instance if it exists to prevent memory leaks
+      // Clean up any existing verifier
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
       }
-      
-      if (!recaptchaContainerRef.current) return;
+
+      // Ensure we don't proceed if component unmounted
+      if (!isMounted) return;
 
       try {
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
+        
+        // Dynamically create the container div if it doesn't exist
+        let recaptchaContainer = document.getElementById('recaptcha-container');
+        if (!recaptchaContainer) {
+          recaptchaContainer = document.createElement('div');
+          recaptchaContainer.id = 'recaptcha-container';
+          document.body.appendChild(recaptchaContainer);
+        }
 
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           'size': 'invisible',
           'callback': () => {
-             // reCAPTCHA solved, allow send OTP to proceed.
+            // reCAPTCHA solved, allow send OTP to proceed.
+            console.log("reCAPTCHA challenge passed");
           },
           'expired-callback': () => {
-            toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-            if (recaptchaVerifierRef.current) {
-              recaptchaVerifierRef.current.clear();
-            }
+            toast({ title: 'reCAPTCHA Expired', description: 'Please close and re-open the dialog to try again.', variant: 'destructive' });
           }
         });
-
-        // Must render before use
-        await verifier.render();
+        
         recaptchaVerifierRef.current = verifier;
 
       } catch (error) {
-        console.error("reCAPTCHA render error:", error);
-        toast({ title: 'reCAPTCHA Error', description: 'Could not initialize phone verification. Please refresh and try again.', variant: 'destructive' });
+        console.error("reCAPTCHA setup error:", error);
+        toast({ title: 'Verification Error', description: 'Could not initialize phone verification. Please refresh and try again.', variant: 'destructive' });
       }
     };
 
-    // Delay setup slightly to ensure the container is in the DOM
-    const timeoutId = setTimeout(setupRecaptcha, 100);
+    setupRecaptcha();
 
     return () => {
-        clearTimeout(timeoutId);
-        if (recaptchaVerifierRef.current) {
-            recaptchaVerifierRef.current.clear();
-            recaptchaVerifierRef.current = null;
-        }
+      isMounted = false;
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+      const recaptchaContainer = document.getElementById('recaptcha-container');
+      if (recaptchaContainer) {
+        recaptchaContainer.remove();
+      }
     };
-  }, [open, toast, step]);
+  }, [open, toast]);
 
   const handleSendOtp = async () => {
     setIsLoading(true);
     if (!recaptchaVerifierRef.current) {
-      toast({ title: 'Error', description: 'reCAPTCHA not ready. Please wait a moment and try again.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait a moment and try again.', variant: 'destructive' });
       setIsLoading(false);
       return;
     }
 
     try {
       const { auth } = await getFirebaseClient();
+      const { signInWithPhoneNumber } = await import('firebase/auth');
+
       const appVerifier = recaptchaVerifierRef.current;
       const fullPhoneNumber = `+91${phone}`;
 
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
-      window.confirmationResult = confirmationResult;
+      const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
+      setConfirmationResult(result);
 
       toast({
         title: 'OTP Sent',
@@ -110,19 +118,19 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       } else if (error.code === 'auth/too-many-requests') {
         message = 'Too many requests. Please try again later.';
       } else if (error.code === 'auth/internal-error') {
-         message = 'An internal error occurred. This can happen if the app domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth.';
+         message = "Internal error. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth.";
       }
-      toast({ title: 'Error', description: message, variant: 'destructive', duration: 9000 });
+      toast({ title: 'Error Sending OTP', description: message, variant: 'destructive', duration: 9000 });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!user || !window.confirmationResult) return;
+    if (!user || !confirmationResult) return;
     setIsLoading(true);
     try {
-      await window.confirmationResult.confirm(otp);
+      await confirmationResult.confirm(otp);
       
       if(updateUserData) {
         await updateUserData({ phoneVerified: true, phone: phone });
@@ -150,17 +158,14 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     setStep('initial');
     setOtp('');
     setIsLoading(false);
-    if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-    }
+    setConfirmationResult(null);
   };
   
   const onOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
     if (!isOpen) {
       resetState();
     }
-    setOpen(isOpen);
   }
 
   const onOpenDialog = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
@@ -174,7 +179,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   return (
     <>
-      <div ref={recaptchaContainerRef}></div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <div onClick={(e: any) => onOpenDialog(e)}>
