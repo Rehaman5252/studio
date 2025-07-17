@@ -11,6 +11,14 @@ import { Loader2 } from 'lucide-react';
 import { getFirebaseClient } from '@/lib/firebaseClient';
 import type { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 
+// Declare window properties to avoid TypeScript errors
+declare global {
+    interface Window {
+        recaptchaVerifier?: RecaptchaVerifier;
+        confirmationResult?: ConfirmationResult;
+    }
+}
+
 export function PhoneVerificationDialog({ children, phone, onVerified }: { children: React.ReactNode; phone: string; onVerified: () => void; }) {
   const { user, userData, updateUserData } = useAuth();
   const { toast } = useToast();
@@ -18,45 +26,44 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-
-  // Use useRef for stable instances of verifier and container
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  
+  // This ref is just to hold the DOM element. The verifier instance is on window.
   const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) {
       // Cleanup when dialog is closed
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
       }
       return;
     }
 
     const setupRecaptcha = async () => {
-      try {
-        const { auth } = await getFirebaseClient();
-        const { RecaptchaVerifier } = await import('firebase/auth');
-        
-        // Initialize only if it hasn't been already and the container exists
-        if (recaptchaContainerRef.current && !recaptchaVerifierRef.current) {
-            recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-                'size': 'invisible',
-                'callback': () => {
-                  console.log("reCAPTCHA solved, ready to send OTP.");
-                },
-                'expired-callback': () => {
-                  toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                }
-            });
-            await recaptchaVerifierRef.current.render();
-            console.log("RecaptchaVerifier rendered.");
+        try {
+            const { auth } = await getFirebaseClient();
+            const { RecaptchaVerifier } = await import('firebase/auth');
+            
+            // Initialize only if it hasn't been already and the container exists
+            if (recaptchaContainerRef.current && !window.recaptchaVerifier) {
+                console.log("Initializing RecaptchaVerifier...");
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+                    'size': 'invisible', // Use 'normal' for debugging to see the widget
+                    'callback': () => {
+                      console.log("reCAPTCHA solved, ready to send OTP.");
+                    },
+                    'expired-callback': () => {
+                      toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+                    }
+                });
+                await window.recaptchaVerifier.render();
+                console.log("RecaptchaVerifier rendered.");
+            }
+        } catch (error) {
+            console.error("reCAPTCHA setup error:", error);
+            toast({ title: 'Verification Error', description: 'Could not initialize phone verification. Please refresh and try again.', variant: 'destructive' });
         }
-      } catch (error) {
-        console.error("reCAPTCHA setup error:", error);
-        toast({ title: 'Verification Error', description: 'Could not initialize phone verification. Please refresh and try again.', variant: 'destructive' });
-      }
     };
 
     setupRecaptcha();
@@ -65,7 +72,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   const handleSendOtp = async () => {
     setIsLoading(true);
-    const appVerifier = recaptchaVerifierRef.current;
+    const appVerifier = window.recaptchaVerifier;
 
     if (!appVerifier) {
       toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait a moment and try again.', variant: 'destructive' });
@@ -78,8 +85,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       const { signInWithPhoneNumber } = await import('firebase/auth');
       const fullPhoneNumber = `+91${phone}`;
       
-      const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
-      setConfirmationResult(result);
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
+      window.confirmationResult = confirmationResult;
 
       toast({
         title: 'OTP Sent',
@@ -89,12 +96,12 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     } catch (error: any) {
       console.error("Error sending OTP:", error);
       let message = 'Failed to send OTP. Please check the phone number and try again.';
-      if (error.code === 'auth/invalid-phone-number') {
-        message = 'The phone number provided is not valid.';
-      } else if (error.code === 'auth/too-many-requests') {
-        message = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
+      if (error.code === 'auth/too-many-requests') {
+          message = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
       } else if (error.code === 'auth/internal-error' || error.message?.includes('internal-error')) {
          message = "An internal error occurred. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth. Please check your Firebase console.";
+      } else if (error.code === 'auth/invalid-phone-number') {
+        message = 'The phone number provided is not valid.';
       }
       toast({ title: 'Error Sending OTP', description: message, variant: 'destructive', duration: 9000 });
     } finally {
@@ -103,10 +110,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   };
 
   const handleVerifyOtp = async () => {
-    if (!user || !confirmationResult) return;
+    if (!user || !window.confirmationResult) return;
     setIsLoading(true);
     try {
-      await confirmationResult.confirm(otp);
+      await window.confirmationResult.confirm(otp);
       
       if(updateUserData) {
         await updateUserData({ phoneVerified: true, phone: phone });
@@ -134,7 +141,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     setStep('initial');
     setOtp('');
     setIsLoading(false);
-    setConfirmationResult(null);
+    window.confirmationResult = undefined;
   };
   
   const onOpenChange = (isOpen: boolean) => {
@@ -155,9 +162,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   return (
     <>
-      <div id="recaptcha-container-parent">
-        <div ref={recaptchaContainerRef}></div>
-      </div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <div onClick={(e: any) => onOpenDialog(e)}>
@@ -185,6 +189,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
               />
             </div>
           )}
+          {/* This div is crucial for the RecaptchaVerifier to mount */}
+          <div ref={recaptchaContainerRef}></div>
+          
           <DialogFooter>
             {step === 'initial' ? (
               <Button onClick={handleSendOtp} disabled={isLoading}>
