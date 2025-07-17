@@ -30,6 +30,15 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   useEffect(() => {
     if (!open) {
+      // Clean up the verifier when the dialog is closed.
+      if (window.recaptchaVerifier) {
+          try {
+              window.recaptchaVerifier.clear();
+              delete window.recaptchaVerifier;
+          } catch (error) {
+              console.warn("Error clearing reCAPTCHA verifier:", error);
+          }
+      }
       return;
     }
 
@@ -69,12 +78,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
     setupRecaptcha();
 
-    return () => {
-        // Don't clear on every close, only when component unmounts fully
-        // if (window.recaptchaVerifier) {
-        //   window.recaptchaVerifier.clear();
-        // }
-    };
   }, [open, toast]);
 
   const handleSendOtp = async () => {
@@ -106,7 +109,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       if (error.code === 'auth/invalid-phone-number') {
         message = 'The phone number provided is not valid.';
       } else if (error.code === 'auth/too-many-requests') {
-        message = 'Too many requests. Please try again later.';
+        message = 'Too many requests. Please wait a while before trying again.';
       } else if (error.code === 'auth/internal-error' || error.code === 'auth/internal-error-encountered.') {
          message = "Internal error. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth.";
       }
@@ -169,7 +172,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   return (
     <>
-      <div id="recaptcha-container" />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <div onClick={(e: any) => onOpenDialog(e)}>
@@ -185,6 +187,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
                 : `Enter the 6-digit code sent to +91 ${phone}.`}
             </DialogDescription>
           </DialogHeader>
+          <div id="recaptcha-container" />
           {step === 'verify' && (
             <div className="py-4">
               <Input
