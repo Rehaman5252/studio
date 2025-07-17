@@ -24,12 +24,12 @@ import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
 
 const faceRotations = [
-    { x: 0, y: 0 },    // Front
-    { x: 0, y: -90 },  // Right
-    { x: 0, y: -180 }, // Back
-    { x: 0, y: 90 },   // Left
-    { x: -90, y: 0 },  // Top
-    { x: 90, y: 0 }    // Bottom
+    { x: 0, y: 0 },    // Front (Mixed)
+    { x: 0, y: -90 },  // Right (IPL)
+    { x: 0, y: -180 }, // Back (T20)
+    { x: 0, y: 90 },   // Left (ODI)
+    { x: -90, y: 0 },  // Top (WPL)
+    { x: 90, y: 0 }    // Bottom (Test)
 ];
 
 const QuizSelectionComponent = () => {
@@ -37,8 +37,9 @@ const QuizSelectionComponent = () => {
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     
+    const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
-    const [rotation, setRotation] = useState({ x: 0, y: 0 });
+    const [rotation, setRotation] = useState(faceRotations[0]);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
@@ -47,6 +48,22 @@ const QuizSelectionComponent = () => {
         if (!user || !lastAttemptInSlot) return false;
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
+
+    useEffect(() => {
+        if (isHovering) return;
+
+        const rotationInterval = setInterval(() => {
+            setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
+        }, 4500 / 6); // 4.5 seconds for all 6 faces
+
+        return () => clearInterval(rotationInterval);
+    }, [isHovering]);
+
+    useEffect(() => {
+        setRotation(faceRotations[currentFaceIndex]);
+        setSelectedBrand(brandData[currentFaceIndex]);
+    }, [currentFaceIndex]);
+
 
     const handleStartQuiz = useCallback((brandToStart: CubeBrand) => {
         if (!user) {
@@ -64,19 +81,16 @@ const QuizSelectionComponent = () => {
         }
     }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
     
-    useEffect(() => {
-        if (isHovering) return;
-
-        const intervalId = setInterval(() => {
-            setRotation(prev => ({ x: prev.x, y: prev.y - 15 }));
-        }, 100);
-
-        return () => clearInterval(intervalId);
-    }, [isHovering]);
-
 
     const handleFaceClick = (brand: CubeBrand) => {
-        handleStartQuiz(brand);
+        // Find the index corresponding to the clicked brand
+        const clickedIndex = brandData.findIndex(b => b.id === brand.id);
+        if (clickedIndex !== -1) {
+            // Set the cube to that face immediately
+            setCurrentFaceIndex(clickedIndex);
+            // And then start the quiz
+            handleStartQuiz(brand);
+        }
     };
 
     const handleBannerOrButtonClick = () => {
