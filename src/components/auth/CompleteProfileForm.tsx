@@ -111,12 +111,8 @@ export default function CompleteProfileForm() {
             await updateUserData(finalPayload);
             toast({ 
                 title: "Profile Saved!", 
-                description: "Your information has been updated successfully. Redirecting..."
+                description: "Your information has been updated successfully."
             });
-            // THIS IS THE CRITICAL FIX: Ensure state update happens before navigation
-            await new Promise((resolve) => setTimeout(resolve, 50));
-            router.replace('/home');
-
         } catch (error: any) {
             toast({
                 title: "Save Failed",
@@ -124,7 +120,13 @@ export default function CompleteProfileForm() {
                 variant: "destructive"
             });
             setIsSubmitting(false);
+            return; // Stop execution on error
         }
+
+        // The definitive fix: Update state, wait for UI to flush, then navigate.
+        setIsSubmitting(false);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        router.replace('/home');
     };
 
     if (isUserDataLoading) {
