@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, startTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,17 +59,18 @@ export default function CompleteProfileForm() {
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
+        // Initialize all fields to prevent uncontrolled to controlled error
         defaultValues: {
-            name: '',
-            email: '',
-            phone: '',
-            dob: '',
-            gender: undefined,
-            occupation: undefined,
-            upi: '',
-            favoriteFormat: undefined,
-            favoriteTeam: '',
-            favoriteCricketer: '',
+            name: userData?.name || user?.displayName || '',
+            email: userData?.email || user?.email || '',
+            phone: userData?.phone || '',
+            dob: userData?.dob || '',
+            gender: userData?.gender || undefined,
+            occupation: userData?.occupation || undefined,
+            upi: userData?.upi || '',
+            favoriteFormat: userData?.favoriteFormat || undefined,
+            favoriteTeam: userData?.favoriteTeam || '',
+            favoriteCricketer: userData?.favoriteCricketer || '',
         },
     });
     
@@ -118,9 +119,7 @@ export default function CompleteProfileForm() {
                 description: "Your information has been updated successfully."
             });
             
-            startTransition(() => {
-                router.replace('/home');
-            });
+            router.replace('/home');
 
         } catch (error: any) {
             console.error("🔥 Save Failed:", error);
@@ -151,7 +150,7 @@ export default function CompleteProfileForm() {
                 variant="ghost"
                 size="icon"
                 className="absolute top-4 right-4 text-muted-foreground hover:bg-muted"
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push('/home')}
                 aria-label="Close"
             >
                 <X className="h-5 w-5" />

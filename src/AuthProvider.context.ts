@@ -38,7 +38,6 @@ interface AuthContextType {
   loading: boolean;
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
-  isDbReady: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
 }
@@ -59,22 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  
-  const [isDbReady, setIsDbReady] = useState(false);
-  
-  useEffect(() => {
-    async function checkDb() {
-        try {
-            await getFirebaseClient();
-            setIsDbReady(true);
-        } catch (error) {
-            console.error("DB readiness check failed:", error);
-            setIsDbReady(false);
-        }
-    }
-    checkDb();
-  }, [])
-
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -133,7 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
                 const historyData = docSnap.exists() ? (docSnap.data().attempts || []) : [];
-                // Sort history by timestamp descending to have the latest attempt first
                 historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
                 setQuizHistory(historyData);
                 setIsHistoryLoading(false);
@@ -165,8 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { db } = await getFirebaseClient();
       const ref = doc(db, 'users', user.uid);
-      // Use setDoc with merge:true to safely create or update the document.
-      await setDoc(ref, newData, { merge: true });
+      await setDoc(ref, removeUndefined(newData), { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       throw err;
@@ -197,7 +178,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        // Sanitize payloads to remove any 'undefined' values before sending to Firestore
         const sanitizedHistory = { attempts: newHistory.map(a => removeUndefined(a)) };
         const sanitizedUserUpdate = removeUndefined(userUpdatePayload);
 
@@ -226,10 +206,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     isUserDataLoading,
     isHistoryLoading,
-    isDbReady,
     updateUserData,
     addQuizAttempt,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, isDbReady, updateUserData, addQuizAttempt]);
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
   return (
     <AuthContext.Provider value={value}>

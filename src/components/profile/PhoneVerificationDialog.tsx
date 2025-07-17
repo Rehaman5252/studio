@@ -11,7 +11,6 @@ import { Loader2 } from 'lucide-react';
 import { getFirebaseClient } from '@/lib/firebaseClient';
 import type { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 
-// Extend the Window interface to avoid TypeScript errors
 declare global {
   interface Window {
     recaptchaVerifier?: RecaptchaVerifier;
@@ -27,15 +26,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
-
 
   useEffect(() => {
     if (!open) {
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
       }
       return;
     }
@@ -45,8 +42,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
         
-        if (recaptchaContainerRef.current && !recaptchaVerifierRef.current) {
-            recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+        if (recaptchaContainerRef.current && !window.recaptchaVerifier) {
+            const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
                 'size': 'invisible',
                 'callback': () => {
                   console.log("reCAPTCHA solved, ready to send OTP.");
@@ -55,7 +52,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
                   toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
                 }
             });
-            await recaptchaVerifierRef.current.render();
+            await verifier.render();
+            window.recaptchaVerifier = verifier;
             console.log("RecaptchaVerifier rendered.");
         }
       } catch (error) {
@@ -70,7 +68,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   const handleSendOtp = async () => {
     setIsLoading(true);
-    const appVerifier = recaptchaVerifierRef.current;
+    const appVerifier = window.recaptchaVerifier;
 
     if (!appVerifier) {
       toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait a moment and try again.', variant: 'destructive' });
@@ -93,14 +91,14 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       });
       setStep('verify');
     } catch (error: any) {
-      console.error("Error sending OTP:", error.code, error.message);
+      console.error("Error sending OTP:", error);
       let message = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/invalid-phone-number') {
         message = 'The phone number provided is not valid.';
       } else if (error.code === 'auth/too-many-requests') {
         message = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
-      } else if (error.code === 'auth/internal-error' || error.code?.includes('internal-error')) {
-         message = "Internal error. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth.";
+      } else if (error.code === 'auth/internal-error' || error.message?.includes('internal-error')) {
+         message = "An internal error occurred. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth. Please check your Firebase console.";
       }
       toast({ title: 'Error Sending OTP', description: message, variant: 'destructive', duration: 9000 });
     } finally {

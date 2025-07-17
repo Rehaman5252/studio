@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  
+
   useEffect(() => {
     const initializeAuth = async () => {
         try {
@@ -116,7 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
                 const historyData = docSnap.exists() ? (docSnap.data().attempts || []) : [];
-                // Sort history by timestamp descending to have the latest attempt first
                 historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
                 setQuizHistory(historyData);
                 setIsHistoryLoading(false);
@@ -148,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { db } = await getFirebaseClient();
       const ref = doc(db, 'users', user.uid);
-      await setDoc(ref, newData, { merge: true });
+      await setDoc(ref, removeUndefined(newData), { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       throw err;

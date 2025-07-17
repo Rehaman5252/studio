@@ -56,7 +56,7 @@ const ResultsLoader = () => (
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user, lastAttempt } = useAuth();
+    const { user, lastAttempt, setLastAttempt } = useAuth();
     const { lastAttemptInSlot, isLoading: isContextLoading } = useQuizStatus();
     
     const [showAnswers, setShowAnswers] = useState(false);
@@ -68,6 +68,16 @@ function ResultsComponent() {
 
     const finalAttempt = lastAttempt || lastAttemptInSlot;
     
+    useEffect(() => {
+        // Clear the lastAttempt from context once it's used on the results page
+        // to prevent it from showing up stale on the next quiz.
+        return () => {
+            if (lastAttempt) {
+                setLastAttempt(null);
+            }
+        };
+    }, [lastAttempt, setLastAttempt]);
+    
     const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp } = useMemo(() => {
         return {
             ...finalAttempt,
@@ -76,7 +86,6 @@ function ResultsComponent() {
     }, [finalAttempt]);
     
     const isPerfectScore = useMemo(() => score === totalQuestions && totalQuestions > 0, [score, totalQuestions]);
-    
     
     const slotTimings = useMemo(() => {
         if (!timestamp) return '';
