@@ -41,6 +41,7 @@ const QuizSelectionComponent = () => {
     const [rotation, setRotation] = useState({ x: 0, y: 0 });
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
@@ -64,19 +65,14 @@ const QuizSelectionComponent = () => {
     }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
     
     useEffect(() => {
-        let faceIndex = 0;
+        if (isHovering) return;
+
         const intervalId = setInterval(() => {
-            faceIndex = (faceIndex + 1) % brandData.length;
-            
-            const newBrand = brandData[faceIndex];
-            const newRotation = faceRotations[faceIndex];
-            
-            setRotation(newRotation);
-            setSelectedBrand(newBrand);
-        }, 750); // 4.5 seconds / 6 faces = 0.75 seconds per face
+            setRotation(prev => ({ x: prev.x, y: prev.y - 15 }));
+        }, 100);
 
         return () => clearInterval(intervalId);
-    }, []);
+    }, [isHovering]);
 
 
     const handleFaceClick = (brand: CubeBrand) => {
@@ -120,7 +116,11 @@ const QuizSelectionComponent = () => {
                 <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
             
-            <div className="flex justify-center items-center mt-6 mb-8 h-48 w-full transition-transform duration-300 hover:scale-105">
+            <div 
+                className="flex justify-center items-center mt-6 mb-8 h-48 w-full transition-transform duration-300 hover:scale-105"
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+            >
                 <BrandCube onFaceClick={handleFaceClick} rotation={rotation} />
             </div>
 

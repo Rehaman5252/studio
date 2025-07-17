@@ -239,10 +239,10 @@ function QuizComponent() {
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentQuestionIndex}
-                    initial={{ opacity: 0, x: 50 }}
+                    initial={{ opacity: 0, x: 30 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.3, type: 'spring', damping: 15, stiffness: 100 }}
+                    exit={{ opacity: 0, x: -30 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                 >
                     <QuestionCard
                         question={currentQuestion}
