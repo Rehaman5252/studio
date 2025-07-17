@@ -59,12 +59,12 @@ function QuizComponent() {
     fetchQuiz();
   }, [format, router, toast]);
 
-  const submitQuiz = useCallback(async (reason?: 'malpractice') => {
+  const submitQuiz = useCallback(async (currentAnswers: (string | null)[], reason?: 'malpractice') => {
     if (!user || !questions || !addQuizAttempt || !setLastAttempt) return;
+    
     setQuizState('submitting');
     
-    const finalUserAnswers = userAnswers.map(ans => ans === null ? "Not Answered" : ans);
-
+    const finalUserAnswers = currentAnswers.map(ans => ans === null ? "Not Answered" : ans);
     const score = questions.reduce((acc, q, index) => (finalUserAnswers[index] === q.correctAnswer ? acc + 1 : acc), 0);
     const slotId = getQuizSlotId();
     
@@ -82,31 +82,49 @@ function QuizComponent() {
         reason,
     };
 
+    // Set the last attempt in the client state for instant access on results page
+    setLastAttempt(attemptData);
+    
+    // Using replace to prevent back navigation to the quiz
+    router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
+
+    // Save to DB in the background, don't await it here to ensure instant navigation
     try {
         await addQuizAttempt(attemptData);
-        // Set the last attempt in the client state for instant access on results page
-        setLastAttempt(attemptData);
-        // Using replace to prevent back navigation to the quiz
-        router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
     } catch (error) {
-        console.error("Error submitting quiz results:", error);
-        toast({ title: 'Submission Error', description: 'Could not save your quiz results.', variant: 'destructive' });
-        setQuizState('playing');
+        console.error("Error submitting quiz results to DB:", error);
+        // The user is already on the results page, but we can toast a warning
+        // This is a silent failure from the user's perspective, but good for debugging
+        toast({ title: 'Sync Error', description: 'Could not save your quiz results to your history.', variant: 'destructive' });
     }
-  }, [user, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt]);
+  }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt]);
+
+  const handleFinalAnswerAndSubmit = useCallback((option: string) => {
+    if (!questions) return;
+    
+    const timeTaken = (Date.now() - questionStartTime) / 1000;
+    const finalTimePerQuestion = [...timePerQuestion, timeTaken];
+    setTimePerQuestion(finalTimePerQuestion);
+
+    const finalAnswers = [...userAnswers];
+    finalAnswers[currentQuestionIndex] = option;
+    setUserAnswers(finalAnswers);
+
+    submitQuiz(finalAnswers);
+
+  }, [questionStartTime, timePerQuestion, userAnswers, currentQuestionIndex, questions, submitQuiz]);
+
 
   const goToNextQuestion = useCallback(() => {
     if (!questions) return;
-    if (currentQuestionIndex < questions.length - 1) {
-      setSelectedOption(null);
-      setIsHintVisible(false);
-      setCurrentQuestionIndex(prev => prev + 1);
-      setTimeLeft(20);
-      setQuestionStartTime(Date.now());
-    } else {
-      submitQuiz();
-    }
-  }, [questions, currentQuestionIndex, submitQuiz]);
+    
+    setSelectedOption(null);
+    setIsHintVisible(false);
+    setCurrentQuestionIndex(prev => prev + 1);
+    setTimeLeft(20);
+    setQuestionStartTime(Date.now());
+
+  }, [questions]);
 
   const handleNextWithAdCheck = useCallback(() => {
     const adToShow = interstitialAds[currentQuestionIndex];
@@ -147,9 +165,13 @@ function QuizComponent() {
     });
 
     setTimeout(() => {
-      handleNextWithAdCheck();
+        if (currentQuestionIndex === questions.length - 1) {
+            handleFinalAnswerAndSubmit(option);
+        } else {
+            handleNextWithAdCheck();
+        }
     }, 300);
-  }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextWithAdCheck, questions]);
+  }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextWithAdCheck, questions, handleFinalAnswerAndSubmit]);
   
   const handleAdComplete = useCallback(() => {
       setQuizState('playing');
@@ -189,14 +211,14 @@ function QuizComponent() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && quizState === 'playing') {
-        submitQuiz('malpractice');
+        submitQuiz(userAnswers, 'malpractice');
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [quizState, submitQuiz]);
+  }, [quizState, submitQuiz, userAnswers]);
 
   if (quizState === 'loading') {
     return <CricketLoading message="Warming up the bowlers..." format={format} />;
@@ -227,47 +249,29 @@ function QuizComponent() {
         <div className="w-full max-w-2xl mx-auto">
             <QuizHeader format={format} current={currentQuestionIndex} total={questions.length} />
             
-            <motion.div 
-              className="flex justify-center my-6"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', damping: 10, stiffness: 100, delay: 0.2 }}
-            >
+            <div className="flex justify-center my-6">
                 <Timer timeLeft={timeLeft} />
-            </motion.div>
+            </div>
 
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={currentQuestionIndex}
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                >
-                    <QuestionCard
-                        question={currentQuestion}
-                        isHintVisible={isHintVisible}
-                        options={currentQuestion.options}
-                        selectedOption={selectedOption}
-                        handleAnswerSelect={handleAnswerSelect}
-                    />
-                </motion.div>
-            </AnimatePresence>
+            <QuestionCard
+                question={currentQuestion}
+                isHintVisible={isHintVisible}
+                options={currentQuestion.options}
+                selectedOption={selectedOption}
+                handleAnswerSelect={handleAnswerSelect}
+            />
 
-            <motion.div 
+            <div 
               className="mt-6 flex justify-between items-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.4 }}
             >
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
-                <Button onClick={handleNextWithAdCheck} disabled={!selectedOption}>
+                <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={!selectedOption}>
                     {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} 
                     <ChevronsRight className="ml-2" />
                 </Button>
-            </motion.div>
+            </div>
         </div>
       </main>
 
