@@ -36,12 +36,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             
             // Initialize only if it hasn't been initialized yet
             if (!recaptchaVerifierRef.current) {
-                console.log("Initializing RecaptchaVerifier...");
                 // Create a new verifier instance and store it in the ref
                 recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
                     'size': 'invisible',
                     'callback': () => {
-                      console.log("reCAPTCHA solved, ready to send OTP.");
+                      // reCAPTCHA solved, ready to send OTP.
                     },
                     'expired-callback': () => {
                       toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
@@ -49,7 +48,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
                     }
                 });
                 await recaptchaVerifierRef.current.render();
-                console.log("RecaptchaVerifier rendered.");
             }
         } catch (error) {
             console.error("reCAPTCHA setup error:", error);
@@ -65,7 +63,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         if (recaptchaVerifierRef.current) {
             recaptchaVerifierRef.current.clear();
             recaptchaVerifierRef.current = null;
-            console.log("RecaptchaVerifier cleared.");
         }
     };
   }, [open, toast]);
@@ -171,7 +168,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
               placeholder="123456"
               maxLength={6}
               disabled={isLoading}
-              type="tel" // Use tel for better mobile UX
+              type="tel"
             />
           </div>
         )}
