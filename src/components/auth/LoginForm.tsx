@@ -39,7 +39,6 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { isDbReady } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -105,17 +104,7 @@ export default function LoginForm() {
     }
   }
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured || !isDbReady;
-
-  const AuthButtonContent = ({ isSpecificLoading, defaultText, loadingText }: { isSpecificLoading: boolean, defaultText: string, loadingText: string }) => {
-    if (!isDbReady) {
-        return <><Loader2 className="animate-spin mr-2" /> Connecting...</>
-    }
-    if (isSpecificLoading) {
-        return <><Loader2 className="animate-spin mr-2" /> {loadingText}</>
-    }
-    return <>{defaultText}</>;
-  };
+  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
 
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
@@ -134,11 +123,11 @@ export default function LoginForm() {
       ) : (
         <div className="space-y-4">
             <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
-                <AuthButtonContent 
-                    isSpecificLoading={isGoogleLoading}
-                    defaultText={<><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
-                    loadingText="Signing In..."
-                />
+                {isGoogleLoading ? (
+                    <><Loader2 className="animate-spin mr-2" /> Signing In...</>
+                ) : (
+                    <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>
+                )}
             </Button>
 
             <div className="relative">
@@ -174,11 +163,9 @@ export default function LoginForm() {
                 {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                <AuthButtonContent 
-                    isSpecificLoading={isLoading}
-                    defaultText="Sign In"
-                    loadingText="Signing In..."
-                />
+                {isLoading ? (
+                    <><Loader2 className="animate-spin mr-2" /> Signing In...</>
+                ) : "Sign In"}
             </Button>
             </form>
         </div>

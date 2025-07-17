@@ -38,7 +38,6 @@ interface AuthContextType {
   loading: boolean;
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
-  isDbReady: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
 }
@@ -60,25 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  const [isDbReady, setIsDbReady] = useState(false);
-  
   useEffect(() => {
-    async function checkDb() {
-        try {
-            await getFirebaseClient();
-            setIsDbReady(true);
-        } catch (error) {
-            console.error("DB readiness check failed:", error);
-            setIsDbReady(false);
-        }
-    }
-    checkDb();
-  }, [])
-
-
-  useEffect(() => {
-    if (!isDbReady) return;
-
     const initializeAuth = async () => {
         try {
             const { auth } = await getFirebaseClient();
@@ -105,10 +86,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         unsubscribePromise.then(unsub => unsub && unsub());
     };
-}, [isDbReady]);
+}, []);
 
   useEffect(() => {
-    if (!user || !isDbReady) {
+    if (!user) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
@@ -156,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, isDbReady]);
+  }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) {
@@ -228,10 +209,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     isUserDataLoading,
     isHistoryLoading,
-    isDbReady,
     updateUserData,
     addQuizAttempt,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, isDbReady, updateUserData, addQuizAttempt]);
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
 
   return (
     <AuthContext.Provider value={value}>
