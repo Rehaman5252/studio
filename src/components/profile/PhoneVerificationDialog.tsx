@@ -23,10 +23,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     setIsLoading(true);
     try {
       const result = await sendPhoneOtp({ phone });
-      if (result.success) {
+      if (result.success && result.otp) {
         toast({
-          title: 'Demo: OTP Sent',
-          description: 'A code has been sent to your phone. For this demo, use 654321.',
+          title: 'OTP Sent (Demo)',
+          description: `Your verification code is: ${result.otp}`,
           duration: 9000
         });
         setStep('verify');
