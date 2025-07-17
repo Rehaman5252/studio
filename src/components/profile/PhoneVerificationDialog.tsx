@@ -15,6 +15,7 @@ import { signInWithPhoneNumber } from 'firebase/auth';
 declare global {
   interface Window {
     confirmationResult?: ConfirmationResult;
+    recaptchaVerifier?: RecaptchaVerifier;
   }
 }
 
@@ -26,54 +27,53 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !recaptchaContainerRef.current) return;
 
-    let isMounted = true;
+    let verifier: RecaptchaVerifier | undefined;
 
     const setupRecaptcha = async () => {
-      if (!recaptchaContainerRef.current || recaptchaVerifierRef.current) return;
-
-      const { auth } = await getFirebaseClient();
-      const { RecaptchaVerifier } = await import('firebase/auth');
-
       try {
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+        const { auth } = await getFirebaseClient();
+        const { RecaptchaVerifier } = await import('firebase/auth');
+
+        // Ensure we don't create multiple verifiers
+        if (window.recaptchaVerifier) {
+          window.recaptchaVerifier.clear();
+        }
+
+        verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current!, {
           'size': 'invisible',
           'callback': () => {
-            console.log("reCAPTCHA solved, ready to send OTP.");
+            // This callback is called when reCAPTCHA is successfully solved.
           },
           'expired-callback': () => {
+            // Response expired. Ask user to solve reCAPTCHA again.
             toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-            recaptchaVerifierRef.current?.clear();
-            recaptchaVerifierRef.current = null;
+            window.recaptchaVerifier?.clear();
           }
         });
-        if (isMounted) {
-          recaptchaVerifierRef.current = verifier;
-        }
-      } catch (e) {
-        console.error("Recaptcha setup error", e);
-        toast({ title: 'Error', description: 'Could not initialize reCAPTCHA. Please refresh the page.', variant: 'destructive' });
+        window.recaptchaVerifier = verifier;
+        await verifier.render();
+      } catch (error) {
+        console.error("reCAPTCHA render error:", error);
+        toast({ title: 'reCAPTCHA Error', description: 'Could not initialize phone verification. Please refresh and try again.', variant: 'destructive' });
       }
     };
 
     setupRecaptcha();
 
     return () => {
-      isMounted = false;
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
+      if (verifier) {
+        verifier.clear();
       }
     };
   }, [open, toast]);
 
   const handleSendOtp = async () => {
     setIsLoading(true);
-    if (!recaptchaVerifierRef.current) {
+    if (!window.recaptchaVerifier) {
       toast({ title: 'Error', description: 'reCAPTCHA not ready. Please wait a moment and try again.', variant: 'destructive' });
       setIsLoading(false);
       return;
@@ -81,7 +81,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
     try {
       const { auth } = await getFirebaseClient();
-      const appVerifier = recaptchaVerifierRef.current;
+      const appVerifier = window.recaptchaVerifier;
       const fullPhoneNumber = `+91${phone}`;
 
       const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
@@ -100,11 +100,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       } else if (error.code === 'auth/too-many-requests') {
         message = 'Too many requests. Please try again later.';
       } else if (error.code === 'auth/internal-error') {
-         message = 'An internal error occurred. This might be due to an incomplete Firebase project setup for Phone Auth.';
+         message = 'An internal error occurred. This might be due to an incomplete Firebase project setup for Phone Auth (e.g., missing SHA-1 keys in console).';
       }
       toast({ title: 'Error', description: message, variant: 'destructive' });
-      recaptchaVerifierRef.current?.clear();
-      recaptchaVerifierRef.current = null;
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +115,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       await window.confirmationResult.confirm(otp);
       
       if(updateUserData) {
-        await updateUserData({ phoneVerified: true });
+        await updateUserData({ phoneVerified: true, phone: phone });
       }
       
       toast({ title: 'Success', description: 'Your phone number has been verified.' });
@@ -142,17 +140,16 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     setStep('initial');
     setOtp('');
     setIsLoading(false);
-    if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
+    if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
     }
   };
   
   const onOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen);
     if (!isOpen) {
       resetState();
     }
+    setOpen(isOpen);
   }
 
   const onOpenDialog = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
