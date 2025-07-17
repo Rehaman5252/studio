@@ -16,6 +16,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { PhoneVerificationDialog } from '../profile/PhoneVerificationDialog';
+import { getFirebaseClient } from '@/lib/firebaseClient';
+import { doc, setDoc } from 'firebase/firestore';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -47,36 +49,29 @@ export default function CompleteProfileForm() {
     const router = useRouter();
     const { user, userData, isUserDataLoading, updateUserData } = useAuth();
     const { toast } = useToast();
-    const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(userData?.phoneVerified || false);
+    const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    useEffect(() => {
+        if(userData) {
+            setPhoneVerifiedInForm(userData.phoneVerified || false);
+        }
+    }, [userData]);
     
     const isProfileComplete = userData?.profileCompleted || false;
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: userData?.name || user?.displayName || '',
-            email: userData?.email || user?.email || '',
-            phone: userData?.phone || '',
-            dob: userData?.dob || '',
-            gender: userData?.gender,
-            occupation: userData?.occupation,
-            upi: userData?.upi || '',
-            favoriteFormat: userData?.favoriteFormat,
-            favoriteTeam: userData?.favoriteTeam,
-            favoriteCricketer: userData?.favoriteCricketer || '',
+            name: '',
+            email: '',
+            phone: '',
+            dob: '',
         },
     });
     
-    const watchedPhone = form.watch('phone');
-    const needsVerification = watchedPhone !== userData?.phone || !userData?.phoneVerified;
-    
     useEffect(() => {
-        setPhoneVerifiedInForm(userData?.phoneVerified || false);
-    }, [userData?.phoneVerified])
-    
-    useEffect(() => {
-        if (userData) {
+        if (userData || user) {
             form.reset({
                 name: userData?.name || user?.displayName || '',
                 email: userData?.email || user?.email || '',
@@ -90,13 +85,15 @@ export default function CompleteProfileForm() {
                 favoriteCricketer: userData?.favoriteCricketer || '',
             });
         }
-    }, [userData, form, user]);
+    }, [userData, user, form]);
 
+    const watchedPhone = form.watch('phone');
+    const needsVerification = watchedPhone !== userData?.phone || !userData?.phoneVerified;
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (isSubmitting) return; // Prevent double submits
+        if (isSubmitting) return; 
 
-        if (!user || !updateUserData) {
+        if (!user) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
         }
@@ -111,14 +108,16 @@ export default function CompleteProfileForm() {
                 updatedAt: new Date(),
             };
             
-            await updateUserData(finalPayload);
+            // Using getFirebaseClient directly to ensure DB instance is available
+            const { db } = await getFirebaseClient();
+            const ref = doc(db, 'users', user.uid);
+            await setDoc(ref, finalPayload, { merge: true });
             
             toast({ 
                 title: "Profile Saved!", 
                 description: "Your information has been updated successfully."
             });
             
-            setIsSubmitting(false);
             startTransition(() => {
                 router.replace('/home');
             });
@@ -130,6 +129,7 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
+        } finally {
             setIsSubmitting(false);
         }
     };
