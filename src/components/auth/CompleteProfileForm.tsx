@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useCallback, useState, useEffect, useRef, startTransition } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,8 +16,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { PhoneVerificationDialog } from '../profile/PhoneVerificationDialog';
-import { getFirebaseClient } from '@/lib/firebaseClient';
-import { doc, setDoc } from 'firebase/firestore';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -44,10 +42,9 @@ const cricketTeams = [
     'Sunrisers Hyderabad', 'Punjab Kings', 'Delhi Capitals', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans'
 ];
 
-
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData, isUserDataLoading } = useAuth();
+    const { user, userData, updateUserData, isUserDataLoading } = useAuth();
     const { toast } = useToast();
     const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,7 +64,7 @@ export default function CompleteProfileForm() {
             email: '',
             phone: '',
             dob: '',
-            gender: undefined, // Controlled by Select, so undefined is fine here
+            gender: undefined,
             occupation: undefined,
             upi: '',
             favoriteFormat: undefined,
@@ -97,9 +94,9 @@ export default function CompleteProfileForm() {
     const needsVerification = watchedPhone !== userData?.phone || !userData?.phoneVerified;
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (isSubmitting) return; 
+        if (isSubmitting) return;
 
-        if (!user) {
+        if (!user || !updateUserData) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
         }
@@ -114,9 +111,7 @@ export default function CompleteProfileForm() {
                 updatedAt: new Date(),
             };
             
-            const { db } = await getFirebaseClient();
-            const ref = doc(db, 'users', user.uid);
-            await setDoc(ref, finalPayload, { merge: true });
+            await updateUserData(finalPayload);
             
             toast({ 
                 title: "Profile Saved!", 
@@ -134,6 +129,7 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
+        } finally {
             setIsSubmitting(false);
         }
     };

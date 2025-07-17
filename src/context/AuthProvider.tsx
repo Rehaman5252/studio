@@ -58,9 +58,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-
+  
   useEffect(() => {
-    // This effect now runs only once to initialize the auth state listener.
     const initializeAuth = async () => {
         try {
             const { auth } = await getFirebaseClient();
@@ -149,7 +148,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { db } = await getFirebaseClient();
       const ref = doc(db, 'users', user.uid);
-      // Use setDoc with merge:true to safely create or update the document.
       await setDoc(ref, newData, { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
@@ -181,7 +179,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        // Sanitize payloads to remove any 'undefined' values before sending to Firestore
         const sanitizedHistory = { attempts: newHistory.map(a => removeUndefined(a)) };
         const sanitizedUserUpdate = removeUndefined(userUpdatePayload);
 

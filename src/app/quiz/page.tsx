@@ -19,7 +19,6 @@ import { Lightbulb, ChevronsRight } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import withAuth from '@/components/auth/withAuth';
-import { AnimatePresence, motion } from 'framer-motion';
 
 function QuizComponent() {
   const { user, addQuizAttempt, setLastAttempt } = useAuth();
@@ -82,18 +81,12 @@ function QuizComponent() {
         reason,
     };
 
-    // Set the last attempt in the client state for instant access on results page
     setLastAttempt(attemptData);
     
-    // Using replace to prevent back navigation to the quiz
     router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
 
-    // Save to DB in the background. DO NOT await this.
-    // This is a "fire-and-forget" operation to ensure instant navigation.
     addQuizAttempt(attemptData).catch(error => {
         console.error("Error submitting quiz results to DB:", error);
-        // The user is already on the results page, but we can toast a warning
-        // This is a silent failure from the user's perspective, but good for debugging
         toast({ title: 'Sync Error', description: 'Could not save your quiz results to your history.', variant: 'destructive' });
     });
   }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt]);
@@ -109,7 +102,6 @@ function QuizComponent() {
     finalAnswers[currentQuestionIndex] = option;
     setUserAnswers(finalAnswers);
 
-    // Call submitQuiz with the final, updated state
     submitQuiz(finalAnswers);
 
   }, [questionStartTime, timePerQuestion, userAnswers, currentQuestionIndex, questions, submitQuiz]);
@@ -129,7 +121,7 @@ function QuizComponent() {
   const handleNextWithAdCheck = useCallback(() => {
     const adToShow = interstitialAds[currentQuestionIndex];
     if (adToShow?.type === 'video' && adToShow.videoUrl) {
-      setQuizState('ad'); // Trigger AdDialog
+      setQuizState('ad');
       setAdConfig({
         adType: 'video',
         adUrl: adToShow.videoUrl,
@@ -143,7 +135,7 @@ function QuizComponent() {
         },
       });
     } else if (adToShow?.type === 'static' && adToShow.logoUrl) {
-      setQuizState('ad'); // Trigger InterstitialLoader
+      setQuizState('ad');
     } else {
       goToNextQuestion();
     }
@@ -244,7 +236,6 @@ function QuizComponent() {
   const currentQuestion = questions[currentQuestionIndex];
   
   if (!currentQuestion) {
-    // This handles the edge case where questions are loaded but the index is out of bounds.
     return <CricketLoading state="error" errorMessage="There was a problem with the next question." />;
   }
 

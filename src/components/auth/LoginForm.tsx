@@ -16,7 +16,6 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthProvider';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -63,7 +62,7 @@ export default function LoginForm() {
         return;
       }
       toast({ title: "Signed In", description: "Welcome back!" });
-      router.push(from || '/home');
+      router.replace(from || '/home');
     } catch (error: any) {
       console.error("Login failed:", error.code, error.message);
       let description = 'An unexpected error occurred. Please try again.';
@@ -92,12 +91,11 @@ export default function LoginForm() {
         const user = await handleGoogleSignIn();
         if (user) {
             toast({ title: "Signed In", description: `Welcome back, ${user.displayName}!` });
-            router.push(from || '/home');
+            router.replace(from || '/home');
         } else {
             toast({ title: 'Sign In Cancelled', description: 'Google sign in was cancelled or failed.', variant: 'destructive' });
         }
     } catch (error) {
-        // Error handling is done within handleGoogleSignIn
         console.error("Google login process failed on the login page.");
     } finally {
         setIsGoogleLoading(false);

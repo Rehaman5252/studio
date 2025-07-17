@@ -16,7 +16,6 @@ import { AnalysisCard } from '@/components/quiz/AnalysisCard';
 import { AnswerReview } from '@/components/quiz/AnswerReview';
 import { motion } from 'framer-motion';
 
-
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
     return (
@@ -67,7 +66,6 @@ function ResultsComponent() {
     const reason = useMemo(() => searchParams.get('reason'), [searchParams]);
     const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
 
-    // Prioritize the instantly available `lastAttempt` from context, fall back to the one from QuizStatusProvider
     const finalAttempt = lastAttempt || lastAttemptInSlot;
     
     const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp } = useMemo(() => {
@@ -112,7 +110,6 @@ function ResultsComponent() {
         return <MalpracticeScreen />;
     }
 
-    // Show loader only if neither attempt is available yet
     if (isContextLoading && !finalAttempt) {
         return <ResultsLoader />;
     }
@@ -161,7 +158,7 @@ function ResultsComponent() {
                     format={format}
                 />
 
-                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "CricBlitz User"} date={today} slotTimings={slotTimings} />}
+                {isPerfectScore && <Certificate format={format} userName={user?.displayName || "indcric User"} date={today} slotTimings={slotTimings} />}
                 
                 {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
             </motion.div>

@@ -47,19 +47,15 @@ const verifyPhoneOtpFlow = ai.defineFlow(
 
       const otpData = docSnap.data();
       
-      // Check if OTP has expired
       if (otpData.expires.toDate() < new Date()) {
-        await deleteDoc(otpRequestRef); // Clean up expired OTP
+        await deleteDoc(otpRequestRef);
         return { success: false, message: 'The OTP has expired. Please request a new one.' };
       }
 
-      // Check if the OTP matches
       if (otpData.otp !== otp) {
         return { success: false, message: 'The OTP entered is incorrect. Please try again.' };
       }
 
-      // Successful verification
-      // Delete the OTP document so it cannot be reused.
       await deleteDoc(otpRequestRef); 
       
       console.log(`[REAL-OTP] Successfully verified OTP for ${phone}.`);

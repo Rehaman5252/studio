@@ -50,15 +50,12 @@ export default function SignupForm() {
     try {
         const user = await handleGoogleSignIn();
         if (user) {
-            // AuthProvider will create the document via onAuthStateChanged
             toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
-            router.push('/complete-profile');
+            router.replace('/complete-profile');
         } else {
-            // This case handles when the popup is closed or there's a non-crashing error
             toast({ title: 'Sign Up Cancelled', description: 'Google sign up was cancelled or failed.', variant: 'destructive' });
         }
     } catch (error: any) {
-         // This catches errors thrown from handleGoogleSignIn
          if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
              toast({ title: 'Sign Up Failed', description: 'Could not sign in with Google. Please try again.', variant: 'destructive' });
          }

@@ -14,7 +14,6 @@ import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebaseClient } from './firebaseClient';
 
-
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
   if (!user) {
     console.error("❌ createUserDocument failed: User is missing.");
@@ -56,7 +55,6 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
   }
 }
 
-
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
@@ -88,11 +86,9 @@ export async function handleGoogleSignIn(): Promise<User | null> {
   }
 }
 
-
 export const registerWithEmail = async (email: string, password: string) => {
     const { auth } = await getFirebaseClient();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // Verification email is now sent from the component that calls this.
     return userCredential;
 };
 
