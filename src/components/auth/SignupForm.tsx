@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, sendEmailVerification } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -73,11 +73,9 @@ export default function SignupForm() {
     setIsLoading(true);
     try {
         const userCredential = await registerWithEmail(data.email, data.password);
-        const { auth } = await getFirebaseClient();
         
-        if (auth.currentUser) {
-            await updateProfile(auth.currentUser, { displayName: data.name });
-        }
+        await updateProfile(userCredential.user, { displayName: data.name });
+        await sendEmailVerification(userCredential.user);
         
         toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
@@ -94,8 +92,12 @@ export default function SignupForm() {
             case 'auth/invalid-email':
                 description = 'The email address is not valid.';
                 break;
+            case 'auth/network-request-failed':
+                description = 'You appear to be offline. Please check your connection and try again.';
+                break;
             default:
                 description = 'An error occurred during sign up.';
+                console.error("Signup Error:", error);
                 break;
         }
         toast({ title: 'Sign Up Failed', description, variant: 'destructive' });

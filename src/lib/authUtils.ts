@@ -92,8 +92,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 export const registerWithEmail = async (email: string, password: string) => {
     const { auth } = await getFirebaseClient();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // Send verification email
-    await sendEmailVerification(userCredential.user);
+    // Verification email is now sent from the component that calls this.
     return userCredential;
 };
 
