@@ -77,6 +77,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
+    if (!isDbReady) return;
+
     const initializeAuth = async () => {
         try {
             const { auth } = await getFirebaseClient();
@@ -103,10 +105,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         unsubscribePromise.then(unsub => unsub && unsub());
     };
-}, []);
+}, [isDbReady]);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !isDbReady) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
@@ -154,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeUser) unsubscribeUser();
       if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user]);
+  }, [user, isDbReady]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user) {

@@ -17,6 +17,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { getFirebaseClient } from '@/lib/firebaseClient';
+import { useAuth } from '@/context/AuthProvider';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -40,6 +41,7 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
+  const { isDbReady } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -104,7 +106,17 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
+  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured || !isDbReady;
+
+  const AuthButtonContent = ({ isSpecificLoading, defaultText, loadingText }: { isSpecificLoading: boolean, defaultText: string | React.ReactNode, loadingText: string }) => {
+    if (!isDbReady) {
+        return <><Loader2 className="animate-spin mr-2" /> Connecting...</>
+    }
+    if (isSpecificLoading) {
+        return <><Loader2 className="animate-spin mr-2" /> {loadingText}</>
+    }
+    return <>{defaultText}</>;
+  };
   
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
@@ -118,7 +130,11 @@ export default function SignupForm() {
       ) : (
         <div className="space-y-4">
             <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled}>
-                {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
+                <AuthButtonContent 
+                    isSpecificLoading={isGoogleLoading}
+                    defaultText={<><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
+                    loadingText="Signing Up..."
+                />
             </Button>
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -151,7 +167,11 @@ export default function SignupForm() {
                     {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
                 </div>
                 <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                    {isLoading ? <Loader2 className="animate-spin mr-2" /> : 'Create Account'}
+                     <AuthButtonContent 
+                        isSpecificLoading={isLoading}
+                        defaultText="Create Account"
+                        loadingText="Creating Account..."
+                    />
                 </Button>
             </form>
         </div>

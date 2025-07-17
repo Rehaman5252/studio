@@ -16,6 +16,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthProvider';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -38,6 +39,8 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
+  const { isDbReady } = useAuth();
+
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -102,7 +105,17 @@ export default function LoginForm() {
     }
   }
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
+  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured || !isDbReady;
+
+  const AuthButtonContent = ({ isSpecificLoading, defaultText, loadingText }: { isSpecificLoading: boolean, defaultText: string, loadingText: string }) => {
+    if (!isDbReady) {
+        return <><Loader2 className="animate-spin mr-2" /> Connecting...</>
+    }
+    if (isSpecificLoading) {
+        return <><Loader2 className="animate-spin mr-2" /> {loadingText}</>
+    }
+    return <>{defaultText}</>;
+  };
 
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
@@ -121,7 +134,11 @@ export default function LoginForm() {
       ) : (
         <div className="space-y-4">
             <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
-                {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
+                <AuthButtonContent 
+                    isSpecificLoading={isGoogleLoading}
+                    defaultText={<><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>}
+                    loadingText="Signing In..."
+                />
             </Button>
 
             <div className="relative">
@@ -157,8 +174,11 @@ export default function LoginForm() {
                 {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                {isLoading && <Loader2 className="animate-spin mr-2" />}
-                Sign In
+                <AuthButtonContent 
+                    isSpecificLoading={isLoading}
+                    defaultText="Sign In"
+                    loadingText="Signing In..."
+                />
             </Button>
             </form>
         </div>
