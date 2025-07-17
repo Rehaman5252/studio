@@ -124,9 +124,7 @@ export default function CompleteProfileForm() {
             return;
         }
 
-        // This is the critical fix.
-        // We ensure the state is set to false, then wait a moment for React to re-render the UI
-        // before we navigate away. This prevents the "stuck" button state.
+        // Definitive fix for the UI race condition
         setIsSubmitting(false);
         await new Promise((resolve) => setTimeout(resolve, 50)); 
         router.push('/home');

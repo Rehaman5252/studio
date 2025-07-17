@@ -1,32 +1,40 @@
-
 'use client';
 
 import { app, isFirebaseConfigured } from './firebase';
 import { initializeFirestore, memoryLocalCache, type Firestore } from 'firebase/firestore';
+import { getAuth, type Auth } from 'firebase/auth';
 
-let dbInstance: Firestore | null = null;
+interface FirebaseClientServices {
+  auth: Auth;
+  db: Firestore;
+}
+
+let clientServices: FirebaseClientServices | null = null;
 
 /**
- * Gets a client-side Firestore instance, initializing it only once.
- * This function ensures that Firestore is only ever used on the client
+ * Gets client-side instances of Auth and Firestore, initializing them only once.
+ * This function ensures that Firebase services are only ever used on the client
  * and prevents race conditions during initialization.
- * @returns A promise that resolves to the Firestore instance.
+ * @returns A promise that resolves to an object containing the Auth and Firestore instances.
  */
-export const getFirestoreClient = async (): Promise<Firestore> => {
-  if (dbInstance) {
-    return dbInstance;
+export const getFirebaseClient = async (): Promise<FirebaseClientServices> => {
+  if (clientServices) {
+    return clientServices;
   }
 
   if (typeof window === 'undefined' || !isFirebaseConfigured || !app) {
     // This case should ideally not be hit in a well-structured client-side call,
     // but serves as a safeguard.
-    throw new Error('Firestore can only be initialized on the client and when Firebase is configured.');
+    throw new Error('Firebase can only be initialized on the client and when configured.');
   }
   
-  // Initialize on first call and store the instance
-  console.log("Initializing Firestore client for the first time...");
-  dbInstance = initializeFirestore(app, { localCache: memoryLocalCache() });
-  console.log("✅ Firestore client initialized.");
+  // Initialize on first call and store the instances
+  console.log("Initializing Firebase client services for the first time...");
+  const auth = getAuth(app);
+  const db = initializeFirestore(app, { localCache: memoryLocalCache() });
   
-  return dbInstance;
+  clientServices = { auth, db };
+  console.log("✅ Firebase Auth and Firestore clients initialized.");
+  
+  return clientServices;
 };

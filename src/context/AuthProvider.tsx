@@ -4,7 +4,6 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
@@ -13,7 +12,7 @@ import {
   onSnapshot, 
   setDoc,
 } from 'firebase/firestore';
-import { getFirestoreClient } from '@/lib/firebaseClient';
+import { getFirebaseClient } from '@/lib/firebaseClient';
 
 /**
  * Removes properties with `undefined` values from an object.
@@ -65,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     async function checkDb() {
         try {
-            await getFirestoreClient();
+            await getFirebaseClient();
             setIsDbReady(true);
         } catch (error) {
             console.error("DB readiness check failed:", error);
@@ -77,26 +76,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    if (!auth) {
-      console.log("Auth service not available, skipping auth state listener.");
-      setIsAuthLoading(false);
-      return;
+    const initializeAuth = async () => {
+        try {
+            const { auth } = await getFirebaseClient();
+            const authSub = onAuthStateChanged(auth, (currentUser) => {
+                setUser(currentUser);
+                setIsAuthLoading(false);
+                
+                if (!currentUser) {
+                    setUserData(null);
+                    setQuizHistory(null);
+                    setIsUserDataLoading(false);
+                    setIsHistoryLoading(false);
+                }
+            });
+            return () => authSub();
+        } catch (error) {
+            console.error("Failed to initialize Firebase Auth listener:", error);
+            setIsAuthLoading(false);
+        }
     };
 
-    const authSub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsAuthLoading(false);
-      
-      if (!currentUser) {
-        setUserData(null);
-        setQuizHistory(null);
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-      }
-    });
+    const unsubscribePromise = initializeAuth();
 
-    return () => authSub();
-  }, []);
+    return () => {
+        unsubscribePromise.then(unsub => unsub && unsub());
+    };
+}, []);
 
   useEffect(() => {
     if (!user) {
@@ -110,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupListeners = async () => {
         try {
-            const db = await getFirestoreClient();
+            const { db } = await getFirebaseClient();
             
             await createUserDocument(user);
 
@@ -153,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   
     try {
-      const db = await getFirestoreClient();
+      const { db } = await getFirebaseClient();
       const ref = doc(db, 'users', user.uid);
       // Use setDoc with merge:true to safely create or update the document.
       await setDoc(ref, newData, { merge: true });
@@ -166,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated");
     
-    const db = await getFirestoreClient();
+    const { db } = await getFirebaseClient();
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 

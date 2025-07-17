@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { isFirebaseConfigured, auth } from '@/lib/firebase';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { getFirebaseClient } from '@/lib/firebaseClient';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -72,9 +73,10 @@ export default function SignupForm() {
     setIsLoading(true);
     try {
         const userCredential = await registerWithEmail(data.email, data.password);
+        const { auth } = await getFirebaseClient();
         
         // This update is crucial for new email sign-ups
-        if (auth?.currentUser) {
+        if (auth.currentUser) {
             await updateProfile(auth.currentUser, { displayName: data.name });
         }
         

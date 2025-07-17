@@ -8,11 +8,10 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirestoreClient } from './firebaseClient';
+import { getFirebaseClient } from './firebaseClient';
 
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
@@ -22,7 +21,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
   }
   
   try {
-    const db = await getFirestoreClient();
+    const { db } = await getFirebaseClient();
     const userDocRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userDocRef);
 
@@ -61,11 +60,7 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (!auth) {
-    console.error("Auth is not initialized.");
-    toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
-    return null;
-  }
+  const { auth } = await getFirebaseClient();
   if (isPopupOpen) {
     console.warn("Google Sign-In popup is already open.");
     return null;
@@ -95,13 +90,13 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
 
 export const registerWithEmail = async (email: string, password: string) => {
-    if (!auth) throw new Error("Auth service is not initialized.");
+    const { auth } = await getFirebaseClient();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
-    if (!auth) throw new Error("Auth service is not initialized.");
+    const { auth } = await getFirebaseClient();
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

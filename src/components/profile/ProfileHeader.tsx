@@ -2,6 +2,7 @@
 'use client';
 
 import React, { memo } from 'react';
+import { useAuth } from '@/context/AuthProvider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -10,9 +11,13 @@ import { calculateAge, maskPhone } from '@/lib/utils';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
+    const { user } = useAuth(); // Get the auth user object
     const age = calculateAge(userProfile?.dob);
     const isPhoneSet = !!userProfile?.phone;
     const isPhoneVerified = !!userProfile?.phoneVerified;
+
+    // Use the `emailVerified` property from the Firebase `User` object
+    const isEmailVerified = user?.emailVerified || false;
 
     return (
         <Card className="bg-card shadow-lg">
@@ -29,7 +34,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                             isPhoneVerified ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
                             ) : (
-                                <PhoneVerificationDialog phone={userProfile.phone}>
+                                <PhoneVerificationDialog phone={userProfile.phone} onVerified={() => {}}>
                                     <Button variant="link" className="p-0 h-auto text-yellow-500 text-sm hover:no-underline">
                                         <AlertCircle className="h-4 w-4 mr-1" />
                                         Verify
@@ -40,7 +45,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                     </div>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">
                          <p className="text-muted-foreground text-sm">{userProfile?.email || 'No email set'}</p>
-                         {userProfile?.email ? (userProfile.emailVerified ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-yellow-500" />) : null}
+                         {userProfile?.email ? (isEmailVerified ? <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified"/> : <AlertCircle className="h-4 w-4 text-yellow-500" title="Not Verified"/>) : null}
                     </div>
                     <div className="text-muted-foreground text-xs flex items-center gap-2 flex-wrap justify-center sm:justify-start">
                         {age && <span>{age} yrs</span>}
