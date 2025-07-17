@@ -116,7 +116,10 @@ export default function CompleteProfileForm() {
             });
             
             // This is the critical change: redirect *after* success and state update
-            router.replace('/home');
+            setIsSubmitting(false);
+            setTimeout(() => {
+                router.replace('/home');
+            }, 500);
 
         } catch (error: any) {
             toast({
@@ -124,7 +127,7 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-            setIsSubmitting(false); // Only set back to false on error
+            setIsSubmitting(false);
         }
     };
 
@@ -335,3 +338,5 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
+
+    
