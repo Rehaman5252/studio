@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
@@ -27,17 +27,15 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     if (!open) {
-      // Clean up the verifier when the dialog is closed.
-      if (window.recaptchaVerifier) {
-          try {
-              window.recaptchaVerifier.clear();
-              delete window.recaptchaVerifier;
-          } catch (error) {
-              console.warn("Error clearing reCAPTCHA verifier:", error);
-          }
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
       }
       return;
     }
@@ -46,29 +44,19 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       try {
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
-
-        // Ensure container exists
-        let recaptchaContainer = document.getElementById('recaptcha-container');
-        if (!recaptchaContainer) {
-            recaptchaContainer = document.createElement('div');
-            recaptchaContainer.id = 'recaptcha-container';
-            document.body.appendChild(recaptchaContainer);
-        }
-
-        // Initialize verifier only if it doesn't exist
-        if (!window.recaptchaVerifier) {
-          console.log("Initializing new RecaptchaVerifier...");
-          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': () => {
-              console.log("reCAPTCHA solved, ready to send OTP.");
-            },
-            'expired-callback': () => {
-              toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-            }
-          });
-          await window.recaptchaVerifier.render();
-          console.log("RecaptchaVerifier rendered.");
+        
+        if (recaptchaContainerRef.current && !recaptchaVerifierRef.current) {
+            recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+                'size': 'invisible',
+                'callback': () => {
+                  console.log("reCAPTCHA solved, ready to send OTP.");
+                },
+                'expired-callback': () => {
+                  toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+                }
+            });
+            await recaptchaVerifierRef.current.render();
+            console.log("RecaptchaVerifier rendered.");
         }
       } catch (error) {
         console.error("reCAPTCHA setup error:", error);
@@ -82,7 +70,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   const handleSendOtp = async () => {
     setIsLoading(true);
-    if (!window.recaptchaVerifier) {
+    const appVerifier = recaptchaVerifierRef.current;
+
+    if (!appVerifier) {
       toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait a moment and try again.', variant: 'destructive' });
       setIsLoading(false);
       return;
@@ -92,7 +82,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       const { auth } = await getFirebaseClient();
       const { signInWithPhoneNumber } = await import('firebase/auth');
 
-      const appVerifier = window.recaptchaVerifier;
       const fullPhoneNumber = `+91${phone}`;
       
       const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
@@ -104,13 +93,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       });
       setStep('verify');
     } catch (error: any) {
-      console.error("Error sending OTP:", error);
+      console.error("Error sending OTP:", error.code, error.message);
       let message = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/invalid-phone-number') {
         message = 'The phone number provided is not valid.';
       } else if (error.code === 'auth/too-many-requests') {
-        message = 'Too many requests. Please wait a while before trying again.';
-      } else if (error.code === 'auth/internal-error' || error.code === 'auth/internal-error-encountered.') {
+        message = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
+      } else if (error.code === 'auth/internal-error' || error.code?.includes('internal-error')) {
          message = "Internal error. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings for Phone Auth.";
       }
       toast({ title: 'Error Sending OTP', description: message, variant: 'destructive', duration: 9000 });
@@ -172,6 +161,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   return (
     <>
+      <div id="recaptcha-container" ref={recaptchaContainerRef}></div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <div onClick={(e: any) => onOpenDialog(e)}>
@@ -187,7 +177,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
                 : `Enter the 6-digit code sent to +91 ${phone}.`}
             </DialogDescription>
           </DialogHeader>
-          <div id="recaptcha-container" />
+          
           {step === 'verify' && (
             <div className="py-4">
               <Input
