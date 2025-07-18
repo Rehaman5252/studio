@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { getFirebaseClient } from "@/lib/firebaseClient";
 import { useAuth } from '@/context/AuthProvider';
@@ -74,7 +74,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
               setIsVerifierReady(true);
             }).catch((renderError: any) => {
               console.error('❌ reCAPTCHA failed to render:', renderError);
-              setError("reCAPTCHA failed. This can be caused by ad blockers, VPNs, or network issues. Please check your browser console for more details and ensure 'localhost' is an authorized domain in your Firebase project settings.");
+              setError("reCAPTCHA failed to load. This is often caused by ad blockers, VPNs, or network issues. Please check your browser console and ensure your Firebase project authorizes this domain.");
               setIsVerifierReady(false);
             });
 
@@ -123,8 +123,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         description = 'The phone number format is invalid. Please ensure it is 10 digits.';
       } else if (err.code === 'auth/too-many-requests') {
         description = "You've sent too many requests. Please try again later.";
-      } else if (err.code === 'auth/internal-error') {
-        description = "An internal Firebase error occurred. This is often caused by ad blockers, VPNs, or network issues. Please check and try again.";
+      } else if (err.code === 'auth/internal-error' || err.code === 'auth/internal-error-encountered') {
+        description = "An internal Firebase error occurred. This is often caused by ad blockers, VPNs, or a network issue. Please check and try again.";
       }
       setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
