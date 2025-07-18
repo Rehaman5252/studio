@@ -53,52 +53,53 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
 
     if (!auth) {
-        // This check is critical. If auth is null, we can't proceed.
         setError("Firebase is not configured. Please check your setup.");
         return;
     }
-
-    // This effect runs when the dialog opens.
-    // It creates the verifier and renders it.
     
-    // Ensure cleanup before creating a new one
     cleanupVerifier();
-    
     setIsVerifierReady(false);
     setError(null);
     
     console.log("🚀 Initializing reCAPTCHA verifier...");
-    const verifier = new FirebaseRecaptchaVerifier(auth, "recaptcha-container", {
-        size: 'invisible',
-        'callback': (response: any) => {
-             console.log("✅ reCAPTCHA solved, ready to send OTP.", response);
-             // This callback is for auto-solving, we use render() promise for readiness
-        },
-        'expired-callback': () => {
-            setError("reCAPTCHA challenge expired. Please try again.");
-            cleanupVerifier();
+    
+    // Defer initialization slightly to ensure the DOM element is present
+    const timer = setTimeout(() => {
+        if (!document.getElementById("recaptcha-container")) {
+            console.error("❌ reCAPTCHA container not found in DOM.");
+            setError("Could not initialize verification system. Please try again.");
+            return;
+        }
+
+        const verifier = new FirebaseRecaptchaVerifier(auth, "recaptcha-container", {
+            size: 'invisible',
+            'callback': (response: any) => {
+                 console.log("✅ reCAPTCHA solved, ready to send OTP.", response);
+            },
+            'expired-callback': () => {
+                setError("reCAPTCHA challenge expired. Please try refreshing and sending the code again.");
+                cleanupVerifier();
+                setIsVerifierReady(false);
+            },
+        });
+
+        verifierRef.current = verifier;
+
+        verifier.render().then(() => {
+            console.log("✅ reCAPTCHA rendered successfully.");
+            setIsVerifierReady(true);
+        }).catch((renderError) => {
+            console.error('❌ reCAPTCHA render failed:', renderError);
+            setError("reCAPTCHA failed to load. This can be caused by ad blockers, VPNs, or network issues. Please disable them, refresh the page, and try again.");
             setIsVerifierReady(false);
-        },
-    });
-
-    verifierRef.current = verifier;
-
-    // Render the verifier and update state when it's ready
-    verifier.render().then(() => {
-        console.log("✅ reCAPTCHA rendered successfully.");
-        setIsVerifierReady(true);
-    }).catch((renderError) => {
-        console.error('❌ reCAPTCHA render failed:', renderError);
-        setError("reCAPTCHA failed to load. This can be caused by ad blockers, VPNs, or network issues. Please disable them, refresh the page, and try again.");
-        setIsVerifierReady(false);
-    });
+        });
+    }, 100);
 
     return () => {
+        clearTimeout(timer);
         cleanupVerifier();
     };
-  // We only want this to run when the dialog opens.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, cleanupVerifier]);
 
   const handleSendOtp = async () => {
     setError(null);
@@ -131,9 +132,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       }
       setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
-      // Reset the verifier on failure, as it can get into a bad state
       cleanupVerifier();
-      setOpen(false); // Close dialog on critical failure
+      setOpen(false);
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +168,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setOtp('');
       setIsLoading(false);
       setError(null);
-      // The main useEffect handles cleanup, so we don't need to call it here.
     }
     setOpen(isOpen);
   };

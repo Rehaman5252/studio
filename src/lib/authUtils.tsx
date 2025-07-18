@@ -10,22 +10,26 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
-  if (!user) return;
+export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
+  if (!user || !db) {
+    console.error("❌ createUserDocument failed: User or DB is missing.");
+    return;
+  }
   
-  const userDocRef = doc(db, 'users', user.uid);
-  const snapshot = await getDoc(userDocRef);
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    const snapshot = await getDoc(userDocRef);
 
-  if (!snapshot.exists()) {
-    const { email, displayName, photoURL } = user;
-    const createdAt = new Date();
-    
-    try {
+    if (!snapshot.exists()) {
+      console.log(`Creating document for new user: ${user.uid}`);
+      const { email, displayName, photoURL } = user;
+      const createdAt = new Date();
+
       await setDoc(userDocRef, {
         uid: user.uid,
         email,
@@ -36,50 +40,63 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
         quizzesPlayed: 0,
         perfectScores: 0,
         totalRewards: 0,
-        referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0,4)}`,
+        profileCompleted: false,
+        phoneVerified: false,
+        referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
         referralEarnings: 0,
         ...additionalData
       });
-    } catch (error) {
-      console.error("Error creating user document:", error);
-      toast({ title: 'Error', description: 'Could not save user profile.', variant: 'destructive' });
+      console.log("✅ User document created in Firestore");
     }
+  } catch (error) {
+    console.error("❌ Error in createUserDocument:", error);
+    toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+    throw error;
   }
 }
 
-export async function handleGoogleSignIn() {
-  const auth = getAuth(app!);
+let isPopupOpen = false;
+
+export async function handleGoogleSignIn(): Promise<User | null> {
+  if (!auth) {
+      toast({ title: 'Error', description: 'Firebase is not initialized.', variant: 'destructive' });
+      return null;
+  }
+  if (isPopupOpen) {
+    console.warn("Google Sign-In popup is already open.");
+    return null;
+  }
+  isPopupOpen = true;
+
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
   try {
     const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    if (!user) throw new Error('No user returned from Google Sign-In.');
-    
-    // AuthProvider will now handle document creation.
-    
-    return user;
-
+    return result.user;
   } catch (error: any) {
-    if (error.code === 'auth/popup-closed-by-user') {
+    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
+    } else if (error.message?.includes("offline") || error.code === 'auth/network-request-failed') {
+        toast({ title: 'Offline Error', description: 'Please check your internet connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
     }
     return null;
+  } finally {
+    isPopupOpen = false;
   }
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    const auth = getAuth(app!);
+    if (!auth) throw new Error("Firebase Auth is not initialized.");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password: string) => {
-    const auth = getAuth(app!);
+    if (!auth) throw new Error("Firebase Auth is not initialized.");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

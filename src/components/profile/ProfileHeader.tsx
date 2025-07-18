@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
-import { auth } from '@/lib/firebaseClient';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 

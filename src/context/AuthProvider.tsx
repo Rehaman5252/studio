@@ -12,8 +12,7 @@ import {
   onSnapshot, 
   setDoc,
 } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebaseClient';
-import { isFirebaseConfigured } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 
 /**
  * Removes properties with `undefined` values from an object.
