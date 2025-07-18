@@ -38,6 +38,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     if (verifierRef.current) {
         verifierRef.current.clear();
         verifierRef.current = null;
+        console.log("🧼 reCAPTCHA verifier cleaned up.");
     }
     const container = document.getElementById("recaptcha-container");
     if (container) {
@@ -46,23 +47,31 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   }, []);
   
   useEffect(() => {
-    if (!open || !auth) {
-        cleanupVerifier();
+    if (!open) {
+      cleanupVerifier();
+      return;
+    }
+
+    if (!auth) {
+        setError("Firebase is not configured. Please check your setup.");
         return;
     }
 
-    if (verifierRef.current) {
-        cleanupVerifier();
-    }
+    // This effect runs when the dialog opens.
+    // It creates the verifier and renders it.
+    
+    // Ensure cleanup before creating a new one
+    cleanupVerifier();
     
     setIsVerifierReady(false);
     setError(null);
     
+    console.log("🚀 Initializing reCAPTCHA verifier...");
     const verifier = new FirebaseRecaptchaVerifier(auth, "recaptcha-container", {
         size: 'invisible',
         'callback': (response: any) => {
-             console.log("reCAPTCHA solved, ready to send OTP.", response);
-             setIsVerifierReady(true);
+             console.log("✅ reCAPTCHA solved, ready to send OTP.", response);
+             // This callback is for auto-solving, we use render() promise for readiness
         },
         'expired-callback': () => {
             setError("reCAPTCHA challenge expired. Please try again.");
@@ -73,6 +82,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
     verifierRef.current = verifier;
 
+    // Render the verifier and update state when it's ready
     verifier.render().then(() => {
         console.log("✅ reCAPTCHA rendered successfully.");
         setIsVerifierReady(true);
@@ -85,8 +95,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     return () => {
         cleanupVerifier();
     };
-
-  }, [open, cleanupVerifier]);
+  // We only want this to run when the dialog opens.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleSendOtp = async () => {
     setError(null);
@@ -101,12 +112,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     
     try {
       const fullPhoneNumber = `+91${phone}`;
+      console.log(`📞 Attempting to sign in with phone: ${fullPhoneNumber}`);
       const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
       confirmationResultRef.current = result;
       
       toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
       setStep('verify');
-    } catch (err: any)      {
+    } catch (err: any) {
       console.error("🔥 Error sending OTP:", err.code, err.message);
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (err.code === 'auth/invalid-phone-number') {
@@ -155,6 +167,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setOtp('');
       setIsLoading(false);
       setError(null);
+      // The main useEffect handles cleanup, so we don't need to call it here.
     }
     setOpen(isOpen);
   };
@@ -180,7 +193,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             </Alert>
         )}
 
-        {/* This div must always be in the DOM when the dialog is open */}
+        {/* This div must always be in the DOM when the dialog is open for the verifier to mount */}
         <div id="recaptcha-container"></div>
 
         {step === 'verify' && (
@@ -215,5 +228,3 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     </Dialog>
   );
 }
-
-    
