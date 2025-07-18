@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from 'lucide-react';
 
 interface PhoneVerificationDialogProps {
   children: React.ReactNode;
@@ -27,23 +29,24 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerifierReady, setIsVerifierReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
 
   useEffect(() => {
-    // If the dialog is not open, do nothing and ensure we clean up.
+    // If the dialog is not open, ensure we clean up everything.
     if (!open) {
       if (verifierRef.current) {
         verifierRef.current.clear();
         verifierRef.current = null;
       }
+      setIsVerifierReady(false);
       return;
     }
 
-    // This timeout ensures the dialog and its container are fully mounted in the DOM
-    // before we attempt to create and render the RecaptchaVerifier.
+    // Delay initialization slightly to ensure the dialog's DOM is fully mounted
     const timer = setTimeout(() => {
       if (recaptchaContainerRef.current && !verifierRef.current) {
         getFirebaseClient().then(({ auth }) => {
@@ -61,23 +64,22 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
                 setIsVerifierReady(false);
               },
             });
-            verifierRef.current = verifier;
 
             verifier.render().then(() => {
               console.log("✅ reCAPTCHA rendered successfully.");
               setIsVerifierReady(true);
-            }).catch(error => {
-              console.error('❌ reCAPTCHA failed to render:', error);
-              toast({
-                title: "Verification Setup Failed",
-                description: "Could not initialize phone verification. Disable any ad blockers/VPNs and check your network connection.",
-                variant: "destructive",
-                duration: 9000,
-              });
+              setError(null);
+            }).catch(renderError => {
+              console.error('❌ reCAPTCHA failed to render:', renderError);
+              setError("reCAPTCHA failed. Check for ad blockers/VPNs and ensure 'localhost' is an authorized domain in Firebase.");
               setIsVerifierReady(false);
             });
-          } catch(e) {
-            console.error('Error creating RecaptchaVerifier', e)
+
+            verifierRef.current = verifier;
+
+          } catch (initError) {
+            console.error('❌ Error creating RecaptchaVerifier', initError);
+            setError("Failed to initialize phone verification system.");
           }
         });
       }
@@ -93,8 +95,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   }, [open, toast]);
 
   const handleSendOtp = async () => {
+    setError(null);
     if (!isVerifierReady || !verifierRef.current) {
-      toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready. Please wait or try again.', variant: 'destructive' });
+      setError('reCAPTCHA verifier is not ready. Please wait or try reopening the dialog.');
       return;
     }
     
@@ -111,16 +114,17 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       
       toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
       setStep('verify');
-    } catch (error: any) {
-      console.error("🔥 Error sending OTP:", error);
+    } catch (err: any) {
+      console.error("🔥 Error sending OTP:", err);
       let description = 'Failed to send OTP. Please try again.';
-      if (error.code === 'auth/invalid-phone-number') {
+      if (err.code === 'auth/invalid-phone-number') {
         description = 'The phone number format is invalid. Please ensure it is 10 digits.';
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (err.code === 'auth/too-many-requests') {
         description = "You've sent too many requests. Please try again later.";
-      } else if (error.code === 'auth/internal-error-encountered' || error.message.includes('reCAPTCHA')) {
-          description = "An internal error occurred. This is often caused by ad blockers, VPNs, or missing 'localhost' in Firebase's Authorized Domains. Please check and try again.";
+      } else if (err.code === 'auth/internal-error') {
+        description = "An internal error occurred. This is often caused by ad blockers, VPNs, or network issues. Please check and try again.";
       }
+      setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
     } finally {
       setIsSending(false);
@@ -128,6 +132,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   };
 
   const handleVerifyOtp = async () => {
+    setError(null);
     if (!user || !confirmationResultRef.current) return;
     setIsVerifying(true);
     try {
@@ -140,8 +145,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       toast({ title: 'Success', description: 'Your phone number has been verified.' });
       onVerified();
       resetStateAndClose(false);
-    } catch (error: any) {
-      console.error('Error verifying OTP:', error);
+    } catch (err: any) {
+      console.error('Error verifying OTP:', err);
+      setError('The code you entered is incorrect. Please try again.');
       toast({ title: 'Verification Failed', description: 'The code you entered is incorrect.', variant: 'destructive' });
     } finally {
       setIsVerifying(false);
@@ -154,7 +160,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setOtp('');
       setIsSending(false);
       setIsVerifying(false);
-      setIsVerifierReady(false);
+      setError(null);
+      // Let the useEffect handle verifier cleanup
     }
     setOpen(isOpen);
   };
@@ -172,7 +179,16 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           </DialogDescription>
         </DialogHeader>
         
+        {/* This div is crucial and must exist in the DOM for reCAPTCHA to render */}
         <div ref={recaptchaContainerRef} />
+
+        {error && (
+            <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Verification Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        )}
 
         {step === 'verify' && (
           <div className="py-4">
@@ -196,7 +212,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             </Button>
           ) : (
             <div className="w-full flex justify-between">
-              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); }} disabled={isVerifying}>Back</Button>
+              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); }} disabled={isVerifying}>Back</Button>
               <Button onClick={handleVerifyOtp} disabled={isVerifying || otp.length < 6}>
                 {isVerifying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify & Save'}
               </Button>
