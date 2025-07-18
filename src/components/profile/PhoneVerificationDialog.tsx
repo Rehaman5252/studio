@@ -27,26 +27,20 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifierReady, setIsVerifierReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-
-  // This ref will hold the DOM element for reCAPTCHA
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // If the dialog is not open, do nothing and ensure we clean up.
     if (!open) {
-      if (verifierRef.current) {
-        verifierRef.current.clear();
-        verifierRef.current = null;
-      }
+      verifierRef.current?.clear();
       return;
     }
 
-    // Delay initialization until the dialog's DOM is fully mounted
-    // This timeout is crucial to prevent race conditions where the container doesn't exist yet
+    // This timeout gives the dialog modal time to render the container div
     const timer = setTimeout(() => {
       if (recaptchaContainerRef.current && !verifierRef.current) {
         getFirebaseClient().then(({ auth }) => {
@@ -61,44 +55,39 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
               'expired-callback': () => {
                 toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
                 verifierRef.current?.clear();
-                verifierRef.current = null;
+                setIsVerifierReady(false);
               },
             });
-
-            setIsLoading(true);
-            setError(null);
+            
+            verifierRef.current = verifier;
 
             verifier.render().then(() => {
               console.log("✅ reCAPTCHA rendered successfully.");
-              verifierRef.current = verifier;
-              setIsLoading(false); // Verifier is ready now
+              setIsVerifierReady(true);
             }).catch(renderError => {
               console.error('❌ reCAPTCHA failed to render:', renderError);
               setError("reCAPTCHA failed. Check for ad blockers/VPNs and ensure 'localhost' is an authorized domain in Firebase.");
-              setIsLoading(false);
+              setIsVerifierReady(false);
             });
 
           } catch (initError) {
             console.error('❌ Error creating RecaptchaVerifier', initError);
             setError("Failed to initialize phone verification system.");
-            setIsLoading(false);
           }
         });
       }
-    }, 100); // A small delay is often sufficient
+    }, 250); // Delay to ensure DOM is ready
 
     return () => {
       clearTimeout(timer);
-      if (verifierRef.current) {
-        verifierRef.current.clear();
-        verifierRef.current = null;
-      }
+      verifierRef.current?.clear();
+      verifierRef.current = null;
     };
   }, [open, toast]);
 
   const handleSendOtp = async () => {
     setError(null);
-    if (!verifierRef.current) {
+    if (!verifierRef.current || !isVerifierReady) {
       setError('reCAPTCHA verifier is not ready. Please wait or try reopening the dialog.');
       return;
     }
@@ -162,7 +151,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setOtp('');
       setIsLoading(false);
       setError(null);
-      // useEffect cleanup will handle the verifier
+      setIsVerifierReady(false);
     }
     setOpen(isOpen);
   };
@@ -180,7 +169,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           </DialogDescription>
         </DialogHeader>
         
-        {/* This div is crucial and must exist in the DOM for reCAPTCHA to render */}
         <div ref={recaptchaContainerRef} />
 
         {error && (
@@ -206,8 +194,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         
         <DialogFooter>
           {step === 'initial' ? (
-            <Button onClick={handleSendOtp} disabled={isLoading} className="w-full">
-              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Initializing...</> : 'Send Code'}
+            <Button onClick={handleSendOtp} disabled={isLoading || !isVerifierReady} className="w-full">
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {!isVerifierReady ? 'Initializing...' : 'Send Code'}
             </Button>
           ) : (
             <div className="w-full flex justify-between">
