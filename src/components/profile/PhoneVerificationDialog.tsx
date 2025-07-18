@@ -33,6 +33,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
   
   const cleanupVerifier = useCallback(() => {
     if (verifierRef.current) {
@@ -57,21 +58,22 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         return;
     }
     
+    // Ensure cleanup happens before re-initialization
     cleanupVerifier();
     setIsVerifierReady(false);
     setError(null);
     
-    console.log("🚀 Initializing reCAPTCHA verifier...");
-    
-    // Defer initialization slightly to ensure the DOM element is present
+    // Defer initialization until the container is definitely in the DOM.
     const timer = setTimeout(() => {
-        if (!document.getElementById("recaptcha-container")) {
+        const recaptchaContainer = document.getElementById('recaptcha-container');
+        if (!recaptchaContainer) {
             console.error("❌ reCAPTCHA container not found in DOM.");
             setError("Could not initialize verification system. Please try again.");
             return;
         }
 
-        const verifier = new FirebaseRecaptchaVerifier(auth, "recaptcha-container", {
+        console.log("🚀 Initializing reCAPTCHA verifier...");
+        const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainer, {
             size: 'invisible',
             'callback': (response: any) => {
                  console.log("✅ reCAPTCHA solved, ready to send OTP.", response);
@@ -120,7 +122,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       
       toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
       setStep('verify');
-    } catch (err: any) {
+    } catch (err: any)      {
       console.error("🔥 Error sending OTP:", err.code, err.message);
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (err.code === 'auth/invalid-phone-number') {
