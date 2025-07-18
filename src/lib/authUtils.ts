@@ -6,7 +6,6 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendEmailVerification,
   type User,
 } from 'firebase/auth';
 import { toast } from '@/hooks/use-toast';

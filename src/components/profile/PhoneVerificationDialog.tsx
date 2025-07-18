@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { getFirebaseClient } from "@/lib/firebaseClient";
 import { useAuth } from '@/context/AuthProvider';
@@ -32,51 +32,66 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
   
-  const recaptchaContainerRef = useCallback((node: HTMLDivElement | null) => {
-    if (node !== null && !verifierRef.current && open) {
-        getFirebaseClient().then(({ auth }) => {
-          // Dynamically import RecaptchaVerifier only on the client
-          import('firebase/auth').then(({ RecaptchaVerifier: FirebaseRecaptchaVerifier }) => {
-            try {
-              const verifier = new FirebaseRecaptchaVerifier(auth, node, {
-                size: 'invisible',
-                callback: () => {
-                  console.log('reCAPTCHA solved');
-                },
-                'expired-callback': () => {
-                  toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
-                  if (verifierRef.current) {
-                    verifierRef.current.clear();
-                    verifierRef.current = null;
-                  }
-                  setIsVerifierReady(false);
-                },
-              });
-              
-              verifier.render().then(() => {
+  // This effect handles the creation and cleanup of the RecaptchaVerifier
+  useEffect(() => {
+    if (!open) {
+      return; // Do nothing if the dialog is closed
+    }
+
+    const setupRecaptcha = async () => {
+        try {
+            const { auth } = await getFirebaseClient();
+            const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = await import('firebase/auth');
+            
+            // Ensure the container exists and verifier isn't already there
+            if (recaptchaContainerRef.current && !verifierRef.current) {
+                const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
+                    size: 'invisible',
+                    callback: () => {
+                        console.log('reCAPTCHA solved');
+                    },
+                    'expired-callback': () => {
+                        toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
+                        setError("reCAPTCHA Expired. Please try again.");
+                        if (verifierRef.current) {
+                           verifierRef.current.clear();
+                           verifierRef.current = null;
+                        }
+                        setIsVerifierReady(false);
+                    },
+                });
+
+                // Wait for it to render before enabling the button
+                await verifier.render();
                 console.log("✅ reCAPTCHA rendered successfully.");
                 verifierRef.current = verifier;
                 setIsVerifierReady(true);
-              }).catch((renderError: any) => {
-                console.error('❌ reCAPTCHA failed to render:', renderError);
-                setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please disable them and try again.");
-                setIsVerifierReady(false);
-              });
-
-            } catch (initError: any) {
-              console.error('❌ Error creating RecaptchaVerifier', initError);
-              setError("Failed to initialize the phone verification system.");
             }
-          });
-        });
+        } catch (initError: any) {
+            console.error('❌ reCAPTCHA initialization failed:', initError);
+            setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please disable them, refresh, and try again.");
+            setIsVerifierReady(false);
+        }
     }
+
+    setupRecaptcha();
+
+    // Cleanup function to clear the verifier when the dialog closes
+    return () => {
+        if (verifierRef.current) {
+            verifierRef.current.clear();
+            verifierRef.current = null;
+        }
+        setIsVerifierReady(false);
+    };
   }, [open, toast]);
 
   const handleSendOtp = async () => {
     setError(null);
     if (!verifierRef.current || !isVerifierReady) {
-      setError('The reCAPTCHA verifier is not ready. Please wait a moment or reopen the dialog.');
+      setError('The verification system is not ready. Please wait a moment or reopen the dialog.');
       return;
     }
     
@@ -99,7 +114,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       if (err.code === 'auth/invalid-phone-number') {
         description = 'The phone number format is invalid. Please ensure it is 10 digits.';
       } else if (err.code === 'auth/too-many-requests') {
-        description = "You've sent too many requests. Please try again later.";
+        description = "You've requested this too many times. Please try again later.";
       } else if (err.code?.includes('internal-error')) {
         description = "An internal error occurred, often due to ad blockers, VPNs, or network issues. Please disable them and try again.";
       }
@@ -139,11 +154,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setOtp('');
       setIsLoading(false);
       setError(null);
-      setIsVerifierReady(false);
-      if (verifierRef.current) {
-        verifierRef.current.clear();
-        verifierRef.current = null;
-      }
     }
     setOpen(isOpen);
   };
@@ -188,8 +198,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         <DialogFooter>
           {step === 'initial' ? (
             <Button onClick={handleSendOtp} disabled={isLoading || !isVerifierReady} className="w-full">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {!isVerifierReady ? 'Initializing...' : 'Send Code'}
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isLoading ? 'Sending...' : !isVerifierReady ? 'Initializing...' : 'Send Code'}
             </Button>
           ) : (
             <div className="w-full flex justify-between">
