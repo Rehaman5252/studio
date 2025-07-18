@@ -18,6 +18,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [open, setOpen] = useState(false);
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
+  
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerifierReady, setIsVerifierReady] = useState(false);
@@ -27,78 +28,55 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) {
-      if (verifierRef.current) {
-        verifierRef.current.clear();
-        verifierRef.current = null;
-        setIsVerifierReady(false);
-        console.log("🧹 reCAPTCHA cleared on dialog close.");
-      }
-      return;
-    }
-
-    const setupRecaptcha = async () => {
-        try {
+    // Only run this effect when the dialog is opened
+    if (open) {
+      if (!verifierRef.current && recaptchaContainerRef.current) {
+        const initializeVerifier = async () => {
+          try {
             const { auth } = await getFirebaseClient();
             const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = await import('firebase/auth');
 
-            // Timeout ensures the container is in the DOM.
-            setTimeout(() => {
-                if (recaptchaContainerRef.current && !verifierRef.current) {
-                    console.log("Attempting to create and render RecaptchaVerifier...");
-                    const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
-                        'size': 'invisible',
-                        'callback': () => console.log("reCAPTCHA solved."),
-                        'expired-callback': () => {
-                            toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                            setIsVerifierReady(false);
-                            verifierRef.current?.clear();
-                            verifierRef.current = null;
-                        }
-                    });
-                    
-                    verifierRef.current = verifier;
-
-                    verifier.render().then(() => {
-                        console.log("✅ reCAPTCHA rendered and ready.");
-                        setIsVerifierReady(true);
-                    }).catch(error => {
-                        console.error("❌ reCAPTCHA render error:", error);
-                        toast({
-                            title: 'reCAPTCHA Render Failed',
-                            description: 'Could not display reCAPTCHA. Disable ad blockers and check network, then try again.',
-                            variant: 'destructive',
-                            duration: 9000
-                        });
-                        setIsVerifierReady(false);
-                    });
+            const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current!, {
+                'size': 'invisible',
+                'callback': () => console.log("reCAPTCHA solved."),
+                'expired-callback': () => {
+                    toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+                    setIsVerifierReady(false); // Reset readiness on expiry
                 }
-            }, 100);
-        } catch (error) {
-            console.error("❌ reCAPTCHA setup error:", error);
+            });
+            
+            verifierRef.current = verifier;
+
+            await verifier.render();
+            console.log("✅ reCAPTCHA rendered and ready.");
+            setIsVerifierReady(true);
+          } catch (error) {
+            console.error("❌ reCAPTCHA initialization failed:", error);
             toast({ 
                 title: 'Verification Setup Failed', 
-                description: 'Could not initialize phone verification. Check your network connection and disable any ad blockers.', 
+                description: 'Could not initialize phone verification. Disable any ad blockers and check your network.', 
                 variant: 'destructive',
                 duration: 9000 
             });
             setIsVerifierReady(false);
-        }
-    };
+          }
+        };
+        initializeVerifier();
+      }
+    }
 
-    setupRecaptcha();
-
-    // Cleanup on component unmount
+    // Cleanup function: runs when dialog closes or component unmounts
     return () => {
-        if (verifierRef.current) {
-            verifierRef.current.clear();
-            verifierRef.current = null;
-        }
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+        console.log("🧹 reCAPTCHA cleared.");
+      }
     };
   }, [open, toast]);
 
   const handleSendOtp = async () => {
-    if (!verifierRef.current || !isVerifierReady) {
+    if (!isVerifierReady || !verifierRef.current) {
       toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready. Please wait a moment.', variant: 'destructive' });
       return;
     }
@@ -170,7 +148,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       setOtp('');
       setIsSending(false);
       setIsVerifying(false);
-      // isVerifierReady will be reset by the useEffect cleanup
+      setIsVerifierReady(false); // Reset readiness on close
     }
     setOpen(isOpen);
   };
@@ -190,6 +168,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           </DialogDescription>
         </DialogHeader>
         
+        {/* This container must be in the DOM for the verifier to render into */}
         <div ref={recaptchaContainerRef} id="recaptcha-container"></div>
         
         {step === 'verify' ? (
