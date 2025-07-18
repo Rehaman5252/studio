@@ -11,7 +11,6 @@ import { Loader2 } from 'lucide-react';
 import { getFirebaseClient } from '@/lib/firebaseClient';
 import type { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 
-// This is the correct, robust implementation based on expert guidance.
 export function PhoneVerificationDialog({ children, phone, onVerified }: { children: React.ReactNode; phone: string; onVerified: () => void; }) {
   const { user, updateUserData } = useAuth();
   const { toast } = useToast();
@@ -23,26 +22,20 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerifierReady, setIsVerifierReady] = useState(false);
   
-  // Use a ref for the confirmation result to persist it across renders.
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-  
-  // This ref holds the RecaptchaVerifier instance.
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
-  // This ref is for the DOM element where reCAPTCHA will be rendered.
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only run this effect when the dialog is open.
     if (!open) {
-        return;
+      return;
     }
 
     let isMounted = true;
 
     const setupRecaptcha = async () => {
-        // Prevent re-initialization if verifier already exists
-        if (verifierRef.current) {
-            if(!isVerifierReady) setIsVerifierReady(true); // It might already be ready
+        if (verifierRef.current || !recaptchaContainerRef.current) {
+            if(!isVerifierReady && verifierRef.current) setIsVerifierReady(true);
             return;
         }
 
@@ -50,36 +43,34 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             const { auth } = await getFirebaseClient();
             const { RecaptchaVerifier } = await import('firebase/auth');
 
-            // Ensure the container exists.
-            if (recaptchaContainerRef.current) {
-                const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-                    'size': 'invisible',
-                    'callback': () => {
-                        console.log("reCAPTCHA solved interactively.");
-                    },
-                    'expired-callback': () => {
-                        toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                        setIsVerifierReady(false);
-                        verifierRef.current?.clear();
-                        verifierRef.current = null;
+            const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+                'size': 'invisible',
+                'callback': () => {
+                    console.log("reCAPTCHA solved.");
+                },
+                'expired-callback': () => {
+                    toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+                    if (isMounted) {
+                      setIsVerifierReady(false);
+                      verifierRef.current?.clear();
+                      verifierRef.current = null;
                     }
-                });
-                
-                // Store the verifier instance in the ref immediately.
-                verifierRef.current = verifier;
-
-                // Wait for it to render and then enable the send button.
-                await verifier.render();
-                if (isMounted) {
-                    console.log("✅ reCAPTCHA rendered and ready.");
-                    setIsVerifierReady(true);
                 }
+            });
+            
+            verifierRef.current = verifier;
+
+            await verifier.render();
+            if (isMounted) {
+                console.log("✅ reCAPTCHA rendered and ready.");
+                setIsVerifierReady(true);
             }
+
         } catch (error) {
             console.error("❌ reCAPTCHA setup error:", error);
             toast({ 
                 title: 'Verification Setup Failed', 
-                description: 'Could not initialize phone verification. Ad blockers or network issues can sometimes cause this.', 
+                description: 'Could not initialize phone verification. Please disable ad blockers and check your network connection.', 
                 variant: 'destructive',
                 duration: 9000 
             });
@@ -91,14 +82,12 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
     return () => {
         isMounted = false;
-        // Cleanup on dialog close or component unmount.
-        // The verifier instance is cleared in the onOpenChange handler.
     };
   }, [open, toast, isVerifierReady]);
 
   const handleSendOtp = async () => {
-    if (!verifierRef.current) {
-      toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait.', variant: 'destructive' });
+    if (!verifierRef.current || !isVerifierReady) {
+      toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready. Please wait a moment.', variant: 'destructive' });
       return;
     }
     
@@ -124,7 +113,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       if (error.code === 'auth/too-many-requests') {
           description = "You've made too many requests. Please try again later.";
       } else if (error.code === 'auth/internal-error' || error.code === 'auth/internal-error-encountered') {
-         description = "Internal Firebase error. Ensure this app's domain is authorized in your Firebase project for Phone Auth, and check for ad blockers.";
+         description = "Internal Firebase error. Ensure this app's domain (e.g. localhost) is authorized in your Firebase project settings for Phone Auth, and check for ad blockers.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number provided is not valid. Please use the format 9876543210.';
       }
@@ -164,9 +153,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   };
 
   const resetStateAndClose = (isOpen: boolean) => {
-    setOpen(isOpen);
     if (!isOpen) {
-      // Clear verifier on close to ensure a fresh start next time
       if (verifierRef.current) {
         verifierRef.current.clear();
         verifierRef.current = null;
@@ -179,6 +166,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       setIsVerifierReady(false);
       confirmationResultRef.current = null;
     }
+    setOpen(isOpen);
   };
 
   return (
@@ -196,7 +184,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           </DialogDescription>
         </DialogHeader>
         
-        {/* This div must be in the DOM for the verifier to attach to */}
         <div ref={recaptchaContainerRef} className="my-2"></div>
         
         {step === 'verify' ? (
