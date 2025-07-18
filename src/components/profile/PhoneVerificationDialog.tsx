@@ -32,20 +32,26 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only run this effect when the dialog is open and we need to set up the verifier.
-    if (!open || verifierRef.current) {
+    // Only run this effect when the dialog is open.
+    if (!open) {
         return;
     }
 
     let isMounted = true;
 
     const setupRecaptcha = async () => {
+        // Prevent re-initialization if verifier already exists
+        if (verifierRef.current) {
+            if(!isVerifierReady) setIsVerifierReady(true); // It might already be ready
+            return;
+        }
+
         try {
             const { auth } = await getFirebaseClient();
             const { RecaptchaVerifier } = await import('firebase/auth');
 
-            // Ensure the container exists and we haven't already initialized.
-            if (recaptchaContainerRef.current && !verifierRef.current) {
+            // Ensure the container exists.
+            if (recaptchaContainerRef.current) {
                 const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
                     'size': 'invisible',
                     'callback': () => {
@@ -55,6 +61,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
                         toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
                         setIsVerifierReady(false);
                         verifierRef.current?.clear();
+                        verifierRef.current = null;
                     }
                 });
                 
@@ -85,13 +92,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     return () => {
         isMounted = false;
         // Cleanup on dialog close or component unmount.
-        if (verifierRef.current) {
-            verifierRef.current.clear();
-            verifierRef.current = null;
-            console.log("🧹 reCAPTCHA cleared.");
-        }
+        // The verifier instance is cleared in the onOpenChange handler.
     };
-  }, [open, toast]);
+  }, [open, toast, isVerifierReady]);
 
   const handleSendOtp = async () => {
     if (!verifierRef.current) {
@@ -161,7 +164,14 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   };
 
   const resetStateAndClose = (isOpen: boolean) => {
+    setOpen(isOpen);
     if (!isOpen) {
+      // Clear verifier on close to ensure a fresh start next time
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+        console.log("🧹 reCAPTCHA cleared on dialog close.");
+      }
       setStep('initial');
       setOtp('');
       setIsSending(false);
@@ -169,7 +179,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       setIsVerifierReady(false);
       confirmationResultRef.current = null;
     }
-    setOpen(isOpen);
   };
 
   return (
@@ -187,6 +196,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           </DialogDescription>
         </DialogHeader>
         
+        {/* This div must be in the DOM for the verifier to attach to */}
+        <div ref={recaptchaContainerRef} className="my-2"></div>
+        
         {step === 'verify' ? (
           <div className="py-4">
             <Input
@@ -198,9 +210,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
               type="tel"
             />
           </div>
-        ) : (
-          <div ref={recaptchaContainerRef} className="my-2"></div>
-        )}
+        ) : null}
         
         <DialogFooter>
           {step === 'initial' ? (
