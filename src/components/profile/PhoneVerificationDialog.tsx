@@ -22,12 +22,14 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [isVerifierReady, setIsVerifierReady] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
+  // Use a ref to hold the verifier instance across re-renders without causing re-initialization
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+
 
   useEffect(() => {
     if (!open) {
-      // Ensure cleanup when dialog is closed
+      // Cleanup when dialog is closed
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
@@ -36,7 +38,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     }
 
     const setupRecaptcha = async () => {
-      // Prevent re-initialization
+      // Prevent re-initialization if already present
       if (recaptchaVerifierRef.current || !recaptchaContainerRef.current) return;
       
       try {
@@ -47,18 +49,20 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             'size': 'invisible',
             'callback': () => {
                 console.log("reCAPTCHA solved implicitly.");
+                setIsVerifierReady(true);
             },
             'expired-callback': () => {
                 toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                setIsVerifierReady(false); // Reset readiness
+                setIsVerifierReady(false);
             }
         });
         
+        recaptchaVerifierRef.current = verifier;
+        
         // Render the verifier and update state upon success
         await verifier.render();
-        recaptchaVerifierRef.current = verifier;
-        setIsVerifierReady(true);
         console.log("reCAPTCHA rendered and ready.");
+        setIsVerifierReady(true);
 
       } catch (error) {
         console.error("reCAPTCHA setup error:", error);
@@ -67,6 +71,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       }
     };
     
+    // Run setup only when dialog opens
     setupRecaptcha();
 
   }, [open, toast]);
@@ -104,8 +109,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         description = 'The phone number provided is not valid.';
       }
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
-      // In case of error, reset reCAPTCHA for a clean retry
-      recaptchaVerifierRef.current.clear();
+      // In case of error, reset verifier readiness
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+      }
       setIsVerifierReady(false);
       
     } finally {
