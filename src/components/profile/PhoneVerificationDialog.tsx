@@ -28,83 +28,88 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   useEffect(() => {
     if (!open) {
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+        console.log("🧹 reCAPTCHA cleared on dialog close.");
+      }
       return;
     }
 
     let isMounted = true;
-
-    const setupRecaptcha = async () => {
-        if (verifierRef.current || !recaptchaContainerRef.current) {
-            if(!isVerifierReady && verifierRef.current) setIsVerifierReady(true);
-            return;
-        }
-
+    
+    // Use a small timeout to ensure the container is in the DOM
+    const timeoutId = setTimeout(() => {
+      if (!isMounted || verifierRef.current) {
+        return;
+      }
+      
+      const setupRecaptcha = async () => {
         try {
-            const { auth } = await getFirebaseClient();
-            const { RecaptchaVerifier } = await import('firebase/auth');
-            
-            console.log("Attempting to create and render RecaptchaVerifier...");
+          const { auth } = await getFirebaseClient();
+          const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = await import('firebase/auth');
+          
+          if (!recaptchaContainerRef.current) {
+            console.error("reCAPTCHA container ref is null.");
+            return;
+          }
 
-            const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-                'size': 'invisible',
-                'callback': () => {
-                    console.log("reCAPTCHA solved.");
-                },
-                'expired-callback': () => {
-                    if (isMounted) {
-                        toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                        setIsVerifierReady(false);
-                        verifierRef.current?.clear();
-                        verifierRef.current = null;
-                    }
-                }
-            });
-            
-            verifierRef.current = verifier;
+          console.log("Attempting to create and render RecaptchaVerifier...");
 
-            verifier.render().then(() => {
-                if (isMounted) {
-                    console.log("✅ reCAPTCHA rendered and ready.");
-                    setIsVerifierReady(true);
-                }
-            }).catch(error => {
-                console.error("❌ reCAPTCHA render error:", error);
-                 if (isMounted) {
-                    toast({
-                        title: 'reCAPTCHA Render Failed',
-                        description: 'Could not display reCAPTCHA. Please disable ad blockers and refresh the page.',
-                        variant: 'destructive',
-                        duration: 9000
-                    });
-                    setIsVerifierReady(false);
-                }
-            });
+          const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            'size': 'invisible',
+            'callback': () => console.log("reCAPTCHA solved."),
+            'expired-callback': () => {
+              if (!isMounted) return;
+              toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+              setIsVerifierReady(false);
+              verifierRef.current?.clear();
+              verifierRef.current = null;
+            }
+          });
+          
+          verifierRef.current = verifier;
+
+          verifier.render().then(() => {
+            if (isMounted) {
+              console.log("✅ reCAPTCHA rendered and ready.");
+              setIsVerifierReady(true);
+            }
+          }).catch(error => {
+            console.error("❌ reCAPTCHA render error:", error);
+            if (isMounted) {
+              toast({
+                title: 'reCAPTCHA Render Failed',
+                description: 'Could not display reCAPTCHA. Please disable ad blockers and refresh the page.',
+                variant: 'destructive',
+                duration: 9000
+              });
+              setIsVerifierReady(false);
+            }
+          });
 
         } catch (error) {
-            console.error("❌ reCAPTCHA setup error:", error);
-            if (isMounted) {
-                toast({ 
-                    title: 'Verification Setup Failed', 
-                    description: 'Could not initialize phone verification. Please check network connection and disable ad blockers.', 
-                    variant: 'destructive',
-                    duration: 9000 
-                });
-                setIsVerifierReady(false);
-            }
+          console.error("❌ reCAPTCHA setup error:", error);
+          if (isMounted) {
+            toast({ 
+              title: 'Verification Setup Failed', 
+              description: 'Could not initialize phone verification. Check your network connection and disable any ad blockers.', 
+              variant: 'destructive',
+              duration: 9000 
+            });
+            setIsVerifierReady(false);
+          }
         }
-    };
-    
-    setupRecaptcha();
+      };
+      
+      setupRecaptcha();
+    }, 100);
 
     return () => {
-        isMounted = false;
-        if (verifierRef.current) {
-          verifierRef.current.clear();
-          verifierRef.current = null;
-          console.log("🧹 reCAPTCHA cleared on dialog close.");
-        }
+      isMounted = false;
+      clearTimeout(timeoutId);
     };
-  }, [open, toast, isVerifierReady]);
+  }, [open, toast]);
 
   const handleSendOtp = async () => {
     if (!verifierRef.current || !isVerifierReady) {
@@ -128,7 +133,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         description: `A verification code has been sent to ${fullPhoneNumber}.`,
       });
       setStep('verify');
-    } catch (error: any) {
+    } catch (error: any) => {
       console.error("🔥 Error sending OTP:", error);
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/too-many-requests') {
@@ -239,3 +244,5 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     </Dialog>
   );
 }
+
+    
