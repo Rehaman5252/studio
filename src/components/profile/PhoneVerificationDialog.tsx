@@ -17,7 +17,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [open, setOpen] = useState(false);
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerifierReady, setIsVerifierReady] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -25,6 +27,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   useEffect(() => {
     if (!open) {
+      // Ensure cleanup when dialog is closed
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
@@ -33,12 +36,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     }
 
     const setupRecaptcha = async () => {
-      // Ensure container is in the DOM
-      if (!recaptchaContainerRef.current) return;
-      
       // Prevent re-initialization
-      if (recaptchaVerifierRef.current) return;
-
+      if (recaptchaVerifierRef.current || !recaptchaContainerRef.current) return;
+      
       try {
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
@@ -46,49 +46,39 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
             'size': 'invisible',
             'callback': () => {
-                console.log("reCAPTCHA solved, ready to send OTP.");
+                console.log("reCAPTCHA solved implicitly.");
             },
             'expired-callback': () => {
                 toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                setIsLoading(false);
-                if (recaptchaVerifierRef.current) {
-                    recaptchaVerifierRef.current.clear();
-                    recaptchaVerifierRef.current = null;
-                }
+                setIsVerifierReady(false); // Reset readiness
             }
         });
         
+        // Render the verifier and update state upon success
         await verifier.render();
         recaptchaVerifierRef.current = verifier;
-        console.log("reCAPTCHA rendered successfully.");
+        setIsVerifierReady(true);
+        console.log("reCAPTCHA rendered and ready.");
 
       } catch (error) {
         console.error("reCAPTCHA setup error:", error);
         toast({ title: 'Verification Error', description: 'Could not initialize phone verification system. Ad blockers can sometimes cause this.', variant: 'destructive' });
-        setIsLoading(false);
+        setIsVerifierReady(false);
       }
     };
     
     setupRecaptcha();
 
-    // Cleanup on dialog close
-    return () => {
-        if (recaptchaVerifierRef.current) {
-            recaptchaVerifierRef.current.clear();
-            recaptchaVerifierRef.current = null;
-        }
-    };
   }, [open, toast]);
 
   const handleSendOtp = async () => {
-    setIsLoading(true);
-    const appVerifier = recaptchaVerifierRef.current;
-
-    if (!appVerifier) {
+    if (!isVerifierReady || !recaptchaVerifierRef.current) {
       toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait a moment and try again.', variant: 'destructive' });
-      setIsLoading(false);
       return;
     }
+    
+    setIsSending(true);
+    const appVerifier = recaptchaVerifierRef.current;
 
     try {
       const { auth } = await getFirebaseClient();
@@ -114,14 +104,18 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         description = 'The phone number provided is not valid.';
       }
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
+      // In case of error, reset reCAPTCHA for a clean retry
+      recaptchaVerifierRef.current.clear();
+      setIsVerifierReady(false);
+      
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   };
 
   const handleVerifyOtp = async () => {
     if (!user || !confirmationResult) return;
-    setIsLoading(true);
+    setIsVerifying(true);
     try {
       await confirmationResult.confirm(otp);
       
@@ -143,7 +137,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       }
       toast({ title: 'Verification Failed', description, variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsVerifying(false);
     }
   };
 
@@ -151,8 +145,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     if (!isOpen) {
       setStep('initial');
       setOtp('');
-      setIsLoading(false);
+      setIsSending(false);
+      setIsVerifying(false);
       setConfirmationResult(null);
+      setIsVerifierReady(false); // Reset verifier readiness on close
     }
     setOpen(isOpen);
   };
@@ -179,7 +175,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
               onChange={(e) => setOtp(e.target.value)}
               placeholder="123456"
               maxLength={6}
-              disabled={isLoading}
+              disabled={isVerifying}
               type="tel"
             />
           </div>
@@ -189,14 +185,20 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         
         <DialogFooter>
           {step === 'initial' ? (
-            <Button onClick={handleSendOtp} disabled={isLoading} className="w-full">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Send Code'}
+            <Button onClick={handleSendOtp} disabled={!isVerifierReady || isSending} className="w-full">
+              {isSending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+              ) : !isVerifierReady ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Initializing...</>
+              ) : (
+                'Send Code'
+              )}
             </Button>
           ) : (
             <div className='w-full flex justify-between'>
-              <Button variant="ghost" onClick={() => setStep('initial')} disabled={isLoading}>Back</Button>
-              <Button onClick={handleVerifyOtp} disabled={isLoading || otp.length < 6}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Verify & Save'}
+              <Button variant="ghost" onClick={() => setStep('initial')} disabled={isVerifying}>Back</Button>
+              <Button onClick={handleVerifyOtp} disabled={isVerifying || otp.length < 6}>
+                {isVerifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Verify & Save'}
               </Button>
             </div>
           )}
