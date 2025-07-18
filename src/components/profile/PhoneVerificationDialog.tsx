@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { getFirebaseClient } from "@/lib/firebaseClient";
 import { useAuth } from '@/context/AuthProvider';
