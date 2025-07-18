@@ -1,4 +1,5 @@
-// src/components/profile/PhoneVerificationDialog.tsx
+
+'use client';
 
 import { useEffect, useRef, useState } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
@@ -104,7 +105,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       console.error("🔥 Error sending OTP:", error);
       let description = 'Failed to send OTP. Please try again.';
       if (error.code === 'auth/internal-error') {
-        description = "Internal error. Ensure 'localhost' is an authorized domain in your Firebase Console.";
+        description = "Internal error. Ensure 'localhost' is an authorized domain in your Firebase Console and disable any ad blockers.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number format is invalid.';
       }
