@@ -63,7 +63,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             console.error('❌ reCAPTCHA failed to render:', error);
             toast({
               title: "Verification Setup Failed",
-              description: "Could not initialize phone verification. Disable ad blockers and check your network.",
+              description: "Could not initialize phone verification. Disable any ad blockers and check your network.",
               variant: "destructive",
               duration: 9000,
             });
@@ -84,7 +84,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const handleSendOtp = async () => {
     if (!isVerifierReady || !verifierRef.current) {
-      toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready. Please wait.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready. Please wait or try again.', variant: 'destructive' });
       return;
     }
     
@@ -104,10 +104,12 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     } catch (error: any) {
       console.error("🔥 Error sending OTP:", error);
       let description = 'Failed to send OTP. Please try again.';
-      if (error.code === 'auth/internal-error') {
-        description = "Internal error. Ensure 'localhost' is an authorized domain in your Firebase Console and disable any ad blockers.";
+      if (error.code === 'auth/internal-error-encountered') {
+        description = "An internal error occurred. Please check that 'localhost' is an authorized domain in your Firebase Console and disable any ad blockers.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number format is invalid.';
+      } else if (error.code === 'auth/too-many-requests') {
+        description = "You've sent too many requests. Please try again later.";
       }
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
     } finally {
