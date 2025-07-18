@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { getFirebaseClient } from "@/lib/firebaseClient";
 import { useAuth } from '@/context/AuthProvider';
@@ -32,30 +32,19 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) {
-      if (verifierRef.current) {
-        verifierRef.current.clear();
-        verifierRef.current = null;
-        console.log("reCAPTCHA cleaned up.");
-      }
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      if (recaptchaContainerRef.current && !verifierRef.current) {
+  
+  // This ref is crucial to ensure the container exists before we try to render reCAPTCHA
+  const recaptchaContainerRef = useCallback((node: HTMLDivElement) => {
+    if (node !== null && !verifierRef.current && open) {
         console.log("Attempting to initialize reCAPTCHA...");
         getFirebaseClient().then(({ auth }) => {
           const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = require('firebase/auth');
           
           try {
-            const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current!, {
+            const verifier = new FirebaseRecaptchaVerifier(auth, node, {
               size: 'invisible',
               callback: () => {
                 console.log('reCAPTCHA automatically solved');
-                setIsVerifierReady(true);
               },
               'expired-callback': () => {
                 toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
@@ -69,12 +58,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             
             verifierRef.current = verifier;
 
+            // The verifier must be rendered.
             verifier.render().then(() => {
               console.log("✅ reCAPTCHA rendered successfully.");
               setIsVerifierReady(true);
             }).catch((renderError: any) => {
               console.error('❌ reCAPTCHA failed to render:', renderError);
-              setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please check your browser console for more details.");
+              setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please disable them and try again.");
               setIsVerifierReady(false);
             });
 
@@ -83,22 +73,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             setError("Failed to initialize the phone verification system.");
           }
         });
-      }
-    }, 250);
-
-    return () => {
-      clearTimeout(timer);
-      if (verifierRef.current) {
-        verifierRef.current.clear();
-        verifierRef.current = null;
-      }
-    };
+    }
   }, [open, toast]);
 
   const handleSendOtp = async () => {
     setError(null);
     if (!verifierRef.current || !isVerifierReady) {
-      setError('reCAPTCHA verifier is not ready. Please wait or try reopening the dialog.');
+      setError('reCAPTCHA verifier is not ready. Please wait or reopen the dialog.');
       toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready.', variant: 'destructive' });
       return;
     }
@@ -118,13 +99,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setStep('verify');
     } catch (err: any)      {
       console.error("🔥 Error sending OTP:", err);
-      let description = 'Failed to send OTP. Please try again.';
+      let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (err.code === 'auth/invalid-phone-number') {
         description = 'The phone number format is invalid. Please ensure it is 10 digits.';
       } else if (err.code === 'auth/too-many-requests') {
         description = "You've sent too many requests. Please try again later.";
       } else if (err.code === 'auth/internal-error' || err.code === 'auth/internal-error-encountered') {
-        description = "An internal Firebase error occurred. This is often caused by ad blockers, VPNs, or a network issue. Please check and try again.";
+        description = "An internal Firebase error occurred. This is often caused by ad blockers, VPNs, or network issues. Please check and try again.";
       }
       setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
