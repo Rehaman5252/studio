@@ -40,19 +40,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     
     // Use a small timeout to ensure the container is in the DOM
     const timeoutId = setTimeout(() => {
-      if (!isMounted || verifierRef.current) {
-        if(verifierRef.current && !isVerifierReady) {
-            // It might exist but not be ready, so re-render
-            verifierRef.current.render().then(() => {
-                if (isMounted) {
-                    console.log("✅ reCAPTCHA re-rendered and ready.");
-                    setIsVerifierReady(true);
-                }
-            }).catch(error => {
-                console.error("❌ reCAPTCHA re-render error:", error);
-                if (isMounted) setIsVerifierReady(false);
-            });
-        }
+      if (!isMounted || verifierRef.current || !recaptchaContainerRef.current) {
         return;
       }
       
@@ -121,7 +109,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       isMounted = false;
       clearTimeout(timeoutId);
     };
-  }, [open, toast, isVerifierReady]);
+  }, [open, toast]);
 
   const handleSendOtp = async () => {
     if (!verifierRef.current || !isVerifierReady) {
@@ -196,7 +184,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       setOtp('');
       setIsSending(false);
       setIsVerifying(false);
-      // Don't reset isVerifierReady here, let useEffect handle it based on open state
+      setIsVerifierReady(false);
       confirmationResultRef.current = null;
     }
     setOpen(isOpen);
