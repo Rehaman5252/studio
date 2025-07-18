@@ -23,13 +23,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-  // Use a ref to hold the verifier instance across re-renders without causing re-initialization
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-
 
   useEffect(() => {
     if (!open) {
-      // Cleanup when dialog is closed
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
@@ -38,7 +35,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     }
 
     const setupRecaptcha = async () => {
-      // Prevent re-initialization if already present
       if (recaptchaVerifierRef.current || !recaptchaContainerRef.current) return;
       
       try {
@@ -59,19 +55,17 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         
         recaptchaVerifierRef.current = verifier;
         
-        // Render the verifier and update state upon success
         await verifier.render();
         console.log("reCAPTCHA rendered and ready.");
         setIsVerifierReady(true);
 
       } catch (error) {
         console.error("reCAPTCHA setup error:", error);
-        toast({ title: 'Verification Error', description: 'Could not initialize phone verification system. Ad blockers can sometimes cause this.', variant: 'destructive' });
+        toast({ title: 'Verification Error', description: 'Could not initialize phone verification. Ad blockers can sometimes cause this.', variant: 'destructive' });
         setIsVerifierReady(false);
       }
     };
     
-    // Run setup only when dialog opens
     setupRecaptcha();
 
   }, [open, toast]);
@@ -109,11 +103,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         description = 'The phone number provided is not valid.';
       }
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
-      // In case of error, reset verifier readiness
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-      }
-      setIsVerifierReady(false);
       
     } finally {
       setIsSending(false);
@@ -155,7 +144,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       setIsSending(false);
       setIsVerifying(false);
       setConfirmationResult(null);
-      setIsVerifierReady(false); // Reset verifier readiness on close
+      setIsVerifierReady(false);
     }
     setOpen(isOpen);
   };
