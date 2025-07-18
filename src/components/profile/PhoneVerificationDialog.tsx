@@ -20,60 +20,64 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  // Use a ref to hold the verifier instance to avoid re-creation on re-renders
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // This effect runs when the dialog opens or closes.
-    // We only want to initialize reCAPTCHA when the dialog is actually open.
     if (!open) {
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+      return;
+    }
+
+    const setupRecaptcha = async () => {
+      // Ensure container is in the DOM
+      if (!recaptchaContainerRef.current) return;
+      
+      // Prevent re-initialization
+      if (recaptchaVerifierRef.current) return;
+
+      try {
+        const { auth } = await getFirebaseClient();
+        const { RecaptchaVerifier } = await import('firebase/auth');
+        
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            'size': 'invisible',
+            'callback': () => {
+                console.log("reCAPTCHA solved, ready to send OTP.");
+            },
+            'expired-callback': () => {
+                toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+                setIsLoading(false);
+                if (recaptchaVerifierRef.current) {
+                    recaptchaVerifierRef.current.clear();
+                    recaptchaVerifierRef.current = null;
+                }
+            }
+        });
+        
+        await verifier.render();
+        recaptchaVerifierRef.current = verifier;
+        console.log("reCAPTCHA rendered successfully.");
+
+      } catch (error) {
+        console.error("reCAPTCHA setup error:", error);
+        toast({ title: 'Verification Error', description: 'Could not initialize phone verification system. Ad blockers can sometimes cause this.', variant: 'destructive' });
+        setIsLoading(false);
+      }
+    };
+    
+    setupRecaptcha();
+
+    // Cleanup on dialog close
+    return () => {
         if (recaptchaVerifierRef.current) {
             recaptchaVerifierRef.current.clear();
             recaptchaVerifierRef.current = null;
         }
-        return;
-    }
-
-    // When the dialog opens, initialize a new verifier if one doesn't exist.
-    const initializeRecaptcha = async () => {
-        // Prevent re-initialization if it already exists from a previous failed attempt in the same session.
-        if (recaptchaVerifierRef.current) return;
-        
-        try {
-            const { auth } = await getFirebaseClient();
-            const { RecaptchaVerifier } = await import('firebase/auth');
-            
-            // This div MUST be in the DOM for this to work.
-            recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'invisible',
-                'callback': () => {
-                    // reCAPTCHA solved, ready to send OTP.
-                    console.log("reCAPTCHA solved, ready to send OTP.");
-                },
-                'expired-callback': () => {
-                    toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
-                    setIsLoading(false);
-                    // Clear the verifier so a new one can be created.
-                    if (recaptchaVerifierRef.current) {
-                        recaptchaVerifierRef.current.clear();
-                        recaptchaVerifierRef.current = null;
-                    }
-                }
-            });
-
-            // Render the reCAPTCHA widget. This is a crucial step.
-            await recaptchaVerifierRef.current.render();
-            console.log("reCAPTCHA rendered successfully.");
-
-        } catch (error) {
-            console.error("reCAPTCHA setup error:", error);
-            toast({ title: 'Verification Error', description: 'Could not initialize phone verification system. Ad blockers can sometimes cause this issue.', variant: 'destructive' });
-            setIsLoading(false);
-        }
     };
-    
-    initializeRecaptcha();
-
   }, [open, toast]);
 
   const handleSendOtp = async () => {
@@ -105,7 +109,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       if (error.code === 'auth/too-many-requests') {
           description = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
       } else if (error.code === 'auth/internal-error') {
-         description = "An internal error occurred. On localhost, this can be caused by ad blockers or network settings interfering with reCAPTCHA. For deployed apps, ensure your domain is authorized in the Firebase Console.";
+         description = "An internal error occurred. This can happen if your app's domain (e.g. localhost) is not authorized in your Firebase project settings for phone auth. Please check your Firebase Console.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number provided is not valid.';
       }
@@ -181,8 +185,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           </div>
         )}
         
-        {/* This container is used by the reCAPTCHA verifier and must be in the DOM */}
-        <div id="recaptcha-container"></div>
+        <div ref={recaptchaContainerRef}></div>
         
         <DialogFooter>
           {step === 'initial' ? (
