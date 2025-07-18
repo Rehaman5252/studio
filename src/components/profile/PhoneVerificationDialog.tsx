@@ -53,6 +53,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
 
     if (!auth) {
+        // This check is critical. If auth is null, we can't proceed.
         setError("Firebase is not configured. Please check your setup.");
         return;
     }
