@@ -2,7 +2,7 @@
 'use client';
 
 import { app, isFirebaseConfigured } from './firebase';
-import { initializeFirestore, getFirestore, memoryLocalCache, type Firestore } from 'firebase/firestore';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 
 interface FirebaseClientServices {
@@ -22,14 +22,12 @@ const getClientServices = (): FirebaseClientServices => {
   }
 
   // Initialize on first call and store the instances
-  console.log("Initializing Firebase client services for the first time...");
   const auth = getAuth(app);
   
   // Use getFirestore to prevent re-initialization error
   const db = getFirestore(app);
   
   clientServices = { auth, db };
-  console.log("✅ Firebase Auth and Firestore clients are ready.");
   
   return clientServices;
 };
@@ -44,7 +42,11 @@ const getClientServices = (): FirebaseClientServices => {
 export const getFirebaseClient = (): Promise<FirebaseClientServices> => {
     // We return a promise to keep a consistent async interface,
     // though the initialization itself is synchronous after the first call.
-    return new Promise((resolve) => {
-        resolve(getClientServices());
+    return new Promise((resolve, reject) => {
+        try {
+            resolve(getClientServices());
+        } catch (error) {
+            reject(error);
+        }
     });
 };

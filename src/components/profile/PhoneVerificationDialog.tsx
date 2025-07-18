@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { getFirebaseClient } from "@/lib/firebaseClient";
 import { useAuth } from '@/context/AuthProvider';
@@ -33,45 +33,42 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   
-  // This ref is crucial to ensure the container exists before we try to render reCAPTCHA
-  const recaptchaContainerRef = useCallback((node: HTMLDivElement) => {
+  const recaptchaContainerRef = useCallback((node: HTMLDivElement | null) => {
     if (node !== null && !verifierRef.current && open) {
-        console.log("Attempting to initialize reCAPTCHA...");
         getFirebaseClient().then(({ auth }) => {
-          const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = require('firebase/auth');
-          
-          try {
-            const verifier = new FirebaseRecaptchaVerifier(auth, node, {
-              size: 'invisible',
-              callback: () => {
-                console.log('reCAPTCHA automatically solved');
-              },
-              'expired-callback': () => {
-                toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
-                if (verifierRef.current) {
-                  verifierRef.current.clear();
-                  verifierRef.current = null;
-                }
+          // Dynamically import RecaptchaVerifier only on the client
+          import('firebase/auth').then(({ RecaptchaVerifier: FirebaseRecaptchaVerifier }) => {
+            try {
+              const verifier = new FirebaseRecaptchaVerifier(auth, node, {
+                size: 'invisible',
+                callback: () => {
+                  console.log('reCAPTCHA solved');
+                },
+                'expired-callback': () => {
+                  toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
+                  if (verifierRef.current) {
+                    verifierRef.current.clear();
+                    verifierRef.current = null;
+                  }
+                  setIsVerifierReady(false);
+                },
+              });
+              
+              verifier.render().then(() => {
+                console.log("✅ reCAPTCHA rendered successfully.");
+                verifierRef.current = verifier;
+                setIsVerifierReady(true);
+              }).catch((renderError: any) => {
+                console.error('❌ reCAPTCHA failed to render:', renderError);
+                setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please disable them and try again.");
                 setIsVerifierReady(false);
-              },
-            });
-            
-            verifierRef.current = verifier;
+              });
 
-            // The verifier must be rendered.
-            verifier.render().then(() => {
-              console.log("✅ reCAPTCHA rendered successfully.");
-              setIsVerifierReady(true);
-            }).catch((renderError: any) => {
-              console.error('❌ reCAPTCHA failed to render:', renderError);
-              setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please disable them and try again.");
-              setIsVerifierReady(false);
-            });
-
-          } catch (initError: any) {
-            console.error('❌ Error creating RecaptchaVerifier', initError);
-            setError("Failed to initialize the phone verification system.");
-          }
+            } catch (initError: any) {
+              console.error('❌ Error creating RecaptchaVerifier', initError);
+              setError("Failed to initialize the phone verification system.");
+            }
+          });
         });
     }
   }, [open, toast]);
@@ -79,8 +76,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const handleSendOtp = async () => {
     setError(null);
     if (!verifierRef.current || !isVerifierReady) {
-      setError('reCAPTCHA verifier is not ready. Please wait or reopen the dialog.');
-      toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready.', variant: 'destructive' });
+      setError('The reCAPTCHA verifier is not ready. Please wait a moment or reopen the dialog.');
       return;
     }
     
@@ -104,8 +100,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         description = 'The phone number format is invalid. Please ensure it is 10 digits.';
       } else if (err.code === 'auth/too-many-requests') {
         description = "You've sent too many requests. Please try again later.";
-      } else if (err.code === 'auth/internal-error' || err.code === 'auth/internal-error-encountered') {
-        description = "An internal Firebase error occurred. This is often caused by ad blockers, VPNs, or network issues. Please check and try again.";
+      } else if (err.code?.includes('internal-error')) {
+        description = "An internal error occurred, often due to ad blockers, VPNs, or network issues. Please disable them and try again.";
       }
       setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
@@ -165,6 +161,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           </DialogDescription>
         </DialogHeader>
         
+        {/* This div is the container for the invisible reCAPTCHA */}
         <div ref={recaptchaContainerRef} />
 
         {error && (
