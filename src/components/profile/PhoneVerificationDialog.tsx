@@ -36,14 +36,19 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   useEffect(() => {
     if (!open) {
-      verifierRef.current?.clear();
+      // Cleanup when dialog closes
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+      }
       return;
     }
 
-    // This timeout gives the dialog modal time to render the container div
+    // Delay initialization to ensure the container div is in the DOM
     const timer = setTimeout(() => {
       if (recaptchaContainerRef.current && !verifierRef.current) {
         getFirebaseClient().then(({ auth }) => {
+          // Dynamically import to ensure it's client-side only
           const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = require('firebase/auth');
           
           try {
@@ -54,7 +59,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
               },
               'expired-callback': () => {
                 toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
-                verifierRef.current?.clear();
+                if (verifierRef.current) {
+                  verifierRef.current.clear();
+                  verifierRef.current = null;
+                }
                 setIsVerifierReady(false);
               },
             });
@@ -64,24 +72,27 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             verifier.render().then(() => {
               console.log("✅ reCAPTCHA rendered successfully.");
               setIsVerifierReady(true);
-            }).catch(renderError => {
+            }).catch((renderError: any) => {
               console.error('❌ reCAPTCHA failed to render:', renderError);
-              setError("reCAPTCHA failed. Check for ad blockers/VPNs and ensure 'localhost' is an authorized domain in Firebase.");
+              setError("reCAPTCHA failed. This can be caused by ad blockers, VPNs, or network issues. Please check your browser console for more details and ensure 'localhost' is an authorized domain in your Firebase project settings.");
               setIsVerifierReady(false);
             });
 
-          } catch (initError) {
+          } catch (initError: any) {
             console.error('❌ Error creating RecaptchaVerifier', initError);
-            setError("Failed to initialize phone verification system.");
+            setError("Failed to initialize the phone verification system.");
           }
         });
       }
-    }, 250); // Delay to ensure DOM is ready
+    }, 250); // Small delay to ensure the dialog and its DOM are fully rendered
 
     return () => {
       clearTimeout(timer);
-      verifierRef.current?.clear();
-      verifierRef.current = null;
+      // Ensure cleanup on unmount as well
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+      }
     };
   }, [open, toast]);
 
@@ -113,7 +124,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       } else if (err.code === 'auth/too-many-requests') {
         description = "You've sent too many requests. Please try again later.";
       } else if (err.code === 'auth/internal-error') {
-        description = "An internal error occurred. This is often caused by ad blockers, VPNs, or network issues. Please check and try again.";
+        description = "An internal Firebase error occurred. This is often caused by ad blockers, VPNs, or network issues. Please check and try again.";
       }
       setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
@@ -151,7 +162,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setOtp('');
       setIsLoading(false);
       setError(null);
-      setIsVerifierReady(false);
+      setIsVerifierReady(false); // Reset verifier readiness on close
     }
     setOpen(isOpen);
   };
@@ -169,6 +180,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           </DialogDescription>
         </DialogHeader>
         
+        {/* This div is now the target for the verifier, and it's always present in the dialog's DOM */}
         <div ref={recaptchaContainerRef} />
 
         {error && (
