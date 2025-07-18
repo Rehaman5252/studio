@@ -43,59 +43,61 @@ export function PhoneVerificationDialog({
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open && recaptchaContainerRef.current && !verifierRef.current) {
-      const initializeVerifier = async () => {
-        try {
-          const { auth } = await getFirebaseClient();
-          const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = await import('firebase/auth');
-
-          console.log("Attempting to create RecaptchaVerifier...");
-          const verifier = new FirebaseRecaptchaVerifier(
-            auth,
-            recaptchaContainerRef.current!,
-            {
-              size: 'invisible',
-              callback: () => {
-                console.log('reCAPTCHA solved (auto-resolved).');
-              },
-              'expired-callback': () => {
-                toast({
-                  title: 'reCAPTCHA Expired',
-                  description: 'Please try sending the code again.',
-                  variant: 'destructive',
-                });
-                setIsVerifierReady(false);
-                verifierRef.current = null;
-              },
-            }
-          );
-
-          verifierRef.current = verifier;
-
-          await verifier.render();
-          console.log('✅ reCAPTCHA rendered successfully.');
-          setIsVerifierReady(true);
-        } catch (error) {
-          console.error('❌ reCAPTCHA failed to render:', error);
-          toast({
-            title: 'Verification Setup Failed',
-            description:
-              'Could not initialize phone verification. Please disable any ad blockers and check your network connection.',
-            variant: 'destructive',
-            duration: 9000,
+    if (open) {
+      // Use a timeout to ensure the dialog and its container are fully rendered in the DOM
+      const timerId = setTimeout(() => {
+        if (recaptchaContainerRef.current && !verifierRef.current) {
+          console.log("Attempting to create and render RecaptchaVerifier...");
+          getFirebaseClient().then(({ auth }) => {
+            const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = require('firebase/auth');
+            const verifier = new FirebaseRecaptchaVerifier(
+              auth,
+              recaptchaContainerRef.current!,
+              {
+                size: 'invisible',
+                callback: () => {
+                  console.log('reCAPTCHA solved (auto-resolved).');
+                },
+                'expired-callback': () => {
+                  toast({
+                    title: 'reCAPTCHA Expired',
+                    description: 'Please try sending the code again.',
+                    variant: 'destructive',
+                  });
+                  verifierRef.current?.clear();
+                  setIsVerifierReady(false);
+                },
+              }
+            );
+            verifierRef.current = verifier;
+            
+            verifier.render().then(() => {
+              console.log('✅ reCAPTCHA rendered successfully.');
+              setIsVerifierReady(true);
+            }).catch(error => {
+              console.error('❌ reCAPTCHA failed to render:', error);
+              toast({
+                title: 'Verification Setup Failed',
+                description:
+                  'Could not initialize phone verification. Please disable any ad blockers and check your network connection.',
+                variant: 'destructive',
+                duration: 9000,
+              });
+              setIsVerifierReady(false);
+            });
           });
-          setIsVerifierReady(false);
         }
-      };
-      initializeVerifier();
+      }, 100); // A short delay is often sufficient
+
+      return () => clearTimeout(timerId);
     }
 
     return () => {
       // Cleanup on unmount or when dialog closes
       if (verifierRef.current) {
+        console.log("Clearing RecaptchaVerifier.");
         verifierRef.current.clear();
         verifierRef.current = null;
-        setIsVerifierReady(false);
       }
     };
   }, [open, toast]);
@@ -131,9 +133,9 @@ export function PhoneVerificationDialog({
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/too-many-requests') {
         description = "You've made too many requests. Please try again later.";
-      } else if (error.code === 'auth/internal-error') {
+      } else if (error.code === 'auth/internal-error' || error.code === 'auth/internal-error-encountered') {
         description =
-          "Internal Firebase error. This can happen if your browser is blocking reCAPTCHA (check ad blockers) or if your app's domain isn't authorized in the Firebase Console.";
+          "Internal Firebase error. Ensure your domain (e.g., localhost) is authorized in the Firebase Console and disable any ad blockers.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number provided is not valid. Please use the format 9876543210.';
       }
@@ -155,7 +157,7 @@ export function PhoneVerificationDialog({
 
       toast({ title: 'Success', description: 'Your phone number has been verified.' });
       onVerified();
-      setOpen(false);
+      resetStateAndClose(false);
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
       let description = 'Failed to verify OTP.';
@@ -172,11 +174,11 @@ export function PhoneVerificationDialog({
 
   const resetStateAndClose = (isOpen: boolean) => {
     if (!isOpen) {
-      // Full reset when dialog is closed
       setStep('initial');
       setOtp('');
       setIsSending(false);
       setIsVerifying(false);
+      setIsVerifierReady(false); // Reset readiness on close
     }
     setOpen(isOpen);
   };
