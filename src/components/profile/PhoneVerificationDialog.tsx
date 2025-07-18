@@ -36,19 +36,18 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   useEffect(() => {
     if (!open) {
-      // Cleanup when dialog closes
       if (verifierRef.current) {
         verifierRef.current.clear();
         verifierRef.current = null;
+        console.log("reCAPTCHA cleaned up.");
       }
       return;
     }
 
-    // Delay initialization to ensure the container div is in the DOM
     const timer = setTimeout(() => {
       if (recaptchaContainerRef.current && !verifierRef.current) {
+        console.log("Attempting to initialize reCAPTCHA...");
         getFirebaseClient().then(({ auth }) => {
-          // Dynamically import to ensure it's client-side only
           const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = require('firebase/auth');
           
           try {
@@ -56,6 +55,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
               size: 'invisible',
               callback: () => {
                 console.log('reCAPTCHA automatically solved');
+                setIsVerifierReady(true);
               },
               'expired-callback': () => {
                 toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
@@ -74,7 +74,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
               setIsVerifierReady(true);
             }).catch((renderError: any) => {
               console.error('❌ reCAPTCHA failed to render:', renderError);
-              setError("reCAPTCHA failed to load. This is often caused by ad blockers, VPNs, or network issues. Please check your browser console and ensure your Firebase project authorizes this domain.");
+              setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please check your browser console for more details.");
               setIsVerifierReady(false);
             });
 
@@ -84,11 +84,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           }
         });
       }
-    }, 250); // Small delay to ensure the dialog and its DOM are fully rendered
+    }, 250);
 
     return () => {
       clearTimeout(timer);
-      // Ensure cleanup on unmount as well
       if (verifierRef.current) {
         verifierRef.current.clear();
         verifierRef.current = null;
@@ -100,6 +99,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     setError(null);
     if (!verifierRef.current || !isVerifierReady) {
       setError('reCAPTCHA verifier is not ready. Please wait or try reopening the dialog.');
+      toast({ title: 'Error', description: 'reCAPTCHA verifier is not ready.', variant: 'destructive' });
       return;
     }
     
@@ -116,7 +116,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       
       toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
       setStep('verify');
-    } catch (err: any) {
+    } catch (err: any)      {
       console.error("🔥 Error sending OTP:", err);
       let description = 'Failed to send OTP. Please try again.';
       if (err.code === 'auth/invalid-phone-number') {
@@ -162,7 +162,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setOtp('');
       setIsLoading(false);
       setError(null);
-      setIsVerifierReady(false); // Reset verifier readiness on close
+      setIsVerifierReady(false);
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+      }
     }
     setOpen(isOpen);
   };
@@ -180,7 +184,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           </DialogDescription>
         </DialogHeader>
         
-        {/* This div is now the target for the verifier, and it's always present in the dialog's DOM */}
         <div ref={recaptchaContainerRef} />
 
         {error && (
