@@ -41,6 +41,18 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     // Use a small timeout to ensure the container is in the DOM
     const timeoutId = setTimeout(() => {
       if (!isMounted || verifierRef.current) {
+        if(verifierRef.current && !isVerifierReady) {
+            // It might exist but not be ready, so re-render
+            verifierRef.current.render().then(() => {
+                if (isMounted) {
+                    console.log("✅ reCAPTCHA re-rendered and ready.");
+                    setIsVerifierReady(true);
+                }
+            }).catch(error => {
+                console.error("❌ reCAPTCHA re-render error:", error);
+                if (isMounted) setIsVerifierReady(false);
+            });
+        }
         return;
       }
       
@@ -109,7 +121,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       isMounted = false;
       clearTimeout(timeoutId);
     };
-  }, [open, toast]);
+  }, [open, toast, isVerifierReady]);
 
   const handleSendOtp = async () => {
     if (!verifierRef.current || !isVerifierReady) {
@@ -133,13 +145,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         description: `A verification code has been sent to ${fullPhoneNumber}.`,
       });
       setStep('verify');
-    } catch (error: any) => {
+    } catch (error: any) {
       console.error("🔥 Error sending OTP:", error);
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/too-many-requests') {
           description = "You've made too many requests. Please try again later.";
       } else if (error.code === 'auth/internal-error' || error.code === 'auth/internal-error-encountered') {
-         description = "Internal Firebase error. Ensure this app's domain (e.g., localhost) is added to 'Authorized domains' in your Firebase project settings and check for ad blockers.";
+         description = "Internal Firebase error. Ensure this app's domain (e.g., localhost) is authorized in Firebase settings and check for ad blockers.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number provided is not valid. Please use the format 9876543210.';
       }
@@ -184,7 +196,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       setOtp('');
       setIsSending(false);
       setIsVerifying(false);
-      setIsVerifierReady(false);
+      // Don't reset isVerifierReady here, let useEffect handle it based on open state
       confirmationResultRef.current = null;
     }
     setOpen(isOpen);
@@ -205,7 +217,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           </DialogDescription>
         </DialogHeader>
         
-        <div ref={recaptchaContainerRef} className="my-2"></div>
+        <div ref={recaptchaContainerRef} className="my-2" id="recaptcha-container"></div>
         
         {step === 'verify' ? (
           <div className="py-4">
@@ -244,5 +256,3 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     </Dialog>
   );
 }
-
-    
