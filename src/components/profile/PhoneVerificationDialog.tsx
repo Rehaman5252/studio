@@ -22,18 +22,16 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [isVerifierReady, setIsVerifierReady] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  // Use a ref for the verifier to avoid re-creation on re-renders.
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Only run this effect when the dialog is open.
     if (!open) {
       return;
     }
 
     const setupRecaptcha = async () => {
-      // Ensure this only runs once per dialog opening.
-      if (verifierRef.current) {
+      if (verifierRef.current || !recaptchaContainerRef.current) {
         return;
       }
       
@@ -41,19 +39,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
         
-        // We need a container for the verifier to render into.
-        // It's placed conditionally in the JSX.
-        const recaptchaContainer = document.getElementById('recaptcha-container');
-        if (!recaptchaContainer) {
-            console.error("reCAPTCHA container not found in DOM.");
-            return;
-        }
-
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
             'size': 'invisible',
-            'callback': () => {
-                console.log("reCAPTCHA solved implicitly.");
-            },
+            'callback': () => console.log("reCAPTCHA solved."),
             'expired-callback': () => {
                 toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
                 setIsVerifierReady(false);
@@ -62,7 +50,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
         
         verifierRef.current = verifier;
         
-        // Render the verifier and then update the state to enable the button.
         await verifier.render();
         console.log("reCAPTCHA rendered and ready.");
         setIsVerifierReady(true);
@@ -105,8 +92,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
       let description = 'Failed to send OTP. Please check the phone number and try again.';
       if (error.code === 'auth/too-many-requests') {
           description = "You've made too many requests. To protect your account, Firebase has temporarily blocked OTP requests from this device. Please try again later.";
-      } else if (error.code === 'auth/internal-error') {
-         description = "An internal error occurred. This can happen if your app's domain (e.g. localhost) is not authorized in your Firebase project settings for phone auth. Please check your Firebase Console.";
+      } else if (error.code === 'auth/internal-error' || error.code === 'auth/internal-error-encountered') {
+         description = "Internal error: Firebase blocked the request. This can happen if your app's domain (e.g., localhost) is not authorized in your Firebase project settings, or if an ad blocker is interfering. Please check your Firebase Console.";
       } else if (error.code === 'auth/invalid-phone-number') {
         description = 'The phone number provided is not valid.';
       }
@@ -147,7 +134,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   const resetStateAndClose = (isOpen: boolean) => {
     if (!isOpen) {
-      // Clear the verifier when the dialog is closed.
       if (verifierRef.current) {
         verifierRef.current.clear();
         verifierRef.current = null;
@@ -189,9 +175,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             />
           </div>
         ) : (
-          // This container is required for the invisible reCAPTCHA.
-          // It's only added to the DOM when the dialog is in the initial step.
-          <div id="recaptcha-container"></div>
+          <div ref={recaptchaContainerRef}></div>
         )}
         
         <DialogFooter>
@@ -209,7 +193,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             <div className='w-full flex justify-between'>
               <Button variant="ghost" onClick={() => setStep('initial')} disabled={isVerifying}>Back</Button>
               <Button onClick={handleVerifyOtp} disabled={isVerifying || otp.length < 6}>
-                {isVerifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Verify & Save'}
+                {isVerifying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify & Save'}
               </Button>
             </div>
           )}
