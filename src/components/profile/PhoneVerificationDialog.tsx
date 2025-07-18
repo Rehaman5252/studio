@@ -28,7 +28,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerifierReady, setIsVerifierReady] = useState(false);
   
-  // Refs to hold instances that should not cause re-renders
   const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
@@ -54,8 +53,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current!, {
               size: 'invisible',
               callback: () => {
-                // reCAPTCHA solved, allow sending OTP.
-                // This callback is often not needed for invisible reCAPTCHA but good to have.
                 console.log('reCAPTCHA automatically solved');
               },
               'expired-callback': () => {
@@ -66,7 +63,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             });
             verifierRef.current = verifier;
 
-            // Render the verifier and update state only on success.
             verifier.render().then(() => {
               console.log("✅ reCAPTCHA rendered successfully.");
               setIsVerifierReady(true);
@@ -85,9 +81,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           }
         });
       }
-    }, 100); // A small delay is crucial for DOM readiness.
+    }, 100);
 
-    // Cleanup function: clear the verifier when the component unmounts or dialog closes.
     return () => {
       clearTimeout(timer);
       if (verifierRef.current) {
@@ -177,7 +172,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           </DialogDescription>
         </DialogHeader>
         
-        {/* This div is the container for the invisible reCAPTCHA widget */}
         <div ref={recaptchaContainerRef} />
 
         {step === 'verify' && (
@@ -213,5 +207,3 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     </Dialog>
   );
 }
-
-    
