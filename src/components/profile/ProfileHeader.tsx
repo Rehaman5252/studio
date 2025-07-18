@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
-import { getFirebaseClient } from '@/lib/firebaseClient';
+import { auth } from '@/lib/firebaseClient';
 import { useToast } from '@/hooks/use-toast';
+import { sendEmailVerification } from 'firebase/auth';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user } = useAuth(); // Get the auth user object
@@ -27,7 +28,6 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
             return;
         }
         try {
-            const { sendEmailVerification } = await import('firebase/auth');
             await sendEmailVerification(user);
             toast({ title: 'Verification Email Sent', description: 'Please check your inbox to verify your email address.' });
         } catch (error: any) {

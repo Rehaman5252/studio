@@ -3,7 +3,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
-import { getFirebaseClient } from "@/lib/firebaseClient";
+import { auth } from "@/lib/firebaseClient";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
+import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
 
 interface PhoneVerificationDialogProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ interface PhoneVerificationDialogProps {
 }
 
 export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVerificationDialogProps) {
-  const { user, updateUserData } = useAuth();
+  const { updateUserData } = useAuth();
   const { toast } = useToast();
   
   const [open, setOpen] = useState(false);
@@ -32,65 +33,74 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   
   const verifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
   
   // This effect handles the creation and cleanup of the RecaptchaVerifier
   useEffect(() => {
-    if (!open) {
-      return; // Do nothing if the dialog is closed
+    if (!open || !auth) {
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+        setIsVerifierReady(false);
+      }
+      return;
     }
 
-    const setupRecaptcha = async () => {
-        try {
-            const { auth } = await getFirebaseClient();
-            const { RecaptchaVerifier: FirebaseRecaptchaVerifier } = await import('firebase/auth');
-            
-            // Ensure the container exists and verifier isn't already there
-            if (recaptchaContainerRef.current && !verifierRef.current) {
-                const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
-                    size: 'invisible',
-                    callback: () => {
-                        console.log('reCAPTCHA solved');
-                    },
-                    'expired-callback': () => {
-                        toast({ title: "reCAPTCHA Expired", description: "Please try sending the code again.", variant: "destructive" });
-                        setError("reCAPTCHA Expired. Please try again.");
-                        if (verifierRef.current) {
-                           verifierRef.current.clear();
-                           verifierRef.current = null;
-                        }
-                        setIsVerifierReady(false);
-                    },
-                });
+    if (verifierRef.current) {
+        return; // Already initialized
+    }
+    
+    // Create a container div for reCAPTCHA if it doesn't exist
+    let recaptchaContainer = document.getElementById("recaptcha-container");
+    if (!recaptchaContainer) {
+        recaptchaContainer = document.createElement("div");
+        recaptchaContainer.id = "recaptcha-container";
+        document.body.appendChild(recaptchaContainer);
+    }
+    
+    try {
+        const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainer, {
+            size: 'invisible',
+            callback: () => {
+                console.log('reCAPTCHA solved');
+            },
+            'expired-callback': () => {
+                setError("reCAPTCHA Expired. Please close and try again.");
+                if (verifierRef.current) {
+                   verifierRef.current.clear();
+                   verifierRef.current = null;
+                }
+                setIsVerifierReady(false);
+            },
+        });
 
-                // Wait for it to render before enabling the button
-                await verifier.render();
-                console.log("✅ reCAPTCHA rendered successfully.");
-                verifierRef.current = verifier;
-                setIsVerifierReady(true);
-            }
-        } catch (initError: any) {
-            console.error('❌ reCAPTCHA initialization failed:', initError);
+        verifier.render().then(() => {
+            console.log("✅ reCAPTCHA rendered successfully.");
+            verifierRef.current = verifier;
+            setIsVerifierReady(true);
+        }).catch((renderError) => {
+            console.error('❌ reCAPTCHA render failed:', renderError);
             setError("reCAPTCHA failed to load. This is often caused by ad blockers or network issues. Please disable them, refresh, and try again.");
             setIsVerifierReady(false);
-        }
+        });
+
+    } catch (initError: any) {
+        console.error('❌ reCAPTCHA initialization failed:', initError);
+        setError("reCAPTCHA failed to initialize. Please check your network and browser extensions.");
+        setIsVerifierReady(false);
     }
 
-    setupRecaptcha();
-
-    // Cleanup function to clear the verifier when the dialog closes
+    // Cleanup function
     return () => {
         if (verifierRef.current) {
             verifierRef.current.clear();
             verifierRef.current = null;
         }
-        setIsVerifierReady(false);
     };
-  }, [open, toast]);
+  }, [open]);
 
   const handleSendOtp = async () => {
     setError(null);
-    if (!verifierRef.current || !isVerifierReady) {
+    if (!verifierRef.current || !isVerifierReady || !auth) {
       setError('The verification system is not ready. Please wait a moment or reopen the dialog.');
       return;
     }
@@ -99,10 +109,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     const appVerifier = verifierRef.current;
     
     try {
-      const { auth } = await getFirebaseClient();
-      const { signInWithPhoneNumber } = await import('firebase/auth');
       const fullPhoneNumber = `+91${phone}`;
-      
       const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
       confirmationResultRef.current = result;
       
@@ -127,7 +134,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const handleVerifyOtp = async () => {
     setError(null);
-    if (!user || !confirmationResultRef.current) return;
+    if (!confirmationResultRef.current) return;
     setIsLoading(true);
     try {
       await confirmationResultRef.current.confirm(otp);
@@ -171,9 +178,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           </DialogDescription>
         </DialogHeader>
         
-        {/* This div is the container for the invisible reCAPTCHA */}
-        <div ref={recaptchaContainerRef} />
-
         {error && (
             <Alert variant="destructive">
                 <Terminal className="h-4 w-4" />
