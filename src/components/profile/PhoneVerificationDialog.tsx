@@ -22,30 +22,37 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   const [isVerifierReady, setIsVerifierReady] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  // Use a ref for the verifier to avoid re-creation on re-renders.
+  const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
+    // Only run this effect when the dialog is open.
     if (!open) {
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
       return;
     }
 
     const setupRecaptcha = async () => {
-      if (recaptchaVerifierRef.current || !recaptchaContainerRef.current) return;
+      // Ensure this only runs once per dialog opening.
+      if (verifierRef.current) {
+        return;
+      }
       
       try {
         const { auth } = await getFirebaseClient();
         const { RecaptchaVerifier } = await import('firebase/auth');
         
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+        // We need a container for the verifier to render into.
+        // It's placed conditionally in the JSX.
+        const recaptchaContainer = document.getElementById('recaptcha-container');
+        if (!recaptchaContainer) {
+            console.error("reCAPTCHA container not found in DOM.");
+            return;
+        }
+
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
             'size': 'invisible',
             'callback': () => {
                 console.log("reCAPTCHA solved implicitly.");
-                setIsVerifierReady(true);
             },
             'expired-callback': () => {
                 toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
@@ -53,8 +60,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
             }
         });
         
-        recaptchaVerifierRef.current = verifier;
+        verifierRef.current = verifier;
         
+        // Render the verifier and then update the state to enable the button.
         await verifier.render();
         console.log("reCAPTCHA rendered and ready.");
         setIsVerifierReady(true);
@@ -71,13 +79,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
   }, [open, toast]);
 
   const handleSendOtp = async () => {
-    if (!isVerifierReady || !recaptchaVerifierRef.current) {
+    if (!isVerifierReady || !verifierRef.current) {
       toast({ title: 'Error', description: 'reCAPTCHA verifier not ready. Please wait a moment and try again.', variant: 'destructive' });
       return;
     }
     
     setIsSending(true);
-    const appVerifier = recaptchaVerifierRef.current;
+    const appVerifier = verifierRef.current;
 
     try {
       const { auth } = await getFirebaseClient();
@@ -139,6 +147,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   const resetStateAndClose = (isOpen: boolean) => {
     if (!isOpen) {
+      // Clear the verifier when the dialog is closed.
+      if (verifierRef.current) {
+        verifierRef.current.clear();
+        verifierRef.current = null;
+      }
       setStep('initial');
       setOtp('');
       setIsSending(false);
@@ -164,7 +177,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           </DialogDescription>
         </DialogHeader>
         
-        {step === 'verify' && (
+        {step === 'verify' ? (
           <div className="py-4">
             <Input
               value={otp}
@@ -175,9 +188,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
               type="tel"
             />
           </div>
+        ) : (
+          // This container is required for the invisible reCAPTCHA.
+          // It's only added to the DOM when the dialog is in the initial step.
+          <div id="recaptcha-container"></div>
         )}
-        
-        <div ref={recaptchaContainerRef}></div>
         
         <DialogFooter>
           {step === 'initial' ? (
