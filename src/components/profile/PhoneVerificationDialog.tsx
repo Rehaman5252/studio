@@ -34,6 +34,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
     let isMounted = true;
 
     const setupRecaptcha = async () => {
+        // Prevent re-initialization if already present
         if (verifierRef.current || !recaptchaContainerRef.current) {
             if(!isVerifierReady && verifierRef.current) setIsVerifierReady(true);
             return;
@@ -49,32 +50,47 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
                     console.log("reCAPTCHA solved.");
                 },
                 'expired-callback': () => {
-                    toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
                     if (isMounted) {
-                      setIsVerifierReady(false);
-                      verifierRef.current?.clear();
-                      verifierRef.current = null;
+                        toast({ title: 'reCAPTCHA Expired', description: 'Please try sending the code again.', variant: 'destructive' });
+                        setIsVerifierReady(false);
+                        verifierRef.current?.clear();
+                        verifierRef.current = null;
                     }
                 }
             });
             
             verifierRef.current = verifier;
 
-            await verifier.render();
-            if (isMounted) {
-                console.log("✅ reCAPTCHA rendered and ready.");
-                setIsVerifierReady(true);
-            }
+            // Render the verifier and update state upon success
+            verifier.render().then(() => {
+                if (isMounted) {
+                    console.log("✅ reCAPTCHA rendered and ready.");
+                    setIsVerifierReady(true);
+                }
+            }).catch(error => {
+                console.error("❌ reCAPTCHA render error:", error);
+                 if (isMounted) {
+                    toast({
+                        title: 'reCAPTCHA Render Failed',
+                        description: 'Could not display reCAPTCHA. Please disable ad blockers and refresh the page.',
+                        variant: 'destructive',
+                        duration: 9000
+                    });
+                    setIsVerifierReady(false);
+                }
+            });
 
         } catch (error) {
             console.error("❌ reCAPTCHA setup error:", error);
-            toast({ 
-                title: 'Verification Setup Failed', 
-                description: 'Could not initialize phone verification. Please disable ad blockers and check your network connection.', 
-                variant: 'destructive',
-                duration: 9000 
-            });
-            if (isMounted) setIsVerifierReady(false);
+            if (isMounted) {
+                toast({ 
+                    title: 'Verification Setup Failed', 
+                    description: 'Could not initialize phone verification. Please check network connection and disable ad blockers.', 
+                    variant: 'destructive',
+                    duration: 9000 
+                });
+                setIsVerifierReady(false);
+            }
         }
     };
     
@@ -82,8 +98,14 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
     return () => {
         isMounted = false;
+        // Cleanup verifier on dialog close
+        if (verifierRef.current) {
+          verifierRef.current.clear();
+          verifierRef.current = null;
+          console.log("🧹 reCAPTCHA cleared on dialog close.");
+        }
     };
-  }, [open, toast, isVerifierReady]);
+  }, [open, toast]);
 
   const handleSendOtp = async () => {
     if (!verifierRef.current || !isVerifierReady) {
@@ -154,16 +176,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
 
   const resetStateAndClose = (isOpen: boolean) => {
     if (!isOpen) {
-      if (verifierRef.current) {
-        verifierRef.current.clear();
-        verifierRef.current = null;
-        console.log("🧹 reCAPTCHA cleared on dialog close.");
-      }
       setStep('initial');
       setOtp('');
       setIsSending(false);
       setIsVerifying(false);
-      setIsVerifierReady(false);
+      setIsVerifierReady(false); // Reset readiness state
       confirmationResultRef.current = null;
     }
     setOpen(isOpen);
@@ -184,6 +201,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: { child
           </DialogDescription>
         </DialogHeader>
         
+        {/* This container must be in the DOM for the verifier to render */}
         <div ref={recaptchaContainerRef} className="my-2"></div>
         
         {step === 'verify' ? (
