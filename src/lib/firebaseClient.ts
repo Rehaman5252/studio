@@ -47,7 +47,7 @@ export async function isReallyOnline(): Promise<boolean> {
     const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
 
     // Use a lightweight, reliable endpoint for checking connectivity.
-    const response = await fetch("https://www.google.com/generate_204", {
+    const response = await fetch("https://clients3.google.com/generate_204", {
       method: "HEAD",
       cache: "no-store",
       signal: controller.signal,

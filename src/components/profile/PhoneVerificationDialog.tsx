@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
-import { auth } from "@/lib/firebaseClient";
+import { auth, isFirebaseConfigured } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber } from "firebase/auth";
 
 interface PhoneVerificationDialogProps {
@@ -40,30 +40,31 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         if (recaptchaContainer) {
             recaptchaContainer.innerHTML = '';
         }
-        console.log("🧹 reCAPTCHA verifier cleaned up.");
     }
   }, []);
+  
+  // Effect to clean up verifier if user navigates away mid-process
+  useEffect(() => {
+    return () => {
+        cleanupVerifier();
+    };
+  }, [cleanupVerifier]);
 
   const setupRecaptcha = useCallback(async () => {
-    if (!auth || recaptchaVerifierRef.current) return;
+    if (!auth || recaptchaVerifierRef.current || typeof window === 'undefined') return;
     
     const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
     if (!recaptchaContainer) {
-      console.error("reCAPTCHA container not found in the DOM.");
       setError("The verification widget could not be loaded. Please try again.");
       return;
     }
 
     try {
-        // Dynamically import RecaptchaVerifier only on the client-side
         const { RecaptchaVerifier } = await import('firebase/auth');
         const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
             size: 'invisible',
-            'callback': () => {
-                console.log("✅ reCAPTCHA challenge solved.");
-            },
+            'callback': () => {},
             'expired-callback': () => {
-                console.warn("reCAPTCHA expired. Cleaning up.");
                 setError("reCAPTCHA challenge expired. Please try sending the code again.");
                 cleanupVerifier();
             },
@@ -71,9 +72,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         
         await verifier.render();
         recaptchaVerifierRef.current = verifier;
-        console.log("✅ reCAPTCHA rendered successfully.");
     } catch(e: any) {
-        console.error("🔥 Error creating RecaptchaVerifier:", e);
         setError("Failed to create the verification widget. Please refresh and try again.");
     }
   }, [cleanupVerifier]);
@@ -82,13 +81,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     if (open && step === 'initial') {
       setupRecaptcha();
     }
-    
-    return () => {
-        if(open) {
-            cleanupVerifier();
-        }
-    }
-  }, [open, step, setupRecaptcha, cleanupVerifier]);
+  }, [open, step, setupRecaptcha]);
   
   const handleSendOtp = async () => {
     setError(null);
@@ -98,7 +91,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
-      setupRecaptcha();
+      await setupRecaptcha(); // Attempt to re-setup
       return;
     }
     
@@ -166,6 +159,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     setOpen(isOpen);
   };
   
+  if (!isFirebaseConfigured) {
+    // Don't render the trigger if firebase isn't setup, to avoid errors
+    return <>{children}</>;
+  }
+
   return (
     <Dialog open={open} onOpenChange={resetStateAndClose}>
       <DialogTrigger asChild>{children}</DialogTrigger>

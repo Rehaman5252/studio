@@ -67,27 +67,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOnlineCheckComplete, setIsOnlineCheckComplete] = useState(false);
 
   useEffect(() => {
-    let hasMounted = false;
+    let isMounted = true;
 
     const checkOnlineStatus = async () => {
-      if (!hasMounted) return;
       const online = await isReallyOnline();
-      setIsOffline(!online);
-      setIsOnlineCheckComplete(true);
+      if (isMounted) {
+        setIsOffline(!online);
+        setIsOnlineCheckComplete(true);
+      }
     };
+    
+    if (typeof window !== 'undefined') {
+        window.addEventListener('online', checkOnlineStatus);
+        window.addEventListener('offline', checkOnlineStatus);
+        
+        // Delay initial check to allow browser to settle
+        setTimeout(() => checkOnlineStatus(), 1000); 
 
-    if (typeof window !== "undefined") {
-      hasMounted = true;
-      window.addEventListener("online", checkOnlineStatus);
-      window.addEventListener("offline", checkOnlineStatus);
-
-      // Delay check until after full hydration
-      setTimeout(() => checkOnlineStatus(), 2000);
-
-      return () => {
-        window.removeEventListener("online", checkOnlineStatus);
-        window.removeEventListener("offline", checkOnlineStatus);
-      };
+        return () => {
+            isMounted = false;
+            window.removeEventListener('online', checkOnlineStatus);
+            window.removeEventListener('offline', checkOnlineStatus);
+        };
     }
   }, []);
 
@@ -95,6 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isFirebaseConfigured || !auth) {
       console.warn("Firebase not configured. Halting AuthProvider setup.");
       setIsAuthLoading(false);
+      setIsUserDataLoading(false);
+      setIsHistoryLoading(false);
       setIsOnlineCheckComplete(true);
       return;
     }
@@ -183,6 +186,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user, isAuthLoading, isOffline, isOnlineCheckComplete]);
 
+  // Effect to re-enable network when coming back online
+  useEffect(() => {
+    if (!isOffline && user && db && isOnlineCheckComplete && !isAuthLoading && !hasNetworkEnabled) {
+      enableNetwork(db)
+        .then(() => {
+          hasNetworkEnabled = true;
+          console.log("✅ Firestore network re-enabled after reconnect.");
+        })
+        .catch(err => {
+          console.error("🔥 Failed to re-enable Firestore network:", err);
+        });
+    }
+  }, [isOffline, user, isOnlineCheckComplete, isAuthLoading]);
+
   const loading = useMemo(() => {
     return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
   }, [isAuthLoading, user, isUserDataLoading, isHistoryLoading]);
@@ -256,6 +273,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updateUserData,
     addQuizAttempt,
   }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, isOffline, updateUserData, addQuizAttempt]);
+
+  if (!isFirebaseConfigured) {
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
 
   return (
     <AuthContext.Provider value={value}>
