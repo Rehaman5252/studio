@@ -1,7 +1,12 @@
 // lib/firebaseClient.ts
-import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
+import {
+  initializeFirestore,
+  getFirestore,
+  memoryLocalCache,
+  type Firestore,
+} from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -16,16 +21,33 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.authDomain &&
   !!firebaseConfig.projectId;
 
-// Initialize Firebase App in a client-safe way
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore with memory cache to disable offline persistence.
-// This is the most reliable way to prevent "client is offline" errors in development.
-const db: Firestore = initializeFirestore(app, {
-  localCache: memoryLocalCache(),
-});
+let db: Firestore;
+
+// This check prevents Firestore from being initialized multiple times during development
+// due to Next.js's Fast Refresh feature.
+if (typeof window !== "undefined") {
+  // @ts-ignore
+  if (!window._FIRESTORE_INSTANCE) {
+    // @ts-ignore
+    window._FIRESTORE_INSTANCE = initializeFirestore(app, {
+      localCache: memoryLocalCache(),
+    });
+  }
+  // @ts-ignore
+  db = window._FIRESTORE_INSTANCE;
+} else {
+  // For server-side rendering or environments without a window object
+  try {
+    db = getFirestore(app);
+  } catch (e) {
+    db = initializeFirestore(app, {
+      localCache: memoryLocalCache(),
+    });
+  }
+}
 
 const auth: Auth = getAuth(app);
-
 
 export { app, auth, db };
