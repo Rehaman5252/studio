@@ -9,6 +9,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { 
   doc, 
+  getDoc,
   onSnapshot, 
   setDoc,
   Timestamp,
@@ -137,13 +138,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!online) {
         throw new Error("You are offline. Cannot save profile.");
     }
+    
+    const sanitizedData = sanitizeUserProfile(newData);
+    
+    // Optimistic update
+    setUserData(prev => ({ ...prev, ...sanitizedData }));
   
     try {
       const ref = doc(db, 'users', user.uid);
-      const sanitizedData = sanitizeUserProfile(newData);
       await setDoc(ref, sanitizedData, { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
+      // Optional: Rollback optimistic update on error
+      // This is complex and depends on UX requirements.
+      // For now, we just log the error.
       throw new Error("Could not save profile. Please try again.");
     }
   }, [user]);
@@ -153,10 +161,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const historyDocRef = doc(db, 'quizHistory', user.uid);
     const userDocRef = doc(db, 'users', user.uid);
-    
-    // We need to fetch current history to append, can't rely on state
-    // For simplicity, we'll just overwrite with a new array for now in a transaction
-    // A better approach would be a transaction to read-modify-write
     
     const currentUserData = userData || {};
     const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
@@ -171,17 +175,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        // This is not ideal as it overwrites history, but for this fix, we are decoupling history from the provider
-        // A proper solution would use a cloud function or transactions.
-        // For now, let's just update the user stats. History saving will be handled elsewhere.
         await setDoc(userDocRef, sanitizeUserProfile(userUpdatePayload), { merge: true });
         
-        // This is a simplified add. A real app should use a transaction or an arrayUnion.
-        const historyRef = doc(db, 'quizHistory', user.uid);
-        const historySnap = await getDoc(historyRef);
+        const historySnap = await getDoc(historyDocRef);
         const currentHistory = historySnap.exists() ? historySnap.data().attempts : [];
         const newHistory = [sanitizeUserProfile(attempt), ...currentHistory];
-        await setDoc(historyRef, { attempts: newHistory }, { merge: true });
+        await setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
 
     } catch (error) {
         console.error("Error adding quiz attempt:", error);
