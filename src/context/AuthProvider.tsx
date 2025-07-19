@@ -51,6 +51,8 @@ const MANDATORY_PROFILE_FIELDS = [
   'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
+let hasNetworkEnabled = false;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<DocumentData | null>(null);
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.addEventListener("online", checkOnlineStatus);
       window.addEventListener("offline", checkOnlineStatus);
 
+      // Delay check until after full hydration
       setTimeout(() => checkOnlineStatus(), 2000);
 
       return () => {
@@ -130,8 +133,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupFirestoreListeners = async () => {
         try {
-            await enableNetwork(db);
-            console.log("✅ Firestore network enabled.");
+            if (!hasNetworkEnabled) {
+              await enableNetwork(db);
+              hasNetworkEnabled = true;
+              console.log("✅ Firestore network enabled.");
+            }
 
             await createUserDocument(user);
             const userDocRef = doc(db, 'users', user.uid);
