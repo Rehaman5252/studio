@@ -21,24 +21,29 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.authDomain &&
   !!firebaseConfig.projectId;
 
-const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
+let app: FirebaseApp;
 let db: Firestore | null = null;
+let auth: Auth;
 
 if (typeof window !== "undefined") {
-  // @ts-ignore
-  if (!window._FIRESTORE_INSTANCE) {
-    console.log("Initializing Firestore with memoryLocalCache for the first time.");
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    
     // @ts-ignore
-    window._FIRESTORE_INSTANCE = initializeFirestore(app, {
-      localCache: memoryLocalCache(),
-    });
-  }
-  // @ts-ignore
-  db = window._FIRESTORE_INSTANCE;
+    if (!window._FIRESTORE_INSTANCE) {
+      console.log("Initializing Firestore with memoryLocalCache for the first time.");
+      // @ts-ignore
+      window._FIRESTORE_INSTANCE = initializeFirestore(app, {
+        localCache: memoryLocalCache(),
+      });
+    }
+    // @ts-ignore
+    db = window._FIRESTORE_INSTANCE;
+} else {
+    // During SSR, we can initialize the app but not Firestore with persistence
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
 }
 
-
-const auth: Auth = getAuth(app);
 
 export { app, auth, db };

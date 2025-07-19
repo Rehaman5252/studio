@@ -64,100 +64,103 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isFirebaseInitialized, setIsFirebaseInitialized] = useState(false);
 
   useEffect(() => {
-    // This effect runs only once to initialize Firebase and listeners.
-    if (!isFirebaseConfigured || !db) {
-      console.error("Firebase is not configured or Firestore is not available. Aborting AuthProvider setup.");
-      setIsAuthLoading(false);
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
-      setIsFirebaseInitialized(true); // Allow rendering of an error state if needed
-      return;
+    if (typeof window === "undefined" || !isFirebaseConfigured || !db) {
+        // Don't run any of this on the server
+        setIsAuthLoading(false);
+        setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
+        setIsFirebaseInitialized(true);
+        return;
     }
   
     let firestoreUnsubscribe: (() => void) | null = null;
   
-    const setupUserListeners = async (firebaseUser: User) => {
-      setIsUserDataLoading(true);
-      setIsHistoryLoading(true);
-  
-      try {
-        await createUserDocument(firebaseUser);
-  
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const historyDocRef = doc(db, 'quizHistory', firebaseUser.uid);
-  
-        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-          setUserData(docSnap.data() || null);
-          setIsUserDataLoading(false);
-        }, (error) => {
-          console.error("Error listening to user document:", error);
-          setIsUserDataLoading(false);
+    const setupUserListeners = (firebaseUser: User): Promise<() => void> => {
+        return new Promise(async (resolve) => {
+            setIsUserDataLoading(true);
+            setIsHistoryLoading(true);
+    
+            try {
+                await createUserDocument(firebaseUser);
+    
+                const userDocRef = doc(db, 'users', firebaseUser.uid);
+                const historyDocRef = doc(db, 'quizHistory', firebaseUser.uid);
+    
+                const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+                    setUserData(docSnap.data() || null);
+                    setIsUserDataLoading(false);
+                }, (error) => {
+                    console.error("Error listening to user document:", error);
+                    setIsUserDataLoading(false);
+                });
+    
+                const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
+                    const historyData = docSnap.exists() ? (docSnap.data().attempts || []) : [];
+                    historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                    setQuizHistory(historyData);
+                    setIsHistoryLoading(false);
+                }, (error) => {
+                    console.error("Error listening to quiz history:", error);
+                    setIsHistoryLoading(false);
+                });
+                
+                resolve(() => {
+                    unsubscribeUser();
+                    unsubscribeHistory();
+                });
+
+            } catch (error) {
+                console.error("🔥 Firestore listener setup failed:", error);
+                setIsUserDataLoading(false);
+                setIsHistoryLoading(false);
+                resolve(() => {}); // Resolve with an empty cleanup function on error
+            }
         });
-  
-        const unsubscribeHistory = onSnapshot(historyDocRef, (docSnap) => {
-          const historyData = docSnap.exists() ? (docSnap.data().attempts || []) : [];
-          historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-          setQuizHistory(historyData);
-          setIsHistoryLoading(false);
-        }, (error) => {
-          console.error("Error listening to quiz history:", error);
-          setIsHistoryLoading(false);
-        });
-        
-        return () => {
-          unsubscribeUser();
-          unsubscribeHistory();
-        };
-      } catch (error) {
-        console.error("🔥 Firestore listener setup failed:", error);
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-        return null;
-      }
     };
   
     const mainSetup = async () => {
-      // 1. Force Firestore client online before doing anything else.
-      if (navigator.onLine) {
-        try {
-          await enableNetwork(db);
-          console.log("✅ Firestore client is now online.");
-        } catch (error) {
-          console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
-        }
-      } else {
-        console.warn("Browser is offline. Firestore will remain in offline mode.");
-      }
-
-      // 2. Attach the auth state listener.
-      const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firestoreUnsubscribe) {
-          firestoreUnsubscribe();
-          firestoreUnsubscribe = null;
-        }
-  
-        setUser(firebaseUser);
-        setIsAuthLoading(false);
-  
-        if (firebaseUser) {
-          firestoreUnsubscribe = await setupUserListeners(firebaseUser);
+        // 1. Force Firestore client online before doing anything else.
+        if (navigator.onLine) {
+            try {
+                await enableNetwork(db);
+                console.log("✅ Firestore client is now online.");
+            } catch (error) {
+                console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
+                // We can still proceed, Firebase might recover.
+            }
         } else {
-          setUserData(null);
-          setQuizHistory(null);
-          setIsUserDataLoading(false);
-          setIsHistoryLoading(false);
+            console.warn("Browser is offline. Firestore will remain in offline mode.");
         }
-        
-        // 3. Mark initialization as complete to render children.
-        setIsFirebaseInitialized(true);
-      });
-  
-      return () => {
-        authSub();
-        if (firestoreUnsubscribe) {
-          firestoreUnsubscribe();
-        }
-      };
+
+        // 2. Attach the auth state listener only AFTER attempting to go online.
+        const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firestoreUnsubscribe) {
+                firestoreUnsubscribe();
+                firestoreUnsubscribe = null;
+            }
+    
+            setUser(firebaseUser);
+            setIsAuthLoading(false);
+    
+            if (firebaseUser) {
+                firestoreUnsubscribe = await setupUserListeners(firebaseUser);
+            } else {
+                setUserData(null);
+                setQuizHistory(null);
+                setIsUserDataLoading(false);
+                setIsHistoryLoading(false);
+            }
+            
+            // 3. Mark initialization as complete to render children.
+            setIsFirebaseInitialized(true);
+        });
+    
+        return () => {
+            authSub();
+            if (firestoreUnsubscribe) {
+                firestoreUnsubscribe();
+            }
+        };
     };
   
     mainSetup();
