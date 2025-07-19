@@ -39,6 +39,7 @@ interface AuthContextType {
   loading: boolean;
   isUserDataLoading: boolean;
   isHistoryLoading: boolean;
+  isOffline: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
 }
@@ -59,6 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [isFirebaseInitialized, setIsFirebaseInitialized] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !isFirebaseConfigured || !auth || !db) {
@@ -77,6 +79,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
     }
 
+    const handleOnlineStatus = async () => {
+      const online = await isReallyOnline();
+      setIsOffline(!online);
+      return online;
+    };
+    
+    handleOnlineStatus();
+
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+
     let unsubscribeFirestore: (() => void) | null = null;
 
     const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -88,9 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        const online = await isReallyOnline();
+        const online = await handleOnlineStatus();
         if (!online) {
-          console.error("Firebase AuthProvider: Client is offline. Halting Firestore setup.");
+          console.warn("Firebase AuthProvider: Client is offline. Halting Firestore setup.");
           setUserData(null);
           setQuizHistory(null);
           setIsUserDataLoading(false);
@@ -148,6 +161,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       authUnsubscribe();
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
       if (unsubscribeFirestore) {
         unsubscribeFirestore();
       }
@@ -159,9 +174,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isFirebaseInitialized, user, isUserDataLoading, isHistoryLoading]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user || !db) {
-      console.error("❌ updateUserData: No user or DB not available.");
-      throw new Error("User not authenticated or DB not available.");
+    if (!user || !db || isOffline) {
+      console.error("❌ updateUserData: No user, DB not available, or client is offline.");
+      throw new Error("User not authenticated, DB not available, or client is offline.");
     }
   
     try {
@@ -171,10 +186,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("🔥 updateUserData error:", err);
       throw err;
     }
-  }, [user]);
+  }, [user, isOffline]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not available.");
+    if (!user || !db || isOffline) throw new Error("User not authenticated, DB not available, or client is offline.");
     
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
@@ -205,7 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error adding quiz attempt:", error);
         throw error;
     }
-  }, [user, quizHistory, userData]);
+  }, [user, quizHistory, userData, isOffline]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
@@ -223,9 +238,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     isUserDataLoading,
     isHistoryLoading,
+    isOffline,
     updateUserData,
     addQuizAttempt,
-  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
+  }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, isOffline, updateUserData, addQuizAttempt]);
 
   if (!isFirebaseInitialized) {
     return null; 
