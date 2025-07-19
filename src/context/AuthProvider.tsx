@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useMemo, use
 import { onAuthStateChanged } from 'firebase/auth';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
-import type { DocumentData, Firestore } from 'firebase/firestore';
+import type { DocumentData } from 'firebase/firestore';
 import { 
   doc, 
   onSnapshot, 
@@ -69,14 +69,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    const authSub = onAuthStateChanged(auth, async (currentUser) => {
+    const authSub = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
         setIsAuthLoading(false);
         
-        if (currentUser) {
-            // The createUserDocument call is now handled inside the user effect
-            // to ensure the DB is online first.
-        } else {
+        if (!currentUser) {
             setUserData(null);
             setQuizHistory(null);
             setIsUserDataLoading(false);
@@ -102,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             // Force the network to be enabled to prevent "client is offline" errors.
             await enableNetwork(db);
-            console.log("Firebase network enabled.");
+            console.log("✅ Firebase network enabled.");
 
             await createUserDocument(user);
 
@@ -126,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsHistoryLoading(false);
             });
         } catch (error) {
-            console.error("Failed to set up Firestore listeners or enable network:", error);
+            console.error("🔥 Failed to set up Firestore listeners or enable network:", error);
             setIsUserDataLoading(false);
             setIsHistoryLoading(false);
         }
