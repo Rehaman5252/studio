@@ -60,7 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false); // Assume online initially
+  
+  const [isOffline, setIsOffline] = useState(false);
+  const [isOnlineCheckComplete, setIsOnlineCheckComplete] = useState(false);
 
   useEffect(() => {
     let hasMounted = false;
@@ -69,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!hasMounted) return;
       const online = await isReallyOnline();
       setIsOffline(!online);
+      setIsOnlineCheckComplete(true);
     };
 
     if (typeof window !== "undefined") {
@@ -76,7 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.addEventListener("online", checkOnlineStatus);
       window.addEventListener("offline", checkOnlineStatus);
 
-      // Delay initial check until after browser is fully hydrated to avoid false negatives
       setTimeout(() => checkOnlineStatus(), 2000);
 
       return () => {
@@ -90,6 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isFirebaseConfigured || !auth) {
       console.warn("Firebase not configured. Halting AuthProvider setup.");
       setIsAuthLoading(false);
+      setIsOnlineCheckComplete(true);
       return;
     }
     
@@ -103,10 +106,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    // This effect now ONLY handles Firestore data listeners.
-    // It depends on user, isAuthLoading, and isOffline.
-    if (isAuthLoading || !user) {
-        if (!isAuthLoading) {
+    if (isAuthLoading || !user || !isOnlineCheckComplete) {
+        if (!isAuthLoading && !user) {
             setUserData(null);
             setQuizHistory(null);
             setIsUserDataLoading(false);
@@ -114,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         return;
     }
-
+    
     if (isOffline || !db) {
         if(isOffline) console.warn("AuthProvider: Client is offline. Halting Firestore listeners.");
         if(!db) console.warn("AuthProvider: DB not available. Halting listeners.");
@@ -174,7 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             unsubscribeFirestore();
         }
     };
-  }, [user, isAuthLoading, isOffline]);
+  }, [user, isAuthLoading, isOffline, isOnlineCheckComplete]);
 
   const loading = useMemo(() => {
     return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));

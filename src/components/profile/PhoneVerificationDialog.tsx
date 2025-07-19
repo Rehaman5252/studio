@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { ConfirmationResult } from "firebase/auth";
+import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,10 +12,7 @@ import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
 import { auth } from "@/lib/firebaseClient";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-
-// To prevent re-initialization on re-renders, the verifier is stored outside the component.
-let recaptchaVerifier: RecaptchaVerifier | null = null;
+import { signInWithPhoneNumber } from "firebase/auth";
 
 interface PhoneVerificationDialogProps {
   children: React.ReactNode;
@@ -33,11 +30,12 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-  
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+
   const cleanupVerifier = useCallback(() => {
-    if (recaptchaVerifier) {
-        recaptchaVerifier.clear();
-        recaptchaVerifier = null;
+    if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
         const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
         if (recaptchaContainer) {
             recaptchaContainer.innerHTML = '';
@@ -46,8 +44,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
   }, []);
 
-  const setupRecaptcha = useCallback(() => {
-    if (!auth || recaptchaVerifier) return;
+  const setupRecaptcha = useCallback(async () => {
+    if (!auth || recaptchaVerifierRef.current) return;
     
     const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
     if (!recaptchaContainer) {
@@ -57,7 +55,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
 
     try {
-        recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainer, {
+        // Dynamically import RecaptchaVerifier only on the client-side
+        const { RecaptchaVerifier } = await import('firebase/auth');
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
             size: 'invisible',
             'callback': () => {
                 console.log("✅ reCAPTCHA challenge solved.");
@@ -69,12 +69,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             },
         });
         
-        recaptchaVerifier.render().then(() => {
-            console.log("✅ reCAPTCHA rendered successfully.");
-        }).catch((err: any) => {
-            console.error("🔥 reCAPTCHA render failed:", err);
-            setError("Failed to render the verification widget. Ad blockers or network issues can cause this.");
-        });
+        await verifier.render();
+        recaptchaVerifierRef.current = verifier;
+        console.log("✅ reCAPTCHA rendered successfully.");
     } catch(e: any) {
         console.error("🔥 Error creating RecaptchaVerifier:", e);
         setError("Failed to create the verification widget. Please refresh and try again.");
@@ -83,21 +80,25 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   useEffect(() => {
     if (open && step === 'initial') {
-      const timer = setTimeout(() => {
-        setupRecaptcha();
-      }, 100);
-      return () => clearTimeout(timer);
+      setupRecaptcha();
     }
-  }, [open, step, setupRecaptcha]);
+    
+    return () => {
+        if(open) {
+            cleanupVerifier();
+        }
+    }
+  }, [open, step, setupRecaptcha, cleanupVerifier]);
   
   const handleSendOtp = async () => {
     setError(null);
+    const verifier = recaptchaVerifierRef.current;
 
-    if (!recaptchaVerifier || !auth) {
+    if (!verifier || !auth) {
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
-      setupRecaptcha(); // Try to re-initialize it.
+      setupRecaptcha();
       return;
     }
     
@@ -105,7 +106,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     
     try {
       const fullPhoneNumber = `+91${phone}`;
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, recaptchaVerifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, verifier);
       confirmationResultRef.current = confirmationResult;
       
       toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
@@ -123,6 +124,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
       cleanupVerifier();
+      setupRecaptcha();
       setStep('initial'); 
     } finally {
       setIsLoading(false);
@@ -208,7 +210,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             </Button>
           ) : (
             <div className="w-full flex justify-between">
-              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); }} disabled={isLoading}>Back</Button>
+              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); setupRecaptcha(); }} disabled={isLoading}>Back</Button>
               <Button onClick={handleVerifyOtp} disabled={isLoading || otp.length < 6}>
                 {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify & Save'}
               </Button>
