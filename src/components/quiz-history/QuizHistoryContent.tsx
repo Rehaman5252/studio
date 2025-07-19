@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +14,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -158,30 +160,77 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
 });
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
+const HistorySkeleton = () => (
+    <div className="space-y-4 pt-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="bg-card/80 shadow-lg">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-6 w-12" />
+                    </div>
+                    <Skeleton className="h-4 w-32 mt-1" />
+                </CardHeader>
+                <CardContent className="flex justify-between items-center">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-4 w-40" />
+                    </div>
+                    <Skeleton className="h-9 w-28" />
+                </CardContent>
+            </Card>
+        ))}
+    </div>
+);
+
+const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+    <div className="pt-4">
+        <Alert variant="destructive">
+            {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+            <AlertTitle>Error Loading History</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    </div>
+);
+
 export default function QuizHistoryContent() {
-  const { user } = useAuth();
+  const { user, isOffline } = useAuth();
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
-        setIsHistoryLoading(false);
+        setIsLoading(false);
         return;
     }
+    if (isOffline) {
+        setError("You are currently offline. Please check your connection to see your history.");
+        setIsLoading(false);
+        return;
+    }
+
     const fetchHistory = async () => {
-        setIsHistoryLoading(true);
-        const historyDocRef = doc(db, 'quizHistory', user.uid);
-        const docSnap = await getDoc(historyDocRef);
-        if (docSnap.exists()) {
-            const historyData = docSnap.data().attempts || [];
-            historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-            setQuizHistory(historyData);
+        setIsLoading(true);
+        setError(null);
+        try {
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                const historyData = docSnap.data().attempts || [];
+                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                setQuizHistory(historyData);
+            }
+        } catch (e) {
+            console.error("Failed to fetch quiz history:", e);
+            setError("Could not load your quiz history. Please try again later.");
+        } finally {
+            setIsLoading(false);
         }
-        setIsHistoryLoading(false);
     }
     fetchHistory();
-  }, [user]);
+  }, [user, isOffline]);
 
   const filteredHistory = useMemo(() => {
     if (!quizHistory) return [];
@@ -195,13 +244,34 @@ export default function QuizHistoryContent() {
     return history;
   }, [quizHistory, filter]);
 
-  if (isHistoryLoading) {
+  const renderContent = () => {
+    if (isLoading) {
+        return <HistorySkeleton />;
+    }
+    if (error) {
+        return <ErrorState message={error} isOffline={isOffline} />;
+    }
+    if (filteredHistory.length > 0) {
+        return (
+            <div className="space-y-4 pt-4">
+                {filteredHistory.map((attempt) => (
+                <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
+                ))}
+            </div>
+        );
+    }
     return (
-        <div className="flex flex-col items-center justify-center h-full py-10">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div>
+            <Card className="bg-card/80 mt-4">
+                <CardContent className="p-6 text-center text-muted-foreground">
+                    <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
+                    <p className="font-semibold text-lg">No Quizzes Found</p>
+                    <p>Play a quiz to see your history here!</p>
+                </CardContent>
+            </Card>
         </div>
     );
-  }
+  };
 
   return (
     <>
@@ -215,25 +285,7 @@ export default function QuizHistoryContent() {
             </Tabs>
         </div>
         
-        {filteredHistory.length > 0 ? (
-          <div className="space-y-4 pt-4">
-            {filteredHistory.map((attempt) => (
-              <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
-            ))}
-          </div>
-        ) : (
-          <div>
-            <Card className="bg-card/80 mt-4">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-                <p className="font-semibold">No Quizzes Found</p>
-                <p>Play a quiz to see your history here!</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        {renderContent()}
     </>
   );
 }
-
-    

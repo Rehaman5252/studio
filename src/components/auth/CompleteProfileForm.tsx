@@ -112,6 +112,7 @@ export default function CompleteProfileForm() {
                 updatedAt: new Date(),
             };
             
+            // Await the updateUserData to ensure optimistic state has been set
             await updateUserData(finalPayload);
             
             toast({ 
@@ -119,6 +120,7 @@ export default function CompleteProfileForm() {
                 description: "Your information has been updated successfully."
             });
             
+            // Now navigate. The auth context will have the latest data.
             router.replace('/home');
 
         } catch (error: any) {
@@ -335,5 +337,3 @@ export default function CompleteProfileForm() {
         </Card>
     );
 }
-
-    

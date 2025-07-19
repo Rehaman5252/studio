@@ -168,10 +168,10 @@ const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, i
                 <CardContent className="p-6 text-center text-muted-foreground">
                     <Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" />
                     <p className="font-semibold text-foreground mb-2">
-                        {hasAttempts ? "You've scratched all available gifts for today!" : "No Brand Gifts Yet"}
+                        {hasAttempts ? "You've claimed all available gifts for today!" : "No Brand Gifts Yet"}
                     </p>
-                    <p>
-                        {hasAttempts ? "Play again in the next slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}
+                    <p className="text-sm">
+                        {hasAttempts ? "Play again in a new slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}
                     </p>
                 </CardContent>
             </Card>
@@ -272,5 +272,3 @@ export default function RewardsContent() {
     </>
   );
 }
-
-    
