@@ -69,16 +69,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // This function sets up all Firestore listeners after ensuring the client is online.
+    // Force the network online as the first step to avoid "client is offline" errors.
+    enableNetwork(db).catch((err) => {
+        console.warn("Could not enable Firestore network:", err.message);
+    });
+
+    // This function sets up all Firestore listeners for a given user.
     const setupListeners = async (firebaseUser: User) => {
       // Reset loading states for new user session
       setIsUserDataLoading(true);
       setIsHistoryLoading(true);
-      try {
-        // Force Firestore to go online before any operations
-        await enableNetwork(db);
-        console.log("✅ Firestore client is now online.");
 
+      try {
         // Ensure user document exists
         await createUserDocument(firebaseUser);
 
@@ -110,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           unsubscribeHistory();
         };
       } catch (error) {
-        console.error("🔥 Firestore setup failed:", error);
+        console.error("🔥 Firestore listener setup failed:", error);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
         return () => {}; // Return an empty cleanup function on failure

@@ -1,7 +1,7 @@
 // lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -18,7 +18,13 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
 
 // Initialize Firebase App in a client-safe way
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+// Initialize Firestore with persistence disabled (useful for development to avoid offline state issues)
+const db: Firestore = initializeFirestore(app, {
+  localCache: memoryLocalCache(),
+});
+
 const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
+
 
 export { app, auth, db };
