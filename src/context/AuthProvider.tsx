@@ -164,7 +164,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // This is the crucial fix for the profile saving issue.
       if (payload.dob && typeof payload.dob === 'string') {
         try {
-            payload.dob = Timestamp.fromDate(new Date(payload.dob));
+            const parsedDate = new Date(payload.dob);
+            if (isNaN(parsedDate.getTime())) {
+                throw new Error("Invalid date string provided");
+            }
+            payload.dob = Timestamp.fromDate(parsedDate);
         } catch (e) {
             console.error("Invalid DOB format provided, cannot convert to Timestamp", e);
             throw new Error("Invalid Date of Birth format.");
