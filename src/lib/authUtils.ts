@@ -13,18 +13,9 @@ import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from './firebaseClient';
 
-export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  if (!user || !user.uid) {
-    console.error("❌ createUserDocument failed: User object is invalid or missing UID.");
-    return;
-  }
-  
-  let db: Firestore;
-  try {
-    // Safely get the DB instance only when needed.
-    db = getFirebaseDb();
-  } catch (err) {
-    console.error("❌ createUserDocument failed: Firestore not initialized.", err);
+export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
+  if (!db || !user || !user.uid) {
+    console.error("❌ createUserDocument failed: Valid DB instance and User object are required.");
     return;
   }
   

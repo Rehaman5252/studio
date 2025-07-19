@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const setupListeners = async () => {
         try {
             // Pass the db instance directly
-            await createUserDocument(user);
+            await createUserDocument(db, user);
 
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
