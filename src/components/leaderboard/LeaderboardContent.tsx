@@ -78,7 +78,7 @@ const LiveLeaderboard = memo(() => {
             return;
         }
         if (isOffline) {
-            setError("You are currently offline. Please check your connection.");
+            setError("You are currently offline. Please check your connection to see live data.");
             setIsLoading(false);
             return;
         }
@@ -129,9 +129,13 @@ const LiveLeaderboard = memo(() => {
                 }).map((p, index) => ({...p, rank: index + 1}));
 
                 setPlayers(sortedPlayers);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to fetch leaderboard data:", e);
-                setError("Could not load leaderboard data. Please try again later.");
+                if (e.message?.includes('offline')) {
+                    setError("You are currently offline. Please check your connection to see live data.");
+                } else {
+                    setError("Could not load leaderboard data. Please try again later.");
+                }
             } finally {
                 setIsLoading(false);
             }

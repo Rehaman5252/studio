@@ -168,7 +168,7 @@ const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, i
                 <CardContent className="p-6 text-center text-muted-foreground">
                     <Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" />
                     <p className="font-semibold text-foreground mb-2">
-                        {hasAttempts ? "You've claimed all available gifts for today!" : "No Brand Gifts Yet"}
+                        {hasAttempts ? "You've already claimed all available rewards for today!" : "No Brand Gifts Yet"}
                     </p>
                     <p className="text-sm">
                         {hasAttempts ? "Play again in a new slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}
@@ -213,7 +213,7 @@ export default function RewardsContent() {
         return;
     }
     if (isOffline) {
-        setError("You are currently offline. Please check your connection.");
+        setError("You are currently offline. Please check your connection to see your rewards.");
         setIsLoading(false);
         return;
     }
@@ -226,9 +226,13 @@ export default function RewardsContent() {
             if (docSnap.exists()) {
                 setQuizHistory(docSnap.data().attempts || []);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to fetch rewards data:", e);
-            setError("Could not load your rewards. Please try again later.");
+            if (e.message?.includes('offline')) {
+                setError("You are currently offline. Please check your connection to see your rewards.");
+            } else {
+                setError("Could not load your rewards. Please try again later.");
+            }
         } finally {
             setIsLoading(false);
         }

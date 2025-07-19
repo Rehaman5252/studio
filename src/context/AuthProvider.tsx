@@ -12,6 +12,7 @@ import {
   onSnapshot, 
   setDoc,
   Timestamp,
+  getDoc,
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured, isReallyOnline } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -59,7 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsOffline(!online);
     };
     
+    // Check status on mount
     checkOnlineStatus();
+    // And check periodically
     const interval = setInterval(checkOnlineStatus, 30000); // Check every 30 seconds
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -74,6 +77,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    if (isAuthLoading) return; // Wait for auth check to complete
+
     if (!user) {
       setUserData(null);
       setIsUserDataLoading(false);
@@ -89,6 +94,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsOffline(!online);
         if (!online) {
             console.warn("Client offline, skipping Firestore listeners setup.");
+            // We still need to create the user document if they just signed up,
+            // but we won't listen for real-time updates.
+            try {
+              const userRef = doc(db!, 'users', user.uid);
+              const docSnap = await getDoc(userRef);
+              if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data?.dob && data.dob instanceof Timestamp) {
+                  data.dob = data.dob.toDate().toISOString().split('T')[0];
+                }
+                setUserData(data || null);
+              } else {
+                 await createUserDocument(user);
+              }
+            } catch (e) {
+                console.error("Offline user data check/creation failed:", e);
+            }
+
             setIsUserDataLoading(false);
             return;
         }
@@ -107,6 +130,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsUserDataLoading(false);
             }, (error) => {
                 console.error("Error listening to user document:", error);
+                if (error.code === 'unavailable') {
+                    setIsOffline(true);
+                }
                 setIsUserDataLoading(false);
             });
 
@@ -121,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         if (unsubscribeUser) unsubscribeUser();
     };
-  }, [user]);
+  }, [user, isAuthLoading]);
 
   const loading = useMemo(() => {
     return isAuthLoading || (!!user && isUserDataLoading);
@@ -135,13 +161,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const online = await isReallyOnline();
     if (!online) {
+        setIsOffline(true);
         throw new Error("You are offline. Cannot save profile.");
     }
     
     const sanitizedData = sanitizeUserProfile(newData);
     
     // Optimistic update
-    setUserData(prev => ({ ...prev, ...sanitizedData }));
+    setUserData(prev => ({ ...prev, ...sanitizedData, ...newData }));
   
     try {
       const ref = doc(db, 'users', user.uid);
@@ -156,7 +183,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !db || isOffline) throw new Error("User not authenticated, DB not available, or client is offline.");
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
+    
+    const online = await isReallyOnline();
+    if (!online) {
+      setIsOffline(true);
+      throw new Error("You are offline. Cannot save quiz results.");
+    }
     
     const historyDocRef = doc(db, 'quizHistory', user.uid);
     const userDocRef = doc(db, 'users', user.uid);
@@ -192,7 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // For simplicity, we are not doing that here, but it's a consideration for production apps.
         throw error;
     }
-  }, [user, userData, isOffline]);
+  }, [user, userData]);
 
   const isProfileComplete = useMemo(() => {
     if (!userData) return false;
@@ -227,5 +260,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    

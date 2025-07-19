@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
-import { auth, isFirebaseConfigured } from "@/lib/firebaseClient";
+import { auth, isFirebaseConfigured, isReallyOnline } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber } from "firebase/auth";
 
 interface PhoneVerificationDialogProps {
@@ -51,7 +51,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   }, [cleanupVerifier]);
 
   const setupRecaptcha = useCallback(async () => {
-    if (!auth || recaptchaVerifierRef.current || typeof window === 'undefined') return;
+    if (!auth || recaptchaVerifierRef.current || typeof window === 'undefined' || !open) return;
+    
+    const isOnline = await isReallyOnline();
+    if (!isOnline) {
+        setError("You are offline. Please check your connection to verify your phone number.");
+        return;
+    }
     
     const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
     if (!recaptchaContainer) {
@@ -61,21 +67,24 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
     try {
         const { RecaptchaVerifier } = await import('firebase/auth');
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
-            size: 'invisible',
-            'callback': () => {},
-            'expired-callback': () => {
-                setError("reCAPTCHA challenge expired. Please try sending the code again.");
-                cleanupVerifier();
-            },
-        });
-        
-        await verifier.render();
-        recaptchaVerifierRef.current = verifier;
+        // Ensure verifier is only created once
+        if (!recaptchaVerifierRef.current) {
+            const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
+                size: 'invisible',
+                'callback': () => {},
+                'expired-callback': () => {
+                    setError("reCAPTCHA challenge expired. Please try sending the code again.");
+                    cleanupVerifier();
+                },
+            });
+            await verifier.render();
+            recaptchaVerifierRef.current = verifier;
+        }
     } catch(e: any) {
-        setError("Failed to create the verification widget. Please refresh and try again.");
+        console.error("Recaptcha setup error:", e);
+        setError("Failed to create the verification widget. Ad blockers or network issues can cause this. Please refresh and try again.");
     }
-  }, [cleanupVerifier]);
+  }, [cleanupVerifier, open]);
 
   useEffect(() => {
     if (open && step === 'initial') {
@@ -85,13 +94,21 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   
   const handleSendOtp = async () => {
     setError(null);
+
+    // Re-run online check before sending OTP
+    const isOnline = await isReallyOnline();
+    if (!isOnline) {
+        setError("You are offline. Please check your connection and try again.");
+        return;
+    }
+
+    await setupRecaptcha(); // Ensure verifier is ready
     const verifier = recaptchaVerifierRef.current;
 
     if (!verifier || !auth) {
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
-      await setupRecaptcha(); // Attempt to re-setup
       return;
     }
     
@@ -111,13 +128,12 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         description = 'The phone number format is invalid. Please ensure it is 10 digits.';
       } else if (err.code === 'auth/too-many-requests') {
         description = "You've requested this too many times. Please try again later.";
-      } else if (err.code?.includes('internal-error') || err.message?.includes('reCAPTCHA')) {
+      } else if (err.code?.includes('internal-error') || err.message?.includes('reCAPTCHA') || err.message?.includes('offline')) {
         description = "An internal error occurred, often due to ad blockers, VPNs, or network issues. Please disable them and try again.";
       }
       setError(description);
       toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
       cleanupVerifier();
-      setupRecaptcha();
       setStep('initial'); 
     } finally {
       setIsLoading(false);

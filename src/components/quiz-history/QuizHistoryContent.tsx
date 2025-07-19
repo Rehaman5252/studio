@@ -21,6 +21,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { isOffline } = useAuth();
 
     const getAnalysisCacheKey = useCallback(() => `analysis_${attempt.format}_${attempt.slotId}`, [attempt.slotId, attempt.format]);
 
@@ -35,6 +36,13 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
 
         setIsLoading(true);
         setError(null);
+
+        if (isOffline) {
+            setError("You are offline. Please reconnect to generate AI analysis.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const result = await generateQuizAnalysis({
                 questions: attempt.questions,
@@ -48,13 +56,17 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             }
             setAnalysis(result.analysis);
             localStorage.setItem(getAnalysisCacheKey(), result.analysis);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Analysis generation failed:", err);
-            setError('Could not generate the analysis. Please try again later.');
+            if (err.message?.includes('offline')) {
+                setError("You are offline. Please reconnect to generate AI analysis.");
+            } else {
+                setError('Could not generate the analysis. Please try again later.');
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading, attempt, getAnalysisCacheKey]);
+    }, [isLoading, attempt, getAnalysisCacheKey, isOffline]);
 
     const handleOpenChange = useCallback((open: boolean) => {
         if (open && !analysis) {
@@ -222,9 +234,13 @@ export default function QuizHistoryContent() {
                 historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
                 setQuizHistory(historyData);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to fetch quiz history:", e);
-            setError("Could not load your quiz history. Please try again later.");
+            if (e.message?.includes('offline')) {
+                setError("You are currently offline. Please check your connection to see your history.");
+            } else {
+                setError("Could not load your quiz history. Please try again later.");
+            }
         } finally {
             setIsLoading(false);
         }

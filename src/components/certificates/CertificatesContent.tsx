@@ -57,7 +57,7 @@ export default function CertificatesContent() {
       return;
     }
     if (isOffline) {
-        setError("You are currently offline. Please check your connection.");
+        setError("You are currently offline. Please check your connection to see your certificates.");
         setIsLoading(false);
         return;
     }
@@ -73,9 +73,13 @@ export default function CertificatesContent() {
                 historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
                 setQuizHistory(historyData);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
-            setError("Could not load your certificates. Please try again later.");
+            if (e.message?.includes('offline')) {
+                setError("You are currently offline. Please check your connection to see your certificates.");
+            } else {
+                setError("Could not load your certificates. Please try again later.");
+            }
         } finally {
             setIsLoading(false);
         }
