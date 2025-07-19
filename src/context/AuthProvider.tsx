@@ -11,7 +11,6 @@ import {
   doc, 
   onSnapshot, 
   setDoc,
-  enableNetwork,
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured, isReallyOnline } from '@/lib/firebaseClient';
 
@@ -61,17 +60,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  const [isOffline, setIsOffline] = useState(true); // Start assuming offline until proven otherwise.
-  const [isOnlineCheckComplete, setIsOnlineCheckComplete] = useState(false);
+  const [isOffline, setIsOffline] = useState(false); // Start assuming online, then verify
 
   useEffect(() => {
-    // This effect runs only on the client and handles Firebase auth state.
     if (!isFirebaseConfigured || !auth) {
-      console.warn("Firebase not configured for the client. Auth will not work.");
+      console.warn("Firebase not configured. Auth will not work.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
-      setIsOnlineCheckComplete(true);
       return;
     }
 
@@ -80,43 +76,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthLoading(false);
     });
 
+    // Check online status on mount
+    isReallyOnline().then(online => setIsOffline(!online));
+
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    // This effect handles the online/offline detection.
-    let isMounted = true;
-    
-    const checkOnlineStatus = async () => {
-        const online = await isReallyOnline();
-        if (isMounted) {
-            setIsOffline(!online);
-            if (!isOnlineCheckComplete) {
-                setIsOnlineCheckComplete(true);
-            }
-        }
-    };
-
-    if (typeof window !== "undefined") {
-        window.addEventListener('online', checkOnlineStatus);
-        window.addEventListener('offline', checkOnlineStatus);
-        // Initial check after a short delay to allow Firebase to initialize
-        setTimeout(checkOnlineStatus, 1500);
-    }
-    
-    return () => {
-        isMounted = false;
-        if (typeof window !== "undefined") {
-            window.removeEventListener('online', checkOnlineStatus);
-            window.removeEventListener('offline', checkOnlineStatus);
-        }
-    };
-  }, []);
-
-
-  useEffect(() => {
-    // This effect handles fetching Firestore data once we have a user AND are confirmed to be online.
-    if (!user || isOffline || !db || !isOnlineCheckComplete) {
+    if (!user || isOffline) {
       if (!user) {
         setUserData(null);
         setQuizHistory(null);
@@ -136,8 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             await createUserDocument(user);
             
-            const userDocRef = doc(db, 'users', user.uid);
-            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const userDocRef = doc(db!, 'users', user.uid);
+            const historyDocRef = doc(db!, 'quizHistory', user.uid);
             
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                 setUserData(docSnap.data() || null);
@@ -170,15 +137,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (unsubscribeUser) unsubscribeUser();
         if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, isOffline, isOnlineCheckComplete]);
+  }, [user, isOffline]);
 
   const loading = useMemo(() => {
-    return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading || !isOnlineCheckComplete));
-  }, [isAuthLoading, user, isUserDataLoading, isHistoryLoading, isOnlineCheckComplete]);
+    return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
+  }, [isAuthLoading, user, isUserDataLoading, isHistoryLoading]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user || !db || isOffline) {
-      console.error("❌ updateUserData: No user, DB not available, or client is offline.");
+    if (!user || !db) {
+      console.error("❌ updateUserData: No user or DB not available.");
       throw new Error("Could not save profile. Please check your connection and try again.");
     }
   
@@ -188,7 +155,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const payload = { ...newData };
       // This is the crucial fix for the profile saving issue.
       if (payload.dob && typeof payload.dob === 'string') {
-        payload.dob = new Date(payload.dob);
+        try {
+            // Ensure we create a valid date object before sending to firestore
+            payload.dob = new Date(payload.dob);
+        } catch (e) {
+            console.error("Invalid DOB format provided", e);
+            throw new Error("Invalid Date of Birth format.");
+        }
       }
 
       await setDoc(ref, removeUndefined(payload), { merge: true });
@@ -196,7 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("🔥 updateUserData error:", err);
       throw new Error("Could not save profile. Please try again.");
     }
-  }, [user, isOffline]);
+  }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user || !db || isOffline) throw new Error("User not authenticated, DB not available, or client is offline.");

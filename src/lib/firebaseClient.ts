@@ -26,36 +26,29 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.projectId;
 
 let app: FirebaseApp;
-let auth: Auth | null;
-let db: Firestore | null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  
-  // Enable modern persistent caching on the client only
-  try {
-    db = initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
-    });
-  } catch (e) {
-    console.error("Firestore persistence initialization failed, falling back to memory cache.", e);
-    // Fallback to in-memory cache if persistence fails (e.g., in private browsing mode)
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+    // Initialize Firestore with persistence
+    try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
+    } catch (e) {
+      console.error("Firestore persistence initialization failed, falling back to memory cache.", e);
+      db = getFirestore(app);
+    }
+    auth = getAuth(app);
+  } else {
+    app = getApp();
+    auth = getAuth(app);
     db = getFirestore(app);
   }
-
-} else {
-    // On the server, we can initialize the app but auth and db will be null
-    // This can be useful for server-side admin tasks in the future, but for now it's inert
-    if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
-    auth = null;
-    db = null;
 }
 
 /**
@@ -76,8 +69,14 @@ export async function isReallyOnline(): Promise<boolean> {
     return true;
   } catch (error: any) {
     // Firestore throws 'unavailable' or 'offline' errors when it can't connect.
-    console.warn("Firestore health check failed, client may be offline:", error.code);
-    return false;
+    if (error.code === 'unavailable' || error.code === 'offline') {
+        console.warn("Firestore health check failed, client is offline:", error.code);
+        return false;
+    }
+    // For other errors, we might still be "online" but have a different problem.
+    // Let's assume online but log the error.
+    console.error("An unexpected error occurred during online check:", error);
+    return true;
   }
 }
 
