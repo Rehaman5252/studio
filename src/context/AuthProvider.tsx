@@ -2,7 +2,7 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -62,89 +62,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
   const [isOffline, setIsOffline] = useState(true); // Start assuming offline
-  const [isOnlineCheckComplete, setIsOnlineCheckComplete] = useState(false);
-  
-  const hasNetworkEnabled = useRef(false);
 
   useEffect(() => {
+    // This effect runs only on the client and handles Firebase auth state.
     if (!isFirebaseConfigured || !auth) {
-      console.warn("Firebase not configured. Halting AuthProvider setup.");
+      console.warn("Firebase not configured for the client. Auth will not work.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
-      setIsOffline(true);
-      setIsOnlineCheckComplete(true);
       return;
     }
-    const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthLoading(false);
     });
-    return () => authUnsubscribe();
-  }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    const checkOnlineStatus = async () => {
-      const online = await isReallyOnline();
-      if (isMounted) {
-        setIsOffline(!online);
-        setIsOnlineCheckComplete(true);
-      }
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', checkOnlineStatus);
-      window.addEventListener('offline', checkOnlineStatus);
-      // Delay initial check to allow for hydration and network stabilization
-      setTimeout(checkOnlineStatus, 1500);
-    }
+    // Add online/offline listeners to react to network changes
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check
+    isReallyOnline().then(online => setIsOffline(!online));
+
     return () => {
-      isMounted = false;
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('online', checkOnlineStatus);
-        window.removeEventListener('offline', checkOnlineStatus);
-      }
+      unsubscribe();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
-  
-  // Effect to retry enabling network when coming back online
-  useEffect(() => {
-    if (!isOffline && db && !hasNetworkEnabled.current) {
-        enableNetwork(db)
-        .then(() => {
-            hasNetworkEnabled.current = true;
-            console.log("✅ Firestore network re-enabled after reconnect.");
-        })
-        .catch(err => {
-            console.error("🔥 Failed to re-enable Firestore network:", err);
-        });
-    }
-  }, [isOffline]);
-
 
   useEffect(() => {
-    // Gatekeeping: Wait until we know auth status AND online status
-    if (isAuthLoading || !isOnlineCheckComplete) {
-      return;
-    }
-
-    // If not authenticated, clear data and stop.
-    if (!user) {
-      setUserData(null);
-      setQuizHistory(null);
+    // This effect handles fetching Firestore data once we have a user and are online.
+    if (!user || isOffline || !db) {
+      // If we're not logged in or are offline, we can't fetch data.
+      // We set loading to false because there's nothing to load.
+      if (!user) {
+        setUserData(null);
+        setQuizHistory(null);
+      }
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
     }
     
-    // If offline or db not ready, stop.
-    if (isOffline || !db) {
-        console.warn("AuthProvider: Client is offline or DB not available. Halting Firestore listeners.");
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-        return;
-    }
-
+    // At this point, user is logged in and we are online.
+    setIsUserDataLoading(true);
+    setIsHistoryLoading(true);
+    
     let unsubscribeUser: (() => void) | undefined;
     let unsubscribeHistory: (() => void) | undefined;
 
@@ -186,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (unsubscribeUser) unsubscribeUser();
         if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, isAuthLoading, isOffline, isOnlineCheckComplete]);
+  }, [user, isOffline]);
 
   const loading = useMemo(() => {
     return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
@@ -195,13 +162,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user || !db || isOffline) {
       console.error("❌ updateUserData: No user, DB not available, or client is offline.");
-      throw new Error("Could not save profile. Please try again.");
+      throw new Error("Could not save profile. Please check your connection and try again.");
     }
   
     try {
       const ref = doc(db, 'users', user.uid);
       
       const payload = { ...newData };
+      // This is the crucial fix for the profile saving issue.
       if (payload.dob && typeof payload.dob === 'string') {
         payload.dob = new Date(payload.dob);
       }

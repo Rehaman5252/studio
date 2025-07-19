@@ -6,6 +6,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   type Firestore,
+  getFirestore,
 } from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
@@ -21,17 +22,15 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.authDomain &&
   !!firebaseConfig.projectId;
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+let app: FirebaseApp;
+let auth: Auth | null;
+let db: Firestore | null;
 
-if (typeof window !== "undefined" && isFirebaseConfigured) {
+if (typeof window !== 'undefined' && isFirebaseConfigured) {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   auth = getAuth(app);
   
-  // Enable persistent offline cache and multi-tab support
-  // This is the modern way to handle offline persistence and prevents most
-  // "client is offline" errors.
+  // Enable modern persistent caching on the client only
   try {
     db = initializeFirestore(app, {
       localCache: persistentLocalCache({
@@ -39,10 +38,17 @@ if (typeof window !== "undefined" && isFirebaseConfigured) {
       }),
     });
   } catch (e) {
-    console.error("Firebase Firestore initialization with persistence failed, falling back to memory cache.", e);
+    console.error("Firestore persistence initialization failed, falling back to memory cache.", e);
     // Fallback to in-memory cache if persistence fails (e.g., in private browsing mode)
-    db = initializeFirestore(app, {});
+    db = getFirestore(app);
   }
+
+} else {
+    // On the server, we can initialize the app but auth and db will be null
+    // This can be useful for server-side admin tasks in the future, but for now it's inert
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    auth = null;
+    db = null;
 }
 
 /**
@@ -54,15 +60,12 @@ export async function isReallyOnline(): Promise<boolean> {
     return false;
   }
   try {
-    // Use a lightweight, reliable endpoint for checking connectivity.
-    // Using a Google endpoint as it's highly available.
     const response = await fetch("https://www.google.com/generate_204", {
       method: "HEAD",
       cache: "no-store",
     });
     return response.ok;
   } catch {
-    // If the fetch fails, trust the browser's less reliable check.
     return navigator.onLine;
   }
 }
