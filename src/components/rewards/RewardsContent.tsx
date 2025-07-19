@@ -3,21 +3,34 @@
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Gift, ExternalLink, Loader2, Play } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
-import LoginPrompt from '../auth/LoginPrompt';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Skeleton } from '../ui/skeleton';
+
+const ScratchCardSkeleton = () => (
+    <div className="w-full aspect-square p-1">
+        <Skeleton className="w-full h-full rounded-2xl" />
+    </div>
+);
+
+const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+    <Alert variant="destructive" className="mt-4">
+        {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        <AlertTitle>Error Loading Rewards</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+    </Alert>
+);
 
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
-  // Create a unique key for each specific quiz attempt
   const storageKey = useMemo(() => `scratch-card-${slotId}-${brand}-${timestamp}`, [slotId, brand, timestamp]);
 
   useEffect(() => {
@@ -70,7 +83,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
               animate={{ opacity: 1, scale: 1 }}
               className="h-full flex flex-col items-center justify-center p-4 text-center"
             >
-              <Gift className="h-10 w-10 mb-2 text-white" />
+              <Trophy className="h-10 w-10 mb-2 text-white" />
               <h3 className="text-lg font-bold">{reward.gift}</h3>
               <p className="text-xs opacity-80 mt-1">{reward.description}</p>
               <Button
@@ -113,12 +126,31 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts }: { isLoggedIn: boolean, rewardableAttempts: QuizAttempt[] }) => (
+const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, isLoading, error, isOffline }: { 
+    isLoggedIn: boolean;
+    rewardableAttempts: QuizAttempt[];
+    hasAttempts: boolean;
+    isLoading: boolean;
+    error: string | null;
+    isOffline: boolean;
+}) => (
   <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
     <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt (one per brand per day). Scratch to reveal!</p>
     
-    {isLoggedIn ? (
+    {isLoading ? (
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+            <CarouselContent className="-ml-4">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                        <ScratchCardSkeleton />
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+    ) : error ? (
+        <ErrorState message={error} isOffline={isOffline} />
+    ) : isLoggedIn ? (
         rewardableAttempts.length > 0 ? (
             <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
                 <CarouselContent className="-ml-4">
@@ -134,8 +166,13 @@ const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts }: { isLoggedIn
         ) : (
             <Card className="bg-card/80 border-dashed border-primary/30">
                 <CardContent className="p-6 text-center text-muted-foreground">
-                    <p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p>
-                    <p>Play any quiz to unlock a special brand gift!</p>
+                    <Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+                    <p className="font-semibold text-foreground mb-2">
+                        {hasAttempts ? "You've scratched all available gifts for today!" : "No Brand Gifts Yet"}
+                    </p>
+                    <p>
+                        {hasAttempts ? "Play again in the next slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}
+                    </p>
                 </CardContent>
             </Card>
         )
@@ -165,26 +202,41 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user, loading: isAuthLoading } = useAuth();
+  const { user, isOffline } = useAuth();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
-        setIsHistoryLoading(false);
+        setIsLoading(false);
+        return;
+    }
+    if (isOffline) {
+        setError("You are currently offline. Please check your connection.");
+        setIsLoading(false);
         return;
     }
     const fetchHistory = async () => {
-        setIsHistoryLoading(true);
-        const historyDocRef = doc(db, 'quizHistory', user.uid);
-        const docSnap = await getDoc(historyDocRef);
-        if (docSnap.exists()) {
-            setQuizHistory(docSnap.data().attempts || []);
+        setIsLoading(true);
+        setError(null);
+        try {
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                setQuizHistory(docSnap.data().attempts || []);
+            }
+        } catch (e) {
+            console.error("Failed to fetch rewards data:", e);
+            setError("Could not load your rewards. Please try again later.");
+        } finally {
+            setIsLoading(false);
         }
-        setIsHistoryLoading(false);
     }
     fetchHistory();
-  }, [user]);
+  }, [user, isOffline]);
+
+  const hasAttempts = quizHistory.length > 0;
 
   const rewardableAttempts = useMemo(() => {
     if (!quizHistory) return [];
@@ -206,19 +258,16 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory]);
 
-  const isLoading = isAuthLoading || isHistoryLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full py-10">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <>
-      <BrandGiftsSection isLoggedIn={!!user} rewardableAttempts={rewardableAttempts} />
+      <BrandGiftsSection 
+        isLoggedIn={!!user} 
+        rewardableAttempts={rewardableAttempts}
+        hasAttempts={hasAttempts}
+        isLoading={isLoading}
+        error={error}
+        isOffline={isOffline}
+      />
       <GenericOffersSection />
     </>
   );

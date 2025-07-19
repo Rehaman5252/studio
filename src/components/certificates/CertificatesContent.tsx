@@ -4,39 +4,84 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
+import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
+const CertificateItemSkeleton = () => (
+    <div className="space-y-4">
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardHeader>
+                <div className="flex items-start gap-4">
+                    <Skeleton className="h-8 w-8 rounded-md mt-1 flex-shrink-0" />
+                    <div className="flex-grow space-y-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-5/6" />
+                        <Skeleton className="h-3 w-3/4" />
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex justify-end gap-2">
+                <Skeleton className="h-9 w-24 rounded-md" />
+                <Skeleton className="h-9 w-20 rounded-md" />
+            </CardContent>
+        </Card>
+    </div>
+);
+
+const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+    <Alert variant="destructive" className="mt-4">
+        {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        <AlertTitle>Error Loading Certificates</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+    </Alert>
+);
 
 export default function CertificatesContent() {
-  const { user, userData } = useAuth();
+  const { user, userData, isOffline } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
-      setIsHistoryLoading(false);
+      setIsLoading(false);
       return;
     }
+    if (isOffline) {
+        setError("You are currently offline. Please check your connection.");
+        setIsLoading(false);
+        return;
+    }
+
     const fetchHistory = async () => {
-        setIsHistoryLoading(true);
-        const historyDocRef = doc(db, 'quizHistory', user.uid);
-        const docSnap = await getDoc(historyDocRef);
-        if (docSnap.exists()) {
-            const historyData = docSnap.data().attempts || [];
-            historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-            setQuizHistory(historyData);
+        setIsLoading(true);
+        setError(null);
+        try {
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                const historyData = docSnap.data().attempts || [];
+                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                setQuizHistory(historyData);
+            }
+        } catch (e) {
+            console.error("Failed to fetch certificate data:", e);
+            setError("Could not load your certificates. Please try again later.");
+        } finally {
+            setIsLoading(false);
         }
-        setIsHistoryLoading(false);
     }
     fetchHistory();
-  }, [user]);
+  }, [user, isOffline]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -166,12 +211,17 @@ export default function CertificatesContent() {
   };
 
 
-  if (isHistoryLoading) {
+  if (isLoading) {
     return (
-        <div className="flex flex-col items-center justify-center h-full py-10">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="space-y-4">
+            <CertificateItemSkeleton />
+            <CertificateItemSkeleton />
         </div>
     );
+  }
+
+  if (error) {
+    return <ErrorState message={error} isOffline={isOffline} />;
   }
   
   return (
@@ -183,7 +233,7 @@ export default function CertificatesContent() {
                 <Card className="bg-card/80 border-primary/10 shadow-lg">
                   <CardHeader>
                     <div className="flex items-start gap-4">
-                        <Award className="h-8 w-8 text-primary mt-1 flex-shrink-0" />
+                        <Trophy className="h-8 w-8 text-primary mt-1 flex-shrink-0" />
                         <div className="flex-grow">
                             <CardTitle className="text-lg">{cert.title}</CardTitle>
                             <CardDescription>
@@ -220,7 +270,7 @@ export default function CertificatesContent() {
           <Card className="bg-card/80">
             <CardContent className="p-8 text-center text-muted-foreground">
               <Award className="h-12 w-12 mx-auto mb-4 text-primary/50" />
-              <p className="font-semibold">No certificates yet!</p>
+              <p className="font-semibold text-lg text-foreground">No certificates yet!</p>
               <p>Score a perfect 5/5 in any quiz to earn your first certificate.</p>
             </CardContent>
           </Card>

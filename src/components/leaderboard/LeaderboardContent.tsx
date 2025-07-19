@@ -9,11 +9,12 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban } from 'lucide-react';
+import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
     rank?: number;
@@ -56,68 +57,135 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
+const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+    <Alert variant="destructive" className="mt-4">
+        {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        <AlertTitle>Error Loading Leaderboard</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+    </Alert>
+);
+
 
 const LiveLeaderboard = memo(() => {
-    const { user, userData } = useAuth();
+    const { user, userData, isOffline } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
-    const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) {
-            setIsHistoryLoading(false);
+            setIsLoading(false);
+            return;
+        }
+        if (isOffline) {
+            setError("You are currently offline. Please check your connection.");
+            setIsLoading(false);
             return;
         }
 
         const fetchHistory = async () => {
-            setIsHistoryLoading(true);
-            const historyDocRef = doc(db, 'quizHistory', user.uid);
-            const docSnap = await getDoc(historyDocRef);
-            let quizHistory: QuizAttempt[] = [];
-            if (docSnap.exists()) {
-                quizHistory = docSnap.data().attempts || [];
+            setIsLoading(true);
+            setError(null);
+            try {
+                const historyDocRef = doc(db, 'quizHistory', user.uid);
+                const docSnap = await getDoc(historyDocRef);
+                let quizHistory: QuizAttempt[] = [];
+                if (docSnap.exists()) {
+                    quizHistory = docSnap.data().attempts || [];
+                }
+
+                const currentSlotId = getQuizSlotId();
+                const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
+                
+                const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
+
+                const livePlayers: LivePlayer[] = [];
+
+                if (userAttempt) {
+                    livePlayers.push({
+                        uid: user!.uid,
+                        name: userData?.name || 'You',
+                        score: userAttempt.score,
+                        time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                        avatar: userData?.photoURL,
+                        disqualified: userAttempt.reason === 'malpractice'
+                    });
+                }
+                
+                const mockLivePlayers: LivePlayer[] = [
+                    { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
+                    { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
+                    { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
+                    { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
+                ];
+                
+                livePlayers.push(...mockLivePlayers.filter(p => p.uid !== user?.uid));
+                
+                const sortedPlayers = livePlayers.sort((a, b) => {
+                     if (a.disqualified && !b.disqualified) return 1;
+                     if (!a.disqualified && b.disqualified) return -1;
+                     if (a.score !== b.score) return b.score - a.score;
+                     return a.time - b.time;
+                }).map((p, index) => ({...p, rank: index + 1}));
+
+                setPlayers(sortedPlayers);
+            } catch (e) {
+                console.error("Failed to fetch leaderboard data:", e);
+                setError("Could not load leaderboard data. Please try again later.");
+            } finally {
+                setIsLoading(false);
             }
-
-            const currentSlotId = getQuizSlotId();
-            const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
-            
-            const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
-
-            const livePlayers: LivePlayer[] = [];
-
-            if (userAttempt) {
-                livePlayers.push({
-                    uid: user!.uid,
-                    name: userData?.name || 'You',
-                    score: userAttempt.score,
-                    time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                    avatar: userData?.photoURL,
-                    disqualified: userAttempt.reason === 'malpractice'
-                });
-            }
-            
-            const mockLivePlayers: LivePlayer[] = [
-                { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
-                { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-                { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
-                { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
-            ];
-            
-            livePlayers.push(...mockLivePlayers.filter(p => p.uid !== user?.uid));
-            
-            const sortedPlayers = livePlayers.sort((a, b) => {
-                 if (a.disqualified && !b.disqualified) return 1;
-                 if (!a.disqualified && b.disqualified) return -1;
-                 if (a.score !== b.score) return b.score - a.score;
-                 return a.time - b.time;
-            }).map((p, index) => ({...p, rank: index + 1}));
-
-            setPlayers(sortedPlayers);
-            setIsHistoryLoading(false);
         }
         
         fetchHistory();
         
-    }, [user, userData]);
+    }, [user, userData, isOffline]);
+
+    const renderContent = () => {
+        if (isLoading) {
+            return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        }
+        if (error) {
+            return <ErrorState message={error} isOffline={isOffline} />;
+        }
+        if (players.length > 0) {
+            return players.map((player) => (
+                <motion.div 
+                    key={player.uid} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                    "flex items-center p-2 rounded-lg", 
+                    player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary",
+                    player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive",
+                    player.disqualified && "opacity-60"
+                )}>
+                    <div className="w-8 text-center">
+                        {player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}
+                    </div>
+                    <Avatar className="h-10 w-10 mx-4">
+                        <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                        <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                        <p className="font-semibold text-foreground">{player.name}</p>
+                        {!player.disqualified && <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>}
+                    </div>
+                    <div className="text-right">
+                        {player.disqualified ? (
+                            <p className="font-bold text-destructive">Disqualified</p>
+                        ) : (
+                            <>
+                            <p className="font-bold text-primary">{player.time.toFixed(1)}s</p>
+                            <p className="text-xs text-muted-foreground">Time</p>
+                            </>
+                        )}
+                    </div>
+                </motion.div>
+            ));
+        }
+        return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
+    }
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -132,46 +200,7 @@ const LiveLeaderboard = memo(() => {
                     transition={{ staggerChildren: 0.05 }}
                     className="space-y-2"
                 >
-                    {isHistoryLoading ? (
-                        Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
-                    ) : players.length > 0 ? (
-                        players.map((player) => (
-                            <motion.div 
-                                key={player.uid} 
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={cn(
-                                "flex items-center p-2 rounded-lg", 
-                                player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary",
-                                player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive",
-                                player.disqualified && "opacity-60"
-                            )}>
-                                <div className="w-8 text-center">
-                                    {player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}
-                                </div>
-                                <Avatar className="h-10 w-10 mx-4">
-                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
-                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-foreground">{player.name}</p>
-                                    {!player.disqualified && <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>}
-                                </div>
-                                <div className="text-right">
-                                    {player.disqualified ? (
-                                        <p className="font-bold text-destructive">Disqualified</p>
-                                    ) : (
-                                        <>
-                                        <p className="font-bold text-primary">{player.time.toFixed(1)}s</p>
-                                        <p className="text-xs text-muted-foreground">Time</p>
-                                        </>
-                                    )}
-                                </div>
-                            </motion.div>
-                        ))
-                    ) : (
-                        <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>
-                    )}
+                   {renderContent()}
                 </motion.div>
             </CardContent>
         </Card>
@@ -181,9 +210,12 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 
 const AllTimeLeaderboard = memo(() => {
-    const { user, userData, loading: isAuthLoading } = useAuth();
+    const { user, userData, isOffline } = useAuth();
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     
-    // Using mock data from AuthProvider for consistency
+    // In a real app, this would be a Firestore query. 
+    // We are simulating it based on the user's own data.
     const players: AllTimePlayer[] = useMemo(() => {
         if (!userData || userData.perfectScores === 0) {
             return [];
@@ -197,8 +229,53 @@ const AllTimeLeaderboard = memo(() => {
             rank: 1
         }];
     }, [user, userData]);
+    
+    useEffect(() => {
+        // Simulate loading state for consistency
+        setIsLoading(true);
+        if (isOffline) {
+            setError("You are currently offline. Leaderboard data may be stale.");
+        } else {
+            setError(null);
+        }
+        // In a real app, the fetch logic would be here.
+        // For this mock, we just wait a bit.
+        const timer = setTimeout(() => setIsLoading(false), 500);
+        return () => clearTimeout(timer);
+    }, [isOffline]);
 
-    const loading = isAuthLoading;
+    const renderContent = () => {
+        if (isLoading) {
+            return Array.from({ length: 1 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        }
+        // Even if offline, show potentially stale data with a warning.
+        if (players.length > 0) {
+            return players.map((player) => (
+                <motion.div 
+                   key={player.uid}
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}
+                >
+                   <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+                   <Avatar className="h-10 w-10 mx-4">
+                       <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                       <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                   </Avatar>
+                   <div className="flex-1">
+                       <p className="font-semibold text-foreground">{player.name}</p>
+                       <p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p>
+                   </div>
+                   <div className="text-right">
+                       <p className="font-bold text-primary">{player.perfectScores}</p>
+                       <p className="text-xs text-muted-foreground">Perfect Scores</p>
+                   </div>
+               </motion.div>
+           ));
+        }
+        return <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>;
+    }
+
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -213,34 +290,8 @@ const AllTimeLeaderboard = memo(() => {
                     transition={{ staggerChildren: 0.05 }}
                     className="space-y-2"
                 >
-                    {loading ? (
-                       Array.from({ length: 1 }).map((_, i) => <LeaderboardItemSkeleton key={i} />)
-                    ) : players.length > 0 ? (
-                        players.map((player) => (
-                             <motion.div 
-                                key={player.uid}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}
-                             >
-                                <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-                                <Avatar className="h-10 w-10 mx-4">
-                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
-                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-foreground">{player.name}</p>
-                                    <p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-primary">{player.perfectScores}</p>
-                                    <p className="text-xs text-muted-foreground">Perfect Scores</p>
-                                </div>
-                            </motion.div>
-                        ))
-                    ) : (
-                         <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>
-                    )}
+                    {error && <ErrorState message={error} isOffline={isOffline} />}
+                    {renderContent()}
                 </motion.div>
             </CardContent>
         </Card>
@@ -302,7 +353,7 @@ MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
 
 
 export default function LeaderboardContent() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">
