@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    // Set initial status
+    // Set initial status based on browser's report
     setIsOffline(!navigator.onLine);
 
     // If not authenticated, clear data and stop.
@@ -101,9 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // If authenticated but offline, stop here to prevent errors.
+    // If offline, stop here to prevent errors.
     if (navigator.onLine === false) {
-      console.warn("Client is offline. Halting Firestore listeners.");
+      console.warn("AuthProvider: Client is offline. Halting Firestore setup.");
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
