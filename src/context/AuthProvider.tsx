@@ -11,6 +11,7 @@ import {
   doc, 
   onSnapshot, 
   setDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured, isReallyOnline } from '@/lib/firebaseClient';
 
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  const [isOffline, setIsOffline] = useState(false); // Start assuming online, then verify
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
@@ -71,35 +72,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Check online status on mount
+    isReallyOnline().then(online => setIsOffline(!online));
+    
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthLoading(false);
     });
 
-    // Check online status on mount
-    isReallyOnline().then(online => setIsOffline(!online));
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user || isOffline) {
-      if (!user) {
-        setUserData(null);
-        setQuizHistory(null);
-      }
+    if (!user) {
+      setUserData(null);
+      setQuizHistory(null);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
     }
-    
-    setIsUserDataLoading(true);
-    setIsHistoryLoading(true);
-    
+
     let unsubscribeUser: (() => void) | undefined;
     let unsubscribeHistory: (() => void) | undefined;
-
+    
     const setupFirestoreListeners = async () => {
+        const online = await isReallyOnline();
+        setIsOffline(!online);
+        if (!online) {
+            console.warn("Client offline, skipping Firestore listeners setup.");
+            setIsUserDataLoading(false);
+            setIsHistoryLoading(false);
+            return;
+        }
+
+        setIsUserDataLoading(true);
+        setIsHistoryLoading(true);
+
         try {
             await createUserDocument(user);
             
@@ -137,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (unsubscribeUser) unsubscribeUser();
         if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, isOffline]);
+  }, [user]);
 
   const loading = useMemo(() => {
     return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
@@ -156,10 +164,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // This is the crucial fix for the profile saving issue.
       if (payload.dob && typeof payload.dob === 'string') {
         try {
-            // Ensure we create a valid date object before sending to firestore
-            payload.dob = new Date(payload.dob);
+            payload.dob = Timestamp.fromDate(new Date(payload.dob));
         } catch (e) {
-            console.error("Invalid DOB format provided", e);
+            console.error("Invalid DOB format provided, cannot convert to Timestamp", e);
             throw new Error("Invalid Date of Birth format.");
         }
       }
