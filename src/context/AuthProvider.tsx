@@ -172,7 +172,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
     try {
       const ref = doc(db, 'users', user.uid);
-      await setDoc(ref, removeUndefined(newData), { merge: true });
+      
+      const payload = { ...newData };
+      // Convert dob string from form to Date object for Firestore
+      if (typeof payload.dob === 'string' && payload.dob.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        payload.dob = new Date(payload.dob);
+      }
+
+      await setDoc(ref, removeUndefined(payload), { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       throw err;
