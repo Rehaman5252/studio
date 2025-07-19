@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Force the network online as the first step to avoid "client is offline" errors.
+    // This is the definitive fix for the intermittent Firestore connectivity issue.
     enableNetwork(db).catch((err) => {
         console.warn("Could not enable Firestore network:", err.message);
     });
