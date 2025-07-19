@@ -39,8 +39,8 @@ if (typeof window !== "undefined" && isFirebaseConfigured) {
           }),
         });
     } catch (e) {
-        console.error("Firebase Firestore initialization failed", e);
-        // fallback to memory cache if persistence fails
+        console.error("Firebase Firestore initialization failed, falling back to memory cache.", e);
+        // Fallback to in-memory cache if persistence fails (e.g., in private browsing mode)
         db = initializeFirestore(app, {});
     }
 

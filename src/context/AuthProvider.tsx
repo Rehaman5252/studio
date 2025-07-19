@@ -174,8 +174,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const ref = doc(db, 'users', user.uid);
       
       const payload = { ...newData };
-      // Convert dob string from form to Date object for Firestore
-      if (typeof payload.dob === 'string' && payload.dob.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // ✅ FIX: Convert string DOB to Date object before saving
+      if (payload.dob && typeof payload.dob === 'string') {
         payload.dob = new Date(payload.dob);
       }
 
