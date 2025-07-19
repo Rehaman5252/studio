@@ -127,7 +127,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const historyDocRef = doc(db!, 'quizHistory', user.uid);
             
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-                setUserData(docSnap.data() || null);
+                const data = docSnap.data();
+                if (data?.dob && data.dob instanceof Timestamp) {
+                  data.dob = data.dob.toDate().toISOString().split('T')[0];
+                }
+                setUserData(data || null);
                 setIsUserDataLoading(false);
             }, (error) => {
                 console.error("Error listening to user document:", error);
