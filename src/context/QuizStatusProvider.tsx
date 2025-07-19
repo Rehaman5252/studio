@@ -63,7 +63,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   }, [calculateTimeLeft]);
 
   useEffect(() => {
-    // Set initial random values on the client side only to avoid hydration mismatch
+    // FIX: This now runs only on the client, after hydration, preventing the mismatch error.
+    // Set initial random values on the client side only
     setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
     setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
     setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);

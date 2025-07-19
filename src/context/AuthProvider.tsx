@@ -24,8 +24,12 @@ import { auth, db, isFirebaseConfigured, isReallyOnline } from '@/lib/firebaseCl
  */
 function removeUndefined(obj: any): any {
   if (typeof obj !== 'object' || obj === null) return obj;
+  // This handles nested objects and arrays if necessary in the future
+  if (Array.isArray(obj)) return obj.map(removeUndefined);
   return Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => v !== undefined)
+    Object.entries(obj)
+      .filter(([_, v]) => v !== undefined)
+      .map(([k, v]) => [k, removeUndefined(v)])
   );
 }
 
@@ -76,15 +80,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const online = await isReallyOnline();
       setIsOffline(!online);
     };
-    checkOnlineStatus();
     
+    checkOnlineStatus();
+    const interval = setInterval(checkOnlineStatus, 30000); // Check every 30 seconds
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthLoading(false);
     });
-
-    // Periodically re-check connection status
-    const interval = setInterval(checkOnlineStatus, 30000); // every 30 seconds
 
     return () => {
       unsubscribe();
@@ -105,6 +108,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeHistory: (() => void) | undefined;
     
     const setupFirestoreListeners = async () => {
+        setIsUserDataLoading(true);
+        setIsHistoryLoading(true);
+
         const online = await isReallyOnline();
         setIsOffline(!online);
         if (!online) {
@@ -113,9 +119,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsHistoryLoading(false);
             return;
         }
-
-        setIsUserDataLoading(true);
-        setIsHistoryLoading(true);
 
         try {
             await createUserDocument(user);
@@ -175,14 +178,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const ref = doc(db, 'users', user.uid);
       
       const payload = { ...newData };
-      // This is the crucial fix for the profile saving issue.
+      // FIX: Normalize the DOB field into a Firestore Timestamp
       if (payload.dob && typeof payload.dob === 'string') {
         const parsedDate = new Date(payload.dob);
         if (!isNaN(parsedDate.getTime())) {
             payload.dob = Timestamp.fromDate(parsedDate);
         } else {
             console.error("Invalid DOB format provided, cannot convert to Timestamp");
-            throw new Error("Invalid Date of Birth format.");
+            delete payload.dob; // Or handle as an error
         }
       }
 
