@@ -72,15 +72,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Check online status on mount
-    isReallyOnline().then(online => setIsOffline(!online));
+    const checkOnlineStatus = async () => {
+      const online = await isReallyOnline();
+      setIsOffline(!online);
+    };
+    checkOnlineStatus();
     
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthLoading(false);
     });
 
-    return () => unsubscribe();
+    // Periodically re-check connection status
+    const interval = setInterval(checkOnlineStatus, 30000); // every 30 seconds
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -163,14 +172,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const payload = { ...newData };
       // This is the crucial fix for the profile saving issue.
       if (payload.dob && typeof payload.dob === 'string') {
-        try {
-            const parsedDate = new Date(payload.dob);
-            if (isNaN(parsedDate.getTime())) {
-                throw new Error("Invalid date string provided");
-            }
+        const parsedDate = new Date(payload.dob);
+        if (!isNaN(parsedDate.getTime())) {
             payload.dob = Timestamp.fromDate(parsedDate);
-        } catch (e) {
-            console.error("Invalid DOB format provided, cannot convert to Timestamp", e);
+        } else {
+            console.error("Invalid DOB format provided, cannot convert to Timestamp");
             throw new Error("Invalid Date of Birth format.");
         }
       }
