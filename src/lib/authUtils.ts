@@ -11,7 +11,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseDb } from './firebaseClient';
+import { getFirebaseAuth } from './firebaseClient';
 
 export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
   if (!db || !user || !user.uid) {
