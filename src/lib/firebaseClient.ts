@@ -1,3 +1,4 @@
+
 // lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
@@ -20,12 +21,10 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.authDomain &&
   !!firebaseConfig.projectId;
 
-let app: FirebaseApp;
-let auth: Auth;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
 let db: Firestore | null = null;
 
-// This guard is the most important part. It ensures that Firebase client-side
-// services are ONLY initialized in the browser.
 if (typeof window !== "undefined") {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -42,10 +41,6 @@ if (typeof window !== "undefined") {
     }
     // @ts-ignore
     db = window._FIRESTORE_INSTANCE;
-} else {
-    // On the server, we initialize the app but keep db null to prevent errors.
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    auth = getAuth(app);
 }
 
 

@@ -21,6 +21,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const router = useRouter();
 
     const handleLogout = async () => {
+        if (!auth) return;
         try {
             await signOut(auth);
             toast({ 

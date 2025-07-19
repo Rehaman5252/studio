@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
-import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
+import type { ConfirmationResult } from "firebase/auth";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
 import { auth } from "@/lib/firebaseClient";
-import { signInWithPhoneNumber } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
 // To prevent re-initialization on re-renders, the verifier is stored on the window object.
 declare global {
@@ -43,7 +43,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const cleanupVerifier = useCallback(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = undefined;
       const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
       if (recaptchaContainer) {
         recaptchaContainer.innerHTML = '';
@@ -53,6 +52,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   }, []);
 
   const setupRecaptcha = useCallback(() => {
+    if (!auth) return;
     cleanupVerifier(); // Clean up any old verifier first.
     
     // Ensure the container exists. This is crucial.
@@ -64,7 +64,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
 
     try {
-        const verifier = new (require("firebase/auth").RecaptchaVerifier)(auth, recaptchaContainer, {
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
             size: 'invisible',
             'callback': () => {
                 console.log("✅ reCAPTCHA challenge solved.");
@@ -106,7 +106,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     setError(null);
 
     const verifier = window.recaptchaVerifier;
-    if (!verifier) {
+    if (!verifier || !auth) {
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });

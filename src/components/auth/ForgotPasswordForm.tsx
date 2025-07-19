@@ -33,6 +33,10 @@ export default function ForgotPasswordForm() {
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
+    if (!auth) {
+        toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
+        return;
+    }
     setIsLoading(true);
     
     try {

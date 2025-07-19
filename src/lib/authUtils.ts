@@ -14,8 +14,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebaseClient';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  if (!user) {
-    console.error("❌ createUserDocument failed: User is missing.");
+  if (!user || !db) {
+    console.error("❌ createUserDocument failed: User or DB is missing.");
     return;
   }
   
@@ -56,8 +56,8 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (isPopupOpen) {
-    console.warn("Google Sign-In popup is already open.");
+  if (isPopupOpen || !auth) {
+    console.warn("Google Sign-In popup is already open or auth is not initialized.");
     return null;
   }
   isPopupOpen = true;
@@ -84,11 +84,13 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
+    if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

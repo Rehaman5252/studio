@@ -69,8 +69,10 @@ export default function SignupForm() {
     try {
         const userCredential = await registerWithEmail(data.email, data.password);
         
-        await updateProfile(userCredential.user, { displayName: data.name });
-        await sendEmailVerification(userCredential.user);
+        if (auth && auth.currentUser) {
+            await updateProfile(auth.currentUser, { displayName: data.name });
+            await sendEmailVerification(auth.currentUser);
+        }
         
         toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);

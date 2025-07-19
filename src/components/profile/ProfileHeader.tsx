@@ -23,7 +23,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
-        if (!user) {
+        if (!user || !auth) {
             toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
             return;
         }

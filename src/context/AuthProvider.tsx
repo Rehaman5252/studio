@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !auth || !db) {
         console.warn("Firebase is not configured. App will have limited functionality.");
         setIsAuthLoading(false);
         setIsUserDataLoading(false);
@@ -80,16 +80,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // This is the guaranteed client-side setup function.
     const mainSetup = async () => {
-        // Guard against running if db is not initialized (e.g., server-side)
-        if (!db) {
-            console.error("Firestore DB is not available. Setup cannot continue.");
-            setIsAuthLoading(false);
-            setIsUserDataLoading(false);
-            setIsHistoryLoading(false);
-            setIsFirebaseInitialized(true); // Allow rendering but in a degraded state.
-            return;
-        }
-
         // 1. Unregister any stale service workers that might be forcing an offline state.
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -136,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         const historyData = docSnap.exists() ? (docSnap.data().attempts || []) : [];
                         historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
                         setQuizHistory(historyData);
-setIsHistoryLoading(false);
+                        setIsHistoryLoading(false);
                     }, (error) => {
                         console.error("Error listening to quiz history:", error);
                         setIsHistoryLoading(false);
