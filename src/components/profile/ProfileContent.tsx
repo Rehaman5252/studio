@@ -13,7 +13,7 @@ import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
 import { signOut } from 'firebase/auth';
-import { getFirebaseClient } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
@@ -22,7 +22,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
 
     const handleLogout = async () => {
         try {
-            const { auth } = await getFirebaseClient();
+            const auth = getFirebaseAuth();
             await signOut(auth);
             toast({ 
                 title: "Signed Out", 

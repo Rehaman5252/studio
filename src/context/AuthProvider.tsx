@@ -12,7 +12,7 @@ import {
   onSnapshot, 
   setDoc,
 } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from '@/lib/firebaseClient';
 
 /**
  * Removes properties with `undefined` values from an object.
@@ -60,12 +60,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-        console.error("Firebase is not configured or auth is not available.");
+    if (!isFirebaseConfigured) {
+        console.error("Firebase is not configured. Please check your environment variables.");
         setIsAuthLoading(false);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
         return;
+    }
+
+    let auth;
+    try {
+      auth = getFirebaseAuth();
+    } catch(e) {
+      console.error(e);
+      setIsAuthLoading(false);
+      return;
     }
 
     const authSub = onAuthStateChanged(auth, (currentUser) => {
@@ -85,10 +94,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
+    }
+
+    let db;
+    try {
+        db = getFirebaseDb();
+    } catch(e) {
+        console.error(e);
+        setIsUserDataLoading(false);
+        setIsHistoryLoading(false);
+        return;
     }
     
     let unsubscribeUser: (() => void) | undefined;
@@ -133,12 +152,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user || !db) {
-      console.error("❌ updateUserData: No user or db");
+    if (!user) {
+      console.error("❌ updateUserData: No user");
       throw new Error("User not authenticated or DB not available.");
     }
   
     try {
+      const db = getFirebaseDb();
       const ref = doc(db, 'users', user.uid);
       await setDoc(ref, removeUndefined(newData), { merge: true });
     } catch (err) {
@@ -148,8 +168,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !db) throw new Error("User not authenticated or DB not available.");
+    if (!user) throw new Error("User not authenticated or DB not available.");
     
+    const db = getFirebaseDb();
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 

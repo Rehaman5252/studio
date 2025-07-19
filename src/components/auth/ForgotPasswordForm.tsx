@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { isFirebaseConfigured, auth } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,10 +34,13 @@ export default function ForgotPasswordForm() {
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
     setIsLoading(true);
-    if (!auth) {
-        toast({ title: 'Error', description: 'Firebase Auth is not available.', variant: 'destructive' });
-        setIsLoading(false);
-        return;
+    let auth;
+    try {
+      auth = getFirebaseAuth();
+    } catch(e) {
+      toast({ title: 'Error', description: 'Firebase Auth is not available.', variant: 'destructive' });
+      setIsLoading(false);
+      return;
     }
     
     try {

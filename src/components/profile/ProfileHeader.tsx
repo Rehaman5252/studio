@@ -11,6 +11,7 @@ import { calculateAge, maskPhone } from '@/lib/utils';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user } = useAuth(); // Get the auth user object
@@ -27,6 +28,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
             return;
         }
         try {
+            const auth = getFirebaseAuth();
             await sendEmailVerification(user);
             toast({ title: 'Verification Email Sent', description: 'Please check your inbox to verify your email address.' });
         } catch (error: any) {

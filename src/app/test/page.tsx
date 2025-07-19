@@ -1,13 +1,16 @@
+
 'use client';
 
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { isFirebaseConfigured } from '@/lib/firebaseClient';
 
 export default function FirebaseTestPage() {
   const { user, userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
 
   const isLoading = isAuthLoading || isUserDataLoading;
+  const isConfigured = isFirebaseConfigured;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
@@ -15,9 +18,17 @@ export default function FirebaseTestPage() {
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight">Firebase Connection Test</h1>
           <p className="text-muted-foreground mt-2">
-            This page checks the status of Firebase Authentication and Firestore.
+            This page checks the status of your Firebase configuration, Authentication, and Firestore.
           </p>
         </div>
+
+        <Alert variant={isConfigured ? 'default' : 'destructive'} className={isConfigured ? 'border-green-500/50 bg-green-500/10' : ''}>
+            {isConfigured ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+            <AlertTitle>Firebase Configuration</AlertTitle>
+            <AlertDescription>
+            {isConfigured ? `Firebase config loaded successfully.` : 'Firebase config is missing or incomplete. Please check your environment variables.'}
+            </AlertDescription>
+        </Alert>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-8">
@@ -39,7 +50,7 @@ export default function FirebaseTestPage() {
                 <AlertTitle>Firestore Status</AlertTitle>
                 <AlertDescription>
                     {user && userData && `User document found for ${userData.name}. Firestore is connected.`}
-                    {user && !userData && 'Auth is working, but no Firestore document was found for this user. (This is normal for a user who hasn\'t completed their profile).'}
+                    {user && !userData && 'Auth is working, but no Firestore document was found for this user. (This is normal for a new user).'}
                     {!user && 'Waiting for an authenticated user to check Firestore.'}
                 </AlertDescription>
             </Alert>
@@ -47,7 +58,7 @@ export default function FirebaseTestPage() {
         )}
 
         <div className="text-center text-sm text-muted-foreground">
-          <p>Check the browser's developer console (F12) for more detailed logs.</p>
+          <p>Check the browser's developer console (F12) for more detailed logs and errors.</p>
         </div>
       </div>
     </div>
