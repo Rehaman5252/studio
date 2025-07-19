@@ -26,7 +26,7 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 let db: Firestore;
 
 // This check prevents Firestore from being initialized multiple times during development
-// due to Next.js's Fast Refresh feature.
+// due to Next.js's Fast Refresh feature. This is a robust singleton pattern.
 if (typeof window !== "undefined") {
   // @ts-ignore
   if (!window._FIRESTORE_INSTANCE) {

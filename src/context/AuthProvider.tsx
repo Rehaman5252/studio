@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsHistoryLoading(false);
       return;
     }
-    
+
     let firestoreUnsubscribe: (() => void) | undefined;
 
     const setupListeners = async (firebaseUser: User) => {
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // DEFINITIVE FIX: Force network online *before* attaching auth listener.
     enableNetwork(db).then(() => {
-      console.log("✅ Firestore client is online.");
+      console.log("✅ Firestore client is now online.");
       
       const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
         // Cleanup previous user's listeners if any.
