@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useMemo, use
 import { onAuthStateChanged } from 'firebase/auth';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
-import type { DocumentData } from 'firebase/firestore';
+import type { DocumentData, Firestore } from 'firebase/firestore';
 import { 
   doc, 
   onSnapshot, 
@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    let db;
+    let db: Firestore;
     try {
         db = getFirebaseDb();
     } catch(e) {
@@ -115,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupListeners = async () => {
         try {
+            // Pass the db instance directly
             await createUserDocument(db, user);
 
             const userDocRef = doc(db, 'users', user.uid);
