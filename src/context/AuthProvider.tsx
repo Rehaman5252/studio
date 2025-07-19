@@ -124,20 +124,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   
     const mainSetup = async () => {
-        // 1. Force Firestore client online before doing anything else.
+        // 1. Unregister any stale service workers that might be forcing an offline state.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+                for (const registration of registrations) {
+                    registration.unregister();
+                    console.log('Unregistered stale service worker.');
+                }
+            });
+        }
+        
+        // 2. Force Firestore client online before doing anything else.
         if (navigator.onLine) {
             try {
                 await enableNetwork(db!);
                 console.log("✅ Firestore client is now online.");
             } catch (error) {
                 console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
-                // We can still proceed, Firebase might recover.
             }
         } else {
             console.warn("Browser is offline. Firestore will remain in offline mode.");
         }
 
-        // 2. Attach the auth state listener only AFTER attempting to go online.
+        // 3. Only AFTER attempting to go online, attach the auth state listener.
         const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firestoreUnsubscribe) {
                 firestoreUnsubscribe();
@@ -156,7 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsHistoryLoading(false);
             }
             
-            // 3. Mark initialization as complete to render children.
+            // 4. Mark initialization as complete to render children.
             setIsFirebaseInitialized(true);
         });
     

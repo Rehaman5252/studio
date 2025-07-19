@@ -1,3 +1,4 @@
+
 // lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
@@ -24,22 +25,26 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore | null = null;
 
+// This guard is the most important part. It ensures that Firebase client-side
+// services are ONLY initialized in the browser.
 if (typeof window !== "undefined") {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     
+    // Use a truly global singleton to prevent re-initialization, which can cause issues.
     // @ts-ignore
     if (!window._FIRESTORE_INSTANCE) {
       console.log("Initializing Firestore with memoryLocalCache for the first time.");
       // @ts-ignore
       window._FIRESTORE_INSTANCE = initializeFirestore(app, {
+        // Use memory cache to disable offline persistence and avoid the "stuck offline" bug.
         localCache: memoryLocalCache(),
       });
     }
     // @ts-ignore
     db = window._FIRESTORE_INSTANCE;
 } else {
-    // During SSR, we can initialize the app but not Firestore with persistence
+    // On the server, we initialize the app but keep db null.
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
 }
