@@ -74,7 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthLoading(false);
         
         if (currentUser) {
-            await createUserDocument(currentUser);
+            // The createUserDocument call is now handled inside the user effect
+            // to ensure the DB is online first.
         } else {
             setUserData(null);
             setQuizHistory(null);
@@ -102,6 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Force the network to be enabled to prevent "client is offline" errors.
             await enableNetwork(db);
             console.log("Firebase network enabled.");
+
+            await createUserDocument(user);
 
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
