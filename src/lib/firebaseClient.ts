@@ -4,7 +4,6 @@ import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions 
 import { getAuth, type Auth } from "firebase/auth";
 import {
   initializeFirestore,
-  getFirestore,
   memoryLocalCache,
   type Firestore,
 } from "firebase/firestore";
@@ -24,10 +23,8 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
 
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-let db: Firestore;
+let db: Firestore | null = null;
 
-// This check prevents Firestore from being initialized multiple times, especially in Next.js development with Fast Refresh.
-// This is a robust singleton pattern for the client-side.
 if (typeof window !== "undefined") {
   // @ts-ignore
   if (!window._FIRESTORE_INSTANCE) {
@@ -39,17 +36,8 @@ if (typeof window !== "undefined") {
   }
   // @ts-ignore
   db = window._FIRESTORE_INSTANCE;
-} else {
-  // For server-side rendering or environments without a window object, initialize a basic instance.
-  // Note: Most app functionality will rely on the client-side instance.
-  try {
-    db = getFirestore(app);
-  } catch (e) {
-    db = initializeFirestore(app, {
-      localCache: memoryLocalCache(),
-    });
-  }
 }
+
 
 const auth: Auth = getAuth(app);
 

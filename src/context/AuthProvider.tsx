@@ -61,8 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
-      console.error("Firebase is not configured. Aborting AuthProvider setup.");
+    if (!isFirebaseConfigured || !db) {
+      console.error("Firebase is not configured or Firestore is not available. Aborting AuthProvider setup.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
@@ -71,8 +71,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
     let firestoreUnsubscribe: (() => void) | null = null;
   
-    // This function sets up all listeners for a given user.
     const setupUserListeners = async (firebaseUser: User) => {
+      // Guard against server-side execution
+      if (!db) return null;
+
       setIsUserDataLoading(true);
       setIsHistoryLoading(true);
   
@@ -100,7 +102,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsHistoryLoading(false);
         });
         
-        // Return a single cleanup function for all listeners.
         return () => {
           unsubscribeUser();
           unsubscribeHistory();
@@ -113,19 +114,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   
-    // This is the main setup logic that runs once.
     const mainSetup = async () => {
+      if (!db) return; // Final guard before any async operations
+
       try {
-        // **Force the client online BEFORE attaching any auth or data listeners.**
         await enableNetwork(db);
         console.log("✅ Firestore client is now online.");
       } catch (error) {
         console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
       }
   
-      // Now that the network is enabled, set up the auth listener.
       const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
-        // Cleanup previous user's listeners if they logged out.
         if (firestoreUnsubscribe) {
           firestoreUnsubscribe();
           firestoreUnsubscribe = null;
@@ -135,10 +134,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthLoading(false);
   
         if (firebaseUser) {
-          // If there's a new user, set up their data listeners.
           firestoreUnsubscribe = await setupUserListeners(firebaseUser);
         } else {
-          // No user, so reset all data and loading states.
           setUserData(null);
           setQuizHistory(null);
           setIsUserDataLoading(false);
@@ -146,7 +143,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       });
   
-      // The cleanup function for the main useEffect will unsubscribe from auth changes.
       return () => {
         authSub();
         if (firestoreUnsubscribe) {
@@ -160,8 +156,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) {
-      console.error("❌ updateUserData: No user");
+    if (!user || !db) {
+      console.error("❌ updateUserData: No user or DB not available.");
       throw new Error("User not authenticated or DB not available.");
     }
   
@@ -175,7 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) throw new Error("User not authenticated or DB not available.");
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
     
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
