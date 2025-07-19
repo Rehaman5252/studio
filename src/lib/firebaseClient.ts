@@ -17,32 +17,8 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.projectId;
 
 // Initialize Firebase App in a client-safe way
-const app = typeof window !== 'undefined' && isFirebaseConfigured
-  ? getApps().length ? getApp() : initializeApp(firebaseConfig)
-  : null;
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
-/**
- * Gets the Firebase Auth instance.
- * Throws an error if called on the server.
- * @returns The Firebase Auth instance.
- */
-export const getFirebaseAuth = (): Auth => {
-    if (!app) {
-        throw new Error("Firebase has not been initialized. Please check your configuration and ensure you are on the client-side.");
-    }
-    return getAuth(app);
-};
-
-/**
- * Gets the Firebase Firestore instance.
- * Throws an error if called on the server.
- * @returns The Firebase Firestore instance.
- */
-export const getFirebaseDb = (): Firestore => {
-    if (!app) {
-        throw new Error("Firebase has not been initialized. Please check your configuration and ensure you are on the client-side.");
-    }
-    return getFirestore(app);
-};
-
-export default app;
+export { app, auth, db };

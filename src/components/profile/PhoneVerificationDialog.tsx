@@ -3,7 +3,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebaseClient";
+import { auth } from "@/lib/firebaseClient";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -56,7 +56,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
     if (step === 'initial' && !verifierRef.current) {
       try {
-        const auth = getFirebaseAuth();
         verifierRef.current = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current!, {
           size: 'invisible',
           'callback': () => console.log("✅ reCAPTCHA solved."),
@@ -89,7 +88,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     const appVerifier = verifierRef.current;
     
     try {
-      const auth = getFirebaseAuth();
       const fullPhoneNumber = `+91${phone}`;
       console.log(`📞 Attempting to sign in with phone: ${fullPhoneNumber}`);
       const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);

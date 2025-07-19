@@ -12,7 +12,7 @@ import {
   onSnapshot, 
   setDoc,
 } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 
 /**
  * Removes properties with `undefined` values from an object.
@@ -68,20 +68,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    let auth;
-    try {
-      auth = getFirebaseAuth();
-    } catch(e) {
-      console.error(e);
-      setIsAuthLoading(false);
-      return;
-    }
-
-    const authSub = onAuthStateChanged(auth, (currentUser) => {
+    const authSub = onAuthStateChanged(auth, async (currentUser) => {
         setUser(currentUser);
         setIsAuthLoading(false);
         
-        if (!currentUser) {
+        if (currentUser) {
+            await createUserDocument(currentUser);
+        } else {
             setUserData(null);
             setQuizHistory(null);
             setIsUserDataLoading(false);
@@ -99,25 +92,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsHistoryLoading(false);
       return;
     }
-
-    let db: Firestore;
-    try {
-        db = getFirebaseDb();
-    } catch(e) {
-        console.error(e);
-        setIsUserDataLoading(false);
-        setIsHistoryLoading(false);
-        return;
-    }
     
     let unsubscribeUser: (() => void) | undefined;
     let unsubscribeHistory: (() => void) | undefined;
 
     const setupListeners = async () => {
         try {
-            // No longer pass the db instance, as the function handles it.
-            await createUserDocument(user);
-
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                 setUserData(docSnap.data() || null);
@@ -159,7 +139,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   
     try {
-      const db = getFirebaseDb();
       const ref = doc(db, 'users', user.uid);
       await setDoc(ref, removeUndefined(newData), { merge: true });
     } catch (err) {
@@ -171,7 +150,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated or DB not available.");
     
-    const db = getFirebaseDb();
     const currentHistory = quizHistory || [];
     const currentUserData = userData || {};
 

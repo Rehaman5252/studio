@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
 
 export default function FirebaseTestPage() {
   const { user, userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
