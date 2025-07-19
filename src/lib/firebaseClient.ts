@@ -44,7 +44,7 @@ if (typeof window !== "undefined") {
     // @ts-ignore
     db = window._FIRESTORE_INSTANCE;
 } else {
-    // On the server, we initialize the app but keep db null.
+    // On the server, we initialize the app but keep db null to prevent errors.
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
 }
