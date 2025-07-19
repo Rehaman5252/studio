@@ -11,11 +11,21 @@ import {
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth } from './firebaseClient';
+import { getFirebaseAuth, getFirebaseDb } from './firebaseClient';
 
-export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
-  if (!db || !user || !user.uid) {
-    console.error("❌ createUserDocument failed: Valid DB instance and User object are required.");
+export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
+  if (!user) {
+    console.error("❌ createUserDocument failed: User is missing.");
+    return;
+  }
+
+  let db: Firestore;
+  try {
+    // Safely get the Firestore instance internally.
+    db = getFirebaseDb();
+  } catch (error) {
+    console.error("🔥 Failed to get Firestore instance in createUserDocument:", error);
+    toast({ title: "Error", description: "Could not connect to the database.", variant: "destructive" });
     return;
   }
   
@@ -24,7 +34,7 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
     const snapshot = await getDoc(userDocRef);
 
     if (!snapshot.exists()) {
-      console.log(`Creating document for new user: ${user.uid}`);
+      console.log(`📄 Creating document for new user: ${user.uid}`);
       const { email, displayName, photoURL } = user;
       const createdAt = new Date();
 
