@@ -64,9 +64,13 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // FIX: This now runs only on the client, after hydration, preventing the mismatch error.
     // Set initial random values on the client side only
-    setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
-    setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
-    setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
+    const setInitialStats = () => {
+      setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
+      setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
+      setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
+    };
+    
+    setInitialStats();
 
     const playersTimer = setInterval(() => {
       setPlayersPlaying(p => Math.max(800, p + Math.floor(Math.random() * 21) - 10));
