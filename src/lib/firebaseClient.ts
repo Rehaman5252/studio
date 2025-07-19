@@ -35,19 +35,24 @@ if (typeof window !== "undefined" && isFirebaseConfigured) {
 }
 
 /**
- * A more reliable way to check for a network connection.
+ * A more reliable way to check for a network connection with a timeout.
  * @returns {Promise<boolean>}
  */
 export async function isReallyOnline(): Promise<boolean> {
-  if (!navigator.onLine) {
+  if (typeof window === 'undefined' || !navigator.onLine) {
     return false;
   }
   try {
-    // We ping a Google API because it's highly available and CORS-enabled for HEAD requests.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
+
     const response = await fetch("https://firestore.googleapis.com", {
       method: "HEAD",
       cache: "no-store",
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     return response.ok;
   } catch {
     return false;

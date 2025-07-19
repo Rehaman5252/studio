@@ -60,44 +60,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(false); // Assume online initially
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth || !db) {
+    if (typeof window === 'undefined') return;
+
+    const markOnlineStatus = async () => {
+        try {
+            // Wait until the window is fully loaded to give the browser and extensions time.
+            await new Promise<void>((resolve) => {
+                if (document.readyState === 'complete') {
+                    resolve();
+                } else {
+                    window.addEventListener('load', () => resolve(), { once: true });
+                }
+            });
+
+            const online = await isReallyOnline();
+            setIsOffline(!online);
+        } catch (err) {
+            console.warn("⚠️ Online check failed. Assuming offline for safety.", err);
+            setIsOffline(true);
+        }
+    };
+
+    markOnlineStatus();
+
+    const handleStatusChange = () => setIsOffline(!navigator.onLine);
+
+    window.addEventListener('online', handleStatusChange);
+    window.addEventListener('offline', handleStatusChange);
+
+    return () => {
+        window.removeEventListener('online', handleStatusChange);
+        window.removeEventListener('offline', handleStatusChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
       console.warn("Firebase not configured. Halting AuthProvider setup.");
       setIsAuthLoading(false);
       return;
     }
     
-    // This function will handle online/offline status updates
-    const handleOnlineStatus = async () => {
-      const online = await isReallyOnline();
-      setIsOffline(!online);
-      return online;
-    };
-    
-    // Set up listeners for online/offline events
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
-
-    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthLoading(false);
     });
 
-    // Run initial check
-    handleOnlineStatus();
-
-    return () => {
-      authUnsubscribe();
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
-    };
+    return () => authUnsubscribe();
   }, []);
 
+
   useEffect(() => {
+    // This effect now ONLY handles Firestore data listeners.
+    // It depends on user, isAuthLoading, and isOffline.
     if (isAuthLoading || !user) {
-        // Clear data if user logs out or auth is still loading
         if (!isAuthLoading) {
             setUserData(null);
             setQuizHistory(null);
@@ -107,8 +126,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    if (!db || isOffline) {
-        console.warn("AuthProvider: DB not available or client is offline. Halting Firestore listeners.");
+    if (isOffline || !db) {
+        if(isOffline) console.warn("AuthProvider: Client is offline. Halting Firestore listeners.");
+        if(!db) console.warn("AuthProvider: DB not available. Halting listeners.");
         setUserData(null);
         setQuizHistory(null);
         setIsUserDataLoading(false);
