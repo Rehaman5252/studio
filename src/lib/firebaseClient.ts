@@ -25,23 +25,33 @@ let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && isFirebaseConfigured) {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
-    
-    // Use a truly global singleton to prevent re-initialization, which can cause issues.
-    // @ts-ignore
-    if (!window._FIRESTORE_INSTANCE) {
-      console.log("Initializing Firestore with memoryLocalCache for the first time.");
-      // @ts-ignore
-      window._FIRESTORE_INSTANCE = initializeFirestore(app, {
-        // Use memory cache to disable offline persistence and avoid the "stuck offline" bug.
-        localCache: memoryLocalCache(),
-      });
-    }
-    // @ts-ignore
-    db = window._FIRESTORE_INSTANCE;
+    // Initialize Firestore with memory cache to prevent "stuck offline" bug
+    db = initializeFirestore(app, {
+      localCache: memoryLocalCache(),
+    });
 }
 
+/**
+ * A more reliable way to check for a network connection.
+ * @returns {Promise<boolean>}
+ */
+export async function isReallyOnline(): Promise<boolean> {
+  if (!navigator.onLine) {
+    return false;
+  }
+  try {
+    // We ping a Google API because it's highly available and CORS-enabled for HEAD requests.
+    const response = await fetch("https://firestore.googleapis.com", {
+      method: "HEAD",
+      cache: "no-store",
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 export { app, auth, db };
