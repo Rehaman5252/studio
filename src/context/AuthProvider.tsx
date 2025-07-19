@@ -62,33 +62,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
-      console.error("Firebase is not configured. Please check your environment variables.");
+      console.error("Firebase is not configured. Aborting AuthProvider setup.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
       return;
     }
+    
+    let firestoreUnsubscribe: (() => void) | undefined;
 
-    // Force the network online as the first step to avoid "client is offline" errors.
-    // This is the definitive fix for the intermittent Firestore connectivity issue.
-    enableNetwork(db).catch((err) => {
-        console.warn("Could not enable Firestore network:", err.message);
-    });
-
-    // This function sets up all Firestore listeners for a given user.
     const setupListeners = async (firebaseUser: User) => {
-      // Reset loading states for new user session
+      // This function is now self-contained and only runs for a valid user.
       setIsUserDataLoading(true);
       setIsHistoryLoading(true);
 
       try {
-        // Ensure user document exists
         await createUserDocument(firebaseUser);
 
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const historyDocRef = doc(db, 'quizHistory', firebaseUser.uid);
 
-        // Attach listeners
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
           setUserData(docSnap.data() || null);
           setIsUserDataLoading(false);
@@ -106,8 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error("Error listening to quiz history:", error);
           setIsHistoryLoading(false);
         });
-
-        // Return a cleanup function that unsubscribes from both listeners
+        
+        // Return a single cleanup function.
         return () => {
           unsubscribeUser();
           unsubscribeHistory();
@@ -116,39 +109,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("🔥 Firestore listener setup failed:", error);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
-        return () => {}; // Return an empty cleanup function on failure
+        return () => {}; // Return empty cleanup on failure.
       }
     };
+    
+    // DEFINITIVE FIX: Force network online *before* attaching auth listener.
+    enableNetwork(db).then(() => {
+      console.log("✅ Firestore client is online.");
+      
+      const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
+        // Cleanup previous user's listeners if any.
+        if (firestoreUnsubscribe) {
+          firestoreUnsubscribe();
+        }
 
-    let firestoreUnsubscribe: (() => void) | undefined;
+        setUser(firebaseUser);
+        setIsAuthLoading(false);
 
-    const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Cleanup previous user's listeners if any
-      if (firestoreUnsubscribe) {
-        firestoreUnsubscribe();
-      }
-
-      setUser(firebaseUser);
-      setIsAuthLoading(false);
-
-      if (firebaseUser) {
-        // If there's a new user, set up their listeners
-        firestoreUnsubscribe = await setupListeners(firebaseUser);
-      } else {
-        // No user, reset all data and loading states
-        setUserData(null);
-        setQuizHistory(null);
+        if (firebaseUser) {
+          // If there's a new user, set up their listeners.
+          firestoreUnsubscribe = await setupListeners(firebaseUser);
+        } else {
+          // No user, reset all data and loading states.
+          setUserData(null);
+          setQuizHistory(null);
+          setIsUserDataLoading(false);
+          setIsHistoryLoading(false);
+        }
+      });
+      
+      // Return the auth subscription cleanup to the main useEffect.
+      return () => {
+        authSub();
+        if (firestoreUnsubscribe) {
+          firestoreUnsubscribe();
+        }
+      };
+    }).catch((err) => {
+        console.error("❌ Failed to enable Firestore network. App may not function correctly.", err);
+        setIsAuthLoading(false);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
-      }
     });
 
-    return () => {
-      authSub();
-      if (firestoreUnsubscribe) {
-        firestoreUnsubscribe();
-      }
-    };
   }, []);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {

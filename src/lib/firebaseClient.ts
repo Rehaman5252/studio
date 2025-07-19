@@ -19,8 +19,8 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
 // Initialize Firebase App in a client-safe way
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore with persistence disabled. This is the key to preventing
-// the "client is offline" error in development and complex browser environments.
+// Initialize Firestore with memory cache to disable offline persistence.
+// This is the most reliable way to prevent "client is offline" errors in development.
 const db: Firestore = initializeFirestore(app, {
   localCache: memoryLocalCache(),
 });
