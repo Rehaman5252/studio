@@ -165,6 +165,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("❌ updateUserData: No user or DB not available.");
       throw new Error("Could not save profile. Please check your connection and try again.");
     }
+    
+    const online = await isReallyOnline();
+    if (!online) {
+        throw new Error("You are offline. Cannot save profile.");
+    }
   
     try {
       const ref = doc(db, 'users', user.uid);
