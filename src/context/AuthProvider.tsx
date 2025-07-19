@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user || !db || isOffline) {
       console.error("❌ updateUserData: No user, DB not available, or client is offline.");
-      throw new Error("User not authenticated, DB not available, or client is offline.");
+      throw new Error("Could not save profile. Please try again.");
     }
   
     try {
