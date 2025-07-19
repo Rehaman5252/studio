@@ -1,4 +1,3 @@
-
 // lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
@@ -22,8 +21,8 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey &&
   !!firebaseConfig.projectId;
 
 let app: FirebaseApp;
-let db: Firestore | null = null;
 let auth: Auth;
+let db: Firestore | null = null;
 
 if (typeof window !== "undefined") {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);

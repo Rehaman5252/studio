@@ -64,17 +64,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isFirebaseInitialized, setIsFirebaseInitialized] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !isFirebaseConfigured || !db) {
-        // Don't run any of this on the server
+    // This entire effect hook should only run on the client.
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    if (!isFirebaseConfigured || !db) {
+        console.warn("Firebase is not configured or db is not available. App will have limited functionality.");
         setIsAuthLoading(false);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
-        setIsFirebaseInitialized(true);
+        setIsFirebaseInitialized(true); // Allow rendering of children but without auth data.
         return;
     }
-  
+
     let firestoreUnsubscribe: (() => void) | null = null;
-  
+
     const setupUserListeners = (firebaseUser: User): Promise<() => void> => {
         return new Promise(async (resolve) => {
             setIsUserDataLoading(true);
@@ -83,8 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             try {
                 await createUserDocument(firebaseUser);
     
-                const userDocRef = doc(db, 'users', firebaseUser.uid);
-                const historyDocRef = doc(db, 'quizHistory', firebaseUser.uid);
+                const userDocRef = doc(db!, 'users', firebaseUser.uid);
+                const historyDocRef = doc(db!, 'quizHistory', firebaseUser.uid);
     
                 const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                     setUserData(docSnap.data() || null);
@@ -122,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // 1. Force Firestore client online before doing anything else.
         if (navigator.onLine) {
             try {
-                await enableNetwork(db);
+                await enableNetwork(db!);
                 console.log("✅ Firestore client is now online.");
             } catch (error) {
                 console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
