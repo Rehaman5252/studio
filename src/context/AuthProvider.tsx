@@ -209,7 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await setDoc(ref, removeUndefined(payload), { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
-      throw err;
+      throw new Error("Could not save profile. Please try again.");
     }
   }, [user, isOffline]);
 
