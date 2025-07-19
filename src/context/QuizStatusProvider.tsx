@@ -40,7 +40,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
     const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
     
     const slotLength = 10; // 10 minutes
     const slotEndMinute = (Math.floor(minutes / slotLength) + 1) * slotLength;

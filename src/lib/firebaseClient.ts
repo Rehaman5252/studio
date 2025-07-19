@@ -1,4 +1,3 @@
-
 // lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
@@ -41,7 +40,7 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
         }),
       });
     } catch (e) {
-      console.error("Firestore persistence initialization failed, falling back to memory cache.", e);
+      console.warn("Persistence disabled (already enabled elsewhere or not supported).");
       db = getFirestore(app);
     }
     auth = getAuth(app);

@@ -14,24 +14,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured, isReallyOnline } from '@/lib/firebaseClient';
-
-/**
- * Removes properties with `undefined` values from an object.
- * Firestore does not support `undefined` and will throw an error.
- * This is crucial for sanitizing data before sending it to Firestore.
- * @param obj The object to sanitize.
- * @returns A new object with `undefined` properties removed.
- */
-function removeUndefined(obj: any): any {
-  if (typeof obj !== 'object' || obj === null) return obj;
-  // This handles nested objects and arrays if necessary in the future
-  if (Array.isArray(obj)) return obj.map(removeUndefined);
-  return Object.fromEntries(
-    Object.entries(obj)
-      .filter(([_, v]) => v !== undefined)
-      .map(([k, v]) => [k, removeUndefined(v)])
-  );
-}
+import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
   user: User | null;
@@ -180,20 +163,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
     try {
       const ref = doc(db, 'users', user.uid);
-      
-      const payload = { ...newData };
-      // FIX: Normalize the DOB field into a Firestore Timestamp
-      if (payload.dob && typeof payload.dob === 'string') {
-        const parsedDate = new Date(payload.dob);
-        if (!isNaN(parsedDate.getTime())) {
-            payload.dob = Timestamp.fromDate(parsedDate);
-        } else {
-            console.error("Invalid DOB format provided, cannot convert to Timestamp");
-            delete payload.dob; // Or handle as an error
-        }
-      }
-
-      await setDoc(ref, removeUndefined(payload), { merge: true });
+      const sanitizedData = sanitizeUserProfile(newData);
+      await setDoc(ref, sanitizedData, { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       throw new Error("Could not save profile. Please try again.");
@@ -223,8 +194,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-        const sanitizedHistory = { attempts: newHistory.map(a => removeUndefined(a)) };
-        const sanitizedUserUpdate = removeUndefined(userUpdatePayload);
+        const sanitizedHistory = { attempts: newHistory.map(a => sanitizeUserProfile(a)) };
+        const sanitizedUserUpdate = sanitizeUserProfile(userUpdatePayload);
 
         await setDoc(historyDocRef, sanitizedHistory, { merge: true });
         await setDoc(userDocRef, sanitizedUserUpdate, { merge: true });
