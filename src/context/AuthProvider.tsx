@@ -11,6 +11,7 @@ import {
   doc, 
   onSnapshot, 
   setDoc,
+  enableNetwork,
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 
@@ -98,6 +99,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupListeners = async () => {
         try {
+            // Force the network to be enabled to prevent "client is offline" errors.
+            await enableNetwork(db);
+            console.log("Firebase network enabled.");
+
             const userDocRef = doc(db, 'users', user.uid);
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                 setUserData(docSnap.data() || null);
@@ -118,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsHistoryLoading(false);
             });
         } catch (error) {
-            console.error("Failed to set up Firestore listeners:", error);
+            console.error("Failed to set up Firestore listeners or enable network:", error);
             setIsUserDataLoading(false);
             setIsHistoryLoading(false);
         }
