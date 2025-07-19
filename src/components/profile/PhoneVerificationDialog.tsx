@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
-import { getFirebaseAuth } from "@/lib/firebaseClient";
+import { auth } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber } from "firebase/auth";
 
 // To prevent re-initialization on re-renders, the verifier is stored on the window object.
@@ -44,8 +44,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     if (typeof window === 'undefined' || window.recaptchaVerifier) {
       return;
     }
-
-    const auth = getFirebaseAuth();
     
     // Ensure the container exists. This is crucial.
     const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
@@ -111,7 +109,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const handleSendOtp = async () => {
     setError(null);
-    const auth = getFirebaseAuth();
 
     if (!window.recaptchaVerifier) {
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
