@@ -11,13 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
-import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
-import { auth } from "@/lib/firebaseClient";
+import { getFirebaseAuth } from "@/lib/firebaseClient";
+import { signInWithPhoneNumber } from "firebase/auth";
 
 // To prevent re-initialization on re-renders, the verifier is stored on the window object.
 declare global {
   interface Window {
     recaptchaVerifier?: RecaptchaVerifier;
+    recaptchaWidgetId?: number;
   }
 }
 
@@ -37,59 +38,83 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   
-  // This effect sets up the reCAPTCHA verifier when the dialog opens.
-  useEffect(() => {
-    if (!open || typeof window === 'undefined' || window.recaptchaVerifier) {
+  const setupRecaptcha = useCallback(() => {
+    if (typeof window === 'undefined' || window.recaptchaVerifier) {
       return;
     }
 
-    if (recaptchaContainerRef.current) {
-        try {
-            // Initialize reCAPTCHA verifier
-            window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
-                size: 'invisible',
-                'callback': () => {
-                    console.log("✅ reCAPTCHA challenge solved.");
-                },
-                'expired-callback': () => {
-                    setError("reCAPTCHA challenge expired. Please try sending the code again.");
-                    cleanupVerifier();
-                },
-            });
-
-            // Render the reCAPTCHA widget
-            window.recaptchaVerifier.render().then(() => {
-                console.log("✅ reCAPTCHA rendered successfully.");
-            }).catch(err => {
-                console.error("🔥 reCAPTCHA render failed:", err);
-                setError("Failed to render the verification widget. Ad blockers or network issues can cause this.");
-            });
-        } catch(e: any) {
-            console.error("🔥 Error creating RecaptchaVerifier:", e);
-            setError("Failed to create the verification widget. Please try again later.");
-        }
+    const auth = getFirebaseAuth();
+    
+    // Ensure the container exists. This is crucial.
+    const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
+    if (!recaptchaContainer) {
+      console.error("reCAPTCHA container not found in the DOM.");
+      setError("The verification widget could not be loaded. Please try again.");
+      return;
     }
 
-    // Cleanup function to clear the verifier when the dialog closes
-    return () => {
-        cleanupVerifier();
-    };
-  }, [open]);
+    try {
+        window.recaptchaVerifier = new (require("firebase/auth").RecaptchaVerifier)(auth, recaptchaContainer, {
+            size: 'invisible',
+            'callback': () => {
+                console.log("✅ reCAPTCHA challenge solved.");
+            },
+            'expired-callback': () => {
+                console.warn("reCAPTCHA expired. Cleaning up.");
+                setError("reCAPTCHA challenge expired. Please try sending the code again.");
+                cleanupVerifier();
+            },
+        });
+
+        window.recaptchaVerifier.render().then((widgetId: number) => {
+            console.log("✅ reCAPTCHA rendered successfully with widgetId:", widgetId);
+            window.recaptchaWidgetId = widgetId;
+        }).catch((err: any) => {
+            console.error("🔥 reCAPTCHA render failed:", err);
+            setError("Failed to render the verification widget. Ad blockers or network issues can cause this.");
+        });
+    } catch(e: any) {
+        console.error("🔥 Error creating RecaptchaVerifier:", e);
+        setError("Failed to create the verification widget. Please refresh and try again.");
+    }
+  }, []);
 
   const cleanupVerifier = () => {
     if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
         window.recaptchaVerifier = undefined;
+        // Also remove the widget from the DOM to be safe
+        const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
+        if (recaptchaContainer) {
+            recaptchaContainer.innerHTML = '';
+        }
+        console.log("🧹 reCAPTCHA verifier cleaned up.");
     }
   };
 
+  useEffect(() => {
+    if (open) {
+      setupRecaptcha();
+    } else {
+      cleanupVerifier();
+    }
+
+    return () => {
+      if (!open) {
+        cleanupVerifier();
+      }
+    };
+  }, [open, setupRecaptcha]);
+  
+
   const handleSendOtp = async () => {
     setError(null);
+    const auth = getFirebaseAuth();
+
     if (!window.recaptchaVerifier) {
-      const errorMessage = 'The verification system is not ready. Please close and re-open this dialog.';
+      const errorMessage = 'The verification system is not ready. Please try again in a moment.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
       return;
@@ -177,7 +202,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             </Alert>
         )}
 
-        <div ref={recaptchaContainerRef} id="recaptcha-container"></div>
+        {/* This div is the container for the reCAPTCHA widget. */}
+        <div id="recaptcha-container-in-dialog"></div>
 
         {step === 'verify' && (
           <div className="py-4">
