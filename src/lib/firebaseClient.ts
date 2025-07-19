@@ -61,7 +61,7 @@ export async function isReallyOnline(): Promise<boolean> {
     return false;
   }
   try {
-    // Attempt a quick, low-cost read from a known, non-existent document.
+    // Attempt a quick, low-cost read from a non-existent document.
     // This confirms not just network, but also Firebase service reachability.
     const healthCheckDoc = doc(db, '_internal', 'health_check');
     await getDoc(healthCheckDoc);
