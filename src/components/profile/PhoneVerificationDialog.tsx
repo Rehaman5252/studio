@@ -51,18 +51,21 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   }, [cleanupVerifier]);
 
   const setupRecaptcha = useCallback(async () => {
+    // Prevent setup if already exists, not open, or on server
     if (!auth || recaptchaVerifierRef.current || typeof window === 'undefined' || !open) return;
+    
+    // Create the container dynamically if it doesn't exist
+    let recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
+    if (!recaptchaContainer) {
+        recaptchaContainer = document.createElement('div');
+        recaptchaContainer.id = 'recaptcha-container-in-dialog';
+        document.body.appendChild(recaptchaContainer);
+    }
     
     const isOnline = await isReallyOnline();
     if (!isOnline) {
         setError("You are offline. Please check your connection to verify your phone number.");
         return;
-    }
-    
-    const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
-    if (!recaptchaContainer) {
-      setError("The verification widget could not be loaded. Please try again.");
-      return;
     }
 
     try {
@@ -200,9 +203,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
         )}
-
-        <div id="recaptcha-container-in-dialog"></div>
-
+        
         {step === 'verify' && (
           <div className="py-4">
             <Input

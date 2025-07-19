@@ -212,15 +212,13 @@ export default function RewardsContent() {
         setIsLoading(false);
         return;
     }
-    if (isOffline) {
-        setError("You are currently offline. Please check your connection to see your rewards.");
-        setIsLoading(false);
-        return;
-    }
     const fetchHistory = async () => {
         setIsLoading(true);
         setError(null);
         try {
+            if (isOffline) {
+              throw new Error("You are currently offline. Please check your connection to see your rewards.");
+            }
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             const docSnap = await getDoc(historyDocRef);
             if (docSnap.exists()) {

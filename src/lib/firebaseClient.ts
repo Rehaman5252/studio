@@ -12,6 +12,7 @@ import {
   getDoc,
   enableNetwork,
   disableNetwork,
+  enableIndexedDbPersistence,
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -34,22 +35,27 @@ let db: Firestore | null = null;
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
-    // Initialize Firestore with long-polling and persistence for better resilience
-    try {
-      db = initializeFirestore(app, {
-        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-        experimentalForceLongPolling: true,
-        useFetchStreams: false,
-      });
-    } catch (e) {
-      console.warn("Could not initialize Firestore with persistence, falling back.", e);
-      db = getFirestore(app);
-    }
-    auth = getAuth(app);
   } else {
     app = getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
+  }
+
+  auth = getAuth(app);
+  // Initialize Firestore with long-polling and persistence for better resilience
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    useFetchStreams: false,
+  });
+
+  try {
+    enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+            console.warn('Firestore persistence failed: Multiple tabs open. Persistence will only be enabled in one tab at a time.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('Firestore persistence failed: The current browser does not support all of the features required to enable persistence.');
+        }
+    });
+  } catch (e) {
+      console.error("Firestore persistence setup failed.", e);
   }
 }
 

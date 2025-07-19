@@ -41,7 +41,7 @@ const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolea
         {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Certificates</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
-    </Alert>
+    </Aler>
 );
 
 export default function CertificatesContent() {

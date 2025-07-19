@@ -94,8 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsOffline(!online);
         if (!online) {
             console.warn("Client offline, skipping Firestore listeners setup.");
-            // We still need to create the user document if they just signed up,
-            // but we won't listen for real-time updates.
+            // Attempt to get from cache if offline
             try {
               const userRef = doc(db!, 'users', user.uid);
               const docSnap = await getDoc(userRef);
@@ -137,8 +136,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
 
         } catch (error) {
-            console.error("🔥 Firestore listener setup failed:", error);
-            setIsUserDataLoading(false);
+             console.error("🔥 Firestore listener setup failed:", error);
+             setIsUserDataLoading(false);
+             if (error instanceof Error && error.message.includes("offline")) {
+                setIsOffline(true);
+             }
         }
     };
     
@@ -159,16 +161,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("Could not save profile. Please check your connection and try again.");
     }
     
+    // Optimistic update
+    setUserData(prev => ({ ...prev, ...newData }));
+    
     const online = await isReallyOnline();
     if (!online) {
         setIsOffline(true);
-        throw new Error("You are offline. Cannot save profile.");
+        throw new Error("You are offline. Your profile has been saved locally and will sync when you reconnect.");
     }
     
     const sanitizedData = sanitizeUserProfile(newData);
-    
-    // Optimistic update
-    setUserData(prev => ({ ...prev, ...sanitizedData, ...newData }));
   
     try {
       const ref = doc(db, 'users', user.uid);
@@ -176,23 +178,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
       // Optional: Rollback optimistic update on error
-      // This is complex and depends on UX requirements.
-      // For now, we just log the error.
+      // For now, we just log the error and rely on persistence.
       throw new Error("Could not save profile. Please try again.");
     }
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
-    
-    const online = await isReallyOnline();
-    if (!online) {
-      setIsOffline(true);
-      throw new Error("You are offline. Cannot save quiz results.");
-    }
-    
-    const historyDocRef = doc(db, 'quizHistory', user.uid);
-    const userDocRef = doc(db, 'users', user.uid);
     
     // Create a temporary copy for calculation to avoid race condition with state
     const currentUserData = userData ? { ...userData } : {};
@@ -212,8 +204,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUserData(prev => ({ ...prev, ...userUpdatePayload }));
     
     try {
+        const online = await isReallyOnline();
+        if (!online) {
+            setIsOffline(true);
+            // Don't throw error, allow local persistence to handle it
+        }
+
+        const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, sanitizeUserProfile(userUpdatePayload), { merge: true });
         
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
         const historySnap = await getDoc(historyDocRef);
         const currentHistory = historySnap.exists() ? historySnap.data().attempts : [];
         const newHistory = [sanitizeUserProfile(attempt), ...currentHistory];

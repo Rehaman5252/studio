@@ -131,7 +131,7 @@ const LiveLeaderboard = memo(() => {
                 setPlayers(sortedPlayers);
             } catch (e: any) {
                 console.error("Failed to fetch leaderboard data:", e);
-                if (e.message?.includes('offline')) {
+                 if (e.message?.includes('offline')) {
                     setError("You are currently offline. Please check your connection to see live data.");
                 } else {
                     setError("Could not load leaderboard data. Please try again later.");
