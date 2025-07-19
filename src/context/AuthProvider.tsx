@@ -56,23 +56,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[] | null>(null);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   
-  const [loading, setLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-
-  // This state ensures children are not rendered until Firebase is fully ready.
   const [isFirebaseInitialized, setIsFirebaseInitialized] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !isFirebaseConfigured || !auth || !db) {
       console.warn("Firebase not configured or not in a client environment.");
-      setLoading(false);
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
       setIsFirebaseInitialized(true);
       return;
     }
-
+    
     // Unregister any stale service workers that might be forcing an offline state.
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -86,7 +80,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeFirestore: (() => void) | null = null;
 
     const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // First, clean up any previous listeners
       if (unsubscribeFirestore) {
         unsubscribeFirestore();
         unsubscribeFirestore = null;
@@ -95,23 +88,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        setLoading(true);
-        setIsUserDataLoading(true);
-        setIsHistoryLoading(true);
-
         const online = await isReallyOnline();
         if (!online) {
           console.error("Firebase AuthProvider: Client is offline. Halting Firestore setup.");
           setUserData(null);
           setQuizHistory(null);
-          setLoading(false);
           setIsUserDataLoading(false);
           setIsHistoryLoading(false);
-          return; // Stop further execution if offline
+          return;
         }
 
         try {
-          // Explicitly enable network
           await enableNetwork(db);
           console.log("✅ Firestore network enabled.");
 
@@ -148,14 +135,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setQuizHistory(null);
           setIsUserDataLoading(false);
           setIsHistoryLoading(false);
-        } finally {
-            // Loading state will be set to false inside the snapshot listeners
         }
       } else {
-        // No user, reset everything
         setUserData(null);
         setQuizHistory(null);
-        setLoading(false);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
       }
@@ -171,13 +154,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  useEffect(() => {
-      // Consolidate loading state
-      const newLoadingState = !isFirebaseInitialized || (!!user && (isUserDataLoading || isHistoryLoading));
-      if (newLoadingState !== loading) {
-          setLoading(newLoadingState);
-      }
-  }, [isFirebaseInitialized, user, isUserDataLoading, isHistoryLoading, loading]);
+  const loading = useMemo(() => {
+    return !isFirebaseInitialized || (!!user && (isUserDataLoading || isHistoryLoading));
+  }, [isFirebaseInitialized, user, isUserDataLoading, isHistoryLoading]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user || !db) {
