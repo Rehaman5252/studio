@@ -39,14 +39,15 @@ if (typeof window !== "undefined" && isFirebaseConfigured) {
  * @returns {Promise<boolean>}
  */
 export async function isReallyOnline(): Promise<boolean> {
-  if (typeof window === 'undefined' || !navigator.onLine) {
+  if (typeof window === "undefined" || !navigator.onLine) {
     return false;
   }
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
 
-    const response = await fetch("https://firestore.googleapis.com", {
+    // Use a lightweight, reliable endpoint for checking connectivity.
+    const response = await fetch("https://www.google.com/generate_204", {
       method: "HEAD",
       cache: "no-store",
       signal: controller.signal,
@@ -55,7 +56,8 @@ export async function isReallyOnline(): Promise<boolean> {
     clearTimeout(timeoutId);
     return response.ok;
   } catch {
-    return false;
+    // If the fetch fails, fallback to the browser's less reliable check.
+    return navigator.onLine;
   }
 }
 

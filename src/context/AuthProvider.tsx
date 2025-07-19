@@ -63,38 +63,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false); // Assume online initially
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    let hasMounted = false;
 
-    const markOnlineStatus = async () => {
-        try {
-            // Wait until the window is fully loaded to give the browser and extensions time.
-            await new Promise<void>((resolve) => {
-                if (document.readyState === 'complete') {
-                    resolve();
-                } else {
-                    window.addEventListener('load', () => resolve(), { once: true });
-                }
-            });
-
-            const online = await isReallyOnline();
-            setIsOffline(!online);
-        } catch (err) {
-            console.warn("⚠️ Online check failed. Assuming offline for safety.", err);
-            setIsOffline(true);
-        }
+    const checkOnlineStatus = async () => {
+      if (!hasMounted) return;
+      const online = await isReallyOnline();
+      setIsOffline(!online);
     };
 
-    markOnlineStatus();
+    if (typeof window !== "undefined") {
+      hasMounted = true;
+      window.addEventListener("online", checkOnlineStatus);
+      window.addEventListener("offline", checkOnlineStatus);
 
-    const handleStatusChange = () => setIsOffline(!navigator.onLine);
+      // Delay initial check until after browser is fully hydrated to avoid false negatives
+      setTimeout(() => checkOnlineStatus(), 2000);
 
-    window.addEventListener('online', handleStatusChange);
-    window.addEventListener('offline', handleStatusChange);
-
-    return () => {
-        window.removeEventListener('online', handleStatusChange);
-        window.removeEventListener('offline', handleStatusChange);
-    };
+      return () => {
+        window.removeEventListener("online", checkOnlineStatus);
+        window.removeEventListener("offline", checkOnlineStatus);
+      };
+    }
   }, []);
 
   useEffect(() => {

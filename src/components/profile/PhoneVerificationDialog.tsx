@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ConfirmationResult } from "firebase/auth";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
@@ -14,13 +14,8 @@ import { Terminal } from 'lucide-react';
 import { auth } from "@/lib/firebaseClient";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
-// To prevent re-initialization on re-renders, the verifier is stored on the window object.
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    recaptchaWidgetId?: number;
-  }
-}
+// To prevent re-initialization on re-renders, the verifier is stored outside the component.
+let recaptchaVerifier: RecaptchaVerifier | null = null;
 
 interface PhoneVerificationDialogProps {
   children: React.ReactNode;
@@ -37,25 +32,23 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const confirmationResultRef = useState<ConfirmationResult | null>(null);
+  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   
   const cleanupVerifier = useCallback(() => {
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = '';
-      }
-      console.log("🧹 reCAPTCHA verifier cleaned up.");
+    if (recaptchaVerifier) {
+        recaptchaVerifier.clear();
+        recaptchaVerifier = null;
+        const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
+        if (recaptchaContainer) {
+            recaptchaContainer.innerHTML = '';
+        }
+        console.log("🧹 reCAPTCHA verifier cleaned up.");
     }
   }, []);
 
   const setupRecaptcha = useCallback(() => {
-    if (!auth) return;
-    cleanupVerifier(); // Clean up any old verifier first.
+    if (!auth || recaptchaVerifier) return;
     
-    // Ensure the container exists. This is crucial.
     const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
     if (!recaptchaContainer) {
       console.error("reCAPTCHA container not found in the DOM.");
@@ -64,7 +57,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
 
     try {
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
+        recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainer, {
             size: 'invisible',
             'callback': () => {
                 console.log("✅ reCAPTCHA challenge solved.");
@@ -76,11 +69,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             },
         });
         
-        window.recaptchaVerifier = verifier;
-
-        verifier.render().then((widgetId: number) => {
-            console.log("✅ reCAPTCHA rendered successfully with widgetId:", widgetId);
-            window.recaptchaWidgetId = widgetId;
+        recaptchaVerifier.render().then(() => {
+            console.log("✅ reCAPTCHA rendered successfully.");
         }).catch((err: any) => {
             console.error("🔥 reCAPTCHA render failed:", err);
             setError("Failed to render the verification widget. Ad blockers or network issues can cause this.");
@@ -92,9 +82,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   }, [cleanupVerifier]);
 
   useEffect(() => {
-    // Only attempt to set up reCAPTCHA if the dialog is open and on the initial step.
     if (open && step === 'initial') {
-      // Use a small timeout to ensure the dialog's DOM is fully rendered.
       const timer = setTimeout(() => {
         setupRecaptcha();
       }, 100);
@@ -105,8 +93,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const handleSendOtp = async () => {
     setError(null);
 
-    const verifier = window.recaptchaVerifier;
-    if (!verifier || !auth) {
+    if (!recaptchaVerifier || !auth) {
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
@@ -118,8 +105,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     
     try {
       const fullPhoneNumber = `+91${phone}`;
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, verifier);
-      confirmationResultRef[1](confirmationResult);
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, recaptchaVerifier);
+      confirmationResultRef.current = confirmationResult;
       
       toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
       setStep('verify');
@@ -144,7 +131,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const handleVerifyOtp = async () => {
     setError(null);
-    const confirmation = confirmationResultRef[0];
+    const confirmation = confirmationResultRef.current;
     if (!confirmation) return;
     setIsLoading(true);
     try {
@@ -198,7 +185,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             </Alert>
         )}
 
-        {/* This div is the container for the reCAPTCHA widget. It must be in the DOM. */}
         <div id="recaptcha-container-in-dialog"></div>
 
         {step === 'verify' && (
