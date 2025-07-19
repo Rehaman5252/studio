@@ -21,11 +21,13 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { isOffline } = useAuth();
 
     const getAnalysisCacheKey = useCallback(() => `analysis_${attempt.format}_${attempt.slotId}`, [attempt.slotId, attempt.format]);
 
     const handleFetchAnalysis = useCallback(async () => {
+        // This guard ensures we don't try to run this on the server.
+        if (typeof window === 'undefined') return;
+
         const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
         if (cachedAnalysis) {
             setAnalysis(cachedAnalysis);
@@ -36,12 +38,6 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
 
         setIsLoading(true);
         setError(null);
-
-        if (isOffline) {
-            setError("You are offline. Please reconnect to generate AI analysis.");
-            setIsLoading(false);
-            return;
-        }
 
         try {
             const result = await generateQuizAnalysis({
@@ -66,7 +62,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading, attempt, getAnalysisCacheKey, isOffline]);
+    }, [isLoading, attempt, getAnalysisCacheKey]);
 
     const handleOpenChange = useCallback((open: boolean) => {
         if (open && !analysis) {
@@ -195,10 +191,10 @@ const HistorySkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+const ErrorState = ({ message }: { message: string }) => (
     <div className="pt-4">
         <Alert variant="destructive">
-            {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+            {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
             <AlertTitle>Error Loading History</AlertTitle>
             <AlertDescription>{message}</AlertDescription>
         </Alert>
@@ -206,14 +202,15 @@ const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolea
 );
 
 export default function QuizHistoryContent() {
-  const { user, isOffline } = useAuth();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    // This guard ensures we don't try to run auth logic on the server.
+    if (typeof window === 'undefined' || !db || !user) {
         setIsLoading(false);
         return;
     }
@@ -222,9 +219,6 @@ export default function QuizHistoryContent() {
         setIsLoading(true);
         setError(null);
         try {
-            if (isOffline) {
-              throw new Error("You are currently offline. Please check your connection to see your history.");
-            }
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             const docSnap = await getDoc(historyDocRef);
             if (docSnap.exists()) {
@@ -234,7 +228,7 @@ export default function QuizHistoryContent() {
             }
         } catch (e: any) {
             console.error("Failed to fetch quiz history:", e);
-            if (e.message?.includes('offline')) {
+            if (e.code === 'unavailable' || e.message?.includes('offline')) {
                 setError("You are currently offline. Please check your connection to see your history.");
             } else {
                 setError("Could not load your quiz history. Please try again later.");
@@ -244,7 +238,7 @@ export default function QuizHistoryContent() {
         }
     }
     fetchHistory();
-  }, [user, isOffline]);
+  }, [user]);
 
   const filteredHistory = useMemo(() => {
     if (!quizHistory) return [];
@@ -263,7 +257,7 @@ export default function QuizHistoryContent() {
         return <HistorySkeleton />;
     }
     if (error) {
-        return <ErrorState message={error} isOffline={isOffline} />;
+        return <ErrorState message={error} />;
     }
     if (filteredHistory.length > 0) {
         return (

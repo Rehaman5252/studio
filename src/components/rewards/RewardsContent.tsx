@@ -21,9 +21,9 @@ const ScratchCardSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Rewards</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -34,6 +34,8 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
   const storageKey = useMemo(() => `scratch-card-${slotId}-${brand}-${timestamp}`, [slotId, brand, timestamp]);
 
   useEffect(() => {
+    // This guard ensures we don't try to access localStorage on the server.
+    if (typeof window === 'undefined') return;
     const savedState = localStorage.getItem(storageKey);
     if (savedState === 'true') {
       setIsScratched(true);
@@ -126,13 +128,12 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, isLoading, error, isOffline }: { 
+const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, isLoading, error }: { 
     isLoggedIn: boolean;
     rewardableAttempts: QuizAttempt[];
     hasAttempts: boolean;
     isLoading: boolean;
     error: string | null;
-    isOffline: boolean;
 }) => (
   <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
@@ -149,7 +150,7 @@ const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, i
             </CarouselContent>
         </Carousel>
     ) : error ? (
-        <ErrorState message={error} isOffline={isOffline} />
+        <ErrorState message={error} />
     ) : isLoggedIn ? (
         rewardableAttempts.length > 0 ? (
             <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
@@ -202,13 +203,14 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user, isOffline } = useAuth();
+  const { user } = useAuth();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    // This guard ensures we don't try to run auth logic on the server.
+    if (typeof window === 'undefined' || !db || !user) {
         setIsLoading(false);
         return;
     }
@@ -216,9 +218,6 @@ export default function RewardsContent() {
         setIsLoading(true);
         setError(null);
         try {
-            if (isOffline) {
-              throw new Error("You are currently offline. Please check your connection to see your rewards.");
-            }
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             const docSnap = await getDoc(historyDocRef);
             if (docSnap.exists()) {
@@ -226,7 +225,7 @@ export default function RewardsContent() {
             }
         } catch (e: any) {
             console.error("Failed to fetch rewards data:", e);
-            if (e.message?.includes('offline')) {
+            if (e.code === 'unavailable' || e.message?.includes('offline')) {
                 setError("You are currently offline. Please check your connection to see your rewards.");
             } else {
                 setError("Could not load your rewards. Please try again later.");
@@ -236,7 +235,7 @@ export default function RewardsContent() {
         }
     }
     fetchHistory();
-  }, [user, isOffline]);
+  }, [user]);
 
   const hasAttempts = quizHistory.length > 0;
 
@@ -268,7 +267,6 @@ export default function RewardsContent() {
         hasAttempts={hasAttempts}
         isLoading={isLoading}
         error={error}
-        isOffline={isOffline}
       />
       <GenericOffersSection />
     </>

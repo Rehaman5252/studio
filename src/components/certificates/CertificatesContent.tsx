@@ -36,30 +36,26 @@ const CertificateItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Certificates</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
-    </Aler>
+    </Alert>
 );
 
 export default function CertificatesContent() {
-  const { user, userData, isOffline } = useAuth();
+  const { user, userData } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    // This guard ensures we don't try to run auth logic on the server.
+    if (typeof window === 'undefined' || !db || !user) {
       setIsLoading(false);
       return;
-    }
-    if (isOffline) {
-        setError("You are currently offline. Please check your connection to see your certificates.");
-        setIsLoading(false);
-        return;
     }
 
     const fetchHistory = async () => {
@@ -75,7 +71,7 @@ export default function CertificatesContent() {
             }
         } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
-            if (e.message?.includes('offline')) {
+            if (e.code === 'unavailable' || e.message?.includes('offline')) {
                 setError("You are currently offline. Please check your connection to see your certificates.");
             } else {
                 setError("Could not load your certificates. Please try again later.");
@@ -85,7 +81,7 @@ export default function CertificatesContent() {
         }
     }
     fetchHistory();
-  }, [user, isOffline]);
+  }, [user]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -225,7 +221,7 @@ export default function CertificatesContent() {
   }
 
   if (error) {
-    return <ErrorState message={error} isOffline={isOffline} />;
+    return <ErrorState message={error} />;
   }
   
   return (

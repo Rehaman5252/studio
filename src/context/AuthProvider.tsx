@@ -14,7 +14,7 @@ import {
   Timestamp,
   getDoc,
 } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured, isReallyOnline } from '@/lib/firebaseClient';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
@@ -48,36 +48,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-      console.warn("Firebase not configured. Auth will not work.");
+    // This guard ensures we don't try to run auth logic on the server.
+    if (typeof window === 'undefined' || !isFirebaseConfigured || !auth) {
+      console.warn("Firebase not configured or not in a client environment. Auth will not work.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       return;
     }
-
-    const checkOnlineStatus = async () => {
-      const online = await isReallyOnline();
-      setIsOffline(!online);
-    };
-    
-    // Check status on mount
-    checkOnlineStatus();
-    // And check periodically
-    const interval = setInterval(checkOnlineStatus, 30000); // Check every 30 seconds
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthLoading(false);
     });
 
-    return () => {
-      unsubscribe();
-      clearInterval(interval);
-    };
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (isAuthLoading) return; // Wait for auth check to complete
+    // Wait for auth check to complete and ensure we are on the client
+    if (isAuthLoading || typeof window === 'undefined' || !db) return;
 
     if (!user) {
       setUserData(null);
@@ -85,70 +74,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    let unsubscribeUser: (() => void) | undefined;
+    setIsUserDataLoading(true);
+
+    const userDocRef = doc(db, 'users', user.uid);
     
-    const setupFirestoreListeners = async () => {
-        setIsUserDataLoading(true);
-
-        const online = await isReallyOnline();
-        setIsOffline(!online);
-        if (!online) {
-            console.warn("Client offline, skipping Firestore listeners setup.");
-            // Attempt to get from cache if offline
-            try {
-              const userRef = doc(db!, 'users', user.uid);
-              const docSnap = await getDoc(userRef);
-              if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data?.dob && data.dob instanceof Timestamp) {
-                  data.dob = data.dob.toDate().toISOString().split('T')[0];
-                }
-                setUserData(data || null);
-              } else {
-                 await createUserDocument(user);
-              }
-            } catch (e) {
-                console.error("Offline user data check/creation failed:", e);
-            }
-
+    const unsubscribeUser = onSnapshot(userDocRef, 
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          // Create the user document if it doesn't exist
+          createUserDocument(user).then(() => {
+             // The listener will re-trigger with the new data, so we just wait.
+          }).catch(err => {
+            console.error("Failed to create user document on-the-fly:", err);
             setIsUserDataLoading(false);
-            return;
+          });
+        } else {
+          const data = docSnap.data();
+          if (data?.dob && data.dob instanceof Timestamp) {
+            data.dob = data.dob.toDate().toISOString().split('T')[0];
+          }
+          setUserData(data || null);
+          setIsUserDataLoading(false);
         }
+      }, 
+      (error) => {
+          console.error("Error listening to user document:", error);
+          if (error.code === 'unavailable') {
+              setIsOffline(true);
+          }
+          setIsUserDataLoading(false);
+      }
+    );
 
-        try {
-            await createUserDocument(user);
-            
-            const userDocRef = doc(db!, 'users', user.uid);
-            
-            unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-                const data = docSnap.data();
-                if (data?.dob && data.dob instanceof Timestamp) {
-                  data.dob = data.dob.toDate().toISOString().split('T')[0];
-                }
-                setUserData(data || null);
-                setIsUserDataLoading(false);
-            }, (error) => {
-                console.error("Error listening to user document:", error);
-                if (error.code === 'unavailable') {
-                    setIsOffline(true);
-                }
-                setIsUserDataLoading(false);
-            });
-
-        } catch (error) {
-             console.error("🔥 Firestore listener setup failed:", error);
-             setIsUserDataLoading(false);
-             if (error instanceof Error && error.message.includes("offline")) {
-                setIsOffline(true);
-             }
-        }
-    };
-    
-    setupFirestoreListeners();
-
-    return () => {
-        if (unsubscribeUser) unsubscribeUser();
-    };
+    return () => unsubscribeUser();
   }, [user, isAuthLoading]);
 
   const loading = useMemo(() => {
@@ -163,12 +121,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Optimistic update
     setUserData(prev => ({ ...prev, ...newData }));
-    
-    const online = await isReallyOnline();
-    if (!online) {
-        setIsOffline(true);
-        throw new Error("You are offline. Your profile has been saved locally and will sync when you reconnect.");
-    }
     
     const sanitizedData = sanitizeUserProfile(newData);
   
@@ -186,7 +138,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
     
-    // Create a temporary copy for calculation to avoid race condition with state
     const currentUserData = userData ? { ...userData } : {};
     
     const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
@@ -200,16 +151,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         totalRewards: newTotalRewards
     };
     
-    // Optimistically update the user data in the UI
     setUserData(prev => ({ ...prev, ...userUpdatePayload }));
     
     try {
-        const online = await isReallyOnline();
-        if (!online) {
-            setIsOffline(true);
-            // Don't throw error, allow local persistence to handle it
-        }
-
         const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, sanitizeUserProfile(userUpdatePayload), { merge: true });
         
@@ -221,8 +165,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
         console.error("Error adding quiz attempt:", error);
-        // If the update fails, we might want to roll back the optimistic update
-        // For simplicity, we are not doing that here, but it's a consideration for production apps.
         throw error;
     }
   }, [user, userData]);

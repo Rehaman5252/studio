@@ -57,9 +57,9 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolean }) => (
+const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {isOffline ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Leaderboard</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -67,18 +67,13 @@ const ErrorState = ({ message, isOffline }: { message: string, isOffline: boolea
 
 
 const LiveLeaderboard = memo(() => {
-    const { user, userData, isOffline } = useAuth();
+    const { user, userData } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!user) {
-            setIsLoading(false);
-            return;
-        }
-        if (isOffline) {
-            setError("You are currently offline. Please check your connection to see live data.");
+        if (typeof window === 'undefined' || !db || !user) {
             setIsLoading(false);
             return;
         }
@@ -131,7 +126,7 @@ const LiveLeaderboard = memo(() => {
                 setPlayers(sortedPlayers);
             } catch (e: any) {
                 console.error("Failed to fetch leaderboard data:", e);
-                 if (e.message?.includes('offline')) {
+                 if (e.code === 'unavailable' || e.message?.includes('offline')) {
                     setError("You are currently offline. Please check your connection to see live data.");
                 } else {
                     setError("Could not load leaderboard data. Please try again later.");
@@ -143,14 +138,14 @@ const LiveLeaderboard = memo(() => {
         
         fetchHistory();
         
-    }, [user, userData, isOffline]);
+    }, [user, userData]);
 
     const renderContent = () => {
         if (isLoading) {
             return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         }
         if (error) {
-            return <ErrorState message={error} isOffline={isOffline} />;
+            return <ErrorState message={error} />;
         }
         if (players.length > 0) {
             return players.map((player) => (
@@ -214,7 +209,7 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 
 const AllTimeLeaderboard = memo(() => {
-    const { user, userData, isOffline } = useAuth();
+    const { user, userData } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
@@ -237,16 +232,11 @@ const AllTimeLeaderboard = memo(() => {
     useEffect(() => {
         // Simulate loading state for consistency
         setIsLoading(true);
-        if (isOffline) {
-            setError("You are currently offline. Leaderboard data may be stale.");
-        } else {
-            setError(null);
-        }
         // In a real app, the fetch logic would be here.
         // For this mock, we just wait a bit.
         const timer = setTimeout(() => setIsLoading(false), 500);
         return () => clearTimeout(timer);
-    }, [isOffline]);
+    }, []);
 
     const renderContent = () => {
         if (isLoading) {
@@ -294,7 +284,6 @@ const AllTimeLeaderboard = memo(() => {
                     transition={{ staggerChildren: 0.05 }}
                     className="space-y-2"
                 >
-                    {error && <ErrorState message={error} isOffline={isOffline} />}
                     {renderContent()}
                 </motion.div>
             </CardContent>
