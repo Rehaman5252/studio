@@ -4,7 +4,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions 
 import { getAuth, type Auth } from "firebase/auth";
 import {
   initializeFirestore,
-  memoryLocalCache,
+  enableIndexedDbPersistence,
   type Firestore,
 } from "firebase/firestore";
 
@@ -28,10 +28,21 @@ let db: Firestore | null = null;
 if (typeof window !== "undefined" && isFirebaseConfigured) {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
-    // Initialize Firestore with memory cache to prevent "stuck offline" bug
-    db = initializeFirestore(app, {
-      localCache: memoryLocalCache(),
-    });
+    db = initializeFirestore(app, {});
+    
+    // Enable offline persistence
+    enableIndexedDbPersistence(db)
+      .catch((err) => {
+        if (err.code == 'failed-precondition') {
+          // Multiple tabs open, persistence can only be enabled
+          // in one tab at a time.
+          console.warn('Firestore persistence failed: multiple tabs open.');
+        } else if (err.code == 'unimplemented') {
+          // The current browser does not support all of the
+          // features required to enable persistence.
+          console.warn('Firestore persistence not available in this browser.');
+        }
+      });
 }
 
 /**
@@ -43,20 +54,15 @@ export async function isReallyOnline(): Promise<boolean> {
     return false;
   }
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
-
     // Use a lightweight, reliable endpoint for checking connectivity.
-    const response = await fetch("https://clients3.google.com/generate_204", {
+    // Using a Google endpoint as it's highly available.
+    const response = await fetch("https://www.google.com/generate_204", {
       method: "HEAD",
       cache: "no-store",
-      signal: controller.signal,
     });
-    
-    clearTimeout(timeoutId);
     return response.ok;
   } catch {
-    // If the fetch fails, fallback to the browser's less reliable check.
+    // If the fetch fails, trust the browser's less reliable check.
     return navigator.onLine;
   }
 }
