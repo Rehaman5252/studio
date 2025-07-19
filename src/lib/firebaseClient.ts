@@ -26,24 +26,23 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 if (typeof window !== "undefined" && isFirebaseConfigured) {
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    
-    // Enable persistent offline cache and multi-tab support
-    // This is the modern way to handle offline persistence and prevents most
-    // "client is offline" errors.
-    try {
-        db = initializeFirestore(app, {
-          localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager(),
-          }),
-        });
-    } catch (e) {
-        console.error("Firebase Firestore initialization failed, falling back to memory cache.", e);
-        // Fallback to in-memory cache if persistence fails (e.g., in private browsing mode)
-        db = initializeFirestore(app, {});
-    }
-
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  
+  // Enable persistent offline cache and multi-tab support
+  // This is the modern way to handle offline persistence and prevents most
+  // "client is offline" errors.
+  try {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch (e) {
+    console.error("Firebase Firestore initialization with persistence failed, falling back to memory cache.", e);
+    // Fallback to in-memory cache if persistence fails (e.g., in private browsing mode)
+    db = initializeFirestore(app, {});
+  }
 }
 
 /**

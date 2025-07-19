@@ -2,7 +2,7 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -11,8 +11,9 @@ import {
   doc, 
   onSnapshot, 
   setDoc,
+  enableNetwork,
 } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { auth, db, isFirebaseConfigured, isReallyOnline } from '@/lib/firebaseClient';
 
 /**
  * Removes properties with `undefined` values from an object.
@@ -60,37 +61,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(true); // Start assuming offline
+  const [isOnlineCheckComplete, setIsOnlineCheckComplete] = useState(false);
+  
+  const hasNetworkEnabled = useRef(false);
 
   useEffect(() => {
-    // This effect handles only auth state changes, which is safe on server and client.
     if (!isFirebaseConfigured || !auth) {
       console.warn("Firebase not configured. Halting AuthProvider setup.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
+      setIsOffline(true);
+      setIsOnlineCheckComplete(true);
       return;
     }
-    
     const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthLoading(false);
     });
-
     return () => authUnsubscribe();
   }, []);
 
   useEffect(() => {
-    // This effect handles all Firestore interactions and is strictly client-side.
-    if (typeof window === 'undefined') return;
+    let isMounted = true;
+    const checkOnlineStatus = async () => {
+      const online = await isReallyOnline();
+      if (isMounted) {
+        setIsOffline(!online);
+        setIsOnlineCheckComplete(true);
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', checkOnlineStatus);
+      window.addEventListener('offline', checkOnlineStatus);
+      // Delay initial check to allow for hydration and network stabilization
+      setTimeout(checkOnlineStatus, 1500);
+    }
+    return () => {
+      isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', checkOnlineStatus);
+        window.removeEventListener('offline', checkOnlineStatus);
+      }
+    };
+  }, []);
+  
+  // Effect to retry enabling network when coming back online
+  useEffect(() => {
+    if (!isOffline && db && !hasNetworkEnabled.current) {
+        enableNetwork(db)
+        .then(() => {
+            hasNetworkEnabled.current = true;
+            console.log("✅ Firestore network re-enabled after reconnect.");
+        })
+        .catch(err => {
+            console.error("🔥 Failed to re-enable Firestore network:", err);
+        });
+    }
+  }, [isOffline]);
 
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    // Set initial status based on browser's report
-    setIsOffline(!navigator.onLine);
+
+  useEffect(() => {
+    // Gatekeeping: Wait until we know auth status AND online status
+    if (isAuthLoading || !isOnlineCheckComplete) {
+      return;
+    }
 
     // If not authenticated, clear data and stop.
     if (!user) {
@@ -100,18 +136,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsHistoryLoading(false);
       return;
     }
-
-    // If offline, stop here to prevent errors.
-    if (navigator.onLine === false) {
-      console.warn("AuthProvider: Client is offline. Halting Firestore setup.");
-      setIsUserDataLoading(false);
-      setIsHistoryLoading(false);
-      return;
-    }
     
-    // Proceed with Firestore only if authenticated and online.
-    if (!db) {
-        console.error("Firestore DB instance is not available.");
+    // If offline or db not ready, stop.
+    if (isOffline || !db) {
+        console.warn("AuthProvider: Client is offline or DB not available. Halting Firestore listeners.");
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
         return;
@@ -120,12 +148,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeUser: (() => void) | undefined;
     let unsubscribeHistory: (() => void) | undefined;
 
-    const setupFirestore = async () => {
+    const setupFirestoreListeners = async () => {
         try {
             await createUserDocument(user);
+            
             const userDocRef = doc(db, 'users', user.uid);
             const historyDocRef = doc(db, 'quizHistory', user.uid);
-
+            
             unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
                 setUserData(docSnap.data() || null);
                 setIsUserDataLoading(false);
@@ -143,6 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.error("Error listening to quiz history:", error);
                 setIsHistoryLoading(false);
             });
+
         } catch (error) {
             console.error("🔥 Firestore listener setup failed:", error);
             setIsUserDataLoading(false);
@@ -150,15 +180,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
     
-    setupFirestore();
+    setupFirestoreListeners();
 
     return () => {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
         if (unsubscribeUser) unsubscribeUser();
         if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user]);
+  }, [user, isAuthLoading, isOffline, isOnlineCheckComplete]);
 
   const loading = useMemo(() => {
     return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
@@ -174,7 +202,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const ref = doc(db, 'users', user.uid);
       
       const payload = { ...newData };
-      // ✅ FIX: Convert string DOB to Date object before saving
       if (payload.dob && typeof payload.dob === 'string') {
         payload.dob = new Date(payload.dob);
       }
