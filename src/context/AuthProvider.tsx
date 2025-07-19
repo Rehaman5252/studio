@@ -71,8 +71,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
     let firestoreUnsubscribe: (() => void) | null = null;
   
-    const setupListeners = async (firebaseUser: User) => {
-      // This function is now self-contained and only runs for a valid user.
+    // This function sets up all listeners for a given user.
+    const setupUserListeners = async (firebaseUser: User) => {
       setIsUserDataLoading(true);
       setIsHistoryLoading(true);
   
@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsHistoryLoading(false);
         });
         
-        // Return a single cleanup function.
+        // Return a single cleanup function for all listeners.
         return () => {
           unsubscribeUser();
           unsubscribeHistory();
@@ -109,22 +109,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("🔥 Firestore listener setup failed:", error);
         setIsUserDataLoading(false);
         setIsHistoryLoading(false);
-        return null; // Return null cleanup on failure.
+        return null;
       }
     };
   
+    // This is the main setup logic that runs once.
     const mainSetup = async () => {
       try {
-        // Force the client online BEFORE attaching any auth or data listeners.
-        // This is the definitive fix for the "client is offline" error.
+        // **Force the client online BEFORE attaching any auth or data listeners.**
         await enableNetwork(db);
         console.log("✅ Firestore client is now online.");
       } catch (error) {
         console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
       }
   
+      // Now that the network is enabled, set up the auth listener.
       const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
-        // Cleanup previous user's listeners if any.
+        // Cleanup previous user's listeners if they logged out.
         if (firestoreUnsubscribe) {
           firestoreUnsubscribe();
           firestoreUnsubscribe = null;
@@ -134,10 +135,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthLoading(false);
   
         if (firebaseUser) {
-          // If there's a new user, set up their listeners.
-          firestoreUnsubscribe = await setupListeners(firebaseUser);
+          // If there's a new user, set up their data listeners.
+          firestoreUnsubscribe = await setupUserListeners(firebaseUser);
         } else {
-          // No user, reset all data and loading states.
+          // No user, so reset all data and loading states.
           setUserData(null);
           setQuizHistory(null);
           setIsUserDataLoading(false);
@@ -145,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       });
   
-      // Return the auth subscription cleanup to the main useEffect.
+      // The cleanup function for the main useEffect will unsubscribe from auth changes.
       return () => {
         authSub();
         if (firestoreUnsubscribe) {
