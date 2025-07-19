@@ -1,5 +1,5 @@
 // lib/firebaseClient.ts
-import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import {
   initializeFirestore,
@@ -7,9 +7,12 @@ import {
   persistentMultipleTabManager,
   type Firestore,
   getFirestore,
+  doc,
+  getDoc,
+  enableNetwork,
 } from "firebase/firestore";
 
-const firebaseConfig: FirebaseOptions = {
+const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
@@ -46,27 +49,35 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
 } else {
     // On the server, we can initialize the app but auth and db will be null
     // This can be useful for server-side admin tasks in the future, but for now it's inert
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
     auth = null;
     db = null;
 }
 
 /**
  * A more reliable way to check for a network connection with a timeout.
+ * This function now also attempts a quick Firestore read as a definitive test.
  * @returns {Promise<boolean>}
  */
 export async function isReallyOnline(): Promise<boolean> {
-  if (typeof window === "undefined" || !navigator.onLine) {
+  if (typeof window === "undefined" || !navigator.onLine || !db) {
     return false;
   }
   try {
-    const response = await fetch("https://www.google.com/generate_204", {
-      method: "HEAD",
-      cache: "no-store",
-    });
-    return response.ok;
-  } catch {
-    return navigator.onLine;
+    // Attempt a quick, low-cost read from a known, non-existent document.
+    // This confirms not just network, but also Firebase service reachability.
+    const healthCheckDoc = doc(db, '_internal', 'health_check');
+    await getDoc(healthCheckDoc);
+    await enableNetwork(db); // Ensure network is enabled if it was disabled.
+    return true;
+  } catch (error: any) {
+    // Firestore throws 'unavailable' or 'offline' errors when it can't connect.
+    console.warn("Firestore health check failed, client may be offline:", error.code);
+    return false;
   }
 }
 

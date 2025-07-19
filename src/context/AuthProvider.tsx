@@ -61,7 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
-  const [isOffline, setIsOffline] = useState(true); // Start assuming offline
+  const [isOffline, setIsOffline] = useState(true); // Start assuming offline until proven otherwise.
+  const [isOnlineCheckComplete, setIsOnlineCheckComplete] = useState(false);
 
   useEffect(() => {
     // This effect runs only on the client and handles Firebase auth state.
@@ -70,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
+      setIsOnlineCheckComplete(true);
       return;
     }
 
@@ -78,27 +80,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthLoading(false);
     });
 
-    // Add online/offline listeners to react to network changes
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Initial check
-    isReallyOnline().then(online => setIsOffline(!online));
-
-    return () => {
-      unsubscribe();
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    // This effect handles fetching Firestore data once we have a user and are online.
-    if (!user || isOffline || !db) {
-      // If we're not logged in or are offline, we can't fetch data.
-      // We set loading to false because there's nothing to load.
+    // This effect handles the online/offline detection.
+    let isMounted = true;
+    
+    const checkOnlineStatus = async () => {
+        const online = await isReallyOnline();
+        if (isMounted) {
+            setIsOffline(!online);
+            if (!isOnlineCheckComplete) {
+                setIsOnlineCheckComplete(true);
+            }
+        }
+    };
+
+    if (typeof window !== "undefined") {
+        window.addEventListener('online', checkOnlineStatus);
+        window.addEventListener('offline', checkOnlineStatus);
+        // Initial check after a short delay to allow Firebase to initialize
+        setTimeout(checkOnlineStatus, 1500);
+    }
+    
+    return () => {
+        isMounted = false;
+        if (typeof window !== "undefined") {
+            window.removeEventListener('online', checkOnlineStatus);
+            window.removeEventListener('offline', checkOnlineStatus);
+        }
+    };
+  }, []);
+
+
+  useEffect(() => {
+    // This effect handles fetching Firestore data once we have a user AND are confirmed to be online.
+    if (!user || isOffline || !db || !isOnlineCheckComplete) {
       if (!user) {
         setUserData(null);
         setQuizHistory(null);
@@ -108,7 +126,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // At this point, user is logged in and we are online.
     setIsUserDataLoading(true);
     setIsHistoryLoading(true);
     
@@ -153,11 +170,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (unsubscribeUser) unsubscribeUser();
         if (unsubscribeHistory) unsubscribeHistory();
     };
-  }, [user, isOffline]);
+  }, [user, isOffline, isOnlineCheckComplete]);
 
   const loading = useMemo(() => {
-    return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading));
-  }, [isAuthLoading, user, isUserDataLoading, isHistoryLoading]);
+    return isAuthLoading || (!!user && (isUserDataLoading || isHistoryLoading || !isOnlineCheckComplete));
+  }, [isAuthLoading, user, isUserDataLoading, isHistoryLoading, isOnlineCheckComplete]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user || !db || isOffline) {
