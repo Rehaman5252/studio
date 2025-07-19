@@ -11,11 +11,20 @@ import {
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData, Firestore } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth } from './firebaseClient';
+import { getFirebaseAuth, getFirebaseDb } from './firebaseClient';
 
-export async function createUserDocument(db: Firestore, user: User, additionalData: DocumentData = {}) {
-  if (!user || !db) {
-    console.error("❌ createUserDocument failed: User or DB is missing.");
+export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
+  if (!user || !user.uid) {
+    console.error("❌ createUserDocument failed: User object is invalid or missing UID.");
+    return;
+  }
+  
+  let db: Firestore;
+  try {
+    // Safely get the DB instance only when needed.
+    db = getFirebaseDb();
+  } catch (err) {
+    console.error("❌ createUserDocument failed: Firestore not initialized.", err);
     return;
   }
   
@@ -47,7 +56,7 @@ export async function createUserDocument(db: Firestore, user: User, additionalDa
       console.log("✅ User document created in Firestore");
     }
   } catch (error) {
-    console.error("❌ Error in createUserDocument:", error);
+    console.error("❌ Firestore write failed in createUserDocument:", error);
     toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
     throw error;
   }
