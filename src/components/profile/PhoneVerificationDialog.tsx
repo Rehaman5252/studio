@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
@@ -38,12 +38,22 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+  const confirmationResultRef = useState<ConfirmationResult | null>(null);
   
-  const setupRecaptcha = useCallback(() => {
-    if (typeof window === 'undefined' || window.recaptchaVerifier) {
-      return;
+  const cleanupVerifier = useCallback(() => {
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = undefined;
+      const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
+      if (recaptchaContainer) {
+        recaptchaContainer.innerHTML = '';
+      }
+      console.log("🧹 reCAPTCHA verifier cleaned up.");
     }
+  }, []);
+
+  const setupRecaptcha = useCallback(() => {
+    cleanupVerifier(); // Clean up any old verifier first.
     
     // Ensure the container exists. This is crucial.
     const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
@@ -54,7 +64,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
 
     try {
-        window.recaptchaVerifier = new (require("firebase/auth").RecaptchaVerifier)(auth, recaptchaContainer, {
+        const verifier = new (require("firebase/auth").RecaptchaVerifier)(auth, recaptchaContainer, {
             size: 'invisible',
             'callback': () => {
                 console.log("✅ reCAPTCHA challenge solved.");
@@ -65,8 +75,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
                 cleanupVerifier();
             },
         });
+        
+        window.recaptchaVerifier = verifier;
 
-        window.recaptchaVerifier.render().then((widgetId: number) => {
+        verifier.render().then((widgetId: number) => {
             console.log("✅ reCAPTCHA rendered successfully with widgetId:", widgetId);
             window.recaptchaWidgetId = widgetId;
         }).catch((err: any) => {
@@ -77,43 +89,28 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         console.error("🔥 Error creating RecaptchaVerifier:", e);
         setError("Failed to create the verification widget. Please refresh and try again.");
     }
-  }, []);
-
-  const cleanupVerifier = () => {
-    if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
-        // Also remove the widget from the DOM to be safe
-        const recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
-        if (recaptchaContainer) {
-            recaptchaContainer.innerHTML = '';
-        }
-        console.log("🧹 reCAPTCHA verifier cleaned up.");
-    }
-  };
+  }, [cleanupVerifier]);
 
   useEffect(() => {
-    if (open) {
-      setupRecaptcha();
-    } else {
-      cleanupVerifier();
+    // Only attempt to set up reCAPTCHA if the dialog is open and on the initial step.
+    if (open && step === 'initial') {
+      // Use a small timeout to ensure the dialog's DOM is fully rendered.
+      const timer = setTimeout(() => {
+        setupRecaptcha();
+      }, 100);
+      return () => clearTimeout(timer);
     }
-
-    return () => {
-      if (!open) {
-        cleanupVerifier();
-      }
-    };
-  }, [open, setupRecaptcha]);
+  }, [open, step, setupRecaptcha]);
   
-
   const handleSendOtp = async () => {
     setError(null);
 
-    if (!window.recaptchaVerifier) {
+    const verifier = window.recaptchaVerifier;
+    if (!verifier) {
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
+      setupRecaptcha(); // Try to re-initialize it.
       return;
     }
     
@@ -121,8 +118,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     
     try {
       const fullPhoneNumber = `+91${phone}`;
-      const result = await signInWithPhoneNumber(auth, fullPhoneNumber, window.recaptchaVerifier);
-      confirmationResultRef.current = result;
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, verifier);
+      confirmationResultRef[1](confirmationResult);
       
       toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
       setStep('verify');
@@ -147,10 +144,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const handleVerifyOtp = async () => {
     setError(null);
-    if (!confirmationResultRef.current) return;
+    const confirmation = confirmationResultRef[0];
+    if (!confirmation) return;
     setIsLoading(true);
     try {
-      await confirmationResultRef.current.confirm(otp);
+      await confirmation.confirm(otp);
       
       if (updateUserData) {
         await updateUserData({ phoneVerified: true, phone: phone });
@@ -170,6 +168,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const resetStateAndClose = (isOpen: boolean) => {
     if (!isOpen) {
+      cleanupVerifier();
       setStep('initial');
       setOtp('');
       setIsLoading(false);
@@ -199,7 +198,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             </Alert>
         )}
 
-        {/* This div is the container for the reCAPTCHA widget. */}
+        {/* This div is the container for the reCAPTCHA widget. It must be in the DOM. */}
         <div id="recaptcha-container-in-dialog"></div>
 
         {step === 'verify' && (
