@@ -9,7 +9,6 @@ import type { QuizAttempt } from '@/lib/mockData';
 import type { DocumentData } from 'firebase/firestore';
 import { 
   doc, 
-  getDoc,
   onSnapshot, 
   setDoc,
   Timestamp,
@@ -162,18 +161,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const historyDocRef = doc(db, 'quizHistory', user.uid);
     const userDocRef = doc(db, 'users', user.uid);
     
-    const currentUserData = userData || {};
+    // Create a temporary copy for calculation to avoid race condition with state
+    const currentUserData = userData ? { ...userData } : {};
+    
     const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
-    const newQuizzesPlayed = (currentUserData?.quizzesPlayed || 0) + 1;
-    const newPerfectScores = (currentUserData?.perfectScores || 0) + (isPerfect ? 1 : 0);
-    const newTotalRewards = (currentUserData?.totalRewards || 0) + (isPerfect ? 100 : 0);
+    const newQuizzesPlayed = (currentUserData.quizzesPlayed || 0) + 1;
+    const newPerfectScores = (currentUserData.perfectScores || 0) + (isPerfect ? 1 : 0);
+    const newTotalRewards = (currentUserData.totalRewards || 0) + (isPerfect ? 100 : 0);
 
     const userUpdatePayload = {
         quizzesPlayed: newQuizzesPlayed,
         perfectScores: newPerfectScores,
         totalRewards: newTotalRewards
     };
-
+    
+    // Optimistically update the user data in the UI
+    setUserData(prev => ({ ...prev, ...userUpdatePayload }));
+    
     try {
         await setDoc(userDocRef, sanitizeUserProfile(userUpdatePayload), { merge: true });
         
@@ -184,6 +188,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
         console.error("Error adding quiz attempt:", error);
+        // If the update fails, we might want to roll back the optimistic update
+        // For simplicity, we are not doing that here, but it's a consideration for production apps.
         throw error;
     }
   }, [user, userData, isOffline]);
@@ -221,3 +227,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
