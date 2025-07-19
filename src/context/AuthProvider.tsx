@@ -69,26 +69,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // Unregister any stale service workers that might be forcing an offline state.
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-            for (const registration of registrations) {
-                registration.unregister();
-                console.log('Unregistered stale service worker.');
-            }
-        });
-    }
-
+    // This function will handle online/offline status updates
     const handleOnlineStatus = async () => {
       const online = await isReallyOnline();
       setIsOffline(!online);
       return online;
     };
     
-    handleOnlineStatus();
-
+    // Set up listeners for online/offline events
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOnlineStatus);
+
+    // Initial check when the component mounts
+    handleOnlineStatus();
 
     let unsubscribeFirestore: (() => void) | null = null;
 
