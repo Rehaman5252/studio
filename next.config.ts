@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  generateBuildId: async () => {
+    // This adds the current timestamp to the build ID, ensuring that each
+    // deployment has a unique ID and avoids browser caching issues.
+    return new Date().getTime().toString();
+  },
   images: {
     remotePatterns: [
       {
