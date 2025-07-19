@@ -60,21 +60,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
+  // This state ensures children are not rendered until Firebase is fully ready.
+  const [isFirebaseInitialized, setIsFirebaseInitialized] = useState(false);
+
   useEffect(() => {
+    // This effect runs only once to initialize Firebase and listeners.
     if (!isFirebaseConfigured || !db) {
       console.error("Firebase is not configured or Firestore is not available. Aborting AuthProvider setup.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       setIsHistoryLoading(false);
+      setIsFirebaseInitialized(true); // Allow rendering of an error state if needed
       return;
     }
   
     let firestoreUnsubscribe: (() => void) | null = null;
   
     const setupUserListeners = async (firebaseUser: User) => {
-      // Guard against server-side execution
-      if (!db) return null;
-
       setIsUserDataLoading(true);
       setIsHistoryLoading(true);
   
@@ -115,15 +117,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   
     const mainSetup = async () => {
-      if (!db) return; // Final guard before any async operations
-
-      try {
-        await enableNetwork(db);
-        console.log("✅ Firestore client is now online.");
-      } catch (error) {
-        console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
+      // 1. Force Firestore client online before doing anything else.
+      if (navigator.onLine) {
+        try {
+          await enableNetwork(db);
+          console.log("✅ Firestore client is now online.");
+        } catch (error) {
+          console.error("❌ Failed to enable Firestore network. App may not function correctly.", error);
+        }
+      } else {
+        console.warn("Browser is offline. Firestore will remain in offline mode.");
       }
-  
+
+      // 2. Attach the auth state listener.
       const authSub = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firestoreUnsubscribe) {
           firestoreUnsubscribe();
@@ -141,6 +147,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsUserDataLoading(false);
           setIsHistoryLoading(false);
         }
+        
+        // 3. Mark initialization as complete to render children.
+        setIsFirebaseInitialized(true);
       });
   
       return () => {
@@ -224,6 +233,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updateUserData,
     addQuizAttempt,
   }), [user, userData, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isHistoryLoading, updateUserData, addQuizAttempt]);
+
+  // Do not render children until Firebase setup is complete on the client.
+  if (!isFirebaseInitialized) {
+    return null; 
+  }
 
   return (
     <AuthContext.Provider value={value}>
