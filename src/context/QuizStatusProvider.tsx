@@ -5,6 +5,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
+import { db } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -18,24 +20,37 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { user, quizHistory, isHistoryLoading, loading: isAuthLoading } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
+  const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   const isLoading = isAuthLoading || isHistoryLoading;
 
-  const lastAttemptInSlot = useMemo(() => {
-    if (isLoading || !quizHistory || !user) {
-      return null;
+  useEffect(() => {
+    if (!user) {
+        setIsHistoryLoading(false);
+        setLastAttemptInSlot(null);
+        return;
     }
-    
-    const currentSlotId = getQuizSlotId();
-    // The history is now sorted with the most recent attempt first.
-    return quizHistory.find(attempt => attempt.slotId === currentSlotId) || null;
-  }, [quizHistory, isLoading, user]);
+    const fetchLastAttempt = async () => {
+        setIsHistoryLoading(true);
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        const docSnap = await getDoc(historyDocRef);
+        if (docSnap.exists()) {
+            const history = (docSnap.data().attempts || []).sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+            const currentSlotId = getQuizSlotId();
+            const lastAttempt = history.find((attempt: QuizAttempt) => attempt.slotId === currentSlotId) || null;
+            setLastAttemptInSlot(lastAttempt);
+        }
+        setIsHistoryLoading(false);
+    }
+    fetchLastAttempt();
+  }, [user]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -62,8 +77,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   }, [calculateTimeLeft]);
 
   useEffect(() => {
-    // FIX: This now runs only on the client, after hydration, preventing the mismatch error.
-    // Set initial random values on the client side only
     const setInitialStats = () => {
       setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
       setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);

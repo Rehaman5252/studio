@@ -1,19 +1,42 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, Loader2, Copy } from 'lucide-react';
+import { Award, Download, Share2, Clock, Calendar, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 
 
 export default function CertificatesContent() {
-  const { quizHistory, isHistoryLoading, userData } = useAuth();
+  const { user, userData } = useAuth();
   const { toast } = useToast();
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setIsHistoryLoading(false);
+      return;
+    }
+    const fetchHistory = async () => {
+        setIsHistoryLoading(true);
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        const docSnap = await getDoc(historyDocRef);
+        if (docSnap.exists()) {
+            const historyData = docSnap.data().attempts || [];
+            historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+            setQuizHistory(historyData);
+        }
+        setIsHistoryLoading(false);
+    }
+    fetchHistory();
+  }, [user]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);

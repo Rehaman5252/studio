@@ -12,6 +12,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import LoginPrompt from '../auth/LoginPrompt';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
@@ -163,8 +165,27 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user, quizHistory, isHistoryLoading, loading: isAuthLoading } = useAuth();
-  
+  const { user, loading: isAuthLoading } = useAuth();
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+        setIsHistoryLoading(false);
+        return;
+    }
+    const fetchHistory = async () => {
+        setIsHistoryLoading(true);
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        const docSnap = await getDoc(historyDocRef);
+        if (docSnap.exists()) {
+            setQuizHistory(docSnap.data().attempts || []);
+        }
+        setIsHistoryLoading(false);
+    }
+    fetchHistory();
+  }, [user]);
+
   const rewardableAttempts = useMemo(() => {
     if (!quizHistory) return [];
 

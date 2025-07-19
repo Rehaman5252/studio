@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
@@ -12,6 +12,8 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -157,8 +159,29 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
 export default function QuizHistoryContent() {
-  const { quizHistory, isHistoryLoading } = useAuth();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+        setIsHistoryLoading(false);
+        return;
+    }
+    const fetchHistory = async () => {
+        setIsHistoryLoading(true);
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        const docSnap = await getDoc(historyDocRef);
+        if (docSnap.exists()) {
+            const historyData = docSnap.data().attempts || [];
+            historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+            setQuizHistory(historyData);
+        }
+        setIsHistoryLoading(false);
+    }
+    fetchHistory();
+  }, [user]);
 
   const filteredHistory = useMemo(() => {
     if (!quizHistory) return [];

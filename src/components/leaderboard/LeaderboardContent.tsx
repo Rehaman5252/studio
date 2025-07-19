@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 
 interface LivePlayer {
     rank?: number;
@@ -56,52 +58,66 @@ const LeaderboardItemSkeleton = () => (
 
 
 const LiveLeaderboard = memo(() => {
-    const { user, quizHistory, isHistoryLoading, userData } = useAuth();
+    const { user, userData } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
-    
+    const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
     useEffect(() => {
-        if (isHistoryLoading) return;
-        
-        const currentSlotId = getQuizSlotId();
-        const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
-        
-        // Find the user's attempt in the current slot
-        const userAttempt = user ? currentSlotHistory.find(a => a.userAnswers && a.questions) : null;
+        if (!user) {
+            setIsHistoryLoading(false);
+            return;
+        }
 
-        const livePlayers: LivePlayer[] = [];
+        const fetchHistory = async () => {
+            setIsHistoryLoading(true);
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            let quizHistory: QuizAttempt[] = [];
+            if (docSnap.exists()) {
+                quizHistory = docSnap.data().attempts || [];
+            }
 
-        if (userAttempt) {
-            livePlayers.push({
-                uid: user!.uid,
-                name: userData?.name || 'You',
-                score: userAttempt.score,
-                time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                avatar: userData?.photoURL,
-                disqualified: userAttempt.reason === 'malpractice'
-            });
+            const currentSlotId = getQuizSlotId();
+            const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
+            
+            const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
+
+            const livePlayers: LivePlayer[] = [];
+
+            if (userAttempt) {
+                livePlayers.push({
+                    uid: user!.uid,
+                    name: userData?.name || 'You',
+                    score: userAttempt.score,
+                    time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                    avatar: userData?.photoURL,
+                    disqualified: userAttempt.reason === 'malpractice'
+                });
+            }
+            
+            const mockLivePlayers: LivePlayer[] = [
+                { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
+                { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
+                { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
+                { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
+            ];
+            
+            livePlayers.push(...mockLivePlayers.filter(p => p.uid !== user?.uid));
+            
+            const sortedPlayers = livePlayers.sort((a, b) => {
+                 if (a.disqualified && !b.disqualified) return 1;
+                 if (!a.disqualified && b.disqualified) return -1;
+                 if (a.score !== b.score) return b.score - a.score;
+                 return a.time - b.time;
+            }).map((p, index) => ({...p, rank: index + 1}));
+
+            setPlayers(sortedPlayers);
+            setIsHistoryLoading(false);
         }
         
-        // Add a few more mock players for a lively leaderboard
-        const mockLivePlayers: LivePlayer[] = [
-            { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
-            { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-            { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
-            { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
-        ];
+        fetchHistory();
         
-        livePlayers.push(...mockLivePlayers.filter(p => p.uid !== user?.uid));
-        
-        // Sort and rank
-        const sortedPlayers = livePlayers.sort((a, b) => {
-             if (a.disqualified && !b.disqualified) return 1;
-             if (!a.disqualified && b.disqualified) return -1;
-             if (a.score !== b.score) return b.score - a.score;
-             return a.time - b.time;
-        }).map((p, index) => ({...p, rank: index + 1}));
-
-        setPlayers(sortedPlayers);
-        
-    }, [quizHistory, isHistoryLoading, user, userData]);
+    }, [user, userData]);
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
