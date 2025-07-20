@@ -61,7 +61,7 @@ const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Leaderboard</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
+        <AlertDescription>{message || "Could not connect to the database."}</AlertDescription>
     </Alert>
 );
 
@@ -73,11 +73,6 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (typeof window === 'undefined') {
-            setIsLoading(false);
-            return;
-        }
-        
         if (!user) {
             setIsLoading(false);
             return;

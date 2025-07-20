@@ -195,7 +195,7 @@ const ErrorState = ({ message }: { message: string }) => (
         <Alert variant="destructive">
             {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
             <AlertTitle>Error Loading History</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
+            <AlertDescription>{message || "Could not connect to the database."}</AlertDescription>
         </Alert>
     </div>
 );
@@ -208,11 +208,6 @@ export default function QuizHistoryContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-        setIsLoading(false);
-        return;
-    }
-    
     if (!user) {
         setIsLoading(false);
         return;
