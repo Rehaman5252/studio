@@ -18,8 +18,6 @@ import {
   setDoc,
   Timestamp,
   getDoc,
-  collection,
-  addDoc,
   DocumentData,
 } from 'firebase/firestore';
 
@@ -31,7 +29,6 @@ import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 interface AuthContextType {
   user: User | null;
   profile: DocumentData | null;
-  quizHistory: QuizAttempt[];
   lastAttempt: QuizAttempt | null;
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
@@ -39,7 +36,6 @@ interface AuthContextType {
   isOffline: boolean;
   updateUserData?: (newData: Partial<any>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
-  forceRefreshData: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,7 +48,6 @@ const MANDATORY_PROFILE_FIELDS = [
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DocumentData | null>(null);
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -60,39 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof navigator !== 'undefined') return !navigator.onLine;
     return false; // assume online during SSR
   });
-
-  const forceRefreshData = useCallback(async () => {
-    if (!user || isOffline) return;
-    setLoading(true);
-    try {
-        const userDocRef = doc(db, 'users', user.uid);
-        const historyDocRef = doc(db, 'quizHistory', user.uid);
-        
-        const [userDoc, historyDoc] = await Promise.all([
-            getDoc(userDocRef),
-            getDoc(historyDocRef)
-        ]);
-        
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            if (data?.dob && data.dob instanceof Timestamp) {
-                data.dob = data.dob.toDate().toISOString().split('T')[0];
-            }
-            setProfile(data || null);
-        }
-
-        if (historyDoc.exists()) {
-            const historyData = historyDoc.data().attempts || [];
-            historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-            setQuizHistory(historyData);
-        }
-
-    } catch (error) {
-        console.error("Failed to force refresh data:", error);
-    } finally {
-        setLoading(false);
-    }
-  }, [user, isOffline]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -113,9 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       if (!firebaseUser) {
-        // Clear all data on sign-out and stop loading
         setProfile(null);
-        setQuizHistory([]);
         setLoading(false);
       }
     });
@@ -135,7 +95,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     const userDocRef = doc(db, 'users', user.uid);
-    const historyDocRef = doc(db, 'quizHistory', user.uid);
 
     const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
@@ -147,29 +106,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
             await createUserDocument(user);
         }
+        setLoading(false);
     }, (error) => {
         console.error("Profile snapshot error:", error);
-        setLoading(false);
-    });
-
-    const unsubHistory = onSnapshot(historyDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const historyData = docSnap.data().attempts || [];
-            historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-            setQuizHistory(historyData);
-        } else {
-            setQuizHistory([]);
-        }
-        // Consider loading finished after both snapshots have fired at least once
-        setLoading(false);
-    }, (error) => {
-        console.error("History snapshot error:", error);
         setLoading(false);
     });
     
     return () => {
         unsubProfile();
-        unsubHistory();
     }
   }, [user, isOffline]);
 
@@ -192,8 +136,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !db) {
       throw new Error("User not authenticated or DB not available.");
     }
-    
-    setQuizHistory(prev => [attempt, ...prev].sort((a,b) => b.timestamp - a.timestamp));
     
     try {
         const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
@@ -219,7 +161,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error("Error adding quiz attempt:", error);
-      setQuizHistory(prev => prev.filter(a => a.timestamp !== attempt.timestamp));
       throw error;
     }
   }, [user, updateUserData]);
@@ -232,7 +173,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     user,
     profile,
-    quizHistory,
     lastAttempt,
     setLastAttempt,
     isProfileComplete,
@@ -240,8 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isOffline,
     updateUserData,
     addQuizAttempt,
-    forceRefreshData,
-  }), [user, profile, quizHistory, lastAttempt, isProfileComplete, loading, isOffline, updateUserData, addQuizAttempt, forceRefreshData]);
+  }), [user, profile, lastAttempt, isProfileComplete, loading, isOffline, updateUserData, addQuizAttempt]);
 
   return (
     <AuthContext.Provider value={value}>
