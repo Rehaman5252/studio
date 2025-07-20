@@ -48,19 +48,18 @@ export const getFirebaseFirestore = () => db;
 export async function isReallyOnline(): Promise<boolean> {
   if (typeof window === 'undefined' || !navigator.onLine) return false;
 
-  const firestore = getFirebaseFirestore();
-  if (!firestore) return false;
-
   try {
-    const testDocRef = doc(firestore, `system/connectivity-test-${Date.now()}`);
-    await getDoc(testDocRef);
+    // We use a lightweight check against the auth server which is generally very available.
+    // This avoids hitting Firestore for a simple online check.
+    await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
+        method: 'POST',
+        body: JSON.stringify({ localId: 'test' })
+    });
     return true;
-  } catch (error: any) {
-    if (error.code === 'unavailable') {
-        console.warn('Firebase connectivity test failed: Client is offline.');
-    } else {
-        console.warn('Firebase connectivity test failed with other error:', error.message);
-    }
+  } catch (error) {
+    console.warn('Firebase connectivity test failed:', error);
     return false;
   }
 }
+
+export { db, auth };
