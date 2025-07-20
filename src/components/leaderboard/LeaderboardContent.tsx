@@ -73,6 +73,7 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        // Wait for user to be available before fetching
         if (!user) {
             setIsLoading(false);
             return;
@@ -163,7 +164,7 @@ const LiveLeaderboard = memo(() => {
                         {player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}
                     </div>
                     <Avatar className="h-10 w-10 mx-4">
-                        <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                        <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} data-ai-hint="avatar person" />
                         <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -246,7 +247,7 @@ const AllTimeLeaderboard = memo(() => {
                 >
                    <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                    <Avatar className="h-10 w-10 mx-4">
-                       <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                       <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} data-ai-hint="avatar person" />
                        <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                    </Avatar>
                    <div className="flex-1">
@@ -309,7 +310,7 @@ const MyNetworkLeaderboard = memo(() => {
                              <div key={user.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                                 <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
                                 <Avatar className="h-10 w-10 mx-4">
-                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} data-ai-hint="avatar person" />
                                     <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">

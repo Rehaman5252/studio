@@ -208,6 +208,7 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for user to be available before fetching
     if (!user) {
         setIsLoading(false);
         return;

@@ -52,23 +52,13 @@ export default function CertificatesContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      setIsLoading(false);
-      return;
-    }
-    
+    // Wait for user authentication before fetching data
     if (!user) {
         setIsLoading(false);
         return;
     }
 
     const fetchHistory = async () => {
-        if (!db) {
-            setError("Could not connect to the database.");
-            setIsLoading(false);
-            return;
-        }
-        
         setIsLoading(true);
         setError(null);
         try {

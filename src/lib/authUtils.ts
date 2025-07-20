@@ -14,8 +14,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebaseAuth, db } from './firebaseClient';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  // db is now reliably imported from firebaseClient, so a check is not needed here.
-  // The call to this function is now properly sequenced in AuthProvider.
+  // This function now correctly uses the imported `db` instance,
+  // which is guaranteed to be initialized by the time this is called.
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 

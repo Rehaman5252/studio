@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { DocumentData } from 'firebase/firestore';
-import { Loader2, X, CheckCircle2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -52,16 +52,16 @@ export default function CompleteProfileForm() {
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: profile?.name || user?.displayName || '',
-            email: profile?.email || user?.email || '',
-            phone: profile?.phone || '',
-            dob: profile?.dob || '',
-            gender: profile?.gender || undefined,
-            occupation: profile?.occupation || undefined,
-            upi: profile?.upi || '',
-            favoriteFormat: profile?.favoriteFormat || undefined,
-            favoriteTeam: profile?.favoriteTeam || '',
-            favoriteCricketer: profile?.favoriteCricketer || '',
+            name: '',
+            email: '',
+            phone: '',
+            dob: '',
+            gender: undefined,
+            occupation: undefined,
+            upi: '',
+            favoriteFormat: undefined,
+            favoriteTeam: '',
+            favoriteCricketer: '',
         },
     });
     
@@ -84,20 +84,14 @@ export default function CompleteProfileForm() {
 
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (isSubmitting) return;
-
-        if (!user || !updateUserData) {
-            toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
-            return;
-        }
+        if (isSubmitting || !updateUserData) return;
 
         setIsSubmitting(true);
-
         try {
             const finalPayload: DocumentData = {
                 ...data,
                 profileCompleted: true,
-                phoneVerified: true, // Assume verified on submission now
+                phoneVerified: true, // Phone verification is now implicit
                 updatedAt: new Date(),
             };
             
@@ -111,10 +105,10 @@ export default function CompleteProfileForm() {
             router.replace('/home');
 
         } catch (error: any) {
-            console.error("🔥 Save Failed:", error);
+            console.error("🔥 Profile Save Failed:", error);
             toast({
                 title: "Save Failed",
-                description: error.message || "Could not save profile. Please try again.",
+                description: error.message || "Could not save your profile. Please try again.",
                 variant: "destructive"
             });
         } finally {

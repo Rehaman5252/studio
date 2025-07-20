@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, doc, getDoc, type Firestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAh35l6QoFhYoTUWDc7vA_LpnHN7ZaB92A",
@@ -18,48 +18,23 @@ export const isFirebaseConfigured = Object.values(firebaseConfig).every(
   (value) => typeof value === 'string' && value.trim() !== ''
 );
 
-// Ensure app is initialized once
+// Initialize Firebase App
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Immediately initialized and exported
+// Initialize Firebase services immediately
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 
-// Enable persistence once, before any db usage
+// Enable persistence only on the client-side, and only once.
 if (typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
         if (err.code === 'failed-precondition') {
-          console.warn("🔥 Firestore persistence failed: multiple tabs open");
+          console.warn("🔥 Firestore persistence failed: multiple tabs open.");
         } else if (err.code === 'unimplemented') {
-          console.warn("🔥 Firestore persistence not supported by this browser");
-        } else {
-          console.error("🔥 Unknown Firestore persistence error", err);
+          console.warn("🔥 Firestore persistence not supported by this browser.");
         }
     });
 }
 
-// Safe getter functions that return the initialized instances
-export const getFirebaseApp = () => app;
-export const getFirebaseAuth = () => auth;
-export const getFirebaseFirestore = () => db;
-
-
-// Test Firebase connectivity
-export async function isReallyOnline(): Promise<boolean> {
-  if (typeof window === 'undefined' || !navigator.onLine) return false;
-
-  try {
-    // We use a lightweight check against the auth server which is generally very available.
-    // This avoids hitting Firestore for a simple online check.
-    await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
-        method: 'POST',
-        body: JSON.stringify({ localId: 'test' })
-    });
-    return true;
-  } catch (error) {
-    console.warn('Firebase connectivity test failed:', error);
-    return false;
-  }
-}
-
-export { db, auth };
+// Export the initialized services
+export { app, auth, db };

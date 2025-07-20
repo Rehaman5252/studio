@@ -208,6 +208,7 @@ export default function QuizHistoryContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for user to be authenticated before trying to fetch.
     if (!user) {
         setIsLoading(false);
         return;
