@@ -11,18 +11,12 @@ const firebaseConfig = {
   projectId: "cricblitz",
   storageBucket: "cricblitz.appspot.com",
   messagingSenderId: "370076403121",
-  appId: "1:370076403121:web:514b379a7fd3f3d491a990",
+  appId: "1:370076403121:web:514b379a7fd3f3d491a990"
 };
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(
   (value) => typeof value === 'string' && value.trim() !== ''
 );
-
-if (!isFirebaseConfigured && typeof window !== 'undefined') {
-  console.error(
-    '🔴 Firebase configuration is invalid or incomplete. Please check your environment variables.'
-  );
-}
 
 // Initialize Firebase App
 const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -57,7 +51,7 @@ export const getFirebaseFirestore = () => db;
 
 // Test Firebase connectivity
 export async function isReallyOnline(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined' || !navigator.onLine) return false;
 
   const firestore = getFirebaseFirestore();
   if (!firestore) return false;
