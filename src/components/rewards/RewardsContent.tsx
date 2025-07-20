@@ -1,33 +1,21 @@
 
-
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
+import { Gift, ExternalLink, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
         <Skeleton className="w-full h-full rounded-2xl" />
     </div>
-);
-
-const ErrorState = ({ message }: { message: string }) => (
-    <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Error Loading Rewards</AlertTitle>
-        <AlertDescription>{message || "An unknown error occurred."}</AlertDescription>
-    </Alert>
 );
 
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
@@ -128,12 +116,11 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, isLoading, error }: { 
+const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, isLoading }: { 
     isLoggedIn: boolean;
     rewardableAttempts: QuizAttempt[];
     hasAttempts: boolean;
     isLoading: boolean;
-    error: string | null;
 }) => (
   <section>
     <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
@@ -149,8 +136,6 @@ const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, i
                 ))}
             </CarouselContent>
         </Carousel>
-    ) : error ? (
-        <ErrorState message={error} />
     ) : isLoggedIn ? (
         rewardableAttempts.length > 0 ? (
             <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
@@ -203,41 +188,8 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user } = useAuth();
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) {
-        setIsLoading(false);
-        return;
-    }
-    
-    const fetchHistory = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const historyDocRef = doc(db, 'quizHistory', user.uid);
-            const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                const historyData = docSnap.data().attempts || [];
-                setQuizHistory(historyData);
-            }
-        } catch (e: any) {
-            console.error("Failed to fetch rewards data:", e);
-            if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You appear to be offline. Please check your connection to see your rewards.");
-            } else {
-                setError("Could not load your rewards. Please try again later.");
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    fetchHistory();
-  }, [user]);
-
+  const { user, quizHistory, loading } = useAuth();
+  
   const hasAttempts = quizHistory.length > 0;
 
   const rewardableAttempts = useMemo(() => {
@@ -264,8 +216,7 @@ export default function RewardsContent() {
         isLoggedIn={!!user} 
         rewardableAttempts={rewardableAttempts}
         hasAttempts={hasAttempts}
-        isLoading={isLoading}
-        error={error}
+        isLoading={loading}
       />
       <GenericOffersSection />
     </>

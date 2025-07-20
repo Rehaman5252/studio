@@ -21,6 +21,8 @@ import {
   Timestamp,
   getDoc,
   onSnapshot,
+  collection,
+  addDoc,
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -28,14 +30,15 @@ import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 interface AuthContextType {
   user: User | null;
   profile: DocumentData | null;
+  quizHistory: QuizAttempt[];
   lastAttempt: QuizAttempt | null;
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
   loading: boolean;
-  isUserDataLoading: boolean;
   isOffline: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
+  forceRefreshData: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,14 +51,47 @@ const MANDATORY_PROFILE_FIELDS = [
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DocumentData | null>(null);
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   
   const [isOffline, setIsOffline] = useState<boolean>(() => {
     if (typeof navigator !== 'undefined') return !navigator.onLine;
     return false; // assume online during SSR
   });
+
+  const forceRefreshData = useCallback(async () => {
+    if (!user || isOffline) return;
+    setLoading(true);
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        
+        const [userDoc, historyDoc] = await Promise.all([
+            getDoc(userDocRef),
+            getDoc(historyDocRef)
+        ]);
+        
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            if (data?.dob && data.dob instanceof Timestamp) {
+                data.dob = data.dob.toDate().toISOString().split('T')[0];
+            }
+            setProfile(data || null);
+        }
+
+        if (historyDoc.exists()) {
+            const historyData = historyDoc.data().attempts || [];
+            historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+            setQuizHistory(historyData);
+        }
+
+    } catch (error) {
+        console.error("Failed to force refresh data:", error);
+    } finally {
+        setLoading(false);
+    }
+  }, [user, isOffline]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -68,14 +104,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (!auth) {
       console.error("Firebase Auth not initialized.");
-      setIsAuthLoading(false);
-      setIsUserDataLoading(false);
+      setLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setIsAuthLoading(false);
     });
 
     return () => {
@@ -86,41 +120,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    let unsubscribe = () => {};
+    let unsubs: (() => void)[] = [];
+
     if (user && !isOffline) {
-      setIsUserDataLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
-      unsubscribe = onSnapshot(
-        userDocRef,
-        async (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data?.dob && data.dob instanceof Timestamp) {
-              data.dob = data.dob.toDate().toISOString().split('T')[0];
+        setLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+
+        const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data?.dob && data.dob instanceof Timestamp) {
+                    data.dob = data.dob.toDate().toISOString().split('T')[0];
+                }
+                setProfile(data || null);
+            } else {
+                await createUserDocument(user);
             }
-            setProfile(data || null);
-          } else {
-            // Document doesn't exist, create it.
-            try {
-              await createUserDocument(user);
-              // Note: onSnapshot will trigger again with the new data, setting the profile.
-            } catch (error) {
-               console.error("Failed to create user document on-the-fly:", error);
+        }, (error) => console.error("Profile snapshot error:", error));
+
+        const unsubHistory = onSnapshot(historyDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const historyData = docSnap.data().attempts || [];
+                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                setQuizHistory(historyData);
+            } else {
+                setQuizHistory([]);
             }
-          }
-          setIsUserDataLoading(false);
-        },
-        (error) => {
-          console.error("Error listening to user profile:", error);
-          setIsUserDataLoading(false);
-        }
-      );
+        }, (error) => console.error("History snapshot error:", error));
+        
+        unsubs.push(unsubProfile, unsubHistory);
+
+        // This is a simple way to determine when initial data has loaded
+        Promise.all([getDoc(userDocRef), getDoc(historyDocRef)]).finally(() => setLoading(false));
+
     } else {
+      setUser(null);
       setProfile(null);
-      setIsUserDataLoading(false);
+      setQuizHistory([]);
+      setLoading(false);
     }
-    return () => unsubscribe();
+
+    return () => unsubs.forEach(unsub => unsub());
   }, [user, isOffline]);
+
 
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     if (!user || !db) {
@@ -141,17 +184,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("User not authenticated or DB not available.");
     }
     
+    // Optimistically update local state for immediate UI feedback
+    setQuizHistory(prev => [attempt, ...prev].sort((a,b) => b.timestamp - a.timestamp));
+    
     try {
-        const currentProfile = await getDoc(doc(db, 'users', user.uid)).then(d => d.data() || {});
         const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
+        
+        // Fetch latest profile to avoid race conditions
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        const currentProfile = userDocSnap.data() || {};
+
         const newStats = {
             quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
             perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
             totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
         };
         
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, sanitizeUserProfile(newStats), { merge: true });
+        await updateUserData(newStats);
         
         const historyDocRef = doc(db, 'quizHistory', user.uid);
         const historySnap = await getDoc(historyDocRef);
@@ -162,9 +212,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error("Error adding quiz attempt:", error);
+      // Revert optimistic update on failure
+      setQuizHistory(prev => prev.filter(a => a.timestamp !== attempt.timestamp));
       throw error;
     }
-  }, [user]);
+  }, [user, updateUserData]);
 
   const isProfileComplete = useMemo(() => {
     if (!profile) return false;
@@ -174,15 +226,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     user,
     profile,
+    quizHistory,
     lastAttempt,
     setLastAttempt,
     isProfileComplete,
-    loading: isAuthLoading || isUserDataLoading,
-    isUserDataLoading: isUserDataLoading,
+    loading,
     isOffline,
     updateUserData,
     addQuizAttempt,
-  }), [user, profile, lastAttempt, isProfileComplete, isAuthLoading, isUserDataLoading, isOffline, updateUserData, addQuizAttempt]);
+    forceRefreshData,
+  }), [user, profile, quizHistory, lastAttempt, isProfileComplete, loading, isOffline, updateUserData, addQuizAttempt, forceRefreshData]);
 
   return (
     <AuthContext.Provider value={value}>
