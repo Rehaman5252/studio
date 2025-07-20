@@ -1,3 +1,4 @@
+
 export interface CubeBrand {
     id: number;
     brand: string;
@@ -36,9 +37,9 @@ export const brandData: CubeBrand[] = [
         id: 4,
         brand: 'ICICI',
         format: 'ODI',
-        logoUrl: 'https://www.pngkey.com/png/full/50-503003_icici-bank-logo-png-icici-bank-logo.png',
-        logoWidth: 80,
-        logoHeight: 60,
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/12/ICICI_Bank_Logo.svg',
+        logoWidth: 90,
+        logoHeight: 50,
     },
      {
         id: 5,
@@ -52,7 +53,7 @@ export const brandData: CubeBrand[] = [
         id: 6,
         brand: 'Nike',
         format: 'Test',
-        logoUrl: 'https://logolook.net/wp-content/uploads/2021/11/Nike-Logo.png',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg',
         logoWidth: 100,
         logoHeight: 40,
     },
