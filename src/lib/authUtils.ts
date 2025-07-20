@@ -14,20 +14,17 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebaseAuth, db } from './firebaseClient';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  if (!user || !db) {
-    console.error("❌ createUserDocument failed: User or DB is missing.");
-    return;
-  }
-  
-  try {
-    const userDocRef = doc(db, 'users', user.uid);
-    const snapshot = await getDoc(userDocRef);
+  // db is now reliably imported from firebaseClient, so a check is not needed here.
+  // The call to this function is now properly sequenced in AuthProvider.
+  const userDocRef = doc(db, 'users', user.uid);
+  const snapshot = await getDoc(userDocRef);
 
-    if (!snapshot.exists()) {
-      console.log(`📄 Creating document for new user: ${user.uid}`);
-      const { email, displayName, photoURL } = user;
-      const createdAt = new Date();
+  if (!snapshot.exists()) {
+    console.log(`📄 Creating document for new user: ${user.uid}`);
+    const { email, displayName, photoURL } = user;
+    const createdAt = new Date();
 
+    try {
       await setDoc(userDocRef, {
         uid: user.uid,
         email,
@@ -45,11 +42,11 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
         ...additionalData
       });
       console.log("✅ User document created in Firestore");
+    } catch (error) {
+      console.error("❌ Firestore write failed in createUserDocument:", error);
+      toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+      throw error;
     }
-  } catch (error) {
-    console.error("❌ Firestore write failed in createUserDocument:", error);
-    toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
-    throw error;
   }
 }
 

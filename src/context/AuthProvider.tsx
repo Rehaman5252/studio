@@ -22,7 +22,7 @@ import {
 
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
+import { getFirebaseAuth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
@@ -52,20 +52,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Use standard browser online/offline events
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
-    // Set initial state
-    setIsOffline(!navigator.onLine);
 
     const auth = getFirebaseAuth();
     if (!auth) {
@@ -97,15 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsLoading(true);
-    const firestore = getFirebaseFirestore();
     
-    if (!firestore) {
-        setIsOffline(true);
-        setIsLoading(false);
-        return;
-    }
-    
-    const userDocRef = doc(firestore, 'users', user.uid);
+    const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
     if (!docSnap.exists()) {
         createUserDocument(user).catch(console.error);
@@ -127,8 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, isOffline]);
 
   const updateUserData = useCallback(async (newData: Partial<any>) => {
-    const firestore = getFirebaseFirestore();
-    if (!user || !firestore) {
+    if (!user) {
       throw new Error("Could not save profile. Please check your connection and try again.");
     }
 
@@ -136,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const sanitizedData = sanitizeUserProfile(newData);
 
     try {
-      const ref = doc(firestore, 'users', user.uid);
+      const ref = doc(db, 'users', user.uid);
       await setDoc(ref, sanitizedData, { merge: true });
     } catch (err) {
       console.error("updateUserData error:", err);
@@ -145,8 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    const firestore = getFirebaseFirestore();
-    if (!user || !firestore) throw new Error("User not authenticated or DB not available.");
+    if (!user) throw new Error("User not authenticated or DB not available.");
 
     const currentUserProfile = profile ? { ...profile } : {};
 
@@ -160,10 +145,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(prev => ({ ...prev, ...newStats }));
 
     try {
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(db, 'users', user.uid);
       await setDoc(userDocRef, sanitizeUserProfile(newStats), { merge: true });
 
-      const historyDocRef = doc(firestore, 'quizHistory', user.uid);
+      const historyDocRef = doc(db, 'quizHistory', user.uid);
       const historySnap = await getDoc(historyDocRef);
       const currentHistory = historySnap.exists() ? historySnap.data().attempts : [];
       const newHistory = [sanitizeUserProfile(attempt), ...currentHistory];
