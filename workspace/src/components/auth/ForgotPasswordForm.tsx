@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { isFirebaseConfigured, auth } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -32,6 +32,7 @@ export default function ForgotPasswordForm() {
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
+    const auth = getFirebaseAuth();
     if (!auth) {
         toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
         return;
@@ -42,16 +43,12 @@ export default function ForgotPasswordForm() {
       await sendPasswordResetEmail(auth, data.email);
       toast({
           title: 'Password Reset Email Sent',
-          description: 'A code has been sent to your email address.',
+          description: 'Please check your email for a link to reset your password.',
         });
       setIsSuccess(true);
     } catch (error: any) {
       console.error(error);
-      let description = 'Could not send reset email. Please check the address and try again.';
-      if (error.code === 'auth/network-request-failed') {
-          description = 'You appear to be offline. Please check your connection.';
-      }
-      toast({ title: 'Error', description, variant: 'destructive' });
+      toast({ title: 'Error', description: 'Could not send reset email. Please check the address and try again.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
