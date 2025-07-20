@@ -35,37 +35,58 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     if (recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current.clear();
       recaptchaVerifierRef.current = null;
-      const container = document.getElementById('recaptcha-container-in-dialog');
-      if (container) container.innerHTML = '';
+    }
+    const container = document.getElementById('recaptcha-container-in-dialog');
+    if (container) {
+      container.remove();
     }
   }, []);
-  
+
   useEffect(() => {
+    if (open) {
+      // Initialize reCAPTCHA when the dialog opens
+      let recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
+      if (!recaptchaContainer) {
+        recaptchaContainer = document.createElement('div');
+        recaptchaContainer.id = 'recaptcha-container-in-dialog';
+        document.body.appendChild(recaptchaContainer);
+      }
+
+      try {
+        const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainer, {
+          size: 'invisible',
+          'callback': () => {},
+          'expired-callback': () => {
+            setError("reCAPTCHA expired. Please try sending the code again.");
+            cleanupVerifier();
+          }
+        });
+        recaptchaVerifierRef.current = verifier;
+      } catch (e) {
+        console.error("reCAPTCHA init error:", e);
+        setError("Failed to initialize security check. Please try again.");
+      }
+    } else {
+      cleanupVerifier();
+    }
+
+    // Cleanup on component unmount
     return () => cleanupVerifier();
-  }, [cleanupVerifier]);
+  }, [open, cleanupVerifier]);
+
 
   const handleSendOtp = async () => {
     setError(null);
+    
+    const verifier = recaptchaVerifierRef.current;
+    if (!verifier) {
+      setError("Security verifier not ready. Please close and re-open the dialog.");
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
-      let recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
-      if (!recaptchaContainer) {
-          recaptchaContainer = document.createElement('div');
-          recaptchaContainer.id = 'recaptcha-container-in-dialog';
-          document.body.appendChild(recaptchaContainer);
-      } else {
-          recaptchaContainer.innerHTML = '';
-      }
-
-      const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainer, {
-        size: 'invisible',
-      });
-      
-      // Explicitly render and wait for it to be ready
-      await verifier.render();
-      recaptchaVerifierRef.current = verifier;
-
       const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
       confirmationResultRef.current = confirmationResult;
       toast({ title: "OTP Sent", description: `A code has been sent to +91${phone}` });
@@ -79,7 +100,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
         errorMessage = "You've made too many requests. Please wait a while before trying again.";
       }
       setError(errorMessage);
-      cleanupVerifier();
       setStep('initial');
     } finally {
       setIsLoading(false);
@@ -110,7 +130,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
 
   const resetStateAndClose = (isOpen: boolean) => {
     if (!isOpen) {
-      cleanupVerifier();
+      // Don't call cleanupVerifier here, it's handled by useEffect [open]
       setStep('initial');
       setOtp('');
       setError(null);
@@ -122,7 +142,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     <Dialog open={open} onOpenChange={resetStateAndClose}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
-        <div id="recaptcha-container-in-dialog"></div>
         <DialogHeader>
           <DialogTitle>Verify Phone Number</DialogTitle>
           <DialogDescription>
