@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { auth } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,15 +29,11 @@ export default function ForgotPasswordForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
+    const auth = getFirebaseAuth();
     if (!auth) {
         toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
         return;
@@ -83,7 +79,7 @@ export default function ForgotPasswordForm() {
         </CardHeader>
         <form onSubmit={emailForm.handleSubmit(handleSendResetEmail)}>
             <CardContent className="space-y-4">
-                 {isClient && !auth ? (
+                 {!isFirebaseConfigured ? (
                     <FirebaseConfigWarning />
                 ) : (
                     <div className="space-y-2">
@@ -94,7 +90,7 @@ export default function ForgotPasswordForm() {
                 )}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                 <Button type="submit" className="w-full" disabled={isLoading || (isClient && !auth)}>
+                 <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
                     {isLoading && <Loader2 className="animate-spin mr-2" />}
                     Send Reset Link
                 </Button>
