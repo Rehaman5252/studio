@@ -33,7 +33,7 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, isProfileComplete, loading: isAuthLoading } = useAuth();
+    const { user, profile } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     
@@ -43,6 +43,11 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
+    const isProfileComplete = useMemo(() => {
+        if (!profile) return false;
+        return profile.profileCompleted;
+    }, [profile]);
+    
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
         return lastAttemptInSlot.slotId === getQuizSlotId();
@@ -80,12 +85,9 @@ const QuizSelectionComponent = () => {
     
 
     const handleFaceClick = (brand: CubeBrand) => {
-        // Find the index corresponding to the clicked brand
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
-            // Set the cube to that face immediately
             setCurrentFaceIndex(clickedIndex);
-            // And then start the quiz
             handleStartQuiz(brand);
         }
     };
@@ -112,7 +114,7 @@ const QuizSelectionComponent = () => {
         setShowAuthAlert(false);
     }
     
-    if (isAuthLoading || isQuizStatusLoading) {
+    if (isQuizStatusLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
