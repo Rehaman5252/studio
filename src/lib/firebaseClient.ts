@@ -5,7 +5,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, initializeFirestore, enableIndexedDbPersistence, doc, getDoc, type Firestore } from "firebase/firestore";
 
-// Hardcoded config to guarantee connection locally.
+// ✅ Hardcoded config for now (for stability)
 const firebaseConfig = {
   apiKey: "AIzaSyAh35l6QoFhYoTUWDc7vA_LpnHN7ZaB92A",
   authDomain: "cricblitz.firebaseapp.com",
@@ -19,35 +19,27 @@ export const isFirebaseConfigured = Object.values(firebaseConfig).every(
   (value) => typeof value === 'string' && value.trim() !== ''
 );
 
-// Initialize Firebase App
-const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// ✅ Ensure app is initialized once
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Auth
+// ✅ Immediately initialized and exported
 const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
-// Initialize Firestore safely
-const db: Firestore = (() => {
-  try {
-    const firestore = initializeFirestore(app, { ignoreUndefinedProperties: true });
-    if (typeof window !== 'undefined') {
-      enableIndexedDbPersistence(firestore).catch((err) => {
+// Enable persistence once, before any db usage
+if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
         if (err.code === 'failed-precondition') {
-          console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
+          console.warn("🔥 Firestore persistence failed: multiple tabs open");
         } else if (err.code === 'unimplemented') {
-          console.warn("Firestore persistence not supported in this browser.");
+          console.warn("🔥 Firestore persistence not supported by this browser");
+        } else {
+          console.error("🔥 Unknown Firestore persistence error", err);
         }
-      });
-    }
-    return firestore;
-  } catch (error) {
-    console.error("Error initializing Firestore:", error);
-    // Fallback to getFirestore if initialize fails for some reason
-    return getFirestore(app);
-  }
-})();
+    });
+}
 
-
-// Safe getter functions
+// Safe getter functions that return the initialized instances
 export const getFirebaseApp = () => app;
 export const getFirebaseAuth = () => auth;
 export const getFirebaseFirestore = () => db;
