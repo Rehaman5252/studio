@@ -8,8 +8,9 @@ import { getFirestore, enableIndexedDbPersistence, type Firestore } from "fireba
 const firebaseConfig = {
   apiKey: "AIzaSyAh35l6QoFhYoTUWDc7vA_LpnHN7ZaB92A",
   authDomain: "cricblitz.firebaseapp.com",
+  databaseURL: "https://cricblitz-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "cricblitz",
-  storageBucket: "cricblitz.appspot.com",
+  storageBucket: "cricblitz.firebasestorage.app",
   messagingSenderId: "370076403121",
   appId: "1:370076403121:web:514b379a7fd3f3d491a990"
 };
@@ -31,5 +32,9 @@ if (typeof window !== 'undefined') {
     }
   });
 }
+
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(
+  (value) => typeof value === 'string' && value.trim() !== ''
+);
 
 export { db, auth, app };
