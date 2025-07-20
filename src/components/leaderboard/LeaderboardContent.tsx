@@ -54,7 +54,7 @@ const LiveLeaderboard = memo(() => {
 
         const db = getFirebaseFirestore();
         if (!db) {
-            setError("Cannot connect to the database. Please check your connection.");
+            setError("Couldn't connect to the database.");
             setIsLoading(false);
             return;
         }
@@ -136,51 +136,40 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        // Mock data, as a real implementation would be a complex backend query
-        const mockPlayers = [
-            { uid: 'mock-legend-1', name: 'Sachin T.', perfectScores: 102, totalPlayed: 500, avatar: 'https://placehold.co/40x40.png' },
-            { uid: 'mock-legend-2', name: 'Virat K.', perfectScores: 95, totalPlayed: 450, avatar: 'https://placehold.co/40x40.png' },
-        ];
-        
-        if (user && profile) {
-            const userIndex = mockPlayers.findIndex(p => p.uid === user.uid);
-            if (userIndex > -1) {
-                mockPlayers[userIndex] = { ...mockPlayers[userIndex], ...profile };
-            } else {
-                 mockPlayers.push({
-                    uid: user.uid,
-                    name: profile.name,
-                    perfectScores: profile.perfectScores || 0,
-                    totalPlayed: profile.quizzesPlayed || 0,
-                    avatar: profile.photoURL,
-                });
-            }
-        }
-        
-        setPlayers(mockPlayers.sort((a, b) => b.perfectScores - a.perfectScores).map((p, i) => ({...p, rank: i+1})));
-        setIsLoading(false);
+    
+    const players: AllTimePlayer[] = useMemo(() => {
+        // This is mocked for now. A real implementation would query an aggregated collection.
+        if (!profile) return [];
+        return [{
+            uid: user!.uid,
+            name: profile.name,
+            perfectScores: profile.perfectScores || 0,
+            totalPlayed: profile.quizzesPlayed || 0,
+            avatar: profile.photoURL,
+            rank: 1
+        }];
     }, [user, profile]);
+    
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
 
     if (isLoading) return <LeaderboardItemSkeleton />;
-    if (!players.length) return <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {players.map((player) => (
+                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
+                    {players.length > 0 ? players.map((player) => (
                         <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
-                            <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-                            <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-                            <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
-                            <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
-                        </motion.div>
-                    ))}
+                           <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+                           <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+                           <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
+                           <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
+                       </motion.div>
+                   )) : <p className="text-center text-muted-foreground p-4">Play quizzes to appear on the All-Time leaderboard!</p>}
                 </motion.div>
             </CardContent>
         </Card>

@@ -32,9 +32,11 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (isAuthLoading || !user) {
-      setIsHistoryLoading(false);
-      return;
+    if (isAuthLoading) return;
+    if (!user) {
+        setIsHistoryLoading(false);
+        setLastAttemptInSlot(null);
+        return;
     }
     
     const db = getFirebaseFirestore();

@@ -127,21 +127,20 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
 });
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
-const HistorySkeleton = () => (
-    <div className="space-y-4 pt-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="bg-card/80 shadow-lg">
-                <CardHeader><div className="flex justify-between items-center"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-12" /></div><Skeleton className="h-4 w-32 mt-1" /></CardHeader>
-                <CardContent className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-40" /></div><Skeleton className="h-9 w-28" /></CardContent>
-            </Card>
-        ))}
-    </div>
-);
+function HistorySkeleton() {
+    return (
+        <div className="space-y-4 pt-4">
+            {[...Array(3)].map((_, i) => (
+                <Card key={i} className="bg-card/80 shadow-lg"><CardHeader><div className="flex justify-between items-center"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-12" /></div><Skeleton className="h-4 w-32 mt-1" /></CardHeader><CardContent className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-40" /></div><Skeleton className="h-9 w-28" /></CardContent></Card>
+            ))}
+        </div>
+    );
+}
 
 const ErrorState = ({ message }: { message: string }) => (
     <div className="pt-4">
         <Alert variant="destructive">
-            {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+            {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
             <AlertTitle>Error Loading History</AlertTitle>
             <AlertDescription>{message}</AlertDescription>
         </Alert>
@@ -149,90 +148,82 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-  const { user, loading: authLoading } = useAuth();
-  const [filter, setFilter] = useState<'all' | 'perfect'>('all');
-  const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    const { user, loading: authLoading } = useAuth();
+    const [filter, setFilter] = useState<'all' | 'perfect'>('all');
+    const [history, setHistory] = useState<QuizAttempt[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Wait until auth state is confirmed
-    if (authLoading) {
-      return;
-    }
-    // If no user, stop loading and do nothing
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-    
-    // Auth is ready and we have a user, proceed.
-    const db = getFirebaseFirestore();
-    if (!db) {
-      setError("Cannot connect to the database. Please check your connection.");
-      setIsLoading(false);
-      return;
-    }
+    useEffect(() => {
+        if (authLoading) return;
+        if (!user) { setLoading(false); return; }
 
-    const fetchHistory = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const q = query(
-          collection(db, "users", user.uid, "quizAttempts"),
-          orderBy("timestamp", "desc"),
-          limit(20)
-        );
-        const snap = await getDocs(q);
-        const attempts = snap.docs.map(doc => doc.data() as QuizAttempt);
-        setHistory(attempts);
-      } catch (e: any) {
-        if (e.message.includes('offline') || e.code === 'unavailable') {
-          setError("You appear to be offline. Please check your connection.");
-        } else {
-          setError("An error occurred while loading your quiz history.");
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Couldn't connect to the database.");
+            setLoading(false);
+            return;
         }
-        console.error(e);
-      } finally {
-        setIsLoading(false);
-      }
+
+        const fetchHistory = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const q = query(
+                    collection(db, "users", user.uid, "quizAttempts"),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
+                const snap = await getDocs(q);
+                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+            } catch (e: any) {
+                console.error("Quiz History Fetch Error:", e);
+                setError("Unable to load quiz history. Please check your connection.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchHistory();
+    }, [user, authLoading]);
+
+    const filteredHistory = useMemo(() => {
+        if (filter === 'perfect') {
+            return history.filter(a => a.score === a.totalQuestions && !a.reason);
+        }
+        return history;
+    }, [history, filter]);
+
+    const renderContent = () => {
+        if (loading || authLoading) return <HistorySkeleton />;
+        if (error) return <ErrorState message={error} />;
+        if (!history.length) return (
+            <div>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
+            </div>
+        );
+        if (!filteredHistory.length && filter === 'perfect') return (
+             <div>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Perfect Scores Yet</p><p>Keep playing to achieve a perfect score!</p></CardContent></Card>
+            </div>
+        )
+        return (
+            <div className="space-y-4 pt-4">
+                {filteredHistory.map((attempt) => (
+                    <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
+                ))}
+            </div>
+        );
     };
-    
-    fetchHistory();
-  }, [user, authLoading]);
 
-  const filteredHistory = useMemo(() => {
-    if (filter === 'perfect') {
-      return history.filter(a => a.score === a.totalQuestions && !a.reason);
-    }
-    return history;
-  }, [history, filter]);
-
-  const renderContent = () => {
-    if (isLoading || authLoading) return <HistorySkeleton />;
-    if (error) return <ErrorState message={error} />;
-    if (!history.length) return (
-      <div>
-        <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
-      </div>
-    );
     return (
-      <div className="space-y-4 pt-4">
-        {filteredHistory.map((attempt) => (
-          <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
-        ))}
-      </div>
+        <>
+            <div className="flex justify-center">
+                <Tabs value={filter} onValueChange={(v) => setFilter(v as 'all' | 'perfect')} className="w-full max-w-md">
+                    <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="perfect">Perfect Scores</TabsTrigger></TabsList>
+                </Tabs>
+            </div>
+            {renderContent()}
+        </>
     );
-  };
-
-  return (
-    <>
-      <div className="flex justify-center">
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as 'all' | 'perfect')} className="w-full max-w-md">
-          <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="perfect">Perfect Scores</TabsTrigger></TabsList>
-        </Tabs>
-      </div>
-      {renderContent()}
-    </>
-  );
 }

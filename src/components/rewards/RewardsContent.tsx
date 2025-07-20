@@ -48,7 +48,7 @@ const RewardsSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Rewards</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -118,39 +118,32 @@ GenericOffer.displayName = 'GenericOffer';
 export default function RewardsContent() {
   const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-        setIsLoading(false);
-        return;
-    }
+    if (!user) { setLoading(false); return; }
 
     const db = getFirebaseFirestore();
     if (!db) {
-        setError("Cannot connect to the database. Please check your connection.");
-        setIsLoading(false);
+        setError("Firestore not available.");
+        setLoading(false);
         return;
     }
 
     const fetchHistory = async () => {
-        setIsLoading(true);
+        setLoading(true);
         setError(null);
         try {
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
             setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
-            if (e.message.includes('offline') || e.code === 'unavailable') {
-                setError("You appear to be offline. Please check your connection to see rewards.");
-            } else {
-                setError("Unable to load rewards data.");
-            }
-            console.error(e);
+            console.error("Rewards Fetch Error:", e);
+            setError("Unable to load rewards data. Please check your connection.");
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
@@ -169,7 +162,7 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
 
-  if (isLoading || authLoading) return <RewardsSkeleton />;
+  if (loading || authLoading) return <RewardsSkeleton />;
 
   return (
     <>

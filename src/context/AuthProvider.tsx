@@ -20,7 +20,6 @@ interface AuthContextType {
   lastAttempt: QuizAttempt | null;
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
-  isUserDataLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,21 +32,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const auth = getFirebaseAuth();
     if (!auth) { 
-      console.error("Firebase Auth is not available.");
-      setLoading(false); 
-      return; 
+        setLoading(false); 
+        return; 
     }
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
+    const unsub = onAuthStateChanged(auth, setUser);
+    return () => unsub();
   }, []);
 
   useEffect(() => {
     if (!user) { 
-      setProfile(null); 
-      setLoading(false); 
-      return; 
+        setProfile(null); 
+        setLoading(false); 
+        return; 
     }
     
     let isMounted = true;
@@ -81,12 +80,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           setProfile(data);
         } else {
-          // If the document doesn't exist, create it.
           await createUserDocument(user);
-          // After creation, re-fetch to ensure the context has the new profile data.
-          const newDocSnap = await getDoc(userDocRef);
-          if (isMounted && newDocSnap.exists()) {
-             setProfile(newDocSnap.data());
+          const newUserDoc = await getDoc(userDocRef);
+          if (isMounted && newUserDoc.exists()) {
+             setProfile(newUserDoc.data());
           }
         }
       } catch (error) {
@@ -114,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();
-    if (!user || !db) throw new Error("User not authenticated or database not available.");
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
 
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
@@ -147,7 +144,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     lastAttempt,
     setLastAttempt,
     isProfileComplete,
-    isUserDataLoading: loading,
   }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
 
   return (
