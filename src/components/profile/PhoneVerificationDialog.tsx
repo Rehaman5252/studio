@@ -34,63 +34,52 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const cleanupVerifier = useCallback(() => {
     if (recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current.clear();
-      recaptchaVerifierRef.current = null;
-    }
-    const container = document.getElementById('recaptcha-container-in-dialog');
-    if (container) {
-      container.innerHTML = "";
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+        const container = document.getElementById('recaptcha-container-in-dialog');
+        if (container) container.innerHTML = '';
     }
   }, []);
-
-  useEffect(() => {
-    return () => {
-      cleanupVerifier();
-    };
-  }, [cleanupVerifier]);
 
   const setupRecaptcha = useCallback(async () => {
     const auth = getFirebaseAuth();
     if (!auth || recaptchaVerifierRef.current || !open) return;
-
+  
     let container = document.getElementById('recaptcha-container-in-dialog');
     if (!container) {
       container = document.createElement('div');
       container.id = 'recaptcha-container-in-dialog';
       document.body.appendChild(container);
     }
-
+  
     const online = await isFirebaseOnline();
     if (!online) {
-      setError("You appear to be offline. Please check your connection to verify your phone number.");
+      setError("You appear to be offline.");
       return;
     }
-
+  
     try {
       const { RecaptchaVerifier } = await import('firebase/auth');
-      if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
-          size: 'invisible',
-          'callback': () => {},
-          'expired-callback': () => {
-            setError("reCAPTCHA challenge expired. Please try sending the code again.");
-            cleanupVerifier();
-          },
-        });
-        await recaptchaVerifierRef.current.render();
-      }
-    } catch (e: any) {
-      console.error("Recaptcha setup error:", e);
-      setError("Failed to initialize verification widget. Try again without VPNs/ad-blockers.");
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
+        size: 'invisible',
+        'callback': () => {},
+        'expired-callback': () => {
+          setError("reCAPTCHA expired. Try again.");
+          cleanupVerifier();
+        },
+      });
+      await verifier.render();
+      recaptchaVerifierRef.current = verifier;
+    } catch (err: any) {
+      console.error("reCAPTCHA error:", err);
+      setError("Failed to create reCAPTCHA. Disable ad-blockers or VPN.");
     }
   }, [cleanupVerifier, open]);
 
   useEffect(() => {
-    if (open && step === 'initial') {
-      setupRecaptcha();
-    }
-    if (!open) cleanupVerifier();
-  }, [open, step, setupRecaptcha, cleanupVerifier]);
+    if (open && step === 'initial') setupRecaptcha();
+  }, [open, step, setupRecaptcha]);
+
 
   const handleSendOtp = async () => {
     setError(null);
@@ -101,7 +90,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       return;
     }
 
-    await setupRecaptcha();
+    if (!recaptchaVerifierRef.current) {
+        await setupRecaptcha();
+    }
+
     const verifier = recaptchaVerifierRef.current;
     const auth = getFirebaseAuth();
 
