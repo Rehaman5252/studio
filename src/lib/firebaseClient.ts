@@ -12,55 +12,74 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validate configuration
-const isConfigValid = Object.values(firebaseConfig).every(value => value && value.trim() !== '');
+// A function to safely check if the configuration is valid
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(
+  (value) => typeof value === 'string' && value.trim() !== ''
+);
 
-if (!isConfigValid && typeof window !== 'undefined') {
-  console.error('Firebase configuration is invalid. Check your environment variables.');
+if (!isFirebaseConfigured && typeof window !== 'undefined') {
+  console.error(
+    '🔴 Firebase configuration is invalid or incomplete. Please check your environment variables.'
+  );
 }
 
-// Safe initialization functions
-function getFirebaseApp(): FirebaseApp | null {
-  if (typeof window === 'undefined' || !isConfigValid) return null;
-  
-  try {
-    return getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  } catch (error) {
-    console.error('Firebase app initialization failed:', error);
-    return null;
+// Singleton instances for client-side
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+
+function initializeFirebase() {
+  if (typeof window === 'undefined' || !isFirebaseConfigured) {
+    return;
+  }
+  if (!app) {
+    try {
+      app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      console.log("✅ Firebase initialized successfully.");
+    } catch (error) {
+      console.error("🔥 Firebase initialization error:", error);
+    }
   }
 }
 
-function getFirebaseAuth(): Auth | null {
-  const app = getFirebaseApp();
-  return app ? getAuth(app) : null;
+// Call initialization on script load in the client
+initializeFirebase();
+
+// Getter functions to ensure consumers get an initialized instance or null
+export function getFirebaseApp(): FirebaseApp | null {
+  if (!app) initializeFirebase();
+  return app;
 }
 
-function getFirebaseFirestore(): Firestore | null {
-  const app = getFirebaseApp();
-  return app ? getFirestore(app) : null;
+export function getFirebaseAuth(): Auth | null {
+  if (!auth) initializeFirebase();
+  return auth;
 }
 
-// Test Firebase connectivity
+export function getFirebaseFirestore(): Firestore | null {
+  if (!db) initializeFirebase();
+  return db;
+}
+
+
 export async function isFirebaseOnline(): Promise<boolean> {
+  const firestore = getFirebaseFirestore();
+  if (!firestore) return false;
+  
   try {
-    const db = getFirebaseFirestore();
-    if (!db) return false;
-    
-    // Create a test document reference (doesn't need to exist)
-    const testDoc = doc(db, 'system/connectivity-test');
-    await getDoc(testDoc);
+    // Firestore's getDoc can sometimes fail with "client is offline" even if the net is up.
+    // A more reliable check is a direct fetch to a known endpoint.
+    // We can use a simple fetch to Google's favicon as a proxy for internet connectivity.
+    await fetch('https://www.google.com/favicon.ico', {
+      method: 'HEAD',
+      mode: 'no-cors',
+      cache: 'no-store',
+    });
     return true;
   } catch (error) {
-    console.warn('Firebase connectivity test failed:', error);
+    console.warn("Connectivity test failed, user is likely offline:", error);
     return false;
   }
 }
-
-// Safe exports that will not be null when used correctly
-export const auth = getFirebaseAuth();
-export const db = getFirebaseFirestore();
-export const app = getFirebaseApp();
-
-// Export getter functions for guaranteed fresh instances
-export { getFirebaseAuth, getFirebaseFirestore, getFirebaseApp, isConfigValid as isFirebaseConfigured };

@@ -78,13 +78,19 @@ const LiveLeaderboard = memo(() => {
             return;
         }
         
-        const db = getFirebaseFirestore();
-        if (!db || !user) {
+        if (!user) {
             setIsLoading(false);
             return;
         }
 
         const fetchHistory = async () => {
+            const db = getFirebaseFirestore();
+            if (!db) {
+                setError("Could not connect to the database.");
+                setIsLoading(false);
+                return;
+            }
+
             setIsLoading(true);
             setError(null);
             try {
@@ -133,7 +139,7 @@ const LiveLeaderboard = memo(() => {
             } catch (e: any) {
                 console.error("Failed to fetch leaderboard data:", e);
                  if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                    setError("You are currently offline. Please check your connection to see live data.");
+                    setError("You appear to be offline. Please check your connection to see live data.");
                 } else {
                     setError("Could not load leaderboard data. Please try again later.");
                 }

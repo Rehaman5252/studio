@@ -43,7 +43,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     }
   }, []);
   
-  // Effect to clean up verifier if user navigates away mid-process
   useEffect(() => {
     return () => {
         cleanupVerifier();
@@ -52,8 +51,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const setupRecaptcha = useCallback(async () => {
     const auth = getFirebaseAuth();
-    if (!auth || recaptchaVerifierRef.current || typeof window === 'undefined' || !open) return;
+    if (!auth || recaptchaVerifierRef.current || !open) return;
     
+    // Ensure the container exists in the body
     let recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
     if (!recaptchaContainer) {
         recaptchaContainer = document.createElement('div');
@@ -63,14 +63,14 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     
     const online = await isFirebaseOnline();
     if (!online) {
-        setError("You are offline. Please check your connection to verify your phone number.");
+        setError("You appear to be offline. Please check your connection to verify your phone number.");
         return;
     }
 
     try {
         const { RecaptchaVerifier } = await import('firebase/auth');
         if (!recaptchaVerifierRef.current) {
-            const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
+            const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
                 size: 'invisible',
                 'callback': () => {},
                 'expired-callback': () => {
@@ -98,7 +98,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
     const online = await isFirebaseOnline();
     if (!online) {
-        setError("You are offline. Please check your connection and try again.");
+        setError("You appear to be offline. Please check your connection and try again.");
         return;
     }
 
@@ -107,7 +107,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     const auth = getFirebaseAuth();
 
     if (!verifier || !auth) {
-      const errorMessage = 'The verification system is not ready. Please try again in a moment.';
+      const errorMessage = 'The verification system is not ready. Please close and re-open this dialog.';
       setError(errorMessage);
       toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
       return;

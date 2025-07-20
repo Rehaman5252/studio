@@ -59,7 +59,6 @@ export default function CompleteProfileForm() {
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
-        // Initialize all fields to prevent uncontrolled to controlled error
         defaultValues: {
             name: userData?.name || user?.displayName || '',
             email: userData?.email || user?.email || '',
@@ -112,7 +111,7 @@ export default function CompleteProfileForm() {
                 updatedAt: new Date(),
             };
             
-            // Await the updateUserData to ensure optimistic state has been set
+            // Await the updateUserData to ensure optimistic state has been set locally
             await updateUserData(finalPayload);
             
             toast({ 
@@ -120,7 +119,7 @@ export default function CompleteProfileForm() {
                 description: "Your information has been updated successfully."
             });
             
-            // Now navigate. The auth context will have the latest data.
+            // Now navigate. The auth context will have the latest data, preventing race conditions.
             router.replace('/home');
 
         } catch (error: any) {

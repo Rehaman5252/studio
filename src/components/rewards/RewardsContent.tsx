@@ -34,7 +34,6 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
   const storageKey = useMemo(() => `scratch-card-${slotId}-${brand}-${timestamp}`, [slotId, brand, timestamp]);
 
   useEffect(() => {
-    // This guard ensures we don't try to access localStorage on the server.
     if (typeof window === 'undefined') return;
     const savedState = localStorage.getItem(storageKey);
     if (savedState === 'true') {
@@ -214,13 +213,19 @@ export default function RewardsContent() {
         return;
     }
 
-    const db = getFirebaseFirestore();
-    if (!db || !user) {
+    if (!user) {
         setIsLoading(false);
         return;
     }
     
     const fetchHistory = async () => {
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Could not connect to the database.");
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         try {
@@ -232,7 +237,7 @@ export default function RewardsContent() {
         } catch (e: any) {
             console.error("Failed to fetch rewards data:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You are currently offline. Please check your connection to see your rewards.");
+                setError("You appear to be offline. Please check your connection to see your rewards.");
             } else {
                 setError("Could not load your rewards. Please try again later.");
             }
@@ -255,13 +260,11 @@ export default function RewardsContent() {
       const attemptDate = new Date(attempt.timestamp).toDateString(); // 'Fri Jul 26 2024'
       const key = `${attempt.brand}-${attemptDate}`;
 
-      // Only add the first attempt for a given brand on a given day
       if (!uniqueAttempts.has(key)) {
         uniqueAttempts.set(key, attempt);
       }
     }
 
-    // Return the attempts, sorted by most recent first
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory]);
 

@@ -25,7 +25,6 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const getAnalysisCacheKey = useCallback(() => `analysis_${attempt.format}_${attempt.slotId}`, [attempt.slotId, attempt.format]);
 
     const handleFetchAnalysis = useCallback(async () => {
-        // This guard ensures we don't try to run this on the server.
         if (typeof window === 'undefined') return;
 
         const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
@@ -214,13 +213,19 @@ export default function QuizHistoryContent() {
         return;
     }
     
-    const db = getFirebaseFirestore();
-    if (!db || !user) {
+    if (!user) {
         setIsLoading(false);
         return;
     }
     
     const fetchHistory = async () => {
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Could not connect to the database.");
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         try {
@@ -234,7 +239,7 @@ export default function QuizHistoryContent() {
         } catch (e: any) {
             console.error("Failed to fetch quiz history:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You are currently offline. Please check your connection to see your history.");
+                setError("You appear to be offline. Please check your connection to see your history.");
             } else {
                 setError("Could not load your quiz history. Please try again later.");
             }

@@ -48,8 +48,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !isFirebaseConfigured) {
-      console.warn("Firebase not configured or not in a client environment. Auth will not work.");
+    if (!isFirebaseConfigured) {
+      console.warn("Firebase not configured. Auth will not work.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       return;
@@ -71,8 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    // Wait for auth check to complete and ensure we are on the client
-    if (isAuthLoading || typeof window === 'undefined') return;
+    if (isAuthLoading) return;
     
     const db = getFirebaseFirestore();
     if (!db) {
@@ -87,11 +86,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsUserDataLoading(true);
-
     const userDocRef = doc(db, 'users', user.uid);
     
     const unsubscribeUser = onSnapshot(userDocRef, 
       (docSnap) => {
+        setIsOffline(false); // We got a response, so we are online.
         if (!docSnap.exists()) {
           createUserDocument(user).then(() => {
              // The listener will re-trigger with the new data, so we just wait.
@@ -105,15 +104,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             data.dob = data.dob.toDate().toISOString().split('T')[0];
           }
           setUserData(data || null);
-          setIsUserDataLoading(false);
         }
+        setIsUserDataLoading(false);
       }, 
       (error) => {
-          console.error("Error listening to user document:", error);
-          if (error.code === 'unavailable') {
-              setIsOffline(true);
-          }
-          setIsUserDataLoading(false);
+        console.error("🔥 Firestore listener setup failed:", error);
+        if (error.code === 'unavailable' || error.message.includes('offline')) {
+            console.warn("App is offline. Could not connect to Firestore listener.");
+            setIsOffline(true);
+        }
+        setIsUserDataLoading(false);
       }
     );
 
@@ -141,6 +141,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await setDoc(ref, sanitizedData, { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
+      // Optional: Rollback optimistic update on failure
+      // setUserData(prev => ({ ...prev, ...originalData })); 
       throw new Error("Could not save profile. Please try again.");
     }
   }, [user]);

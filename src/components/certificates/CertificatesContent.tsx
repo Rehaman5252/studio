@@ -57,13 +57,19 @@ export default function CertificatesContent() {
       return;
     }
     
-    const db = getFirebaseFirestore();
-    if (!db || !user) {
+    if (!user) {
         setIsLoading(false);
         return;
     }
 
     const fetchHistory = async () => {
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Could not connect to the database.");
+            setIsLoading(false);
+            return;
+        }
+        
         setIsLoading(true);
         setError(null);
         try {
@@ -77,7 +83,7 @@ export default function CertificatesContent() {
         } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You are currently offline. Please check your connection to see your certificates.");
+                setError("You appear to be offline. Please check your connection to see your certificates.");
             } else {
                 setError("Could not load your certificates. Please try again later.");
             }
