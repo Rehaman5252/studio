@@ -8,19 +8,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from 'lucide-react';
-import { getFirebaseAuth, isFirebaseConfigured, isFirebaseOnline } from "@/lib/firebaseClient";
+import { getFirebaseAuth, isReallyOnline } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber } from "firebase/auth";
 
-interface PhoneVerificationDialogProps {
+interface Props {
   children: React.ReactNode;
   phone: string;
   onVerified: () => void;
 }
 
-export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVerificationDialogProps) {
+export function PhoneVerificationDialog({ children, phone, onVerified }: Props) {
   const { updateUserData } = useAuth();
   const { toast } = useToast();
 
@@ -34,35 +33,35 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
 
   const cleanupVerifier = useCallback(() => {
     if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-        const container = document.getElementById('recaptcha-container-in-dialog');
-        if (container) container.innerHTML = '';
+      recaptchaVerifierRef.current.clear();
+      recaptchaVerifierRef.current = null;
+      const container = document.getElementById('recaptcha-container-in-dialog');
+      if (container) container.innerHTML = '';
     }
   }, []);
 
   const setupRecaptcha = useCallback(async () => {
     const auth = getFirebaseAuth();
     if (!auth || recaptchaVerifierRef.current || !open) return;
-  
+
     let container = document.getElementById('recaptcha-container-in-dialog');
     if (!container) {
       container = document.createElement('div');
       container.id = 'recaptcha-container-in-dialog';
       document.body.appendChild(container);
     }
-  
-    const online = await isFirebaseOnline();
+
+    const online = await isReallyOnline();
     if (!online) {
-      setError("You appear to be offline.");
+      setError("You appear to be offline. Please check your connection.");
       return;
     }
-  
+
     try {
       const { RecaptchaVerifier } = await import('firebase/auth');
       const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
         size: 'invisible',
-        'callback': () => {},
+        callback: () => {},
         'expired-callback': () => {
           setError("reCAPTCHA expired. Try again.");
           cleanupVerifier();
@@ -70,60 +69,48 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       });
       await verifier.render();
       recaptchaVerifierRef.current = verifier;
-    } catch (err: any) {
-      console.error("reCAPTCHA error:", err);
-      setError("Failed to create reCAPTCHA. Disable ad-blockers or VPN.");
+    } catch (e: any) {
+      console.error("reCAPTCHA error:", e);
+      setError("Failed to load reCAPTCHA. Check network or disable blockers.");
     }
-  }, [cleanupVerifier, open]);
+  }, [open, cleanupVerifier]);
 
   useEffect(() => {
-    if (open && step === 'initial') setupRecaptcha();
-  }, [open, step, setupRecaptcha]);
+    return () => cleanupVerifier();
+  }, [cleanupVerifier]);
 
+  useEffect(() => {
+    if (open && step === 'initial') {
+      setupRecaptcha();
+    }
+  }, [open, step, setupRecaptcha]);
 
   const handleSendOtp = async () => {
     setError(null);
-
-    const online = await isFirebaseOnline();
+    const online = await isReallyOnline();
     if (!online) {
-      setError("You appear to be offline. Please check your connection and try again.");
+      setError("You're offline. Connect to the internet.");
       return;
     }
 
-    if (!recaptchaVerifierRef.current) {
-        await setupRecaptcha();
-    }
-
+    await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
     const auth = getFirebaseAuth();
 
     if (!verifier || !auth) {
-      const errorMessage = 'The verification system is not ready. Please close and re-open this dialog.';
-      setError(errorMessage);
-      toast({ title: 'Verifier Not Ready', description: errorMessage, variant: 'destructive' });
+      setError("Verifier not ready. Close and try again.");
       return;
     }
 
     setIsLoading(true);
-
     try {
-      const fullPhoneNumber = `+91${phone}`;
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, verifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
       confirmationResultRef.current = confirmationResult;
-      toast({ title: 'OTP Sent', description: `A code has been sent to ${fullPhoneNumber}.` });
+      toast({ title: "OTP Sent", description: `Code sent to +91 ${phone}` });
       setStep('verify');
     } catch (err: any) {
-      console.error("Error sending OTP:", err.code, err.message);
-      let description = 'Failed to send OTP. Please check the phone number and try again.';
-      if (err.code === 'auth/invalid-phone-number') {
-        description = 'The phone number format is invalid. Please ensure it is 10 digits.';
-      } else if (err.code === 'auth/too-many-requests') {
-        description = "You've requested this too many times. Please try again later.";
-      } else if (err.code?.includes('internal-error') || err.message?.includes('reCAPTCHA') || err.message?.includes('offline')) {
-        description = "An internal error occurred, often due to ad blockers, VPNs, or network issues. Please disable them and try again.";
-      }
-      setError(description);
-      toast({ title: 'Error Sending OTP', description, variant: 'destructive', duration: 9000 });
+      console.error("OTP error:", err);
+      setError("Failed to send OTP. Check format or wait.");
       cleanupVerifier();
       setStep('initial');
     } finally {
@@ -136,20 +123,16 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
     const confirmation = confirmationResultRef.current;
     if (!confirmation) return;
     setIsLoading(true);
+
     try {
       await confirmation.confirm(otp);
-
-      if (updateUserData) {
-        await updateUserData({ phoneVerified: true, phone: phone });
-      }
-
-      toast({ title: 'Success', description: 'Your phone number has been verified.' });
+      await updateUserData?.({ phoneVerified: true, phone });
+      toast({ title: "Verified", description: "Phone number verified." });
       onVerified();
       resetStateAndClose(false);
     } catch (err: any) {
-      console.error('Error verifying OTP:', err);
-      setError('The code you entered is incorrect. Please try again.');
-      toast({ title: 'Verification Failed', description: 'The code you entered is incorrect.', variant: 'destructive' });
+      setError("Invalid code. Try again.");
+      toast({ title: "Failed", description: "Wrong code entered.", variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -160,15 +143,10 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
       cleanupVerifier();
       setStep('initial');
       setOtp('');
-      setIsLoading(false);
       setError(null);
     }
     setOpen(isOpen);
   };
-
-  if (!isFirebaseConfigured) {
-    return <>{children}</>;
-  }
 
   return (
     <Dialog open={open} onOpenChange={resetStateAndClose}>
@@ -178,18 +156,19 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
           <DialogTitle>Verify Phone Number</DialogTitle>
           <DialogDescription>
             {step === 'initial'
-              ? `We'll send a verification code to +91 ${phone}.`
-              : `Enter the 6-digit code sent to +91 ${phone}.`}
+              ? `We’ll send a code to +91 ${phone}`
+              : `Enter the code sent to +91 ${phone}`}
           </DialogDescription>
         </DialogHeader>
-        
+
         {error && (
-            <Alert variant="destructive">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Verification Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
+          <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Verification Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
+
         {step === 'verify' && (
           <div className="py-4">
             <Input
@@ -202,16 +181,16 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
             />
           </div>
         )}
-        
+
         <DialogFooter>
           {step === 'initial' ? (
             <Button onClick={handleSendOtp} disabled={isLoading} className="w-full">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Sending...' : 'Send Code'}
             </Button>
           ) : (
             <div className="w-full flex justify-between">
-              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); setupRecaptcha(); }} disabled={isLoading}>Back</Button>
+              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setupRecaptcha(); }} disabled={isLoading}>Back</Button>
               <Button onClick={handleVerifyOtp} disabled={isLoading || otp.length < 6}>
                 {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify & Save'}
               </Button>

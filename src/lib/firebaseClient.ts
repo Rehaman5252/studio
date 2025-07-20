@@ -61,7 +61,7 @@ export const getFirebaseFirestore = () => db;
 
 
 // Test Firebase connectivity
-export async function isFirebaseOnline(): Promise<boolean> {
+export async function isReallyOnline(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
   const firestore = getFirebaseFirestore();
