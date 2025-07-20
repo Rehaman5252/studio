@@ -52,15 +52,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isOffline, setIsOffline] = useState(() => {
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      return !navigator.onLine;
+    }
+    return false; // Default to online during SSR
+  });
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
+    if (typeof window !== 'undefined') {
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+    }
+    
     const auth = getFirebaseAuth();
     if (!auth) {
       setIsLoading(false);
@@ -72,9 +79,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        }
         unsubscribe();
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
