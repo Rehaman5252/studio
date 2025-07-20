@@ -14,45 +14,16 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Singleton instances
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 let persistenceEnabled = false;
 
-// Initialize app (if not already initialized)
-if (typeof window !== 'undefined' && !getApps().length) {
+if (typeof window !== "undefined" && !getApps().length) {
   app = initializeApp(firebaseConfig);
-} else if (typeof window !== 'undefined') {
+} else if (typeof window !== "undefined") {
   app = getApp();
 }
-
-/**
- * Initializes and returns the Firestore instance, enabling persistence only once.
- * This is the safe way to get the db instance throughout the app.
- * @returns The Firestore instance or null if on the server.
- */
-function initializeFirestore(): Firestore | null {
-  if (!app) return null;
-
-  if (!db) {
-    db = getFirestore(app);
-  }
-
-  if (!persistenceEnabled) {
-    persistenceEnabled = true; // Set flag immediately to prevent race conditions
-    enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
-      } else if (err.code === 'unimplemented') {
-        console.warn("Firestore persistence is not available in this browser.");
-      }
-    });
-  }
-  
-  return db;
-}
-
 
 export function getFirebaseAuth(): Auth | null {
   if (!app) return null;
@@ -63,8 +34,21 @@ export function getFirebaseAuth(): Auth | null {
 }
 
 export function getFirebaseFirestore(): Firestore | null {
-  if (typeof window === 'undefined') return null;
-  return initializeFirestore();
+  if (!app) return null;
+  if (!db) {
+    db = getFirestore(app);
+    if (!persistenceEnabled) {
+      persistenceEnabled = true;
+      enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
+        } else if (err.code === 'unimplemented') {
+          console.warn("Firestore persistence is not available in this browser.");
+        }
+      });
+    }
+  }
+  return db;
 }
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);

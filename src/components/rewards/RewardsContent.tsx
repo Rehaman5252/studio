@@ -205,7 +205,7 @@ export default function RewardsContent() {
     const allAttempts = (quizHistory as QuizAttempt[]).filter(attempt => !attempt.reason);
 
     for (const attempt of allAttempts) {
-      const attemptDate = new Date(attempt.timestamp).toDateString(); // 'Fri Jul 26 2024'
+      const attemptDate = new Date(attempt.timestamp).toDateString();
       const key = `${attempt.brand}-${attemptDate}`;
 
       if (!uniqueAttempts.has(key)) {
