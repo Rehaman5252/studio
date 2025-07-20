@@ -12,8 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
+import { getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
@@ -73,20 +73,28 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Firestore not available");
-            setIsLoading(false);
-            return;
-        }
-
-        const fetchHistory = async () => {
+        const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
+
+            const online = await isFirebaseOnline();
+            if (!online) {
+                setError("You appear to be offline. Please check your connection to see live data.");
+                setIsLoading(false);
+                return;
+            }
+
+            const db = getFirebaseFirestore();
+            if (!db) {
+                setError("Could not connect to the database.");
+                setIsLoading(false);
+                return;
+            }
+
             try {
                 // In a real-world high-traffic app, this data would come from a separate, aggregated 'liveLeaderboard' collection.
-                // For this example, we'll construct it from recent user history, which works for smaller-scale apps.
-                const livePlayers: LivePlayer[] = [
+                // For this example, we'll construct it from recent user history and mock data.
+                const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
@@ -101,7 +109,7 @@ const LiveLeaderboard = memo(() => {
                         const currentSlotId = getQuizSlotId();
                         const userAttempt = history.find(a => a.slotId === currentSlotId);
                         if (userAttempt) {
-                            livePlayers.push({
+                            mockLivePlayers.push({
                                 uid: user.uid,
                                 name: profile?.name || 'You',
                                 score: userAttempt.score,
@@ -113,7 +121,7 @@ const LiveLeaderboard = memo(() => {
                     }
                 }
                 
-                const uniquePlayers = Array.from(new Map(livePlayers.map(p => [p.uid, p])).values());
+                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
 
                 const sortedPlayers = uniquePlayers.sort((a, b) => {
                      if (a.disqualified && !b.disqualified) return 1;
@@ -125,17 +133,13 @@ const LiveLeaderboard = memo(() => {
                 setPlayers(sortedPlayers);
             } catch (e: any) {
                 console.error("Failed to fetch leaderboard data:", e);
-                 if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                    setError("You appear to be offline. Please check your connection to see live data.");
-                } else {
-                    setError("Could not load leaderboard data. Please try again later.");
-                }
+                setError("Could not load leaderboard data. Please try again later.");
             } finally {
                 setIsLoading(false);
             }
         }
         
-        fetchHistory();
+        fetchLivePlayers();
         
     }, [user, profile]);
 
@@ -284,6 +288,7 @@ const AllTimeLeaderboard = memo(() => {
     );
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
+
 
 export default function LeaderboardContent() {
   const { user } = useAuth();
