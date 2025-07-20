@@ -12,7 +12,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { doc, getDoc, getDocs, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -201,13 +201,15 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-  const { user } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const [filter, setFilter] = useState<'all' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isAuthLoading) return; 
+
     if (!user) {
         setIsLoading(false);
         return;
@@ -218,7 +220,7 @@ export default function QuizHistoryContent() {
         setError(null);
         const db = getFirebaseFirestore();
         if (!db) {
-            setError("Firestore is not available.");
+            setError("You appear to be offline. Please check your connection to see your history.");
             setIsLoading(false);
             return;
         }
@@ -243,7 +245,7 @@ export default function QuizHistoryContent() {
         }
     }
     fetchHistory();
-  }, [user]);
+  }, [user, isAuthLoading]);
 
   const filteredHistory = useMemo(() => {
     if (!quizHistory) return [];

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, memo, useEffect } from 'react';
+import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
@@ -153,12 +153,14 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsContent() {
-  const { user } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isAuthLoading) return;
+
     if (!user) {
         setIsLoading(false);
         return;
@@ -169,7 +171,7 @@ export default function RewardsContent() {
         setError(null);
         const db = getFirebaseFirestore();
         if (!db) {
-            setError("Firestore is not available.");
+            setError("You appear to be offline. Please check your connection to see your rewards.");
             setIsLoading(false);
             return;
         }
@@ -192,7 +194,7 @@ export default function RewardsContent() {
         }
     }
     fetchHistory();
-  }, [user]);
+  }, [user, isAuthLoading]);
 
   const hasAttempts = quizHistory.length > 0;
 

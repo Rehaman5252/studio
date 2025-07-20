@@ -13,7 +13,7 @@ import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { doc, getDoc } from 'firebase/firestore';
-import { getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
@@ -73,34 +73,24 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchLivePlayers = async () => {
+        const fetchHistory = async () => {
             setIsLoading(true);
             setError(null);
-
-            const online = await isFirebaseOnline();
-            if (!online) {
-                setError("You appear to be offline. Please check your connection to see live data.");
-                setIsLoading(false);
-                return;
-            }
-
             const db = getFirebaseFirestore();
             if (!db) {
-                setError("Could not connect to the database.");
-                setIsLoading(false);
-                return;
+              setError("You appear to be offline. Please check your connection to see live data.");
+              setIsLoading(false);
+              return;
             }
 
             try {
-                // In a real-world high-traffic app, this data would come from a separate, aggregated 'liveLeaderboard' collection.
-                // For this example, we'll construct it from recent user history and mock data.
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
-
+                
                 if (user) {
                     const historyDocRef = doc(db, 'quizHistory', user.uid);
                     const docSnap = await getDoc(historyDocRef);
@@ -133,13 +123,17 @@ const LiveLeaderboard = memo(() => {
                 setPlayers(sortedPlayers);
             } catch (e: any) {
                 console.error("Failed to fetch leaderboard data:", e);
-                setError("Could not load leaderboard data. Please try again later.");
+                 if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                    setError("You appear to be offline. Please check your connection to see live data.");
+                } else {
+                    setError("Could not load leaderboard data. Please try again later.");
+                }
             } finally {
                 setIsLoading(false);
             }
         }
         
-        fetchLivePlayers();
+        fetchHistory();
         
     }, [user, profile]);
 
@@ -291,7 +285,11 @@ AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
 
 export default function LeaderboardContent() {
-  const { user } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
+
+  if (isAuthLoading) {
+    return <LeaderboardItemSkeleton />;
+  }
 
   return (
     <Tabs defaultValue="live" className="w-full">
@@ -310,3 +308,4 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
+
