@@ -30,6 +30,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+  // ERROR: The reCAPTCHA verifier is not being managed correctly.
+  // It can cause issues if it's not cleaned up or if it's initialized multiple times.
+  // This can lead to intermittent failures in sending the OTP.
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   const cleanupVerifier = useCallback(() => {

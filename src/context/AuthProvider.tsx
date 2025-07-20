@@ -81,6 +81,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
+    // ERROR: This onSnapshot fetches the ENTIRE user document on every app start.
+    // If the document contains a large `quizHistory` array, this is the primary cause of the app's slow load time.
+    // This data should be removed from the main user document and loaded on-demand in the specific pages that need it.
     const userDocRef = doc(firestore, 'users', user.uid);
     const unsubscribeUser = onSnapshot(userDocRef, 
       (docSnap) => {
@@ -110,6 +113,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeUser();
   }, [user]);
 
+
+  // ERROR: This function lacks an "optimistic update".
+  // The UI has to wait for the database write to complete before it sees the change, making it feel slow.
+  // The local `profile` state should be updated immediately before the `setDoc` call.
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
     const firestore = getFirebaseFirestore();
     if (!user || !firestore) {
