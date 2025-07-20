@@ -5,6 +5,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, initializeFirestore, enableIndexedDbPersistence, doc, getDoc, type Firestore } from "firebase/firestore";
 
+// Hardcoded config to guarantee connection locally.
 const firebaseConfig = {
   apiKey: "AIzaSyAh35l6QoFhYoTUWDc7vA_LpnHN7ZaB92A",
   authDomain: "cricblitz.firebaseapp.com",
@@ -24,24 +25,27 @@ const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) 
 // Initialize Auth
 const auth: Auth = getAuth(app);
 
-// Initialize Firestore with offline persistence
-let db: Firestore;
-
-try {
-  db = initializeFirestore(app, { ignoreUndefinedProperties: true });
-  if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code == 'failed-precondition') {
-        console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
-      } else if (err.code == 'unimplemented') {
-        console.warn("Firestore persistence not supported in this browser.");
-      }
-    });
+// Initialize Firestore safely
+const db: Firestore = (() => {
+  try {
+    const firestore = initializeFirestore(app, { ignoreUndefinedProperties: true });
+    if (typeof window !== 'undefined') {
+      enableIndexedDbPersistence(firestore).catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
+        } else if (err.code === 'unimplemented') {
+          console.warn("Firestore persistence not supported in this browser.");
+        }
+      });
+    }
+    return firestore;
+  } catch (error) {
+    console.error("Error initializing Firestore:", error);
+    // Fallback to getFirestore if initialize fails for some reason
+    return getFirestore(app);
   }
-} catch (error) {
-    console.error("Error initializing Firestore:", error)
-    db = getFirestore(app);
-}
+})();
+
 
 // Safe getter functions
 export const getFirebaseApp = () => app;
