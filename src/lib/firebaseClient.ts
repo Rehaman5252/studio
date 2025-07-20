@@ -32,17 +32,11 @@ const auth: Auth = getAuth(app);
 
 // Initialize Firestore with offline persistence
 let db: Firestore;
-let persistenceEnabled = false;
 
 try {
-  // Use initializeFirestore to enable settings before first use
   db = initializeFirestore(app, { ignoreUndefinedProperties: true });
-  if (typeof window !== 'undefined' && !persistenceEnabled) {
-    // enableIndexedDbPersistence must be called before any other Firestore operation
-    enableIndexedDbPersistence(db).then(() => {
-        persistenceEnabled = true;
-        console.log("Firestore offline persistence enabled.");
-    }).catch((err) => {
+  if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
       if (err.code == 'failed-precondition') {
         console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
       } else if (err.code == 'unimplemented') {
@@ -52,7 +46,6 @@ try {
   }
 } catch (error) {
     console.error("Error initializing Firestore:", error)
-    // If initialization fails, fall back to the standard getFirestore
     db = getFirestore(app);
 }
 
@@ -70,9 +63,6 @@ export async function isReallyOnline(): Promise<boolean> {
   if (!firestore) return false;
 
   try {
-    // Firestore's getDoc will use the cache if offline, but fail if there's no network and no cache.
-    // The specific error for network failure is 'unavailable'.
-    // We connect to a document that is unlikely to be cached.
     const testDocRef = doc(firestore, `system/connectivity-test-${Date.now()}`);
     await getDoc(testDocRef);
     return true;

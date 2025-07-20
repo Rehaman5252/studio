@@ -223,7 +223,6 @@ export default function RewardsContent() {
         setIsLoading(true);
         setError(null);
         try {
-            // CORRECTED: Fetching from the main quizHistory collection, not a nested one.
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             const docSnap = await getDoc(historyDocRef);
             if (docSnap.exists()) {
