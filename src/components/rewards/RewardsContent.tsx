@@ -151,9 +151,6 @@ const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, i
     ) : error ? (
         <ErrorState message={error} />
     ) : isLoggedIn ? (
-        // ERROR: This logic is incomplete. It doesn't handle the case where `rewardableAttempts` is empty
-        // but `hasAttempts` is true, which means the user has played but already claimed all rewards.
-        // This will result in an empty UI with no explanation.
         rewardableAttempts.length > 0 ? (
             <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
                 <CarouselContent className="-ml-4">
@@ -207,7 +204,6 @@ GenericOffersSection.displayName = 'GenericOffersSection';
 export default function RewardsContent() {
   const { user } = useAuth();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  // ERROR: Missing proper loading and error state management.
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -222,7 +218,6 @@ export default function RewardsContent() {
         return;
     }
     
-    // ERROR: This fetch logic lacks error handling. If `getDoc` fails, the component will be stuck in a loading state.
     const fetchHistory = async () => {
         const db = getFirebaseFirestore();
         if (!db) {

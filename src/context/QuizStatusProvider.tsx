@@ -41,14 +41,20 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
         const historyDocRef = doc(db, 'quizHistory', user.uid);
-        const docSnap = await getDoc(historyDocRef);
-        if (docSnap.exists()) {
-            const history = (docSnap.data().attempts || []).sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-            const currentSlotId = getQuizSlotId();
-            const lastAttempt = history.find((attempt: QuizAttempt) => attempt.slotId === currentSlotId) || null;
-            setLastAttemptInSlot(lastAttempt);
+        try {
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                const history = (docSnap.data().attempts || []).sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                const currentSlotId = getQuizSlotId();
+                const lastAttempt = history.find((attempt: QuizAttempt) => attempt.slotId === currentSlotId) || null;
+                setLastAttemptInSlot(lastAttempt);
+            }
+        } catch (error) {
+            console.error("Failed to fetch last quiz attempt:", error);
+            setLastAttemptInSlot(null);
+        } finally {
+            setIsHistoryLoading(false);
         }
-        setIsHistoryLoading(false);
     }
     fetchLastAttempt();
   }, [user]);

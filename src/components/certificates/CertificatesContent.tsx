@@ -48,13 +48,9 @@ export default function CertificatesContent() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  // ERROR: `isLoading` is not managed properly. It's set to true and never changed.
   const [isLoading, setIsLoading] = useState(true);
-  // ERROR: `error` state is not handled. If the data fetch fails, the UI will be blank.
   const [error, setError] = useState<string | null>(null);
 
-  // ERROR: This useEffect is missing error handling and proper loading state management.
-  // If `getDoc` fails, the user will see a blank screen instead of an error message.
   useEffect(() => {
     if (typeof window === 'undefined') {
       setIsLoading(false);

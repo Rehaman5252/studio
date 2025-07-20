@@ -1,8 +1,9 @@
 
-// lib/firebaseClient.ts
+'use client';
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, initializeFirestore, enableIndexedDbPersistence, doc, getDoc, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,7 +14,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validate configuration
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(
   (value) => typeof value === 'string' && value.trim() !== ''
 );
@@ -24,41 +24,54 @@ if (!isFirebaseConfigured && typeof window !== 'undefined') {
   );
 }
 
-// Safe initialization functions
-function getFirebaseApp(): FirebaseApp | null {
-  if (typeof window === "undefined" || !isFirebaseConfigured) return null;
-  
-  try {
-    return getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  } catch (error) {
-    console.error('Firebase app initialization failed:', error);
-    return null;
+// Initialize Firebase App
+const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// Initialize Auth
+const auth: Auth = getAuth(app);
+
+// Initialize Firestore with offline persistence
+let db: Firestore;
+let persistenceEnabled = false;
+
+try {
+  db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  if (typeof window !== 'undefined' && !persistenceEnabled) {
+    enableIndexedDbPersistence(db).then(() => {
+        persistenceEnabled = true;
+        console.log("Firestore offline persistence enabled.");
+    }).catch((err) => {
+      if (err.code == 'failed-precondition') {
+        console.warn("Firestore persistence failed: multiple tabs open.");
+      } else if (err.code == 'unimplemented') {
+        console.warn("Firestore persistence not supported in this browser.");
+      }
+    });
   }
+} catch (error) {
+    console.error("Error initializing Firestore:", error)
+    // If initialization fails, fall back to the standard getFirestore
+    db = getFirestore(app);
 }
 
-function getFirebaseAuth(): Auth | null {
-  const app = getFirebaseApp();
-  return app ? getAuth(app) : null;
-}
+// Safe getter functions
+export const getFirebaseApp = () => app;
+export const getFirebaseAuth = () => auth;
+export const getFirebaseFirestore = () => db;
 
-function getFirebaseFirestore(): Firestore | null {
-  const app = getFirebaseApp();
-  return app ? getFirestore(app) : null;
-}
 
 // Test Firebase connectivity
 export async function isFirebaseOnline(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  const firestore = getFirebaseFirestore();
+  if (!firestore) return false;
+
   try {
-    const db = getFirebaseFirestore();
-    if (!db) return false;
-    
-    // This is a lightweight operation that doesn't require a real document.
-    // It's used to check if the client can reach the Firestore service.
-    const testDoc = doc(db, 'system/ping-test');
-    await getDoc(testDoc);
+    const testDocRef = doc(firestore, 'system/ping-test');
+    await getDoc(testDocRef);
     return true;
   } catch (error: any) {
-    // An error here (especially 'unavailable') strongly suggests an offline state.
     if (error.code === 'unavailable') {
         console.warn('Firebase connectivity test failed: Client is offline.');
     } else {
@@ -67,6 +80,3 @@ export async function isFirebaseOnline(): Promise<boolean> {
     return false;
   }
 }
-
-// Export getter functions for guaranteed fresh instances
-export { getFirebaseAuth, getFirebaseFirestore, getFirebaseApp };

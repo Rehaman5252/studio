@@ -75,13 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const firestore = getFirebaseFirestore();
-      if (!firestore) {
-        console.error("Firestore not available");
-        setIsLoading(false);
-        setIsOffline(true);
-        return;
-      }
-      
+      if (!firestore) return;
+
       const userDocRef = doc(firestore, 'users', user.uid);
 
       const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
@@ -105,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       });
 
-      return unsubscribe;
+      return () => unsubscribe();
     };
 
     const unsubscribePromise = setupListener();

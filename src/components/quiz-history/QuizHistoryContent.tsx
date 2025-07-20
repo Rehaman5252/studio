@@ -204,11 +204,7 @@ export default function QuizHistoryContent() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  // ERROR: `isLoading` is not managed properly. It's set to true initially and never false,
-  // so the skeleton loader will show forever. It should be set to false in the `finally` block of the fetch.
   const [isLoading, setIsLoading] = useState(true);
-  // ERROR: `error` state is not handled. If the `getDoc` fails, the user sees a blank page.
-  // There should be a `try...catch` block in the `useEffect` to set this error state.
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

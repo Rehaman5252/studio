@@ -93,11 +93,6 @@ export default function CompleteProfileForm() {
     const watchedPhone = form.watch('phone');
     const needsVerification = watchedPhone !== profile?.phone || !profile?.phoneVerified;
 
-    // ERROR: This function creates a race condition.
-    // It calls `updateUserData`, which is async, but doesn't `await` it.
-    // It immediately navigates with `router.replace('/home')`.
-    // The AuthProvider's state might not be updated before the homepage renders, causing a redirect loop.
-    // The `await` keyword should be used before `updateUserData` and the navigation should happen *after*.
     const onSubmit = async (data: ProfileFormValues) => {
         if (isSubmitting) return;
 

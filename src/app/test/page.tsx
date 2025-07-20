@@ -9,11 +9,13 @@ import { useEffect, useState } from 'react';
 
 export default function FirebaseTestPage() {
   const { user, profile, loading: isAuthLoading, isUserDataLoading } = useAuth();
-  const db = getFirebaseFirestore();
+  const [dbStatus, setDbStatus] = useState<boolean | null>(null);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
     isFirebaseOnline().then(setIsOnline);
+    const db = getFirebaseFirestore();
+    setDbStatus(!!db);
   }, []);
 
   const isLoading = isAuthLoading || isUserDataLoading;
@@ -74,6 +76,7 @@ export default function FirebaseTestPage() {
                     {user && profile && `User document found for ${profile.name}. Firestore is connected.`}
                     {user && !profile && 'Auth is working, but no Firestore document was found for this user. (This is normal for a new user).'}
                     {!user && 'Waiting for an authenticated user to check Firestore.'}
+                    {!dbStatus && 'Firestore DB instance is not available.'}
                 </AlertDescription>
             </Alert>
           </>

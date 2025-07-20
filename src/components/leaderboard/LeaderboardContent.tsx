@@ -69,12 +69,9 @@ const ErrorState = ({ message }: { message: string }) => (
 const LiveLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
-    // ERROR: Missing proper loading and error state management.
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // ERROR: This fetch logic lacks proper error handling in a `try...catch` block.
-    // If the `getDoc` fails, the user will see a blank page.
     useEffect(() => {
         if (typeof window === 'undefined') {
             setIsLoading(false);
