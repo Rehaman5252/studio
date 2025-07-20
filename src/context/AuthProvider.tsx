@@ -35,6 +35,7 @@ interface AuthContextType {
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
   loading: boolean;
+  isUserDataLoading: boolean;
   isOffline: boolean;
   updateUserData?: (newData: Partial<DocumentData>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
@@ -54,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   
   const [isOffline, setIsOffline] = useState<boolean>(() => {
     if (typeof navigator !== 'undefined') return !navigator.onLine;
@@ -63,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const forceRefreshData = useCallback(async () => {
     if (!user || isOffline) return;
     setLoading(true);
+    setIsUserDataLoading(true);
     try {
         const userDocRef = doc(db, 'users', user.uid);
         const historyDocRef = doc(db, 'quizHistory', user.uid);
@@ -90,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to force refresh data:", error);
     } finally {
         setLoading(false);
+        setIsUserDataLoading(false);
     }
   }, [user, isOffline]);
 
@@ -105,6 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!auth) {
       console.error("Firebase Auth not initialized.");
       setLoading(false);
+      setIsUserDataLoading(false);
       return;
     }
 
@@ -123,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubs: (() => void)[] = [];
 
     if (user && !isOffline) {
-        setLoading(true);
+        setIsUserDataLoading(true);
         const userDocRef = doc(db, 'users', user.uid);
         const historyDocRef = doc(db, 'quizHistory', user.uid);
 
@@ -137,7 +142,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } else {
                 await createUserDocument(user);
             }
-        }, (error) => console.error("Profile snapshot error:", error));
+             setIsUserDataLoading(false);
+             setLoading(false);
+        }, (error) => {
+            console.error("Profile snapshot error:", error);
+            setIsUserDataLoading(false);
+            setLoading(false);
+        });
 
         const unsubHistory = onSnapshot(historyDocRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -151,14 +162,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         unsubs.push(unsubProfile, unsubHistory);
 
-        // This is a simple way to determine when initial data has loaded
-        Promise.all([getDoc(userDocRef), getDoc(historyDocRef)]).finally(() => setLoading(false));
-
     } else {
       setUser(null);
       setProfile(null);
       setQuizHistory([]);
       setLoading(false);
+      setIsUserDataLoading(false);
     }
 
     return () => unsubs.forEach(unsub => unsub());
@@ -184,13 +193,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("User not authenticated or DB not available.");
     }
     
-    // Optimistically update local state for immediate UI feedback
     setQuizHistory(prev => [attempt, ...prev].sort((a,b) => b.timestamp - a.timestamp));
     
     try {
         const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
         
-        // Fetch latest profile to avoid race conditions
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
         const currentProfile = userDocSnap.data() || {};
@@ -212,7 +219,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error("Error adding quiz attempt:", error);
-      // Revert optimistic update on failure
       setQuizHistory(prev => prev.filter(a => a.timestamp !== attempt.timestamp));
       throw error;
     }
@@ -231,11 +237,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLastAttempt,
     isProfileComplete,
     loading,
+    isUserDataLoading,
     isOffline,
     updateUserData,
     addQuizAttempt,
     forceRefreshData,
-  }), [user, profile, quizHistory, lastAttempt, isProfileComplete, loading, isOffline, updateUserData, addQuizAttempt, forceRefreshData]);
+  }), [user, profile, quizHistory, lastAttempt, isProfileComplete, loading, isUserDataLoading, isOffline, updateUserData, addQuizAttempt, forceRefreshData]);
 
   return (
     <AuthContext.Provider value={value}>

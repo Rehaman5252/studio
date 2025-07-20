@@ -84,8 +84,9 @@ function ResultsComponent() {
         const reason = finalAttempt?.reason || searchParams.get('reason');
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        const { questions = [], userAnswers = [], brand = 'N/A', format = 'N/A', timePerQuestion = [], usedHintIndices = [], score = 0, totalQuestions: total = 0, slotId = '', timestamp: attemptTimestamp } = finalAttempt || {};
+        const { questions = [], userAnswers = [], brand = 'N/A', format = 'N/A', timePerQuestion = [], usedHintIndices = [], score = 0, slotId = '', timestamp: attemptTimestamp } = finalAttempt || {};
         
+        const total = finalAttempt?.totalQuestions || questions.length || 0;
         const isPerfect = score === total && total > 0;
         
         let timings = '';
