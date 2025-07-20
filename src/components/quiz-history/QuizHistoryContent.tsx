@@ -10,9 +10,8 @@ import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, 
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
-import { useAuth } from '@/context/AuthProvider';
+import { useSafeFirestore } from '@/hooks/useSafeFirestore';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -25,7 +24,6 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const getAnalysisCacheKey = useCallback(() => `analysis_${attempt.format}_${attempt.slotId}`, [attempt.slotId, attempt.format]);
 
     const handleFetchAnalysis = useCallback(async () => {
-        if (typeof window === 'undefined') return;
         const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
         if (cachedAnalysis) {
             setAnalysis(cachedAnalysis);
@@ -148,55 +146,43 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, firestore, loading: authLoading } = useSafeFirestore();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
-        if (!user) { setLoading(false); return; }
+        if (!user || !firestore) {
+            setLoading(false);
+            if (!firestore) setError("You appear to be offline. Please check your connection.");
+            return;
+        }
 
         let isMounted = true;
+        setLoading(true); 
+        setError(null);
+        
         const fetchHistory = async () => {
-            if (!isMounted) return;
-
-            setLoading(true); 
-            setError(null);
-            
-            const db = getFirebaseFirestore();
-            if (!db) { 
-                setError("Unable to connect to database. Please check your connection."); 
-                setLoading(false); 
-                return; 
-            }
-
             try {
                 const q = query(
-                    collection(db, "users", user.uid, "quizAttempts"),
+                    collection(firestore, "users", user.uid, "quizAttempts"),
                     orderBy("timestamp", "desc"),
                     limit(50)
                 );
                 const snap = await getDocs(q);
-                if (isMounted) {
-                    setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
-                }
+                if (isMounted) setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
             } catch (e: any) {
-                if (isMounted) {
-                    console.error("Quiz History Fetch Error:", e);
-                    setError("Unable to load quiz history. Please check your connection.");
-                }
+                if (isMounted) setError("Unable to load quiz history.");
             } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
+                if (isMounted) setLoading(false);
             }
         };
-
         fetchHistory();
+        
         return () => { isMounted = false; }
-    }, [user, authLoading]);
+    }, [user, firestore, authLoading]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {
@@ -206,7 +192,7 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading || authLoading) return <HistorySkeleton />;
+        if (isLoading || authLoading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>

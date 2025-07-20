@@ -8,16 +8,15 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
+import { auth, firestore } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData = {}) {
-  const db = getFirebaseFirestore();
-  if (!user || !db) return;
+  if (!user || !firestore) return;
   
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(firestore, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
@@ -41,6 +40,7 @@ export async function createUserDocument(user: User, additionalData = {}) {
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
+      console.error("Error creating user document:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
     }
@@ -50,7 +50,6 @@ export async function createUserDocument(user: User, additionalData = {}) {
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  const auth = getFirebaseAuth();
   if (isPopupOpen || !auth) {
     console.warn("Google Sign-In popup is already open or auth is not initialized.");
     return null;
@@ -79,14 +78,12 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
-    const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;

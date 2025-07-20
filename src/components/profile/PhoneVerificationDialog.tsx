@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getFirebaseAuth, isFirebaseOnline } from "@/lib/firebaseClient";
-import { signInWithPhoneNumber } from "firebase/auth";
+import { auth } from "@/lib/firebaseClient";
+import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
 
 interface Props {
   children: React.ReactNode;
@@ -30,7 +30,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   const [error, setError] = useState<string | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-
+  
   const cleanupVerifier = useCallback(() => {
     if (recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current.clear();
@@ -40,30 +40,19 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     }
   }, []);
 
-  const setupRecaptcha = useCallback(async () => {
-    const auth = getFirebaseAuth();
+  const setupRecaptcha = useCallback(() => {
     if (!auth || !open) return;
+    cleanupVerifier();
 
-    if (recaptchaVerifierRef.current) {
-        cleanupVerifier();
-    }
-    
     let container = document.getElementById('recaptcha-container-in-dialog');
     if (!container) {
       container = document.createElement('div');
       container.id = 'recaptcha-container-in-dialog';
       document.body.appendChild(container);
     }
-
-    const online = await isFirebaseOnline();
-    if (!online) {
-      setError("You appear to be offline. Please check your connection.");
-      return;
-    }
-
+    
     try {
-      const { RecaptchaVerifier } = await import('firebase/auth');
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
+      const verifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
         size: 'invisible',
         callback: () => {},
         'expired-callback': () => {
@@ -71,24 +60,25 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
           cleanupVerifier();
         },
       });
-      await verifier.render();
       recaptchaVerifierRef.current = verifier;
     } catch (e: any) {
       console.error("reCAPTCHA error:", e);
       setError("Failed to load reCAPTCHA. Please try again or check network/ad-blockers.");
     }
   }, [open, cleanupVerifier]);
-  
+
+  useEffect(() => {
+    if (open && step === 'initial') {
+      setupRecaptcha();
+    }
+    return () => {
+      if (open) cleanupVerifier();
+    };
+  }, [open, step, setupRecaptcha, cleanupVerifier]);
+
   const handleSendOtp = async () => {
     setError(null);
-    const online = await isFirebaseOnline();
-    if (!online) {
-      setError("You're offline. Please check your connection and try again.");
-      return;
-    }
-
     const verifier = recaptchaVerifierRef.current;
-    const auth = getFirebaseAuth();
     if (!verifier || !auth) {
       setError("Verifier not ready. Please close and try again.");
       return;
@@ -103,8 +93,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     } catch (err: any) {
       console.error("OTP send error:", err);
       setError("Failed to send OTP. Please check the phone number format or wait before trying again.");
-      cleanupVerifier();
-      setupRecaptcha(); // Re-setup for next attempt
+      setupRecaptcha();
     } finally {
       setIsLoading(false);
     }
@@ -114,8 +103,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     setError(null);
     const confirmation = confirmationResultRef.current;
     if (!confirmation) {
-        setError("Verification session expired. Please go back and try again.");
-        return;
+      setError("Verification session expired. Please go back and try again.");
+      return;
     }
     setIsLoading(true);
 
@@ -126,18 +115,17 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
       }
       toast({ title: "Success!", description: "Your phone number has been verified." });
       onVerified();
-      resetStateAndClose(false);
-    } catch (err: any)
-      { setError("Invalid code. Please check the code and try again.");
+      setOpen(false);
+    } catch (err: any) {
+      setError("Invalid code. Please check the code and try again.");
       toast({ title: "Verification Failed", description: "The code you entered was incorrect.", variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
   };
-
-  const resetStateAndClose = (isOpen: boolean) => {
+  
+  const resetAndClose = (isOpen: boolean) => {
     if (!isOpen) {
-      cleanupVerifier();
       setStep('initial');
       setOtp('');
       setError(null);
@@ -145,21 +133,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     }
     setOpen(isOpen);
   };
-  
-  useEffect(() => {
-    if (open && step === 'initial') {
-      setupRecaptcha();
-    }
-    
-    return () => {
-      if(open) {
-        cleanupVerifier();
-      }
-    };
-  }, [open, step, setupRecaptcha, cleanupVerifier]);
 
   return (
-    <Dialog open={open} onOpenChange={resetStateAndClose}>
+    <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>

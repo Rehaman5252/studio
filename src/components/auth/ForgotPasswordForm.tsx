@@ -11,13 +11,11 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
-import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { auth } from '@/lib/firebaseClient';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
-// Schemas
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
 });
@@ -33,7 +31,6 @@ export default function ForgotPasswordForm() {
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
-    const auth = getFirebaseAuth();
     if (!auth) {
         toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
         return;
@@ -79,18 +76,14 @@ export default function ForgotPasswordForm() {
         </CardHeader>
         <form onSubmit={emailForm.handleSubmit(handleSendResetEmail)}>
             <CardContent className="space-y-4">
-                 {!isFirebaseConfigured ? (
-                    <FirebaseConfigWarning />
-                ) : (
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...emailForm.register('email')} disabled={isLoading} />
-                        {emailForm.formState.errors.email && <p className="text-sm text-destructive">{emailForm.formState.errors.email.message}</p>}
-                    </div>
-                )}
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...emailForm.register('email')} disabled={isLoading} />
+                    {emailForm.formState.errors.email && <p className="text-sm text-destructive">{emailForm.formState.errors.email.message}</p>}
+                </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                 <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
+                 <Button type="submit" className="w-full" disabled={isLoading || !auth}>
                     {isLoading && <Loader2 className="animate-spin mr-2" />}
                     Send Reset Link
                 </Button>

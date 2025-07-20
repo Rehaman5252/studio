@@ -7,18 +7,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
-import { useAuth } from '@/context/AuthProvider';
+import { useSafeFirestore } from '@/hooks/useSafeFirestore';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 
 const ScratchCardSkeleton = () => (
-    <div className="w-full aspect-square p-1">
-        <Skeleton className="w-full h-full rounded-2xl" />
-    </div>
+    <div className="w-full aspect-square p-1"><Skeleton className="w-full h-full rounded-2xl" /></div>
 );
 
 const RewardsSkeleton = () => (
@@ -38,10 +35,7 @@ const RewardsSkeleton = () => (
       </section>
       <section>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-        <div className="space-y-4">
-          <Skeleton className="h-[96px] w-full" />
-          <Skeleton className="h-[96px] w-full" />
-        </div>
+        <div className="space-y-4"><Skeleton className="h-[96px] w-full" /><Skeleton className="h-[96px] w-full" /></div>
       </section>
   </div>
 );
@@ -118,49 +112,40 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, firestore, loading: authLoading } = useSafeFirestore();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); return; }
-
+    if (!user || !firestore) {
+        setIsLoading(false);
+        if(!firestore) setError("You appear to be offline. Please check your connection to see your rewards.");
+        return;
+    }
+    
     let isMounted = true;
     const fetchHistory = async () => {
-        if (!isMounted) return;
-        setLoading(true);
+        setIsLoading(true);
         setError(null);
-
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Unable to connect to rewards service. You may be offline.");
-            setLoading(false);
-            return;
-        }
-        
         try {
-            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
-            if (isMounted) {
-                setHistory(snap.docs.map(d => d.data() as QuizAttempt));
-            }
+            if (isMounted) setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
             if (isMounted) {
                 console.error("Rewards Fetch Error:", e);
                 setError("Unable to load rewards data. Please check your connection.");
             }
         } finally {
-            if (isMounted) {
-                setLoading(false);
-            }
+            if (isMounted) setIsLoading(false);
         }
     };
 
     fetchHistory();
     return () => { isMounted = false; }
-  }, [user, authLoading]);
+  }, [user, firestore, authLoading]);
 
   const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {
@@ -174,7 +159,7 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
 
-  if (loading || authLoading) return <RewardsSkeleton />;
+  if (isLoading || authLoading) return <RewardsSkeleton />;
 
   return (
     <>

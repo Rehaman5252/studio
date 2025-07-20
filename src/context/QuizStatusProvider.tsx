@@ -2,10 +2,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
-import { useAuth } from './AuthProvider';
+import { useSafeFirestore } from '@/hooks/useSafeFirestore';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -20,7 +19,7 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: isAuthLoading } = useAuth();
+  const { user, firestore, loading: isAuthLoading } = useSafeFirestore();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -33,53 +32,48 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (isAuthLoading) return;
-    if (!user) {
+    if (!user || !firestore) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
     }
     
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setIsHistoryLoading(false);
-        return;
-    }
-    
+    let isMounted = true;
     const fetchLastAttempt = async () => {
+        if (!isMounted) return;
         setIsHistoryLoading(true);
         try {
-            const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+            const historyDocRef = doc(firestore, 'users', user.uid, 'quizAttempts', getQuizSlotId());
             const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                setLastAttemptInSlot(docSnap.data() as QuizAttempt);
-            } else {
-                setLastAttemptInSlot(null);
+            if (isMounted) {
+                if (docSnap.exists()) {
+                    setLastAttemptInSlot(docSnap.data() as QuizAttempt);
+                } else {
+                    setLastAttemptInSlot(null);
+                }
             }
         } catch (error) {
             console.error("Failed to fetch last quiz attempt:", error);
-            setLastAttemptInSlot(null);
+            if (isMounted) setLastAttemptInSlot(null);
         } finally {
-            setIsHistoryLoading(false);
+            if (isMounted) setIsHistoryLoading(false);
         }
     }
     fetchLastAttempt();
-  }, [user, isAuthLoading]);
+
+    return () => { isMounted = false; };
+  }, [user, firestore, isAuthLoading]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
     const minutes = now.getMinutes();
-    
-    const slotLength = 10; // 10 minutes
+    const slotLength = 10;
     const slotEndMinute = (Math.floor(minutes / slotLength) + 1) * slotLength;
-    
     const endTime = new Date(now);
     endTime.setMinutes(slotEndMinute, 0, 0);
-
     const diff = endTime.getTime() - now.getTime();
-    
     const minutesLeft = Math.max(0, Math.floor((diff / 1000 / 60) % 60));
     const secondsLeft = Math.max(0, Math.floor((diff / 1000) % 60));
-
     return { minutes: minutesLeft, seconds: secondsLeft };
   }, []);
 
