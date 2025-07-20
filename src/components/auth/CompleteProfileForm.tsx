@@ -1,10 +1,10 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { DocumentData } from 'firebase/firestore';
 import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -118,14 +118,7 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         setIsSubmitting(true);
 
         try {
-            const finalPayload: DocumentData = {
-                ...data,
-                profileCompleted: true,
-                phoneVerified: true, 
-                updatedAt: new Date(),
-            };
-            
-            await updateUserData(finalPayload);
+            await updateUserData({ ...data, profileCompleted: true, updatedAt: new Date() });
             
             toast({ 
                 title: "Profile Saved!", 

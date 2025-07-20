@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -29,10 +30,22 @@ const HomeSkeleton = () => (
 );
 
 export default function HomeClientContent() {
-  const { profile, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <HomeSkeleton />;
+  }
+
+  if (!user) {
+    return (
+        <div className="flex items-center justify-center pt-10">
+            <LoginPrompt
+                icon={Home}
+                title="Welcome to indcric!"
+                description="Sign in to play quizzes, win rewards, and climb the leaderboard."
+            />
+        </div>
+    )
   }
 
   return (

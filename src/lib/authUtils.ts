@@ -1,34 +1,31 @@
 
 'use client';
 
+import { getFirebaseFirestore } from './firebaseClient';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { toast } from '@/hooks/use-toast';
+import type { User } from 'firebase/auth';
+import { sanitizeUserProfile } from './sanitizeUserProfile';
 import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  type User,
 } from 'firebase/auth';
-import { toast } from '@/hooks/use-toast';
-import type { DocumentData } from 'firebase/firestore';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore } from './firebaseClient';
-import { sanitizeUserProfile } from './sanitizeUserProfile';
+import { getFirebaseAuth } from './firebaseClient';
 
-export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
+
+export async function createUserDocument(user: User, additionalData = {}) {
   const db = getFirebaseFirestore();
   if (!user || !db) return;
-
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
-
   if (!snapshot.exists()) {
-    console.log(`Creating document for new user: ${user.uid}`);
     const { email, displayName, photoURL } = user;
-    
     const newUserProfile = {
       uid: user.uid,
       email,
-      name: additionalData.name || displayName || 'New User',
+      name: (additionalData as any).name || displayName || 'New User',
       photoURL: photoURL || `https://placehold.co/100x100.png`,
       createdAt: new Date(),
       emailVerified: user.emailVerified,
@@ -41,12 +38,9 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
       referralEarnings: 0,
       ...additionalData
     };
-
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
-      console.log("User document created in Firestore");
     } catch (error) {
-      console.error("Firestore write failed in createUserDocument:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
     }

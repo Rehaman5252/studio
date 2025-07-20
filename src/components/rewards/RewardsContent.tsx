@@ -1,18 +1,19 @@
+
 'use client';
-import { useState, useEffect, useMemo, memo } from "react";
-import { useAuth } from "@/context/AuthProvider";
-import { getFirebaseFirestore } from "@/lib/firebaseClient";
-import { doc, getDoc } from "firebase/firestore";
-import type { QuizAttempt } from '@/lib/mockData';
+
+import { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, Play, Trophy, WifiOff, ServerCrash } from 'lucide-react';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
+import type { QuizAttempt } from '@/lib/mockData';
+import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
-
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -151,100 +152,79 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-
 export default function RewardsContent() {
   const { user } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-
-    const db = getFirebaseFirestore();
-    if (!db) { setError("Firestore not available."); setLoading(false); return; }
-
-    setLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        const historyRef = doc(db, "quizHistory", user.uid);
-        const snap = await getDoc(historyRef);
-        if (snap.exists()) {
-          setHistory(snap.data().attempts || []);
-        } else {
-          setHistory([]);
+    if (!user) {
+        setIsLoading(false);
+        return;
+    }
+    
+    const fetchHistory = async () => {
+        setIsLoading(true);
+        setError(null);
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Firestore is not available.");
+            setIsLoading(false);
+            return;
         }
-      } catch (e) {
-        setError("Unable to load rewards.");
-        console.error("Rewards fetch error:", e);
-      }
-      setLoading(false);
-    })();
+
+        try {
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                setQuizHistory(docSnap.data().attempts || []);
+            }
+        } catch (e: any) {
+            console.error("Failed to fetch rewards data:", e);
+            if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                setError("You appear to be offline. Please check your connection to see your rewards.");
+            } else {
+                setError("Could not load your rewards. Please try again later.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchHistory();
   }, [user]);
 
-  const hasAttempts = history.length > 0;
+  const hasAttempts = quizHistory.length > 0;
 
   const rewardableAttempts = useMemo(() => {
+    if (!quizHistory) return [];
+
     const uniqueAttempts = new Map<string, QuizAttempt>();
-    const allAttempts = history.filter(attempt => !attempt.reason);
+    const allAttempts = (quizHistory as QuizAttempt[]).filter(attempt => !attempt.reason);
 
     for (const attempt of allAttempts) {
-      const attemptDate = new Date(attempt.timestamp).toDateString();
+      const attemptDate = new Date(attempt.timestamp).toDateString(); // 'Fri Jul 26 2024'
       const key = `${attempt.brand}-${attemptDate}`;
 
       if (!uniqueAttempts.has(key)) {
         uniqueAttempts.set(key, attempt);
       }
     }
+
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
-  }, [history]);
+  }, [quizHistory]);
   
-  if (loading) return <RewardsSkeleton />;
+  if(isLoading) return <RewardsSkeleton />
 
   return (
     <>
-      <section>
-        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt (one per brand per day). Scratch to reveal!</p>
-        
-        {error ? (
-          <ErrorState message={error} />
-        ) : !user ? (
-          <Card className="bg-card/80 border-dashed border-primary/30">
-            <CardContent className="p-6 text-center text-muted-foreground">
-                <Play className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                <p className="font-semibold text-lg text-foreground">Step up to the crease!</p>
-                <p>Play a quiz to unlock exclusive brand gifts from our partners.</p>
-            </CardContent>
-          </Card>
-        ) : rewardableAttempts.length > 0 ? (
-          <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
-              <CarouselContent className="-ml-4">
-                  {rewardableAttempts.map((attempt, index) => (
-                  <CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                      <ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} />
-                  </CarouselItem>
-                  ))}
-              </CarouselContent>
-              <CarouselPrevious className="hidden sm:flex" />
-              <CarouselNext className="hidden sm:flex" />
-          </Carousel>
-        ) : (
-           <Card className="bg-card/80 border-dashed border-primary/30">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                  <Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                  <p className="font-semibold text-foreground mb-2">
-                      {hasAttempts ? "You've already claimed all available rewards for today!" : "No Brand Gifts Yet"}
-                  </p>
-                  <p className="text-sm">
-                      {hasAttempts ? "Play again in a new slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}
-                  </p>
-              </CardContent>
-            </Card>
-        )}
-      </section>
-
+      <BrandGiftsSection 
+        isLoggedIn={!!user} 
+        rewardableAttempts={rewardableAttempts}
+        hasAttempts={hasAttempts}
+        isLoading={isLoading}
+        error={error}
+      />
       <section className='mt-8'>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
         <div className="space-y-4">
@@ -256,3 +236,66 @@ export default function RewardsContent() {
     </>
   );
 }
+
+
+const BrandGiftsSection = memo(({ isLoggedIn, rewardableAttempts, hasAttempts, isLoading, error }: { 
+    isLoggedIn: boolean;
+    rewardableAttempts: QuizAttempt[];
+    hasAttempts: boolean;
+    isLoading: boolean;
+    error: string | null;
+}) => (
+  <section>
+    <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+    <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt (one per brand per day). Scratch to reveal!</p>
+    
+    {isLoading ? (
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+            <CarouselContent className="-ml-4">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                        <ScratchCardSkeleton />
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+    ) : error ? (
+        <ErrorState message={error} />
+    ) : isLoggedIn ? (
+        rewardableAttempts.length > 0 ? (
+            <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+                <CarouselContent className="-ml-4">
+                    {rewardableAttempts.map((attempt, index) => (
+                    <CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                        <ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} />
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+        ) : (
+            <Card className="bg-card/80 border-dashed border-primary/30">
+                <CardContent className="p-6 text-center text-muted-foreground">
+                    <Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+                    <p className="font-semibold text-foreground mb-2">
+                        {hasAttempts ? "You've already claimed all available rewards for today!" : "No Brand Gifts Yet"}
+                    </p>
+                    <p className="text-sm">
+                        {hasAttempts ? "Play again in a new slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}
+                    </p>
+                </CardContent>
+            </Card>
+        )
+    ) : (
+      <Card className="bg-card/80 border-dashed border-primary/30">
+        <CardContent className="p-6 text-center text-muted-foreground">
+            <Play className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+            <p className="font-semibold text-lg text-foreground">Step up to the crease!</p>
+            <p>Play a quiz to unlock exclusive brand gifts from our partners.</p>
+        </CardContent>
+      </Card>
+    )}
+  </section>
+));
+BrandGiftsSection.displayName = 'BrandGiftsSection';

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
@@ -11,8 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { doc, getDoc } from 'firebase/firestore';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
@@ -72,11 +73,6 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!user) {
-            setIsLoading(false);
-            return;
-        }
-
         const db = getFirebaseFirestore();
         if (!db) {
             setError("Firestore not available");
@@ -88,41 +84,38 @@ const LiveLeaderboard = memo(() => {
             setIsLoading(true);
             setError(null);
             try {
-                const historyDocRef = doc(db, 'quizHistory', user.uid);
-                const docSnap = await getDoc(historyDocRef);
-                let quizHistory: QuizAttempt[] = [];
-                if (docSnap.exists()) {
-                    quizHistory = docSnap.data().attempts || [];
-                }
-
-                const currentSlotId = getQuizSlotId();
-                const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
-                
-                const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
-
-                const livePlayers: LivePlayer[] = [];
-
-                if (userAttempt) {
-                    livePlayers.push({
-                        uid: user!.uid,
-                        name: profile?.name || 'You',
-                        score: userAttempt.score,
-                        time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                        avatar: profile?.photoURL,
-                        disqualified: userAttempt.reason === 'malpractice'
-                    });
-                }
-                
-                const mockLivePlayers: LivePlayer[] = [
+                // In a real-world high-traffic app, this data would come from a separate, aggregated 'liveLeaderboard' collection.
+                // For this example, we'll construct it from recent user history, which works for smaller-scale apps.
+                const livePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
+
+                if (user) {
+                    const historyDocRef = doc(db, 'quizHistory', user.uid);
+                    const docSnap = await getDoc(historyDocRef);
+                    if (docSnap.exists()) {
+                        const history = (docSnap.data().attempts || []) as QuizAttempt[];
+                        const currentSlotId = getQuizSlotId();
+                        const userAttempt = history.find(a => a.slotId === currentSlotId);
+                        if (userAttempt) {
+                            livePlayers.push({
+                                uid: user.uid,
+                                name: profile?.name || 'You',
+                                score: userAttempt.score,
+                                time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                                avatar: profile?.photoURL,
+                                disqualified: userAttempt.reason === 'malpractice'
+                            });
+                        }
+                    }
+                }
                 
-                livePlayers.push(...mockLivePlayers.filter(p => p.uid !== user?.uid));
-                
-                const sortedPlayers = livePlayers.sort((a, b) => {
+                const uniquePlayers = Array.from(new Map(livePlayers.map(p => [p.uid, p])).values());
+
+                const sortedPlayers = uniquePlayers.sort((a, b) => {
                      if (a.disqualified && !b.disqualified) return 1;
                      if (!a.disqualified && b.disqualified) return -1;
                      if (a.score !== b.score) return b.score - a.score;
@@ -218,6 +211,7 @@ const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     
+    // This is mocked for now. A real implementation would query an aggregated collection.
     const players: AllTimePlayer[] = useMemo(() => {
         if (!profile || (profile.perfectScores || 0) === 0) {
             return [];
@@ -291,79 +285,21 @@ const AllTimeLeaderboard = memo(() => {
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
-
-const MyNetworkLeaderboard = memo(() => {
-    const { user, profile } = useAuth();
-    
-    const players = profile ? [{
-        uid: user?.uid,
-        name: profile.name,
-        perfectScores: profile.perfectScores || 0,
-        avatar: profile.photoURL
-    }] : [];
-
-    return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader className="text-center">
-                <CardTitle>🤝 My Referral Network</CardTitle>
-                <CardDescription>Your performance against friends</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-2">
-                     {players.length > 0 && players[0].name && user?.uid ? (
-                        players.map((player, index) => (
-                             <div key={user.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
-                                <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
-                                <Avatar className="h-10 w-10 mx-4">
-                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
-                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-foreground">{player.name}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-primary">{player.perfectScores}</p>
-                                    <p className="text-xs text-muted-foreground">Perfect Scores</p>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <LeaderboardItemSkeleton />
-                    )}
-                </div>
-                 <div className="text-center p-4 mt-4 bg-muted rounded-lg">
-                    <p className="font-semibold">Grow your network!</p>
-                    <p className="text-sm text-muted-foreground">Share your referral code from your profile to see your friends here.</p>
-                </div>
-            </CardContent>
-        </Card>
-    );
-});
-MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
-
-
 export default function LeaderboardContent() {
   const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-2")}>
+        <TabsList className={cn("grid w-full", user ? "grid-cols-2" : "grid-cols-1")}>
             <TabsTrigger value="live">Current</TabsTrigger>
-            <TabsTrigger value="all-time">All-Time</TabsTrigger>
-            {user && <TabsTrigger value="my-leaderboard">My Network</TabsTrigger>}
+            {user && <TabsTrigger value="all-time">All-Time</TabsTrigger>}
         </TabsList>
-        
         <TabsContent value="live">
             <LiveLeaderboard />
         </TabsContent>
-
-        <TabsContent value="all-time">
-            <AllTimeLeaderboard />
-        </TabsContent>
-
         {user && 
-            <TabsContent value="my-leaderboard">
-                <MyNetworkLeaderboard />
+            <TabsContent value="all-time">
+                <AllTimeLeaderboard />
             </TabsContent>
         }
     </Tabs>

@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { Loader2 } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { Trophy } from 'lucide-react';
 

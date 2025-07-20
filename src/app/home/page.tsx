@@ -1,35 +1,7 @@
 
 'use client';
 
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-
-// Dynamically import the main interactive content with a skeleton loader.
-const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
-  loading: () => <HomeClientContentSkeleton />,
-  ssr: false, // This component is client-only, no need for SSR.
-});
-
-const HomeClientContentSkeleton = () => (
-    <div className="space-y-8 animate-pulse mt-10">
-        <div className="text-center mb-8">
-            <Skeleton className="h-8 w-3/4 mx-auto" />
-            <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
-        </div>
-        <div className="flex justify-center items-center h-[288px]">
-            <Skeleton className="w-52 h-52 rounded-lg" />
-        </div>
-        <Skeleton className="h-[124px] w-full rounded-2xl" />
-        <div className="grid grid-cols-2 gap-4">
-            <Skeleton className="h-[92px] w-full" />
-            <Skeleton className="h-[92px] w-full" />
-            <Skeleton className="h-[92px] w-full" />
-            <Skeleton className="h-[92px] w-full" />
-        </div>
-        <Skeleton className="h-16 w-full rounded-full" />
-    </div>
-);
-
+import HomeClientContent from '@/components/home/HomeClientContent';
 
 function HomePage() {
     return (
@@ -42,7 +14,6 @@ function HomePage() {
               <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
           </div>
         </header>
-
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-2">
             <HomeClientContent />
