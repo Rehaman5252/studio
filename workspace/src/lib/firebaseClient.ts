@@ -27,32 +27,21 @@ export function getFirebaseAuth(): Auth | null {
 export function getFirebaseFirestore(): Firestore | null {
   if (typeof window === "undefined" || !app) return null;
   const db = getFirestore(app);
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open, persistence can only be enabled in one.
-    } else if (err.code === 'unimplemented') {
-      // The current browser does not support all of the
-      // features required to enable persistence
-    }
-  });
+  enableIndexedDbPersistence(db).catch(() => {});
   return db;
 }
 
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(
-  (value) => !!value
-);
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 export async function isFirebaseOnline(): Promise<boolean> {
   if (typeof window === 'undefined' || !navigator.onLine) return false;
-
   try {
     await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
-        method: 'POST',
-        body: JSON.stringify({ localId: 'test' })
+      method: 'POST',
+      body: JSON.stringify({ localId: 'test' })
     });
     return true;
-  } catch (error) {
-    console.warn('Firebase connectivity test failed:', error);
+  } catch {
     return false;
   }
 }
