@@ -48,7 +48,7 @@ const RewardsSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Rewards</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -116,31 +116,46 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsContent() {
-  const { user, loading: isAuthLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthLoading || !user) return;
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setError("Firestore not available.");
-        setLoading(false);
+    if (authLoading) return;
+    if (!user) {
+        setIsLoading(false);
         return;
     }
-    setLoading(true);
-    (async () => {
-      try {
-        const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
-        const snap = await getDocs(q);
-        setHistory(snap.docs.map(d => d.data() as QuizAttempt));
-      } catch (e) {
-        setError("Unable to load rewards.");
-      }
-      setLoading(false);
-    })();
-  }, [user, isAuthLoading]);
+
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setError("Cannot connect to the database. Please check your connection.");
+        setIsLoading(false);
+        return;
+    }
+
+    const fetchHistory = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+            const snap = await getDocs(q);
+            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+        } catch (e: any) {
+            if (e.message.includes('offline') || e.code === 'unavailable') {
+                setError("You appear to be offline. Please check your connection to see rewards.");
+            } else {
+                setError("Unable to load rewards data.");
+            }
+            console.error(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchHistory();
+  }, [user, authLoading]);
 
   const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {
@@ -154,7 +169,7 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
 
-  if (loading || isAuthLoading) return <RewardsSkeleton />;
+  if (isLoading || authLoading) return <RewardsSkeleton />;
 
   return (
     <>

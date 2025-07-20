@@ -14,26 +14,24 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Singleton instances
+// This is the correct way to initialize Firebase on the client in Next.js.
 let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
 let db: Firestore | null = null;
+let auth: Auth | null = null;
+let persistenceEnabled = false;
 
 function initializeFirebase() {
-  if (typeof window !== "undefined") {
-    if (!app) {
-      app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getFirestore(app);
-      enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
-        } else if (err.code === 'unimplemented') {
-          console.warn("Firestore persistence is not available in this browser.");
+    if (typeof window !== "undefined") {
+        if (!getApps().length) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } else {
+            app = getApp();
+            auth = getAuth(app);
+            db = getFirestore(app);
         }
-      });
     }
-  }
 }
 
 initializeFirebase();
@@ -43,20 +41,36 @@ export function getFirebaseAuth(): Auth | null {
 }
 
 export function getFirebaseFirestore(): Firestore | null {
+  if (db && !persistenceEnabled) {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code == 'failed-precondition') {
+        // Multiple tabs open, persistence can only be enabled
+        // in one tab at a time.
+        console.warn('Firestore persistence failed: multiple tabs open.');
+      } else if (err.code == 'unimplemented') {
+        // The current browser does not support all of the
+        // features required to enable persistence
+        console.warn('Firestore persistence not supported in this browser.');
+      }
+    });
+    persistenceEnabled = true;
+  }
   return db;
 }
+
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 export async function isFirebaseOnline(): Promise<boolean> {
-  if (typeof window === 'undefined' || !navigator.onLine) return false;
+  if (typeof window === 'undefined' || !navigator.onLine || !firebaseConfig.apiKey) return false;
   try {
+    // A lightweight check against the auth server which is generally very available.
     await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
       method: 'POST',
       body: JSON.stringify({ localId: 'test' })
     });
     return true;
-  } catch {
+  } catch (error) {
     return false;
   }
 }

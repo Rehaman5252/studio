@@ -37,12 +37,11 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Leaderboard</AlertTitle>
-        <AlertDescription>{message || "An unknown error occurred."}</AlertDescription>
+        <AlertDescription>{message}</AlertDescription>
     </Alert>
 );
-
 
 const LiveLeaderboard = memo(() => {
     const { user, profile, loading: authLoading } = useAuth();
@@ -55,7 +54,7 @@ const LiveLeaderboard = memo(() => {
 
         const db = getFirebaseFirestore();
         if (!db) {
-            setError("Could not connect to the database.");
+            setError("Cannot connect to the database. Please check your connection.");
             setIsLoading(false);
             return;
         }
@@ -97,7 +96,12 @@ const LiveLeaderboard = memo(() => {
 
                 setPlayers(sorted);
             } catch (e: any) {
-                setError(e.message.includes('offline') ? "You appear to be offline." : "Could not load leaderboard.");
+                if (e.message.includes('offline') || e.code === 'unavailable') {
+                  setError("You appear to be offline. Please check your connection.");
+                } else {
+                  setError("An error occurred while loading the leaderboard.");
+                }
+                console.error(e);
             } finally {
                 setIsLoading(false);
             }
@@ -132,25 +136,51 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    // This is mocked for now. A real implementation would query an aggregated collection.
-    const players: AllTimePlayer[] = useMemo(() => {
-        if (!user || !profile || (profile.perfectScores || 0) === 0) return [];
-        return [{ uid: user.uid, name: profile.name, perfectScores: profile.perfectScores, totalPlayed: profile.quizzesPlayed, avatar: profile.photoURL, rank: 1 }];
+    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Mock data, as a real implementation would be a complex backend query
+        const mockPlayers = [
+            { uid: 'mock-legend-1', name: 'Sachin T.', perfectScores: 102, totalPlayed: 500, avatar: 'https://placehold.co/40x40.png' },
+            { uid: 'mock-legend-2', name: 'Virat K.', perfectScores: 95, totalPlayed: 450, avatar: 'https://placehold.co/40x40.png' },
+        ];
+        
+        if (user && profile) {
+            const userIndex = mockPlayers.findIndex(p => p.uid === user.uid);
+            if (userIndex > -1) {
+                mockPlayers[userIndex] = { ...mockPlayers[userIndex], ...profile };
+            } else {
+                 mockPlayers.push({
+                    uid: user.uid,
+                    name: profile.name,
+                    perfectScores: profile.perfectScores || 0,
+                    totalPlayed: profile.quizzesPlayed || 0,
+                    avatar: profile.photoURL,
+                });
+            }
+        }
+        
+        setPlayers(mockPlayers.sort((a, b) => b.perfectScores - a.perfectScores).map((p, i) => ({...p, rank: i+1})));
+        setIsLoading(false);
     }, [user, profile]);
+
+    if (isLoading) return <LeaderboardItemSkeleton />;
+    if (!players.length) return <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {players.length > 0 ? players.map((player) => (
+                    {players.map((player) => (
                         <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                             <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                             <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
                             <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
                             <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
                         </motion.div>
-                    )) : <p className="text-center text-muted-foreground p-4">Leaderboard is being calculated. Check back soon!</p>}
+                    ))}
                 </motion.div>
             </CardContent>
         </Card>
