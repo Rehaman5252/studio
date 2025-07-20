@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -83,7 +84,8 @@ function QuizComponent() {
 
     setLastAttempt(attemptData);
     
-    router.replace(reason ? `/quiz/results?reason=${reason}` : '/quiz/results');
+    const attemptDataString = Buffer.from(JSON.stringify(attemptData)).toString('base64');
+    router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
     addQuizAttempt(attemptData).catch(error => {
         console.error("Error submitting quiz results to DB:", error);

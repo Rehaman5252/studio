@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useCallback, memo, useEffect } from 'react';
@@ -12,8 +13,8 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -201,31 +202,29 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loading) return; // Wait for auth state to be resolved
-    if (!user || !db) {
-      setIsFetching(false);
-      return;
+    if (!user) {
+        setIsLoading(false);
+        return;
     }
     
     const fetchHistory = async () => {
-        setIsFetching(true);
+        setIsLoading(true);
         setError(null);
         try {
-            const q = query(
-                collection(db, 'users', user.uid, 'quizAttempts'),
-                orderBy('timestamp', 'desc'),
-                limit(50)
-            );
-            const querySnapshot = await getDocs(q);
-            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-            setQuizHistory(historyData);
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                const historyData = docSnap.data().attempts || [];
+                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                setQuizHistory(historyData);
+            }
         } catch (e: any) {
             console.error("Failed to fetch quiz history:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
@@ -234,11 +233,11 @@ export default function QuizHistoryContent() {
                 setError("Could not load your quiz history. Please try again later.");
             }
         } finally {
-            setIsFetching(false);
+            setIsLoading(false);
         }
     }
     fetchHistory();
-  }, [user, loading]);
+  }, [user]);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'perfect') {
@@ -248,7 +247,7 @@ export default function QuizHistoryContent() {
   }, [quizHistory, filter]);
 
   const renderContent = () => {
-    if (isFetching) {
+    if (isLoading) {
         return <HistorySkeleton />;
     }
     if (error) {

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { getDocs, query, collection, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -45,31 +46,34 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loading) return;
-    if (!user || !db) {
-        setIsFetching(false);
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!user) {
+        setIsLoading(false);
         return;
     }
 
     const fetchHistory = async () => {
-        setIsFetching(true);
+        setIsLoading(true);
         setError(null);
         try {
-            const q = query(
-                collection(db, 'users', user.uid, 'quizAttempts'),
-                orderBy('timestamp', 'desc'),
-                limit(50) 
-            );
-            const querySnapshot = await getDocs(q);
-            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-            setQuizHistory(historyData);
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                const historyData = docSnap.data().attempts || [];
+                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                setQuizHistory(historyData);
+            }
         } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
@@ -78,11 +82,11 @@ export default function CertificatesContent() {
                 setError("Could not load your certificates. Please try again later.");
             }
         } finally {
-            setIsFetching(false);
+            setIsLoading(false);
         }
     }
     fetchHistory();
-  }, [user, loading]);
+  }, [user]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -101,7 +105,7 @@ export default function CertificatesContent() {
   
   const certificates = useMemo(() => {
     if (!quizHistory) return [];
-    return quizHistory
+    return (quizHistory as QuizAttempt[])
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
       .map(attempt => ({
         id: attempt.slotId + attempt.format,
@@ -116,37 +120,54 @@ export default function CertificatesContent() {
   const handleDownload = (cert: typeof certificates[0]) => {
     const doc = new jsPDF();
 
-    doc.setDrawColor(218, 165, 32); 
+    // Add a border
+    doc.setDrawColor(218, 165, 32); // Gold
     doc.setLineWidth(1.5);
     doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
+
+    // Add title
     doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(218, 165, 32); 
+    doc.setTextColor(218, 165, 32); // Gold
     doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
+
+    // Add introductory text
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
+    
+    // Add user's name
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(45, 85, 255); 
+    doc.setTextColor(45, 85, 255); // A contrasting blue
     doc.text(profile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
+    
+    // Add achievement details
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text('has successfully achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
+    
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text(`${cert.format} Quiz (${cert.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
+    
+    // Add date and slot
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 100, 100);
     doc.text(`Awarded on: ${cert.date}`, 30, 130);
     doc.text(`Quiz Slot: ${cert.slot}`, 30, 137);
+
+    // Add signature line
     doc.setLineWidth(0.5);
     doc.line(130, 135, 180, 135);
     doc.setFontSize(10);
     doc.text('Authorized Signature', 135, 140);
+
+
+    // Add footer
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(218, 165, 32);
@@ -155,6 +176,7 @@ export default function CertificatesContent() {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(150, 150, 150);
     doc.text('The Ultimate Cricket Quiz', doc.internal.pageSize.width / 2, 165, { align: 'center' });
+    
     doc.save(`indcric_${cert.format}_Certificate.pdf`);
     
     toast({
@@ -183,6 +205,7 @@ export default function CertificatesContent() {
            fallbackCopy();
         }
     } catch (error: any) {
+        // Handle specific error when user cancels the share dialog
         if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
             toast({ title: 'Sharing Canceled', description: 'You have canceled the share action.', variant: 'default' });
         } else {
@@ -193,7 +216,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (isFetching) {
+  if (isLoading) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />

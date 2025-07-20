@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -12,7 +13,7 @@ import {
   setDoc,
   Timestamp,
   getDoc,
-  collection
+  onSnapshot,
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -78,49 +79,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (isOffline) {
-        setIsUserDataLoading(false);
-        return;
-    }
-    if (!user) {
+    let unsubscribe = () => {};
+    if (user && !isOffline) {
+      setIsUserDataLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
+      unsubscribe = onSnapshot(
+        userDocRef,
+        async (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data?.dob && data.dob instanceof Timestamp) {
+              data.dob = data.dob.toDate().toISOString().split('T')[0];
+            }
+            setProfile(data || null);
+          } else {
+            await createUserDocument(user);
+          }
+          setIsUserDataLoading(false);
+        },
+        (error) => {
+          console.error("Error listening to user profile:", error);
+          setIsUserDataLoading(false);
+        }
+      );
+    } else {
       setProfile(null);
       setIsUserDataLoading(false);
-      return;
     }
-
-    setIsUserDataLoading(true);
-
-    const fetchProfile = async () => {
-      if (!db) {
-          setIsUserDataLoading(false);
-          return;
-      }
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(userDocRef);
-
-        if (!docSnap.exists()) {
-          await createUserDocument(user);
-          const newSnap = await getDoc(userDocRef);
-          if (newSnap.exists()) {
-            setProfile(newSnap.data());
-          }
-        } else {
-          const data = docSnap.data();
-          if (data?.dob && data.dob instanceof Timestamp) {
-            data.dob = data.dob.toDate().toISOString().split('T')[0];
-          }
-          setProfile(data || null);
-        }
-      } catch (error) {
-        console.error("Error loading user profile:", error);
-        setProfile(null);
-      } finally {
-        setIsUserDataLoading(false);
-      }
-    };
-
-    fetchProfile();
+    return () => unsubscribe();
   }, [user, isOffline]);
 
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
@@ -154,15 +140,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
         };
         
-        // Optimistically update local state first
         setProfile(prev => ({ ...prev, ...newStats }));
 
         const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, sanitizeUserProfile(newStats), { merge: true });
+        
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
+        const historySnap = await getDoc(historyDocRef);
+        const currentHistory = historySnap.exists() ? historySnap.data().attempts || [] : [];
+        const newHistory = [sanitizeUserProfile(attempt), ...currentHistory];
 
-        const userAttemptsCollection = collection(db, `users/${user.uid}/quizAttempts`);
-        const attemptRef = doc(userAttemptsCollection, attempt.timestamp.toString());
-        await setDoc(attemptRef, sanitizeUserProfile(attempt));
+        await setDoc(historyDocRef, { attempts: newHistory });
+
     } catch (error) {
       console.error("Error adding quiz attempt:", error);
       throw error;

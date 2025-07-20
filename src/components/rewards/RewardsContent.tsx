@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -10,8 +11,8 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
-import { getDocs, query, collection, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 
@@ -202,30 +203,27 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loading) return;
-    if (!user || !db) {
-        setIsFetching(false);
+    if (!user) {
+        setIsLoading(false);
         return;
     }
     
     const fetchHistory = async () => {
-        setIsFetching(true);
+        setIsLoading(true);
         setError(null);
         try {
-            const q = query(
-                collection(db, 'users', user.uid, 'quizAttempts'),
-                orderBy('timestamp', 'desc'),
-                limit(50)
-            );
-            const querySnapshot = await getDocs(q);
-            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-            setQuizHistory(historyData);
+            const historyDocRef = doc(db, 'quizHistory', user.uid);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                const historyData = docSnap.data().attempts || [];
+                setQuizHistory(historyData);
+            }
         } catch (e: any) {
             console.error("Failed to fetch rewards data:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
@@ -234,11 +232,11 @@ export default function RewardsContent() {
                 setError("Could not load your rewards. Please try again later.");
             }
         } finally {
-            setIsFetching(false);
+            setIsLoading(false);
         }
     }
     fetchHistory();
-  }, [user, loading]);
+  }, [user]);
 
   const hasAttempts = quizHistory.length > 0;
 
@@ -266,7 +264,7 @@ export default function RewardsContent() {
         isLoggedIn={!!user} 
         rewardableAttempts={rewardableAttempts}
         hasAttempts={hasAttempts}
-        isLoading={isFetching}
+        isLoading={isLoading}
         error={error}
       />
       <GenericOffersSection />

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
@@ -12,8 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
-import { getDocs, query, collection, where, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
@@ -73,7 +74,7 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!user || !db) {
+        if (!user) {
             setIsLoading(false);
             return;
         }
@@ -82,20 +83,23 @@ const LiveLeaderboard = memo(() => {
             setIsLoading(true);
             setError(null);
             try {
-                const q = query(
-                    collection(db, 'users', user.uid, 'quizAttempts'),
-                    where('slotId', '==', getQuizSlotId()),
-                    limit(1)
-                );
-                const querySnapshot = await getDocs(q);
-                const userAttemptDoc = querySnapshot.docs[0];
-                const userAttempt = userAttemptDoc ? userAttemptDoc.data() as QuizAttempt : null;
+                const historyDocRef = doc(db, 'quizHistory', user.uid);
+                const docSnap = await getDoc(historyDocRef);
+                let quizHistory: QuizAttempt[] = [];
+                if (docSnap.exists()) {
+                    quizHistory = docSnap.data().attempts || [];
+                }
+
+                const currentSlotId = getQuizSlotId();
+                const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
                 
+                const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
+
                 const livePlayers: LivePlayer[] = [];
 
                 if (userAttempt) {
                     livePlayers.push({
-                        uid: user.uid,
+                        uid: user!.uid,
                         name: profile?.name || 'You',
                         score: userAttempt.score,
                         time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
@@ -334,20 +338,7 @@ MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
 
 
 export default function LeaderboardContent() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-        <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <div className="pt-2 space-y-2">
-                <LeaderboardItemSkeleton />
-                <LeaderboardItemSkeleton />
-                <LeaderboardItemSkeleton />
-            </div>
-        </div>
-    );
-  }
+  const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">

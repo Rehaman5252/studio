@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
@@ -6,7 +7,7 @@ import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
 import { db } from '@/lib/firebaseClient';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -20,7 +21,7 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { user, isUserDataLoading } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -29,7 +30,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
-  const isLoading = isUserDataLoading || isHistoryLoading;
+  const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
     if (!user || !db) {
@@ -39,16 +40,15 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     }
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
+        const historyDocRef = doc(db, 'quizHistory', user.uid);
         try {
-            const q = query(
-                collection(db, 'users', user.uid, 'quizAttempts'),
-                where('slotId', '==', getQuizSlotId()),
-                limit(1)
-            );
-            const querySnapshot = await getDocs(q);
-            const userAttemptDoc = querySnapshot.docs[0];
-            const lastAttempt = userAttemptDoc ? userAttemptDoc.data() as QuizAttempt : null;
-            setLastAttemptInSlot(lastAttempt);
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                const history = (docSnap.data().attempts || []).sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
+                const currentSlotId = getQuizSlotId();
+                const lastAttempt = history.find((attempt: QuizAttempt) => attempt.slotId === currentSlotId) || null;
+                setLastAttemptInSlot(lastAttempt);
+            }
         } catch (error) {
             console.error("Failed to fetch last quiz attempt:", error);
             setLastAttemptInSlot(null);

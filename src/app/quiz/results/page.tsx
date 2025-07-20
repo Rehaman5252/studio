@@ -1,10 +1,10 @@
 
+
 'use client';
 
 import React, { Suspense, useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { useQuizStatus } from '@/context/QuizStatusProvider';
 import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Certificate } from '@/components/quiz/Certificate';
 import { AnalysisCard } from '@/components/quiz/AnalysisCard';
 import { AnswerReview } from '@/components/quiz/AnswerReview';
 import { motion } from 'framer-motion';
+import type { QuizAttempt } from '@/lib/mockData';
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
@@ -56,52 +57,67 @@ const ResultsLoader = () => (
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user, lastAttempt, setLastAttempt } = useAuth();
-    const { lastAttemptInSlot, isLoading: isContextLoading } = useQuizStatus();
+    const { user } = useAuth();
     
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
-    
-    const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
-    const reason = useMemo(() => searchParams.get('reason'), [searchParams]);
-    const today = useMemo(() => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), []);
 
-    const finalAttempt = lastAttempt || lastAttemptInSlot;
-    
+    const [finalAttempt, setFinalAttempt] = useState<QuizAttempt | null>(null);
+
     useEffect(() => {
-        // Clear the lastAttempt from context once it's used on the results page
-        // to prevent it from showing up stale on the next quiz.
-        return () => {
-            if (lastAttempt) {
-                setLastAttempt(null);
+        const attemptDataString = searchParams.get('attempt');
+        if (attemptDataString) {
+            try {
+                const decodedString = Buffer.from(decodeURIComponent(attemptDataString), 'base64').toString('utf-8');
+                const attemptData = JSON.parse(decodedString);
+                setFinalAttempt(attemptData);
+            } catch (error) {
+                console.error("Failed to parse attempt data from URL:", error);
+                router.replace('/home');
             }
-        };
-    }, [lastAttempt, setLastAttempt]);
+        }
+    }, [searchParams, router]);
     
-    const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp } = useMemo(() => {
-        return {
-            ...finalAttempt,
-            totalQuestions: finalAttempt?.questions?.length || 0,
-        };
-    }, [finalAttempt]);
-    
-    const isPerfectScore = useMemo(() => score === totalQuestions && totalQuestions > 0, [score, totalQuestions]);
-    
-    const slotTimings = useMemo(() => {
-        if (!timestamp) return '';
-        const attemptDate = new Date(timestamp);
-        const minutes = attemptDate.getMinutes();
-        const slotStartMinute = Math.floor(minutes / 10) * 10;
-        
-        const slotStartTime = new Date(attemptDate);
-        slotStartTime.setMinutes(slotStartMinute, 0, 0);
-        
-        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+    const { isReview, reason, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
+        const isReview = searchParams.get('review') === 'true';
+        const reason = finalAttempt?.reason || searchParams.get('reason');
+        const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp: attemptTimestamp } = finalAttempt || {};
         
-        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-    }, [timestamp]);
+        const isPerfect = score === totalQuestions && totalQuestions > 0;
+        
+        let timings = '';
+        if (attemptTimestamp) {
+            const attemptDate = new Date(attemptTimestamp);
+            const minutes = attemptDate.getMinutes();
+            const slotStartMinute = Math.floor(minutes / 10) * 10;
+            const slotStartTime = new Date(attemptDate);
+            slotStartTime.setMinutes(slotStartMinute, 0, 0);
+            const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+            const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            timings = `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+        }
+
+        return {
+            isReview,
+            reason,
+            today,
+            questions: questions || [],
+            userAnswers: userAnswers || [],
+            brand: brand || 'N/A',
+            format: format || 'N/A',
+            timePerQuestion: timePerQuestion || [],
+            usedHintIndices: usedHintIndices || [],
+            score: score || 0,
+            totalQuestions: totalQuestions || 0,
+            slotId: slotId || '',
+            timestamp: attemptTimestamp,
+            isPerfectScore: isPerfect,
+            slotTimings: timings
+        };
+    }, [finalAttempt, searchParams]);
+    
     
     const handleViewAnswers = useCallback(() => {
         if (showAnswers) return;
@@ -119,16 +135,12 @@ function ResultsComponent() {
         return <MalpracticeScreen />;
     }
 
-    if (isContextLoading && !finalAttempt) {
-        return <ResultsLoader />;
-    }
-
     if (!finalAttempt) {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
-                <h1 className="text-2xl font-bold mb-4">No Recent Quiz Found</h1>
-                <p>Could not find data for your last quiz attempt.</p>
-                <Button onClick={() => router.replace('/home')} className="mt-6">Go Home</Button>
+                 <h1 className="text-2xl font-bold mb-4">No Recent Quiz Found</h1>
+                 <p>Could not find data for your last quiz attempt.</p>
+                 <Button onClick={() => router.replace('/home')} className="mt-6">Go Home</Button>
             </div>
         );
     }
