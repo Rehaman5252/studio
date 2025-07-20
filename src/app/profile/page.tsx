@@ -13,7 +13,7 @@ import SupportCard from '@/components/profile/SupportCard';
 import { Settings, LogIn } from 'lucide-react';
 
 function ProfilePage() {
-  const { user, userData, loading } = useAuth();
+  const { user, profile, loading } = useAuth(); // Use `profile` instead of `userData`
   const router = useRouter();
 
   if (loading) {
@@ -42,7 +42,7 @@ function ProfilePage() {
 
   return (
     <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-      <ProfileContent userProfile={userData} />
+      <ProfileContent userProfile={profile} />
     </main>
   );
 }

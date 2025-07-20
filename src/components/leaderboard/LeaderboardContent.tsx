@@ -67,7 +67,7 @@ const ErrorState = ({ message }: { message: string }) => (
 
 
 const LiveLeaderboard = memo(() => {
-    const { user, userData } = useAuth();
+    const { user, profile } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -111,10 +111,10 @@ const LiveLeaderboard = memo(() => {
                 if (userAttempt) {
                     livePlayers.push({
                         uid: user!.uid,
-                        name: userData?.name || 'You',
+                        name: profile?.name || 'You',
                         score: userAttempt.score,
                         time: userAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                        avatar: userData?.photoURL,
+                        avatar: profile?.photoURL,
                         disqualified: userAttempt.reason === 'malpractice'
                     });
                 }
@@ -150,7 +150,7 @@ const LiveLeaderboard = memo(() => {
         
         fetchHistory();
         
-    }, [user, userData]);
+    }, [user, profile]);
 
     const renderContent = () => {
         if (isLoading) {
@@ -221,23 +221,22 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 
 const AllTimeLeaderboard = memo(() => {
-    const { user, userData } = useAuth();
+    const { user, profile } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     
     const players: AllTimePlayer[] = useMemo(() => {
-        if (!userData || userData.perfectScores === 0) {
+        if (!profile || (profile.perfectScores || 0) === 0) {
             return [];
         }
         return [{
             uid: user!.uid,
-            name: userData.name,
-            perfectScores: userData.perfectScores,
-            totalPlayed: userData.quizzesPlayed,
-            avatar: userData.photoURL,
+            name: profile.name,
+            perfectScores: profile.perfectScores,
+            totalPlayed: profile.quizzesPlayed,
+            avatar: profile.photoURL,
             rank: 1
         }];
-    }, [user, userData]);
+    }, [user, profile]);
     
     useEffect(() => {
         setIsLoading(true);
@@ -300,13 +299,13 @@ AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
 
 const MyNetworkLeaderboard = memo(() => {
-    const { user, userData } = useAuth();
+    const { user, profile } = useAuth();
     
-    const players = userData ? [{
+    const players = profile ? [{
         uid: user?.uid,
-        name: userData.name,
-        perfectScores: userData.perfectScores || 0,
-        avatar: userData.photoURL
+        name: profile.name,
+        perfectScores: profile.perfectScores || 0,
+        avatar: profile.photoURL
     }] : [];
 
     return (

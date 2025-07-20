@@ -44,54 +44,54 @@ const cricketTeams = [
 
 export default function CompleteProfileForm() {
     const router = useRouter();
-    const { user, userData, updateUserData, isUserDataLoading } = useAuth();
+    const { user, profile, updateUserData, isUserDataLoading } = useAuth();
     const { toast } = useToast();
     const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     useEffect(() => {
-        if(userData) {
-            setPhoneVerifiedInForm(userData.phoneVerified || false);
+        if(profile) {
+            setPhoneVerifiedInForm(profile.phoneVerified || false);
         }
-    }, [userData]);
+    }, [profile]);
     
-    const isProfileComplete = userData?.profileCompleted || false;
+    const isProfileComplete = profile?.profileCompleted || false;
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: userData?.name || user?.displayName || '',
-            email: userData?.email || user?.email || '',
-            phone: userData?.phone || '',
-            dob: userData?.dob || '',
-            gender: userData?.gender || undefined,
-            occupation: userData?.occupation || undefined,
-            upi: userData?.upi || '',
-            favoriteFormat: userData?.favoriteFormat || undefined,
-            favoriteTeam: userData?.favoriteTeam || '',
-            favoriteCricketer: userData?.favoriteCricketer || '',
+            name: profile?.name || user?.displayName || '',
+            email: profile?.email || user?.email || '',
+            phone: profile?.phone || '',
+            dob: profile?.dob || '',
+            gender: profile?.gender || undefined,
+            occupation: profile?.occupation || undefined,
+            upi: profile?.upi || '',
+            favoriteFormat: profile?.favoriteFormat || undefined,
+            favoriteTeam: profile?.favoriteTeam || '',
+            favoriteCricketer: profile?.favoriteCricketer || '',
         },
     });
     
     useEffect(() => {
-        if (userData || user) {
+        if (profile || user) {
             form.reset({
-                name: userData?.name || user?.displayName || '',
-                email: userData?.email || user?.email || '',
-                phone: userData?.phone || '',
-                dob: userData?.dob || '',
-                gender: userData?.gender,
-                occupation: userData?.occupation,
-                upi: userData?.upi || '',
-                favoriteFormat: userData?.favoriteFormat,
-                favoriteTeam: userData?.favoriteTeam,
-                favoriteCricketer: userData?.favoriteCricketer || '',
+                name: profile?.name || user?.displayName || '',
+                email: profile?.email || user?.email || '',
+                phone: profile?.phone || '',
+                dob: profile?.dob || '',
+                gender: profile?.gender,
+                occupation: profile?.occupation,
+                upi: profile?.upi || '',
+                favoriteFormat: profile?.favoriteFormat,
+                favoriteTeam: profile?.favoriteTeam,
+                favoriteCricketer: profile?.favoriteCricketer || '',
             });
         }
-    }, [userData, user, form]);
+    }, [profile, user, form]);
 
     const watchedPhone = form.watch('phone');
-    const needsVerification = watchedPhone !== userData?.phone || !userData?.phoneVerified;
+    const needsVerification = watchedPhone !== profile?.phone || !profile?.phoneVerified;
 
     const onSubmit = async (data: ProfileFormValues) => {
         if (isSubmitting) return;
@@ -202,10 +202,10 @@ export default function CompleteProfileForm() {
                                                 disabled={isSubmitting} 
                                                 onChange={(e) => {
                                                     field.onChange(e);
-                                                    if (e.target.value !== userData?.phone) {
+                                                    if (e.target.value !== profile?.phone) {
                                                         setPhoneVerifiedInForm(false);
                                                     } else {
-                                                        setPhoneVerifiedInForm(userData?.phoneVerified);
+                                                        setPhoneVerifiedInForm(profile?.phoneVerified);
                                                     }
                                                 }}
                                             />
@@ -273,7 +273,7 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>UPI ID for Payouts</FormLabel>
-                                    <FormControl><Input placeholder="yourname@bank" {...field} disabled={isSubmitting || !!userData?.upi} /></FormControl>
+                                    <FormControl><Input placeholder="yourname@bank" {...field} disabled={isSubmitting || !!profile?.upi} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

@@ -45,7 +45,7 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, userData } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -147,7 +147,7 @@ export default function CertificatesContent() {
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(45, 85, 255); // A contrasting blue
-    doc.text(userData?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
+    doc.text(profile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
     
     // Add achievement details
     doc.setFontSize(12);

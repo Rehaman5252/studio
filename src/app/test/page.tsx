@@ -4,11 +4,17 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, getFirebaseFirestore } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { useEffect, useState } from 'react';
 
 export default function FirebaseTestPage() {
-  const { user, userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
+  const { user, profile, loading: isAuthLoading, isUserDataLoading } = useAuth();
   const db = getFirebaseFirestore();
+  const [isOnline, setIsOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    isFirebaseOnline().then(setIsOnline);
+  }, []);
 
   const isLoading = isAuthLoading || isUserDataLoading;
   const isConfigured = isFirebaseConfigured;
@@ -31,6 +37,21 @@ export default function FirebaseTestPage() {
             </AlertDescription>
         </Alert>
 
+        {isOnline === null ? (
+            <div className="flex items-center justify-center rounded-lg border bg-card p-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">Checking online status...</p>
+            </div>
+        ) : (
+            <Alert variant={isOnline ? 'default' : 'destructive'} className={isOnline ? 'border-green-500/50 bg-green-500/10' : ''}>
+                {isOnline ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+                <AlertTitle>Firebase Online Status</AlertTitle>
+                <AlertDescription>
+                {isOnline ? `Firebase client is online and connected.` : 'Firebase client is OFFLINE. Data operations will fail.'}
+                </AlertDescription>
+            </Alert>
+        )}
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-8">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -46,12 +67,12 @@ export default function FirebaseTestPage() {
               </AlertDescription>
             </Alert>
 
-            <Alert variant={userData ? 'default' : 'destructive'} className={userData ? 'border-green-500/50 bg-green-500/10' : ''}>
-                 {userData ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+            <Alert variant={profile ? 'default' : 'destructive'} className={profile ? 'border-green-500/50 bg-green-500/10' : ''}>
+                 {profile ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
                 <AlertTitle>Firestore Status</AlertTitle>
                 <AlertDescription>
-                    {user && userData && `User document found for ${userData.name}. Firestore is connected.`}
-                    {user && !userData && 'Auth is working, but no Firestore document was found for this user. (This is normal for a new user).'}
+                    {user && profile && `User document found for ${profile.name}. Firestore is connected.`}
+                    {user && !profile && 'Auth is working, but no Firestore document was found for this user. (This is normal for a new user).'}
                     {!user && 'Waiting for an authenticated user to check Firestore.'}
                 </AlertDescription>
             </Alert>
