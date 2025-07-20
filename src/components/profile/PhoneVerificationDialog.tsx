@@ -49,19 +49,21 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     setIsLoading(true);
 
     try {
-      // Create a new container div for reCAPTCHA on each send attempt
       let recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
       if (!recaptchaContainer) {
           recaptchaContainer = document.createElement('div');
           recaptchaContainer.id = 'recaptcha-container-in-dialog';
           document.body.appendChild(recaptchaContainer);
       } else {
-          recaptchaContainer.innerHTML = ''; // Clear previous verifier
+          recaptchaContainer.innerHTML = '';
       }
 
       const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainer, {
         size: 'invisible',
       });
+      
+      // Explicitly render and wait for it to be ready
+      await verifier.render();
       recaptchaVerifierRef.current = verifier;
 
       const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
