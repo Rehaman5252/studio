@@ -14,7 +14,7 @@ import {
   Timestamp,
   getDoc,
 } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
@@ -48,12 +48,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    // This guard ensures we don't try to run auth logic on the server.
-    if (typeof window === 'undefined' || !isFirebaseConfigured || !auth) {
+    if (typeof window === 'undefined' || !isFirebaseConfigured) {
       console.warn("Firebase not configured or not in a client environment. Auth will not work.");
       setIsAuthLoading(false);
       setIsUserDataLoading(false);
       return;
+    }
+    
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        setIsAuthLoading(false);
+        setIsUserDataLoading(false);
+        return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -66,7 +72,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Wait for auth check to complete and ensure we are on the client
-    if (isAuthLoading || typeof window === 'undefined' || !db) return;
+    if (isAuthLoading || typeof window === 'undefined') return;
+    
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setIsUserDataLoading(false);
+        return;
+    }
 
     if (!user) {
       setUserData(null);
@@ -81,7 +93,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeUser = onSnapshot(userDocRef, 
       (docSnap) => {
         if (!docSnap.exists()) {
-          // Create the user document if it doesn't exist
           createUserDocument(user).then(() => {
              // The listener will re-trigger with the new data, so we just wait.
           }).catch(err => {
@@ -114,6 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthLoading, user, isUserDataLoading]);
   
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
+    const db = getFirebaseFirestore();
     if (!user || !db) {
       console.error("❌ updateUserData: No user or DB not available.");
       throw new Error("Could not save profile. Please check your connection and try again.");
@@ -129,13 +141,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await setDoc(ref, sanitizedData, { merge: true });
     } catch (err) {
       console.error("🔥 updateUserData error:", err);
-      // Optional: Rollback optimistic update on error
-      // For now, we just log the error and rely on persistence.
       throw new Error("Could not save profile. Please try again.");
     }
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
+    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
     
     const currentUserData = userData ? { ...userData } : {};

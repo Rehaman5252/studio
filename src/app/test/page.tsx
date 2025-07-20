@@ -4,10 +4,11 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseFirestore } from '@/lib/firebaseClient';
 
 export default function FirebaseTestPage() {
   const { user, userData, loading: isAuthLoading, isUserDataLoading } = useAuth();
+  const db = getFirebaseFirestore();
 
   const isLoading = isAuthLoading || isUserDataLoading;
   const isConfigured = isFirebaseConfigured;

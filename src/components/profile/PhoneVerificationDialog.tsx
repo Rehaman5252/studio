@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from 'lucide-react';
-import { auth, isFirebaseConfigured, isReallyOnline } from "@/lib/firebaseClient";
+import { getFirebaseAuth, isFirebaseConfigured, isFirebaseOnline } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber } from "firebase/auth";
 
 interface PhoneVerificationDialogProps {
@@ -51,10 +51,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   }, [cleanupVerifier]);
 
   const setupRecaptcha = useCallback(async () => {
-    // Prevent setup if already exists, not open, or on server
+    const auth = getFirebaseAuth();
     if (!auth || recaptchaVerifierRef.current || typeof window === 'undefined' || !open) return;
     
-    // Create the container dynamically if it doesn't exist
     let recaptchaContainer = document.getElementById('recaptcha-container-in-dialog');
     if (!recaptchaContainer) {
         recaptchaContainer = document.createElement('div');
@@ -62,15 +61,14 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
         document.body.appendChild(recaptchaContainer);
     }
     
-    const isOnline = await isReallyOnline();
-    if (!isOnline) {
+    const online = await isFirebaseOnline();
+    if (!online) {
         setError("You are offline. Please check your connection to verify your phone number.");
         return;
     }
 
     try {
         const { RecaptchaVerifier } = await import('firebase/auth');
-        // Ensure verifier is only created once
         if (!recaptchaVerifierRef.current) {
             const verifier = new RecaptchaVerifier(auth, recaptchaContainer, {
                 size: 'invisible',
@@ -98,15 +96,15 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   const handleSendOtp = async () => {
     setError(null);
 
-    // Re-run online check before sending OTP
-    const isOnline = await isReallyOnline();
-    if (!isOnline) {
+    const online = await isFirebaseOnline();
+    if (!online) {
         setError("You are offline. Please check your connection and try again.");
         return;
     }
 
-    await setupRecaptcha(); // Ensure verifier is ready
+    await setupRecaptcha(); 
     const verifier = recaptchaVerifierRef.current;
+    const auth = getFirebaseAuth();
 
     if (!verifier || !auth) {
       const errorMessage = 'The verification system is not ready. Please try again in a moment.';
@@ -179,7 +177,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: PhoneVe
   };
   
   if (!isFirebaseConfigured) {
-    // Don't render the trigger if firebase isn't setup, to avoid errors
     return <>{children}</>;
   }
 

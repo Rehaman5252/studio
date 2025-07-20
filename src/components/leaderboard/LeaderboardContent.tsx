@@ -13,7 +13,7 @@ import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
@@ -73,7 +73,13 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (typeof window === 'undefined' || !db || !user) {
+        if (typeof window === 'undefined') {
+            setIsLoading(false);
+            return;
+        }
+        
+        const db = getFirebaseFirestore();
+        if (!db || !user) {
             setIsLoading(false);
             return;
         }

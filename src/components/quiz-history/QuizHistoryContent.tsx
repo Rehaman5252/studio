@@ -13,7 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -209,8 +209,13 @@ export default function QuizHistoryContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // This guard ensures we don't try to run auth logic on the server.
-    if (typeof window === 'undefined' || !db || !user) {
+    if (typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
+    }
+    
+    const db = getFirebaseFirestore();
+    if (!db || !user) {
         setIsLoading(false);
         return;
     }

@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 
@@ -209,11 +209,17 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // This guard ensures we don't try to run auth logic on the server.
-    if (typeof window === 'undefined' || !db || !user) {
+    if (typeof window === 'undefined') {
         setIsLoading(false);
         return;
     }
+
+    const db = getFirebaseFirestore();
+    if (!db || !user) {
+        setIsLoading(false);
+        return;
+    }
+    
     const fetchHistory = async () => {
         setIsLoading(true);
         setError(null);

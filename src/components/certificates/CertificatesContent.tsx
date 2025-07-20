@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -52,10 +52,15 @@ export default function CertificatesContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // This guard ensures we don't try to run auth logic on the server.
-    if (typeof window === 'undefined' || !db || !user) {
+    if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
+    }
+    
+    const db = getFirebaseFirestore();
+    if (!db || !user) {
+        setIsLoading(false);
+        return;
     }
 
     const fetchHistory = async () => {
