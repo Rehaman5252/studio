@@ -12,6 +12,7 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
 let app: FirebaseApp | null = null;
@@ -19,8 +20,13 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 let persistenceEnabled = false;
 
+// Initialize Firebase on the client side only
 if (typeof window !== "undefined" && !getApps().length) {
-  app = initializeApp(firebaseConfig);
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch(e) {
+    console.error("Firebase initialization error", e);
+  }
 } else if (typeof window !== "undefined") {
   app = getApp();
 }
@@ -38,14 +44,18 @@ export function getFirebaseFirestore(): Firestore | null {
   if (!db) {
     db = getFirestore(app);
     if (!persistenceEnabled) {
-      persistenceEnabled = true;
-      enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
-        } else if (err.code === 'unimplemented') {
-          console.warn("Firestore persistence is not available in this browser.");
-        }
-      });
+      enableIndexedDbPersistence(db)
+        .then(() => {
+            persistenceEnabled = true;
+        })
+        .catch((err) => {
+            if (err.code === 'failed-precondition') {
+              // Persistence can only be enabled in one tab at a time.
+            } else if (err.code === 'unimplemented') {
+              // The current browser does not support all of the
+              // features required to enable persistence.
+            }
+        });
     }
   }
   return db;
@@ -56,10 +66,8 @@ export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean)
 export async function isFirebaseOnline(): Promise<boolean> {
   if (typeof window === 'undefined' || !navigator.onLine) return false;
   try {
-    await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
-      method: 'POST',
-      body: JSON.stringify({ localId: 'test' })
-    });
+    // A lightweight check against a known-good endpoint
+    await fetch('https://www.google.com/generate_204', { mode: 'no-cors' });
     return true;
   } catch {
     return false;

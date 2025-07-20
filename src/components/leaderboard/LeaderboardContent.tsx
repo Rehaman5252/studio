@@ -51,11 +51,8 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return; // Wait for auth to finish loading
+        if (authLoading) return;
 
-        setIsLoading(true);
-        setError(null);
-        
         const db = getFirebaseFirestore();
         if (!db) {
             setError("Could not connect to the database.");
@@ -64,6 +61,8 @@ const LiveLeaderboard = memo(() => {
         }
 
         const fetchLivePlayers = async () => {
+            setIsLoading(true);
+            setError(null);
             try {
                 // In a real app, this would query a shared 'liveSlot' collection.
                 // For this demo, we mock it.
@@ -75,7 +74,7 @@ const LiveLeaderboard = memo(() => {
                 ];
                 
                 if (user) {
-                    const q = query(collection(db, "quizHistory"), where("slotId", "==", getQuizSlotId()), where("uid", "==", user.uid), limit(1));
+                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
 
                     if (!userAttemptSnap.empty) {
@@ -174,4 +173,3 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
-

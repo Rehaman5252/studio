@@ -1,25 +1,25 @@
 
 'use client';
 
-import { getFirebaseFirestore } from './firebaseClient';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { toast } from '@/hooks/use-toast';
-import type { User } from 'firebase/auth';
-import { sanitizeUserProfile } from './sanitizeUserProfile';
 import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  type User,
 } from 'firebase/auth';
-import { getFirebaseAuth } from './firebaseClient';
-
+import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
+import { toast } from '@/hooks/use-toast';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData = {}) {
   const db = getFirebaseFirestore();
   if (!user || !db) return;
+  
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
+
   if (!snapshot.exists()) {
     const { email, displayName, photoURL } = user;
     const newUserProfile = {

@@ -26,7 +26,6 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
 
     const handleFetchAnalysis = useCallback(async () => {
         if (typeof window === 'undefined') return;
-
         const cachedAnalysis = localStorage.getItem(getAnalysisCacheKey());
         if (cachedAnalysis) {
             setAnalysis(cachedAnalysis);
@@ -37,7 +36,6 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
 
         setIsLoading(true);
         setError(null);
-
         try {
             const result = await generateQuizAnalysis({
                 questions: attempt.questions,
@@ -46,27 +44,18 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                 timePerQuestion: attempt.timePerQuestion,
                 usedHintIndices: attempt.usedHintIndices,
             });
-            if (!result.analysis) {
-                throw new Error("Received empty analysis from the server.");
-            }
+            if (!result.analysis) throw new Error("Received empty analysis from the server.");
             setAnalysis(result.analysis);
             localStorage.setItem(getAnalysisCacheKey(), result.analysis);
         } catch (err: any) {
-            console.error("Analysis generation failed:", err);
-            if (err.message?.includes('offline')) {
-                setError("You are offline. Please reconnect to generate AI analysis.");
-            } else {
-                setError('Could not generate the analysis. Please try again later.');
-            }
+            setError(err.message?.includes('offline') ? "You are offline. Please reconnect to generate AI analysis." : 'Could not generate the analysis. Please try again later.');
         } finally {
             setIsLoading(false);
         }
     }, [isLoading, attempt, getAnalysisCacheKey]);
 
     const handleOpenChange = useCallback((open: boolean) => {
-        if (open && !analysis) {
-            handleFetchAnalysis();
-        }
+        if (open && !analysis) handleFetchAnalysis();
     }, [analysis, handleFetchAnalysis]);
 
     return (
@@ -89,7 +78,6 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                         <div className="flex flex-col items-center justify-center p-8 space-y-2">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p className="ml-4 text-muted-foreground">Generating your personalized report...</p>
-                            <p className="text-xs text-muted-foreground">This can take up to 30 seconds.</p>
                         </div>
                     )}
                     {error && <p className="text-destructive font-semibold p-4 text-center">{error}</p>}
@@ -105,90 +93,49 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
 };
 
 const getSlotTimings = (timestamp: number) => {
-    const attemptDate = new Date(timestamp);
-    const minutes = attemptDate.getMinutes();
-    const slotStartMinute = Math.floor(minutes / 10) * 10;
-    
-    const slotStartTime = new Date(attemptDate);
-    slotStartTime.setMinutes(slotStartMinute, 0, 0);
-    
-    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+    const d = new Date(timestamp);
+    const start = new Date(d);
+    start.setMinutes(Math.floor(d.getMinutes() / 10) * 10, 0, 0);
+    const end = new Date(start.getTime() + 10 * 60 * 1000);
+    const format = (dt: Date) => dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return `${format(start)} - ${format(end)}`;
 };
 
 const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
     const isMalpractice = attempt.reason === 'malpractice';
-
     return (
-        <div>
-            <Card className={cn(
-                "bg-card/80 border-primary/10 shadow-lg",
-                isMalpractice && "bg-destructive/10 border-destructive/20"
-            )}>
-                <CardHeader>
-                    <CardTitle className="flex justify-between items-center text-lg">
-                        <span>{attempt.format} Quiz</span>
-                        <span className={cn(
-                            "text-lg font-bold text-primary",
-                            isMalpractice && "text-destructive"
-                        )}>
-                            {isMalpractice ? 'Disqualified' : `${attempt.score}/${attempt.totalQuestions}`}
-                        </span>
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                        Sponsored by {attempt.brand}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground space-y-1">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-xs">{getSlotTimings(attempt.timestamp)}</span>
-                        </div>
-                         {isMalpractice && (
-                            <div className="flex items-center gap-2 text-destructive pt-1">
-                                <AlertTriangle className="h-4 w-4" />
-                                <span className="text-xs font-semibold">Malpractice Detected</span>
-                            </div>
-                        )}
-                    </div>
+        <Card className={cn("bg-card/80 border-primary/10 shadow-lg", isMalpractice && "bg-destructive/10 border-destructive/20")}>
+            <CardHeader>
+                <CardTitle className="flex justify-between items-center text-lg">
+                    <span>{attempt.format} Quiz</span>
+                    <span className={cn("text-lg font-bold text-primary", isMalpractice && "text-destructive")}>
+                        {isMalpractice ? 'Disqualified' : `${attempt.score}/${attempt.totalQuestions}`}
+                    </span>
+                </CardTitle>
+                <CardDescription className="text-xs">Sponsored by {attempt.brand}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground space-y-1">
+                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4" /><span>{new Date(attempt.timestamp).toLocaleDateString()}</span></div>
+                    <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><span className="text-xs">{getSlotTimings(attempt.timestamp)}</span></div>
+                    {isMalpractice && <div className="flex items-center gap-2 text-destructive pt-1"><AlertTriangle className="h-4 w-4" /><span className="text-xs font-semibold">Malpractice Detected</span></div>}
+                </div>
                 <AnalysisDialog attempt={attempt} />
-                </CardContent>
-            </Card>
-        </div>
+            </CardContent>
+        </Card>
     );
 });
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
-const HistorySkeleton = () => (
-    <div className="space-y-4 pt-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="bg-card/80 shadow-lg">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <Skeleton className="h-6 w-24" />
-                        <Skeleton className="h-6 w-12" />
-                    </div>
-                    <Skeleton className="h-4 w-32 mt-1" />
-                </CardHeader>
-                <CardContent className="flex justify-between items-center">
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-36" />
-                        <Skeleton className="h-4 w-40" />
-                    </div>
-                    <Skeleton className="h-9 w-28" />
-                </CardContent>
-            </Card>
-        ))}
-    </div>
-);
+function HistorySkeleton() {
+    return (
+        <div className="space-y-4 pt-4">
+            {[...Array(3)].map((_, i) => (
+                <Card key={i} className="bg-card/80 shadow-lg"><CardHeader><div className="flex justify-between items-center"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-12" /></div><Skeleton className="h-4 w-32 mt-1" /></CardHeader><CardContent className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-40" /></div><Skeleton className="h-9 w-28" /></CardContent></Card>
+            ))}
+        </div>
+    );
+}
 
 const ErrorState = ({ message }: { message: string }) => (
     <div className="pt-4">
@@ -201,106 +148,74 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-  const { user, loading: isAuthLoading } = useAuth();
-  const [filter, setFilter] = useState<'all' | 'perfect'>('all');
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    const { user, loading: isAuthLoading } = useAuth();
+    const [filter, setFilter] = useState<'all' | 'perfect'>('all');
+    const [history, setHistory] = useState<QuizAttempt[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Wait for auth to finish loading and ensure user is logged in
-    if (isAuthLoading) {
-      return;
-    }
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
-    // Safely get Firestore instance
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setError("You appear to be offline. Please check your connection to see your history.");
-        setIsLoading(false);
-        return;
-    }
+    useEffect(() => {
+        if (isAuthLoading || !user) return;
 
-    const fetchHistory = async () => {
-        try {
-            const historyQuery = query(
-              collection(db, 'users', user.uid, 'quizAttempts'),
-              orderBy('timestamp', 'desc'),
-              limit(50)
-            );
-            const docSnap = await getDocs(historyQuery);
-            const historyData = docSnap.docs.map(doc => doc.data() as QuizAttempt);
-            setQuizHistory(historyData);
-        } catch (e: any) {
-            console.error("Failed to fetch quiz history:", e);
-            if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You appear to be offline. Please check your connection to see your history.");
-            } else {
-                setError("Could not load your quiz history. Please try again later.");
-            }
-        } finally {
-            setIsLoading(false);
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Firestore not available.");
+            setLoading(false);
+            return;
         }
-    }
-    fetchHistory();
-  }, [user, isAuthLoading]);
 
-  const filteredHistory = useMemo(() => {
-    if (!quizHistory) return [];
-    if (filter === 'perfect') {
-      return quizHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
-    }
-    return quizHistory;
-  }, [quizHistory, filter]);
+        setLoading(true);
+        setError(null);
+        const fetchHistory = async () => {
+            try {
+                const q = query(
+                    collection(db, "users", user.uid, "quizAttempts"),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
+                const snap = await getDocs(q);
+                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+            } catch (e) {
+                setError("Unable to load quiz history.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchHistory();
+    }, [user, isAuthLoading]);
 
-  const renderContent = () => {
-    if (isLoading || isAuthLoading) {
-        return <HistorySkeleton />;
-    }
-    if (error) {
-        return <ErrorState message={error} />;
-    }
-    if (filteredHistory.length === 0) {
-        return (
+    const filteredHistory = useMemo(() => {
+        if (filter === 'perfect') {
+            return history.filter(a => a.score === a.totalQuestions && !a.reason);
+        }
+        return history;
+    }, [history, filter]);
+
+    const renderContent = () => {
+        if (loading || isAuthLoading) return <HistorySkeleton />;
+        if (error) return <ErrorState message={error} />;
+        if (!filteredHistory.length) return (
             <div>
-                <Card className="bg-card/80 mt-4">
-                    <CardContent className="p-6 text-center text-muted-foreground">
-                        <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg">No Quizzes Found</p>
-                        <p>Play a quiz to see your history here!</p>
-                    </CardContent>
-                </Card>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
             </div>
         );
-    }
-    return (
-        <div className="space-y-4 pt-4">
-            {filteredHistory.map((attempt) => (
-            <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
-            ))}
-        </div>
-    );
-  };
+        return (
+            <div className="space-y-4 pt-4">
+                {filteredHistory.map((attempt) => (
+                    <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
+                ))}
+            </div>
+        );
+    };
 
-  return (
-    <>
-        <div className="flex justify-center">
-            <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="w-full max-w-md">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
-                </TabsList>
-            </Tabs>
-        </div>
-        
-        {renderContent()}
-    </>
-  );
+    return (
+        <>
+            <div className="flex justify-center">
+                <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full max-w-md">
+                    <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="perfect">Perfect Scores</TabsTrigger></TabsList>
+                </Tabs>
+            </div>
+            {renderContent()}
+        </>
+    );
 }

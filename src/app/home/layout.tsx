@@ -9,22 +9,19 @@ import { usePathname } from 'next/navigation';
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 0 
   },
   in: {
     opacity: 1,
-    y: 0
   },
   out: {
     opacity: 0,
-    y: 0
   }
 };
 
 const pageTransition = {
   type: "tween",
   ease: "anticipate",
-  duration: 0.2
+  duration: 0.25
 };
 
 export default function HomeLayout({

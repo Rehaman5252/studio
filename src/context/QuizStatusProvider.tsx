@@ -6,7 +6,7 @@ import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -32,32 +32,24 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (isAuthLoading) return;
-    
-    if (!user) {
-        setIsHistoryLoading(false);
-        setLastAttemptInSlot(null);
-        return;
+    if (isAuthLoading || !user) {
+      setIsHistoryLoading(false);
+      return;
     }
-
+    
     const db = getFirebaseFirestore();
     if (!db) {
         setIsHistoryLoading(false);
         return;
     }
-
+    
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
         try {
-            const historyQuery = query(
-              collection(db, 'users', user.uid, 'quizAttempts'), 
-              where("slotId", "==", getQuizSlotId()),
-              orderBy('timestamp', 'desc'),
-              limit(1)
-            );
-            const docSnap = await getDocs(historyQuery);
-            if (!docSnap.empty) {
-                setLastAttemptInSlot(docSnap.docs[0].data() as QuizAttempt);
+            const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                setLastAttemptInSlot(docSnap.data() as QuizAttempt);
             } else {
                 setLastAttemptInSlot(null);
             }
