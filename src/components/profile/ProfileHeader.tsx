@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo } from 'react';
@@ -55,7 +54,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                     </div>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">
                          <p className="text-muted-foreground text-sm">{userProfile?.email || 'No email set'}</p>
-                         {userProfile?.email ? (
+                         {userProfile?.email && (
                             isEmailVerified ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified"/>
                             ) : (
@@ -64,7 +63,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                                     Resend Link
                                 </Button>
                             )
-                         ) : null}
+                         )}
                     </div>
                     <div className="text-muted-foreground text-xs flex items-center gap-2 flex-wrap justify-center sm:justify-start">
                         {age && <span>{age} yrs</span>}
