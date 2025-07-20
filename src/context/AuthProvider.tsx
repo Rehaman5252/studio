@@ -22,7 +22,7 @@ import {
 
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseAuth, getFirebaseFirestore, isReallyOnline } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
@@ -57,6 +57,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Use standard browser online/offline events
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Set initial state
+    setIsOffline(!navigator.onLine);
+
     const auth = getFirebaseAuth();
     if (!auth) {
       setIsLoading(false);
@@ -67,51 +77,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(firebaseUser);
     });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribe();
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   useEffect(() => {
+    if (isOffline) {
+        setIsLoading(false);
+        return;
+    }
+    
     if (!user) {
       setProfile(null);
       setIsLoading(false);
       return;
     }
 
-    const init = async () => {
-      setIsLoading(true);
-      const firestore = getFirebaseFirestore();
-      const isOnline = await isReallyOnline();
-
-      if (!firestore || !isOnline) {
+    setIsLoading(true);
+    const firestore = getFirebaseFirestore();
+    
+    if (!firestore) {
         setIsOffline(true);
         setIsLoading(false);
         return;
-      }
-
-      setIsOffline(false);
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-        if (!docSnap.exists()) {
-          createUserDocument(user).catch(console.error);
-        } else {
-          const data = docSnap.data();
-          if (data?.dob instanceof Timestamp) {
-            data.dob = data.dob.toDate().toISOString().split('T')[0];
-          }
-          setProfile(data || null);
+    }
+    
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+    if (!docSnap.exists()) {
+        createUserDocument(user).catch(console.error);
+    } else {
+        const data = docSnap.data();
+        if (data?.dob instanceof Timestamp) {
+        data.dob = data.dob.toDate().toISOString().split('T')[0];
         }
-        setIsLoading(false);
-      }, (error) => {
-        console.error('Firestore error:', error);
-        if (error.code === 'unavailable') setIsOffline(true);
-        setIsLoading(false);
-      });
+        setProfile(data || null);
+    }
+    setIsLoading(false);
+    }, (error) => {
+    console.error('Firestore error:', error);
+    if (error.code === 'unavailable') setIsOffline(true);
+    setIsLoading(false);
+    });
 
-      return () => unsubscribe();
-    };
-
-    init();
-  }, [user]);
+    return () => unsubscribe();
+  }, [user, isOffline]);
 
   const updateUserData = useCallback(async (newData: Partial<any>) => {
     const firestore = getFirebaseFirestore();
