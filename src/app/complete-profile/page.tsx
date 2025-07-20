@@ -17,6 +17,10 @@ function CompleteProfilePageContent() {
     }
   }, [user, isAuthLoading, router]);
 
+  const handleSaveSuccess = () => {
+    router.replace('/home');
+  };
+
   if (isAuthLoading) {
     return (
       <div className="flex flex-col h-screen bg-background items-center justify-center">
@@ -26,9 +30,6 @@ function CompleteProfilePageContent() {
     );
   }
 
-  // This check is important. If loading is done and there's still no user,
-  // it might be a brief state before the redirect effect kicks in.
-  // Showing a loader here is better than a flash of content or an error.
   if (!user) {
     return (
         <div className="flex flex-col h-screen bg-background items-center justify-center">
@@ -40,7 +41,7 @@ function CompleteProfilePageContent() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <main className="flex-1 flex items-center justify-center p-4">
-        <CompleteProfileForm />
+        <CompleteProfileForm onSaveSuccess={handleSaveSuccess} />
       </main>
     </div>
   );

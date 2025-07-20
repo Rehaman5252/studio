@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -40,7 +41,11 @@ const cricketTeams = [
     'Sunrisers Hyderabad', 'Punjab Kings', 'Delhi Capitals', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans'
 ];
 
-export default function CompleteProfileForm() {
+interface CompleteProfileFormProps {
+  onSaveSuccess: () => void;
+}
+
+export default function CompleteProfileForm({ onSaveSuccess }: CompleteProfileFormProps) {
     const router = useRouter();
     const { user, profile, updateUserData, isUserDataLoading } = useAuth();
     const { toast } = useToast();
@@ -96,7 +101,7 @@ export default function CompleteProfileForm() {
             const finalPayload: DocumentData = {
                 ...data,
                 profileCompleted: true,
-                phoneVerified: true, // Auto-verify on submission now
+                phoneVerified: true, 
                 updatedAt: new Date(),
             };
             
@@ -107,7 +112,7 @@ export default function CompleteProfileForm() {
                 description: "Your information has been updated successfully."
             });
             
-            router.replace('/home');
+            onSaveSuccess();
 
         } catch (error: any) {
             console.error("🔥 Save Failed:", error);
@@ -116,6 +121,7 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
+        } finally {
             setIsSubmitting(false);
         }
     };
