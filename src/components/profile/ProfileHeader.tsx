@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
-import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
@@ -17,7 +16,6 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user } = useAuth(); // Get the auth user object
     const { toast } = useToast();
     const age = calculateAge(userProfile?.dob);
-    const isPhoneSet = !!userProfile?.phone;
     const isPhoneVerified = !!userProfile?.phoneVerified;
 
     const isEmailVerified = user?.emailVerified || false;
@@ -52,17 +50,8 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                     <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">
                         <p className="text-muted-foreground text-sm">{maskPhone(userProfile?.phone)}</p>
-                        {isPhoneSet && (
-                            isPhoneVerified ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
-                            ) : (
-                                <PhoneVerificationDialog phone={userProfile.phone} onVerified={() => {}}>
-                                    <Button variant="link" className="p-0 h-auto text-yellow-500 text-sm hover:no-underline">
-                                        <AlertCircle className="h-4 w-4 mr-1" />
-                                        Verify
-                                    </Button>
-                                </PhoneVerificationDialog>
-                            )
+                        {userProfile?.phone && (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
                         )}
                     </div>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">

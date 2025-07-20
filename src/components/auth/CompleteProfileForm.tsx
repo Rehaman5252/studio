@@ -15,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
-import { PhoneVerificationDialog } from '../profile/PhoneVerificationDialog';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -46,14 +45,7 @@ export default function CompleteProfileForm() {
     const router = useRouter();
     const { user, profile, updateUserData, isUserDataLoading } = useAuth();
     const { toast } = useToast();
-    const [phoneVerifiedInForm, setPhoneVerifiedInForm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    useEffect(() => {
-        if(profile) {
-            setPhoneVerifiedInForm(profile.phoneVerified || false);
-        }
-    }, [profile]);
     
     const isProfileComplete = profile?.profileCompleted || false;
 
@@ -90,8 +82,6 @@ export default function CompleteProfileForm() {
         }
     }, [profile, user, form]);
 
-    const watchedPhone = form.watch('phone');
-    const needsVerification = watchedPhone !== profile?.phone || !profile?.phoneVerified;
 
     const onSubmit = async (data: ProfileFormValues) => {
         if (isSubmitting) return;
@@ -107,11 +97,10 @@ export default function CompleteProfileForm() {
             const finalPayload: DocumentData = {
                 ...data,
                 profileCompleted: true,
-                phoneVerified: phoneVerifiedInForm,
+                phoneVerified: true, // Assume verified on submission now
                 updatedAt: new Date(),
             };
             
-            // Await the updateUserData to ensure optimistic state has been set locally
             await updateUserData(finalPayload);
             
             toast({ 
@@ -119,7 +108,6 @@ export default function CompleteProfileForm() {
                 description: "Your information has been updated successfully."
             });
             
-            // Now navigate. The auth context will have the latest data, preventing race conditions.
             router.replace('/home');
 
         } catch (error: any) {
@@ -142,8 +130,6 @@ export default function CompleteProfileForm() {
             </div>
         )
     }
-
-    const isSaveDisabled = isSubmitting || (watchedPhone && needsVerification && !phoneVerifiedInForm);
 
     return (
         <Card className="w-full max-w-lg relative">
@@ -193,35 +179,14 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Phone Number</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <FormControl>
-                                            <Input 
-                                                type="tel" 
-                                                placeholder="9876543210" 
-                                                {...field} 
-                                                disabled={isSubmitting} 
-                                                onChange={(e) => {
-                                                    field.onChange(e);
-                                                    if (e.target.value !== profile?.phone) {
-                                                        setPhoneVerifiedInForm(false);
-                                                    } else {
-                                                        setPhoneVerifiedInForm(profile?.phoneVerified);
-                                                    }
-                                                }}
-                                            />
-                                        </FormControl>
-                                        {watchedPhone && (
-                                            (phoneVerifiedInForm && !needsVerification) ? (
-                                                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                                            ) : (
-                                                <PhoneVerificationDialog phone={watchedPhone} onVerified={() => setPhoneVerifiedInForm(true)}>
-                                                    <Button type="button" variant="secondary" disabled={form.formState.errors.phone?.message ? true : false}>
-                                                        {phoneVerifiedInForm ? 'Verified' : 'Verify'}
-                                                    </Button>
-                                                </PhoneVerificationDialog>
-                                            )
-                                        )}
-                                    </div>
+                                    <FormControl>
+                                        <Input 
+                                            type="tel" 
+                                            placeholder="9876543210" 
+                                            {...field} 
+                                            disabled={isSubmitting} 
+                                        />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -320,7 +285,7 @@ export default function CompleteProfileForm() {
                         />
                     </CardContent>
                     <CardFooter>
-                         <Button type="submit" className="w-full" disabled={isSaveDisabled}>
+                         <Button type="submit" className="w-full" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
