@@ -7,14 +7,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
-import { useSafeFirestore } from '@/hooks/useSafeFirestore';
+import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { useAuth } from '@/context/AuthProvider';
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
@@ -44,27 +44,27 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, firestore, loading: authLoading } = useSafeFirestore();
-    const { profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
-        if (!firestore) {
-            setError("You appear to be offline. Please check your connection.");
+
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Couldn't connect to the database.");
             setIsLoading(false);
             return;
         }
 
-        let isMounted = true;
         const fetchLivePlayers = async () => {
-            if (!isMounted) return;
             setIsLoading(true);
             setError(null);
-            
             try {
+                // In a real app, this would query a shared 'liveSlot' collection.
+                // For this demo, we mock it.
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
@@ -73,8 +73,9 @@ const LiveLeaderboard = memo(() => {
                 ];
                 
                 if (user) {
-                    const q = query(collection(firestore, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
+
                     if (!userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
                         mockLivePlayers.push({
@@ -85,30 +86,29 @@ const LiveLeaderboard = memo(() => {
                     }
                 }
 
-                if (isMounted) {
-                    const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
-                    const sorted = uniquePlayers.sort((a, b) => {
-                        if (a.disqualified && !b.disqualified) return 1;
-                        if (!a.disqualified && b.disqualified) return -1;
-                        if (a.score !== b.score) return b.score - a.score;
-                        return a.time - b.time;
-                    }).map((p, i) => ({ ...p, rank: i + 1 }));
-                    setPlayers(sorted);
-                }
+                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
+                const sorted = uniquePlayers.sort((a, b) => {
+                    if (a.disqualified && !b.disqualified) return 1;
+                    if (!a.disqualified && b.disqualified) return -1;
+                    if (a.score !== b.score) return b.score - a.score;
+                    return a.time - b.time;
+                }).map((p, i) => ({ ...p, rank: i + 1 }));
+
+                setPlayers(sorted);
             } catch (e: any) {
-                if (isMounted) {
-                  setError(e.message.includes('offline') ? "You appear to be offline." : "An error occurred while loading the leaderboard.");
-                  console.error(e);
+                if (e.message.includes('offline') || e.code === 'unavailable') {
+                  setError("You appear to be offline. Please check your connection.");
+                } else {
+                  setError("An error occurred while loading the leaderboard.");
                 }
+                console.error(e);
             } finally {
-                if (isMounted) setIsLoading(false);
+                setIsLoading(false);
             }
         };
         fetchLivePlayers();
+    }, [user, profile, authLoading]);
 
-        return () => { isMounted = false; }
-    }, [user, firestore, profile, authLoading]);
-    
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
@@ -139,6 +139,7 @@ const AllTimeLeaderboard = memo(() => {
     const [isLoading, setIsLoading] = useState(true);
     
     const players: AllTimePlayer[] = useMemo(() => {
+        // This is mocked for now. A real implementation would query an aggregated collection.
         if (!profile) return [];
         return [{
             uid: user!.uid,
@@ -178,7 +179,7 @@ AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
 
 export default function LeaderboardContent() {
-  const { user } = useSafeFirestore();
+  const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,6 +66,7 @@ export default function SignupForm() {
     setIsLoading(true);
     try {
         const userCredential = await registerWithEmail(data.email, data.password);
+        const auth = getFirebaseAuth();
         if (auth && auth.currentUser) {
             await updateProfile(auth.currentUser, { displayName: data.name });
             await sendEmailVerification(auth.currentUser);
@@ -93,7 +94,7 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !auth;
+  const isAuthDisabled = isLoading || isGoogleLoading;
   
   return (
     <Card className="w-full max-w-md shadow-2xl shadow-black/20">

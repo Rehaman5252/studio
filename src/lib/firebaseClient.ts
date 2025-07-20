@@ -70,6 +70,7 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 
   try {
+    // This is a more reliable check. We use a non-existent document to avoid read costs.
     const testDoc = doc(db, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
@@ -77,6 +78,7 @@ export async function isFirebaseOnline(): Promise<boolean> {
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
+    // Some errors might not indicate offline status, but for this check, we treat them as such.
     return false;
   }
 }

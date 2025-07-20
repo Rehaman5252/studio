@@ -33,7 +33,7 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, isProfileComplete, isUserDataLoading } = useAuth();
+    const { user, isProfileComplete, loading: authLoading } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     
@@ -80,12 +80,9 @@ const QuizSelectionComponent = () => {
     
 
     const handleFaceClick = (brand: CubeBrand) => {
-        // Find the index corresponding to the clicked brand
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
-            // Set the cube to that face immediately
             setCurrentFaceIndex(clickedIndex);
-            // And then start the quiz
             handleStartQuiz(brand);
         }
     };
@@ -98,7 +95,8 @@ const QuizSelectionComponent = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
             router.push(`/quiz/results?reason=malpractice`);
         } else {
-            router.push(`/quiz/results?review=true`);
+            const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+            router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`);
         }
         setShowSlotPlayedAlert(false);
     };
@@ -112,7 +110,7 @@ const QuizSelectionComponent = () => {
         setShowAuthAlert(false);
     }
     
-    if (isUserDataLoading || isQuizStatusLoading) {
+    if (authLoading || isQuizStatusLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />

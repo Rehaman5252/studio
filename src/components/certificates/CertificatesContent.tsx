@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
-import { useSafeFirestore } from '@/hooks/useSafeFirestore';
+import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { useAuth } from '@/context/AuthProvider';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -45,8 +45,7 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, firestore, loading: authLoading } = useSafeFirestore();
-  const { profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,40 +53,36 @@ export default function CertificatesContent() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || !firestore) {
+    if (!user) { setIsLoading(false); return; }
+
+    const db = getFirebaseFirestore();
+    if (!db) {
+      setError("You appear to be offline. Please check your connection to see your certificates.");
       setIsLoading(false);
-      if(!firestore) setError("You appear to be offline. Please check your connection to see your certificates.");
       return;
     }
 
-    let isMounted = true;
     const fetchHistory = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
-            if (isMounted) {
-                const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-                setQuizHistory(historyData);
-            }
+            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+            setQuizHistory(historyData);
         } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
-            if (isMounted) {
-                if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                    setError("You appear to be offline. Please check your connection to see your certificates.");
-                } else {
-                    setError("Could not load your certificates. Please try again later.");
-                }
+            if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                setError("You appear to be offline. Please check your connection to see your certificates.");
+            } else {
+                setError("Could not load your certificates. Please try again later.");
             }
         } finally {
-            if (isMounted) setIsLoading(false);
+            setIsLoading(false);
         }
     }
     fetchHistory();
-
-    return () => { isMounted = false; }
-  }, [user, firestore, authLoading]);
+  }, [user, authLoading]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);

@@ -7,9 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
-import { useSafeFirestore } from '@/hooks/useSafeFirestore';
+import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -72,8 +73,6 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: '#' },
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
-    'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
-    'Gucci': { gift: '10% Off Coupon', description: 'On select items.', link: '#' },
     'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
@@ -117,40 +116,43 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsContent() {
-  const { user, firestore, loading: authLoading } = useSafeFirestore();
+  const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || !firestore) {
-        setIsLoading(false);
-        if(!firestore) setError("You appear to be offline. Please check your connection to see your rewards.");
+    if (!user) { setLoading(false); return; }
+
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setError("You appear to be offline. Please check your connection to see your rewards.");
+        setLoading(false);
         return;
     }
-    
-    let isMounted = true;
+
     const fetchHistory = async () => {
-        setIsLoading(true);
+        setLoading(true);
         setError(null);
         try {
-            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
-            if (isMounted) setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
-            if (isMounted) {
-                console.error("Rewards Fetch Error:", e);
-                setError("Unable to load rewards data. Please check your connection.");
+            console.error("Rewards Fetch Error:", e);
+            if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                setError("You appear to be offline. Please check your connection.");
+            } else {
+                setError("Unable to load rewards data. Please try again later.");
             }
         } finally {
-            if (isMounted) setIsLoading(false);
+            setLoading(false);
         }
     };
 
     fetchHistory();
-    return () => { isMounted = false; }
-  }, [user, firestore, authLoading]);
+  }, [user, authLoading]);
 
   const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {
@@ -164,7 +166,7 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
 
-  if (isLoading || authLoading) return <RewardsSkeleton />;
+  if (loading || authLoading) return <RewardsSkeleton />;
 
   return (
     <>

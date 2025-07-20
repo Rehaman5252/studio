@@ -10,8 +10,9 @@ import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, 
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
-import { useSafeFirestore } from '@/hooks/useSafeFirestore';
+import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -147,43 +148,47 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-    const { user, firestore, loading: authLoading } = useSafeFirestore();
+    const { user, loading: authLoading } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
-    const [isLoading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
-        if (!user || !firestore) {
-            setLoading(false);
-            if (!firestore) setError("You appear to be offline. Please check your connection.");
-            return;
+        if (!user) { setLoading(false); return; }
+        
+        const db = getFirebaseFirestore();
+        if (!db) { 
+            setError("You appear to be offline. Please check your connection."); 
+            setLoading(false); 
+            return; 
         }
 
-        let isMounted = true;
         setLoading(true); 
         setError(null);
-        
+
         const fetchHistory = async () => {
             try {
                 const q = query(
-                    collection(firestore, "users", user.uid, "quizAttempts"),
+                    collection(db, "users", user.uid, "quizAttempts"),
                     orderBy("timestamp", "desc"),
                     limit(50)
                 );
                 const snap = await getDocs(q);
-                if (isMounted) setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
             } catch (e: any) {
-                if (isMounted) setError("Unable to load quiz history.");
+                if(e.code === 'unavailable' || e.message?.includes('offline')) {
+                    setError("You appear to be offline. Please check your connection.");
+                } else {
+                    setError("Unable to load quiz history. Please try again later.");
+                }
             } finally {
-                if (isMounted) setLoading(false);
+                setLoading(false);
             }
         };
         fetchHistory();
-        
-        return () => { isMounted = false; }
-    }, [user, firestore, authLoading]);
+    }, [user, authLoading]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {
@@ -193,11 +198,11 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return <HistorySkeleton />;
+        if (loading || authLoading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>
-                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">{filter === 'all' ? 'No Quizzes Found' : 'No Perfect Scores Yet'}</p><p>{filter === 'all' ? 'Your played quizzes will appear here!' : 'Keep playing to achieve a perfect score!'}</p></CardContent></Card>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
             </div>
         );
         return (
@@ -212,7 +217,7 @@ export default function QuizHistoryContent() {
     return (
         <>
             <div className="flex justify-center">
-                <Tabs value={filter} onValueChange={(v) => setFilter(v as 'all' | 'perfect')} className="w-full max-w-md">
+                <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full max-w-md">
                     <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="perfect">Perfect Scores</TabsTrigger></TabsList>
                 </Tabs>
             </div>
