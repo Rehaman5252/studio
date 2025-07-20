@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { DocumentData } from 'firebase/firestore';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { PhoneVerificationDialog } from '../profile/PhoneVerificationDialog';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -48,6 +49,8 @@ export default function CompleteProfileForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const isProfileComplete = profile?.profileCompleted || false;
+    const [isPhoneVerified, setIsPhoneVerified] = useState(profile?.phoneVerified || false);
+
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -65,9 +68,12 @@ export default function CompleteProfileForm() {
         },
     });
     
+    const phoneValue = form.watch('phone');
+    const isPhoneDirty = form.formState.dirtyFields.phone;
+
     useEffect(() => {
         if (profile || user) {
-            form.reset({
+            const initialValues = {
                 name: profile?.name || user?.displayName || '',
                 email: profile?.email || user?.email || '',
                 phone: profile?.phone || '',
@@ -78,9 +84,17 @@ export default function CompleteProfileForm() {
                 favoriteFormat: profile?.favoriteFormat,
                 favoriteTeam: profile?.favoriteTeam,
                 favoriteCricketer: profile?.favoriteCricketer || '',
-            });
+            };
+            form.reset(initialValues);
+            setIsPhoneVerified(profile?.phone === initialValues.phone && profile?.phoneVerified);
         }
     }, [profile, user, form]);
+
+    useEffect(() => {
+      if(isPhoneDirty) {
+        setIsPhoneVerified(false);
+      }
+    }, [isPhoneDirty]);
 
 
     const onSubmit = async (data: ProfileFormValues) => {
@@ -91,7 +105,7 @@ export default function CompleteProfileForm() {
             const finalPayload: DocumentData = {
                 ...data,
                 profileCompleted: true,
-                phoneVerified: true, // Phone verification is now implicit
+                phoneVerified: isPhoneVerified,
                 updatedAt: new Date(),
             };
             
@@ -124,6 +138,8 @@ export default function CompleteProfileForm() {
             </div>
         )
     }
+
+    const needsVerification = phoneValue && phoneValue.length === 10 && !isPhoneVerified;
 
     return (
         <Card className="w-full max-w-lg relative">
@@ -173,14 +189,17 @@ export default function CompleteProfileForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Phone Number</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                            type="tel" 
-                                            placeholder="9876543210" 
-                                            {...field} 
-                                            disabled={isSubmitting} 
-                                        />
-                                    </FormControl>
+                                    <div className="flex items-center gap-2">
+                                      <FormControl>
+                                          <Input 
+                                              type="tel" 
+                                              placeholder="9876543210" 
+                                              {...field} 
+                                              disabled={isSubmitting} 
+                                          />
+                                      </FormControl>
+                                      {isPhoneVerified && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+                                    </div>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -278,8 +297,13 @@ export default function CompleteProfileForm() {
                             )}
                         />
                     </CardContent>
-                    <CardFooter>
-                         <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <CardFooter className="flex flex-col gap-2">
+                        {needsVerification && (
+                            <PhoneVerificationDialog phone={phoneValue} onVerified={() => setIsPhoneVerified(true)}>
+                                <Button type="button" variant="outline" className="w-full">Verify Phone</Button>
+                            </PhoneVerificationDialog>
+                        )}
+                         <Button type="submit" className="w-full" disabled={isSubmitting || needsVerification}>
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

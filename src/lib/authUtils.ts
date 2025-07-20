@@ -11,36 +11,42 @@ import {
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth, db } from './firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore } from './firebaseClient';
+import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  // This function now correctly uses the imported `db` instance,
-  // which is guaranteed to be initialized by the time this is called.
+  const db = getFirebaseFirestore();
+  if (!db) {
+    console.error('❌ createUserDocument failed: Firestore DB is not available.');
+    return;
+  }
+  
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
     console.log(`📄 Creating document for new user: ${user.uid}`);
     const { email, displayName, photoURL } = user;
-    const createdAt = new Date();
+    
+    const newUserProfile = {
+      uid: user.uid,
+      email,
+      name: additionalData.name || displayName || 'New User',
+      photoURL: photoURL || `https://placehold.co/100x100.png`,
+      createdAt: new Date(),
+      emailVerified: user.emailVerified,
+      quizzesPlayed: 0,
+      perfectScores: 0,
+      totalRewards: 0,
+      profileCompleted: false,
+      phoneVerified: false,
+      referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
+      referralEarnings: 0,
+      ...additionalData
+    };
 
     try {
-      await setDoc(userDocRef, {
-        uid: user.uid,
-        email,
-        name: additionalData.name || displayName || 'New User',
-        photoURL: photoURL || `https://placehold.co/100x100.png`,
-        createdAt,
-        emailVerified: user.emailVerified,
-        quizzesPlayed: 0,
-        perfectScores: 0,
-        totalRewards: 0,
-        profileCompleted: false,
-        phoneVerified: false,
-        referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
-        referralEarnings: 0,
-        ...additionalData
-      });
+      await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
       console.log("✅ User document created in Firestore");
     } catch (error) {
       console.error("❌ Firestore write failed in createUserDocument:", error);

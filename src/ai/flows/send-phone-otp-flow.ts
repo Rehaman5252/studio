@@ -3,7 +3,8 @@
 
 /**
  * @fileOverview This flow is deprecated and will be removed.
- * Phone verification is now handled by the standard Firebase Phone Auth system.
+ * Phone verification is now handled by the standard Firebase Phone Auth system on the client-side.
+ * This file is no longer used and can be safely deleted.
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';

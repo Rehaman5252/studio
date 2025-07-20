@@ -17,8 +17,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     const age = calculateAge(userProfile?.dob);
     
-    // The phone is now implicitly verified on submission, so we show the checkmark.
-    const isPhoneEntered = !!userProfile?.phone;
+    const isPhoneVerified = !!userProfile?.phoneVerified;
     const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
@@ -51,8 +50,8 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                     <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">
                         <p className="text-muted-foreground text-sm">{maskPhone(userProfile?.phone)}</p>
-                        {isPhoneEntered && (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" title="Phone number provided" />
+                        {isPhoneVerified && (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
                         )}
                     </div>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">

@@ -12,8 +12,8 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -202,13 +202,11 @@ const ErrorState = ({ message }: { message: string }) => (
 
 export default function QuizHistoryContent() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<'all' | 'recent' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Wait for user to be authenticated before trying to fetch.
     if (!user) {
         setIsLoading(false);
         return;
@@ -218,13 +216,16 @@ export default function QuizHistoryContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const historyDocRef = doc(db, 'quizHistory', user.uid);
-            const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                const historyData = docSnap.data().attempts || [];
-                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-                setQuizHistory(historyData);
-            }
+            const db = getFirebaseFirestore();
+            if (!db) throw new Error("Firestore not initialized.");
+
+            const historyCollectionRef = collection(db, 'users', user.uid, 'quizAttempts');
+            const q = query(historyCollectionRef, orderBy('timestamp', 'desc'), limit(50));
+            const querySnapshot = await getDocs(q);
+            
+            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+            setQuizHistory(historyData);
+
         } catch (e: any) {
             console.error("Failed to fetch quiz history:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
@@ -240,15 +241,20 @@ export default function QuizHistoryContent() {
   }, [user]);
 
   const filteredHistory = useMemo(() => {
-    if (!quizHistory) return [];
-    const history = (quizHistory as QuizAttempt[]).slice().sort((a, b) => b.timestamp - a.timestamp);
-    if (filter === 'recent') {
-      return history.slice(0, 5);
+    if (quizHistory.length === 0) return [];
+    
+    if (quizHistory[0].reason === 'malpractice') {
+      // If the latest is malpractice, show it alone
+      return [quizHistory[0]];
     }
+
+    const perfectScores = quizHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
+    
     if (filter === 'perfect') {
-      return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
+        return perfectScores;
     }
-    return history;
+    return quizHistory;
+
   }, [quizHistory, filter]);
 
   const renderContent = () => {
@@ -262,7 +268,7 @@ export default function QuizHistoryContent() {
         return (
             <div className="space-y-4 pt-4">
                 {filteredHistory.map((attempt) => (
-                <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
+                    <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
                 ))}
             </div>
         );
@@ -283,10 +289,9 @@ export default function QuizHistoryContent() {
   return (
     <>
         <div className="flex justify-center">
-            <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="w-full max-w-md">
-                <TabsList className="grid w-full grid-cols-3">
+            <Tabs defaultValue="all" onValueChange={(value) => setFilter(value as any)} className="w-full max-w-md">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="recent">Recent</TabsTrigger>
                     <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
                 </TabsList>
             </Tabs>
