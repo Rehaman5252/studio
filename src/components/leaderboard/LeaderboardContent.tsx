@@ -73,7 +73,7 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (typeof window === 'undefined' || !user) {
+        if (!user || !db) {
             setIsLoading(false);
             return;
         }
@@ -334,7 +334,20 @@ MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
 
 
 export default function LeaderboardContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+        <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <div className="pt-2 space-y-2">
+                <LeaderboardItemSkeleton />
+                <LeaderboardItemSkeleton />
+                <LeaderboardItemSkeleton />
+            </div>
+        </div>
+    );
+  }
 
   return (
     <Tabs defaultValue="live" className="w-full">

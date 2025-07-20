@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,6 +38,11 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -102,7 +107,7 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !auth;
+  const isAuthDisabled = isLoading || isGoogleLoading || (isClient && !auth);
   
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
@@ -111,7 +116,7 @@ export default function SignupForm() {
         <p className="text-muted-foreground">Already have an account?{' '}<Link href={`/auth/login${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">Sign in here</Link></p>
       </div>
 
-      {!auth ? (
+      {isClient && !auth ? (
          <FirebaseConfigWarning />
       ) : (
         <div className="space-y-4">

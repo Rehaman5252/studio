@@ -45,20 +45,21 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !user) {
-        setIsLoading(false);
+    if (loading) return;
+    if (!user || !db) {
+        setIsFetching(false);
         return;
     }
 
     const fetchHistory = async () => {
-        setIsLoading(true);
+        setIsFetching(true);
         setError(null);
         try {
             const q = query(
@@ -77,11 +78,11 @@ export default function CertificatesContent() {
                 setError("Could not load your certificates. Please try again later.");
             }
         } finally {
-            setIsLoading(false);
+            setIsFetching(false);
         }
     }
     fetchHistory();
-  }, [user]);
+  }, [user, loading]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -192,7 +193,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (isLoading) {
+  if (isFetching) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />

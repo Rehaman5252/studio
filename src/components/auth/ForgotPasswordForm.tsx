@@ -29,6 +29,11 @@ export default function ForgotPasswordForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
@@ -78,7 +83,7 @@ export default function ForgotPasswordForm() {
         </CardHeader>
         <form onSubmit={emailForm.handleSubmit(handleSendResetEmail)}>
             <CardContent className="space-y-4">
-                 {!auth ? (
+                 {isClient && !auth ? (
                     <FirebaseConfigWarning />
                 ) : (
                     <div className="space-y-2">
@@ -89,7 +94,7 @@ export default function ForgotPasswordForm() {
                 )}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                 <Button type="submit" className="w-full" disabled={isLoading || !auth}>
+                 <Button type="submit" className="w-full" disabled={isLoading || (isClient && !auth)}>
                     {isLoading && <Loader2 className="animate-spin mr-2" />}
                     Send Reset Link
                 </Button>

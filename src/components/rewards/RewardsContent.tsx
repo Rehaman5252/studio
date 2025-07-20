@@ -202,19 +202,20 @@ const GenericOffersSection = memo(() => (
 GenericOffersSection.displayName = 'GenericOffersSection';
 
 export default function RewardsContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !user) {
-        setIsLoading(false);
+    if (loading) return;
+    if (!user || !db) {
+        setIsFetching(false);
         return;
     }
     
     const fetchHistory = async () => {
-        setIsLoading(true);
+        setIsFetching(true);
         setError(null);
         try {
             const q = query(
@@ -233,11 +234,11 @@ export default function RewardsContent() {
                 setError("Could not load your rewards. Please try again later.");
             }
         } finally {
-            setIsLoading(false);
+            setIsFetching(false);
         }
     }
     fetchHistory();
-  }, [user]);
+  }, [user, loading]);
 
   const hasAttempts = quizHistory.length > 0;
 
@@ -265,7 +266,7 @@ export default function RewardsContent() {
         isLoggedIn={!!user} 
         rewardableAttempts={rewardableAttempts}
         hasAttempts={hasAttempts}
-        isLoading={isLoading}
+        isLoading={isFetching}
         error={error}
       />
       <GenericOffersSection />

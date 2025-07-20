@@ -15,11 +15,12 @@ import { auth, db } from './firebaseClient';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
+  if (!user || !db) return;
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
-    console.log(`📄 Creating document for new user: ${user.uid}`);
+    console.log(`Creating document for new user: ${user.uid}`);
     const { email, displayName, photoURL } = user;
     
     const newUserProfile = {
@@ -41,9 +42,9 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
-      console.log("✅ User document created in Firestore");
+      console.log("User document created in Firestore");
     } catch (error) {
-      console.error("❌ Firestore write failed in createUserDocument:", error);
+      console.error("Firestore write failed in createUserDocument:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
     }
@@ -53,8 +54,8 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (isPopupOpen) {
-    console.warn("Google Sign-In popup is already open.");
+  if (isPopupOpen || !auth) {
+    console.warn("Google Sign-In popup is already open or auth is not initialized.");
     return null;
   }
   isPopupOpen = true;
@@ -81,11 +82,13 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
+    if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

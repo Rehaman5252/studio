@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { auth, isFirebaseOnline } from "@/lib/firebaseClient";
-import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
+import { auth } from "@/lib/firebaseClient";
+import { RecaptchaVerifier as FirebaseRecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
 interface Props {
   children: React.ReactNode;
@@ -30,51 +30,38 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   const [error, setError] = useState<string | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
 
   const cleanupVerifier = useCallback(() => {
     if (recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current.clear();
       recaptchaVerifierRef.current = null;
     }
-    const container = document.getElementById('recaptcha-container-in-dialog');
-    if (container) container.remove();
+    if (recaptchaContainerRef.current) {
+        recaptchaContainerRef.current.innerHTML = '';
+    }
   }, []);
   
   useEffect(() => () => cleanupVerifier(), [cleanupVerifier]);
 
   const setupRecaptcha = useCallback(async () => {
-    if (!auth || recaptchaVerifierRef.current || !open) return;
+    if (!auth || recaptchaVerifierRef.current || !recaptchaContainerRef.current) return;
     
-    let container = document.getElementById('recaptcha-container-in-dialog');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'recaptcha-container-in-dialog';
-      document.body.appendChild(container);
-    }
-
-    const online = await isFirebaseOnline();
-    if (!online) {
-      setError("You appear to be offline. Please check your connection.");
-      return;
-    }
-
     try {
-      if (!recaptchaVerifierRef.current) {
-          recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier('recaptcha-container-in-dialog', {
-              size: 'invisible',
-              callback: () => {},
-              'expired-callback': () => {
-                setError("reCAPTCHA expired. Please try again.");
-                cleanupVerifier();
-              },
-          }, auth);
-          await recaptchaVerifierRef.current.render();
-      }
+        recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            size: 'invisible',
+            callback: () => {},
+            'expired-callback': () => {
+              setError("reCAPTCHA expired. Please try again.");
+              cleanupVerifier();
+            },
+        });
+        await recaptchaVerifierRef.current.render();
     } catch (e) {
       console.error("reCAPTCHA setup error:", e);
       setError("reCAPTCHA load failed. Please try again or check for ad-blockers.");
     }
-  }, [cleanupVerifier, open]);
+  }, [cleanupVerifier]);
 
   useEffect(() => {
     if (open && step === 'initial') {
@@ -87,12 +74,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
 
   const handleSendOtp = async () => {
     setError(null);
-    const online = await isFirebaseOnline();
-    if (!online) {
-      setError("You appear to be offline. Please check your connection.");
-      return;
-    }
-    await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
     if (!verifier) {
       setError("Verification system is not ready. Please close and try again.");
@@ -146,6 +127,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={resetStateAndClose}>
+      <div ref={recaptchaContainerRef} id="recaptcha-container-in-dialog"></div>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>

@@ -14,12 +14,11 @@ import {
   getDoc,
   collection
 } from 'firebase/firestore';
-import { auth, db, isFirebaseOnline } from '@/lib/firebaseClient';
+import { auth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
   user: User | null;
-  userData: DocumentData | null;
   profile: DocumentData | null;
   lastAttempt: QuizAttempt | null;
   setLastAttempt: (attempt: QuizAttempt | null) => void;
@@ -46,10 +45,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   
   const [isOffline, setIsOffline] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-      return !navigator.onLine;
-    }
-    return false;
+    if (typeof navigator !== 'undefined') return !navigator.onLine;
+    return false; // assume online during SSR
   });
 
   useEffect(() => {
@@ -94,6 +91,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsUserDataLoading(true);
 
     const fetchProfile = async () => {
+      if (!db) {
+          setIsUserDataLoading(false);
+          return;
+      }
       try {
         const userDocRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(userDocRef);
@@ -113,7 +114,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Error loading user profile:", error);
-        setIsOffline(true);
         setProfile(null);
       } finally {
         setIsUserDataLoading(false);
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, isOffline]);
 
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    if (!user) {
+    if (!user || !db) {
       throw new Error("Could not save profile. Please check your connection and try again.");
     }
 
@@ -141,29 +141,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) {
+    if (!user || !db) {
       throw new Error("User not authenticated or DB not available.");
     }
     
-    setProfile(prev => {
-      const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
-      return {
-        ...prev,
-        quizzesPlayed: (prev?.quizzesPlayed || 0) + 1,
-        perfectScores: (prev?.perfectScores || 0) + (isPerfect ? 1 : 0),
-        totalRewards: (prev?.totalRewards || 0) + (isPerfect ? 100 : 0)
-      };
-    });
-
     try {
-        const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
         const currentProfile = profile || {};
+        const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
         const newStats = {
             quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
             perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
             totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
         };
         
+        // Optimistically update local state first
+        setProfile(prev => ({ ...prev, ...newStats }));
+
         const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, sanitizeUserProfile(newStats), { merge: true });
 
@@ -183,7 +176,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo(() => ({
     user,
-    userData: profile,
     profile,
     lastAttempt,
     setLastAttempt,

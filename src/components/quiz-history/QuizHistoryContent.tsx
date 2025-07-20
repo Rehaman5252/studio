@@ -201,20 +201,21 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [filter, setFilter] = useState<'all' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !user) {
-        setIsLoading(false);
-        return;
+    if (loading) return; // Wait for auth state to be resolved
+    if (!user || !db) {
+      setIsFetching(false);
+      return;
     }
     
     const fetchHistory = async () => {
-        setIsLoading(true);
+        setIsFetching(true);
         setError(null);
         try {
             const q = query(
@@ -233,11 +234,11 @@ export default function QuizHistoryContent() {
                 setError("Could not load your quiz history. Please try again later.");
             }
         } finally {
-            setIsLoading(false);
+            setIsFetching(false);
         }
     }
     fetchHistory();
-  }, [user]);
+  }, [user, loading]);
 
   const filteredHistory = useMemo(() => {
     if (filter === 'perfect') {
@@ -247,7 +248,7 @@ export default function QuizHistoryContent() {
   }, [quizHistory, filter]);
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isFetching) {
         return <HistorySkeleton />;
     }
     if (error) {

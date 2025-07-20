@@ -32,7 +32,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isUserDataLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !user) {
+    if (!user || !db) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
