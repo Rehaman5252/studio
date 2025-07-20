@@ -158,15 +158,18 @@ export default function QuizHistoryContent() {
         if (authLoading) return;
         if (!user) { setLoading(false); return; }
 
+        let isMounted = true;
         const fetchHistory = async () => {
-            setLoading(true);
+            if (!isMounted) return;
+
+            setLoading(true); 
             setError(null);
             
             const db = getFirebaseFirestore();
-            if (!db) {
-                setError("Unable to connect to database. Please check your connection.");
-                setLoading(false);
-                return;
+            if (!db) { 
+                setError("Unable to connect to database. Please check your connection."); 
+                setLoading(false); 
+                return; 
             }
 
             try {
@@ -176,16 +179,23 @@ export default function QuizHistoryContent() {
                     limit(50)
                 );
                 const snap = await getDocs(q);
-                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+                if (isMounted) {
+                    setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+                }
             } catch (e: any) {
-                console.error("Quiz History Fetch Error:", e);
-                setError("Unable to load quiz history. Please check your connection.");
+                if (isMounted) {
+                    console.error("Quiz History Fetch Error:", e);
+                    setError("Unable to load quiz history. Please check your connection.");
+                }
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchHistory();
+        return () => { isMounted = false; }
     }, [user, authLoading]);
 
     const filteredHistory = useMemo(() => {

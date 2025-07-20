@@ -52,7 +52,9 @@ const LiveLeaderboard = memo(() => {
     useEffect(() => {
         if (authLoading) return;
 
+        let isMounted = true;
         const fetchLivePlayers = async () => {
+            if (!isMounted) return;
             setIsLoading(true);
             setError(null);
             
@@ -87,27 +89,35 @@ const LiveLeaderboard = memo(() => {
                     }
                 }
 
-                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
-                const sorted = uniquePlayers.sort((a, b) => {
-                    if (a.disqualified && !b.disqualified) return 1;
-                    if (!a.disqualified && b.disqualified) return -1;
-                    if (a.score !== b.score) return b.score - a.score;
-                    return a.time - b.time;
-                }).map((p, i) => ({ ...p, rank: i + 1 }));
+                if (isMounted) {
+                    const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
+                    const sorted = uniquePlayers.sort((a, b) => {
+                        if (a.disqualified && !b.disqualified) return 1;
+                        if (!a.disqualified && b.disqualified) return -1;
+                        if (a.score !== b.score) return b.score - a.score;
+                        return a.time - b.time;
+                    }).map((p, i) => ({ ...p, rank: i + 1 }));
 
-                setPlayers(sorted);
-            } catch (e: any) {
-                if (e.message.includes('offline') || e.code === 'unavailable') {
-                  setError("You appear to be offline. Please check your connection.");
-                } else {
-                  setError("An error occurred while loading the leaderboard.");
+                    setPlayers(sorted);
                 }
-                console.error(e);
+            } catch (e: any) {
+                if (isMounted) {
+                    if (e.message.includes('offline') || e.code === 'unavailable') {
+                      setError("You appear to be offline. Please check your connection.");
+                    } else {
+                      setError("An error occurred while loading the leaderboard.");
+                    }
+                    console.error(e);
+                }
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         };
         fetchLivePlayers();
+
+        return () => { isMounted = false; }
     }, [user, profile, authLoading]);
 
     const renderContent = () => {
@@ -140,7 +150,6 @@ const AllTimeLeaderboard = memo(() => {
     const [isLoading, setIsLoading] = useState(true);
     
     const players: AllTimePlayer[] = useMemo(() => {
-        // This is mocked for now. A real implementation would query an aggregated collection.
         if (!profile) return [];
         return [{
             uid: user!.uid,

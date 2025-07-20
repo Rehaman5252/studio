@@ -33,9 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    // Listen for Firebase Auth state changes.
     const auth = getFirebaseAuth();
     if (!auth) { 
+        console.error("Firebase Auth is not available.");
         setLoading(false); 
         return; 
     }
@@ -44,9 +44,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    // When user state changes, manage their profile data.
     if (!user) { 
         setProfile(null); 
+        setIsProfileComplete(false);
         setLoading(false); 
         return; 
     }
@@ -68,12 +68,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsOffline(!online);
       if (!online) {
         setLoading(false);
-        return;
+        console.warn("Application is offline. User data will not be synced in real-time.");
       }
 
       const userDocRef = doc(db, "users", user.uid);
       
-      // Use onSnapshot for real-time profile updates.
       unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -83,8 +82,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
-          // If profile doesn't exist, create it. This is a crucial fix for new users.
+          console.log(`Profile for ${user.uid} not found, creating it.`);
           await createUserDocument(user);
+          // Snapshot listener will trigger again with the new data
         }
         setLoading(false);
       }, (error) => {
@@ -106,7 +106,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
-    // Optimistic update: update local state immediately for a responsive UI.
     setProfile(prev => {
         const updated = { ...(prev || {}), ...newData };
         setIsProfileComplete(!!updated.profileCompleted);
@@ -114,7 +113,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     
     const userDocRef = doc(db, "users", user.uid);
-    // Write to Firestore in the background. Sanitize data to prevent errors.
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
@@ -127,7 +125,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     
-    // Update user stats after a quiz.
     if (updateUserData) {
         const currentProfile = profile || {};
         const newStats = {
@@ -152,9 +149,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/**
- * Custom hook to easily access the Auth context from any client component.
- */
 export function useAuth() {
   const c = useContext(AuthContext);
   if (!c) throw new Error("useAuth must be inside AuthProvider");

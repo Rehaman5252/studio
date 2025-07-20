@@ -19,13 +19,14 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 let persistenceEnabled = false;
 
-// This function safely initializes Firebase, preventing multiple instances.
 function initializeFirebase() {
     if (typeof window !== "undefined") {
         if (!getApps().length) {
             try {
                 if (Object.values(firebaseConfig).every(Boolean)) {
                     app = initializeApp(firebaseConfig);
+                } else {
+                    console.error("Firebase config is missing or incomplete.");
                 }
             } catch (e) {
                 console.error("Failed to initialize Firebase", e);
@@ -41,15 +42,12 @@ function initializeFirebase() {
     }
 }
 
-// Initialize on module load.
 initializeFirebase();
 
-/** Get the singleton Auth instance; always use this function! */
 export function getFirebaseAuth(): Auth | null {
   return auth;
 }
 
-/** Get the singleton Firestore instance; always use this function! */
 export function getFirebaseFirestore(): Firestore | null {
   if (db && !persistenceEnabled && typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
@@ -67,10 +65,6 @@ export function getFirebaseFirestore(): Firestore | null {
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-/**
- * Checks for REAL connectivity to Firebase, not just network interface availability.
- * This is the reliable way to avoid "client is offline" errors.
- */
 export async function isFirebaseOnline(): Promise<boolean> {
   const db = getFirebaseFirestore();
   if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
@@ -78,16 +72,14 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 
   try {
-    // This is a more reliable check. We use a non-existent document to avoid read costs.
     const testDoc = doc(db, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
   } catch (error: any) {
-    // Known offline error codes.
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
-    // For this check, treat other errors as being offline as well.
+    console.warn("Firebase online check failed with unexpected error:", error.code);
     return false;
   }
 }

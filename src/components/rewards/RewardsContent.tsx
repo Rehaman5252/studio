@@ -73,6 +73,8 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: '#' },
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
+    'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
+    'Gucci': { gift: '10% Off Coupon', description: 'On select items.', link: '#' },
     'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
@@ -125,7 +127,9 @@ export default function RewardsContent() {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
+    let isMounted = true;
     const fetchHistory = async () => {
+        if (!isMounted) return;
         setLoading(true);
         setError(null);
 
@@ -139,16 +143,23 @@ export default function RewardsContent() {
         try {
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
-            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+            if (isMounted) {
+                setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+            }
         } catch (e: any) {
-            console.error("Rewards Fetch Error:", e);
-            setError("Unable to load rewards data. Please check your connection.");
+            if (isMounted) {
+                console.error("Rewards Fetch Error:", e);
+                setError("Unable to load rewards data. Please check your connection.");
+            }
         } finally {
-            setLoading(false);
+            if (isMounted) {
+                setLoading(false);
+            }
         }
     };
 
     fetchHistory();
+    return () => { isMounted = false; }
   }, [user, authLoading]);
 
   const hasAttempts = history.length > 0;

@@ -55,6 +55,7 @@ export default function CertificatesContent() {
     if (authLoading) return;
     if (!user) { setIsLoading(false); return; }
 
+    let isMounted = true;
     const fetchHistory = async () => {
         setIsLoading(true);
         setError(null);
@@ -69,20 +70,28 @@ export default function CertificatesContent() {
         try {
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
-            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-            setQuizHistory(historyData);
+            if (isMounted) {
+                const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+                setQuizHistory(historyData);
+            }
         } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
-            if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You appear to be offline. Please check your connection to see your certificates.");
-            } else {
-                setError("Could not load your certificates. Please try again later.");
+            if (isMounted) {
+                if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                    setError("You appear to be offline. Please check your connection to see your certificates.");
+                } else {
+                    setError("Could not load your certificates. Please try again later.");
+                }
             }
         } finally {
-            setIsLoading(false);
+            if (isMounted) {
+                setIsLoading(false);
+            }
         }
     }
     fetchHistory();
+
+    return () => { isMounted = false; }
   }, [user, authLoading]);
   
   const getSlotTimings = (timestamp: number) => {
