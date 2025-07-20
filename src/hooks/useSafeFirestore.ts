@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, firestore } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import type { Firestore } from 'firebase/firestore';
 
 export const useSafeFirestore = () => {
@@ -13,9 +13,8 @@ export const useSafeFirestore = () => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    const auth = getFirebaseAuth();
     if (!auth) {
-      // Firebase might not be initialized yet (e.g. server-side)
-      // or config is missing.
       setIsReady(true);
       return;
     }
@@ -33,7 +32,7 @@ export const useSafeFirestore = () => {
 
   return { 
     user, 
-    firestore: isReady && user ? firestore : null, 
+    firestore: isReady ? getFirebaseFirestore() : null, 
     loading: !isReady, 
     error 
   };

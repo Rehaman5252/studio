@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,20 +16,39 @@ const firebaseConfig = {
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
-let firestore: Firestore | null = null;
+let db: Firestore | null = null;
 let persistenceEnabled = false;
 
-if (typeof window !== 'undefined' && Object.values(firebaseConfig).every(Boolean)) {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  auth = getAuth(app);
-  firestore = getFirestore(app);
-  
-  if (firestore && !persistenceEnabled) {
-    enableIndexedDbPersistence(firestore).catch((err) => {
+function initializeFirebase() {
+    if (typeof window !== "undefined") {
+        if (!getApps().length) {
+            try {
+                if (Object.values(firebaseConfig).every(Boolean)) {
+                    app = initializeApp(firebaseConfig);
+                }
+            } catch (e) {
+                console.error("Failed to initialize Firebase", e);
+            }
+        } else {
+            app = getApp();
+        }
+
+        if (app) {
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+    }
+}
+
+initializeFirebase();
+
+export function getFirebaseAuth(): Auth | null {
+  return auth;
+}
+
+export function getFirebaseFirestore(): Firestore | null {
+  if (db && !persistenceEnabled && typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
       if (err.code === 'failed-precondition') {
         console.warn('Firestore persistence failed: multiple tabs open.');
       } else if (err.code === 'unimplemented') {
@@ -38,6 +57,26 @@ if (typeof window !== 'undefined' && Object.values(firebaseConfig).every(Boolean
     });
     persistenceEnabled = true;
   }
+  return db;
 }
 
-export { app as firebaseApp, firestore, auth };
+
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
+export async function isFirebaseOnline(): Promise<boolean> {
+  const db = getFirebaseFirestore();
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+
+  try {
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    await getDoc(testDoc);
+    return true;
+  } catch (error: any) {
+    if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
+        return false;
+    }
+    return false;
+  }
+}

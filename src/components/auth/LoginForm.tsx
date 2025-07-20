@@ -14,9 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
-import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import FirebaseConfigWarning from './FirebaseConfigWarning';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -59,13 +59,12 @@ export default function LoginForm() {
       if (!userCredential.user.emailVerified) {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
-        return; // Important: stop execution
+        return;
       }
       toast({ title: "Signed In", description: "Welcome back!" });
       router.replace(from || '/home');
     } catch (error: any) {
-      console.error("Login failed:", error.code, error.message);
-      let description = 'An unexpected error occurred. Please try again.';
+      let description = 'An unexpected error occurred.';
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           description = 'Invalid credentials. Please check your email and password.';
       } else if (error.code === 'auth/network-request-failed') {
@@ -86,7 +85,7 @@ export default function LoginForm() {
             router.replace(from || '/home');
         }
     } catch (error) {
-        console.error("Google login process failed on the login page.");
+        // Errors are toasted inside handleGoogleSignIn
     } finally {
         setIsGoogleLoading(false);
     }
@@ -98,32 +97,15 @@ export default function LoginForm() {
     <Card className="w-full max-w-md shadow-2xl shadow-black/20">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-        <CardDescription>
-            Enter your credentials to access your account
-        </CardDescription>
+        <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        {!isFirebaseConfigured ? (
-            <FirebaseConfigWarning />
-        ) : (
+      {!isFirebaseConfigured ? <FirebaseConfigWarning /> : (
         <>
             <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
-                {isGoogleLoading ? (
-                    <><Loader2 className="animate-spin mr-2" /> Signing In...</>
-                ) : (
-                    <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>
-                )}
+                {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
             </Button>
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                    </span>
-                </div>
-            </div>
+            <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div></div>
             <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -131,36 +113,22 @@ export default function LoginForm() {
                     {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <Label htmlFor="password">Password</Label>
-                        <Link href="/auth/forgot-password" className="text-sm font-semibold text-primary hover:underline">
-                            Forgot password?
-                        </Link>
-                    </div>
+                    <div className="flex items-center justify-between"><Label htmlFor="password">Password</Label><Link href="/auth/forgot-password" className="text-sm font-semibold text-primary hover:underline">Forgot password?</Link></div>
                     <div className="relative">
                         <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
-                        <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
-                        {showPassword ? <EyeOff /> : <Eye />}
-                        </Button>
+                        <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)} aria-label="Toggle password visibility">{showPassword ? <EyeOff /> : <Eye />}</Button>
                     </div>
                     {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
                 </div>
                 <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                    {isLoading ? (
-                        <><Loader2 className="animate-spin mr-2" /> Signing In...</>
-                    ) : "Sign In"}
+                    {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : "Sign In"}
                 </Button>
             </form>
         </>
-        )}
+      )}
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
-        <p className="text-muted-foreground">
-            New to the crease?{' '}
-            <Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="font-semibold text-primary hover:underline">
-                Create an account
-            </Link>
-        </p>
+        <p className="text-muted-foreground">New to the crease?{' '}<Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="font-semibold text-primary hover:underline">Create an account</Link></p>
       </CardFooter>
     </Card>
   );

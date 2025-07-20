@@ -15,7 +15,9 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 
 const ScratchCardSkeleton = () => (
-    <div className="w-full aspect-square p-1"><Skeleton className="w-full h-full rounded-2xl" /></div>
+    <div className="w-full aspect-square p-1">
+        <Skeleton className="w-full h-full rounded-2xl" />
+    </div>
 );
 
 const RewardsSkeleton = () => (
@@ -35,7 +37,10 @@ const RewardsSkeleton = () => (
       </section>
       <section>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-        <div className="space-y-4"><Skeleton className="h-[96px] w-full" /><Skeleton className="h-[96px] w-full" /></div>
+        <div className="space-y-4">
+          <Skeleton className="h-[96px] w-full" />
+          <Skeleton className="h-[96px] w-full" />
+        </div>
       </section>
   </div>
 );

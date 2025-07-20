@@ -4,20 +4,20 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, db, isFirebaseOnline } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, isFirebaseOnline, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { useEffect, useState } from 'react';
 
 export default function FirebaseTestPage() {
-  const { user, profile, loading: isAuthLoading, isUserDataLoading } = useAuth();
+  const { user, profile, loading: isAuthLoading } = useAuth();
   const [dbStatus, setDbStatus] = useState<boolean | null>(null);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
     isFirebaseOnline().then(setIsOnline);
-    setDbStatus(!!db);
+    setDbStatus(!!getFirebaseFirestore());
   }, []);
 
-  const isLoading = isAuthLoading || isUserDataLoading;
+  const isLoading = isAuthLoading;
   const isConfigured = isFirebaseConfigured;
 
   return (

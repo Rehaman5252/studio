@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { firestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -25,14 +25,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: isAuthReady, error: authError } = useSafeFirestore();
+  const { user, firestore, loading: authLoading } = useSafeFirestore();
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   useEffect(() => {
-    if (!isAuthReady) return;
+    if (authLoading) return;
     if (!user) {
       setProfile(null);
       setIsProfileLoading(false);
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           await createUserDocument(user);
         } catch (e) {
-          console.error("Failed to create user document:", e)
+          console.error("Failed to create user document:", e);
         }
       }
       setIsProfileLoading(false);
@@ -70,14 +70,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [user, isAuthReady]);
+  }, [user, firestore, authLoading]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     if (!user || !firestore) throw new Error("User not authenticated or database not available.");
     
     const userDocRef = doc(firestore, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
-  }, [user]);
+  }, [user, firestore]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user || !firestore) throw new Error("User not authenticated or DB not available.");
@@ -85,33 +85,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
     const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
 
-    const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
-    
     if (updateUserData) {
-      const currentProfile = profile || {};
+      const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
       const newStats = {
-        quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
-        perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
-        totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
+        quizzesPlayed: (profile?.quizzesPlayed || 0) + 1,
+        perfectScores: (profile?.perfectScores || 0) + (isPerfect ? 1 : 0),
+        totalRewards: (profile?.totalRewards || 0) + (isPerfect ? 100 : 0),
       };
       await updateUserData(newStats);
     }
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
-  }, [user, profile, updateUserData]);
-
+  }, [user, profile, firestore, updateUserData]);
+  
   const isProfileComplete = useMemo(() => !!profile?.profileCompleted, [profile]);
 
   const value = useMemo(() => ({
     user,
     profile,
-    loading: isAuthReady || isProfileLoading,
+    loading: authLoading || isProfileLoading,
     isOffline,
     updateUserData,
     addQuizAttempt,
     lastAttempt,
     setLastAttempt,
     isProfileComplete
-  }), [user, profile, isAuthReady, isProfileLoading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
+  }), [user, profile, authLoading, isProfileLoading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -121,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
-  return context;
+  const c = useContext(AuthContext);
+  if (!c) throw new Error("useAuth must be inside AuthProvider");
+  return c;
 }

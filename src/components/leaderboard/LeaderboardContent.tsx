@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useAuth } from '@/context/AuthProvider';
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
@@ -44,6 +45,7 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const LiveLeaderboard = memo(() => {
     const { user, firestore, loading: authLoading } = useSafeFirestore();
+    const { profile } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -76,9 +78,9 @@ const LiveLeaderboard = memo(() => {
                     if (!userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
                         mockLivePlayers.push({
-                            uid: user.uid, name: user.displayName || 'You', score: attempt.score,
+                            uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                            avatar: user.photoURL || undefined, disqualified: attempt.reason === 'malpractice'
+                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
                         });
                     }
                 }
@@ -95,8 +97,8 @@ const LiveLeaderboard = memo(() => {
                 }
             } catch (e: any) {
                 if (isMounted) {
-                    setError(e.message.includes('offline') ? "You appear to be offline." : "An error occurred.");
-                    console.error(e);
+                  setError(e.message.includes('offline') ? "You appear to be offline." : "An error occurred while loading the leaderboard.");
+                  console.error(e);
                 }
             } finally {
                 if (isMounted) setIsLoading(false);
@@ -105,12 +107,12 @@ const LiveLeaderboard = memo(() => {
         fetchLivePlayers();
 
         return () => { isMounted = false; }
-    }, [user, firestore, authLoading]);
+    }, [user, firestore, profile, authLoading]);
     
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players yet. Be the first!</p>;
+        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
         return players.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
@@ -133,13 +135,41 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 
 const AllTimeLeaderboard = memo(() => {
-    // This part is simplified and can be expanded with real data.
-    // For now, it shows a placeholder.
+    const { user, profile } = useAuth();
+    const [isLoading, setIsLoading] = useState(true);
+    
+    const players: AllTimePlayer[] = useMemo(() => {
+        if (!profile) return [];
+        return [{
+            uid: user!.uid,
+            name: profile.name,
+            perfectScores: profile.perfectScores || 0,
+            totalPlayed: profile.quizzesPlayed || 0,
+            avatar: profile.photoURL,
+            rank: 1
+        }];
+    }, [user, profile]);
+    
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
+
+    if (isLoading) return <LeaderboardItemSkeleton />;
+
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
-                 <p className="text-center text-muted-foreground p-4">All-time leaderboard is coming soon!</p>
+                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
+                    {players.length > 0 ? players.map((player) => (
+                        <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
+                           <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+                           <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+                           <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
+                           <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
+                       </motion.div>
+                   )) : <p className="text-center text-muted-foreground p-4">Play quizzes to appear on the All-Time leaderboard!</p>}
+                </motion.div>
             </CardContent>
         </Card>
     );
