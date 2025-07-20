@@ -10,8 +10,8 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { getDocs, query, collection, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 
@@ -208,8 +208,7 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Wait for user to be available before fetching
-    if (!user) {
+    if (typeof window === 'undefined' || !user) {
         setIsLoading(false);
         return;
     }
@@ -218,6 +217,7 @@ export default function RewardsContent() {
         setIsLoading(true);
         setError(null);
         try {
+            const db = getFirebaseFirestore();
             const q = query(
                 collection(db, 'users', user.uid, 'quizAttempts'),
                 orderBy('timestamp', 'desc'),
@@ -249,7 +249,7 @@ export default function RewardsContent() {
     const allAttempts = (quizHistory as QuizAttempt[]).filter(attempt => !attempt.reason);
 
     for (const attempt of allAttempts) {
-      const attemptDate = new Date(attempt.timestamp).toDateString(); // 'Fri Jul 26 2024'
+      const attemptDate = new Date(attempt.timestamp).toDateString();
       const key = `${attempt.brand}-${attemptDate}`;
 
       if (!uniqueAttempts.has(key)) {

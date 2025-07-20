@@ -12,8 +12,8 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -208,8 +208,7 @@ export default function QuizHistoryContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Wait for user to be available before fetching
-    if (!user) {
+    if (typeof window === 'undefined' || !user) {
         setIsLoading(false);
         return;
     }
@@ -218,6 +217,7 @@ export default function QuizHistoryContent() {
         setIsLoading(true);
         setError(null);
         try {
+            const db = getFirebaseFirestore();
             const q = query(
                 collection(db, 'users', user.uid, 'quizAttempts'),
                 orderBy('timestamp', 'desc'),
@@ -268,7 +268,7 @@ export default function QuizHistoryContent() {
             <Card className="bg-card/80 mt-4">
                 <CardContent className="p-6 text-center text-muted-foreground">
                     <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-                    <p className="font-semibold text-lg text-foreground">No Quizzes Found</p>
+                    <p className="font-semibold text-lg">No Quizzes Found</p>
                     <p>Play a quiz to see your history here!</p>
                 </CardContent>
             </Card>

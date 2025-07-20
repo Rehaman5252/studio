@@ -12,8 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { getDocs, query, collection, where, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
@@ -73,8 +73,7 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Wait for user to be available before fetching
-        if (!user) {
+        if (typeof window === 'undefined' || !user) {
             setIsLoading(false);
             return;
         }
@@ -83,6 +82,7 @@ const LiveLeaderboard = memo(() => {
             setIsLoading(true);
             setError(null);
             try {
+                const db = getFirebaseFirestore();
                 const q = query(
                     collection(db, 'users', user.uid, 'quizAttempts'),
                     where('slotId', '==', getQuizSlotId()),

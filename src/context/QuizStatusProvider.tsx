@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -20,7 +20,7 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: isAuthLoading } = useAuth();
+  const { user, isUserDataLoading } = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -29,25 +29,27 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
-  const isLoading = isAuthLoading || isHistoryLoading;
+  const isLoading = isUserDataLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (!user || !db) {
+    if (typeof window === 'undefined' || !user) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
     }
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
-        const historyDocRef = doc(db, 'quizHistory', user.uid);
         try {
-            const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                const history = (docSnap.data().attempts || []).sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-                const currentSlotId = getQuizSlotId();
-                const lastAttempt = history.find((attempt: QuizAttempt) => attempt.slotId === currentSlotId) || null;
-                setLastAttemptInSlot(lastAttempt);
-            }
+            const db = getFirebaseFirestore();
+            const q = query(
+                collection(db, 'users', user.uid, 'quizAttempts'),
+                where('slotId', '==', getQuizSlotId()),
+                limit(1)
+            );
+            const querySnapshot = await getDocs(q);
+            const userAttemptDoc = querySnapshot.docs[0];
+            const lastAttempt = userAttemptDoc ? userAttemptDoc.data() as QuizAttempt : null;
+            setLastAttemptInSlot(lastAttempt);
         } catch (error) {
             console.error("Failed to fetch last quiz attempt:", error);
             setLastAttemptInSlot(null);
