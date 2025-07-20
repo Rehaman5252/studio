@@ -14,19 +14,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-
-let app: FirebaseApp;
+let app: FirebaseApp | null = null;
 if (typeof window !== "undefined") {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
 
 export function getFirebaseAuth(): Auth | null {
   if (typeof window === "undefined" || !app) return null;
-  const auth = getAuth(app);
-  // Re-enable persistence if you have a multi-page auth flow.
-  // For this app, it's not strictly necessary.
-  // auth.setPersistence(browserLocalPersistence); 
-  return auth;
+  return getAuth(app);
 }
 
 export function getFirebaseFirestore(): Firestore | null {
@@ -42,7 +37,6 @@ export function getFirebaseFirestore(): Firestore | null {
   });
   return db;
 }
-
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(
   (value) => !!value

@@ -120,10 +120,9 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         setIsSubmitting(true);
         
         try {
-            // If the user's profile doc doesn't exist, create it first.
-            if (!profile && updateUserData) {
-                await createUserDocument(user, data);
-            } else if (updateUserData) {
+            // The logic to create the user doc is now in AuthProvider,
+            // so this form only ever has to update.
+            if (updateUserData) {
                 await updateUserData({ ...data, profileCompleted: true, updatedAt: new Date() });
             }
             

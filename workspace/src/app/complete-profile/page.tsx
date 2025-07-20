@@ -43,3 +43,4 @@ function CompleteProfilePageContent() {
 export default function CompleteProfilePage() {
   return <CompleteProfilePageContent />;
 }
+
