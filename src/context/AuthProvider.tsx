@@ -6,7 +6,7 @@ import {
   createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback
 } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, Timestamp, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import { createUserDocument } from '@/lib/authUtils';
@@ -39,11 +39,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      setIsOffline(!navigator.onLine);
+    }
+
     const auth = getFirebaseAuth();
     if (!auth) { setLoading(false); return; }
     const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -57,13 +71,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const db = getFirebaseFirestore();
         if (!db) throw new Error("Firestore not initialized");
+        
         const online = await isFirebaseOnline();
         setIsOffline(!online);
         if (!online) { setLoading(false); return; }
+        
         const ref = doc(db, "users", user.uid);
         const userDoc = await getDoc(ref);
+        
         if (!userDoc.exists()) {
-          // If the doc doesn't exist, create it, then fetch the new data
           await createUserDocument(user);
           const newUserDoc = await getDoc(ref);
           if (newUserDoc.exists()) {
@@ -88,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User or DB not available");
+    
     setProfile(prev => ({ ...prev, ...newData }));
     await setDoc(doc(db, "users", user.uid), sanitizeUserProfile(newData), { merge: true });
   }, [user]);
@@ -97,18 +114,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
 
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
+    const attemptRef = doc(collection(db, 'users', user.uid, 'quizAttempts'));
+
+    await setDoc(attemptRef, sanitizedAttempt);
     
-    // In a real app, this might be a Cloud Function to avoid writing from the client.
-    // For now, we'll write directly to a subcollection.
-    const historyDocRef = doc(db, 'quizHistory', user.uid);
-
-    try {
-        const historySnap = await getDoc(historyDocRef);
-        const currentHistory = historySnap.exists() ? historySnap.data().attempts : [];
-        const newHistory = [sanitizedAttempt, ...currentHistory];
-        await setDoc(historyDocRef, { attempts: newHistory }, { merge: true });
-
-        // Also update the user's main profile stats
+    // Also update the user's main profile stats
+    if (updateUserData) {
         const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
         const newStats = {
           quizzesPlayed: (profile?.quizzesPlayed || 0) + 1,
@@ -116,8 +127,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           totalRewards: (profile?.totalRewards || 0) + (isPerfect ? 100 : 0),
         };
         await updateUserData(newStats);
-    } catch(err) {
-      console.error("Failed to add quiz attempt", err);
     }
   }, [user, profile, updateUserData]);
 

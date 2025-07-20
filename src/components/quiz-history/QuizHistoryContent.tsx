@@ -13,7 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -208,16 +208,19 @@ export default function QuizHistoryContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthLoading) return; // Wait for auth provider to finish loading
-
+    // Wait for auth to finish loading and ensure user is logged in
+    if (isAuthLoading) {
+      return;
+    }
     if (!user) {
-        setIsLoading(false);
-        return;
+      setIsLoading(false);
+      return;
     }
     
     setIsLoading(true);
     setError(null);
     
+    // Safely get Firestore instance
     const db = getFirebaseFirestore();
     if (!db) {
         setError("You appear to be offline. Please check your connection to see your history.");
@@ -227,13 +230,14 @@ export default function QuizHistoryContent() {
 
     const fetchHistory = async () => {
         try {
-            const historyDocRef = doc(db, 'quizHistory', user.uid);
-            const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                const historyData = docSnap.data().attempts || [];
-                historyData.sort((a: QuizAttempt, b: QuizAttempt) => b.timestamp - a.timestamp);
-                setQuizHistory(historyData);
-            }
+            const historyQuery = query(
+              collection(db, 'users', user.uid, 'quizAttempts'),
+              orderBy('timestamp', 'desc'),
+              limit(50)
+            );
+            const docSnap = await getDocs(historyQuery);
+            const historyData = docSnap.docs.map(doc => doc.data() as QuizAttempt);
+            setQuizHistory(historyData);
         } catch (e: any) {
             console.error("Failed to fetch quiz history:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
@@ -250,11 +254,10 @@ export default function QuizHistoryContent() {
 
   const filteredHistory = useMemo(() => {
     if (!quizHistory) return [];
-    const history = (quizHistory as QuizAttempt[]).slice().sort((a, b) => b.timestamp - a.timestamp);
     if (filter === 'perfect') {
-      return history.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
+      return quizHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
     }
-    return history;
+    return quizHistory;
   }, [quizHistory, filter]);
 
   const renderContent = () => {
@@ -264,24 +267,24 @@ export default function QuizHistoryContent() {
     if (error) {
         return <ErrorState message={error} />;
     }
-    if (filteredHistory.length > 0) {
+    if (filteredHistory.length === 0) {
         return (
-            <div className="space-y-4 pt-4">
-                {filteredHistory.map((attempt) => (
-                <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
-                ))}
+            <div>
+                <Card className="bg-card/80 mt-4">
+                    <CardContent className="p-6 text-center text-muted-foreground">
+                        <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
+                        <p className="font-semibold text-lg">No Quizzes Found</p>
+                        <p>Play a quiz to see your history here!</p>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
     return (
-        <div>
-            <Card className="bg-card/80 mt-4">
-                <CardContent className="p-6 text-center text-muted-foreground">
-                    <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-                    <p className="font-semibold text-lg">No Quizzes Found</p>
-                    <p>Play a quiz to see your history here!</p>
-                </CardContent>
-            </Card>
+        <div className="space-y-4 pt-4">
+            {filteredHistory.map((attempt) => (
+            <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
+            ))}
         </div>
     );
   };

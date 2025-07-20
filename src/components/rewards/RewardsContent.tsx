@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 
@@ -159,7 +159,7 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthLoading) return; // Wait for auth provider to load
+    if (isAuthLoading) return;
 
     if (!user) {
         setIsLoading(false);
@@ -178,11 +178,13 @@ export default function RewardsContent() {
 
     const fetchHistory = async () => {
         try {
-            const historyDocRef = doc(db, 'quizHistory', user.uid);
-            const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                setQuizHistory(docSnap.data().attempts || []);
-            }
+            const historyQuery = query(
+              collection(db, 'users', user.uid, 'quizAttempts'),
+              orderBy('timestamp', 'desc'),
+              limit(100) // Fetch a decent number to find unique brand rewards
+            );
+            const docSnap = await getDocs(historyQuery);
+            setQuizHistory(docSnap.docs.map(doc => doc.data() as QuizAttempt));
         } catch (e: any) {
             console.error("Failed to fetch rewards data:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
@@ -203,7 +205,7 @@ export default function RewardsContent() {
     if (!quizHistory) return [];
 
     const uniqueAttempts = new Map<string, QuizAttempt>();
-    const allAttempts = (quizHistory as QuizAttempt[]).filter(attempt => !attempt.reason);
+    const allAttempts = quizHistory.filter(attempt => !attempt.reason);
 
     for (const attempt of allAttempts) {
       const attemptDate = new Date(attempt.timestamp).toDateString();
