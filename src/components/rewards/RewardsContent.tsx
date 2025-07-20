@@ -10,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { doc, getDoc } from 'firebase/firestore';
+import { getDocs, query, collection, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -218,11 +218,14 @@ export default function RewardsContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const historyDocRef = doc(db, 'quizHistory', user.uid);
-            const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                setQuizHistory(docSnap.data().attempts || []);
-            }
+            const q = query(
+                collection(db, 'users', user.uid, 'quizAttempts'),
+                orderBy('timestamp', 'desc'),
+                limit(50)
+            );
+            const querySnapshot = await getDocs(q);
+            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+            setQuizHistory(historyData);
         } catch (e: any) {
             console.error("Failed to fetch rewards data:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {

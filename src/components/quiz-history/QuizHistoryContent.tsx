@@ -12,8 +12,8 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -202,11 +202,13 @@ const ErrorState = ({ message }: { message: string }) => (
 
 export default function QuizHistoryContent() {
   const { user } = useAuth();
+  const [filter, setFilter] = useState<'all' | 'perfect'>('all');
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for user to be available before fetching
     if (!user) {
         setIsLoading(false);
         return;
@@ -216,16 +218,14 @@ export default function QuizHistoryContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const db = getFirebaseFirestore();
-            if (!db) throw new Error("Firestore not initialized.");
-
-            const historyCollectionRef = collection(db, 'users', user.uid, 'quizAttempts');
-            const q = query(historyCollectionRef, orderBy('timestamp', 'desc'), limit(50));
+            const q = query(
+                collection(db, 'users', user.uid, 'quizAttempts'),
+                orderBy('timestamp', 'desc'),
+                limit(50)
+            );
             const querySnapshot = await getDocs(q);
-            
             const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
             setQuizHistory(historyData);
-
         } catch (e: any) {
             console.error("Failed to fetch quiz history:", e);
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
@@ -241,20 +241,10 @@ export default function QuizHistoryContent() {
   }, [user]);
 
   const filteredHistory = useMemo(() => {
-    if (quizHistory.length === 0) return [];
-    
-    if (quizHistory[0].reason === 'malpractice') {
-      // If the latest is malpractice, show it alone
-      return [quizHistory[0]];
-    }
-
-    const perfectScores = quizHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
-    
     if (filter === 'perfect') {
-        return perfectScores;
+      return quizHistory.filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason);
     }
     return quizHistory;
-
   }, [quizHistory, filter]);
 
   const renderContent = () => {
@@ -278,7 +268,7 @@ export default function QuizHistoryContent() {
             <Card className="bg-card/80 mt-4">
                 <CardContent className="p-6 text-center text-muted-foreground">
                     <MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-                    <p className="font-semibold text-lg">No Quizzes Found</p>
+                    <p className="font-semibold text-lg text-foreground">No Quizzes Found</p>
                     <p>Play a quiz to see your history here!</p>
                 </CardContent>
             </Card>
@@ -289,7 +279,7 @@ export default function QuizHistoryContent() {
   return (
     <>
         <div className="flex justify-center">
-            <Tabs defaultValue="all" onValueChange={(value) => setFilter(value as any)} className="w-full max-w-md">
+            <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="w-full max-w-md">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
