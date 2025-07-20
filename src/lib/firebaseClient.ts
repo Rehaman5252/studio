@@ -1,5 +1,6 @@
 
 'use client';
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence, type Firestore } from "firebase/firestore";
@@ -11,23 +12,37 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
 };
 
+// Singleton instances
 let app: FirebaseApp | null = null;
-if (typeof window !== "undefined") {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+
+function initializeFirebase() {
+  if (typeof window !== "undefined") {
+    if (!app) {
+      app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
+        } else if (err.code === 'unimplemented') {
+          console.warn("Firestore persistence is not available in this browser.");
+        }
+      });
+    }
+  }
 }
 
+initializeFirebase();
+
 export function getFirebaseAuth(): Auth | null {
-  if (typeof window === "undefined" || !app) return null;
-  return getAuth(app);
+  return auth;
 }
 
 export function getFirebaseFirestore(): Firestore | null {
-  if (typeof window === "undefined" || !app) return null;
-  const db = getFirestore(app);
-  enableIndexedDbPersistence(db).catch(() => {});
   return db;
 }
 
@@ -39,9 +54,9 @@ export async function isFirebaseOnline(): Promise<boolean> {
     await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
       method: 'POST',
       body: JSON.stringify({ localId: 'test' })
-    }); 
+    });
     return true;
-  } catch { 
-    return false; 
+  } catch {
+    return false;
   }
 }
