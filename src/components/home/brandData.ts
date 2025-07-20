@@ -1,4 +1,3 @@
-
 export interface CubeBrand {
     id: number;
     brand: string;
@@ -29,7 +28,7 @@ export const brandData: CubeBrand[] = [
         id: 3,
         brand: 'Netflix',
         format: 'T20',
-        logoUrl: 'https://cdn.icon-icons.com/icons2/2699/PNG/512/netflix_logo_icon_170919.png',
+        logoUrl: 'https://www.freepnglogos.com/uploads/netflix-logo-0.png',
         logoWidth: 80,
         logoHeight: 80,
     },
@@ -37,9 +36,9 @@ export const brandData: CubeBrand[] = [
         id: 4,
         brand: 'ICICI',
         format: 'ODI',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/ICICI_Bank_Logo.svg/2560px-ICICI_Bank_Logo.svg.png',
-        logoWidth: 90,
-        logoHeight: 30,
+        logoUrl: 'https://www.pngkey.com/png/full/50-503003_icici-bank-logo-png-icici-bank-logo.png',
+        logoWidth: 80,
+        logoHeight: 60,
     },
      {
         id: 5,
@@ -53,7 +52,7 @@ export const brandData: CubeBrand[] = [
         id: 6,
         brand: 'Nike',
         format: 'Test',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg',
+        logoUrl: 'https://logolook.net/wp-content/uploads/2021/11/Nike-Logo.png',
         logoWidth: 100,
         logoHeight: 40,
     },
