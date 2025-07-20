@@ -116,7 +116,6 @@ export default function CompleteProfileForm() {
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-        } finally {
             setIsSubmitting(false);
         }
     };
