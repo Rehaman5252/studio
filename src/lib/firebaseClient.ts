@@ -12,24 +12,59 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
+// Singleton instances
 let app: FirebaseApp | null = null;
-if (typeof window !== "undefined") {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let persistenceEnabled = false;
+
+// Initialize app (if not already initialized)
+if (typeof window !== 'undefined' && !getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else if (typeof window !== 'undefined') {
+  app = getApp();
 }
 
+/**
+ * Initializes and returns the Firestore instance, enabling persistence only once.
+ * This is the safe way to get the db instance throughout the app.
+ * @returns The Firestore instance or null if on the server.
+ */
+function initializeFirestore(): Firestore | null {
+  if (!app) return null;
+
+  if (!db) {
+    db = getFirestore(app);
+  }
+
+  if (!persistenceEnabled) {
+    persistenceEnabled = true; // Set flag immediately to prevent race conditions
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn("Firestore persistence failed: can only be enabled in one tab at a time.");
+      } else if (err.code === 'unimplemented') {
+        console.warn("Firestore persistence is not available in this browser.");
+      }
+    });
+  }
+  
+  return db;
+}
+
+
 export function getFirebaseAuth(): Auth | null {
-  if (typeof window === "undefined" || !app) return null;
-  return getAuth(app);
+  if (!app) return null;
+  if (!auth) {
+    auth = getAuth(app);
+  }
+  return auth;
 }
 
 export function getFirebaseFirestore(): Firestore | null {
-  if (typeof window === "undefined" || !app) return null;
-  const db = getFirestore(app);
-  enableIndexedDbPersistence(db).catch(() => {});
-  return db;
+  if (typeof window === 'undefined') return null;
+  return initializeFirestore();
 }
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
@@ -37,11 +72,10 @@ export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean)
 export async function isFirebaseOnline(): Promise<boolean> {
   if (typeof window === 'undefined' || !navigator.onLine) return false;
   try {
-    // Lightweight ping to Firebase Identity API
-    await fetch(
-      `https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`,
-      { method: 'POST', body: JSON.stringify({ localId: 'test' }) }
-    );
+    await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
+      method: 'POST',
+      body: JSON.stringify({ localId: 'test' })
+    });
     return true;
   } catch {
     return false;
