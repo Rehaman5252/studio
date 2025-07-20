@@ -12,6 +12,7 @@ function CompleteProfilePageContent() {
   const router = useRouter();
   
   useEffect(() => {
+    // Redirect if auth is loaded and there's no user
     if (!loading && !user) {
         router.replace('/auth/login');
     }
@@ -25,6 +26,7 @@ function CompleteProfilePageContent() {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading...</p>
       </div>
     );
   }

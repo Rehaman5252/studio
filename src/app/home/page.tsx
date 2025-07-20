@@ -32,7 +32,6 @@ const HomeContentSkeleton = () => (
     </div>
 );
 
-
 function HomePage() {
     const { user, loading } = useAuth();
     return (
