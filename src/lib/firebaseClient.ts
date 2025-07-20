@@ -5,7 +5,6 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence, doc, getDoc, type Firestore } from "firebase/firestore";
 
-// ✅ Hardcoded config for now (for stability)
 const firebaseConfig = {
   apiKey: "AIzaSyAh35l6QoFhYoTUWDc7vA_LpnHN7ZaB92A",
   authDomain: "cricblitz.firebaseapp.com",
@@ -19,10 +18,10 @@ export const isFirebaseConfigured = Object.values(firebaseConfig).every(
   (value) => typeof value === 'string' && value.trim() !== ''
 );
 
-// ✅ Ensure app is initialized once
+// Ensure app is initialized once
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// ✅ Immediately initialized and exported
+// Immediately initialized and exported
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 
@@ -53,7 +52,6 @@ export async function isReallyOnline(): Promise<boolean> {
   if (!firestore) return false;
 
   try {
-    // Using a non-existent doc path for a read is a lightweight way to check connectivity
     const testDocRef = doc(firestore, `system/connectivity-test-${Date.now()}`);
     await getDoc(testDocRef);
     return true;
