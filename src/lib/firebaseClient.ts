@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, initializeFirestore, enableIndexedDbPersistence, doc, getDoc, type Firestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, doc, getDoc, type Firestore } from "firebase/firestore";
 
 // ✅ Hardcoded config for now (for stability)
 const firebaseConfig = {
