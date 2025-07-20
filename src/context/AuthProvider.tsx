@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -30,83 +30,92 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // Listen for Firebase Auth state changes.
     const auth = getFirebaseAuth();
     if (!auth) { 
         setLoading(false); 
         return; 
     }
-    const unsub = onAuthStateChanged(auth, setUser);
-    return () => unsub();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
+    // When user state changes, manage their profile data.
     if (!user) { 
         setProfile(null); 
         setLoading(false); 
         return; 
     }
     
-    let isMounted = true;
+    let unsubProfile: () => void = () => {};
+    
     setLoading(true);
 
-    const fetchProfile = async () => {
+    const setupListeners = async () => {
       const db = getFirebaseFirestore();
       if (!db) {
         console.error("Firestore is not available.");
         setIsOffline(true);
-        if (isMounted) setLoading(false);
+        setLoading(false);
         return;
       }
       
       const online = await isFirebaseOnline();
       setIsOffline(!online);
       if (!online) {
-        if (isMounted) setLoading(false);
+        setLoading(false);
         return;
       }
 
       const userDocRef = doc(db, "users", user.uid);
-      try {
-        const docSnap = await getDoc(userDocRef);
-        if (!isMounted) return;
-
+      
+      // Use onSnapshot for real-time profile updates.
+      unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.dob instanceof Timestamp) {
             data.dob = data.dob.toDate().toISOString().split('T')[0];
           }
           setProfile(data);
+          setIsProfileComplete(!!data.profileCompleted);
         } else {
+          // If profile doesn't exist, create it. This is a crucial fix for new users.
           await createUserDocument(user);
-          const newUserDoc = await getDoc(userDocRef);
-          if (isMounted && newUserDoc.exists()) {
-             setProfile(newUserDoc.data());
-          }
         }
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
+        setLoading(false);
+      }, (error) => {
+        console.error("Profile snapshot error:", error);
         setIsOffline(true);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+        setLoading(false);
+      });
+      
     };
     
-    fetchProfile();
+    setupListeners();
     
-    return () => { isMounted = false; }
+    return () => {
+        unsubProfile();
+    };
   }, [user]);
 
-  const updateUserData = useCallback(async (data: Partial<Record<string, any>>) => {
+  const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
-    setProfile(prev => prev ? ({ ...prev, ...data }) : data);
+    // Optimistic update: update local state immediately for a responsive UI.
+    setProfile(prev => {
+        const updated = { ...(prev || {}), ...newData };
+        setIsProfileComplete(!!updated.profileCompleted);
+        return updated;
+    });
     
     const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, sanitizeUserProfile(data), { merge: true });
+    // Write to Firestore in the background. Sanitize data to prevent errors.
+    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
@@ -117,33 +126,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
 
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
-    const currentProfile = profile || {};
-    const newStats = {
-      quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
-      perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
-      totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
-    };
     
-    await setDoc(attemptRef, sanitizedAttempt, { merge: true });
+    // Update user stats after a quiz.
     if (updateUserData) {
-      await updateUserData(newStats);
+        const currentProfile = profile || {};
+        const newStats = {
+          quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
+          perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
+          totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
+        };
+        await updateUserData(newStats);
     }
+    await setDoc(attemptRef, sanitizedAttempt, { merge: true });
   }, [user, profile, updateUserData]);
-
-  const isProfileComplete = useMemo(() => {
-    return !!profile?.profileCompleted;
-  }, [profile]);
   
   const value = useMemo(() => ({
-    user,
-    profile,
-    loading,
-    isOffline,
-    updateUserData,
-    addQuizAttempt,
-    lastAttempt,
-    setLastAttempt,
-    isProfileComplete,
+    user, profile, loading, isOffline, updateUserData, addQuizAttempt,
+    lastAttempt, setLastAttempt, isProfileComplete
   }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
 
   return (
@@ -153,10 +152,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+/**
+ * Custom hook to easily access the Auth context from any client component.
+ */
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const c = useContext(AuthContext);
+  if (!c) throw new Error("useAuth must be inside AuthProvider");
+  return c;
 }

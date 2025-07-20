@@ -52,16 +52,17 @@ const LiveLeaderboard = memo(() => {
     useEffect(() => {
         if (authLoading) return;
 
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Couldn't connect to the database.");
-            setIsLoading(false);
-            return;
-        }
-
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
+            
+            const db = getFirebaseFirestore();
+            if (!db) {
+                setError("Couldn't connect to the database. You may be offline.");
+                setIsLoading(false);
+                return;
+            }
+
             try {
                 // In a real app, this would query a shared 'liveSlot' collection.
                 // For this demo, we mock it.

@@ -158,16 +158,17 @@ export default function QuizHistoryContent() {
         if (authLoading) return;
         if (!user) { setLoading(false); return; }
 
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Couldn't connect to the database.");
-            setLoading(false);
-            return;
-        }
-
         const fetchHistory = async () => {
             setLoading(true);
             setError(null);
+            
+            const db = getFirebaseFirestore();
+            if (!db) {
+                setError("Unable to connect to database. Please check your connection.");
+                setLoading(false);
+                return;
+            }
+
             try {
                 const q = query(
                     collection(db, "users", user.uid, "quizAttempts"),
@@ -197,16 +198,11 @@ export default function QuizHistoryContent() {
     const renderContent = () => {
         if (loading || authLoading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
-        if (!history.length) return (
+        if (!filteredHistory.length) return (
             <div>
-                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">{filter === 'all' ? 'No Quizzes Found' : 'No Perfect Scores Yet'}</p><p>{filter === 'all' ? 'Your played quizzes will appear here!' : 'Keep playing to achieve a perfect score!'}</p></CardContent></Card>
             </div>
         );
-        if (!filteredHistory.length && filter === 'perfect') return (
-             <div>
-                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Perfect Scores Yet</p><p>Keep playing to achieve a perfect score!</p></CardContent></Card>
-            </div>
-        )
         return (
             <div className="space-y-4 pt-4">
                 {filteredHistory.map((attempt) => (

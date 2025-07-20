@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,21 +12,19 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
 };
-
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 let persistenceEnabled = false;
 
+// This function safely initializes Firebase, preventing multiple instances.
 function initializeFirebase() {
     if (typeof window !== "undefined") {
         if (!getApps().length) {
             try {
-                if (isFirebaseConfigured) {
+                if (Object.values(firebaseConfig).every(Boolean)) {
                     app = initializeApp(firebaseConfig);
                 }
             } catch (e) {
@@ -43,18 +41,21 @@ function initializeFirebase() {
     }
 }
 
+// Initialize on module load.
 initializeFirebase();
 
+/** Get the singleton Auth instance; always use this function! */
 export function getFirebaseAuth(): Auth | null {
   return auth;
 }
 
+/** Get the singleton Firestore instance; always use this function! */
 export function getFirebaseFirestore(): Firestore | null {
   if (db && !persistenceEnabled && typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code == 'failed-precondition') {
+      if (err.code === 'failed-precondition') {
         console.warn('Firestore persistence failed: multiple tabs open.');
-      } else if (err.code == 'unimplemented') {
+      } else if (err.code === 'unimplemented') {
         console.warn('Firestore persistence not supported in this browser.');
       }
     });
@@ -64,15 +65,29 @@ export function getFirebaseFirestore(): Firestore | null {
 }
 
 
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
+/**
+ * Checks for REAL connectivity to Firebase, not just network interface availability.
+ * This is the reliable way to avoid "client is offline" errors.
+ */
 export async function isFirebaseOnline(): Promise<boolean> {
-  if (typeof window === 'undefined' || !navigator.onLine || !firebaseConfig.apiKey) return false;
+  const db = getFirebaseFirestore();
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+
   try {
-    await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${firebaseConfig.apiKey}`, {
-      method: 'POST',
-      body: JSON.stringify({ localId: 'test' })
-    });
+    // This is a more reliable check. We use a non-existent document to avoid read costs.
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    await getDoc(testDoc);
     return true;
-  } catch (error) {
+  } catch (error: any) {
+    // Known offline error codes.
+    if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
+        return false;
+    }
+    // For this check, treat other errors as being offline as well.
     return false;
   }
 }

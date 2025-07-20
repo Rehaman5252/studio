@@ -125,16 +125,17 @@ export default function RewardsContent() {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setError("Firestore not available.");
-        setLoading(false);
-        return;
-    }
-
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
+
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Unable to connect to rewards service. You may be offline.");
+            setLoading(false);
+            return;
+        }
+        
         try {
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
