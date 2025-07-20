@@ -15,7 +15,7 @@ import {
 
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { getFirebaseAuth, db, isFirebaseOnline } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
@@ -73,11 +73,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
         return;
       }
+      
+      if (!db) {
+        console.error("Firestore not initialized.");
+        setIsLoading(false);
+        setIsOffline(true);
+        return;
+      }
 
-      const firestore = getFirebaseFirestore();
-      if (!firestore) return;
-
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(db, 'users', user.uid);
 
       const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
         setIsOffline(false);
@@ -103,21 +107,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return () => unsubscribe();
     };
 
-    const unsubscribePromise = setupListener();
-    
-    return () => {
-        unsubscribePromise.then(unsubscribe => unsubscribe && unsubscribe());
-    };
+    setupListener();
   }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<DocumentData>) => {
-    const firestore = getFirebaseFirestore();
-    if (!user || !firestore) throw new Error("No user or DB.");
+    if (!user || !db) throw new Error("No user or DB.");
 
     setProfile(prev => ({ ...prev, ...newData }));
 
     try {
-      await setDoc(doc(firestore, 'users', user.uid), sanitizeUserProfile(newData), { merge: true });
+      await setDoc(doc(db, 'users', user.uid), sanitizeUserProfile(newData), { merge: true });
     } catch (error) {
       console.error('updateUserData failed:', error);
       throw new Error("Profile save failed. Try again.");
@@ -125,8 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    const firestore = getFirebaseFirestore();
-    if (!user || !firestore) throw new Error("User or Firestore unavailable.");
+    if (!user || !db) throw new Error("User or Firestore unavailable.");
 
     const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
     const newStats = {
@@ -138,10 +136,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(prev => ({ ...prev, ...newStats }));
 
     try {
-      const userRef = doc(firestore, 'users', user.uid);
+      const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, sanitizeUserProfile(newStats), { merge: true });
 
-      const historyRef = doc(firestore, 'quizHistory', user.uid);
+      const historyRef = doc(db, 'quizHistory', user.uid);
       const historySnap = await getDoc(historyRef);
       const history = historySnap.exists() ? historySnap.data().attempts : [];
       await setDoc(historyRef, { attempts: [sanitizeUserProfile(attempt), ...history] }, { merge: true });

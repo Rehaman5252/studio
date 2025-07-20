@@ -13,7 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { doc, getDoc } from 'firebase/firestore';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -219,7 +219,6 @@ export default function QuizHistoryContent() {
     }
     
     const fetchHistory = async () => {
-        const db = getFirebaseFirestore();
         if (!db) {
             setError("Could not connect to the database.");
             setIsLoading(false);

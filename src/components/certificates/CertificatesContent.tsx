@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { doc, getDoc } from 'firebase/firestore';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -63,7 +63,6 @@ export default function CertificatesContent() {
     }
 
     const fetchHistory = async () => {
-        const db = getFirebaseFirestore();
         if (!db) {
             setError("Could not connect to the database.");
             setIsLoading(false);

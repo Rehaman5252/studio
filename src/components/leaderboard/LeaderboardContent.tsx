@@ -13,7 +13,7 @@ import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { doc, getDoc } from 'firebase/firestore';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
@@ -84,7 +84,6 @@ const LiveLeaderboard = memo(() => {
         }
 
         const fetchHistory = async () => {
-            const db = getFirebaseFirestore();
             if (!db) {
                 setError("Could not connect to the database.");
                 setIsLoading(false);

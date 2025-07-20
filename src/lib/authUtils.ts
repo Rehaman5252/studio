@@ -11,10 +11,9 @@ import {
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore } from './firebaseClient';
+import { getFirebaseAuth, db } from './firebaseClient';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  const db = getFirebaseFirestore();
   if (!user || !db) {
     console.error("❌ createUserDocument failed: User or DB is missing.");
     return;
