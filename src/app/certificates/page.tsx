@@ -9,9 +9,9 @@ import withAuth from '@/components/auth/withAuth';
 const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
   loading: () => (
     <div className="space-y-4">
-      <Skeleton className="h-[125px] w-full" />
-      <Skeleton className="h-[125px] w-full" />
-      <Skeleton className="h-[125px] w-full" />
+      <Skeleton className="h-[125px] w-full rounded-lg" />
+      <Skeleton className="h-[125px] w-full rounded-lg" />
+      <Skeleton className="h-[125px] w-full rounded-lg" />
     </div>
   ),
   ssr: false,

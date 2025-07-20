@@ -219,8 +219,6 @@ const AllTimeLeaderboard = memo(() => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
-    // In a real app, this would be a Firestore query. 
-    // We are simulating it based on the user's own data.
     const players: AllTimePlayer[] = useMemo(() => {
         if (!userData || userData.perfectScores === 0) {
             return [];
@@ -236,10 +234,7 @@ const AllTimeLeaderboard = memo(() => {
     }, [user, userData]);
     
     useEffect(() => {
-        // Simulate loading state for consistency
         setIsLoading(true);
-        // In a real app, the fetch logic would be here.
-        // For this mock, we just wait a bit.
         const timer = setTimeout(() => setIsLoading(false), 500);
         return () => clearTimeout(timer);
     }, []);
@@ -248,7 +243,6 @@ const AllTimeLeaderboard = memo(() => {
         if (isLoading) {
             return Array.from({ length: 1 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         }
-        // Even if offline, show potentially stale data with a warning.
         if (players.length > 0) {
             return players.map((player) => (
                 <motion.div 
@@ -302,8 +296,6 @@ AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 const MyNetworkLeaderboard = memo(() => {
     const { user, userData } = useAuth();
     
-    // In a real scenario, this would fetch friends' data.
-    // For now, it just shows the current user.
     const players = userData ? [{
         uid: user?.uid,
         name: userData.name,

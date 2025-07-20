@@ -5,15 +5,11 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { Trophy } from 'lucide-react';
 
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
   loading: () => (
     <div className="space-y-2">
       <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-[52px] w-full" />
       <div className="pt-2 space-y-2">
         <Skeleton className="h-[60px] w-full" />
         <Skeleton className="h-[60px] w-full" />
@@ -27,8 +23,6 @@ const LeaderboardContent = dynamic(() => import('@/components/leaderboard/Leader
 });
 
 export default function LeaderboardPage() {
-    const { user, loading } = useAuth();
-    
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
