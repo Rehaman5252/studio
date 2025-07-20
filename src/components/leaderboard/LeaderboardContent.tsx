@@ -61,7 +61,7 @@ const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Leaderboard</AlertTitle>
-        <AlertDescription>{message || "Could not connect to the database."}</AlertDescription>
+        <AlertDescription>{message || "An unknown error occurred."}</AlertDescription>
     </Alert>
 );
 
@@ -79,12 +79,6 @@ const LiveLeaderboard = memo(() => {
         }
 
         const fetchHistory = async () => {
-            if (!db) {
-                setError("Could not connect to the database.");
-                setIsLoading(false);
-                return;
-            }
-
             setIsLoading(true);
             setError(null);
             try {

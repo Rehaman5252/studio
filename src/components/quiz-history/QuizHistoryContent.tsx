@@ -214,12 +214,6 @@ export default function QuizHistoryContent() {
     }
     
     const fetchHistory = async () => {
-        if (!db) {
-            setError("Could not connect to the database.");
-            setIsLoading(false);
-            return;
-        }
-
         setIsLoading(true);
         setError(null);
         try {
