@@ -1,9 +1,16 @@
 
-
 'use client';
 
 import type { User } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useMemo,
+  useCallback,
+} from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { createUserDocument } from '@/lib/authUtils';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -42,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DocumentData | null>(null);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
   
   const [isOffline, setIsOffline] = useState<boolean>(() => {
@@ -61,14 +68,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (!auth) {
       console.error("Firebase Auth not initialized.");
-      setIsLoading(false);
+      setIsAuthLoading(false);
       setIsUserDataLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setIsLoading(false);
+      setIsAuthLoading(false);
     });
 
     return () => {
@@ -93,7 +100,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             setProfile(data || null);
           } else {
-            await createUserDocument(user);
+            // Document doesn't exist, create it.
+            try {
+              await createUserDocument(user);
+              // Note: onSnapshot will trigger again with the new data, setting the profile.
+            } catch (error) {
+               console.error("Failed to create user document on-the-fly:", error);
+            }
           }
           setIsUserDataLoading(false);
         },
@@ -113,10 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !db) {
       throw new Error("Could not save profile. Please check your connection and try again.");
     }
-
-    setProfile(prev => ({ ...prev, ...newData }));
     const sanitizedData = sanitizeUserProfile(newData);
-
     try {
       const ref = doc(db, 'users', user.uid);
       await setDoc(ref, sanitizedData, { merge: true });
@@ -132,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-        const currentProfile = profile || {};
+        const currentProfile = await getDoc(doc(db, 'users', user.uid)).then(d => d.data() || {});
         const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
         const newStats = {
             quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
@@ -140,8 +150,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
         };
         
-        setProfile(prev => ({ ...prev, ...newStats }));
-
         const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, sanitizeUserProfile(newStats), { merge: true });
         
@@ -156,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error adding quiz attempt:", error);
       throw error;
     }
-  }, [user, profile]);
+  }, [user]);
 
   const isProfileComplete = useMemo(() => {
     if (!profile) return false;
@@ -169,12 +177,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     lastAttempt,
     setLastAttempt,
     isProfileComplete,
-    loading: isLoading,
+    loading: isAuthLoading || isUserDataLoading,
     isUserDataLoading: isUserDataLoading,
     isOffline,
     updateUserData,
     addQuizAttempt,
-  }), [user, profile, lastAttempt, isProfileComplete, isLoading, isUserDataLoading, isOffline, updateUserData, addQuizAttempt]);
+  }), [user, profile, lastAttempt, isProfileComplete, isAuthLoading, isUserDataLoading, isOffline, updateUserData, addQuizAttempt]);
 
   return (
     <AuthContext.Provider value={value}>

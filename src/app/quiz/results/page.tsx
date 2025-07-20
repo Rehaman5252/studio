@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { Suspense, useState, useEffect, useMemo, useCallback, memo } from 'react';
@@ -75,6 +74,8 @@ function ResultsComponent() {
                 console.error("Failed to parse attempt data from URL:", error);
                 router.replace('/home');
             }
+        } else if (searchParams.get('reason')) {
+             setFinalAttempt({ reason: 'malpractice' } as any);
         }
     }, [searchParams, router]);
     
@@ -83,9 +84,9 @@ function ResultsComponent() {
         const reason = finalAttempt?.reason || searchParams.get('reason');
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        const { questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp: attemptTimestamp } = finalAttempt || {};
+        const { questions = [], userAnswers = [], brand = 'N/A', format = 'N/A', timePerQuestion = [], usedHintIndices = [], score = 0, totalQuestions: total = 0, slotId = '', timestamp: attemptTimestamp } = finalAttempt || {};
         
-        const isPerfect = score === totalQuestions && totalQuestions > 0;
+        const isPerfect = score === total && total > 0;
         
         let timings = '';
         if (attemptTimestamp) {
@@ -103,15 +104,15 @@ function ResultsComponent() {
             isReview,
             reason,
             today,
-            questions: questions || [],
-            userAnswers: userAnswers || [],
-            brand: brand || 'N/A',
-            format: format || 'N/A',
-            timePerQuestion: timePerQuestion || [],
-            usedHintIndices: usedHintIndices || [],
-            score: score || 0,
-            totalQuestions: totalQuestions || 0,
-            slotId: slotId || '',
+            questions,
+            userAnswers,
+            brand,
+            format,
+            timePerQuestion,
+            usedHintIndices,
+            score,
+            totalQuestions: total,
+            slotId,
             timestamp: attemptTimestamp,
             isPerfectScore: isPerfect,
             slotTimings: timings
@@ -136,13 +137,7 @@ function ResultsComponent() {
     }
 
     if (!finalAttempt) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
-                 <h1 className="text-2xl font-bold mb-4">No Recent Quiz Found</h1>
-                 <p>Could not find data for your last quiz attempt.</p>
-                 <Button onClick={() => router.replace('/home')} className="mt-6">Go Home</Button>
-            </div>
-        );
+        return <ResultsLoader />;
     }
     
     let message = "Good effort! Keep practicing. 💪";

@@ -1,13 +1,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth } from '@/lib/firebaseClient';
-import { updateProfile, sendEmailVerification } from 'firebase/auth';
+import { isFirebaseConfigured } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +15,9 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { sendEmailVerification, updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebaseClient';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -38,11 +40,6 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -57,8 +54,6 @@ export default function SignupForm() {
         if (user) {
             toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
             router.replace('/complete-profile');
-        } else {
-            toast({ title: 'Sign Up Cancelled', description: 'Google sign up was cancelled or failed.', variant: 'destructive' });
         }
     } catch (error: any) {
          if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
@@ -83,23 +78,16 @@ export default function SignupForm() {
 
     } catch (error: any) {
         let description = 'An unexpected error occurred. Please try again.';
-        switch (error.code) {
-            case 'auth/email-already-in-use':
-                description = 'This email is already registered. Please log in instead.';
-                break;
-            case 'auth/weak-password':
-                description = 'The password is too weak. Please use at least 6 characters.';
-                break;
-            case 'auth/invalid-email':
-                description = 'The email address is not valid.';
-                break;
-            case 'auth/network-request-failed':
-                description = 'You appear to be offline. Please check your connection and try again.';
-                break;
-            default:
-                description = 'An error occurred during sign up.';
-                console.error("Signup Error:", error);
-                break;
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'This email is already registered. Please log in instead.';
+        } else if (error.code === 'auth/weak-password') {
+            description = 'The password is too weak. Please use at least 6 characters.';
+        } else if (error.code === 'auth/invalid-email') {
+            description = 'The email address is not valid.';
+        } else if (error.code === 'auth/network-request-failed') {
+            description = 'You appear to be offline. Please check your connection and try again.';
+        } else {
+            console.error("Signup Error:", error);
         }
         toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
     } finally {
@@ -107,19 +95,19 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading || (isClient && !auth);
+  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
   
   return (
-    <div className="flex h-full flex-col justify-center space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Create an Account</h1>
-        <p className="text-muted-foreground">Already have an account?{' '}<Link href={`/auth/login${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">Sign in here</Link></p>
-      </div>
-
-      {isClient && !auth ? (
-         <FirebaseConfigWarning />
-      ) : (
-        <div className="space-y-4">
+    <Card className="w-full max-w-md shadow-2xl shadow-black/20">
+      <CardHeader className="space-y-1 text-center">
+        <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
+        <CardDescription>Enter your details to start your innings</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {!isFirebaseConfigured ? (
+            <FirebaseConfigWarning />
+        ) : (
+        <>
             <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled}>
                 {isGoogleLoading ? (
                     <><Loader2 className="animate-spin mr-2" /> Signing Up...</>
@@ -151,7 +139,7 @@ export default function SignupForm() {
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
                         <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
-                         <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)}>
+                         <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
                             {showPassword ? <EyeOff /> : <Eye />}
                          </Button>
                     </div>
@@ -163,8 +151,17 @@ export default function SignupForm() {
                      ) : "Create Account"}
                 </Button>
             </form>
-        </div>
-      )}
-    </div>
+        </>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-center text-sm">
+        <p className="text-muted-foreground">
+            Already have an account?{' '}
+            <Link href={`/auth/login${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">
+                Sign in here
+            </Link>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }

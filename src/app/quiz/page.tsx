@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -56,7 +55,13 @@ function QuizComponent() {
         router.push('/home');
       }
     }
+    // Pre-fetch quiz, then show loading for 1s for fact
     fetchQuiz();
+    const timer = setTimeout(() => {
+      // The quizState change will be triggered by fetchQuiz completing
+    }, 1000); 
+    
+    return () => clearTimeout(timer);
   }, [format, router, toast]);
 
   const submitQuiz = useCallback((currentAnswers: (string | null)[], reason?: 'malpractice') => {
@@ -84,6 +89,7 @@ function QuizComponent() {
 
     setLastAttempt(attemptData);
     
+    // Pass data via URL to make results page load instantly
     const attemptDataString = Buffer.from(JSON.stringify(attemptData)).toString('base64');
     router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
@@ -152,20 +158,19 @@ function QuizComponent() {
     const timeTaken = (Date.now() - questionStartTime) / 1000;
     setTimePerQuestion(prev => [...prev, timeTaken]);
     
-    setUserAnswers(prev => {
-        const newAnswers = [...prev];
-        newAnswers[currentQuestionIndex] = option;
-        return newAnswers;
-    });
+    const newAnswers = [...userAnswers];
+    newAnswers[currentQuestionIndex] = option;
+    setUserAnswers(newAnswers);
 
+    // Short delay for visual feedback before moving on
     setTimeout(() => {
         if (currentQuestionIndex === questions.length - 1) {
-            handleFinalAnswerAndSubmit(option);
+            submitQuiz(newAnswers);
         } else {
             handleNextWithAdCheck();
         }
     }, 300);
-  }, [selectedOption, questionStartTime, currentQuestionIndex, handleNextWithAdCheck, questions, handleFinalAnswerAndSubmit]);
+  }, [selectedOption, questionStartTime, userAnswers, currentQuestionIndex, questions, handleNextWithAdCheck, submitQuiz]);
   
   const handleAdComplete = useCallback(() => {
       setQuizState('playing');
@@ -214,7 +219,7 @@ function QuizComponent() {
     };
   }, [quizState, submitQuiz, userAnswers]);
 
-  if (quizState === 'loading') {
+  if (quizState === 'loading' || !questions) {
     return <CricketLoading message="Warming up the bowlers..." format={format} />;
   }
 
@@ -229,10 +234,6 @@ function QuizComponent() {
     }
     goToNextQuestion();
     return null;
-  }
-
-  if (!questions) {
-    return <CricketLoading state="error" errorMessage="Could not load the quiz questions." />;
   }
 
   const currentQuestion = questions[currentQuestionIndex];

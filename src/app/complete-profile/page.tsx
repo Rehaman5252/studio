@@ -1,44 +1,33 @@
 
-
 'use client';
 
-import React, { useEffect } from 'react';
-import CompleteProfileForm from '@/components/auth/CompleteProfileForm';
+import React, { useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import CompleteProfileForm from '@/components/auth/CompleteProfileForm';
 
 function CompleteProfilePageContent() {
   const { user, loading: isAuthLoading } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
-    if (!isAuthLoading && user === null) {
+    // Redirect if auth is loaded and there's no user
+    if (!isAuthLoading && !user) {
         router.replace('/auth/login');
     }
   }, [user, isAuthLoading, router]);
 
-  const handleSaveSuccess = () => {
+  const handleSaveSuccess = useCallback(() => {
     router.replace('/home');
-  };
+  }, [router]);
 
-  if (isAuthLoading) {
+  if (isAuthLoading || !user) {
     return (
-      <div className="flex flex-col h-screen bg-background items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading Profile...</p>
+        <p className="mt-4 text-muted-foreground">Loading...</p>
       </div>
-    );
-  }
-
-  // This check is important. If loading is done and there's still no user,
-  // it might be a brief state before the redirect effect kicks in.
-  // Showing a loader here is better than a flash of content or an error.
-  if (!user) {
-    return (
-        <div className="flex flex-col h-screen bg-background items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
     );
   }
 

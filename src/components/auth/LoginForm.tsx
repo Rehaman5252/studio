@@ -16,6 +16,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { useRouter } from 'next/navigation';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -66,18 +67,10 @@ export default function LoginForm() {
     } catch (error: any) {
       console.error("Login failed:", error.code, error.message);
       let description = 'An unexpected error occurred. Please try again.';
-      switch (error.code) {
-        case 'auth/invalid-credential':
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           description = 'Invalid credentials. Please check your email and password.';
-          break;
-        case 'auth/network-request-failed':
+      } else if (error.code === 'auth/network-request-failed') {
           description = 'You appear to be offline. Please check your connection.';
-          break;
-        default:
-          description = 'Login failed. Please try again later.';
-          break;
       }
       toast({ title: 'Login Failed', description, variant: 'destructive' });
     } finally {
@@ -92,8 +85,6 @@ export default function LoginForm() {
         if (user) {
             toast({ title: "Signed In", description: `Welcome back, ${user.displayName}!` });
             router.replace(from || '/home');
-        } else {
-            toast({ title: 'Sign In Cancelled', description: 'Google sign in was cancelled or failed.', variant: 'destructive' });
         }
     } catch (error) {
         console.error("Google login process failed on the login page.");
@@ -105,21 +96,18 @@ export default function LoginForm() {
   const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
 
   return (
-    <div className="flex h-full flex-col justify-center space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
-        <p className="text-muted-foreground">
-          New to the crease?{' '}
-          <Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="font-semibold text-primary hover:underline">
-            Create an account
-          </Link>
-        </p>
-      </div>
-
-      {!isFirebaseConfigured ? (
-        <FirebaseConfigWarning />
-      ) : (
-        <div className="space-y-4">
+    <Card className="w-full max-w-md shadow-2xl shadow-black/20">
+      <CardHeader className="space-y-1 text-center">
+        <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+        <CardDescription>
+            Enter your credentials to access your account
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {!isFirebaseConfigured ? (
+            <FirebaseConfigWarning />
+        ) : (
+        <>
             <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
                 {isGoogleLoading ? (
                     <><Loader2 className="animate-spin mr-2" /> Signing In...</>
@@ -127,47 +115,54 @@ export default function LoginForm() {
                     <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>
                 )}
             </Button>
-
             <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                    </span>
+                </div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-                </span>
-            </div>
-            </div>
-
             <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link href="/auth/forgot-password" className="text-sm font-semibold text-primary hover:underline">
-                        Forgot password?
-                    </Link>
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                 </div>
-                <div className="relative">
-                    <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
-                    <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)}>
-                      {showPassword ? <EyeOff /> : <Eye />}
-                    </Button>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="password">Password</Label>
+                        <Link href="/auth/forgot-password" className="text-sm font-semibold text-primary hover:underline">
+                            Forgot password?
+                        </Link>
+                    </div>
+                    <div className="relative">
+                        <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
+                        <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
+                        {showPassword ? <EyeOff /> : <Eye />}
+                        </Button>
+                    </div>
+                    {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
                 </div>
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-            </div>
-            <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                {isLoading ? (
-                    <><Loader2 className="animate-spin mr-2" /> Signing In...</>
-                ) : "Sign In"}
-            </Button>
+                <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+                    {isLoading ? (
+                        <><Loader2 className="animate-spin mr-2" /> Signing In...</>
+                    ) : "Sign In"}
+                </Button>
             </form>
-        </div>
-      )}
-    </div>
+        </>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-center text-sm">
+        <p className="text-muted-foreground">
+            New to the crease?{' '}
+            <Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="font-semibold text-primary hover:underline">
+                Create an account
+            </Link>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }

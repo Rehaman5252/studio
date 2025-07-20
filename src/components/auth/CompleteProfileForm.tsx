@@ -1,9 +1,7 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -57,16 +56,16 @@ export default function CompleteProfileForm({ onSaveSuccess }: CompleteProfileFo
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: profile?.name || user?.displayName || '',
-            email: profile?.email || user?.email || '',
-            phone: profile?.phone || '',
-            dob: profile?.dob || '',
-            gender: profile?.gender || undefined,
-            occupation: profile?.occupation || undefined,
-            upi: profile?.upi || '',
-            favoriteFormat: profile?.favoriteFormat || undefined,
-            favoriteTeam: profile?.favoriteTeam || '',
-            favoriteCricketer: profile?.favoriteCricketer || '',
+            name: '',
+            email: '',
+            phone: '',
+            dob: '',
+            gender: undefined,
+            occupation: undefined,
+            upi: '',
+            favoriteFormat: undefined,
+            favoriteTeam: '',
+            favoriteCricketer: '',
         },
     });
     
@@ -89,8 +88,6 @@ export default function CompleteProfileForm({ onSaveSuccess }: CompleteProfileFo
 
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (isSubmitting) return;
-
         if (!user || !updateUserData) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
@@ -122,16 +119,14 @@ export default function CompleteProfileForm({ onSaveSuccess }: CompleteProfileFo
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-        } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false); // Only set back on error
         }
     };
 
     if (isUserDataLoading) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-background">
+            <div className="flex flex-col items-center justify-center h-full">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">Loading profile form...</p>
             </div>
         )
     }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -66,7 +67,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                          )}
                     </div>
                     <div className="text-muted-foreground text-xs flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-                        {age && <span>{age} yrs</span>}
+                        {age ? <span>{age} yrs</span> : null}
                         {userProfile?.gender && <span>&middot; {userProfile.gender}</span>}
                         {userProfile?.occupation && <span>&middot; {userProfile.occupation}</span>}
                     </div>
