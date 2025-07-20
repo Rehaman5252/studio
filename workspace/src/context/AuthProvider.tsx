@@ -46,7 +46,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const MANDATORY_PROFILE_FIELDS = [
   'name', 'phone', 'dob', 'gender', 'occupation',
-  'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer',
+  'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
