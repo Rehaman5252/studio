@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { getDocs, query, collection, orderBy, limit } from 'firebase/firestore';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -61,7 +61,6 @@ export default function CertificatesContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const db = getFirebaseFirestore();
             const q = query(
                 collection(db, 'users', user.uid, 'quizAttempts'),
                 orderBy('timestamp', 'desc'),

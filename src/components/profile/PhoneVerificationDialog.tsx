@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getFirebaseAuth, isFirebaseOnline } from "@/lib/firebaseClient";
-import { signInWithPhoneNumber } from "firebase/auth";
+import { auth, isFirebaseOnline } from "@/lib/firebaseClient";
+import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
 
 interface Props {
   children: React.ReactNode;
@@ -31,7 +31,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
-  // Always clean up verifier DOM and refs
   const cleanupVerifier = useCallback(() => {
     if (recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current.clear();
@@ -41,14 +40,11 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     if (container) container.remove();
   }, []);
   
-  // Ensure cleanup runs when the component unmounts
   useEffect(() => () => cleanupVerifier(), [cleanupVerifier]);
 
   const setupRecaptcha = useCallback(async () => {
-    const auth = getFirebaseAuth();
     if (!auth || recaptchaVerifierRef.current || !open) return;
     
-    // Ensure container is ready
     let container = document.getElementById('recaptcha-container-in-dialog');
     if (!container) {
       container = document.createElement('div');
@@ -63,17 +59,15 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     }
 
     try {
-      const { RecaptchaVerifier } = await import('firebase/auth');
-      // Only create a new verifier if one doesn't already exist.
       if (!recaptchaVerifierRef.current) {
-          recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
+          recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier('recaptcha-container-in-dialog', {
               size: 'invisible',
               callback: () => {},
               'expired-callback': () => {
                 setError("reCAPTCHA expired. Please try again.");
-                cleanupVerifier(); // Cleanup on expiration
+                cleanupVerifier();
               },
-          });
+          }, auth);
           await recaptchaVerifierRef.current.render();
       }
     } catch (e) {
@@ -86,7 +80,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     if (open && step === 'initial') {
       setupRecaptcha();
     }
-    // When the dialog is closed, ensure everything is torn down.
     if (!open) {
       cleanupVerifier();
     }
@@ -99,10 +92,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
       setError("You appear to be offline. Please check your connection.");
       return;
     }
-    await setupRecaptcha(); // Ensure it's ready
+    await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
-    const auth = getFirebaseAuth();
-    if (!verifier || !auth) {
+    if (!verifier) {
       setError("Verification system is not ready. Please close and try again.");
       return;
     }
@@ -116,7 +108,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     } catch (err) {
       console.error("OTP send error:", err);
       setError("Failed to send OTP. Please check the phone number and try again later.");
-      cleanupVerifier(); // Cleanup on failure
+      cleanupVerifier();
       setStep('initial');
     } finally {
       setIsLoading(false);
@@ -133,7 +125,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
       await updateUserData?.({ phoneVerified: true, phone });
       toast({ title: "Verified", description: "Your phone number has been verified successfully." });
       onVerified();
-      resetStateAndClose(false); // Close dialog on success
+      resetStateAndClose(false);
     } catch {
       setError("Invalid code. Please try again.");
       toast({ title: "Verification Failed", description: "The code you entered was incorrect.", variant: 'destructive' });

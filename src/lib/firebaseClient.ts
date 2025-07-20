@@ -14,50 +14,39 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+// This check is crucial for Next.js to prevent trying to initialize Firebase on the server.
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
 if (typeof window !== 'undefined') {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-
   enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
-      console.warn("🔥 Persistence failed – multiple tabs open");
+      console.warn("🔥 Firestore persistence failed: multiple tabs open");
     } else if (err.code === 'unimplemented') {
-      console.warn("🔥 Persistence not available in this browser");
+      console.warn("🔥 Firestore persistence not supported by this browser");
     }
   });
 }
 
-export function getFirebaseAuth(): Auth {
-    if (!auth) throw new Error("Firebase Auth is not initialized (likely an SSR issue).");
-    return auth;
-}
-
-export function getFirebaseFirestore(): Firestore {
-    if (!db) throw new Error("Firestore is not initialized (likely an SSR issue).");
-    return db;
-}
-
+/**
+ * Checks for a real connection to Firebase services, not just navigator.onLine.
+ * @returns A promise that resolves to true if connected, false otherwise.
+ */
 export async function isFirebaseOnline(): Promise<boolean> {
-  if (typeof window === 'undefined' || !navigator.onLine) return false;
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    return false;
+  }
   try {
-    const firestore = getFirebaseFirestore();
-    // A simple, low-cost read operation to a non-existent document
-    const docRef = doc(firestore, 'system', 'ping'); 
+    // A simple, low-cost read operation to a non-existent document.
+    // This confirms not only network but also Firestore service availability and permissions.
+    const docRef = doc(db, 'system', 'ping');
     await getDoc(docRef);
     return true;
   } catch (e: any) {
-    // If the error code is 'unavailable', it's a clear sign of being offline.
-    // Other errors might not strictly mean offline but indicate a problem.
-    if (e.code === 'unavailable') {
-        return false;
-    }
-    // For this app's purpose, we can treat most other failures as an offline state for the user.
+    console.warn('Firebase connectivity check failed:', e.code);
     return false;
   }
 }
+
+export { db, auth, app };

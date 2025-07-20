@@ -11,11 +11,10 @@ import {
 import { toast } from '@/hooks/use-toast';
 import type { DocumentData } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore } from './firebaseClient';
+import { auth, db } from './firebaseClient';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: DocumentData = {}) {
-  const db = getFirebaseFirestore();
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
@@ -54,7 +53,6 @@ export async function createUserDocument(user: User, additionalData: DocumentDat
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  const auth = getFirebaseAuth();
   if (isPopupOpen) {
     console.warn("Google Sign-In popup is already open.");
     return null;
@@ -83,13 +81,11 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    const auth = getFirebaseAuth();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
-    const auth = getFirebaseAuth();
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

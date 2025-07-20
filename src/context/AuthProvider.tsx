@@ -14,7 +14,7 @@ import {
   getDoc,
   collection
 } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
+import { auth, db, isFirebaseOnline } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 interface AuthContextType {
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
       return !navigator.onLine;
     }
-    return false; // Default to online during SSR
+    return false;
   });
 
   useEffect(() => {
@@ -61,7 +61,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    const auth = getFirebaseAuth();
     if (!auth) {
       console.error("Firebase Auth not initialized.");
       setIsLoading(false);
@@ -96,13 +95,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchProfile = async () => {
       try {
-        const firestore = getFirebaseFirestore();
-        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDocRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(userDocRef);
 
         if (!docSnap.exists()) {
-          await createUserDocument(user); // This now handles its own DB instance
-          // After creation, we fetch it again to ensure we have the stored data
+          await createUserDocument(user);
           const newSnap = await getDoc(userDocRef);
           if (newSnap.exists()) {
             setProfile(newSnap.data());
@@ -116,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Error loading user profile:", error);
-        setIsOffline(true); // Treat fetch errors as being offline
+        setIsOffline(true);
         setProfile(null);
       } finally {
         setIsUserDataLoading(false);
@@ -131,12 +128,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("Could not save profile. Please check your connection and try again.");
     }
 
-    const firestore = getFirebaseFirestore();
     setProfile(prev => ({ ...prev, ...newData }));
     const sanitizedData = sanitizeUserProfile(newData);
 
     try {
-      const ref = doc(firestore, 'users', user.uid);
+      const ref = doc(db, 'users', user.uid);
       await setDoc(ref, sanitizedData, { merge: true });
     } catch (err) {
       console.error("updateUserData error:", err);
@@ -148,9 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) {
       throw new Error("User not authenticated or DB not available.");
     }
-    const firestore = getFirebaseFirestore();
     
-    // Optimistically update local profile state for immediate UI feedback
     setProfile(prev => {
       const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
       return {
@@ -170,10 +164,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
         };
         
-        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, sanitizeUserProfile(newStats), { merge: true });
 
-        const userAttemptsCollection = collection(firestore, `users/${user.uid}/quizAttempts`);
+        const userAttemptsCollection = collection(db, `users/${user.uid}/quizAttempts`);
         const attemptRef = doc(userAttemptsCollection, attempt.timestamp.toString());
         await setDoc(attemptRef, sanitizeUserProfile(attempt));
     } catch (error) {

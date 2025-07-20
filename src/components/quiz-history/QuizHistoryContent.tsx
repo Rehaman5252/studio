@@ -12,7 +12,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -217,7 +217,6 @@ export default function QuizHistoryContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const db = getFirebaseFirestore();
             const q = query(
                 collection(db, 'users', user.uid, 'quizAttempts'),
                 orderBy('timestamp', 'desc'),

@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { getDocs, query, collection, where, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -82,7 +82,6 @@ const LiveLeaderboard = memo(() => {
             setIsLoading(true);
             setError(null);
             try {
-                const db = getFirebaseFirestore();
                 const q = query(
                     collection(db, 'users', user.uid, 'quizAttempts'),
                     where('slotId', '==', getQuizSlotId()),

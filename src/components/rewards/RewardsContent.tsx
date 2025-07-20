@@ -10,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { getDocs, query, collection, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -217,7 +217,6 @@ export default function RewardsContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const db = getFirebaseFirestore();
             const q = query(
                 collection(db, 'users', user.uid, 'quizAttempts'),
                 orderBy('timestamp', 'desc'),

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
+import { auth } from '@/lib/firebaseClient';
 import { updateProfile, sendEmailVerification } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,7 +68,6 @@ export default function SignupForm() {
     setIsLoading(true);
     try {
         const userCredential = await registerWithEmail(data.email, data.password);
-        const auth = getFirebaseAuth();
         if (auth && auth.currentUser) {
             await updateProfile(auth.currentUser, { displayName: data.name });
             await sendEmailVerification(auth.currentUser);
@@ -103,7 +102,7 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
+  const isAuthDisabled = isLoading || isGoogleLoading || !auth;
   
   return (
     <div className="flex h-full flex-col justify-center space-y-6">
@@ -112,7 +111,7 @@ export default function SignupForm() {
         <p className="text-muted-foreground">Already have an account?{' '}<Link href={`/auth/login${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">Sign in here</Link></p>
       </div>
 
-      {!isFirebaseConfigured ? (
+      {!auth ? (
          <FirebaseConfigWarning />
       ) : (
         <div className="space-y-4">
