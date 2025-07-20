@@ -59,8 +59,7 @@ export default function LoginForm() {
       if (!userCredential.user.emailVerified) {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
-        setIsLoading(false);
-        return;
+        return; // Important: stop execution
       }
       toast({ title: "Signed In", description: "Welcome back!" });
       router.replace(from || '/home');
@@ -93,7 +92,7 @@ export default function LoginForm() {
     }
   }
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
+  const isAuthDisabled = isLoading || isGoogleLoading;
 
   return (
     <Card className="w-full max-w-md shadow-2xl shadow-black/20">

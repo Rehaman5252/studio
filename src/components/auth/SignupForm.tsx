@@ -95,7 +95,7 @@ export default function SignupForm() {
     }
   };
 
-  const isAuthDisabled = isLoading || isGoogleLoading || !isFirebaseConfigured;
+  const isAuthDisabled = isLoading || isGoogleLoading;
   
   return (
     <Card className="w-full max-w-md shadow-2xl shadow-black/20">
