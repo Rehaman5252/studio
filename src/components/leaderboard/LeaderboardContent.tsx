@@ -39,23 +39,31 @@ const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Leaderboard</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
+        <AlertDescription>{message || "An unknown error occurred."}</AlertDescription>
     </Alert>
 );
 
+
 const LiveLeaderboard = memo(() => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (authLoading) return; // Wait for auth to finish loading
+
+        setIsLoading(true);
+        setError(null);
+        
         const db = getFirebaseFirestore();
-        if (!db) { setError("Firestore not available"); setIsLoading(false); return; }
+        if (!db) {
+            setError("Could not connect to the database.");
+            setIsLoading(false);
+            return;
+        }
 
         const fetchLivePlayers = async () => {
-            setIsLoading(true);
-            setError(null);
             try {
                 // In a real app, this would query a shared 'liveSlot' collection.
                 // For this demo, we mock it.
@@ -96,12 +104,12 @@ const LiveLeaderboard = memo(() => {
             }
         };
         fetchLivePlayers();
-    }, [user, profile]);
+    }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players yet. Be the first!</p>;
+        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
         return players.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
@@ -121,6 +129,7 @@ const LiveLeaderboard = memo(() => {
     );
 });
 LiveLeaderboard.displayName = 'LiveLeaderboard';
+
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
@@ -150,8 +159,10 @@ const AllTimeLeaderboard = memo(() => {
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
+
 export default function LeaderboardContent() {
   const { user } = useAuth();
+
   return (
     <Tabs defaultValue="live" className="w-full">
         <TabsList className={cn("grid w-full", user ? "grid-cols-2" : "grid-cols-1")}>
@@ -163,3 +174,4 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
+

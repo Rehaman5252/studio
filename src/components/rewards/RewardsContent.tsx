@@ -159,23 +159,24 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading) return; // Wait for auth provider to load
 
     if (!user) {
         setIsLoading(false);
         return;
     }
     
-    const fetchHistory = async () => {
-        setIsLoading(true);
-        setError(null);
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("You appear to be offline. Please check your connection to see your rewards.");
-            setIsLoading(false);
-            return;
-        }
+    setIsLoading(true);
+    setError(null);
+    
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setError("You appear to be offline. Please check your connection to see your rewards.");
+        setIsLoading(false);
+        return;
+    }
 
+    const fetchHistory = async () => {
         try {
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             const docSnap = await getDoc(historyDocRef);
@@ -216,7 +217,7 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory]);
   
-  if(isLoading) return <RewardsSkeleton />
+  if(isLoading || isAuthLoading) return <RewardsSkeleton />
 
   return (
     <>

@@ -45,28 +45,30 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth provider to finish
+    
     if (!user) {
         setIsLoading(false);
         return;
     }
 
+    const db = getFirebaseFirestore();
+    if (!db) {
+      setError("You appear to be offline. Please check your connection to see your certificates.");
+      setIsLoading(false);
+      return;
+    }
+
     const fetchHistory = async () => {
         setIsLoading(true);
         setError(null);
-        const db = getFirebaseFirestore();
-        if (!db) {
-          setError("Firestore is not available.");
-          setIsLoading(false);
-          return;
-        }
-
         try {
             const historyDocRef = doc(db, 'quizHistory', user.uid);
             const docSnap = await getDoc(historyDocRef);
@@ -87,7 +89,7 @@ export default function CertificatesContent() {
         }
     }
     fetchHistory();
-  }, [user]);
+  }, [user, authLoading]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -121,37 +123,54 @@ export default function CertificatesContent() {
   const handleDownload = (cert: typeof certificates[0]) => {
     const doc = new jsPDF();
 
-    doc.setDrawColor(218, 165, 32); 
+    // Add a border
+    doc.setDrawColor(218, 165, 32); // Gold
     doc.setLineWidth(1.5);
     doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
+
+    // Add title
     doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(218, 165, 32);
+    doc.setTextColor(218, 165, 32); // Gold
     doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
+
+    // Add introductory text
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
+    
+    // Add user's name
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(45, 85, 255);
+    doc.setTextColor(45, 85, 255); // A contrasting blue
     doc.text(profile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
+    
+    // Add achievement details
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text('has successfully achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
+    
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text(`${cert.format} Quiz (${cert.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
+    
+    // Add date and slot
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 100, 100);
     doc.text(`Awarded on: ${cert.date}`, 30, 130);
     doc.text(`Quiz Slot: ${cert.slot}`, 30, 137);
+
+    // Add signature line
     doc.setLineWidth(0.5);
     doc.line(130, 135, 180, 135);
     doc.setFontSize(10);
     doc.text('Authorized Signature', 135, 140);
+
+
+    // Add footer
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(218, 165, 32);
@@ -189,6 +208,7 @@ export default function CertificatesContent() {
            fallbackCopy();
         }
     } catch (error: any) {
+        // Handle specific error when user cancels the share dialog
         if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
             toast({ title: 'Sharing Canceled', description: 'You have canceled the share action.', variant: 'default' });
         } else {
@@ -199,7 +219,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />
