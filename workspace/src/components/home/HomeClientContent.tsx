@@ -6,8 +6,10 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import { Skeleton } from '@/components/ui/skeleton';
+import LoginPrompt from '../auth/LoginPrompt';
+import { Home } from 'lucide-react';
 
-const QuizSelectionSkeleton = () => (
+const HomeSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">
         <div className="text-center mb-8">
             <Skeleton className="h-8 w-3/4 mx-auto" />
@@ -28,10 +30,10 @@ const QuizSelectionSkeleton = () => (
 );
 
 export default function HomeClientContent() {
-  const { loading } = useAuth();
+  const { profile, loading } = useAuth();
 
   if (loading) {
-    return <QuizSelectionSkeleton />;
+    return <HomeSkeleton />;
   }
 
   return (

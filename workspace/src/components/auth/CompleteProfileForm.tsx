@@ -15,6 +15,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Skeleton } from '../ui/skeleton';
+import { createUserDocument } from '@/lib/authUtils';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -41,11 +43,33 @@ const cricketTeams = [
     'Sunrisers Hyderabad', 'Punjab Kings', 'Delhi Capitals', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans'
 ];
 
-interface CompleteProfileFormProps {
-  onSaveSuccess: () => void;
-}
+const ProfileFormSkeleton = () => (
+    <Card className="w-full max-w-lg">
+        <CardHeader>
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-4 w-full max-w-sm mt-2" />
+        </CardHeader>
+        <CardContent className="space-y-4 pr-6">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+        </CardContent>
+        <CardFooter>
+            <Skeleton className="h-10 w-full" />
+        </CardFooter>
+    </Card>
+)
 
-export default function CompleteProfileForm({ onSaveSuccess }: CompleteProfileFormProps) {
+export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: () => void }) {
     const router = useRouter();
     const { user, profile, updateUserData, loading } = useAuth();
     const { toast } = useToast();
@@ -88,22 +112,20 @@ export default function CompleteProfileForm({ onSaveSuccess }: CompleteProfileFo
 
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (!user || !updateUserData) {
+        if (!user) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
             return;
         }
 
         setIsSubmitting(true);
-
+        
         try {
-            const finalPayload: DocumentData = {
-                ...data,
-                profileCompleted: true,
-                phoneVerified: true, 
-                updatedAt: new Date(),
-            };
-            
-            await updateUserData(finalPayload);
+            // If the user's profile doc doesn't exist, create it first.
+            if (!profile && updateUserData) {
+                await createUserDocument(user, data);
+            } else if (updateUserData) {
+                await updateUserData({ ...data, profileCompleted: true, updatedAt: new Date() });
+            }
             
             toast({ 
                 title: "Profile Saved!", 
@@ -119,16 +141,12 @@ export default function CompleteProfileForm({ onSaveSuccess }: CompleteProfileFo
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
-            setIsSubmitting(false); // Only set back on error
+            setIsSubmitting(false);
         }
     };
 
     if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        )
+        return <ProfileFormSkeleton />;
     }
 
     return (

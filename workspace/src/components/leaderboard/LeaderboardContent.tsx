@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,9 +9,11 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban } from 'lucide-react';
+import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer {
     rank?: number;
@@ -54,18 +56,27 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
+const ErrorState = ({ message }: { message: string }) => (
+    <Alert variant="destructive" className="mt-4">
+        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        <AlertTitle>Error Loading Leaderboard</AlertTitle>
+        <AlertDescription>{message || "An unknown error occurred."}</AlertDescription>
+    </Alert>
+);
+
+
 const LiveLeaderboard = memo(() => {
     const { user, profile, quizHistory } = useAuth();
     
     const players: LivePlayer[] = useMemo(() => {
         const currentSlotId = getQuizSlotId();
-        const currentSlotHistory = (quizHistory || []).filter(a => a.slotId === currentSlotId);
+        const currentSlotHistory = quizHistory.filter(a => a.slotId === currentSlotId);
         
         const userAttempt = currentSlotHistory.find(a => a.userAnswers && a.questions);
 
         const livePlayers: LivePlayer[] = [];
 
-        if (user && userAttempt) {
+        if (userAttempt && user) {
             livePlayers.push({
                 uid: user.uid,
                 name: profile?.name || 'You',
@@ -93,7 +104,7 @@ const LiveLeaderboard = memo(() => {
         }).map((p, index) => ({...p, rank: index + 1}));
 
     }, [user, profile, quizHistory]);
-    
+
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center">
@@ -122,7 +133,7 @@ const LiveLeaderboard = memo(() => {
                                 {player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}
                             </div>
                             <Avatar className="h-10 w-10 mx-4">
-                                <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} data-ai-hint="avatar person" />
+                                <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
                                 <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
@@ -153,11 +164,11 @@ const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     
     const players: AllTimePlayer[] = useMemo(() => {
-        if (!user || !profile || (profile.perfectScores || 0) === 0) {
+        if (!profile || (profile.perfectScores || 0) === 0) {
             return [];
         }
         return [{
-            uid: user.uid,
+            uid: user!.uid,
             name: profile.name,
             perfectScores: profile.perfectScores,
             totalPlayed: profile.quizzesPlayed,
@@ -165,7 +176,7 @@ const AllTimeLeaderboard = memo(() => {
             rank: 1
         }];
     }, [user, profile]);
-
+    
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center">
@@ -189,7 +200,7 @@ const AllTimeLeaderboard = memo(() => {
                             >
                                <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                                <Avatar className="h-10 w-10 mx-4">
-                                   <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} data-ai-hint="avatar person" />
+                                   <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
                                    <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                                </Avatar>
                                <div className="flex-1">
@@ -214,14 +225,12 @@ AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 const MyNetworkLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     
-    const players = useMemo(() => {
-        return profile ? [{
-            uid: user?.uid,
-            name: profile.name,
-            perfectScores: profile.perfectScores || 0,
-            avatar: profile.photoURL
-        }] : [];
-    }, [user, profile]);
+    const players = profile ? [{
+        uid: user?.uid,
+        name: profile.name,
+        perfectScores: profile.perfectScores || 0,
+        avatar: profile.photoURL
+    }] : [];
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -236,7 +245,7 @@ const MyNetworkLeaderboard = memo(() => {
                              <div key={user.uid} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                                 <div className="w-8 text-center"><RankIcon rank={index + 1} /></div>
                                 <Avatar className="h-10 w-10 mx-4">
-                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} data-ai-hint="avatar person" />
+                                    <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
                                     <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
