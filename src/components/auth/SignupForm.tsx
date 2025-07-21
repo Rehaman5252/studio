@@ -50,7 +50,7 @@ export default function SignupForm() {
     try {
         const user = await handleGoogleSignIn();
         if (user) {
-            toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
+            toast({ title: 'Signed In!', description: `Welcome, ${user.displayName || 'user'}!` });
             router.replace('/complete-profile');
         }
     } catch (error: any) {

@@ -14,8 +14,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -155,47 +155,47 @@ export default function QuizHistoryContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
-        if (!user) {
-            setLoading(false);
-            return;
-        }
+        let isCancelled = false;
 
-        let cancelled = false;
-        const fetchHistory = async () => {
+        async function fetchHistory() {
+            if (authLoading) return;
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             setError(null);
+            
+            const db = getFirebaseFirestore();
+            if (!db) {
+                setError("Firestore not available.");
+                setLoading(false);
+                return;
+            }
+
             try {
-                const db = getFirebaseFirestore();
-                if (!db) {
-                  throw new Error("You appear to be offline. Please check your connection.");
-                }
-                const q = query(
-                    collection(db, "users", user.uid, "quizAttempts"),
-                    orderBy("timestamp", "desc"),
-                    limit(50)
-                );
+                const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
                 const snap = await getDocs(q);
-                if (!cancelled) {
+                if (!isCancelled) {
                     setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
                 }
             } catch (e: any) {
-                if(!cancelled) {
-                    if(e.code === 'unavailable' || e.message?.includes('offline')) {
-                        setError("You appear to be offline. Please check your connection.");
-                    } else {
-                        setError(e.message || "Unable to load quiz history. Please try again later.");
-                    }
+                if (!isCancelled) {
+                    setError("Unable to load quiz history.");
                 }
             } finally {
-                if (!cancelled) {
+                if (!isCancelled) {
                     setLoading(false);
                 }
             }
-        };
+        }
+
         fetchHistory();
 
-        return () => { cancelled = true; }
+        return () => {
+            isCancelled = true;
+        };
     }, [user, authLoading]);
 
     const filteredHistory = useMemo(() => {
@@ -206,7 +206,7 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading || authLoading) return <HistorySkeleton />;
+        if (loading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>

@@ -40,9 +40,9 @@ function initializeFirebase() {
             if (db && !persistenceEnabled) {
               enableIndexedDbPersistence(db).catch((err) => {
                 if (err.code === 'failed-precondition') {
-                  console.warn('Firestore persistence failed: multiple tabs open.');
+                  // This can happen if multiple tabs are open.
                 } else if (err.code === 'unimplemented') {
-                  console.warn('Firestore persistence not supported in this browser.');
+                  // Persistence is not supported in this browser.
                 }
               });
               persistenceEnabled = true;
@@ -72,9 +72,11 @@ export async function isFirebaseOnline(): Promise<boolean> {
     return false;
   }
   try {
+    // A lightweight check against a non-existent doc.
     await getDoc(doc(firestore, "systemHealth/connectivityCheck"));
     return true;
   } catch (error: any) {
+    // An error here likely means we are offline or have a config issue.
     return false;
   }
 }

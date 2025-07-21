@@ -81,7 +81,7 @@ export default function LoginForm() {
     try {
         const user = await handleGoogleSignIn();
         if (user) {
-            toast({ title: "Signed In", description: `Welcome back, ${user.displayName}!` });
+            toast({ title: "Signed In", description: `Welcome back, ${user.displayName || 'user'}!` });
             router.replace(from || '/home');
         }
     } catch (error) {

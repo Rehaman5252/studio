@@ -4,10 +4,9 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
-import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 
 interface AuthContextType {
@@ -33,54 +32,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    const auth = getFirebaseAuth();
+    if (!auth) {
         setLoading(false);
+        setIsOffline(true);
         return;
     }
-    const auth = getFirebaseAuth();
-    if (!auth) { 
-        setLoading(false); 
-        return; 
-    }
-    const unsubscribe = onAuthStateChanged(auth, setUser);
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (!firebaseUser) {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user) { 
-        setProfile(null); 
-        setLoading(false); 
-        return; 
+    if (!user) {
+        // No user, so we are done loading.
+        setLoading(false);
+        return;
     }
-    
-    let unsubProfile: () => void = () => {};
-    let cancelled = false;
+
+    // User is authenticated, now check for profile.
     setLoading(true);
+    const db = getFirebaseFirestore();
 
-    const setupListeners = async () => {
-      if (cancelled) return;
-      
-      const db = getFirebaseFirestore();
-      if (!db) {
+    if (!db) {
         console.error("Firestore is not available.");
-        if (!cancelled) {
-          setIsOffline(true);
-          setLoading(false);
-        }
+        setIsOffline(true);
+        setLoading(false);
         return;
-      }
-      
-      const online = await isFirebaseOnline();
-      if (!cancelled) setIsOffline(!online);
-      if (!online) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
+    }
 
-      const userDocRef = doc(db, "users", user.uid);
+    const userDocRef = doc(db, 'users', user.uid);
 
-      unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
-        if (cancelled) return;
+    getDoc(userDocRef)
+      .then(async (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.dob instanceof Timestamp) {
@@ -89,28 +80,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
-          try {
-            await createUserDocument(user);
-          } catch(e) {
-            console.error("Failed to create user document after check", e);
+          // If the document doesn't exist, create it.
+          await createUserDocument(user);
+          const newDocSnap = await getDoc(userDocRef); // Re-fetch after creation
+          if (newDocSnap.exists()) {
+            const data = newDocSnap.data();
+             if (data?.dob instanceof Timestamp) {
+                data.dob = data.dob.toDate().toISOString().split('T')[0];
+            }
+            setProfile(data);
+            setIsProfileComplete(!!data.profileCompleted);
           }
         }
+      })
+      .catch((error) => {
+        console.error("Error fetching/creating user document:", error);
+        setIsOffline(true); // Treat fetch errors as being offline
+      })
+      .finally(() => {
         setLoading(false);
-      }, (error) => {
-        console.error("Profile snapshot error:", error);
-        if(!cancelled) {
-          setIsOffline(true);
-          setLoading(false);
-        }
       });
-    };
-    
-    setupListeners();
-    
-    return () => {
-        cancelled = true;
-        unsubProfile();
-    };
+      
   }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
@@ -124,14 +114,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     
     const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+    await setDoc(userDocRef, newData, { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
 
-    const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
+    const sanitizedAttempt = attempt;
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
 
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;

@@ -11,7 +11,6 @@ import {
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User) {
   const db = getFirebaseFirestore();
@@ -41,7 +40,7 @@ export async function createUserDocument(user: User) {
       referralEarnings: 0,
     };
     try {
-      await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
+      await setDoc(userDocRef, newUserProfile);
     } catch (error) {
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
@@ -64,7 +63,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    await createUserDocument(result.user);
+    // createUserDocument is now called from AuthProvider, no need to call it here.
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -85,7 +84,7 @@ export const registerWithEmail = async (email: string, password: string) => {
     const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await createUserDocument(userCredential.user);
+    // createUserDocument is now called from AuthProvider, no need to call it here.
     return userCredential;
 };
 

@@ -4,7 +4,7 @@ import { Timestamp } from "firebase/firestore";
 /**
  * Recursively sanitizes an object by removing properties with `undefined` values
  * and converting any valid date strings or Date objects into Firestore Timestamps.
- * @param obj The object to sanitize.
+ * @param data The object to sanitize.
  * @returns A new, sanitized object.
  */
 export function sanitizeUserProfile(data: any): any {
@@ -12,43 +12,25 @@ export function sanitizeUserProfile(data: any): any {
     return data;
   }
 
-  const copy: { [key: string]: any } = { ...data };
+  const copy: { [key: string]: any } = Array.isArray(data) ? [] : {};
 
-  for (const key in copy) {
-    if (copy[key] === undefined) {
-      delete copy[key];
-      continue;
-    }
-    
-    // Specifically handle the 'dob' field for date conversion
-    if (key === 'dob' && copy[key]) {
-      let date: Date | null = null;
-      if (copy[key] instanceof Date) {
-        date = copy[key];
-      } else if (typeof copy[key] === 'string') {
-        const parsedDate = new Date(copy[key]);
-        if (!isNaN(parsedDate.getTime())) {
-          date = parsedDate;
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key) && data[key] !== undefined) {
+      const value = data[key];
+      if (value instanceof Date) {
+        copy[key] = Timestamp.fromDate(value);
+      } else if (key === 'dob' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          copy[key] = Timestamp.fromDate(date);
         }
-      } else if (copy[key] instanceof Timestamp) {
-        // It's already a Timestamp, so no change needed.
-        continue;
-      }
-      
-      if (date) {
-        copy[key] = Timestamp.fromDate(date);
+      } else if (value instanceof Timestamp) {
+        copy[key] = value;
+      } else if (typeof value === 'object' && value !== null) {
+        copy[key] = sanitizeUserProfile(value);
       } else {
-        // If it's an invalid date representation, remove it
-        delete copy[key];
+        copy[key] = value;
       }
-      continue; // Move to the next key
-    }
-
-    // Recurse for nested objects, but not for Timestamps or other complex objects
-    if (typeof copy[key] === 'object' && !(copy[key] instanceof Timestamp) && !Array.isArray(copy[key])) {
-        copy[key] = sanitizeUserProfile(copy[key]);
-    } else if (Array.isArray(copy[key])) {
-        copy[key] = copy[key].map(item => sanitizeUserProfile(item));
     }
   }
 
