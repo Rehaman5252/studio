@@ -23,6 +23,8 @@ const CertificatesSkeleton = () => (
 );
 
 function CertificatesPage() {
+  const { user, loading } = useAuth();
+  
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -30,49 +32,23 @@ function CertificatesPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-        <CertificatesContent />
+        {loading ? (
+            <CertificatesSkeleton />
+        ) : user ? (
+            <CertificatesContent />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <LoginPrompt 
+                icon={Award}
+                title="Claim Your Certificates"
+                description="Log in to view and download certificates for your perfect quiz scores."
+            />
+          </div>
+        )}
       </main>
     </div>
   );
 }
 
-const CertificatesPageContainer = () => {
-    const { user, loading } = useAuth();
-
-    if (loading) {
-        return (
-             <div className="flex flex-col h-screen bg-background">
-                <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
-                    <h1 className="text-2xl font-bold text-center text-foreground">My Certificates</h1>
-                </header>
-                <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                    <CertificatesSkeleton />
-                </main>
-            </div>
-        )
-    }
-
-    if (!user) {
-        return (
-            <div className="flex flex-col h-screen bg-background">
-                <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
-                    <h1 className="text-2xl font-bold text-center text-foreground">My Certificates</h1>
-                </header>
-                <main className="flex-1 flex items-center justify-center p-4 pb-20">
-                    <LoginPrompt 
-                        icon={Award}
-                        title="Claim Your Certificates"
-                        description="Log in to view and download certificates for your perfect quiz scores."
-                    />
-                </main>
-            </div>
-        )
-    }
-
-    // Since this page is wrapped with `withAuth`, we can safely render it
-    // without the need for an additional component. `withAuth` handles the redirect.
-    return <CertificatesPage />;
-};
-
-
-export default withAuth(CertificatesPageContainer);
+// Wrapping with withAuth is no longer necessary if the page itself handles the logged-out state.
+export default CertificatesPage;

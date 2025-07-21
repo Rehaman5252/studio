@@ -6,16 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -137,64 +134,26 @@ function HistorySkeleton() {
     );
 }
 
-const ErrorState = ({ message }: { message: string }) => (
-    <div className="pt-4">
-        <Alert variant="destructive">
-            {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-            <AlertTitle>Error Loading History</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
-        </Alert>
-    </div>
-);
-
 export default function QuizHistoryContent() {
-    const { user, loading: authLoading } = useAuth();
+    const { quizHistory, fetchHistory, historyLoading } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
-    const [history, setHistory] = useState<QuizAttempt[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading || !user) {
-            setLoading(false);
-            return;
+        if (quizHistory.length === 0) {
+            fetchHistory();
         }
-        const db = getFirebaseFirestore();
-        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
-        
-        setLoading(true); 
-        setError(null);
-        
-        const fetchHistory = async () => {
-            try {
-                const q = query(
-                    collection(db, "users", user.uid, "quizAttempts"),
-                    orderBy("timestamp", "desc"),
-                    limit(50)
-                );
-                const snap = await getDocs(q);
-                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
-            } catch (e) {
-                console.error("Failed to fetch history:", e);
-                setError("Unable to load quiz history.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        
-        fetchHistory();
-    }, [user, authLoading]);
+    }, [fetchHistory, quizHistory.length]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {
-            return history.filter(a => a.score === a.totalQuestions && !a.reason);
+            return quizHistory.filter(a => a.score === a.totalQuestions && !a.reason);
         }
-        return history;
-    }, [history, filter]);
+        return quizHistory;
+    }, [quizHistory, filter]);
 
     const renderContent = () => {
-        if (loading || authLoading) return <HistorySkeleton />;
-        if (error) return <ErrorState message={error} />;
+        if (historyLoading && quizHistory.length === 0) return <HistorySkeleton />;
+        
         if (!filteredHistory.length) return (
             <div>
                 <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
