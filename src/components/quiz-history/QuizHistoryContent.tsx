@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -15,7 +15,9 @@ import { cn } from '@/lib/utils';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import LoadingFallback from '@/components/common/LoadingFallback';
+import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
+
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -74,12 +76,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="text-sm max-h-[60vh] overflow-y-auto pr-4">
-                    {isLoading && (
-                        <div className="flex flex-col items-center justify-center p-8 space-y-2">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="ml-4 text-muted-foreground">Generating your personalized report...</p>
-                        </div>
-                    )}
+                    {isLoading && <LoadingFallback message="Generating report..." />}
                     {error && <p className="text-destructive font-semibold p-4 text-center">{error}</p>}
                     {analysis && (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
@@ -137,16 +134,6 @@ function HistorySkeleton() {
     );
 }
 
-const ErrorState = ({ message }: { message: string }) => (
-    <div className="pt-4">
-        <Alert variant="destructive">
-            {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-            <AlertTitle>Error Loading History</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
-        </Alert>
-    </div>
-);
-
 export default function QuizHistoryContent() {
     const { user, loading: authLoading, firebaseAppReady } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
@@ -155,9 +142,15 @@ export default function QuizHistoryContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Strict readiness check
         if (!firebaseAppReady || authLoading || !user) {
             if (!authLoading) setLoading(false);
+            return;
+        }
+
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Could not connect to the database.");
+            setLoading(false);
             return;
         }
 
@@ -165,14 +158,6 @@ export default function QuizHistoryContent() {
         async function fetchHistory() {
             setLoading(true);
             setError(null);
-            
-            const db = getFirebaseFirestore();
-            if (!db) {
-                setError("Could not connect to the database. You may be offline.");
-                setLoading(false);
-                return;
-            }
-
             try {
                 const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
                 const snap = await getDocs(q);
@@ -180,21 +165,15 @@ export default function QuizHistoryContent() {
                     setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
                 }
             } catch (e: any) {
-                if (!isCancelled) {
-                    setError("Unable to load quiz history. Please check your connection.");
-                }
+                if (!isCancelled) setError("Unable to load quiz history.");
             } finally {
-                if (!isCancelled) {
-                    setLoading(false);
-                }
+                if (!isCancelled) setLoading(false);
             }
         }
 
         fetchHistory();
 
-        return () => {
-            isCancelled = true;
-        };
+        return () => { isCancelled = true; };
     }, [user, authLoading, firebaseAppReady]);
 
     const filteredHistory = useMemo(() => {
@@ -206,7 +185,7 @@ export default function QuizHistoryContent() {
 
     const renderContent = () => {
         if (loading || authLoading) return <HistorySkeleton />;
-        if (error) return <ErrorState message={error} />;
+        if (error) return <FirebaseOfflineAlert />;
         if (!filteredHistory.length) return (
             <div className="pt-4">
                 <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>

@@ -9,12 +9,14 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban, WifiOff, ServerCrash } from 'lucide-react';
+import { Ban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import LoadingFallback from '@/components/common/LoadingFallback';
+import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
+
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
@@ -35,14 +37,6 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
-    <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Error Loading Leaderboard</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-    </Alert>
-);
-
 const LiveLeaderboard = memo(() => {
     const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
@@ -50,23 +44,23 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Strict readiness check
         if (!firebaseAppReady || authLoading) {
-            setIsLoading(true);
             return;
         };
+
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Could not connect to the database.");
+            setIsLoading(false);
+            return;
+        }
 
         let cancelled = false;
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
             try {
-                const db = getFirebaseFirestore();
-                if (!db) {
-                    throw new Error("Firestore is not available.");
-                }
-                
-                // This is mocked data for demonstration purposes
+                // Mock data for demonstration
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
@@ -74,7 +68,6 @@ const LiveLeaderboard = memo(() => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
-                // Only attempt to fetch user-specific data if the user is logged in
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
@@ -101,9 +94,8 @@ const LiveLeaderboard = memo(() => {
                 }
             } catch (e: any) {
                 if (!cancelled) {
-                    setError(e.message?.includes('offline') || e.code === 'unavailable' ? "You appear to be offline." : "An error occurred.");
+                    setError("Could not load leaderboard data.");
                 }
-                console.error(e);
             } finally {
                 if (!cancelled) {
                     setIsLoading(false);
@@ -117,7 +109,7 @@ const LiveLeaderboard = memo(() => {
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState message={error} />;
+        if (error) return <FirebaseOfflineAlert />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
         return players.map((player) => (

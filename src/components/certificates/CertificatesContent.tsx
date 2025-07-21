@@ -4,7 +4,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
+import { Award, Download, Share2, Clock, Calendar, Trophy } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,8 @@ import jsPDF from 'jspdf';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import LoadingFallback from '@/components/common/LoadingFallback';
+import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
 
 const CertificateItemSkeleton = () => (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -34,29 +35,25 @@ const CertificateItemSkeleton = () => (
     </Card>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
-    <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Error Loading Certificates</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-    </Alert>
-);
-
 export default function CertificatesContent() {
   const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Strict readiness check: Wait for Firebase and Auth to be ready.
-    if (!firebaseAppReady || authLoading || !user) {
-        setIsLoading(true); // Keep showing loader until we are definitively logged in or out
-        if (!authLoading) {
-            // If auth is done loading and there's no user, we can stop.
-            setIsLoading(false);
-        }
+    // Stricter guard: wait for auth and firebase to be fully ready
+    if (authLoading || !firebaseAppReady || !user) {
+        // Keep showing skeleton if we're not ready to fetch
+        if (!authLoading) setIsLoading(false);
+        return;
+    }
+
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setError("Could not connect to the database. You may be offline.");
+        setIsLoading(false);
         return;
     }
 
@@ -65,10 +62,6 @@ export default function CertificatesContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const db = getFirebaseFirestore();
-            if (!db) {
-              throw new Error("You appear to be offline. Please check your connection to see your certificates.");
-            }
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
 
@@ -79,7 +72,7 @@ export default function CertificatesContent() {
         } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
             if (!cancelled) {
-                setError(e.message?.includes('offline') ? "You appear to be offline." : "Could not load certificates.");
+                setError("Could not load certificates. Please check your connection and try again.");
             }
         } finally {
             if (!cancelled) {
@@ -96,14 +89,10 @@ export default function CertificatesContent() {
     const attemptDate = new Date(timestamp);
     const minutes = attemptDate.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
-    
     const slotStartTime = new Date(attemptDate);
     slotStartTime.setMinutes(slotStartMinute, 0, 0);
-    
     const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-
     const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
   };
   
@@ -179,7 +168,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (isLoading || authLoading) {
+  if (loading || authLoading) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />
@@ -188,7 +177,7 @@ export default function CertificatesContent() {
     );
   }
 
-  if (error) return <ErrorState message={error} />;
+  if (error) return <FirebaseOfflineAlert />;
   
   if (certificates.length === 0) {
     return (
