@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -40,8 +40,14 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     let cancelled = false;
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setIsHistoryLoading(false);
+            return;
+        }
+
         try {
-            const historyDocRef = doc(firestore, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+            const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
             const docSnap = await getDoc(historyDocRef);
             if (!cancelled) {
               if (docSnap.exists()) {
@@ -51,8 +57,10 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
               }
             }
         } catch (error) {
-            console.error("Failed to fetch last quiz attempt:", error);
-            if (!cancelled) setLastAttemptInSlot(null);
+            if (!cancelled) {
+              console.error("Failed to fetch last quiz attempt:", error);
+              setLastAttemptInSlot(null);
+            }
         } finally {
             if (!cancelled) setIsHistoryLoading(false);
         }

@@ -10,31 +10,15 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { firestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
 
-const ScratchCardSkeleton = () => (
-    <div className="w-full aspect-square p-1">
-        <LoadingFallback type="skeleton" />
-    </div>
-);
-
 const RewardsSkeleton = () => (
   <div className="space-y-8">
       <section>
-        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
-        <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
-            <CarouselContent className="-ml-4">
-                {[...Array(3)].map((_, index) => (
-                    <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                        <ScratchCardSkeleton />
-                    </CarouselItem>
-                ))}
-            </CarouselContent>
-        </Carousel>
+        <LoadingFallback type="skeleton" />
       </section>
       <section>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
@@ -116,16 +100,19 @@ export default function RewardsContent() {
 
   useEffect(() => {
     if (authLoading || !user || !firestoreReady) {
-        if (!authLoading && firestoreReady) setLoading(false);
-        return;
+      if (!authLoading && firestoreReady) setLoading(false);
+      return;
     }
 
     let cancelled = false;
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
+        const db = getFirebaseFirestore();
+        if (!db) { setError("Firestore not available."); setLoading(false); return; }
+
         try {
-            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
             if (!cancelled) setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {

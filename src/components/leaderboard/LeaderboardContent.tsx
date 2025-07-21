@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Ban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
@@ -43,6 +43,9 @@ const LiveLeaderboard = memo(() => {
         const fetchLivePlayers = async () => {
             setLoading(true);
             setError(null);
+            const db = getFirebaseFirestore();
+            if (!db) { setError("Firestore not available."); setLoading(false); return; }
+
             try {
                 // Mock data for demonstration
                 const mockLivePlayers: LivePlayer[] = [
@@ -52,7 +55,7 @@ const LiveLeaderboard = memo(() => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
-                const q = query(collection(firestore, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                 const userAttemptSnap = await getDocs(q);
 
                 if (!cancelled && !userAttemptSnap.empty) {

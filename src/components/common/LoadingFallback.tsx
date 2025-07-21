@@ -4,6 +4,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+import { Card, CardContent, CardHeader } from '../ui/card';
 
 const LoadingFallback = ({ type = 'spinner', message = "Loading..." }: { type?: 'spinner' | 'skeleton', message?: string }) => {
   if (type === 'skeleton') {
@@ -25,20 +26,19 @@ const LoadingFallback = ({ type = 'spinner', message = "Loading..." }: { type?: 
 };
 
 const CardSkeleton = () => (
-    <div className="p-4 rounded-lg border bg-card">
-        <div className="flex justify-between items-center mb-2">
-            <Skeleton className="h-5 w-1/2" />
-            <Skeleton className="h-5 w-1/4" />
+    <Card>
+      <CardHeader className="flex flex-row justify-between items-center">
+        <Skeleton className="h-5 w-1/2" />
+        <Skeleton className="h-5 w-1/4" />
+      </CardHeader>
+      <CardContent className="flex justify-between items-end">
+        <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-32" />
         </div>
-        <Skeleton className="h-4 w-1/3 mb-4" />
-        <div className="flex justify-between items-end">
-            <div className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-32" />
-            </div>
-            <Skeleton className="h-9 w-28" />
-        </div>
-    </div>
+        <Skeleton className="h-9 w-28" />
+      </CardContent>
+    </Card>
 )
 
 export default LoadingFallback;
