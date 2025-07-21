@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -74,19 +74,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const userDocRef = doc(db, "users", user.uid);
     
+    // First, check if the document exists. Create it if not.
     getDoc(userDocRef).then((docSnap) => {
         if (!docSnap.exists()) {
             createUserDocument(user, db).then(() => {
+                // After creating, now we can listen for snapshots
                 listenToProfile();
             }).catch(err => {
-              console.error("Error creating user document", err);
+              console.error("Error creating user document after check", err);
               setLoading(false);
             });
         } else {
+            // If it exists, just start listening.
             listenToProfile();
         }
     }).catch(err => {
-      console.error("Error getting user document", err);
+      console.error("Error initially getting user document", err);
       setLoading(false);
     });
 

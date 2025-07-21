@@ -11,8 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Skeleton } from '../ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -52,16 +52,17 @@ export default function CertificatesContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading || !user) {
-        if (!user) setIsLoading(false);
-        return;
-    }
+    if (authLoading) return;
+    if (!user) { setIsLoading(false); return; }
 
     const fetchHistory = async () => {
         setIsLoading(true);
         setError(null);
         try {
             const db = getFirebaseFirestore();
+            if (!db) {
+              throw new Error("You appear to be offline. Please check your connection to see your certificates.");
+            }
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
             const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
@@ -71,7 +72,7 @@ export default function CertificatesContent() {
             if (e.code === 'unavailable' || e.message?.includes('offline')) {
                 setError("You appear to be offline. Please check your connection to see your certificates.");
             } else {
-                setError("Could not load your certificates. Please try again later.");
+                setError(e.message || "Could not load your certificates. Please try again later.");
             }
         } finally {
             setIsLoading(false);

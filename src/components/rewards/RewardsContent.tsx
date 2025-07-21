@@ -12,8 +12,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { motion } from 'framer-motion';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -122,26 +122,23 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading || !user) {
-      if (!user) setLoading(false);
-      return;
-    }
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
 
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
         try {
             const db = getFirebaseFirestore();
+            if (!db) {
+                throw new Error("You appear to be offline. Please check your connection.");
+            }
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
             setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
             console.error("Rewards Fetch Error:", e);
-            if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You appear to be offline. Please check your connection.");
-            } else {
-                setError("Unable to load rewards data. Please try again later.");
-            }
+            setError(e.message || "Unable to load rewards data. Please try again later.");
         } finally {
             setLoading(false);
         }

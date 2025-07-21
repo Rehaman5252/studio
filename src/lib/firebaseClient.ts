@@ -70,9 +70,11 @@ export async function isFirebaseOnline(): Promise<boolean> {
     return false;
   }
   try {
+    // This is a more reliable check. We use a non-existent document to avoid read costs.
     await getDoc(doc(firestore, "systemHealth/connectivityCheck"));
     return true;
   } catch (error: any) {
+    // Any error here suggests an offline or misconfigured state.
     return false;
   }
 }

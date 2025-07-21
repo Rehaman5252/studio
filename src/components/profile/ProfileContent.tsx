@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ProfileHeader from './ProfileHeader';
-import ProfileCompletion from '@/components/profile/ProfileCompletion';
+import ProfileCompletion from './ProfileCompletion';
 import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
