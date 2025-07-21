@@ -52,8 +52,11 @@ export default function CertificatesContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { 
+    if (authLoading) {
+        setIsLoading(true);
+        return;
+    }
+    if (!user) {
         setIsLoading(false); 
         return; 
     }

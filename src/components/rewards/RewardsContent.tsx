@@ -122,7 +122,10 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+        setLoading(true);
+        return;
+    };
     if (!user) { 
         setLoading(false); 
         return; 

@@ -50,7 +50,10 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
+        if (authLoading) {
+            setIsLoading(true);
+            return;
+        };
 
         let cancelled = false;
         const fetchLivePlayers = async () => {
@@ -62,8 +65,6 @@ const LiveLeaderboard = memo(() => {
                     throw new Error("Firestore is not available.");
                 }
                 
-                // In a real app, this would query a shared 'liveSlot' collection.
-                // For this demo, we mock it.
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
