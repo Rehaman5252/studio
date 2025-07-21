@@ -65,20 +65,25 @@ export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean)
 
 export async function isFirebaseOnline(): Promise<boolean> {
   const db = getFirebaseFirestore();
-  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+  // If the browser itself reports offline, we can be sure.
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    return false;
+  }
+  if (!db) {
     return false;
   }
 
   try {
-    // This is a more reliable check. We use a non-existent document to avoid read costs.
-    const testDoc = doc(db, "systemHealth/connectivityCheck");
-    await getDoc(testDoc);
+    // This is a more reliable check for Firestore connectivity.
+    // It attempts a minimal read operation. A non-existent doc is fine.
+    await getDoc(doc(db, "systemHealth/connectivityCheck"));
     return true;
   } catch (error: any) {
-    if (error.code === 'unavailable' || error.code === 'resource-exhausted' || error.message.includes('offline')) {
+    // Firestore specific 'unavailable' code is a strong signal of being offline.
+    if (error.code === 'unavailable') {
         return false;
     }
-    // Some errors might not indicate offline status, but for this check, we can assume so.
-    return true;
+    // For other errors, we can be optimistic if the browser thinks it's online.
+    return typeof window !== 'undefined' && navigator.onLine;
   }
 }

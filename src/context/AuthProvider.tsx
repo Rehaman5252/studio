@@ -35,7 +35,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   
-  // New state for caching quiz history
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -55,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) { 
         setProfile(null); 
         setLoading(false);
-        setQuizHistory([]); // Clear history on logout
+        setQuizHistory([]);
         return; 
     }
     
@@ -90,7 +89,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
-          await createUserDocument(user);
+          try {
+            await createUserDocument(user);
+          } catch(e) {
+            console.error("Failed to create user document after sign-in.", e);
+            setIsOffline(true);
+          }
         }
         setLoading(false);
       }, (error) => {
@@ -124,14 +128,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await setDoc(userDocRef, sanitizedData, { merge: true });
   }, [user]);
   
-  // New function to fetch history on demand and cache it
   const fetchHistory = useCallback(async () => {
       if (!user || historyLoading) return;
       
       const db = getFirebaseFirestore();
       if (!db) {
           console.error("Firestore not available for history fetch.");
+          setIsOffline(true);
           return;
+      }
+      
+      const online = await isFirebaseOnline();
+      if(!online) {
+        setIsOffline(true);
+        return;
       }
 
       setHistoryLoading(true);
@@ -140,8 +150,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const querySnapshot = await getDocs(q);
           const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
           setQuizHistory(historyData);
+          setIsOffline(false);
       } catch (e: any) {
           console.error("Failed to fetch certificate data:", e);
+          if (e.code === 'unavailable') setIsOffline(true);
       } finally {
           setHistoryLoading(false);
       }
@@ -169,7 +181,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
     }
     
-    // Add new attempt to the local cache immediately for instant UI update
     setQuizHistory(prev => [sanitizedAttempt, ...prev]);
 
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
