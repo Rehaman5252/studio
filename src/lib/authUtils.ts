@@ -8,19 +8,18 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
+import { firestore, firebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User) {
-  const db = getFirebaseFirestore();
-  if (!user || !db) {
-    console.error("❌ createUserDocument failed: User or DB is missing.");
+  if (!user) {
+    console.error("❌ createUserDocument failed: User is missing.");
     return;
   };
   
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(firestore, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
@@ -43,6 +42,7 @@ export async function createUserDocument(user: User) {
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
+      console.error("Error creating user document:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
     }
@@ -52,9 +52,8 @@ export async function createUserDocument(user: User) {
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  const auth = getFirebaseAuth();
-  if (isPopupOpen || !auth) {
-    console.warn("Google Sign-In popup is already open or auth is not initialized.");
+  if (isPopupOpen) {
+    console.warn("Google Sign-In popup is already open.");
     return null;
   }
   isPopupOpen = true;
@@ -63,8 +62,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
   provider.setCustomParameters({ prompt: 'select_account' });
 
   try {
-    const result = await signInWithPopup(auth, provider);
-    // createUserDocument is now called from AuthProvider, no need to call it here.
+    const result = await signInWithPopup(firebaseAuth, provider);
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -82,16 +80,11 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    const auth = getFirebaseAuth();
-    if (!auth) throw new Error("Auth not initialized");
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // createUserDocument is now called from AuthProvider, no need to call it here.
+    const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
-    const auth = getFirebaseAuth();
-    if (!auth) throw new Error("Auth not initialized");
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
     return userCredential;
 };

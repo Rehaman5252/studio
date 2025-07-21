@@ -32,16 +32,16 @@ const HomeContentSkeleton = () => (
     </div>
 );
 
-function HomePage() {
+function Page() {
     const { user, loading } = useAuth();
     return (
       <div className="flex flex-col h-screen bg-background text-foreground">
         <header className="p-4 flex items-center justify-center">
           <div className="text-center">
               <h1 className="text-6xl font-extrabold tracking-tight text-shimmer animate-shimmer">
-                indcric
+                CricBlitz
               </h1>
-              <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
+              <p className="text-sm text-muted-foreground">The ultimate cricket quiz challenge</p>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
@@ -54,7 +54,7 @@ function HomePage() {
                 <div className="flex items-center justify-center pt-10">
                     <LoginPrompt
                         icon={HomeIcon}
-                        title="Welcome to indcric!"
+                        title="Welcome to CricBlitz!"
                         description="Sign in to play quizzes, win rewards, and climb the leaderboard."
                     />
                 </div>
@@ -65,4 +65,4 @@ function HomePage() {
     );
 }
 
-export default HomePage;
+export default Page;

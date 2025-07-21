@@ -9,57 +9,30 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
+import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
 
-const CertificateItemSkeleton = () => (
-    <Card className="bg-card/80 border-primary/10 shadow-lg">
-        <CardHeader>
-            <div className="flex items-start gap-4">
-                <Skeleton className="h-8 w-8 rounded-md mt-1 flex-shrink-0" />
-                <div className="flex-grow space-y-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-3 w-5/6" />
-                    <Skeleton className="h-3 w-3/4" />
-                </div>
-            </div>
-        </CardHeader>
-        <CardContent className="flex justify-end gap-2">
-            <Skeleton className="h-9 w-24 rounded-md" />
-            <Skeleton className="h-9 w-20 rounded-md" />
-        </CardContent>
-    </Card>
-);
-
 export default function CertificatesContent() {
-  const { user, profile, loading: authLoading, firestoreReady } = useAuth();
+  const { user, profile, authLoading, firestoreReady } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading || !user || !firestoreReady) {
-        if (!authLoading && firestoreReady) setIsLoading(false);
-        return;
-    }
-
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setError("Could not connect to the database. You may be offline.");
-        setIsLoading(false);
+        if (!authLoading && firestoreReady) setLoading(false);
         return;
     }
 
     let cancelled = false;
     const fetchHistory = async () => {
-        setIsLoading(true);
+        setLoading(true);
         setError(null);
         try {
-            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
 
             if (!cancelled) {
@@ -67,13 +40,9 @@ export default function CertificatesContent() {
                 setQuizHistory(historyData);
             }
         } catch (e: any) {
-            if (!cancelled) {
-                setError("Could not load certificates. Please check your connection and try again.");
-            }
+            if (!cancelled) setError("Could not load certificates. Please check your connection and try again.");
         } finally {
-            if (!cancelled) {
-                setIsLoading(false);
-            }
+            if (!cancelled) setLoading(false);
         }
     }
     fetchHistory();
@@ -166,15 +135,7 @@ export default function CertificatesContent() {
     } catch (error) { console.error('Share failed:', error); }
   };
 
-  if (isLoading || authLoading) {
-    return (
-        <div className="space-y-4">
-            <CertificateItemSkeleton />
-            <CertificateItemSkeleton />
-        </div>
-    );
-  }
-
+  if (loading || authLoading) return <LoadingFallback type="skeleton" />;
   if (error) return <FirebaseOfflineAlert />;
   
   if (certificates.length === 0) {

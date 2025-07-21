@@ -12,9 +12,8 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
 
@@ -123,18 +122,8 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
 });
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
-function HistorySkeleton() {
-    return (
-        <div className="space-y-4 pt-4">
-            {[...Array(3)].map((_, i) => (
-                <Card key={i} className="bg-card/80 shadow-lg"><CardHeader><div className="flex justify-between items-center"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-12" /></div><Skeleton className="h-4 w-32 mt-1" /></CardHeader><CardContent className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-40" /></div><Skeleton className="h-9 w-28" /></CardContent></Card>
-            ))}
-        </div>
-    );
-}
-
 export default function QuizHistoryContent() {
-    const { user, loading: authLoading, firestoreReady } = useAuth();
+    const { user, authLoading, firestoreReady } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
@@ -146,19 +135,12 @@ export default function QuizHistoryContent() {
             return;
         }
 
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Could not connect to the database.");
-            setLoading(false);
-            return;
-        }
-
         let isCancelled = false;
         async function fetchHistory() {
             setLoading(true);
             setError(null);
             try {
-                const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+                const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
                 const snap = await getDocs(q);
                 if (!isCancelled) {
                     setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
@@ -171,7 +153,6 @@ export default function QuizHistoryContent() {
         }
 
         fetchHistory();
-
         return () => { isCancelled = true; };
     }, [user, authLoading, firestoreReady]);
 
@@ -183,7 +164,7 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading || authLoading) return <HistorySkeleton />;
+        if (loading || authLoading) return <LoadingFallback type="skeleton" />;
         if (error) return <FirebaseOfflineAlert />;
         if (!filteredHistory.length) return (
             <div className="pt-4">

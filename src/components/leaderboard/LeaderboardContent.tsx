@@ -8,11 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Ban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
@@ -28,37 +27,21 @@ const RankIcon = ({ rank }: { rank: number }) => {
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
 
-const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
-        <Skeleton className="w-8 h-8 rounded-full" />
-        <Skeleton className="h-10 w-10 mx-4 rounded-full" />
-        <div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
-        <div className="text-right space-y-2"><Skeleton className="h-4 w-8" /><Skeleton className="h-3 w-12" /></div>
-    </div>
-);
-
 const LiveLeaderboard = memo(() => {
-    const { user, profile, loading: authLoading, firestoreReady } = useAuth();
+    const { user, profile, authLoading, firestoreReady } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (authLoading || !user || !firestoreReady) {
-            setIsLoading(false);
-            return;
-        };
-
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Could not connect to the database.");
-            setIsLoading(false);
+            if (!authLoading && firestoreReady) setLoading(false);
             return;
         }
 
         let cancelled = false;
         const fetchLivePlayers = async () => {
-            setIsLoading(true);
+            setLoading(true);
             setError(null);
             try {
                 // Mock data for demonstration
@@ -69,7 +52,7 @@ const LiveLeaderboard = memo(() => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
-                const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                const q = query(collection(firestore, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                 const userAttemptSnap = await getDocs(q);
 
                 if (!cancelled && !userAttemptSnap.empty) {
@@ -92,13 +75,9 @@ const LiveLeaderboard = memo(() => {
                     setPlayers(sorted);
                 }
             } catch (e: any) {
-                if (!cancelled) {
-                    setError("Could not load leaderboard data.");
-                }
+                if (!cancelled) setError("Could not load leaderboard data.");
             } finally {
-                if (!cancelled) {
-                    setIsLoading(false);
-                }
+                if (!cancelled) setLoading(false);
             }
         };
         fetchLivePlayers();
@@ -107,7 +86,7 @@ const LiveLeaderboard = memo(() => {
     }, [user, profile, authLoading, firestoreReady]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (loading) return <LoadingFallback type="skeleton" />;
         if (error) return <FirebaseOfflineAlert />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
