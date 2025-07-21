@@ -14,8 +14,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Skeleton } from '../ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);

@@ -12,8 +12,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { motion } from 'framer-motion';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
