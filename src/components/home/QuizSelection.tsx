@@ -20,8 +20,8 @@ import { Loader2 } from 'lucide-react';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
-import { brandData, type CubeBrand } from './brandData';
-import BrandCube from './BrandCube';
+import { brandData, type CubeBrand } from '@/components/home/brandData';
+import BrandCube from '@/components/home/BrandCube';
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)
@@ -33,7 +33,7 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, isProfileComplete, loading: authLoading } = useAuth();
+    const { user, profile } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     
@@ -43,6 +43,11 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
+    const isProfileComplete = useMemo(() => {
+        if (!profile) return false;
+        return profile.profileCompleted;
+    }, [profile]);
+    
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
         return lastAttemptInSlot.slotId === getQuizSlotId();
@@ -110,7 +115,7 @@ const QuizSelectionComponent = () => {
         setShowAuthAlert(false);
     }
     
-    if (authLoading || isQuizStatusLoading) {
+    if (isQuizStatusLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
