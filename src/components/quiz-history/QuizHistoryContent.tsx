@@ -14,8 +14,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -160,6 +160,7 @@ export default function QuizHistoryContent() {
             return;
         }
 
+        let cancelled = false;
         const fetchHistory = async () => {
             setLoading(true);
             setError(null);
@@ -174,18 +175,26 @@ export default function QuizHistoryContent() {
                     limit(50)
                 );
                 const snap = await getDocs(q);
-                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+                if (!cancelled) {
+                    setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+                }
             } catch (e: any) {
-                if(e.code === 'unavailable' || e.message?.includes('offline')) {
-                    setError("You appear to be offline. Please check your connection.");
-                } else {
-                    setError(e.message || "Unable to load quiz history. Please try again later.");
+                if(!cancelled) {
+                    if(e.code === 'unavailable' || e.message?.includes('offline')) {
+                        setError("You appear to be offline. Please check your connection.");
+                    } else {
+                        setError(e.message || "Unable to load quiz history. Please try again later.");
+                    }
                 }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
         fetchHistory();
+
+        return () => { cancelled = true; }
     }, [user, authLoading]);
 
     const filteredHistory = useMemo(() => {

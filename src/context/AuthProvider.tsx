@@ -70,23 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const userDocRef = doc(db, "users", user.uid);
       
-      // Check for doc existence first to create it if necessary
-      getDoc(userDocRef).then((docSnap) => {
-          if (!docSnap.exists()) {
-              createUserDocument(user, db).then(() => {
-                  // After creating, now we can listen for snapshots
-                  listenToProfile();
-              });
-          } else {
-              // If it exists, just start listening.
-              listenToProfile();
-          }
-      }).catch(err => {
-          console.error("Error getting user document:", err);
-          setLoading(false);
-          setIsOffline(true);
-      });
-
       const listenToProfile = () => {
           unsubProfile = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -104,6 +87,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setLoading(false);
           });
       }
+      
+      // Check for doc existence first to create it if necessary
+      getDoc(userDocRef).then((docSnap) => {
+          if (!docSnap.exists()) {
+              createUserDocument(user).then(() => {
+                  // After creating, now we can listen for snapshots
+                  listenToProfile();
+              });
+          } else {
+              // If it exists, just start listening.
+              listenToProfile();
+          }
+      }).catch(err => {
+          console.error("Error getting user document:", err);
+          setLoading(false);
+          setIsOffline(true);
+      });
     };
     
     setupListeners();

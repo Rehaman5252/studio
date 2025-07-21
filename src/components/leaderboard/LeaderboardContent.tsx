@@ -52,15 +52,14 @@ const LiveLeaderboard = memo(() => {
     useEffect(() => {
         if (authLoading) return;
 
+        let cancelled = false;
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
             try {
                 const db = getFirebaseFirestore();
                 if (!db) {
-                    setError("Firestore is not available.");
-                    setIsLoading(false);
-                    return;
+                    throw new Error("Firestore is not available.");
                 }
                 
                 // In a real app, this would query a shared 'liveSlot' collection.
@@ -76,7 +75,7 @@ const LiveLeaderboard = memo(() => {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
 
-                    if (!userAttemptSnap.empty) {
+                    if (!cancelled && !userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
                         mockLivePlayers.push({
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
@@ -86,27 +85,34 @@ const LiveLeaderboard = memo(() => {
                     }
                 }
 
-                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
-                const sorted = uniquePlayers.sort((a, b) => {
-                    if (a.disqualified && !b.disqualified) return 1;
-                    if (!a.disqualified && b.disqualified) return -1;
-                    if (a.score !== b.score) return b.score - a.score;
-                    return a.time - b.time;
-                }).map((p, i) => ({ ...p, rank: i + 1 }));
-
-                setPlayers(sorted);
+                if (!cancelled) {
+                    const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
+                    const sorted = uniquePlayers.sort((a, b) => {
+                        if (a.disqualified && !b.disqualified) return 1;
+                        if (!a.disqualified && b.disqualified) return -1;
+                        if (a.score !== b.score) return b.score - a.score;
+                        return a.time - b.time;
+                    }).map((p, i) => ({ ...p, rank: i + 1 }));
+                    setPlayers(sorted);
+                }
             } catch (e: any) {
-                if (e.message.includes('offline') || e.code === 'unavailable') {
-                  setError("You appear to be offline. Please check your connection.");
-                } else {
-                  setError("An error occurred while loading the leaderboard.");
+                if (!cancelled) {
+                    if (e.message.includes('offline') || e.code === 'unavailable') {
+                      setError("You appear to be offline. Please check your connection.");
+                    } else {
+                      setError("An error occurred while loading the leaderboard.");
+                    }
                 }
                 console.error(e);
             } finally {
-                setIsLoading(false);
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
             }
         };
         fetchLivePlayers();
+
+        return () => { cancelled = true; }
     }, [user, profile, authLoading]);
 
     const renderContent = () => {

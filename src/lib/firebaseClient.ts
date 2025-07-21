@@ -54,10 +54,12 @@ function initializeFirebase() {
 initializeFirebase();
 
 export function getFirebaseAuth(): Auth | null {
+  if (!auth) initializeFirebase();
   return auth;
 }
 
 export function getFirebaseFirestore(): Firestore | null {
+  if (!db) initializeFirebase();
   return db;
 }
 

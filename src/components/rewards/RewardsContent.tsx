@@ -12,8 +12,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { motion } from 'framer-motion';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Skeleton } from '../ui/skeleton';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -125,6 +125,7 @@ export default function RewardsContent() {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
+    let cancelled = false;
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
@@ -135,16 +136,23 @@ export default function RewardsContent() {
             }
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
-            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+            if (!cancelled) {
+                setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+            }
         } catch (e: any) {
             console.error("Rewards Fetch Error:", e);
-            setError(e.message || "Unable to load rewards data. Please try again later.");
+            if (!cancelled) {
+                setError(e.message || "Unable to load rewards data. Please try again later.");
+            }
         } finally {
-            setLoading(false);
+            if (!cancelled) {
+                setLoading(false);
+            }
         }
     };
 
     fetchHistory();
+    return () => { cancelled = true; };
   }, [user, authLoading]);
 
   const hasAttempts = history.length > 0;

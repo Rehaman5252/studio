@@ -10,14 +10,15 @@ import {
 } from 'firebase/auth';
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
-import { doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
-export async function createUserDocument(user: User | null, db: Firestore | null) {
+export async function createUserDocument(user: User) {
+  const db = getFirebaseFirestore();
   if (!user || !db) {
     console.error("❌ createUserDocument failed: User or DB is missing.");
     return;
-  }
+  };
   
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
@@ -63,8 +64,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    const db = getFirebaseFirestore();
-    await createUserDocument(result.user, db);
+    await createUserDocument(result.user);
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -85,8 +85,7 @@ export const registerWithEmail = async (email: string, password: string) => {
     const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const db = getFirebaseFirestore();
-    await createUserDocument(userCredential.user, db);
+    await createUserDocument(userCredential.user);
     return userCredential;
 };
 

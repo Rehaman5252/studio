@@ -45,7 +45,7 @@ const tourSteps = [
 const WalkthroughPage = () => {
   const [step, setStep] = useState(0);
   const router = useRouter();
-  const { user, userData, updateUserData, isUserDataLoading } = useAuth();
+  const { user, profile, updateUserData, loading } = useAuth();
   
   const handleNext = () => {
     if (step < tourSteps.length - 1) {
@@ -63,12 +63,12 @@ const WalkthroughPage = () => {
   };
   
   useEffect(() => {
-    if (!isUserDataLoading && userData?.guidedTourCompleted) {
+    if (!loading && profile?.guidedTourCompleted) {
       router.replace('/home');
     }
-  }, [userData, isUserDataLoading, router]);
+  }, [profile, loading, router]);
 
-  if (isUserDataLoading) {
+  if (loading) {
      return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
