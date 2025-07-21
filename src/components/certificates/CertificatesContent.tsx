@@ -10,9 +10,9 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -52,8 +52,10 @@ export default function CertificatesContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setIsLoading(false); return; }
+    if (authLoading || !user) {
+        if (!user) setIsLoading(false);
+        return;
+    }
 
     const fetchHistory = async () => {
         setIsLoading(true);

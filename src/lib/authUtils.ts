@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth';
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
-import { doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
+import { doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User | null, db: Firestore | null) {

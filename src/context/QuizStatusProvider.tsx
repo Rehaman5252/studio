@@ -40,6 +40,10 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     }
     
     const db = getFirebaseFirestore();
+    if (!db) {
+        setIsHistoryLoading(false);
+        return;
+    }
     
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
