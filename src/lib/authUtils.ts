@@ -11,6 +11,7 @@ import {
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User) {
   const db = getFirebaseFirestore();
@@ -40,7 +41,7 @@ export async function createUserDocument(user: User) {
       referralEarnings: 0,
     };
     try {
-      await setDoc(userDocRef, newUserProfile);
+      await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;

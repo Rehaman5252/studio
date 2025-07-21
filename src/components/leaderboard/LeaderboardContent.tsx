@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
@@ -43,10 +44,10 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading || !firestoreReady) {
-            setIsLoading(true);
+        if (authLoading || !user || !firestoreReady) {
+            setIsLoading(false);
             return;
-        }
+        };
 
         const db = getFirebaseFirestore();
         if (!db) {
@@ -68,20 +69,18 @@ const LiveLeaderboard = memo(() => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
-                if (user) {
-                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
-                    const userAttemptSnap = await getDocs(q);
+                const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                const userAttemptSnap = await getDocs(q);
 
-                    if (!cancelled && !userAttemptSnap.empty) {
-                        const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        mockLivePlayers.push({
-                            uid: user.uid, name: profile?.name || 'You', score: attempt.score,
-                            time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
-                        });
-                    }
+                if (!cancelled && !userAttemptSnap.empty) {
+                    const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
+                    mockLivePlayers.push({
+                        uid: user.uid, name: profile?.name || 'You', score: attempt.score,
+                        time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                        avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
+                    });
                 }
-
+                
                 if (!cancelled) {
                     const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
                     const sorted = uniquePlayers.sort((a, b) => {

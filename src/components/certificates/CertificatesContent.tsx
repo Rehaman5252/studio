@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -41,7 +42,7 @@ export default function CertificatesContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || authLoading || !firestoreReady) {
+    if (authLoading || !user || !firestoreReady) {
         if (!authLoading && firestoreReady) setIsLoading(false);
         return;
     }
@@ -84,10 +85,14 @@ export default function CertificatesContent() {
     const attemptDate = new Date(timestamp);
     const minutes = attemptDate.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
+    
     const slotStartTime = new Date(attemptDate);
     slotStartTime.setMinutes(slotStartMinute, 0, 0);
+    
     const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
     const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
   };
   

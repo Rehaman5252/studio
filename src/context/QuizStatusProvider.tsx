@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
@@ -31,14 +32,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (isAuthLoading || !firestoreReady) {
+    if (isAuthLoading || !user || !firestoreReady) {
         if(!isAuthLoading && firestoreReady) setIsHistoryLoading(false);
-        return;
-    }
-    
-    if (!user) {
-        setIsHistoryLoading(false);
-        setLastAttemptInSlot(null);
         return;
     }
     

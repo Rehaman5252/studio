@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -16,7 +17,6 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
-let persistenceEnabled = false;
 
 // This function should only be called on the client side.
 function initializeFirebase() {
@@ -36,16 +36,6 @@ function initializeFirebase() {
         if (app) {
             auth = getAuth(app);
             db = getFirestore(app);
-            if (db && !persistenceEnabled) {
-              enableIndexedDbPersistence(db).catch((err) => {
-                if (err.code === 'failed-precondition') {
-                  // This can happen if multiple tabs are open.
-                } else if (err.code === 'unimplemented') {
-                  // Persistence is not supported in this browser.
-                }
-              });
-              persistenceEnabled = true;
-            }
         }
     }
 }
@@ -60,6 +50,15 @@ export function getFirebaseAuth(): Auth | null {
 
 export function getFirebaseFirestore(): Firestore | null {
   if (!db) initializeFirebase();
+  if (db && typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        // This can happen if multiple tabs are open.
+      } else if (err.code === 'unimplemented') {
+        // Persistence is not supported in this browser.
+      }
+    });
+  }
   return db;
 }
 
