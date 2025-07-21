@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -123,6 +122,7 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
     const db = getFirebaseFirestore();
@@ -148,7 +148,7 @@ export default function RewardsContent() {
     };
 
     fetchHistory();
-  }, [user]);
+  }, [user, authLoading]);
 
   const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {
@@ -162,22 +162,15 @@ export default function RewardsContent() {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
 
+  if (loading || authLoading) return <RewardsSkeleton />;
+
   return (
     <>
       <section>
         <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
         <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
-        {loading || authLoading ? <RewardsSkeleton /> :
-         error ? <ErrorState message={error} /> : 
-         !user ? (
-          <Card className="bg-card/80 border-dashed border-primary/30">
-            <CardContent className="p-6 text-center text-muted-foreground">
-                <Play className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                <p className="font-semibold text-lg text-foreground">Play to Win!</p>
-                <p>Log in and play a quiz to unlock exclusive brand gifts.</p>
-                <Button asChild className="mt-4"><Link href="/auth/login">Play Now</Link></Button>
-            </CardContent>
-          </Card>
+        {error ? <ErrorState message={error} /> : !user ? (
+          <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Log in and play a quiz to unlock exclusive brand gifts.</p></CardContent></Card>
         ) : rewardableAttempts.length > 0 ? (
           <Carousel opts={{ align: 'start' }} className="w-full max-w-full"><CarouselContent className="-ml-4">{rewardableAttempts.map((attempt, index) => (<CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4"><ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="hidden sm:flex" /><CarouselNext className="hidden sm:flex" /></Carousel>
         ) : (

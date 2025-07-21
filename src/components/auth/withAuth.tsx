@@ -12,8 +12,6 @@ interface WithAuthProps {
   // Add any additional props you might want to pass to the wrapped component
 }
 
-// This HOC is now used ONLY for pages that absolutely require authentication,
-// like the quiz page itself.
 const withAuth = <P extends object>(
   WrappedComponent: React.ComponentType<P>
 ): React.FC<P & WithAuthProps> => {
@@ -24,7 +22,7 @@ const withAuth = <P extends object>(
     useEffect(() => {
       if (!loading) {
         if (!user) {
-          router.replace('/auth/login?from=/quiz');
+          router.replace('/auth/login');
         } else if (!profile?.profileCompleted) {
           router.replace('/complete-profile');
         }

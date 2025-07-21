@@ -12,7 +12,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { firestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -156,12 +156,13 @@ export default function QuizHistoryContent() {
 
     useEffect(() => {
         if (!user) { setLoading(false); return; }
-        if (!firestore) { setError("Firestore not ready"); setLoading(false); return; }
+        const db = getFirebaseFirestore();
+        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
         setLoading(true); setError(null);
         (async () => {
             try {
                 const q = query(
-                    collection(firestore, "users", user.uid, "quizAttempts"),
+                    collection(db, "users", user.uid, "quizAttempts"),
                     orderBy("timestamp", "desc"),
                     limit(50)
                 );

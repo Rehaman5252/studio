@@ -13,7 +13,7 @@ import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
 import { signOut } from 'firebase/auth';
-import { firebaseAuth } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
@@ -21,9 +21,10 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const router = useRouter();
 
     const handleLogout = async () => {
-        if (!firebaseAuth) return;
+        const auth = getFirebaseAuth();
+        if (!auth) return;
         try {
-            await signOut(firebaseAuth);
+            await signOut(auth);
             toast({ 
                 title: "Signed Out", 
                 description: "You have been logged out successfully.",

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { firebaseAuth } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,7 +50,7 @@ export default function SignupForm() {
     try {
         const user = await handleGoogleSignIn();
         if (user) {
-            toast({ title: 'Signed In!', description: `Welcome, ${user.displayName || 'user'}!` });
+            toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
             router.replace('/complete-profile');
         }
     } catch (error: any) {
@@ -66,9 +66,10 @@ export default function SignupForm() {
     setIsLoading(true);
     try {
         const userCredential = await registerWithEmail(data.email, data.password);
-        if (firebaseAuth && firebaseAuth.currentUser) {
-            await updateProfile(firebaseAuth.currentUser, { displayName: data.name });
-            await sendEmailVerification(firebaseAuth.currentUser);
+        const auth = getFirebaseAuth();
+        if (auth && auth.currentUser) {
+            await updateProfile(auth.currentUser, { displayName: data.name });
+            await sendEmailVerification(auth.currentUser);
         }
         
         toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });

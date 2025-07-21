@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -39,7 +39,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    if (!firestore) {
+    const db = getFirebaseFirestore();
+    if (!db) {
         setIsHistoryLoading(false);
         return;
     }
@@ -47,7 +48,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
         try {
-            const historyDocRef = doc(firestore, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+            const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
             const docSnap = await getDoc(historyDocRef);
             if (docSnap.exists()) {
                 setLastAttemptInSlot(docSnap.data() as QuizAttempt);

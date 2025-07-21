@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { firebaseAuth, isFirebaseOnline } from "@/lib/firebaseClient";
-import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
+import { getFirebaseAuth, isFirebaseOnline } from "@/lib/firebaseClient";
+import { signInWithPhoneNumber } from "firebase/auth";
 
 interface Props {
   children: React.ReactNode;
@@ -41,7 +41,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   }, []);
 
   const setupRecaptcha = useCallback(async () => {
-    if (!firebaseAuth || recaptchaVerifierRef.current || !open) return;
+    const auth = getFirebaseAuth();
+    if (!auth || recaptchaVerifierRef.current || !open) return;
 
     let container = document.getElementById('recaptcha-container-in-dialog');
     if (!container) {
@@ -57,7 +58,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     }
 
     try {
-      const verifier = new FirebaseRecaptchaVerifier(firebaseAuth, 'recaptcha-container-in-dialog', {
+      const { RecaptchaVerifier } = await import('firebase/auth');
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
         size: 'invisible',
         callback: () => {},
         'expired-callback': () => {
@@ -93,21 +95,24 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
 
     await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
+    const auth = getFirebaseAuth();
 
-    if (!verifier || !firebaseAuth) {
+    if (!verifier || !auth) {
       setError("Verifier not ready. Close and try again.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const confirmationResult = await signInWithPhoneNumber(firebaseAuth, `+91${phone}`, verifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
       confirmationResultRef.current = confirmationResult;
       toast({ title: "OTP Sent", description: `Code sent to +91 ${phone}` });
       setStep('verify');
     } catch (err: any) {
       console.error("OTP error:", err);
       setError("Failed to send OTP. Check format or wait.");
+      cleanupVerifier();
+      setStep('initial');
     } finally {
       setIsLoading(false);
     }

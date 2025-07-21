@@ -11,11 +11,12 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { isFirebaseConfigured, firebaseAuth } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
+// Schemas
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
 });
@@ -31,14 +32,15 @@ export default function ForgotPasswordForm() {
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
-    if (!firebaseAuth) {
+    const auth = getFirebaseAuth();
+    if (!auth) {
         toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
         return;
     }
     setIsLoading(true);
     
     try {
-      await sendPasswordResetEmail(firebaseAuth, data.email);
+      await sendPasswordResetEmail(auth, data.email);
       toast({
           title: 'Password Reset Email Sent',
           description: 'Please check your email for a link to reset your password.',

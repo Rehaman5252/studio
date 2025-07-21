@@ -8,15 +8,16 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { firestore, firebaseAuth } from './firebaseClient';
+import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData = {}) {
-  if (!user || !firestore) return;
+  const db = getFirebaseFirestore();
+  if (!user || !db) return;
   
-  const userDocRef = doc(firestore, 'users', user.uid);
+  const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
@@ -49,7 +50,8 @@ export async function createUserDocument(user: User, additionalData = {}) {
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (isPopupOpen || !firebaseAuth) {
+  const auth = getFirebaseAuth();
+  if (isPopupOpen || !auth) {
     console.warn("Google Sign-In popup is already open or auth is not initialized.");
     return null;
   }
@@ -59,7 +61,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
   provider.setCustomParameters({ prompt: 'select_account' });
 
   try {
-    const result = await signInWithPopup(firebaseAuth, provider);
+    const result = await signInWithPopup(auth, provider);
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -77,13 +79,15 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    if (!firebaseAuth) throw new Error("Auth not initialized");
-    const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
-    if (!firebaseAuth) throw new Error("Auth not initialized");
-    const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;
 };

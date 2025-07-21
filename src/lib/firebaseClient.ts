@@ -65,18 +65,20 @@ export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean)
 
 export async function isFirebaseOnline(): Promise<boolean> {
   const db = getFirebaseFirestore();
-  if (!db) {
-    // If the db instance itself isn't available, we're effectively offline.
-    return false;
-  }
-  
-  // A more reliable check is to see if the browser itself reports being online.
-  // The previous check to a Google API was too aggressive and could fail intermittently.
-  if (typeof window !== 'undefined' && !navigator.onLine) {
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
     return false;
   }
 
-  // If the browser is online and we have a db instance, we can be reasonably sure
-  // that we can attempt Firestore operations. The SDK will handle offline writes.
-  return true;
+  try {
+    // This is a more reliable check. We use a non-existent document to avoid read costs.
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    await getDoc(testDoc);
+    return true;
+  } catch (error: any) {
+    if (error.code === 'unavailable' || error.code === 'resource-exhausted' || error.message.includes('offline')) {
+        return false;
+    }
+    // Some errors might not indicate offline status, but for this check, we can assume so.
+    return true;
+  }
 }
