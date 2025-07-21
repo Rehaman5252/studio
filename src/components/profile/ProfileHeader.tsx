@@ -10,7 +10,7 @@ import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebaseClient';
+import { firebaseAuth } from '@/lib/firebaseClient';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user } = useAuth(); // Get the auth user object
@@ -21,8 +21,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
-        const auth = getFirebaseAuth();
-        if (!user || !auth) {
+        if (!user || !firebaseAuth) {
             toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
             return;
         }

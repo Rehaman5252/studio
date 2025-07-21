@@ -6,16 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import LoadingFallback from '@/components/common/LoadingFallback';
-import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -74,7 +74,12 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="text-sm max-h-[60vh] overflow-y-auto pr-4">
-                    {isLoading && <LoadingFallback message="Generating report..." />}
+                    {isLoading && (
+                        <div className="flex flex-col items-center justify-center p-8 space-y-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="ml-4 text-muted-foreground">Generating your personalized report...</p>
+                        </div>
+                    )}
                     {error && <p className="text-destructive font-semibold p-4 text-center">{error}</p>}
                     {analysis && (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:text-md [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mt-2">
@@ -122,42 +127,53 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
 });
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
+function HistorySkeleton() {
+    return (
+        <div className="space-y-4 pt-4">
+            {[...Array(3)].map((_, i) => (
+                <Card key={i} className="bg-card/80 shadow-lg"><CardHeader><div className="flex justify-between items-center"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-12" /></div><Skeleton className="h-4 w-32 mt-1" /></CardHeader><CardContent className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-40" /></div><Skeleton className="h-9 w-28" /></CardContent></Card>
+            ))}
+        </div>
+    );
+}
+
+const ErrorState = ({ message }: { message: string }) => (
+    <div className="pt-4">
+        <Alert variant="destructive">
+            {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+            <AlertTitle>Error Loading History</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    </div>
+);
+
 export default function QuizHistoryContent() {
-    const { user, authLoading, firestoreReady } = useAuth();
+    const { user } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading || !user || !firestoreReady) {
-            if (!authLoading && firestoreReady) setLoading(false);
-            return;
-        }
-
-        let isCancelled = false;
-        async function fetchHistory() {
-            setLoading(true);
-            setError(null);
-            const db = getFirebaseFirestore();
-            if (!db) { setError("Firestore not available."); setLoading(false); return; }
-
+        if (!user) { setLoading(false); return; }
+        if (!firestore) { setError("Firestore not ready"); setLoading(false); return; }
+        setLoading(true); setError(null);
+        (async () => {
             try {
-                const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+                const q = query(
+                    collection(firestore, "users", user.uid, "quizAttempts"),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
                 const snap = await getDocs(q);
-                if (!isCancelled) {
-                    setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
-                }
-            } catch (e: any) {
-                if (!isCancelled) setError("Unable to load quiz history.");
+                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+            } catch (e) {
+                setError("Unable to load quiz history.");
             } finally {
-                if (!isCancelled) setLoading(false);
+                setLoading(false);
             }
-        }
-
-        fetchHistory();
-        return () => { isCancelled = true; };
-    }, [user, authLoading, firestoreReady]);
+        })();
+    }, [user]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {
@@ -167,11 +183,11 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading) return <LoadingFallback type="skeleton" />;
-        if (error) return <FirebaseOfflineAlert />;
+        if (loading) return <HistorySkeleton />;
+        if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
-            <div className="pt-4">
-                <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
+            <div>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
             </div>
         );
         return (

@@ -8,22 +8,22 @@ import { useToast } from '@/hooks/use-toast';
 import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ProfileHeader from './ProfileHeader';
+import ProfileCompletion from './ProfileCompletion';
 import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
 import { signOut } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebaseClient';
-import ProfileCompletion from './ProfileCompletion';
+import { firebaseAuth } from '@/lib/firebaseClient';
+
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     const router = useRouter();
 
     const handleLogout = async () => {
-        const auth = getFirebaseAuth();
-        if (!auth) return;
+        if (!firebaseAuth) return;
         try {
-            await signOut(auth);
+            await signOut(firebaseAuth);
             toast({ 
                 title: "Signed Out", 
                 description: "You have been logged out successfully.",

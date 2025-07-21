@@ -4,29 +4,54 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, Play, Trophy } from 'lucide-react';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
-import LoadingFallback from '@/components/common/LoadingFallback';
-import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Skeleton } from '../ui/skeleton';
+
+const ScratchCardSkeleton = () => (
+    <div className="w-full aspect-square p-1">
+        <Skeleton className="w-full h-full rounded-2xl" />
+    </div>
+);
 
 const RewardsSkeleton = () => (
   <div className="space-y-8">
       <section>
-        <LoadingFallback type="skeleton" />
+        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+            <CarouselContent className="-ml-4">
+                {[...Array(3)].map((_, index) => (
+                    <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                        <ScratchCardSkeleton />
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
       </section>
       <section>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
         <div className="space-y-4">
-          <LoadingFallback type="skeleton" />
+          <Skeleton className="h-[96px] w-full" />
+          <Skeleton className="h-[96px] w-full" />
         </div>
       </section>
   </div>
+);
+
+const ErrorState = ({ message }: { message: string }) => (
+    <Alert variant="destructive" className="mt-4">
+        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        <AlertTitle>Error Loading Rewards</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+    </Alert>
 );
 
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
@@ -49,8 +74,6 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
     'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
-    'ICICI': { gift: 'Travel Insurance Discount', description: '10% off on your next policy.', link: '#' },
-    'Gucci': { gift: 'Exclusive Lookbook', description: 'Get early access to our new collection.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -93,38 +116,38 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsContent() {
-  const { user, authLoading, firestoreReady } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading || !user || !firestoreReady) {
-      if (!authLoading && firestoreReady) setLoading(false);
-      return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
+
+    if (!firestore) {
+        setError("Firestore not available.");
+        setLoading(false);
+        return;
     }
 
-    let cancelled = false;
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
-        const db = getFirebaseFirestore();
-        if (!db) { setError("Firestore not available."); setLoading(false); return; }
-
         try {
-            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
-            if (!cancelled) setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
-            if (!cancelled) setError("Unable to load rewards data. Please try again later.");
+            console.error("Rewards Fetch Error:", e);
+            setError("Unable to load rewards data. Please check your connection.");
         } finally {
-            if (!cancelled) setLoading(false);
+            setLoading(false);
         }
     };
 
     fetchHistory();
-    return () => { cancelled = true; };
-  }, [user, authLoading, firestoreReady]);
+  }, [user, authLoading]);
 
   const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {
@@ -145,7 +168,7 @@ export default function RewardsContent() {
       <section>
         <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
         <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
-        {error ? <FirebaseOfflineAlert /> : !user ? (
+        {error ? <ErrorState message={error} /> : !user ? (
           <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Log in and play a quiz to unlock exclusive brand gifts.</p></CardContent></Card>
         ) : rewardableAttempts.length > 0 ? (
           <Carousel opts={{ align: 'start' }} className="w-full max-w-full"><CarouselContent className="-ml-4">{rewardableAttempts.map((attempt, index) => (<CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4"><ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="hidden sm:flex" /><CarouselNext className="hidden sm:flex" /></Carousel>

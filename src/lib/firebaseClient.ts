@@ -15,32 +15,41 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let persistenceEnabled = false;
-
 if (typeof window !== 'undefined' && !getApps().length) {
     app = initializeApp(firebaseConfig);
 } else {
     app = getApp();
 }
 
-auth = getAuth(app);
-db = getFirestore(app);
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
-if (typeof window !== 'undefined' && !persistenceEnabled) {
-    enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code == 'failed-precondition') {
-          // Multiple tabs open, persistence can only be enabled
-          // in one tab at a time.
-      } else if (err.code == 'unimplemented') {
-          // The current browser does not support all of the
-          // features required to enable persistence
-      }
-    });
-    persistenceEnabled = true;
+if (typeof window !== 'undefined') {
+    try {
+        enableIndexedDbPersistence(db);
+    } catch (err: any) {
+        if (err.code === 'failed-precondition') {
+            console.warn('Firestore persistence failed: multiple tabs open.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('Firestore persistence not supported in this browser.');
+        }
+    }
 }
 
 export const firebaseApp = app;
 export const firebaseAuth = auth;
 export const firestore = db;
+
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
+export async function isFirebaseOnline(): Promise<boolean> {
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+  try {
+    await getDoc(doc(db, "systemHealth/connectivityCheck"));
+    return true;
+  } catch (error: any) {
+    return false;
+  }
+}

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getFirebaseAuth, isFirebaseOnline } from "@/lib/firebaseClient";
+import { firebaseAuth, isFirebaseOnline } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
 
 interface Props {
@@ -41,8 +41,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   }, []);
 
   const setupRecaptcha = useCallback(async () => {
-    const auth = getFirebaseAuth();
-    if (!auth || recaptchaVerifierRef.current || !open) return;
+    if (!firebaseAuth || recaptchaVerifierRef.current || !open) return;
 
     let container = document.getElementById('recaptcha-container-in-dialog');
     if (!container) {
@@ -58,7 +57,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     }
 
     try {
-      const verifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
+      const verifier = new FirebaseRecaptchaVerifier(firebaseAuth, 'recaptcha-container-in-dialog', {
         size: 'invisible',
         callback: () => {},
         'expired-callback': () => {
@@ -94,16 +93,15 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
 
     await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
-    const auth = getFirebaseAuth();
 
-    if (!verifier || !auth) {
+    if (!verifier || !firebaseAuth) {
       setError("Verifier not ready. Close and try again.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
+      const confirmationResult = await signInWithPhoneNumber(firebaseAuth, `+91${phone}`, verifier);
       confirmationResultRef.current = confirmationResult;
       toast({ title: "OTP Sent", description: `Code sent to +91 ${phone}` });
       setStep('verify');

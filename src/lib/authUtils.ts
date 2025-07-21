@@ -13,11 +13,8 @@ import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
-export async function createUserDocument(user: User) {
-  if (!user) {
-    console.error("❌ createUserDocument failed: User is missing.");
-    return;
-  };
+export async function createUserDocument(user: User, additionalData = {}) {
+  if (!user || !firestore) return;
   
   const userDocRef = doc(firestore, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
@@ -27,7 +24,7 @@ export async function createUserDocument(user: User) {
     const newUserProfile = {
       uid: user.uid,
       email,
-      name: displayName || 'New User',
+      name: (additionalData as any).name || displayName || 'New User',
       photoURL: photoURL || `https://placehold.co/100x100.png`,
       createdAt: new Date(),
       emailVerified: user.emailVerified,
@@ -38,11 +35,11 @@ export async function createUserDocument(user: User) {
       phoneVerified: false,
       referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
       referralEarnings: 0,
+      ...additionalData
     };
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
-      console.error("Error creating user document:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
     }
@@ -52,8 +49,8 @@ export async function createUserDocument(user: User) {
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (isPopupOpen) {
-    console.warn("Google Sign-In popup is already open.");
+  if (isPopupOpen || !firebaseAuth) {
+    console.warn("Google Sign-In popup is already open or auth is not initialized.");
     return null;
   }
   isPopupOpen = true;
@@ -80,11 +77,13 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
+    if (!firebaseAuth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
+    if (!firebaseAuth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
     return userCredential;
 };
