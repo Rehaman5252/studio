@@ -20,8 +20,8 @@ import { Loader2 } from 'lucide-react';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
-import { brandData, type CubeBrand } from '@/components/home/brandData';
-import BrandCube from '@/components/home/BrandCube';
+import { brandData, type CubeBrand } from './brandData';
+import BrandCube from './BrandCube';
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)
@@ -34,7 +34,7 @@ const faceRotations = [
 
 const QuizSelectionComponent = () => {
     const { user, profile } = useAuth();
-    const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
+    const { lastAttemptInSlot, isLoading: isQuizStatusLoading, timeLeft } = useQuizStatus();
     const router = useRouter();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
@@ -95,13 +95,6 @@ const QuizSelectionComponent = () => {
     const handleBannerOrButtonClick = () => {
         handleStartQuiz(selectedBrand);
     };
-
-    const handleSlotAlertAction = () => {
-        const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
-        const reasonQuery = lastAttemptInSlot?.reason ? `&reason=${lastAttemptInSlot.reason}` : '';
-        router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}${reasonQuery}`);
-        setShowSlotPlayedAlert(false);
-    };
   
     const handleAuthAlertAction = () => {
         if (!user) {
@@ -149,20 +142,19 @@ const QuizSelectionComponent = () => {
                 <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                    {lastAttemptInSlot?.reason === 'malpractice' ? 'Slot Locked: Unfair Play' : 'Quiz Already Attempted'}
+                        {lastAttemptInSlot?.reason === 'malpractice' ? 'Slot Locked: Unfair Play' : 'Quiz Already Attempted'}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                    {lastAttemptInSlot?.reason === 'malpractice'
-                        ? "Your previous attempt in this slot was terminated due to unfair play (like switching tabs). Please try again in the next slot."
-                        : "You have already completed a quiz in this 10-minute slot. You can play again in the next one!"
-                    }
+                        {lastAttemptInSlot?.reason === 'malpractice'
+                            ? "Your previous attempt was terminated for unfair play. You can try again in the next slot."
+                            : "You have already played in this 10-minute slot."
+                        }
+                        <br />
+                        The next quiz will be available in {timeLeft.minutes}m {timeLeft.seconds}s.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Go Back</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleSlotAlertAction}>
-                    {lastAttemptInSlot?.reason === 'malpractice' ? 'View Details' : 'View Scorecard'}
-                    </AlertDialogAction>
+                    <AlertDialogAction onClick={() => setShowSlotPlayedAlert(false)}>OK</AlertDialogAction>
                 </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
