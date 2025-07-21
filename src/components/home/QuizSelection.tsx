@@ -22,6 +22,8 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
+import Link from 'next/link';
+import { Button } from '../ui/button';
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)
@@ -43,11 +45,7 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
-    const isProfileComplete = useMemo(() => {
-        if (!profile) return false;
-        return profile.profileCompleted;
-    }, [profile]);
-    
+    const isProfileComplete = useMemo(() => !!profile?.profileCompleted, [profile]);
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
         return lastAttemptInSlot.slotId === getQuizSlotId();
@@ -56,7 +54,7 @@ const QuizSelectionComponent = () => {
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 4500 / 6); // 4.5 seconds for all 6 faces
+        }, 3000);
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -66,10 +64,9 @@ const QuizSelectionComponent = () => {
         setSelectedBrand(brandData[currentFaceIndex]);
     }, [currentFaceIndex]);
 
-
     const handleStartQuiz = useCallback((brandToStart: CubeBrand) => {
         if (!user) {
-            router.push(`/auth/login?from=/home`);
+            setShowAuthAlert(true);
             return;
         }
         if (!isProfileComplete) {
@@ -82,7 +79,6 @@ const QuizSelectionComponent = () => {
             router.push(`/quiz?brand=${encodeURIComponent(brandToStart.brand)}&format=${encodeURIComponent(brandToStart.format)}`);
         }
     }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
-    
 
     const handleFaceClick = (brand: CubeBrand) => {
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
@@ -95,15 +91,15 @@ const QuizSelectionComponent = () => {
     const handleBannerOrButtonClick = () => {
         handleStartQuiz(selectedBrand);
     };
-  
+
     const handleAuthAlertAction = () => {
+        setShowAuthAlert(false);
         if (!user) {
             router.push('/auth/login?from=/home');
         } else {
             router.push('/complete-profile');
         }
-        setShowAuthAlert(false);
-    }
+    };
     
     if (isQuizStatusLoading) {
         return (
@@ -131,7 +127,6 @@ const QuizSelectionComponent = () => {
 
             <div className="mt-8 space-y-8">
                 <GlobalStats />
-
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
                   onClick={handleBannerOrButtonClick}
@@ -161,23 +156,23 @@ const QuizSelectionComponent = () => {
             
             <AlertDialog open={showAuthAlert} onOpenChange={setShowAuthAlert}>
                 <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>
-                    {!user ? 'Login Required' : 'Profile Incomplete'}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                    {!user 
-                        ? 'You need to be logged in to play a quiz.' 
-                        : 'Please complete your profile to start playing quizzes and earning rewards.'
-                    }
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleAuthAlertAction}>
-                    {!user ? 'Go to Login' : 'Complete Profile'}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {!user ? 'Login to Play' : 'Complete Your Profile'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {!user 
+                                ? 'You need to be logged in to play quizzes and win rewards.' 
+                                : 'Please complete your profile to start playing. It helps us personalize your experience and manage payouts.'
+                            }
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleAuthAlertAction}>
+                            {!user ? 'Login / Sign Up' : 'Complete Profile'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
         </>

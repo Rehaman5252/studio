@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, Settings, Send } from 'lucide-react';
-import withAuth from '@/components/auth/withAuth';
 
+// No longer needs auth
 function SupportPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -69,4 +69,4 @@ function SupportPage() {
   );
 }
 
-export default withAuth(SupportPage);
+export default SupportPage;

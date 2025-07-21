@@ -12,20 +12,26 @@ interface WithAuthProps {
   // Add any additional props you might want to pass to the wrapped component
 }
 
+// This HOC is now used ONLY for pages that absolutely require authentication,
+// like the quiz page itself.
 const withAuth = <P extends object>(
   WrappedComponent: React.ComponentType<P>
 ): React.FC<P & WithAuthProps> => {
   const WithAuthComponent: React.FC<P & WithAuthProps> = (props) => {
-    const { user, loading, isOffline } = useAuth();
+    const { user, profile, loading, isOffline } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-      if (!loading && user === null) {
-        router.replace('/auth/login');
+      if (!loading) {
+        if (!user) {
+          router.replace('/auth/login?from=/quiz');
+        } else if (!profile?.profileCompleted) {
+          router.replace('/complete-profile');
+        }
       }
-    }, [user, loading, router]);
+    }, [user, profile, loading, router]);
 
-    if (loading) {
+    if (loading || !user || !profile?.profileCompleted) {
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -45,15 +51,6 @@ const withAuth = <P extends object>(
                 </Alert>
             </div>
         );
-    }
-
-    if (!user) {
-      // Still show loader while redirect is happening
-      return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
     }
 
     return <WrappedComponent {...props} />;

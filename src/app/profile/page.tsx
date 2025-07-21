@@ -2,7 +2,6 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
@@ -13,8 +12,7 @@ import SupportCard from '@/components/profile/SupportCard';
 import { Settings, LogIn } from 'lucide-react';
 
 function ProfilePage() {
-  const { user, profile, loading } = useAuth(); // Use `profile` instead of `userData`
-  const router = useRouter();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (

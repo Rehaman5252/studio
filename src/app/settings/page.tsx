@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
-import withAuth from '@/components/auth/withAuth';
 
+// No longer requires auth to view settings
 function SettingsPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -95,4 +95,4 @@ function SettingsPage() {
   );
 }
 
-export default withAuth(SettingsPage);
+export default SettingsPage;
