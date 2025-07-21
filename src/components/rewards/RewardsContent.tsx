@@ -109,14 +109,14 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsContent() {
-  const { user, loading: authLoading, firebaseAppReady } = useAuth();
+  const { user, loading: authLoading, firestoreReady } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!firebaseAppReady || authLoading || !user) {
-        if (!authLoading) setLoading(false);
+    if (!user || authLoading || !firestoreReady) {
+        if (!authLoading && firestoreReady) setLoading(false);
         return;
     }
 
@@ -144,7 +144,7 @@ export default function RewardsContent() {
 
     fetchHistory();
     return () => { cancelled = true; };
-  }, [user, authLoading, firebaseAppReady]);
+  }, [user, authLoading, firestoreReady]);
 
   const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {

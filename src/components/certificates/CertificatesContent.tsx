@@ -11,7 +11,6 @@ import jsPDF from 'jspdf';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
 
 const CertificateItemSkeleton = () => (
@@ -35,15 +34,15 @@ const CertificateItemSkeleton = () => (
 );
 
 export default function CertificatesContent() {
-  const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
+  const { user, profile, loading: authLoading, firestoreReady } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!firebaseAppReady || authLoading || !user) {
-        if (!authLoading) setIsLoading(false);
+    if (!user || authLoading || !firestoreReady) {
+        if (!authLoading && firestoreReady) setIsLoading(false);
         return;
     }
 
@@ -79,7 +78,7 @@ export default function CertificatesContent() {
     fetchHistory();
 
     return () => { cancelled = true; }
-  }, [user, authLoading, firebaseAppReady]);
+  }, [user, authLoading, firestoreReady]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);

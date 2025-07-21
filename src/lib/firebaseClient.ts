@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -63,6 +62,8 @@ export function getFirebaseFirestore(): Firestore | null {
   if (!db) initializeFirebase();
   return db;
 }
+
+export const firebaseApp = app;
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 

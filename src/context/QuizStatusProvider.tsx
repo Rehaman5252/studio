@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
@@ -20,7 +19,7 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: isAuthLoading } = useAuth();
+  const { user, loading: isAuthLoading, firestoreReady } = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -32,7 +31,11 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading || !firestoreReady) {
+        if(!isAuthLoading && firestoreReady) setIsHistoryLoading(false);
+        return;
+    }
+    
     if (!user) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
@@ -63,7 +66,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     fetchLastAttempt();
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, firestoreReady]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();

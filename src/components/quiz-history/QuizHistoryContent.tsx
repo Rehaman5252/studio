@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -133,15 +133,15 @@ function HistorySkeleton() {
 }
 
 export default function QuizHistoryContent() {
-    const { user, loading: authLoading, firebaseAppReady } = useAuth();
+    const { user, loading: authLoading, firestoreReady } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!firebaseAppReady || authLoading || !user) {
-            if (!authLoading) setLoading(false);
+        if (authLoading || !user || !firestoreReady) {
+            if (!authLoading && firestoreReady) setLoading(false);
             return;
         }
 
@@ -172,7 +172,7 @@ export default function QuizHistoryContent() {
         fetchHistory();
 
         return () => { isCancelled = true; };
-    }, [user, authLoading, firebaseAppReady]);
+    }, [user, authLoading, firestoreReady]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {

@@ -37,15 +37,16 @@ const LeaderboardItemSkeleton = () => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
+    const { user, profile, loading: authLoading, firestoreReady } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!firebaseAppReady || authLoading) {
+        if (authLoading || !firestoreReady) {
+            setIsLoading(true);
             return;
-        };
+        }
 
         const db = getFirebaseFirestore();
         if (!db) {
@@ -104,7 +105,7 @@ const LiveLeaderboard = memo(() => {
         fetchLivePlayers();
 
         return () => { cancelled = true; }
-    }, [user, profile, authLoading, firebaseAppReady]);
+    }, [user, profile, authLoading, firestoreReady]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
@@ -133,7 +134,6 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    // This part remains mostly the same as it relies on the already-loaded profile from AuthProvider
     const players: AllTimePlayer[] = useMemo(() => {
         if (!user || !profile) return [];
         return [{
@@ -142,7 +142,7 @@ const AllTimeLeaderboard = memo(() => {
             perfectScores: profile.perfectScores || 0,
             totalPlayed: profile.quizzesPlayed || 0,
             avatar: profile.photoURL,
-            rank: 1 // This would be calculated in a real backend query
+            rank: 1
         }];
     }, [user, profile]);
 
