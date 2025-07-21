@@ -50,6 +50,7 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        // Strict readiness check
         if (!firebaseAppReady || authLoading) {
             setIsLoading(true);
             return;
@@ -65,6 +66,7 @@ const LiveLeaderboard = memo(() => {
                     throw new Error("Firestore is not available.");
                 }
                 
+                // This is mocked data for demonstration purposes
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
@@ -72,6 +74,7 @@ const LiveLeaderboard = memo(() => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
+                // Only attempt to fetch user-specific data if the user is logged in
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
@@ -98,11 +101,7 @@ const LiveLeaderboard = memo(() => {
                 }
             } catch (e: any) {
                 if (!cancelled) {
-                    if (e.message.includes('offline') || e.code === 'unavailable') {
-                      setError("You appear to be offline. Please check your connection.");
-                    } else {
-                      setError("An error occurred while loading the leaderboard.");
-                    }
+                    setError(e.message?.includes('offline') || e.code === 'unavailable' ? "You appear to be offline." : "An error occurred.");
                 }
                 console.error(e);
             } finally {
@@ -143,33 +142,25 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    const [isLoading, setIsLoading] = useState(true);
-    
+    // This part remains mostly the same as it relies on the already-loaded profile from AuthProvider
     const players: AllTimePlayer[] = useMemo(() => {
-        // This is mocked for now. A real implementation would query an aggregated collection.
-        if (!profile) return [];
+        if (!user || !profile) return [];
         return [{
-            uid: user!.uid,
-            name: profile.name,
+            uid: user.uid,
+            name: profile.name || 'You',
             perfectScores: profile.perfectScores || 0,
             totalPlayed: profile.quizzesPlayed || 0,
             avatar: profile.photoURL,
-            rank: 1
+            rank: 1 // This would be calculated in a real backend query
         }];
     }, [user, profile]);
-    
-    useEffect(() => {
-        setIsLoading(false);
-    }, []);
-
-    if (isLoading) return <LeaderboardItemSkeleton />;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {players.length > 0 ? players.map((player) => (
+                    {players.length > 0 && players[0].totalPlayed > 0 ? players.map((player) => (
                         <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                            <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                            <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>

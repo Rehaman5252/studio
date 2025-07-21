@@ -155,12 +155,9 @@ export default function QuizHistoryContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!firebaseAppReady || authLoading) {
-            setLoading(true);
-            return;
-        }
-        if (!user) {
-            setLoading(false);
+        // Strict readiness check
+        if (!firebaseAppReady || authLoading || !user) {
+            if (!authLoading) setLoading(false);
             return;
         }
 
@@ -171,7 +168,7 @@ export default function QuizHistoryContent() {
             
             const db = getFirebaseFirestore();
             if (!db) {
-                setError("Firestore not available.");
+                setError("Could not connect to the database. You may be offline.");
                 setLoading(false);
                 return;
             }
@@ -184,7 +181,7 @@ export default function QuizHistoryContent() {
                 }
             } catch (e: any) {
                 if (!isCancelled) {
-                    setError("Unable to load quiz history.");
+                    setError("Unable to load quiz history. Please check your connection.");
                 }
             } finally {
                 if (!isCancelled) {
@@ -211,8 +208,8 @@ export default function QuizHistoryContent() {
         if (loading || authLoading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
-            <div>
-                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
+            <div className="pt-4">
+                <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
             </div>
         );
         return (

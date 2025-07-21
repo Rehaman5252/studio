@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // This effect ensures Firebase is initialized on the client before anything else runs.
     if (typeof window !== 'undefined') {
-      getFirebaseAuth(); // This initializes the app
+      getFirebaseAuth(); // This initializes the app if not already done.
       setFirebaseAppReady(true);
     }
   }, []);
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        setLoading(true);
+        setLoading(true); // Always set loading true when auth state might be changing.
         setUser(firebaseUser);
         if (!firebaseUser) {
             setProfile(null);
@@ -67,12 +67,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseAppReady]);
 
   useEffect(() => {
-    if (!firebaseAppReady || !user) {
-        if (!loading) setLoading(false);
+    if (!firebaseAppReady) return;
+    if (!user) {
+        if(loading) setLoading(false); // If auth state is resolved to null, stop loading.
         return;
     }
 
+    let unsubProfile: (() => void) | undefined = undefined;
     const db = getFirebaseFirestore();
+    
     if (!db) {
         console.error("Firestore is not available.");
         setIsOffline(true);
@@ -82,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const userDocRef = doc(db, 'users', user.uid);
 
-    const unsubscribeFromProfile = onSnapshot(userDocRef, async (docSnap) => {
+    unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data?.dob instanceof Timestamp) {
@@ -91,8 +94,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(data);
             setIsProfileComplete(!!data.profileCompleted);
         } else {
+            // Document doesn't exist, so create it.
             try {
                 await createUserDocument(user);
+                // The snapshot listener will trigger again with the new data,
+                // so we don't need to set profile state here.
             } catch (error) {
                 console.error("Failed to create user document:", error);
                 setIsOffline(true);
@@ -105,7 +111,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
     });
 
-    return () => unsubscribeFromProfile();
+    return () => {
+        if (unsubProfile) unsubProfile();
+    };
   }, [user, firebaseAppReady, loading]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {

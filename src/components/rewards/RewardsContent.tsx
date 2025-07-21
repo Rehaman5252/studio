@@ -74,6 +74,8 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
     'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'ICICI': { gift: 'Travel Insurance Discount', description: '10% off on your next policy.', link: '#' },
+    'Gucci': { gift: 'Exclusive Lookbook', description: 'Get early access to our new collection.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -122,12 +124,9 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!firebaseAppReady || authLoading) {
-        setLoading(true);
-        return;
-    }
-    if (!user) {
-        setLoading(false);
+    // Strict readiness check
+    if (!firebaseAppReady || authLoading || !user) {
+        if (!authLoading) setLoading(false); // Stop loading if auth is resolved and no user
         return;
     }
 
@@ -146,7 +145,6 @@ export default function RewardsContent() {
                 setHistory(snap.docs.map(d => d.data() as QuizAttempt));
             }
         } catch (e: any) {
-            console.error("Rewards Fetch Error:", e);
             if (!cancelled) {
                 setError(e.message || "Unable to load rewards data. Please try again later.");
             }
