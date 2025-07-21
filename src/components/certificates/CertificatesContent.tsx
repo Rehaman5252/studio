@@ -39,13 +39,11 @@ export default function CertificatesContent() {
   const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [loading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Stricter guard: wait for auth and firebase to be fully ready
     if (authLoading || !firebaseAppReady || !user) {
-        // Keep showing skeleton if we're not ready to fetch
         if (!authLoading) setIsLoading(false);
         return;
     }
@@ -70,7 +68,6 @@ export default function CertificatesContent() {
                 setQuizHistory(historyData);
             }
         } catch (e: any) {
-            console.error("Failed to fetch certificate data:", e);
             if (!cancelled) {
                 setError("Could not load certificates. Please check your connection and try again.");
             }
@@ -97,7 +94,6 @@ export default function CertificatesContent() {
   };
   
   const certificates = useMemo(() => {
-    if (!quizHistory) return [];
     return quizHistory
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
       .map(attempt => ({
@@ -167,8 +163,7 @@ export default function CertificatesContent() {
     } catch (error) { console.error('Share failed:', error); }
   };
 
-
-  if (loading || authLoading) {
+  if (isLoading || authLoading) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />

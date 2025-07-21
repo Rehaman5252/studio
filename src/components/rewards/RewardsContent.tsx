@@ -16,7 +16,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
 
-
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
         <Skeleton className="w-full h-full rounded-2xl" />
