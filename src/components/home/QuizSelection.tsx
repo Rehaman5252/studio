@@ -97,12 +97,9 @@ const QuizSelectionComponent = () => {
     };
 
     const handleSlotAlertAction = () => {
-        if (lastAttemptInSlot?.reason === 'malpractice') {
-            router.push(`/quiz/results?reason=malpractice`);
-        } else {
-            const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
-            router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`);
-        }
+        const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+        const reasonQuery = lastAttemptInSlot?.reason ? `&reason=${lastAttemptInSlot.reason}` : '';
+        router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}${reasonQuery}`);
         setShowSlotPlayedAlert(false);
     };
   

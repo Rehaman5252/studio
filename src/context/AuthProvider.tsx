@@ -33,6 +33,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+        setLoading(false);
+        return;
+    }
     const auth = getFirebaseAuth();
     if (!auth) { 
         setLoading(false); 
@@ -50,65 +54,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     let unsubProfile: () => void = () => {};
+    let cancelled = false;
     setLoading(true);
 
     const setupListeners = async () => {
+      if (cancelled) return;
+      
       const db = getFirebaseFirestore();
       if (!db) {
         console.error("Firestore is not available.");
-        setIsOffline(true);
-        setLoading(false);
+        if (!cancelled) {
+          setIsOffline(true);
+          setLoading(false);
+        }
         return;
       }
       
       const online = await isFirebaseOnline();
-      setIsOffline(!online);
+      if (!cancelled) setIsOffline(!online);
       if (!online) {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         return;
       }
 
       const userDocRef = doc(db, "users", user.uid);
-      
-      const listenToProfile = () => {
-          unsubProfile = onSnapshot(userDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              if (data?.dob instanceof Timestamp) {
-                data.dob = data.dob.toDate().toISOString().split('T')[0];
-              }
-              setProfile(data);
-              setIsProfileComplete(!!data.profileCompleted);
-            }
-            setLoading(false);
-          }, (error) => {
-            console.error("Profile snapshot error:", error);
-            setIsOffline(true);
-            setLoading(false);
-          });
-      }
-      
-      // Check for doc existence first to create it if necessary
-      getDoc(userDocRef).then((docSnap) => {
-          if (!docSnap.exists()) {
-              createUserDocument(user).then(() => {
-                  // After creating, now we can listen for snapshots
-                  listenToProfile();
-              });
-          } else {
-              // If it exists, just start listening.
-              listenToProfile();
+
+      unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+        if (cancelled) return;
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data?.dob instanceof Timestamp) {
+            data.dob = data.dob.toDate().toISOString().split('T')[0];
           }
-      }).catch(err => {
-          console.error("Error getting user document:", err);
-          setLoading(false);
+          setProfile(data);
+          setIsProfileComplete(!!data.profileCompleted);
+        } else {
+          try {
+            await createUserDocument(user);
+          } catch(e) {
+            console.error("Failed to create user document after check", e);
+          }
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Profile snapshot error:", error);
+        if(!cancelled) {
           setIsOffline(true);
+          setLoading(false);
+        }
       });
     };
     
     setupListeners();
     
     return () => {
+        cancelled = true;
         unsubProfile();
     };
   }, [user]);

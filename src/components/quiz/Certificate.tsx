@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Download, Share2 } from 'lucide-react';
 
 const CertificateComponent = ({ format, userName, date, slotTimings }: { format: string; userName: string; date: string; slotTimings: string }) => {
-    const { userData } = useAuth();
+    const { profile } = useAuth();
     const { toast } = useToast();
 
     const handleDownload = () => {
@@ -33,7 +33,7 @@ const CertificateComponent = ({ format, userName, date, slotTimings }: { format:
         doc.setFontSize(22);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(45, 85, 255);
-        doc.text(userData?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
+        doc.text(profile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');

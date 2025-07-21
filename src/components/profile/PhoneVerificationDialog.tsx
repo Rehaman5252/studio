@@ -92,6 +92,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
       return;
     }
 
+    await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
     const auth = getFirebaseAuth();
 
@@ -109,7 +110,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     } catch (err: any) {
       console.error("OTP error:", err);
       setError("Failed to send OTP. Check format or wait.");
-      setupRecaptcha(); // Re-setup verifier on failure
     } finally {
       setIsLoading(false);
     }
