@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
@@ -53,7 +53,10 @@ export default function CertificatesContent() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setIsLoading(false); return; }
+    if (!user) { 
+        setIsLoading(false); 
+        return; 
+    }
 
     let cancelled = false;
     const fetchHistory = async () => {

@@ -123,7 +123,10 @@ export default function RewardsContent() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); return; }
+    if (!user) { 
+        setLoading(false); 
+        return; 
+    }
 
     let cancelled = false;
     const fetchHistory = async () => {

@@ -155,8 +155,9 @@ export default function QuizHistoryContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading || !user) {
-            if (!user) setLoading(false);
+        if (authLoading) return;
+        if (!user) {
+            setLoading(false);
             return;
         }
 
@@ -166,7 +167,7 @@ export default function QuizHistoryContent() {
             setError(null);
             try {
                 const db = getFirebaseFirestore();
-                 if (!db) {
+                if (!db) {
                   throw new Error("You appear to be offline. Please check your connection.");
                 }
                 const q = query(
