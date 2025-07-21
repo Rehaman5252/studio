@@ -1,8 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import Image from 'next/image';
-import { brandData, type CubeBrand } from './brandData';
+import { brandData, type CubeBrand } from '@/components/home/brandData';
 
 interface BrandCubeProps {
   onFaceClick: (brand: CubeBrand) => void;

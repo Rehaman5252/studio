@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
@@ -19,8 +20,8 @@ import { Loader2 } from 'lucide-react';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
-import { brandData, type CubeBrand } from './brandData';
-import BrandCube from './BrandCube';
+import { brandData, type CubeBrand } from '@/components/home/brandData';
+import BrandCube from '@/components/home/BrandCube';
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)

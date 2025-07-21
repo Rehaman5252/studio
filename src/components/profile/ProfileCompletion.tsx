@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -11,6 +12,9 @@ const MANDATORY_PROFILE_FIELDS = [
 ];
 
 function ProfileCompletion({ userProfile }: { userProfile: any }) {
+    if (!userProfile) {
+        return null;
+    }
     const completedFields = MANDATORY_PROFILE_FIELDS.filter(field => !!userProfile?.[field]);
     const completionPercentage = Math.round((completedFields.length / MANDATORY_PROFILE_FIELDS.length) * 100);
 

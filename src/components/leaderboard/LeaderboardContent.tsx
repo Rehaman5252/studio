@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
@@ -57,6 +57,12 @@ const LiveLeaderboard = memo(() => {
             setError(null);
             try {
                 const db = getFirebaseFirestore();
+                if (!db) {
+                    setError("Firestore is not available.");
+                    setIsLoading(false);
+                    return;
+                }
+                
                 // In a real app, this would query a shared 'liveSlot' collection.
                 // For this demo, we mock it.
                 const mockLivePlayers: LivePlayer[] = [
