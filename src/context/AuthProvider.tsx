@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -37,13 +37,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (typeof window !== 'undefined') {
         const auth = getFirebaseAuth();
-        authUnsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
-            if (!user) {
-                setProfile(null);
-                setLoading(false);
-            }
-        });
+        if (auth) {
+          authUnsubscribe = onAuthStateChanged(auth, (user) => {
+              setUser(user);
+              if (!user) {
+                  setProfile(null);
+                  setLoading(false);
+              }
+          });
+        } else {
+          setLoading(false);
+        }
     } else {
         setLoading(false);
     }
@@ -61,19 +65,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let profileUnsubscribe: () => void = () => {};
 
     const db = getFirebaseFirestore();
+    if (!db) {
+      console.error("Firestore is not available.");
+      setIsOffline(true);
+      setLoading(false);
+      return;
+    }
+
     const userDocRef = doc(db, "users", user.uid);
     
-    // Check for doc existence first to create it if necessary
     getDoc(userDocRef).then((docSnap) => {
         if (!docSnap.exists()) {
             createUserDocument(user, db).then(() => {
-                // After creating, now we can listen for snapshots
                 listenToProfile();
+            }).catch(err => {
+              console.error("Error creating user document", err);
+              setLoading(false);
             });
         } else {
-            // If it exists, start listening immediately
             listenToProfile();
         }
+    }).catch(err => {
+      console.error("Error getting user document", err);
+      setLoading(false);
     });
 
     const listenToProfile = () => {
@@ -99,7 +113,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
-    if (!user) throw new Error("User not authenticated.");
+    if (!user || !db) throw new Error("User not authenticated or database not available.");
+    
+    setProfile(prev => {
+        const updated = { ...(prev || {}), ...newData };
+        setIsProfileComplete(!!updated.profileCompleted);
+        return updated;
+    });
     
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
@@ -107,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();
-    if (!user) throw new Error("User not authenticated.");
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
 
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
@@ -139,9 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  const c = useContext(AuthContext);
+  if (!c) throw new Error("useAuth must be inside AuthProvider");
+  return c;
 }
