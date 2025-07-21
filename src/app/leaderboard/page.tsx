@@ -6,7 +6,12 @@ import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
+
+const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
+  loading: () => <LeaderboardSkeleton />,
+  ssr: false,
+});
+
 
 const LeaderboardSkeleton = () => (
     <div className="space-y-2">

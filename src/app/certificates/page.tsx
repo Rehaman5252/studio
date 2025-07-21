@@ -69,9 +69,10 @@ const CertificatesPageContainer = () => {
         )
     }
 
-    return <AuthProtectedCertificatesPage />;
+    // Since this page is wrapped with `withAuth`, we can safely render it
+    // without the need for an additional component. `withAuth` handles the redirect.
+    return <CertificatesPage />;
 };
 
 
-const AuthProtectedCertificatesPage = withAuth(CertificatesPage);
-export default CertificatesPageContainer;
+export default withAuth(CertificatesPageContainer);

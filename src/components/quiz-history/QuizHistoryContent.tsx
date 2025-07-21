@@ -148,18 +148,24 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!user) { setLoading(false); return; }
+        if (authLoading || !user) {
+            setLoading(false);
+            return;
+        }
         const db = getFirebaseFirestore();
         if (!db) { setError("Firestore not ready"); setLoading(false); return; }
-        setLoading(true); setError(null);
-        (async () => {
+        
+        setLoading(true); 
+        setError(null);
+        
+        const fetchHistory = async () => {
             try {
                 const q = query(
                     collection(db, "users", user.uid, "quizAttempts"),
@@ -169,12 +175,15 @@ export default function QuizHistoryContent() {
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
             } catch (e) {
+                console.error("Failed to fetch history:", e);
                 setError("Unable to load quiz history.");
             } finally {
                 setLoading(false);
             }
-        })();
-    }, [user]);
+        };
+        
+        fetchHistory();
+    }, [user, authLoading]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {
@@ -184,7 +193,7 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading) return <HistorySkeleton />;
+        if (loading || authLoading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>

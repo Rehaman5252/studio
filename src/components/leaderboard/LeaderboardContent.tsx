@@ -50,8 +50,6 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
-
         const db = getFirebaseFirestore();
         if (!db) {
             setError("Couldn't connect to the database.");
@@ -107,7 +105,7 @@ const LiveLeaderboard = memo(() => {
             }
         };
         fetchLivePlayers();
-    }, [user, profile, authLoading]);
+    }, [user, profile]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);

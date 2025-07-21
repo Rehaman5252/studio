@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -35,7 +35,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const auth = getFirebaseAuth();
-    if (!auth) { setLoading(false); return; }
+    if (!auth) { 
+        setLoading(false); 
+        return; 
+    }
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
@@ -47,10 +50,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return; 
     }
     
-    let unsubProfile: () => void = () => {};
-    let unsubHistory: () => void = () => {};
-    
     setLoading(true);
+
+    let unsubProfile: () => void = () => {};
 
     const setupListeners = async () => {
       const db = getFirebaseFirestore();
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
+          // If doc doesn't exist, create it. onSnapshot will trigger again with the new data.
           await createUserDocument(user);
         }
         setLoading(false);
@@ -87,14 +90,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsOffline(true);
         setLoading(false);
       });
-      
     };
     
     setupListeners();
     
     return () => {
         unsubProfile();
-        unsubHistory();
     };
   }, [user]);
 
@@ -102,6 +103,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
+    const sanitizedData = sanitizeUserProfile(newData);
+    
+    // Optimistically update local state
     setProfile(prev => {
         const updated = { ...(prev || {}), ...newData };
         setIsProfileComplete(!!updated.profileCompleted);
@@ -109,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     
     const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+    await setDoc(userDocRef, sanitizedData, { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
@@ -122,16 +126,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     
     if (updateUserData) {
-        const currentProfile = profile || {};
-        const newStats = {
-          quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
-          perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
-          totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
-        };
-        await updateUserData(newStats);
+        // Use a function to get the latest profile state to avoid stale closures
+        setProfile(currentProfile => {
+            const newStats = {
+              quizzesPlayed: (currentProfile?.quizzesPlayed || 0) + 1,
+              perfectScores: (currentProfile?.perfectScores || 0) + (isPerfect ? 1 : 0),
+              totalRewards: (currentProfile?.totalRewards || 0) + (isPerfect ? 100 : 0),
+            };
+            updateUserData(newStats); // This will handle the Firestore update
+            return { ...(currentProfile || {}), ...newStats };
+        });
     }
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
-  }, [user, profile, updateUserData]);
+  }, [user, updateUserData]);
   
   const value = useMemo(() => ({
     user, profile, loading, isOffline, updateUserData, addQuizAttempt,

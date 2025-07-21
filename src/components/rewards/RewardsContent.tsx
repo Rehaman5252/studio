@@ -122,8 +122,10 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setLoading(false); return; }
+    if (authLoading || !user) {
+        setLoading(false);
+        return;
+    }
 
     const db = getFirebaseFirestore();
     if (!db) {
