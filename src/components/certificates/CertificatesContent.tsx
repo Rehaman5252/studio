@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -43,7 +42,7 @@ export default function CertificatesContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading || !firebaseAppReady || !user) {
+    if (!firebaseAppReady || authLoading || !user) {
         if (!authLoading) setIsLoading(false);
         return;
     }

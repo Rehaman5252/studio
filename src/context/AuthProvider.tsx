@@ -1,11 +1,10 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -67,9 +66,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseAppReady]);
 
   useEffect(() => {
-    if (!firebaseAppReady) return;
-    if (!user) {
-        if(authLoading) setAuthLoading(false); 
+    if (!firebaseAppReady || !user) {
+        if (!authLoading) setAuthLoading(false); // Ensure loading is false if there's no user
         return;
     }
 
@@ -111,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         if (unsubProfile) unsubProfile();
     };
-  }, [user, firebaseAppReady]);
+  }, [user, firebaseAppReady, authLoading]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();

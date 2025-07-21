@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -13,7 +12,6 @@ import { motion } from 'framer-motion';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import LoadingFallback from '@/components/common/LoadingFallback';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
 
 const ScratchCardSkeleton = () => (
