@@ -148,16 +148,14 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, firebaseAppReady } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        let isCancelled = false;
-        
-        if (authLoading) {
+        if (!firebaseAppReady || authLoading) {
             setLoading(true);
             return;
         }
@@ -166,6 +164,7 @@ export default function QuizHistoryContent() {
             return;
         }
 
+        let isCancelled = false;
         async function fetchHistory() {
             setLoading(true);
             setError(null);
@@ -199,7 +198,7 @@ export default function QuizHistoryContent() {
         return () => {
             isCancelled = true;
         };
-    }, [user, authLoading]);
+    }, [user, authLoading, firebaseAppReady]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {
@@ -209,7 +208,7 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading) return <HistorySkeleton />;
+        if (loading || authLoading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>

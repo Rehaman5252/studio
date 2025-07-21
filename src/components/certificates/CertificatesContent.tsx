@@ -45,14 +45,14 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) {
+    if (!firebaseAppReady || authLoading) {
         setIsLoading(true);
         return;
     }
@@ -95,7 +95,7 @@ export default function CertificatesContent() {
     fetchHistory();
 
     return () => { cancelled = true; }
-  }, [user, authLoading]);
+  }, [user, authLoading, firebaseAppReady]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);

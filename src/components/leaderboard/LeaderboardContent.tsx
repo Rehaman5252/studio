@@ -44,13 +44,13 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) {
+        if (!firebaseAppReady || authLoading) {
             setIsLoading(true);
             return;
         };
@@ -114,7 +114,7 @@ const LiveLeaderboard = memo(() => {
         fetchLivePlayers();
 
         return () => { cancelled = true; }
-    }, [user, profile, authLoading]);
+    }, [user, profile, authLoading, firebaseAppReady]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
