@@ -10,11 +10,10 @@ import {
 } from 'firebase/auth';
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
-export async function createUserDocument(user: User, additionalData = {}) {
-  const db = getFirebaseFirestore();
+export async function createUserDocument(user: User | null, db: Firestore | null) {
   if (!user || !db) {
     console.error("❌ createUserDocument failed: User or DB is missing.");
     return;
@@ -28,7 +27,7 @@ export async function createUserDocument(user: User, additionalData = {}) {
     const newUserProfile = {
       uid: user.uid,
       email,
-      name: (additionalData as any).name || displayName || 'New User',
+      name: displayName || 'New User',
       photoURL: photoURL || `https://placehold.co/100x100.png`,
       createdAt: new Date(),
       emailVerified: user.emailVerified,
@@ -39,7 +38,6 @@ export async function createUserDocument(user: User, additionalData = {}) {
       phoneVerified: false,
       referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
       referralEarnings: 0,
-      ...additionalData
     };
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
@@ -65,6 +63,8 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
+    const db = getFirebaseFirestore();
+    await createUserDocument(result.user, db);
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -85,6 +85,8 @@ export const registerWithEmail = async (email: string, password: string) => {
     const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const db = getFirebaseFirestore();
+    await createUserDocument(userCredential.user, db);
     return userCredential;
 };
 

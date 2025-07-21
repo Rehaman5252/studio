@@ -11,11 +11,12 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { auth } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
+// Schemas
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
 });
@@ -31,13 +32,9 @@ export default function ForgotPasswordForm() {
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
-    if (!auth) {
-        toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
-        return;
-    }
     setIsLoading(true);
-    
     try {
+      const auth = getFirebaseAuth();
       await sendPasswordResetEmail(auth, data.email);
       toast({
           title: 'Password Reset Email Sent',
@@ -83,7 +80,7 @@ export default function ForgotPasswordForm() {
                 </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                 <Button type="submit" className="w-full" disabled={isLoading || !auth}>
+                 <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
                     {isLoading && <Loader2 className="animate-spin mr-2" />}
                     Send Reset Link
                 </Button>

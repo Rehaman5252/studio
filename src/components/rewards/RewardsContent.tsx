@@ -122,20 +122,16 @@ export default function RewardsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setLoading(false); return; }
-
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setError("You appear to be offline. Please check your connection to see your rewards.");
-        setLoading(false);
-        return;
+    if (authLoading || !user) {
+      if (!user) setLoading(false);
+      return;
     }
 
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
         try {
+            const db = getFirebaseFirestore();
             const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
             setHistory(snap.docs.map(d => d.data() as QuizAttempt));

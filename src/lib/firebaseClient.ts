@@ -17,68 +17,72 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
-let persistenceEnabled = false;
 
+// This function should only be called on the client side.
 function initializeFirebase() {
-    if (typeof window !== "undefined") {
-        if (!getApps().length) {
-            try {
-                if (Object.values(firebaseConfig).every(Boolean)) {
-                    app = initializeApp(firebaseConfig);
-                }
-            } catch (e) {
-                console.error("Failed to initialize Firebase", e);
-            }
+    if (getApps().length === 0) {
+        if (Object.values(firebaseConfig).every(Boolean)) {
+            app = initializeApp(firebaseConfig);
         } else {
-            app = getApp();
+            console.error("Firebase config is missing or incomplete. Please check your environment variables.");
         }
+    } else {
+        app = getApp();
+    }
 
-        if (app) {
-            auth = getAuth(app);
-            db = getFirestore(app);
-        }
+    if (app) {
+        auth = getAuth(app);
+        db = getFirestore(app);
     }
 }
 
-initializeFirebase();
-
-export function getFirebaseAuth(): Auth | null {
-  return auth;
+// Initialize on client-side load
+if (typeof window !== 'undefined') {
+    initializeFirebase();
 }
 
-export function getFirebaseFirestore(): Firestore | null {
-  if (db && !persistenceEnabled && typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed: multiple tabs open.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence not supported in this browser.');
-      }
-    });
-    persistenceEnabled = true;
-  }
-  return db;
+export function getFirebaseAuth(): Auth {
+    if (!auth) {
+        // This might happen if called during SSR, which should be avoided.
+        // We initialize here as a fallback, but client components should wait.
+        if (typeof window !== 'undefined') {
+            initializeFirebase();
+        } else {
+           throw new Error("FirebaseAuth is not available on the server.");
+        }
+    }
+    return auth!;
 }
 
+export function getFirebaseFirestore(): Firestore {
+    if (!db) {
+         if (typeof window !== 'undefined') {
+            initializeFirebase();
+            enableIndexedDbPersistence(db!).catch((err) => {
+              if (err.code === 'failed-precondition') {
+                console.warn('Firestore persistence failed: multiple tabs open.');
+              } else if (err.code === 'unimplemented') {
+                console.warn('Firestore persistence not supported in this browser.');
+              }
+            });
+        } else {
+           throw new Error("Firestore is not available on the server.");
+        }
+    }
+    return db!;
+}
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 export async function isFirebaseOnline(): Promise<boolean> {
-  const db = getFirebaseFirestore();
-  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+  const firestore = getFirebaseFirestore();
+  if (!firestore || (typeof window !== 'undefined' && !navigator.onLine)) {
     return false;
   }
-
   try {
-    // This is a more reliable check. We use a non-existent document to avoid read costs.
-    const testDoc = doc(db, "systemHealth/connectivityCheck");
-    await getDoc(testDoc);
+    await getDoc(doc(firestore, "systemHealth/connectivityCheck"));
     return true;
   } catch (error: any) {
-    if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
-        return false;
-    }
-    // Some errors might not indicate offline status, but for this check, we treat them as such.
     return false;
   }
 }
