@@ -5,7 +5,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from '@/components/home/QuizSelection';
-import { Skeleton } from '@/components/ui/skeleton';
+import LoginPrompt from '../auth/LoginPrompt';
+import { Home } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 const HomeSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">
@@ -28,7 +30,7 @@ const HomeSkeleton = () => (
 );
 
 export default function HomeClientContent() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <HomeSkeleton />;
@@ -41,7 +43,15 @@ export default function HomeClientContent() {
       transition={{ duration: 0.5 }}
       className="mt-10"
     >
-      <QuizSelection />
+        {user ? <QuizSelection /> : (
+            <div className="flex items-center justify-center pt-10">
+                <LoginPrompt
+                    icon={Home}
+                    title="Welcome to CricBlitz!"
+                    description="Sign in to play quizzes, win rewards, and climb the leaderboard."
+                />
+            </div>
+        )}
     </motion.div>
   );
 }

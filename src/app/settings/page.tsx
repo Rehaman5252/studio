@@ -7,9 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// No longer requires auth to view settings
 function SettingsPage() {
+  const { toast } = useToast();
+
+  const handleReset = () => {
+    // In a real app, you would reset settings in localStorage or a state manager.
+    toast({
+        title: "Settings Reset",
+        description: "All settings have been restored to their default values.",
+    });
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -29,6 +39,9 @@ function SettingsPage() {
               </Label>
               <Switch id="dark-mode" defaultChecked disabled/>
             </div>
+             <p className="text-xs text-muted-foreground mt-2">
+              Light mode is coming soon!
+            </p>
           </CardContent>
         </Card>
 
@@ -87,7 +100,7 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Button variant="destructive" className="w-full">
+        <Button variant="destructive" className="w-full" onClick={handleReset}>
           Reset All Settings to Default
         </Button>
       </main>

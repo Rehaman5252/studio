@@ -15,13 +15,13 @@ import { QuizHeader } from '@/components/quiz/QuizHeader';
 import { Timer } from '@/components/quiz/Timer';
 import CricketLoading from '@/components/CricketLoading';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, ChevronsRight } from 'lucide-react';
+import { Lightbulb, ChevronsRight, Loader2, WifiOff } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
-import withAuth from '@/components/auth/withAuth';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function QuizComponent() {
-  const { user, addQuizAttempt, setLastAttempt } = useAuth();
+  const { user, loading, addQuizAttempt, setLastAttempt, isOffline } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -42,6 +42,16 @@ function QuizComponent() {
   const [quizState, setQuizState] = useState<'loading' | 'playing' | 'ad' | 'submitting'>('loading');
 
   useEffect(() => {
+    // Redirect if auth is loaded and there's no user
+    if (!loading && !user) {
+        router.replace('/auth/login?from=/quiz');
+    }
+  }, [user, loading, router]);
+
+
+  useEffect(() => {
+    if (!user) return; // Don't fetch quiz if no user
+
     async function fetchQuiz() {
       try {
         const quizData = await generateQuiz({ format });
@@ -55,14 +65,8 @@ function QuizComponent() {
         router.push('/home');
       }
     }
-    // Pre-fetch quiz, then show loading for 1s for fact
     fetchQuiz();
-    const timer = setTimeout(() => {
-      // The quizState change will be triggered by fetchQuiz completing
-    }, 1000); 
-    
-    return () => clearTimeout(timer);
-  }, [format, router, toast]);
+  }, [format, router, toast, user]);
 
   const submitQuiz = useCallback((currentAnswers: (string | null)[], reason?: 'malpractice') => {
     if (!user || !questions || !addQuizAttempt || !setLastAttempt) return;
@@ -89,7 +93,6 @@ function QuizComponent() {
 
     setLastAttempt(attemptData);
     
-    // Pass data via URL to make results page load instantly
     const attemptDataString = Buffer.from(JSON.stringify(attemptData)).toString('base64');
     router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
@@ -99,31 +102,13 @@ function QuizComponent() {
     });
   }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt]);
 
-  const handleFinalAnswerAndSubmit = useCallback((option: string) => {
-    if (!questions) return;
-    
-    const timeTaken = (Date.now() - questionStartTime) / 1000;
-    const finalTimePerQuestion = [...timePerQuestion, timeTaken];
-    setTimePerQuestion(finalTimePerQuestion);
-
-    const finalAnswers = [...userAnswers];
-    finalAnswers[currentQuestionIndex] = option;
-    setUserAnswers(finalAnswers);
-
-    submitQuiz(finalAnswers);
-
-  }, [questionStartTime, timePerQuestion, userAnswers, currentQuestionIndex, questions, submitQuiz]);
-
-
   const goToNextQuestion = useCallback(() => {
     if (!questions) return;
-    
     setSelectedOption(null);
     setIsHintVisible(false);
     setCurrentQuestionIndex(prev => prev + 1);
     setTimeLeft(20);
     setQuestionStartTime(Date.now());
-
   }, [questions]);
 
   const handleNextWithAdCheck = useCallback(() => {
@@ -136,11 +121,7 @@ function QuizComponent() {
         adTitle: adToShow.videoTitle || 'Advertisement',
         duration: adToShow.durationSec || 15,
         skippableAfter: adToShow.skippableAfterSec || 10,
-        onFinished: () => {
-          setAdConfig(null);
-          setQuizState('playing');
-          goToNextQuestion();
-        },
+        onFinished: () => { setAdConfig(null); setQuizState('playing'); goToNextQuestion(); },
       });
     } else if (adToShow?.type === 'static' && adToShow.logoUrl) {
       setQuizState('ad');
@@ -149,12 +130,10 @@ function QuizComponent() {
     }
   }, [currentQuestionIndex, goToNextQuestion]);
 
-
   const handleAnswerSelect = useCallback((option: string) => {
     if (selectedOption || !questions) return;
     
     setSelectedOption(option);
-    
     const timeTaken = (Date.now() - questionStartTime) / 1000;
     setTimePerQuestion(prev => [...prev, timeTaken]);
     
@@ -162,7 +141,6 @@ function QuizComponent() {
     newAnswers[currentQuestionIndex] = option;
     setUserAnswers(newAnswers);
 
-    // Short delay for visual feedback before moving on
     setTimeout(() => {
         if (currentQuestionIndex === questions.length - 1) {
             submitQuiz(newAnswers);
@@ -177,15 +155,9 @@ function QuizComponent() {
       goToNextQuestion();
   }, [goToNextQuestion]);
 
-
   useEffect(() => {
     if (quizState !== 'playing' || !questions) return;
-    
-    if (timeLeft === 0) {
-      handleAnswerSelect("Not Answered");
-      return;
-    }
-
+    if (timeLeft === 0) { handleAnswerSelect("Not Answered"); return; }
     const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, quizState, questions, handleAnswerSelect]);
@@ -214,88 +186,69 @@ function QuizComponent() {
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [quizState, submitQuiz, userAnswers]);
 
-  if (quizState === 'loading' || !questions) {
-    return <CricketLoading message="Warming up the bowlers..." format={format} />;
+  if (loading || !user) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
   }
 
-  if (quizState === 'submitting') {
-      return <CricketLoading message="The umpire is checking... calculating your score!" format={format} />;
+  if (isOffline) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background p-4">
+            <Alert variant="destructive" className="max-w-md">
+                <WifiOff className="h-4 w-4" />
+                <AlertTitle>You Are Offline</AlertTitle>
+                <AlertDescription>An internet connection is required to play the quiz.</AlertDescription>
+            </Alert>
+        </div>
+    );
   }
+
+  if (quizState === 'loading' || !questions) return <CricketLoading message="Warming up the bowlers..." format={format} />;
+  if (quizState === 'submitting') return <CricketLoading message="The umpire is checking... calculating your score!" format={format} />;
   
   if (quizState === 'ad' && !adConfig) {
     const adConfig = interstitialAds[currentQuestionIndex];
     if (adConfig && adConfig.type === 'static' && adConfig.logoUrl) {
       return <InterstitialLoader logoUrl={adConfig.logoUrl} logoHint={adConfig.logoHint!} duration={adConfig.durationMs || 2000} onComplete={handleAdComplete} />;
     }
-    goToNextQuestion();
-    return null;
+    goToNextQuestion(); return null;
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  
-  if (!currentQuestion) {
-    return <CricketLoading state="error" errorMessage="There was a problem with the next question." />;
-  }
+  if (!currentQuestion) return <CricketLoading state="error" errorMessage="There was a problem with the next question." />;
 
   return (
     <>
       <main className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 overflow-hidden">
         <div className="w-full max-w-2xl mx-auto">
             <QuizHeader format={format} current={currentQuestionIndex} total={questions.length} />
-            
-            <div className="flex justify-center my-6">
-                <Timer timeLeft={timeLeft} />
-            </div>
-
-            <QuestionCard
-                question={currentQuestion}
-                isHintVisible={isHintVisible}
-                options={currentQuestion.options}
-                selectedOption={selectedOption}
-                handleAnswerSelect={handleAnswerSelect}
-            />
-
-            <div 
-              className="mt-6 flex justify-between items-center"
-            >
+            <div className="flex justify-center my-6"><Timer timeLeft={timeLeft} /></div>
+            <QuestionCard question={currentQuestion} isHintVisible={isHintVisible} options={currentQuestion.options} selectedOption={selectedOption} handleAnswerSelect={handleAnswerSelect} />
+            <div className="mt-6 flex justify-between items-center">
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
                 <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={!selectedOption}>
-                    {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} 
-                    <ChevronsRight className="ml-2" />
+                    {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} <ChevronsRight className="ml-2" />
                 </Button>
             </div>
         </div>
       </main>
-
-      {adConfig && adConfig.adType === 'video' && (
-          <AdDialog
-              open={!!adConfig}
-              onAdFinished={adConfig.onFinished}
-              duration={adConfig.duration}
-              skippableAfter={adConfig.skippableAfter}
-              adTitle={adConfig.adTitle}
-              adType={adConfig.adType}
-              adUrl={adConfig.adUrl}
-              adHint={adConfig.adHint}
-          />
-      )}
+      {adConfig && adConfig.adType === 'video' && <AdDialog open={!!adConfig} onAdFinished={adConfig.onFinished} duration={adConfig.duration} skippableAfter={adConfig.skippableAfter} adTitle={adConfig.adTitle} adType={adConfig.adType} adUrl={adConfig.adUrl} adHint={adConfig.adHint} />}
     </>
   );
 }
 
-const AuthProtectedQuiz = withAuth(QuizComponent);
-
 export default function QuizPage() {
     return (
       <Suspense fallback={<CricketLoading message="Setting the field..." />}>
-          <AuthProtectedQuiz />
+          <QuizComponent />
       </Suspense>
     )
 }

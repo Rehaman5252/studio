@@ -1,11 +1,13 @@
 
 'use client';
 
-import HomeClientContent from '@/components/home/HomeClientContent';
+import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { Home as HomeIcon } from 'lucide-react';
+
+const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
+  loading: () => <HomeContentSkeleton />,
+  ssr: false,
+});
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">
@@ -27,27 +29,6 @@ const HomeContentSkeleton = () => (
     </div>
 );
 
-function HomePageContent() {
-    const { user, loading } = useAuth();
-    
-    if (loading) {
-        return <HomeContentSkeleton />;
-    }
-
-    if (!user) {
-        return (
-            <div className="flex items-center justify-center pt-10">
-                <LoginPrompt
-                    icon={HomeIcon}
-                    title="Welcome to indcric!"
-                    description="Sign in to play quizzes, win rewards, and climb the leaderboard."
-                />
-            </div>
-        );
-    }
-
-    return <HomeClientContent />;
-}
 
 export default function HomePage() {
     return (
@@ -55,14 +36,14 @@ export default function HomePage() {
         <header className="p-4 flex items-center justify-center">
           <div className="text-center">
               <h1 className="text-6xl font-extrabold tracking-tight text-shimmer animate-shimmer">
-                indcric
+                CricBlitz
               </h1>
-              <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
+              <p className="text-sm text-muted-foreground">The Ultimate Cricket Quiz Challenge</p>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-2">
-            <HomePageContent />
+            <HomeClientContent />
           </div>
         </main>
       </div>

@@ -5,9 +5,15 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { Gift } from 'lucide-react';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
-  loading: () => (
+  loading: () => <RewardsSkeleton />,
+  ssr: false,
+});
+
+const RewardsSkeleton = () => (
     <div className="space-y-8">
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
@@ -23,9 +29,29 @@ const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent
         <Skeleton className="h-[96px] w-full" />
       </div>
     </div>
-  ),
-  ssr: false,
-});
+);
+
+function RewardsPageContent() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+      return <RewardsSkeleton />;
+  }
+
+  if (!user) {
+      return (
+          <div className="flex-1 flex items-center justify-center p-4">
+              <LoginPrompt
+                  icon={Gift}
+                  title="Unlock Your Rewards"
+                  description="Log in to view and claim exclusive rewards for your quiz victories."
+              />
+          </div>
+      );
+  }
+
+  return <RewardsContent />;
+}
 
 export default function RewardsPage() {
   return (
@@ -33,9 +59,8 @@ export default function RewardsPage() {
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
         <h1 className="text-2xl font-bold text-center text-foreground">Rewards Center</h1>
       </header>
-
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
-        <RewardsContent />
+        <RewardsPageContent />
       </main>
     </div>
   );
