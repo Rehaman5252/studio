@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -16,6 +16,7 @@ const withAuth = <P extends object>(
   const WithAuthComponent: React.FC<P & WithAuthProps> = (props) => {
     const { user, profile, loading, isOffline } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
       if (loading) return; // Wait until loading is complete before making decisions
@@ -27,13 +28,13 @@ const withAuth = <P extends object>(
       }
 
       if (!user) {
-        router.replace('/auth/login');
+        router.replace(`/auth/login?from=${encodeURIComponent(pathname)}`);
       } else if (user && !profile?.profileCompleted) {
         // This check is important. It ensures that even if a user is logged in,
         // they are forced to complete their profile before accessing protected content.
         router.replace('/complete-profile');
       }
-    }, [user, profile, loading, isOffline, router]);
+    }, [user, profile, loading, isOffline, router, pathname]);
     
     if (isOffline) {
         return (
