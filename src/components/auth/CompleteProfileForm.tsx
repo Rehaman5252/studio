@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -108,7 +107,6 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         }
     }, [profile, user, form]);
 
-
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user || !updateUserData) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
@@ -116,26 +114,21 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         }
 
         setIsSubmitting(true);
-
         try {
             await updateUserData({ ...data, profileCompleted: true, updatedAt: new Date() });
-            
             toast({ 
                 title: "Profile Saved!", 
                 description: "Your information has been updated successfully."
             });
-            
             onSaveSuccess();
-
         } catch (error: any) {
-            console.error("🔥 Save Failed:", error);
+            console.error("Save Failed:", error);
             toast({
                 title: "Save Failed",
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
         } finally {
-            // This is the crucial fix: ensure the submitting state is always reset.
             setIsSubmitting(false);
         }
     };
@@ -314,5 +307,3 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         </Card>
     );
 }
-
-    
