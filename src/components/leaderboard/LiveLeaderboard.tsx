@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
@@ -47,7 +47,6 @@ const LiveLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const db = getFirebaseFirestore();
         if (!db) {
             setError("Couldn't connect to the database.");
             setIsLoading(false);

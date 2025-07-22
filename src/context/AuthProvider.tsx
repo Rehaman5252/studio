@@ -4,14 +4,14 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment, arrayUnion, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, writeBatch, increment, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
-import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
-import { differenceInCalendarDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { enableIndexedDbPersistence } from 'firebase/firestore';
+import { createUserDocument } from '@/lib/authUtils';
+import { differenceInCalendarDays } from 'date-fns';
 
 interface AuthContextType {
   user: User | null;
@@ -32,6 +32,7 @@ const quizFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
 const STREAK_QUIZ_TOTAL = 15;
 const STREAK_FORMAT_MIN = 2;
 
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
@@ -48,8 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.warn("🟡 Persistence failed: multiple tabs open");
         } else if (err.code === 'unimplemented') {
           console.warn("🟠 Browser does not support offline persistence");
-        } else {
-          console.error("🔴 Unknown persistence error:", err.message);
         }
       });
     }
@@ -61,32 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    // Attempt to hydrate from cache first for instant UI response
-    try {
-        const cachedUser = localStorage.getItem('userCache');
-        if (cachedUser) {
-            const parsedUser = JSON.parse(cachedUser);
-            setUser(parsedUser);
-        }
-    } catch (e) {
-        console.error("Failed to parse user cache", e);
-        localStorage.removeItem('userCache');
-    }
-    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-
-      if (firebaseUser) {
-        localStorage.setItem('userCache', JSON.stringify({
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName,
-            email: firebaseUser.email,
-            photoURL: firebaseUser.photoURL,
-        }));
-      } else {
-        localStorage.removeItem('userCache');
-        setProfile(null);
-      }
       setLoading(false);
     });
 
@@ -119,7 +94,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(data);
             setIsProfileComplete(!!data.profileCompleted);
         } else {
-            console.log("User doc not found, it might be under creation...");
+            // This is handled by the signup logic now, but as a fallback.
+            createUserDocument(user).catch(console.error);
         }
     }, (error) => {
         console.error("Profile snapshot error:", error);
@@ -224,7 +200,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!auth) return;
     try {
         await signOut(auth);
-        localStorage.removeItem('userCache');
         setUser(null);
         setProfile(null);
         toast({
