@@ -24,12 +24,14 @@ function ProfilePageContent() {
   
   if (!user) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center p-4 space-y-6 pb-20">
-          <div className="w-full max-w-sm text-center">
-            <h2 className="text-2xl font-bold">Your Profile</h2>
-            <p className="text-muted-foreground mt-2 mb-6">
-                Sign in to manage your profile, view stats, and access your rewards.
-            </p>
+      <main className="flex-1 p-4 space-y-6 pb-20">
+          <div className="w-full">
+            <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold">Your Profile</h2>
+                <p className="text-muted-foreground mt-2">
+                    Sign in to manage your profile, view stats, and access your rewards.
+                </p>
+            </div>
             <Button asChild size="lg" className="w-full justify-center text-base py-6">
                 <Link href="/auth/login?from=/profile"><LogIn className="mr-4" /> Pad Up & Sign In</Link>
             </Button>
