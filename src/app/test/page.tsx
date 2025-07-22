@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { useEffect, useState } from 'react';
 
 export default function FirebaseTestPage() {
@@ -16,7 +16,6 @@ export default function FirebaseTestPage() {
   }, []);
 
   const isLoading = isAuthLoading;
-  const isConfigured = isFirebaseConfigured;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
@@ -27,14 +26,6 @@ export default function FirebaseTestPage() {
             This page checks the status of your Firebase configuration, Authentication, and Firestore.
           </p>
         </div>
-
-        <Alert variant={isConfigured ? 'default' : 'destructive'} className={isConfigured ? 'border-green-500/50 bg-green-500/10' : ''}>
-            {isConfigured ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
-            <AlertTitle>Firebase Configuration</AlertTitle>
-            <AlertDescription>
-            {isConfigured ? `Firebase config loaded successfully.` : 'Firebase config is missing or incomplete. Please check your environment variables.'}
-            </AlertDescription>
-        </Alert>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-8">

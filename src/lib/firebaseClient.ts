@@ -23,26 +23,24 @@ const firebaseConfig = {
 const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 let db: Firestore | null = null;
+let auth: Auth | null = null;
 
-// Initialize Firestore with persistence only on the client side
 if (typeof window !== "undefined") {
-  try {
-    db = initializeFirestore(app, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-    });
-  } catch (error) {
-      console.error("Error initializing Firestore with persistence:", error);
-      // Fallback to in-memory persistence if multi-tab fails
-      if (!db) {
-        try {
-            db = getFirestore(app);
-        } catch (fallbackError) {
-            console.error("Failed to initialize Firestore even with fallback:", fallbackError);
+    try {
+        db = initializeFirestore(app, {
+          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        });
+    } catch (error) {
+        console.error("Error initializing Firestore with persistence:", error);
+        if (!db) {
+            try {
+                db = getFirestore(app);
+            } catch (fallbackError) {
+                console.error("Failed to initialize Firestore even with fallback:", fallbackError);
+            }
         }
-      }
-  }
+    }
+    auth = getAuth(app);
 }
-
-const auth: Auth | null = typeof window !== "undefined" ? getAuth(app) : null;
 
 export { app, db, auth };
