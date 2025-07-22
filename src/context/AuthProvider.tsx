@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, Timestamp, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseFirestore, monitorFirebaseConnection } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -37,11 +37,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // Monitor the actual Firebase connection state
+    const unsubscribe = monitorFirebaseConnection((online) => {
+      setIsOffline(!online);
+      console.log("🔌 Firebase online?", online);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) { 
         console.error("Firebase Auth is not initialized.");
         setLoading(false); 
+        setHistoryLoading(false);
         setIsOffline(true);
         return;
     }
@@ -50,12 +59,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchHistory = useCallback(async (uid: string) => {
-    setHistoryLoading(true);
     const db = getFirebaseFirestore();
-    if (!db) {
+    if (!db || isOffline) {
       setHistoryLoading(false);
       return;
     }
+    setHistoryLoading(true);
     try {
       const q = query(collection(db, "users", uid, "quizAttempts"), orderBy("timestamp", "desc"));
       const querySnapshot = await getDocs(q);
@@ -67,9 +76,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [isOffline]);
 
   useEffect(() => {
+    if (isOffline) {
+        setLoading(false);
+        setHistoryLoading(false);
+        return;
+    }
+
     if (!user) { 
         setProfile(null); 
         setLoading(false); 
@@ -78,35 +93,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return; 
     }
     
-    let unsubProfile: () => void = () => {};
-    
     setLoading(true);
-
-    const setupListeners = async () => {
-      const online = await isFirebaseOnline();
-      setIsOffline(!online);
-
-      if (!online) {
-        console.warn("App is offline. Data fetching will be skipped.");
-        setLoading(false);
-        setHistoryLoading(false);
-        return;
-      }
-
-      const db = getFirebaseFirestore();
-      if (!db) {
-        console.error("Firestore is not available.");
-        setIsOffline(true);
-        setLoading(false);
-        return;
-      }
+    const db = getFirebaseFirestore();
+    if (!db) {
+      console.error("Firestore is not available.");
+      setIsOffline(true);
+      setLoading(false);
+      return;
+    }
       
-      // Fetch history once on login
-      fetchHistory(user.uid);
+    fetchHistory(user.uid);
 
-      const userDocRef = doc(db, "users", user.uid);
-      
-      unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+    const userDocRef = doc(db, "users", user.uid);
+    const unsubProfile = getDoc(userDocRef).then(async (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.dob instanceof Timestamp) {
@@ -117,27 +116,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           try {
             await createUserDocument(user);
-            // Snapshot will re-trigger with the new data from the server
+            const newUserDoc = await getDoc(userDocRef);
+             if (newUserDoc.exists()) {
+                setProfile(newUserDoc.data());
+             }
           } catch(e) {
             console.error("Failed to create user document after sign-in.", e);
             setIsOffline(true);
           }
         }
-        setLoading(false);
-      }, (error) => {
+    }).catch(error => {
         console.error("Profile snapshot error:", error);
         setIsOffline(true);
+    }).finally(() => {
         setLoading(false);
-      });
-      
-    };
+    });
     
-    setupListeners();
-    
-    return () => {
-        unsubProfile();
-    };
-  }, [user, fetchHistory]);
+  }, [user, isOffline, fetchHistory]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
@@ -174,7 +169,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await updateUserData(newStats);
     }
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
-    // Prepend to local history cache for instant UI update
     setQuizHistory(prev => [sanitizedAttempt, ...prev]);
   }, [user, profile, updateUserData]);
   

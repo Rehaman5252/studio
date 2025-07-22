@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, onSnapshot } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -18,6 +18,7 @@ let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 let persistenceEnabled = false;
+let isOnline = true; // Assume online by default
 
 function initializeFirebase() {
     if (typeof window !== "undefined") {
@@ -62,32 +63,48 @@ export function getFirebaseFirestore(): Firestore | null {
   return db;
 }
 
-
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-export async function isFirebaseOnline(): Promise<boolean> {
-  // If the browser itself reports offline, we can be almost certain.
-  if (typeof window !== 'undefined' && !navigator.onLine) {
-    return false;
+/**
+ * Monitors the actual connection to the Firestore backend.
+ * @param callback A function that receives the online status (true/false).
+ * @returns An unsubscribe function to clean up the listener.
+ */
+export function monitorFirebaseConnection(callback: (status: boolean) => void) {
+  const firestore = getFirebaseFirestore();
+  if (!firestore) {
+    callback(false);
+    return () => {};
   }
+  
+  // A dummy document reference for the snapshot listener.
+  // This does not read or write data, it only monitors the connection.
+  const dummyDocRef = doc(firestore, "__connection-check__/status");
 
-  const db = getFirebaseFirestore();
-  if (!db) {
-    return false;
-  }
-
-  try {
-    // Attempt a minimal, low-cost read operation. A non-existent doc is perfect for this.
-    // This is the most reliable way to check for actual Firestore connectivity.
-    await getDoc(doc(db, "systemHealth/connectivityCheck"));
-    return true;
-  } catch (error: any) {
-    // The 'unavailable' code is Firestore's specific way of saying it can't reach the backend.
-    if (error.code === 'unavailable') {
-        return false;
+  const unsubscribe = onSnapshot(
+    dummyDocRef,
+    () => {
+      if (!isOnline) {
+        isOnline = true;
+        callback(true);
+      }
+    },
+    (error) => {
+      console.error("🔥 Firebase connection listener failed:", error.message);
+      if (isOnline) {
+        isOnline = false;
+        callback(false);
+      }
     }
-    // For other errors, we can be optimistic and assume we are online, as they might
-    // be permission errors, etc., not connectivity issues.
-    return true;
-  }
+  );
+
+  return unsubscribe;
+}
+
+/**
+ * Gets the last known status of the Firebase connection.
+ * @returns boolean
+ */
+export function getFirebaseOnlineStatus() {
+  return isOnline;
 }

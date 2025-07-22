@@ -8,9 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff } from 'lucide-react';
 
-interface WithAuthProps {
-  // Add any additional props you might want to pass to the wrapped component
-}
+interface WithAuthProps {}
 
 const withAuth = <P extends object>(
   WrappedComponent: React.ComponentType<P>
@@ -20,17 +18,22 @@ const withAuth = <P extends object>(
     const router = useRouter();
 
     useEffect(() => {
-      // Don't redirect while loading
-      if (loading) return;
+      if (loading) return; // Wait until loading is complete before making decisions
+
+      if (isOffline) {
+          // If offline, we can't verify auth state, so we stay on the current page
+          // but show an offline warning. The component itself should handle this.
+          return;
+      }
 
       if (!user) {
         router.replace('/auth/login');
-      } else if (!profile?.profileCompleted) {
-        // This ensures that even if a profile exists but is incomplete,
-        // the user is forced to complete it.
+      } else if (user && !profile?.profileCompleted) {
+        // This check is important. It ensures that even if a user is logged in,
+        // they are forced to complete their profile before accessing protected content.
         router.replace('/complete-profile');
       }
-    }, [user, profile, loading, router]);
+    }, [user, profile, loading, isOffline, router]);
     
     if (isOffline) {
         return (
@@ -39,15 +42,15 @@ const withAuth = <P extends object>(
                     <WifiOff className="h-4 w-4" />
                     <AlertTitle>You Are Offline</AlertTitle>
                     <AlertDescription>
-                        Please check your internet connection to access this page.
+                        Please check your internet connection to access this page. Some features may be unavailable.
                     </AlertDescription>
                 </Alert>
             </div>
         );
     }
 
-    // Show a loader while we determine auth state and profile completion.
     if (loading || !user || !profile?.profileCompleted) {
+      // Show a loader while we're waiting for auth state or during the redirect.
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -55,6 +58,7 @@ const withAuth = <P extends object>(
       );
     }
 
+    // If all checks pass, render the wrapped component.
     return <WrappedComponent {...props} />;
   };
 
