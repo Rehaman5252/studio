@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { auth, db, isFirebaseOnline } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const auth = getFirebaseAuth();
     if (!auth) { setLoading(false); return; }
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
 
     const setupListeners = async () => {
+      const db = getFirebaseFirestore();
       if (!db) {
         console.error("Firestore is not available.");
         setIsOffline(true);
@@ -60,9 +62,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const online = await isFirebaseOnline();
       setIsOffline(!online);
-      if (!online) {
+      if (!online && !navigator.onLine) {
         setLoading(false);
-        return;
+        // Do not return here, onSnapshot might still work with cached data.
       }
 
       const userDocRef = doc(db, "users", user.uid);
@@ -76,12 +78,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
-          try {
-            await createUserDocument(user);
-          } catch (e) {
-             console.error("Failed to create user document:", e)
-             setIsOffline(true);
-          }
+          // If the user exists in auth but not firestore, create the document.
+          // This can happen on first sign-in.
+          await createUserDocument(user);
         }
         setLoading(false);
       }, (error) => {
@@ -89,7 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsOffline(true);
         setLoading(false);
       });
-      
     };
     
     setupListeners();
@@ -100,15 +98,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
+    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
-    const sanitizedData = sanitizeUserProfile(newData);
+    // Optimistic update
+    setProfile(prev => {
+        const updated = { ...(prev || {}), ...newData };
+        setIsProfileComplete(!!updated.profileCompleted);
+        return updated;
+    });
+    
     const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, sanitizedData, { merge: true });
-
+    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
+    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
 
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
