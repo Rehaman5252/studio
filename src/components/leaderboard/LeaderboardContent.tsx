@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
@@ -15,6 +14,8 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import LoginPrompt from '../auth/LoginPrompt';
+import { Trophy } from 'lucide-react';
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
@@ -184,18 +185,43 @@ MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
 
 
 export default function LeaderboardContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+      return (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <div className="pt-2 space-y-2">
+              <LeaderboardItemSkeleton />
+              <LeaderboardItemSkeleton />
+              <LeaderboardItemSkeleton />
+            </div>
+          </div>
+      );
+  }
+
+  if (!user) {
+      return (
+          <div className="flex items-center justify-center h-full pt-10">
+              <LoginPrompt
+                  icon={Trophy}
+                  title="View the Rankings"
+                  description="Log in or sign up to see where you stand on the leaderboard."
+              />
+          </div>
+      );
+  }
 
   return (
     <Tabs defaultValue="live" className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-1")}>
+        <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="live">Current</TabsTrigger>
-            {user && <TabsTrigger value="all-time">All-Time</TabsTrigger>}
-            {user && <TabsTrigger value="network">My Network</TabsTrigger>}
+            <TabsTrigger value="all-time">All-Time</TabsTrigger>
+            <TabsTrigger value="network">My Network</TabsTrigger>
         </TabsList>
         <TabsContent value="live"><LiveLeaderboard /></TabsContent>
-        {user && <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>}
-        {user && <TabsContent value="network"><MyNetworkLeaderboard /></TabsContent>}
+        <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>
+        <TabsContent value="network"><MyNetworkLeaderboard /></TabsContent>
     </Tabs>
   );
 }
