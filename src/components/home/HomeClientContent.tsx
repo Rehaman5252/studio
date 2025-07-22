@@ -6,8 +6,6 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import { Skeleton } from '@/components/ui/skeleton';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { Home as HomeIcon } from 'lucide-react';
 
 const HomeSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">
@@ -30,7 +28,7 @@ const HomeSkeleton = () => (
 );
 
 export default function HomeClientContent() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return <HomeSkeleton />;
@@ -43,17 +41,7 @@ export default function HomeClientContent() {
       transition={{ duration: 0.5 }}
       className="mt-10"
     >
-      {user ? (
-        <QuizSelection />
-      ) : (
-        <div className="flex items-center justify-center pt-10">
-            <LoginPrompt
-                icon={HomeIcon}
-                title="Welcome to indcric!"
-                description="Sign in to play quizzes, win rewards, and climb the leaderboard."
-            />
-        </div>
-      )}
+      <QuizSelection />
     </motion.div>
   );
 }
