@@ -1,10 +1,11 @@
+
 'use client';
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { auth, firestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { auth, db, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -31,17 +32,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, setUser);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      // Fetched profile will set loading to false in the next useEffect
+    });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (user === null) {
       setProfile(null);
       setLoading(false);
       return;
     }
 
+    // Don't start fetching profile until user object is confirmed
     setLoading(true);
     let unsubProfile: (() => void) | undefined;
 
@@ -50,13 +55,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const online = await isFirebaseOnline();
         setIsOffline(!online);
         if (!online) {
+          console.warn("Client is offline. Profile data will not be loaded.");
           setLoading(false);
           return;
         }
 
-        const userDocRef = doc(firestore, "users", user.uid);
+        const userDocRef = doc(db, "users", user.uid);
         
-        await createUserDocument(user);
+        // Ensure document exists before subscribing
+        const docSnap = await getDoc(userDocRef);
+        if (!docSnap.exists()) {
+            await createUserDocument(user);
+        }
 
         unsubProfile = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
@@ -92,16 +102,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     if (!user) throw new Error("User not authenticated.");
-    const userDocRef = doc(firestore, "users", user.uid);
+    const userDocRef = doc(db, "users", user.uid);
     const sanitizedData = sanitizeUserProfile(newData);
     await setDoc(userDocRef, sanitizedData, { merge: true });
-    setProfile(prev => ({ ...(prev || {}), ...sanitizedData }));
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated.");
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
-    const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
+    const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
     
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     const currentProfile = profile || {};
@@ -111,8 +120,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
     };
     
-    await updateUserData(newStats);
-    await setDoc(attemptRef, sanitizedAttempt, { merge: true });
+    try {
+        await updateUserData(newStats);
+        await setDoc(attemptRef, sanitizedAttempt, { merge: true });
+    } catch (err) {
+        console.error("Failed to save quiz attempt:", err);
+        if ((err as any).code === 'unavailable') {
+            alert("You appear to be offline. Your quiz results could not be saved.");
+        }
+    }
   }, [user, profile, updateUserData]);
   
   const isProfileComplete = !!profile?.profileCompleted;

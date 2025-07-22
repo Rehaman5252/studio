@@ -107,6 +107,7 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         }
     }, [profile, user, form]);
 
+
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user || !updateUserData) {
             toast({ title: "Authentication Error", description: "User not logged in.", variant: "destructive" });
@@ -129,6 +130,7 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
                 variant: "destructive"
             });
         } finally {
+            // This is the critical fix to reset the button state
             setIsSubmitting(false);
         }
     };

@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore } from '@/lib/firebaseClient';
+import { db, isFirebaseOnline } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -35,7 +35,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Leaderboard</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -53,6 +53,13 @@ const LiveLeaderboard = memo(() => {
             setError(null);
             
             try {
+                const online = await isFirebaseOnline();
+                if (!online) {
+                    throw new Error("client-offline");
+                }
+
+                // In a real app, this would query a shared 'liveSlot' collection.
+                // For this demo, we mock it.
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
@@ -61,23 +68,21 @@ const LiveLeaderboard = memo(() => {
                 ];
                 
                 if (user) {
-                    const q = query(collection(firestore, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
 
                     if (!userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        const livePlayer: LivePlayer = {
+                        mockLivePlayers.push({
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
                             avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
-                        };
-                        if (!mockLivePlayers.some(p => p.uid === user.uid)) {
-                            mockLivePlayers.push(livePlayer);
-                        }
+                        });
                     }
                 }
-                
-                const sorted = mockLivePlayers.sort((a, b) => {
+
+                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
+                const sorted = uniquePlayers.sort((a, b) => {
                     if (a.disqualified && !b.disqualified) return 1;
                     if (!a.disqualified && b.disqualified) return -1;
                     if (a.score !== b.score) return b.score - a.score;
@@ -86,7 +91,7 @@ const LiveLeaderboard = memo(() => {
 
                 setPlayers(sorted);
             } catch (e: any) {
-                if (e.code === 'unavailable') {
+                if (e.message.includes('client-offline') || e.code === 'unavailable') {
                   setError("You appear to be offline. Please check your connection.");
                 } else {
                   setError("An error occurred while loading the leaderboard.");
@@ -96,14 +101,13 @@ const LiveLeaderboard = memo(() => {
                 setIsLoading(false);
             }
         };
-
         fetchLivePlayers();
     }, [user, profile]);
 
     const renderContent = () => {
         if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">Play in the current quiz to appear on the live board!</p>;
+        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
         return players.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
@@ -129,10 +133,11 @@ const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     
     const players: AllTimePlayer[] = useMemo(() => {
-        if (!profile || !user) return [];
+        // This is mocked for now. A real implementation would query an aggregated collection.
+        if (!profile) return [];
         return [{
-            uid: user.uid,
-            name: profile.name || 'You',
+            uid: user!.uid,
+            name: profile.name,
             perfectScores: profile.perfectScores || 0,
             totalPlayed: profile.quizzesPlayed || 0,
             avatar: profile.photoURL,

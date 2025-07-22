@@ -1,4 +1,6 @@
+
 'use client';
+
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -6,13 +8,13 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, firestore, isFirebaseOnline } from './firebaseClient';
+import { auth, db, isFirebaseOnline } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData = {}) {
-  const userDocRef = doc(firestore, 'users', user.uid);
+  const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
@@ -35,9 +37,12 @@ export async function createUserDocument(user: User, additionalData = {}) {
     };
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
-    } catch (error) {
-      toast({ title: "Error", description: "Could not create user profile.", variant: "destructive" });
-      console.error("Error creating user document: ", error);
+    } catch (error: any) {
+      if ((error as any).code === 'unavailable') {
+          toast({ title: "Offline", description: "Could not create your profile document. Please check your connection.", variant: "destructive"});
+      } else {
+        toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+      }
       throw error;
     }
   }
@@ -46,7 +51,10 @@ export async function createUserDocument(user: User, additionalData = {}) {
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (isPopupOpen) return null;
+  if (isPopupOpen) {
+    console.warn("Google Sign-In popup is already open.");
+    return null;
+  }
   isPopupOpen = true;
 
   const provider = new GoogleAuthProvider();
@@ -54,17 +62,21 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
+    
     const online = await isFirebaseOnline();
     if (!online) {
       throw new Error("client-offline");
     }
+    
+    // This now happens *after* a successful online check.
     await createUserDocument(result.user);
     return result.user;
+
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
-    } else if (error.message === 'client-offline' || error.code === 'auth/network-request-failed') {
-        toast({ title: 'You are Offline', description: 'Please check your internet connection and try again.', variant: 'destructive' });
+    } else if (error.message === 'client-offline' || error.code === 'auth/network-request-failed' || error.code === 'unavailable') {
+        toast({ title: 'You Are Offline', description: 'Could not sign in. Please check your connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
