@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -20,25 +20,27 @@ interface QuizStatusContextType {
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   
-  const [timeLeft, setTimeLeft] = useState({ minutes: 9, seconds: 59 });
+  const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (authLoading) return;
+    if (isAuthLoading) return;
     if (!user || !db) {
-        setIsLoading(false);
+        setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
     }
     
     const fetchLastAttempt = async () => {
-        setIsLoading(true);
+        setIsHistoryLoading(true);
         try {
             const slotId = getQuizSlotId();
             const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', slotId);
@@ -52,37 +54,63 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
             console.error("Failed to fetch last quiz attempt:", error);
             setLastAttemptInSlot(null);
         } finally {
-            setIsLoading(false);
+            setIsHistoryLoading(false);
         }
     }
     fetchLastAttempt();
-  }, [user, authLoading]);
+  }, [user, isAuthLoading]);
   
-  useEffect(() => {
-    const timer = setInterval(() => {
-        const now = new Date();
-        const minutes = now.getMinutes();
-        const seconds = now.getSeconds();
-        const slotLength = 10;
-        const remainingMinutes = slotLength - (minutes % slotLength) - 1;
-        const remainingSeconds = 59 - seconds;
-        setTimeLeft({ minutes: remainingMinutes, seconds: remainingSeconds });
-    }, 1000);
+  const calculateTimeLeft = useCallback(() => {
+    const now = new Date();
+    const minutes = now.getMinutes();
     
-    return () => clearInterval(timer);
+    const slotLength = 10; // 10 minutes
+    const slotEndMinute = (Math.floor(minutes / slotLength) + 1) * slotLength;
+    
+    const endTime = new Date(now);
+    endTime.setMinutes(slotEndMinute, 0, 0);
+
+    const diff = endTime.getTime() - now.getTime();
+    
+    const minutesLeft = Math.max(0, Math.floor((diff / 1000 / 60) % 60));
+    const secondsLeft = Math.max(0, Math.floor((diff / 1000) % 60));
+
+    return { minutes: minutesLeft, seconds: secondsLeft };
   }, []);
 
   useEffect(() => {
-    setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
-    setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
-    setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
+    return () => clearInterval(timer);
+  }, [calculateTimeLeft]);
+
+  useEffect(() => {
+    const setInitialStats = () => {
+      setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
+      setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
+      setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
+    };
+    
+    setInitialStats();
+
+    const playersTimer = setInterval(() => {
+      setPlayersPlaying(p => Math.max(800, p + Math.floor(Math.random() * 21) - 10));
+      setPlayersPlayed(p => p + Math.floor(Math.random() * 5));
+    }, 3000);
+
+    return () => clearInterval(playersTimer);
   }, []);
 
-  return (
-    <QuizStatusContext.Provider value={{ timeLeft, playersPlaying, playersPlayed, totalWinners, lastAttemptInSlot, isLoading: authLoading || isLoading }}>
-      {children}
-    </QuizStatusContext.Provider>
-  );
+  const value = {
+    timeLeft,
+    playersPlaying,
+    playersPlayed,
+    totalWinners,
+    lastAttemptInSlot,
+    isLoading,
+  };
+
+  return <QuizStatusContext.Provider value={value}>{children}</QuizStatusContext.Provider>;
 };
 
 export const useQuizStatus = () => {

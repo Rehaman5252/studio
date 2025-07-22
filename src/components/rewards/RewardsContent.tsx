@@ -37,6 +37,13 @@ const RewardsSkeleton = () => (
             </CarouselContent>
         </Carousel>
       </section>
+      <section>
+        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+        <div className="space-y-4">
+          <Skeleton className="h-[96px] w-full" />
+          <Skeleton className="h-[96px] w-full" />
+        </div>
+      </section>
   </div>
 );
 
