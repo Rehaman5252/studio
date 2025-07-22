@@ -11,6 +11,7 @@ import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { differenceInCalendarDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { enableIndexedDbPersistence } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -39,6 +40,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && db) {
+      enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn("🟡 Persistence failed: multiple tabs open");
+        } else if (err.code === 'unimplemented') {
+          console.warn("🟠 Browser does not support offline persistence");
+        } else {
+          console.error("🔴 Unknown persistence error:", err.message);
+        }
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (!auth) { 
@@ -79,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (!user) {
         setProfile(null);
         return;

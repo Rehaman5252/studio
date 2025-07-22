@@ -4,17 +4,15 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, isFirebaseOnline, getFirebaseFirestore } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
 import { useEffect, useState } from 'react';
 
 export default function FirebaseTestPage() {
   const { user, profile, loading: isAuthLoading } = useAuth();
   const [dbStatus, setDbStatus] = useState<boolean | null>(null);
-  const [isOnline, setIsOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
-    isFirebaseOnline().then(setIsOnline);
-    setDbStatus(!!getFirebaseFirestore());
+    setDbStatus(!!db);
   }, []);
 
   const isLoading = isAuthLoading;
@@ -37,21 +35,6 @@ export default function FirebaseTestPage() {
             {isConfigured ? `Firebase config loaded successfully.` : 'Firebase config is missing or incomplete. Please check your environment variables.'}
             </AlertDescription>
         </Alert>
-
-        {isOnline === null ? (
-            <div className="flex items-center justify-center rounded-lg border bg-card p-4">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <p className="ml-4 text-muted-foreground">Checking online status...</p>
-            </div>
-        ) : (
-            <Alert variant={isOnline ? 'default' : 'destructive'} className={isOnline ? 'border-green-500/50 bg-green-500/10' : ''}>
-                {isOnline ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
-                <AlertTitle>Firebase Online Status</AlertTitle>
-                <AlertDescription>
-                {isOnline ? `Firebase client is online and connected.` : 'Firebase client is OFFLINE. Data operations will fail.'}
-                </AlertDescription>
-            </Alert>
-        )}
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-8">

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, auth } from '@/lib/firebaseClient';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -32,7 +32,6 @@ export default function ForgotPasswordForm() {
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
-    const auth = getFirebaseAuth();
     if (!auth) {
         toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
         return;

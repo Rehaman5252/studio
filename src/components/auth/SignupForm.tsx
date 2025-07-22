@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { getFirebaseAuth } from '@/lib/firebaseClient';
+import { auth } from '@/lib/firebaseClient';
 import { sendEmailVerification } from 'firebase/auth';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -68,7 +68,6 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
-    const auth = getFirebaseAuth();
     if (!auth) {
         toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
         setIsLoading(false);
