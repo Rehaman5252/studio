@@ -44,46 +44,68 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    
-    // Using a simple mock here. In a real app, this would use a real-time listener (e.g., onSnapshot)
-    // on a shared 'live_leaderboard' collection in Firestore.
-    useEffect(() => {
-        setIsLoading(true);
-        const mockLivePlayers: LivePlayer[] = [
-             { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
-             { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-             { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
-        ];
-        
-        if (user && profile) {
-             mockLivePlayers.push({
-                uid: user.uid,
-                name: profile.name || 'You',
-                score: profile.lastScore || 0,
-                time: profile.lastTime || 0,
-                avatar: profile.photoURL,
-                disqualified: false
-            });
-        }
-        
-        const sorted = mockLivePlayers
-            .sort((a, b) => {
-                if (a.disqualified && !b.disqualified) return 1;
-                if (!a.disqualified && b.disqualified) return -1;
-                if (a.score !== b.score) return b.score - a.score;
-                return a.time - b.time;
-            }).map((p, i) => ({ ...p, rank: i + 1 }));
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-        setPlayers(sorted);
-        setIsLoading(false);
-    }, [user, profile]);
+    useEffect(() => {
+        if (authLoading) return;
+
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Couldn't connect to the database.");
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchLivePlayers = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                // In a real app, this would query a shared 'liveSlot' collection.
+                const livePlayers: LivePlayer[] = [];
+                
+                if (user) {
+                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                    const userAttemptSnap = await getDocs(q);
+
+                    if (!userAttemptSnap.empty) {
+                        const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
+                        livePlayers.push({
+                            uid: user.uid, name: profile?.name || 'You', score: attempt.score,
+                            time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
+                        });
+                    }
+                }
+
+                const sorted = livePlayers.sort((a, b) => {
+                    if (a.disqualified && !b.disqualified) return 1;
+                    if (!a.disqualified && b.disqualified) return -1;
+                    if (a.score !== b.score) return b.score - a.score;
+                    return a.time - b.time;
+                }).map((p, i) => ({ ...p, rank: i + 1 }));
+
+                setPlayers(sorted);
+            } catch (e: any) {
+                if (e.message.includes('offline') || e.code === 'unavailable') {
+                  setError("You appear to be offline. Please check your connection.");
+                } else {
+                  setError("An error occurred while loading the leaderboard.");
+                }
+                console.error(e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchLivePlayers();
+    }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">Play a quiz to get on the leaderboard!</p>;
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (error) return <ErrorState message={error} />;
+        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
         return players.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
@@ -107,32 +129,46 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
+    const [isLoading, setIsLoading] = useState(true);
     
-    // This is mocked for now. A real implementation would query an aggregated collection.
     const players: AllTimePlayer[] = useMemo(() => {
-        if (!user || !profile || (profile.perfectScores || 0) === 0) return [];
-        return [{ uid: user.uid, name: profile.name, perfectScores: profile.perfectScores, totalPlayed: profile.quizzesPlayed, avatar: profile.photoURL, rank: 1 }];
+        if (!profile) return [];
+        return [{
+            uid: user!.uid,
+            name: profile.name,
+            perfectScores: profile.perfectScores || 0,
+            totalPlayed: profile.quizzesPlayed || 0,
+            avatar: profile.photoURL,
+            rank: 1
+        }];
     }, [user, profile]);
+    
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
+
+    if (isLoading) return <LeaderboardItemSkeleton />;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
+                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
                     {players.length > 0 ? players.map((player) => (
                         <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
-                            <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-                            <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-                            <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
-                            <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
-                        </motion.div>
-                    )) : <p className="text-center text-muted-foreground p-4">Play quizzes to get on the All-Time leaderboard!</p>}
+                           <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+                           <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+                           <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
+                           <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
+                       </motion.div>
+                   )) : <p className="text-center text-muted-foreground p-4">Play quizzes to appear on the All-Time leaderboard!</p>}
                 </motion.div>
             </CardContent>
         </Card>
     );
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
+
 
 export default function LeaderboardContent() {
   const { user } = useAuth();
