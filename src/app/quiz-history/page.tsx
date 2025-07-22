@@ -5,8 +5,11 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { ScrollText } from 'lucide-react';
+import { ScrollText, Play } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
   loading: () => <HistorySkeleton />,
@@ -24,6 +27,22 @@ const HistorySkeleton = () => (
     </div>
 );
 
+const GuestPrompt = () => (
+    <div className="flex items-center justify-center h-full">
+        <Card className="w-full max-w-md bg-card/80 shadow-lg border-primary/20 text-center">
+            <CardContent className="p-8">
+                <div className="mx-auto bg-primary/20 p-4 rounded-full w-fit mb-4">
+                    <ScrollText className="h-12 w-12 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold">See Your Quiz History</h2>
+                <p className="text-muted-foreground mt-2 mb-6">Log in and play a few quizzes to see your performance analysis and track your progress over time.</p>
+                <Button asChild size="lg">
+                    <Link href="/auth/login"><Play className="mr-2"/> Start Playing</Link>
+                </Button>
+            </CardContent>
+        </Card>
+    </div>
+);
 
 export default function QuizHistoryPage() {
   const { user, loading } = useAuth();
@@ -40,13 +59,7 @@ export default function QuizHistoryPage() {
         ) : user ? (
           <QuizHistoryContent />
         ) : (
-          <div className="flex items-center justify-center h-full">
-              <LoginPrompt
-                icon={ScrollText}
-                title="Track Your Innings"
-                description="Log in to see your quiz performance, stats, and AI analysis."
-              />
-          </div>
+          <GuestPrompt />
         )}
       </main>
     </div>

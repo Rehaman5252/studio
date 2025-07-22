@@ -177,36 +177,18 @@ const AllTimeLeaderboard = memo(() => {
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
-const MyNetworkLeaderboard = memo(() => {
-    return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader className="text-center">
-                <CardTitle>🤝 My Network</CardTitle>
-                <CardDescription>Compare your performance with friends.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                <Users className="h-12 w-12 mb-4" />
-                <p className="font-semibold text-lg text-foreground">Coming Soon!</p>
-                <p>Refer friends to see their stats here. This feature is under development.</p>
-            </CardContent>
-        </Card>
-    );
-});
-MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
 
 export default function LeaderboardContent() {
   const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={cn("grid w-full", user ? "grid-cols-2" : "grid-cols-1")}>
             <TabsTrigger value="live">Current</TabsTrigger>
-            <TabsTrigger value="all-time">All-Time</TabsTrigger>
-            <TabsTrigger value="network">My Network</TabsTrigger>
+            {user && <TabsTrigger value="all-time">All-Time</TabsTrigger>}
         </TabsList>
         <TabsContent value="live"><LiveLeaderboard /></TabsContent>
-        <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>
-        <TabsContent value="network"><MyNetworkLeaderboard /></TabsContent>
+        {user && <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>}
     </Tabs>
   );
 }

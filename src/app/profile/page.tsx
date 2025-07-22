@@ -24,16 +24,25 @@ function ProfilePageContent() {
   
   if (!user) {
     return (
-      <main className="flex flex-1 flex-col p-4 space-y-6 pb-20">
-          <Button asChild size="lg" className="w-full justify-center text-base py-6">
-              <Link href="/auth/login"><LogIn className="mr-4" /> Pad Up & Sign In</Link>
-          </Button>
-          <section className="space-y-3 pt-4">
-              <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                  <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
-              </Button>
-          </section>
-          <SupportCard />
+      <main className="flex flex-1 flex-col items-center justify-center p-4 space-y-6 pb-20">
+          <div className="w-full max-w-sm text-center">
+            <h2 className="text-2xl font-bold">Your Profile</h2>
+            <p className="text-muted-foreground mt-2 mb-6">
+                Sign in to manage your profile, view stats, and access your rewards.
+            </p>
+            <Button asChild size="lg" className="w-full justify-center text-base py-6">
+                <Link href="/auth/login?from=/profile"><LogIn className="mr-4" /> Pad Up & Sign In</Link>
+            </Button>
+            <section className="space-y-3 pt-8">
+                <h3 className="text-lg font-semibold mb-2">General</h3>
+                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                    <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
+                </Button>
+            </section>
+             <div className="mt-8 w-full">
+                <SupportCard />
+             </div>
+          </div>
       </main>
     )
   }
@@ -45,7 +54,7 @@ function ProfilePageContent() {
   );
 }
 
-export default function ProfilePage() {
+export default function ProfilePageWrapper() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

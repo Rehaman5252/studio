@@ -3,9 +3,6 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { Home as HomeIcon } from 'lucide-react';
 
 const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
   loading: () => <HomeContentSkeleton />,
@@ -33,7 +30,6 @@ const HomeContentSkeleton = () => (
 );
 
 function HomePage() {
-    const { user, loading } = useAuth();
     return (
       <div className="flex flex-col h-screen bg-background text-foreground">
         <header className="p-4 flex items-center justify-center">
@@ -46,19 +42,7 @@ function HomePage() {
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-2">
-            {loading ? (
-                <HomeContentSkeleton />
-            ) : user ? (
-                <HomeClientContent />
-            ) : (
-                <div className="flex items-center justify-center pt-10">
-                    <LoginPrompt
-                        icon={HomeIcon}
-                        title="Welcome to indcric!"
-                        description="Sign in to play quizzes, win rewards, and climb the leaderboard."
-                    />
-                </div>
-            )}
+            <HomeClientContent />
           </div>
         </main>
       </div>
