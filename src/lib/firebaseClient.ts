@@ -43,10 +43,12 @@ function initializeFirebase() {
 initializeFirebase();
 
 export function getFirebaseAuth(): Auth | null {
+  if (!auth) initializeFirebase();
   return auth;
 }
 
 export function getFirebaseFirestore(): Firestore | null {
+  if (!db) initializeFirebase();
   if (db && !persistenceEnabled && typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
       if (err.code === 'failed-precondition') {
@@ -64,26 +66,28 @@ export function getFirebaseFirestore(): Firestore | null {
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 export async function isFirebaseOnline(): Promise<boolean> {
-  const db = getFirebaseFirestore();
-  // If the browser itself reports offline, we can be sure.
+  // If the browser itself reports offline, we can be almost certain.
   if (typeof window !== 'undefined' && !navigator.onLine) {
     return false;
   }
+
+  const db = getFirebaseFirestore();
   if (!db) {
     return false;
   }
 
   try {
-    // This is a more reliable check for Firestore connectivity.
-    // It attempts a minimal read operation. A non-existent doc is fine.
+    // Attempt a minimal, low-cost read operation. A non-existent doc is perfect for this.
+    // This is the most reliable way to check for actual Firestore connectivity.
     await getDoc(doc(db, "systemHealth/connectivityCheck"));
     return true;
   } catch (error: any) {
-    // Firestore specific 'unavailable' code is a strong signal of being offline.
+    // The 'unavailable' code is Firestore's specific way of saying it can't reach the backend.
     if (error.code === 'unavailable') {
         return false;
     }
-    // For other errors, we can be optimistic if the browser thinks it's online.
-    return typeof window !== 'undefined' && navigator.onLine;
+    // For other errors, we can be optimistic and assume we are online, as they might
+    // be permission errors, etc., not connectivity issues.
+    return true;
   }
 }

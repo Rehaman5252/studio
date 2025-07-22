@@ -20,22 +20,17 @@ const withAuth = <P extends object>(
     const router = useRouter();
 
     useEffect(() => {
-      if (!loading) {
-        if (!user) {
-          router.replace('/auth/login');
-        } else if (!profile?.profileCompleted) {
-          router.replace('/complete-profile');
-        }
+      // Don't redirect while loading
+      if (loading) return;
+
+      if (!user) {
+        router.replace('/auth/login');
+      } else if (!profile?.profileCompleted) {
+        // This ensures that even if a profile exists but is incomplete,
+        // the user is forced to complete it.
+        router.replace('/complete-profile');
       }
     }, [user, profile, loading, router]);
-
-    if (loading || !user || !profile?.profileCompleted) {
-      return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
-    }
     
     if (isOffline) {
         return (
@@ -49,6 +44,15 @@ const withAuth = <P extends object>(
                 </Alert>
             </div>
         );
+    }
+
+    // Show a loader while we determine auth state and profile completion.
+    if (loading || !user || !profile?.profileCompleted) {
+      return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
     }
 
     return <WrappedComponent {...props} />;

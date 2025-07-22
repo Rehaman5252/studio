@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -14,7 +14,6 @@ interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
   loading: boolean;
-  historyLoading: boolean;
   isOffline: boolean;
   updateUserData?: (data: Partial<Record<string, any>>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
@@ -22,6 +21,7 @@ interface AuthContextType {
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
   quizHistory: QuizAttempt[];
+  historyLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,7 +39,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const auth = getFirebaseAuth();
-    if (!auth) { setLoading(false); return; }
+    if (!auth) { 
+        console.error("Firebase Auth is not initialized.");
+        setLoading(false); 
+        setIsOffline(true);
+        return;
+    }
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
@@ -78,6 +83,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
 
     const setupListeners = async () => {
+      const online = await isFirebaseOnline();
+      setIsOffline(!online);
+
+      if (!online) {
+        console.warn("App is offline. Data fetching will be skipped.");
+        setLoading(false);
+        setHistoryLoading(false);
+        return;
+      }
+
       const db = getFirebaseFirestore();
       if (!db) {
         console.error("Firestore is not available.");
@@ -86,13 +101,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
-      const online = await isFirebaseOnline();
-      setIsOffline(!online);
-      if (!online) {
-        setLoading(false);
-        return;
-      }
-
       // Fetch history once on login
       fetchHistory(user.uid);
 
@@ -109,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           try {
             await createUserDocument(user);
-            // Snapshot will re-trigger with the new data
+            // Snapshot will re-trigger with the new data from the server
           } catch(e) {
             console.error("Failed to create user document after sign-in.", e);
             setIsOffline(true);
