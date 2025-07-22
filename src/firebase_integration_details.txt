@@ -1,0 +1,710 @@
+
+--- FILE: src/lib/firebaseClient.ts ---
+'use client';
+
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let persistenceEnabled = false;
+
+function initializeFirebase() {
+    if (typeof window !== "undefined") {
+        if (!getApps().length) {
+            try {
+                if (Object.values(firebaseConfig).every(Boolean)) {
+                    app = initializeApp(firebaseConfig);
+                }
+            } catch (e) {
+                console.error("Failed to initialize Firebase", e);
+            }
+        } else {
+            app = getApp();
+        }
+
+        if (app) {
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+    }
+}
+
+initializeFirebase();
+
+export function getFirebaseAuth(): Auth | null {
+  return auth;
+}
+
+export function getFirebaseFirestore(): Firestore | null {
+  if (db && !persistenceEnabled && typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence failed: multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence not supported in this browser.');
+      }
+    });
+    persistenceEnabled = true;
+  }
+  return db;
+}
+
+
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
+export async function isFirebaseOnline(): Promise<boolean> {
+  const db = getFirebaseFirestore();
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+
+  try {
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    await getDoc(testDoc);
+    return true;
+  } catch (error: any) {
+    if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
+        return false;
+    }
+    return false;
+  }
+}
+
+--- FILE: src/context/AuthProvider.tsx ---
+'use client';
+
+import type { User } from 'firebase/auth';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { createUserDocument } from '@/lib/authUtils';
+import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
+import type { QuizAttempt } from '@/lib/mockData';
+
+interface AuthContextType {
+  user: User | null;
+  profile: Record<string, any> | null;
+  loading: boolean;
+  isOffline: boolean;
+  updateUserData?: (data: Partial<Record<string, any>>) => Promise<void>;
+  addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
+  lastAttempt: QuizAttempt | null;
+  setLastAttempt: (attempt: QuizAttempt | null) => void;
+  isProfileComplete: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Record<string, any> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const auth = getFirebaseAuth();
+    if (!auth) { setLoading(false); return; }
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) { 
+        setProfile(null); 
+        setLoading(false); 
+        return; 
+    }
+    
+    let unsubProfile: () => void = () => {};
+    
+    setLoading(true);
+
+    const setupListeners = async () => {
+      const db = getFirebaseFirestore();
+      if (!db) {
+        console.error("Firestore is not available.");
+        setIsOffline(true);
+        setLoading(false);
+        return;
+      }
+      
+      const online = await isFirebaseOnline();
+      setIsOffline(!online);
+      if (!online) {
+        setLoading(false);
+        return;
+      }
+
+      const userDocRef = doc(db, "users", user.uid);
+      
+      unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data?.dob instanceof Timestamp) {
+            data.dob = data.dob.toDate().toISOString().split('T')[0];
+          }
+          setProfile(data);
+          setIsProfileComplete(!!data.profileCompleted);
+        } else {
+          await createUserDocument(user);
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Profile snapshot error:", error);
+        setIsOffline(true);
+        setLoading(false);
+      });
+      
+    };
+    
+    setupListeners();
+    
+    return () => {
+        unsubProfile();
+    };
+  }, [user]);
+
+  const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
+    const db = getFirebaseFirestore();
+    if (!user || !db) throw new Error("User not authenticated or database not available.");
+    
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+  }, [user]);
+
+  const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
+    const db = getFirebaseFirestore();
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
+
+    const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
+    const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
+
+    const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
+    
+    if (updateUserData) {
+        const currentProfile = profile || {};
+        const newStats = {
+          quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
+          perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
+          totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
+        };
+        await updateUserData(newStats);
+    }
+    await setDoc(attemptRef, sanitizedAttempt, { merge: true });
+  }, [user, profile, updateUserData]);
+  
+  const value = useMemo(() => ({
+    user, profile, loading, isOffline, updateUserData, addQuizAttempt,
+    lastAttempt, setLastAttempt, isProfileComplete
+  }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export function useAuth() {
+  const c = useContext(AuthContext);
+  if (!c) throw new Error("useAuth must be inside AuthProvider");
+  return c;
+}
+
+
+--- FILE: src/context/QuizStatusProvider.tsx ---
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { useAuth } from './AuthProvider';
+import { getQuizSlotId } from '@/lib/utils';
+import type { QuizAttempt } from '@/lib/mockData';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
+
+interface QuizStatusContextType {
+  timeLeft: { minutes: number; seconds: number };
+  playersPlaying: number;
+  playersPlayed: number;
+  totalWinners: number;
+  lastAttemptInSlot: QuizAttempt | null;
+  isLoading: boolean;
+}
+
+const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
+
+export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
+  const { user, loading: isAuthLoading } = useAuth();
+  
+  const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
+  const [playersPlaying, setPlayersPlaying] = useState(0);
+  const [playersPlayed, setPlayersPlayed] = useState(0);
+  const [totalWinners, setTotalWinners] = useState(0);
+  const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  const isLoading = isAuthLoading || isHistoryLoading;
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (!user) {
+        setIsHistoryLoading(false);
+        setLastAttemptInSlot(null);
+        return;
+    }
+    
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setIsHistoryLoading(false);
+        return;
+    }
+    
+    const fetchLastAttempt = async () => {
+        setIsHistoryLoading(true);
+        try {
+            const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                setLastAttemptInSlot(docSnap.data() as QuizAttempt);
+            } else {
+                setLastAttemptInSlot(null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch last quiz attempt:", error);
+            setLastAttemptInSlot(null);
+        } finally {
+            setIsHistoryLoading(false);
+        }
+    }
+    fetchLastAttempt();
+  }, [user, isAuthLoading]);
+  
+  const calculateTimeLeft = useCallback(() => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    
+    const slotLength = 10;
+    const slotEndMinute = (Math.floor(minutes / slotLength) + 1) * slotLength;
+    
+    const endTime = new Date(now);
+    endTime.setMinutes(slotEndMinute, 0, 0);
+
+    const diff = endTime.getTime() - now.getTime();
+    
+    const minutesLeft = Math.max(0, Math.floor((diff / 1000 / 60) % 60));
+    const secondsLeft = Math.max(0, Math.floor((diff / 1000) % 60));
+
+    return { minutes: minutesLeft, seconds: secondsLeft };
+  }, []);
+
+  useEffect(() => {
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
+    return () => clearInterval(timer);
+  }, [calculateTimeLeft]);
+
+  useEffect(() => {
+    const setInitialStats = () => {
+      setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
+      setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
+      setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
+    };
+    
+    setInitialStats();
+
+    const playersTimer = setInterval(() => {
+      setPlayersPlaying(p => Math.max(800, p + Math.floor(Math.random() * 21) - 10));
+      setPlayersPlayed(p => p + Math.floor(Math.random() * 5));
+    }, 3000);
+
+    return () => clearInterval(playersTimer);
+  }, []);
+
+  const value = {
+    timeLeft,
+    playersPlaying,
+    playersPlayed,
+    totalWinners,
+    lastAttemptInSlot,
+    isLoading,
+  };
+
+  return <QuizStatusContext.Provider value={value}>{children}</QuizStatusContext.Provider>;
+};
+
+export const useQuizStatus = () => {
+  const context = useContext(QuizStatusContext);
+  if (context === undefined) {
+    throw new Error('useQuizStatus must be used within a QuizStatusProvider');
+  }
+  return context;
+};
+
+--- FILE: src/lib/authUtils.ts ---
+'use client';
+
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  type User,
+} from 'firebase/auth';
+import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
+import { toast } from '@/hooks/use-toast';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { sanitizeUserProfile } from './sanitizeUserProfile';
+
+export async function createUserDocument(user: User, additionalData = {}) {
+  const db = getFirebaseFirestore();
+  if (!user || !db) return;
+  
+  const userDocRef = doc(db, 'users', user.uid);
+  const snapshot = await getDoc(userDocRef);
+
+  if (!snapshot.exists()) {
+    const { email, displayName, photoURL } = user;
+    const newUserProfile = {
+      uid: user.uid,
+      email,
+      name: (additionalData as any).name || displayName || 'New User',
+      photoURL: photoURL || `https://placehold.co/100x100.png`,
+      createdAt: new Date(),
+      emailVerified: user.emailVerified,
+      quizzesPlayed: 0,
+      perfectScores: 0,
+      totalRewards: 0,
+      profileCompleted: false,
+      phoneVerified: false,
+      referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
+      referralEarnings: 0,
+      ...additionalData
+    };
+    try {
+      await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
+    } catch (error) {
+      toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+      throw error;
+    }
+  }
+}
+
+let isPopupOpen = false;
+
+export async function handleGoogleSignIn(): Promise<User | null> {
+  const auth = getFirebaseAuth();
+  if (isPopupOpen || !auth) {
+    console.warn("Google Sign-In popup is already open or auth is not initialized.");
+    return null;
+  }
+  isPopupOpen = true;
+
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error: any) {
+    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        console.warn('Google sign-in was cancelled by the user.');
+    } else if (error.message?.includes("offline") || error.code === 'auth/network-request-failed') {
+        toast({ title: 'Offline Error', description: 'Please check your internet connection and try again.', variant: 'destructive' });
+    } else {
+        console.error("Google Sign-in error:", error);
+        toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
+    }
+    return null;
+  } finally {
+    isPopupOpen = false;
+  }
+}
+
+export const registerWithEmail = async (email: string, password: string) => {
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    return userCredential;
+};
+
+export const loginWithEmail = async (email: string, password:string) => {
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential;
+};
+
+--- FILE: src/components/certificates/CertificatesContent.tsx ---
+'use client';
+
+import React, { useMemo, useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
+import type { QuizAttempt } from '@/lib/mockData';
+import { useAuth } from '@/context/AuthProvider';
+import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+
+// ... (rest of the component is the same)
+
+export default function CertificatesContent() {
+  const { user, profile, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setIsLoading(false); return; }
+
+    const db = getFirebaseFirestore();
+    if (!db) {
+      setError("You appear to be offline. Please check your connection to see your certificates.");
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchHistory = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
+            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+            setQuizHistory(historyData);
+        } catch (e: any) {
+            console.error("Failed to fetch certificate data:", e);
+            if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                setError("You appear to be offline. Please check your connection to see your certificates.");
+            } else {
+                setError("Could not load your certificates. Please try again later.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchHistory();
+  }, [user, authLoading]);
+  
+  // ... (rest of the component is the same)
+}
+
+--- FILE: src/components/leaderboard/LeaderboardContent.tsx ---
+'use client';
+
+import React, { memo, useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn, getQuizSlotId } from '@/lib/utils';
+import LiveInfo from '@/components/leaderboard/LiveInfo';
+import { useAuth } from '@/context/AuthProvider';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Ban, WifiOff, ServerCrash } from 'lucide-react';
+import { motion } from 'framer-motion';
+import type { QuizAttempt } from '@/lib/mockData';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+
+// ... (rest of the component is the same)
+
+const LiveLeaderboard = memo(() => {
+    const { user, profile, loading: authLoading } = useAuth();
+    const [players, setPlayers] = useState<LivePlayer[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (authLoading) return;
+
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Couldn't connect to the database.");
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchLivePlayers = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const livePlayers: LivePlayer[] = [];
+                
+                if (user) {
+                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                    const userAttemptSnap = await getDocs(q);
+
+                    if (!userAttemptSnap.empty) {
+                        const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
+                        livePlayers.push({
+                            uid: user.uid, name: profile?.name || 'You', score: attempt.score,
+                            time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
+                        });
+                    }
+                }
+                
+                // In a real app, you would also query a global 'liveAttempts' collection
+                // to get other players' data. We are only showing the current user's live data.
+
+                const sorted = livePlayers.sort((a, b) => {
+                    if (a.disqualified && !b.disqualified) return 1;
+                    if (!a.disqualified && b.disqualified) return -1;
+                    if (a.score !== b.score) return b.score - a.score;
+                    return a.time - b.time;
+                }).map((p, i) => ({ ...p, rank: i + 1 }));
+
+                setPlayers(sorted);
+            } catch (e: any) {
+                if (e.message.includes('offline') || e.code === 'unavailable') {
+                  setError("You appear to be offline. Please check your connection.");
+                } else {
+                  setError("An error occurred while loading the leaderboard.");
+                }
+                console.error(e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchLivePlayers();
+    }, [user, profile, authLoading]);
+    // ... (rest of the component is the same)
+});
+
+
+--- FILE: src/components/quiz-history/QuizHistoryContent.tsx ---
+'use client';
+
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash } from 'lucide-react';
+import type { QuizAttempt } from '@/lib/mockData';
+import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
+import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@/context/AuthProvider';
+import { cn } from '@/lib/utils';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+
+// ... (rest of the component is the same)
+
+export default function QuizHistoryContent() {
+    const { user } = useAuth();
+    const [filter, setFilter] = useState<'all' | 'perfect'>('all');
+    const [history, setHistory] = useState<QuizAttempt[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!user) { setLoading(false); return; }
+        const db = getFirebaseFirestore();
+        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
+        setLoading(true); setError(null);
+        (async () => {
+            try {
+                const q = query(
+                    collection(db, "users", user.uid, "quizAttempts"),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
+                const snap = await getDocs(q);
+                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+            } catch (e) {
+                setError("Unable to load quiz history.");
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [user]);
+    // ... (rest of the component is the same)
+}
+
+--- FILE: src/components/rewards/RewardsContent.tsx ---
+'use client';
+
+import React, { useState, useMemo, memo, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
+import Image from 'next/image';
+import type { QuizAttempt } from '@/lib/mockData';
+import { useAuth } from '@/context/AuthProvider';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { motion } from 'framer-motion';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Skeleton } from '../ui/skeleton';
+import Link from 'next/link';
+
+// ... (rest of the component is the same)
+
+const BrandGifts = () => {
+  const { user, loading: authLoading } = useAuth();
+  const [history, setHistory] = useState<QuizAttempt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
+
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setError("Firestore not available.");
+        setLoading(false);
+        return;
+    }
+
+    const fetchHistory = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+            const snap = await getDocs(q);
+            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+        } catch (e: any) {
+            console.error("Rewards Fetch Error:", e);
+            if (e.code === 'unavailable') {
+                setError("You appear to be offline. Please check your connection.");
+            } else {
+                setError("Unable to load rewards data.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchHistory();
+  }, [user, authLoading]);
+  // ... (rest of the component is the same)
+}
+    
