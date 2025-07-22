@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -37,13 +36,14 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       totalRewards: 0,
       profileCompleted: false,
       phoneVerified: false,
-      referralCode: `https://indcric.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
+      referralCode: `https://cricblitz.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
       referralEarnings: 0,
       referredBy: null,
       referrals: [],
       rewardedReferrals: [],
       currentStreak: 0,
       lastStreakTimestamp: null,
+      dailyQuizProgress: {}, // a map to track daily quizzes, e.g., { T20: 1, total: 1 }
     };
 
     try {

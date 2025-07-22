@@ -1,15 +1,14 @@
-
 'use client';
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment, arrayUnion, writeBatch } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
-import { differenceInDays } from 'date-fns';
+import { differenceInCalendarDays } from 'date-fns';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +23,10 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const quizFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
+const STREAK_QUIZ_TOTAL = 15;
+const STREAK_FORMAT_MIN = 2;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -99,60 +102,89 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
-    setProfile(prev => {
-        const updated = { ...(prev || {}), ...newData };
-        setIsProfileComplete(!!updated.profileCompleted);
-        return updated;
-    });
-    
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
+
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();
     if (!user || !db || !profile) throw new Error("User not authenticated or DB not available.");
 
+    const batch = writeBatch(db);
+    const userRef = doc(db, 'users', user.uid);
+
+    // 1. Log the quiz attempt
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
+    batch.set(attemptRef, sanitizedAttempt, { merge: true });
 
+    // 2. Handle general stats and referral bonus for perfect scores
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     const wasFirstPerfectScore = isPerfect && (profile.perfectScores || 0) === 0;
-
-    if (updateUserData) {
-        const newStats = {
-          quizzesPlayed: increment(1),
-          perfectScores: increment(isPerfect ? 1 : 0),
-          totalRewards: increment(isPerfect ? 100 : 0),
-        };
-        await updateUserData(newStats);
-    }
     
+    batch.update(userRef, {
+      quizzesPlayed: increment(1),
+      perfectScores: increment(isPerfect ? 1 : 0),
+      totalRewards: increment(isPerfect ? 100 : 0),
+    });
+
     if (wasFirstPerfectScore && profile.referredBy) {
-        const joinDate = profile.createdAt.toDate();
-        const scoreDate = new Date();
-        const daysSinceJoined = differenceInDays(scoreDate, joinDate);
+      const joinDate = profile.createdAt.toDate();
+      const scoreDate = new Date();
+      const daysSinceJoined = differenceInCalendarDays(scoreDate, joinDate);
+      const rewardedReferrals = profile.rewardedReferrals || [];
 
-        if (daysSinceJoined <= 7) {
-            const referrerRef = doc(db, "users", profile.referredBy);
-            const referrerSnap = await getDoc(referrerRef);
+      if (daysSinceJoined <= 7 && !rewardedReferrals.includes(user.uid)) {
+        const referrerRef = doc(db, "users", profile.referredBy);
+        batch.update(referrerRef, {
+          referralEarnings: increment(50),
+          rewardedReferrals: arrayUnion(user.uid)
+        });
+      }
+    }
 
-            if (referrerSnap.exists()) {
-                const referrerData = referrerSnap.data();
-                const alreadyRewarded = referrerData.rewardedReferrals?.includes(user.uid);
-                
-                if (!alreadyRewarded) {
-                     await updateDoc(referrerRef, {
-                        referralEarnings: increment(50),
-                        rewardedReferrals: arrayUnion(user.uid)
-                    }).catch(e => console.error("Failed to update referrer earnings:", e));
-                }
-            }
-        }
+    // 3. Handle daily streak logic
+    const today = new Date();
+    const lastStreakDate = profile.lastStreakTimestamp?.toDate();
+    const streakDiff = lastStreakDate ? differenceInCalendarDays(today, lastStreakDate) : 0;
+    
+    let currentStreak = profile.currentStreak || 0;
+    let dailyProgress = profile.dailyQuizProgress || {};
+
+    if (streakDiff > 1) { // Missed a day or more
+      currentStreak = 0;
+      dailyProgress = {};
+    } else if (streakDiff === 1) { // Continued from yesterday
+      dailyProgress = {};
+    }
+
+    dailyProgress[attempt.format] = (dailyProgress[attempt.format] || 0) + 1;
+    dailyProgress.total = (dailyProgress.total || 0) + 1;
+
+    const formatsMet = quizFormats.every(f => (dailyProgress[f] || 0) >= STREAK_FORMAT_MIN);
+    
+    if (dailyProgress.total >= STREAK_QUIZ_TOTAL && formatsMet) {
+      if (streakDiff <= 1) {
+        currentStreak += 1;
+      } else {
+        currentStreak = 1;
+      }
+      batch.update(userRef, {
+        currentStreak: currentStreak,
+        lastStreakTimestamp: Timestamp.fromDate(today),
+      });
+      // Reset progress for the day after achieving the goal to prevent multiple increments
+      dailyProgress.goalAchieved = true; 
     }
     
-    await setDoc(attemptRef, sanitizedAttempt, { merge: true });
-  }, [user, profile, updateUserData]);
+    if (!dailyProgress.goalAchieved) {
+      batch.update(userRef, { dailyQuizProgress: dailyProgress });
+    }
+
+    await batch.commit();
+
+  }, [user, profile]);
   
   const value = useMemo(() => ({
     user, profile, loading, isOffline, updateUserData, addQuizAttempt,
