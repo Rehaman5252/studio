@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -64,7 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsOffline(!online);
       if (!online && !navigator.onLine) {
         setLoading(false);
-        // Do not return here, onSnapshot might still work with cached data.
       }
 
       const userDocRef = doc(db, "users", user.uid);
@@ -78,8 +77,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
-          // If the user exists in auth but not firestore, create the document.
-          // This can happen on first sign-in.
           await createUserDocument(user);
         }
         setLoading(false);
@@ -88,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsOffline(true);
         setLoading(false);
       });
+      
     };
     
     setupListeners();
@@ -101,7 +99,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
-    // Optimistic update
     setProfile(prev => {
         const updated = { ...(prev || {}), ...newData };
         setIsProfileComplete(!!updated.profileCompleted);
@@ -114,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();
-    if (!user || !db) throw new Error("User not authenticated or DB not available.");
+    if (!user || !db || !profile) throw new Error("User not authenticated or DB not available.");
 
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
@@ -122,13 +119,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     
     if (updateUserData) {
-        const currentProfile = profile || {};
         const newStats = {
-          quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
-          perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
-          totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
+          quizzesPlayed: (profile.quizzesPlayed || 0) + 1,
+          perfectScores: (profile.perfectScores || 0) + (isPerfect ? 1 : 0),
+          totalRewards: (profile.totalRewards || 0) + (isPerfect ? 100 : 0),
         };
         await updateUserData(newStats);
+
+        // Handle referral bonus
+        if (isPerfect && profile.referredBy) {
+            const referrerRef = doc(db, "users", profile.referredBy);
+            await updateDoc(referrerRef, {
+                referralEarnings: increment(50)
+            }).catch(e => console.error("Failed to update referrer earnings:", e));
+        }
     }
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
   }, [user, profile, updateUserData]);

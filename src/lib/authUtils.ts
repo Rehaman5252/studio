@@ -7,24 +7,28 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   type User,
+  updateProfile,
 } from 'firebase/auth';
-import { db, auth } from './firebaseClient';
+import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, query, where, getDocs, collection, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
-export async function createUserDocument(user: User, additionalData = {}) {
+export async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
+  const db = getFirebaseFirestore();
   if (!user || !db) return;
-  
+
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
     const { email, displayName, photoURL } = user;
+    const referralCode = additionalData.refCode || null;
+    
     const newUserProfile = {
       uid: user.uid,
       email,
-      name: (additionalData as any).name || displayName || 'New User',
+      name: additionalData.name || displayName || 'New User',
       photoURL: photoURL || `https://placehold.co/100x100.png`,
       createdAt: new Date(),
       emailVerified: user.emailVerified,
@@ -33,13 +37,28 @@ export async function createUserDocument(user: User, additionalData = {}) {
       totalRewards: 0,
       profileCompleted: false,
       phoneVerified: false,
-      referralCode: `indcric.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
+      referralCode: `cricblitz.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
       referralEarnings: 0,
-      ...additionalData
+      referredBy: null,
+      referrals: [],
     };
+
     try {
+      if (referralCode) {
+        const q = query(collection(db, "users"), where("referralCode", "==", `cricblitz.com/auth/signup?ref=${referralCode}`));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const referrerDoc = querySnapshot.docs[0];
+          newUserProfile.referredBy = referrerDoc.id;
+          const referrerRef = doc(db, 'users', referrerDoc.id);
+          await updateDoc(referrerRef, {
+            referrals: arrayUnion(user.uid)
+          });
+        }
+      }
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
+      console.error("Error creating user document or updating referrer:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
     }
@@ -48,7 +67,8 @@ export async function createUserDocument(user: User, additionalData = {}) {
 
 let isPopupOpen = false;
 
-export async function handleGoogleSignIn(): Promise<User | null> {
+export async function handleGoogleSignIn(refCode: string | null = null): Promise<User | null> {
+  const auth = getFirebaseAuth();
   if (isPopupOpen || !auth) {
     console.warn("Google Sign-In popup is already open or auth is not initialized.");
     return null;
@@ -60,6 +80,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
+    await createUserDocument(result.user, { refCode });
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -76,13 +97,17 @@ export async function handleGoogleSignIn(): Promise<User | null> {
   }
 }
 
-export const registerWithEmail = async (email: string, password: string) => {
+export const registerWithEmail = async (email: string, password: string, name: string, refCode: string | null = null) => {
+    const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName: name });
+    await createUserDocument(userCredential.user, { name, refCode });
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
+    const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential;

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Users, Copy } from 'lucide-react';
@@ -18,10 +18,15 @@ function ReferralCard({ userProfile }: { userProfile: any }) {
         });
     };
 
+    if (!userProfile?.referralCode) {
+        return null;
+    }
+
     return (
      <Card className="bg-card shadow-lg">
         <CardHeader>
             <CardTitle className="text-lg">Refer & Earn</CardTitle>
+            <CardDescription>Share your link with friends. Earn ₹50 when they score a perfect quiz!</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="flex items-center justify-between mb-2">
@@ -37,7 +42,7 @@ function ReferralCard({ userProfile }: { userProfile: any }) {
                     Copy Link
                 </Button>
             </div>
-            <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md">{userProfile?.referralCode || 'No code available'}</p>
+            <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md break-all">{userProfile?.referralCode}</p>
         </CardContent>
     </Card>
     );
