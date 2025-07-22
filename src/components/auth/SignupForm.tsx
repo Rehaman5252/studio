@@ -3,10 +3,9 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,7 +14,9 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { auth } from '@/lib/firebaseClient';
 import { sendEmailVerification } from 'firebase/auth';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -30,32 +31,27 @@ const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  referralCode: z.string().optional(),
+  terms: z.boolean().refine(val => val === true, { message: "You must accept the terms and conditions." }),
 });
+
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
-  const refCodeFromUrl = searchParams.get('ref') || '';
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const form = useForm<SignupFormValues>({ 
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      referralCode: refCodeFromUrl
-    }
-  });
+  const form = useForm<SignupFormValues>({ resolver: zodResolver(signupSchema) });
 
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
-        const user = await handleGoogleSignIn(form.getValues('referralCode') || refCodeFromUrl);
+        const user = await handleGoogleSignIn();
         if (user) {
             toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
             router.replace('/complete-profile');
@@ -71,14 +67,9 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
-    if (!auth) {
-        toast({ title: "Error", description: "Authentication services are not ready. Please try again later.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-    }
     try {
-        const userCredential = await registerWithEmail(data.email, data.password, data.name, data.referralCode || null);
-        if (auth.currentUser) {
+        const userCredential = await registerWithEmail(data.email, data.password);
+        if (auth && auth.currentUser) {
             await sendEmailVerification(auth.currentUser);
         }
         
@@ -125,25 +116,49 @@ export default function SignupForm() {
             <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div>
         </div>
         
-        <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onEmailSignUp)} className="space-y-4">
-            <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={isAuthDisabled} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="sachin@tendulkar.com" {...field} disabled={isAuthDisabled} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="password" render={({ field }) => (
-                <FormItem><FormLabel>Password</FormLabel><div className="relative"><FormControl><Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} disabled={isAuthDisabled} /></FormControl><Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)} aria-label="Toggle password visibility">{showPassword ? <EyeOff /> : <Eye />}</Button></div><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="referralCode" render={({ field }) => (
-                <FormItem><FormLabel>Referral Code (Optional)</FormLabel><FormControl><Input placeholder="Enter friend's code" {...field} disabled={isAuthDisabled} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Creating Account...</> ) : "Create Account"}
-            </Button>
-        </form>
-        </FormProvider>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onEmailSignUp)} className="space-y-4">
+                <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={isAuthDisabled} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="sachin@tendulkar.com" {...field} disabled={isAuthDisabled} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="password" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <div className="relative">
+                            <FormControl>
+                                <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} disabled={isAuthDisabled} />
+                            </FormControl>
+                            <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)} aria-label="Toggle password visibility">{showPassword ? <EyeOff /> : <Eye />}</Button>
+                        </div>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                
+                <FormField control={form.control} name="terms" render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                        <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isAuthDisabled} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm font-normal">
+                                I agree to the{' '}
+                                <Link href="/policies" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                                    Terms and Conditions
+                                </Link>
+                            </FormLabel>
+                            <FormMessage />
+                        </div>
+                    </FormItem>
+                )} />
+
+                <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+                    {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Creating Account...</> ) : "Create Account"}
+                </Button>
+            </form>
+        </Form>
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">

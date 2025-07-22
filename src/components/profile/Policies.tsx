@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -26,7 +27,7 @@ const Policies = () => {
                         <p>A user (referrer) earns a one-time ₹50 bonus for each unique new user (referee) who signs up using their valid referral link.</p>
                         <p>The bonus is only credited to the referrer after the referee achieves their first-ever perfect score (5/5) in any quiz format.</p>
                         <p>This perfect score must be achieved within 7 calendar days of the referee's sign-up date. Attempts after this period will not trigger the referral bonus.</p>
-                        <p>A referrer cannot earn a bonus from the same referee more than once.</p>
+                        <p>A referrer cannot earn a bonus from the same referee more than once. indcric reserves the right to invalidate bonuses earned through fraudulent means (e.g., fake accounts, automated scripts).</p>
                     </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-2">
@@ -41,29 +42,29 @@ const Policies = () => {
                 <AccordionItem value="item-3">
                     <AccordionTrigger>Payout Policy</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>Verified cash rewards and referral bonuses can be withdrawn to the UPI ID provided in the user's profile.</p>
-                        <p>Payout requests are processed manually and may take up to 72 business hours to reflect in your account.</p>
-                        <p>Minimum withdrawal limits and processing fees may apply. All transactions are subject to standard banking timelines.</p>
+                        <p>Verified cash rewards and referral bonuses can be withdrawn to the UPI ID provided in the user's profile. It is the user's responsibility to ensure the provided UPI ID is correct.</p>
+                        <p>Payout requests are processed manually and may take up to 72 business hours (excluding weekends and public holidays) to reflect in your account.</p>
+                        <p>Minimum withdrawal limits and processing fees may apply. All transactions are subject to standard banking timelines and RBI regulations.</p>
                     </AccordionContent>
                 </AccordionItem>
                  <AccordionItem value="item-4">
                     <AccordionTrigger>Privacy Policy</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>We collect personal data (name, email, phone, etc.) to provide and improve our services, including processing payouts and personalizing your experience. We do not sell your data to third parties.</p>
-                        <p>Your data is stored securely using industry-standard encryption and security protocols.</p>
+                        <p>We collect personal data (name, email, phone, etc.) to provide and improve our services, including processing payouts and personalizing your experience, in compliance with the Information Technology Act, 2000 of India. We do not sell your data to third parties.</p>
+                        <p>Your data is stored securely using industry-standard encryption and security protocols. You have the right to request access to or deletion of your personal data by contacting our support team.</p>
                     </AccordionContent>
                 </AccordionItem>
                  <AccordionItem value="item-5">
                     <AccordionTrigger>Cookie Policy</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>We use essential cookies to manage your session and authentication. We do not use third-party tracking cookies for advertising purposes.</p>
+                        <p>We use essential cookies to manage your session and authentication. We do not use third-party tracking cookies for advertising purposes. By using indcric, you consent to the use of these essential cookies.</p>
                     </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-6">
                     <AccordionTrigger>Responsible Gaming</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>indcric is intended for entertainment and educational purposes to enhance cricket knowledge. While real rewards are offered, we encourage responsible participation.</p>
-                        <p>Please play within your limits. Do not treat this platform as a primary source of income. If you feel your gaming habits are becoming problematic, we urge you to seek support from relevant counseling services.</p>
+                        <p>indcric is a platform intended for entertainment and educational purposes to enhance cricket knowledge. While real rewards are offered, it is classified as a game of skill.</p>
+                        <p>We encourage responsible participation. Please play within your limits. This platform should not be treated as a primary source of income. If you feel your gaming habits are becoming problematic, we urge you to seek support from relevant counseling services. Users must be 18 years or older to participate.</p>
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
