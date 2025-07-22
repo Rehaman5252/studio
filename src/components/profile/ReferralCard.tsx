@@ -6,21 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Users, Copy } from 'lucide-react';
+import { SocialShareButtons } from './SocialShareButtons';
 
 function ReferralCard({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
+    
+    if (!userProfile?.referralCode) {
+        return null;
+    }
+
+    const referralLink = userProfile.referralCode;
+
     const handleCopy = () => {
-        const referralLink = userProfile?.referralCode || '';
         navigator.clipboard.writeText(referralLink);
         toast({
             title: "Copied to Clipboard!",
             description: "Your referral link has been copied.",
         });
     };
-
-    if (!userProfile?.referralCode) {
-        return null;
-    }
 
     return (
      <Card className="bg-card shadow-lg">
@@ -42,7 +45,10 @@ function ReferralCard({ userProfile }: { userProfile: any }) {
                     Copy Link
                 </Button>
             </div>
-            <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md break-all">{userProfile?.referralCode}</p>
+            <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md break-all">{referralLink}</p>
+            <div className="mt-4">
+                <SocialShareButtons referralLink={referralLink} />
+            </div>
         </CardContent>
     </Card>
     );
