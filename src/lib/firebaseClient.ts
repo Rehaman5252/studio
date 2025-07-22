@@ -2,7 +2,7 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
+import { getAuth, type Auth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, onSnapshot, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -40,13 +40,22 @@ function initializeFirebase() {
     }
 }
 
+// Initialize on module load
 initializeFirebase();
 
-export function getFirebaseAuth(): Auth | null {
-  return auth;
+export function getFirebaseAuth(): Auth {
+  if (!auth) {
+    // This will re-initialize if auth is not available for some reason.
+    // Safeguard against edge cases.
+    initializeFirebase();
+  }
+  return auth!;
 }
 
-export function getFirebaseFirestore(): Firestore | null {
+export function getFirebaseFirestore(): Firestore {
+  if (!db) {
+    initializeFirebase();
+  }
   if (db && !persistenceEnabled && typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
       if (err.code === 'failed-precondition') {
@@ -57,7 +66,7 @@ export function getFirebaseFirestore(): Firestore | null {
     });
     persistenceEnabled = true;
   }
-  return db;
+  return db!;
 }
 
 
@@ -69,9 +78,6 @@ export function monitorFirebaseConnection(callback: (status: boolean) => void): 
         callback(false);
         return () => {};
     }
-    // Firestore doesn't have a direct equivalent of Realtime Database's .info/connected.
-    // A common workaround is to listen to a document. The SDK is smart enough
-    // to manage the underlying connection and will trigger the error handler on disconnection.
     const dummyDocRef = doc(db, "__connection-check__/status");
 
     const unsubscribe = onSnapshot(
@@ -86,7 +92,6 @@ export function monitorFirebaseConnection(callback: (status: boolean) => void): 
     return unsubscribe;
 }
 
-
 export async function isFirebaseOnline(): Promise<boolean> {
   const db = getFirebaseFirestore();
   if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
@@ -98,9 +103,12 @@ export async function isFirebaseOnline(): Promise<boolean> {
     await getDoc(testDoc);
     return true;
   } catch (error: any) {
+    // Specific error codes that indicate an offline state
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
+    // For other errors, we might still be "online" but have a different issue.
+    // This check is specifically for network connectivity to the Firestore backend.
     return false;
   }
 }

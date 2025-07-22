@@ -8,7 +8,9 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff } from 'lucide-react';
 
-interface WithAuthProps {}
+interface WithAuthProps {
+  // Add any additional props you might want to pass to the wrapped component
+}
 
 const withAuth = <P extends object>(
   WrappedComponent: React.ComponentType<P>
@@ -22,16 +24,15 @@ const withAuth = <P extends object>(
       if (loading) return; // Wait until loading is complete before making decisions
 
       if (isOffline) {
-          // If offline, we can't verify auth state, so we stay on the current page
-          // but show an offline warning. The component itself should handle this.
+          // If offline, we allow the component to render and show its own offline state.
           return;
       }
 
       if (!user) {
+        // If user is not logged in, redirect to login page with a 'from' query param
         router.replace(`/auth/login?from=${encodeURIComponent(pathname)}`);
       } else if (user && !profile?.profileCompleted) {
-        // This check is important. It ensures that even if a user is logged in,
-        // they are forced to complete their profile before accessing protected content.
+        // If user is logged in but profile is incomplete, redirect to profile completion page
         router.replace('/complete-profile');
       }
     }, [user, profile, loading, isOffline, router, pathname]);
@@ -50,8 +51,9 @@ const withAuth = <P extends object>(
         );
     }
 
+    // While loading or if user is not yet available for a redirect decision, show a loader.
+    // Also show loader if profile is not complete, before the redirect kicks in.
     if (loading || !user || !profile?.profileCompleted) {
-      // Show a loader while we're waiting for auth state or during the redirect.
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -3,6 +3,8 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  swcMinify: true, // Enable SWC minification for faster builds and smaller output
+  compress: true, // Enable gzip compression
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -72,6 +74,17 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  modularizeImports: {
+    '@firebase/app': {
+      transform: '@firebase/app/{{member}}',
+    },
+     '@firebase/auth': {
+      transform: '@firebase/auth/{{member}}',
+    },
+     '@firebase/firestore': {
+      transform: '@firebase/firestore/{{member}}',
+    },
+  }
 };
 
 export default nextConfig;
