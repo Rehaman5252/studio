@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -53,7 +53,6 @@ const LiveLeaderboard = memo(() => {
     useEffect(() => {
         if (authLoading) return;
 
-        const db = getFirebaseFirestore();
         if (!db) {
             setError("Couldn't connect to the database.");
             setIsLoading(false);
@@ -64,8 +63,6 @@ const LiveLeaderboard = memo(() => {
             setIsLoading(true);
             setError(null);
             try {
-                // In a real app, this would query a shared 'liveSlot' collection.
-                // For this demo, we only fetch the current user's live attempt.
                 const livePlayers: LivePlayer[] = [];
                 
                 if (user) {
@@ -128,7 +125,6 @@ const LiveLeaderboard = memo(() => {
 });
 LiveLeaderboard.displayName = 'LiveLeaderboard';
 
-
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
@@ -178,11 +174,9 @@ const MyNetworkLeaderboard = memo(() => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // In a real app, you would fetch users whose 'referredBy' field matches the current user's ID.
-        // For now, we show an empty state.
         const fetchNetworkPlayers = async () => {
             setIsLoading(true);
-            setPlayers([]); // This will be empty until referral logic is implemented
+            setPlayers([]); 
             setIsLoading(false);
         };
         fetchNetworkPlayers();
