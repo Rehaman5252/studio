@@ -62,7 +62,9 @@ const MyNetworkLeaderboard = () => {
             setError(null);
             
             try {
-                const networkIds = [...(profile.referrals || [])];
+                // In a real app with a large user base, this logic should be a server-side function.
+                // Fetching documents one-by-one on the client is not scalable.
+                const networkIds: string[] = [...(profile.referrals || [])];
                 if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
                     networkIds.push(profile.referredBy);
                 }
