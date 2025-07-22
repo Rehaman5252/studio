@@ -1,14 +1,14 @@
-
+// src/app/quiz-history/page.tsx - Server Component
 import React from 'react';
 import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
 import QuizHistoryContent from '@/components/quiz-history/QuizHistoryContent';
-import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, Timestamp } from 'firebase/firestore';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import type { QuizAttempt } from '@/lib/mockData';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { ScrollText } from 'lucide-react';
 
-async function getQuizHistoryData(uid: string) {
+async function getQuizHistoryData(uid: string): Promise<QuizAttempt[]> {
     try {
         const db = getFirebaseFirestore();
         if (!db) {
@@ -23,16 +23,15 @@ async function getQuizHistoryData(uid: string) {
             const data = doc.data();
             return {
                 ...data,
-                timestamp: data.timestamp.toMillis(),
-            };
-        }) as QuizAttempt[];
+                timestamp: (data.timestamp as Timestamp).toMillis(),
+            } as QuizAttempt;
+        });
         return historyData;
     } catch (error) {
-        console.error("Failed to fetch quiz history data:", error);
+        console.error("Failed to fetch quiz history data on server:", error);
         return [];
     }
 }
-
 
 export default async function QuizHistoryPage() {
     const { user } = await getAuthenticatedUser();
@@ -58,12 +57,12 @@ export default async function QuizHistoryPage() {
 
     return (
         <div className="flex flex-col h-screen bg-background">
-        <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
-            <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
-        </header>
-        <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-            <QuizHistoryContent initialHistory={initialHistory} />
-        </main>
+            <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
+                <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
+            </header>
+            <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+                <QuizHistoryContent initialHistory={initialHistory} />
+            </main>
         </div>
     );
 }

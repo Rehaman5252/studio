@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -6,12 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, Trophy } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
-import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 
-export default function CertificatesContent({ initialHistory }: { initialHistory: QuizAttempt[] }) {
-  const { profile } = useAuth();
+export default function CertificatesContent({ initialHistory, initialProfile }: { initialHistory: QuizAttempt[], initialProfile: any }) {
   const { toast } = useToast();
   
   const getSlotTimings = (timestamp: number) => {
@@ -30,6 +27,7 @@ export default function CertificatesContent({ initialHistory }: { initialHistory
   };
   
   const certificates = useMemo(() => {
+    if (!initialHistory) return [];
     return initialHistory
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
       .map(attempt => ({
@@ -58,7 +56,7 @@ export default function CertificatesContent({ initialHistory }: { initialHistory
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(45, 85, 255);
-    doc.text(profile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
+    doc.text(initialProfile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);

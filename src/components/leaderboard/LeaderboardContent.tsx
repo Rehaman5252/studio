@@ -1,8 +1,6 @@
-
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import type { User } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,22 +8,9 @@ import { cn } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { Users } from 'lucide-react';
 import { motion } from 'framer-motion';
-import LoginPrompt from '../auth/LoginPrompt';
-import { Trophy } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
-
-
-interface Player {
-    rank?: number;
-    name: string;
-    avatar?: string;
-    uid: string;
-}
-interface AllTimePlayer extends Player {
-    perfectScores: number;
-    totalPlayed: number;
-}
-
+import type { AllTimePlayer, LivePlayer } from './leaderboardTypes';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -33,7 +18,6 @@ const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 3) return <span className="text-2xl">🥉</span>;
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
-
 
 const LiveLeaderboard = memo(() => {
     return (
@@ -47,8 +31,7 @@ const LiveLeaderboard = memo(() => {
 });
 LiveLeaderboard.displayName = 'LiveLeaderboard';
 
-
-const AllTimeLeaderboard = memo(({ user, players }: { user: User | null; players: AllTimePlayer[] }) => {
+const AllTimeLeaderboard = memo(({ user, players }: { user: DecodedIdToken | null; players: AllTimePlayer[] }) => {
     const rankedPlayers = useMemo(() => {
         return players
             .sort((a, b) => b.perfectScores - a.perfectScores)
@@ -75,10 +58,7 @@ const AllTimeLeaderboard = memo(({ user, players }: { user: User | null; players
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
-
-const MyNetworkLeaderboard = memo(({ profile }: { profile: any; }) => {
-    // This component now relies on client-side auth context to get profile details
-    // It would need further implementation to fetch friend data.
+const MyNetworkLeaderboard = memo(() => {
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center">
@@ -95,28 +75,7 @@ const MyNetworkLeaderboard = memo(({ profile }: { profile: any; }) => {
 });
 MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
 
-
-export default function LeaderboardContent({ initialUser, initialProfile, initialLeaderboard }: { initialUser: User | null; initialProfile: any; initialLeaderboard: AllTimePlayer[] }) {
-    // We use the initial data from the server, but still use the client-side hook
-    // for any real-time updates or to get the latest profile for other interactions.
-    const { user, profile } = useAuth();
-    
-    // Determine the user and profile to use. Prefer fresh client-side data if available.
-    const currentUser = user ?? initialUser;
-    const currentProfile = profile ?? initialProfile;
-    
-    if (!currentUser) {
-      return (
-          <div className="flex items-center justify-center h-full pt-10">
-              <LoginPrompt
-                  icon={Trophy}
-                  title="View the Rankings"
-                  description="Log in or sign up to see where you stand on the leaderboard."
-              />
-          </div>
-      );
-  }
-
+export default function LeaderboardContent({ initialUser, initialLeaderboard }: { initialUser: DecodedIdToken | null; initialProfile: any; initialLeaderboard: AllTimePlayer[] }) {
   return (
     <Tabs defaultValue="live" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -125,8 +84,8 @@ export default function LeaderboardContent({ initialUser, initialProfile, initia
             <TabsTrigger value="network">My Network</TabsTrigger>
         </TabsList>
         <TabsContent value="live"><LiveLeaderboard /></TabsContent>
-        <TabsContent value="all-time"><AllTimeLeaderboard user={currentUser} players={initialLeaderboard} /></TabsContent>
-        <TabsContent value="network"><MyNetworkLeaderboard profile={currentProfile} /></TabsContent>
+        <TabsContent value="all-time"><AllTimeLeaderboard user={initialUser} players={initialLeaderboard} /></TabsContent>
+        <TabsContent value="network"><MyNetworkLeaderboard /></TabsContent>
     </Tabs>
   );
 }

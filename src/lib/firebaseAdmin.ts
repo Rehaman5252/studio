@@ -1,8 +1,6 @@
-
 // src/lib/firebaseAdmin.ts
+import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { credential } from 'firebase-admin';
 
 let app: App;
 
@@ -15,7 +13,9 @@ export function initializeFirebaseAdmin() {
   const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   
   if (!serviceAccount) {
-    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY for Firebase Admin SDK initialization.');
+    // In a real production environment, you would want more robust error handling
+    // or a logger service. For now, we throw to make it clear during development.
+    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY environment variable for Firebase Admin SDK.');
   }
 
   try {
@@ -29,4 +29,8 @@ export function initializeFirebaseAdmin() {
   }
 }
 
+// Initialize on first import
+initializeFirebaseAdmin();
+
+export const adminAuth = getAuth(app);
 export { app as firebaseAdminApp };
