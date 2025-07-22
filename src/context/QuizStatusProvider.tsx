@@ -11,10 +11,10 @@
  *     In a real production app, this data would come from a backend or an aggregated
  *     Firestore document.
  * 3.  **Last Attempt Fetching**: It now correctly waits for the user to be authenticated
- *     before trying to fetch their last quiz attempt for the current slot. This resolves
- *     the "client is offline" race condition.
+ *     and for the Firebase client to be online before trying to fetch the user's last
+ *     quiz attempt for the current slot. This resolves the "client is offline" race condition.
  */
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -61,6 +61,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     
     // Define the async function to fetch the data.
     const fetchLastAttempt = async () => {
+        setIsHistoryLoading(true);
         const online = await isFirebaseOnline();
         if (!online) {
             console.warn("Client is offline, skipping fetch for last attempt.");
@@ -75,7 +76,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
         
-        setIsHistoryLoading(true);
         try {
             const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
             const docSnap = await getDoc(historyDocRef);

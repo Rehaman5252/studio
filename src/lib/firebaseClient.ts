@@ -10,12 +10,12 @@
  * - getFirebaseAuth(): Returns the singleton Auth instance.
  * - getFirebaseFirestore(): Returns the singleton Firestore instance.
  * - isFirebaseConfigured: A boolean flag to check if Firebase env vars are present.
- * - monitorFirebaseConnection: A utility to listen to real-time Firestore connectivity.
+ * - isFirebaseOnline: An async utility to check for a live Firestore connection.
  */
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, onSnapshot } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
 
 // Your web app's Firebase configuration, securely loaded from environment variables.
 const firebaseConfig = {
@@ -28,7 +28,6 @@ const firebaseConfig = {
 };
 
 // A flag to check if all necessary Firebase environment variables have been provided.
-// This is useful for providing developer-friendly warnings if the setup is incomplete.
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 // Singleton instances of Firebase services.
@@ -101,28 +100,22 @@ export function getFirebaseFirestore(): Firestore {
 }
 
 /**
- * Monitors the real-time connection status to Firestore.
+ * Checks for a live connection to Firestore.
  * This is the most reliable way to determine if the client is truly online or offline.
- * @param callback - A function that will be called with the connection status (true for online, false for offline).
- * @returns An unsubscribe function to clean up the listener.
+ * @returns {Promise<boolean>} A promise that resolves to true if connected, false otherwise.
  */
-export function monitorFirebaseConnection(callback: (status: boolean) => void): () => void {
-    const db = getFirebaseFirestore();
-    if (!db) {
-        callback(false);
-        return () => {};
-    }
-    // Firestore's internal `.info/connected` document provides a real-time status.
-    const connectedDocRef = doc(db, ".info/connected");
-
-    const unsubscribe = onSnapshot(
-        connectedDocRef,
-        () => { callback(true); },
-        (error) => {
-            console.error("🔥 Firebase connection listener failed:", error);
-            callback(false);
-        }
-    );
-
-    return unsubscribe;
+export async function isFirebaseOnline(): Promise<boolean> {
+  const db = getFirebaseFirestore();
+  // If there's no db instance or the browser reports offline, we're offline.
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+  try {
+    // Attempt a read on a non-existent document. This is a lightweight operation.
+    // If it succeeds, we're online. If it fails with an 'unavailable' code, we're offline.
+    await getDoc(doc(db, "systemHealth/connectionTest"));
+    return true;
+  } catch (error: any) {
+    return error.code !== 'unavailable';
+  }
 }
