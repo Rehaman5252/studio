@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getFirebaseAuth, isFirebaseOnline } from "@/lib/firebaseClient";
+import { isFirebaseOnline, auth } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber } from "firebase/auth";
 
 interface Props {
@@ -41,7 +41,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   }, []);
 
   const setupRecaptcha = useCallback(async () => {
-    const auth = getFirebaseAuth();
     if (!auth || recaptchaVerifierRef.current || !open) return;
 
     let container = document.getElementById('recaptcha-container-in-dialog');
@@ -95,7 +94,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
 
     await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
-    const auth = getFirebaseAuth();
 
     if (!verifier || !auth) {
       setError("Verifier not ready. Close and try again.");

@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { auth, db, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -33,7 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
     if (!auth) { 
         console.error("Firebase Auth is not available.");
         setLoading(false); 
@@ -54,7 +53,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
 
     const setupListeners = async () => {
-      const db = getFirebaseFirestore();
       if (!db) {
         console.error("Firestore is not available.");
         setIsOffline(true);
@@ -101,18 +99,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
     const sanitizedData = sanitizeUserProfile(newData);
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, sanitizedData, { merge: true });
 
-    // Local state will be updated by the onSnapshot listener, ensuring consistency.
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
 
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;

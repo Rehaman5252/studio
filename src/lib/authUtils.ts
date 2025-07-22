@@ -40,8 +40,8 @@ export async function createUserDocument(user: User, additionalData = {}) {
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
-      console.error("Error creating user document:", error);
       toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+      throw error;
     }
   }
 }
@@ -60,15 +60,15 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
-    // Document creation will be handled by the AuthProvider's effect.
-    // This allows sign-in to succeed without waiting for Firestore.
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
+    } else if (error.message?.includes("offline") || error.code === 'auth/network-request-failed') {
+        toast({ title: 'Offline Error', description: 'Please check your internet connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
-        toast({ title: 'Sign-in Error', description: 'Could not sign in with Google. Check your connection or try again.', variant: 'destructive' });
+        toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
     }
     return null;
   } finally {

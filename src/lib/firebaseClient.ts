@@ -1,7 +1,9 @@
-// src/lib/firebaseClient.ts
-import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
+
+'use client';
+
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,31 +14,43 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let persistenceEnabled = false;
+// This ensures we're only running this on the client
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
-if (typeof window !== 'undefined' && !getApps().length) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  
-  enableIndexedDbPersistence(db)
-    .then(() => {
-      persistenceEnabled = true;
-    })
-    .catch((err) => {
-      if (err.code == 'failed-precondition') {
-        console.warn("Firestore persistence failed: multiple tabs open.");
-      } else if (err.code == 'unimplemented') {
-        console.warn("Firestore persistence not supported in this browser.");
+// Enable persistence only on the client
+if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence failed: multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence not supported in this browser.');
       }
     });
-} else {
-  app = getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
 }
 
+
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
+export async function isFirebaseOnline(): Promise<boolean> {
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+
+  try {
+    // This is a more reliable check. We use a non-existent document to avoid read costs.
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    await getDoc(testDoc);
+    return true;
+  } catch (error: any) {
+    if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
+        return false;
+    }
+    // Some errors might not indicate offline status, but for this check, we treat them as such.
+    return false;
+  }
+}
+
+// Export the initialized services
 export { auth, db };
