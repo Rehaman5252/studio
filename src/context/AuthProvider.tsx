@@ -1,10 +1,11 @@
+
 'use client';
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment, arrayUnion, writeBatch } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
+import { auth, db } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -37,8 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const auth = getFirebaseAuth();
     if (!auth) { setLoading(false); return; }
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
@@ -56,7 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
 
     const setupListeners = async () => {
-      const db = getFirebaseFirestore();
       if (!db) {
         console.error("Firestore is not available.");
         setIsOffline(true);
@@ -99,7 +97,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
     const userDocRef = doc(db, "users", user.uid);
@@ -108,18 +105,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    const db = getFirebaseFirestore();
     if (!user || !db || !profile) throw new Error("User not authenticated or DB not available.");
 
     const batch = writeBatch(db);
     const userRef = doc(db, 'users', user.uid);
 
-    // 1. Log the quiz attempt
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
     batch.set(attemptRef, sanitizedAttempt, { merge: true });
 
-    // 2. Handle general stats and referral bonus for perfect scores
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     const wasFirstPerfectScore = isPerfect && (profile.perfectScores || 0) === 0;
     
@@ -144,7 +138,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // 3. Handle daily streak logic
     const today = new Date();
     const lastStreakDate = profile.lastStreakTimestamp?.toDate();
     const streakDiff = lastStreakDate ? differenceInCalendarDays(today, lastStreakDate) : 0;
@@ -152,10 +145,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let currentStreak = profile.currentStreak || 0;
     let dailyProgress = profile.dailyQuizProgress || {};
 
-    if (streakDiff > 1) { // Missed a day or more
+    if (streakDiff > 1) {
       currentStreak = 0;
       dailyProgress = {};
-    } else if (streakDiff === 1) { // Continued from yesterday
+    } else if (streakDiff === 1) {
       dailyProgress = {};
     }
 
@@ -174,7 +167,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         currentStreak: currentStreak,
         lastStreakTimestamp: Timestamp.fromDate(today),
       });
-      // Reset progress for the day after achieving the goal to prevent multiple increments
       dailyProgress.goalAchieved = true; 
     }
     

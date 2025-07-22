@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -39,7 +39,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    const db = getFirebaseFirestore();
     if (!db) {
         setIsHistoryLoading(false);
         return;

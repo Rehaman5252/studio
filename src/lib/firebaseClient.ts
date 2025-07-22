@@ -2,8 +2,8 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth, browserLocalPersistence, initializeAuth } from "firebase/auth";
-import { getFirestore, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,60 +14,46 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-// This function ensures Firebase is initialized only once.
-function initializeFirebase() {
-    if (getApps().length > 0) {
-        return getApp();
-    }
-    return initializeApp(firebaseConfig);
-}
+// This check ensures Firebase is only initialized on the client side.
+if (typeof window !== 'undefined' && isFirebaseConfigured) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
 
-app = initializeFirebase();
-
-// This function ensures Auth is initialized only once, handling client-side specifics.
-function getInitializedAuth(): Auth {
-    if (auth) {
-        return auth;
-    }
-    if (typeof window !== 'undefined') {
-        // This is the recommended way to initialize Auth for the web.
-        auth = initializeAuth(app, {
-            persistence: browserLocalPersistence,
-        });
-    } else {
-        // Fallback for server-side or environments without a window object.
-        auth = getAuth(app);
-    }
-    return auth;
-}
-
-// This function ensures Firestore is initialized only once, handling client/server differences.
-function getInitializedFirestore(): Firestore {
-    if (db) {
-        return db;
-    }
-    // Check if we're in a browser environment before attempting to enable persistence.
-    if (typeof window !== 'undefined') {
-        try {
-            db = initializeFirestore(app, {
-                 localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-            });
-        } catch(e) {
-            console.warn("Firestore persistence failed, falling back to memory cache.", e);
-            db = initializeFirestore(app, { localCache: memoryLocalCache() });
+    try {
+        enableIndexedDbPersistence(db);
+    } catch (err: any) {
+        if (err.code === 'failed-precondition') {
+            console.warn('Firestore persistence failed: Multiple tabs open.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('Firestore persistence is not available in this browser.');
         }
-    } else {
-        // For server-side rendering, use memory cache.
-        db = initializeFirestore(app, { localCache: memoryLocalCache() });
     }
-    return db;
 }
 
+async function isFirebaseOnline(): Promise<boolean> {
+  if (!isFirebaseConfigured || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+  try {
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    await getDoc(testDoc);
+    return true;
+  } catch (error: any) {
+    // This indicates a network failure trying to reach Firestore.
+    if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
+        return false;
+    }
+    // For other errors, we can assume it's not a connectivity issue, but for this check, we'll be conservative.
+    return false;
+  }
+}
 
-export const getFirebaseAuth = (): Auth => getInitializedAuth();
-export const getFirebaseFirestore = (): Firestore => getInitializedFirestore();
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+// Export the initialized services and utility functions.
+export { app, auth, db, isFirebaseOnline };
