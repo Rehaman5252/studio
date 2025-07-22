@@ -35,7 +35,7 @@ export default function LeaderboardContent() {
           {user ? (
             <MyNetworkLeaderboard />
           ) : (
-            <div className="pt-8">
+            <div className="pt-8 w-full">
               <LoginPrompt 
                 icon={Users}
                 title="View Your Network's Stats"
