@@ -1,9 +1,18 @@
 
-import { Suspense } from 'react';
+'use client';
+
+import React from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
+import { useAuth } from '@/context/AuthProvider';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { Trophy } from 'lucide-react';
+
+const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
+  loading: () => <LeaderboardSkeleton />,
+  ssr: false,
+});
 
 const LeaderboardSkeleton = () => (
     <div className="space-y-2">
@@ -18,12 +27,9 @@ const LeaderboardSkeleton = () => (
     </div>
 );
 
-export default async function LeaderboardPage() {
-    const { user, profile } = await getAuthenticatedUser();
+export default function LeaderboardPage() {
+    const { user, loading } = useAuth();
     
-    // In a real app, you would fetch leaderboard data here.
-    // For now, we pass the user state to the client component.
-
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -36,9 +42,19 @@ export default async function LeaderboardPage() {
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 pb-24">
-              <Suspense fallback={<LeaderboardSkeleton />}>
-                <LeaderboardContent user={user} profile={profile} />
-              </Suspense>
+                {loading ? (
+                    <LeaderboardSkeleton />
+                ) : user ? (
+                    <LeaderboardContent />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <LoginPrompt
+                            icon={Trophy}
+                            title="View the Rankings"
+                            description="Log in or sign up to see where you stand on the leaderboard."
+                        />
+                    </div>
+                )}
             </main>
         </motion.div>
     );

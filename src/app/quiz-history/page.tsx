@@ -1,10 +1,17 @@
 
-import { Suspense } from 'react';
+'use client';
+
+import React from 'react';
+import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
 import { ScrollText } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import QuizHistoryContent from '@/components/quiz-history/QuizHistoryContent';
-import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
+
+const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
+  loading: () => <HistorySkeleton />,
+  ssr: false,
+});
 
 const HistorySkeleton = () => (
     <div className="space-y-4">
@@ -17,25 +24,10 @@ const HistorySkeleton = () => (
     </div>
 );
 
-async function QuizHistoryData() {
-  const { user } = await getAuthenticatedUser();
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-full">
-          <LoginPrompt
-            icon={ScrollText}
-            title="Track Your Innings"
-            description="Log in to see your quiz performance, stats, and AI analysis."
-          />
-      </div>
-    );
-  }
-  
-  return <QuizHistoryContent />;
-}
 
 export default function QuizHistoryPage() {
+  const { user, loading } = useAuth();
+  
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -43,9 +35,19 @@ export default function QuizHistoryPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-        <Suspense fallback={<HistorySkeleton />}>
-            <QuizHistoryData />
-        </Suspense>
+        {loading ? (
+            <HistorySkeleton />
+        ) : user ? (
+          <QuizHistoryContent />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+              <LoginPrompt
+                icon={ScrollText}
+                title="Track Your Innings"
+                description="Log in to see your quiz performance, stats, and AI analysis."
+              />
+          </div>
+        )}
       </main>
     </div>
   );
