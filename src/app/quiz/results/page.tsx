@@ -56,7 +56,7 @@ const ResultsLoader = () => (
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user, lastAttempt } = useAuth();
+    const { user } = useAuth();
     
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
@@ -72,18 +72,12 @@ function ResultsComponent() {
                 setFinalAttempt(attemptData);
             } catch (error) {
                 console.error("Failed to parse attempt data from URL:", error);
-                if (lastAttempt) {
-                    setFinalAttempt(lastAttempt);
-                } else {
-                    router.replace('/home');
-                }
+                router.replace('/home');
             }
-        } else if (lastAttempt) {
-            setFinalAttempt(lastAttempt);
-        } else {
-             router.replace('/home');
+        } else if (searchParams.get('reason')) {
+             setFinalAttempt({ reason: 'malpractice' } as any);
         }
-    }, [searchParams, router, lastAttempt]);
+    }, [searchParams, router]);
     
     const { isReview, reason, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
         const isReviewParam = searchParams.get('review') === 'true';

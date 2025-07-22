@@ -61,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setLoading(true);
+    let unsubProfile: (() => void) | undefined;
 
     const setupListener = async () => {
         const online = await isFirebaseOnline();
@@ -71,9 +72,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const db = getFirebaseFirestore();
+        if (!db) {
+          console.error("Firestore is not available.");
+          setLoading(false);
+          setIsOffline(true);
+          return;
+        }
 
         const userDocRef = doc(db, "users", user.uid);
-        const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+        unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data?.dob instanceof Timestamp) {
@@ -89,14 +96,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsOffline(true);
             setLoading(false);
         });
-
-        return unsubProfile;
     };
 
-    const unsub = setupListener();
+    setupListener();
 
     return () => {
-        unsub.then(u => u && u());
+        if (unsubProfile) {
+          unsubProfile();
+        }
     };
   }, [user]);
 

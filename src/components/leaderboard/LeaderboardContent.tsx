@@ -12,14 +12,14 @@ import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn, getQuizSlotId } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -61,15 +61,21 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const db = getFirebaseFirestore();
-        if (!db) { setError("Database not available."); setIsLoading(false); return; }
-
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
+            
+            const online = await isFirebaseOnline();
+            if(!online) {
+              setError("You appear to be offline. Please check your connection.");
+              setIsLoading(false);
+              return;
+            }
+
             try {
                 // In a real app, this would query a shared collection of live attempts.
                 // For this demo, we'll just fetch the current user's attempt for this slot.
+                const db = getFirebaseFirestore();
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
@@ -86,7 +92,7 @@ const LiveLeaderboard = memo(() => {
                     }
                 }
             } catch (e: any) {
-                const errorMessage = e.message.includes('offline') || e.code === 'unavailable' 
+                const errorMessage = e.code === 'unavailable' 
                     ? "You appear to be offline. Please check your connection." 
                     : "An error occurred while loading the leaderboard.";
                 setError(errorMessage);

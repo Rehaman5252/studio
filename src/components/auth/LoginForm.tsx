@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn } from '@/lib/authUtils';
+import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import FirebaseConfigWarning from './FirebaseConfigWarning';

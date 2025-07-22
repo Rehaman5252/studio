@@ -86,7 +86,7 @@ export function getFirebaseFirestore(): Firestore {
       if (!db) throw new Error("Firestore is not available. Check your configuration.");
   }
   // Enable offline persistence if not already enabled.
-  if (!persistenceEnabled) {
+  if (!persistenceEnabled && typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
       if (err.code === 'failed-precondition') {
         console.warn('Firestore persistence failed: another tab may be open.');

@@ -11,6 +11,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
@@ -106,4 +107,9 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 export const registerWithEmail = async (email: string, password: string) => {
     const auth = getFirebaseAuth();
     return await createUserWithEmailAndPassword(auth, email, password);
+};
+
+export const loginWithEmail = async (email: string, password:string) => {
+    const auth = getFirebaseAuth();
+    return await signInWithEmailAndPassword(auth, email, password);
 };

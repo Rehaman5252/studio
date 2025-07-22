@@ -5,7 +5,6 @@ import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { getQuizSlotId } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +21,6 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
-import type { QuizAttempt } from '@/lib/mockData';
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)
@@ -34,7 +32,8 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, profile, quizHistory, historyLoading } = useAuth();
+    const { user, isProfileComplete } = useAuth();
+    const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
@@ -42,22 +41,11 @@ const QuizSelectionComponent = () => {
     const [rotation, setRotation] = useState(faceRotations[0]);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
-    
-    const lastAttemptInSlot = useMemo(() => {
-        if (!quizHistory || quizHistory.length === 0) return null;
-        const currentSlotId = getQuizSlotId();
-        return quizHistory.find(attempt => attempt.slotId === currentSlotId) || null;
-    }, [quizHistory]);
-
-    const isProfileComplete = useMemo(() => {
-        if (!profile) return false;
-        return profile.profileCompleted;
-    }, [profile]);
 
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 3000);
+        }, 3000); // Rotate every 3 seconds
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -118,7 +106,7 @@ const QuizSelectionComponent = () => {
         setShowAuthAlert(false);
     }
     
-    if (historyLoading) {
+    if (isQuizStatusLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
