@@ -9,11 +9,9 @@ import ProfileContent from '@/components/profile/ProfileContent';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
-import { Settings } from 'lucide-react';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { User as UserIcon } from 'lucide-react';
+import { Settings, LogIn } from 'lucide-react';
 
-function ProfilePage() {
+function ProfilePageContent() {
   const { user, profile, loading } = useAuth();
 
   if (loading) {
@@ -26,20 +24,16 @@ function ProfilePage() {
   
   if (!user) {
     return (
-      <main className="flex flex-1 flex-col items-center p-4 space-y-6 pb-20 text-center">
-          <div className="max-w-md w-full">
-            <LoginPrompt
-              icon={UserIcon}
-              title="View Your Profile"
-              description="Sign in to view your profile, track your stats, and manage your account."
-            />
-          </div>
-          <div className="w-full max-w-md space-y-3 pt-8">
-            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
-            </Button>
-            <SupportCard />
-          </div>
+      <main className="flex flex-1 flex-col p-4 space-y-6 pb-20">
+          <Button asChild size="lg" className="w-full justify-center text-base py-6">
+              <Link href="/auth/login"><LogIn className="mr-4" /> Pad Up & Sign In</Link>
+          </Button>
+          <section className="space-y-3 pt-4">
+              <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                  <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
+              </Button>
+          </section>
+          <SupportCard />
       </main>
     )
   }
@@ -51,7 +45,7 @@ function ProfilePage() {
   );
 }
 
-export default function ProfilePageWrapper() {
+export default function ProfilePage() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -62,7 +56,7 @@ export default function ProfilePageWrapper() {
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
       </header>
-      <ProfilePage />
+      <ProfilePageContent />
     </motion.div>
   );
 }

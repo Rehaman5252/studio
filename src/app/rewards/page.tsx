@@ -5,11 +5,9 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { Gift, Loader2 } from 'lucide-react';
-import RewardsContent from '@/components/rewards/RewardsContent';
 
-
-const RewardsSkeleton = () => (
+const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
+  loading: () => (
     <div className="space-y-8">
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
@@ -25,11 +23,11 @@ const RewardsSkeleton = () => (
         <Skeleton className="h-[96px] w-full" />
       </div>
     </div>
-);
+  ),
+  ssr: false,
+});
 
 export default function RewardsPage() {
-  const { loading } = useAuth();
-  
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
@@ -37,11 +35,7 @@ export default function RewardsPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
-         {loading ? (
-            <RewardsSkeleton />
-         ) : (
-            <RewardsContent />
-         )}
+        <RewardsContent />
       </main>
     </div>
   );
