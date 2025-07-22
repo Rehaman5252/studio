@@ -11,11 +11,11 @@ import { SocialShareButtons } from './SocialShareButtons';
 function ReferralCard({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     
-    if (!userProfile?.referralCode) {
+    if (!userProfile) {
         return null;
     }
 
-    const referralLink = userProfile.referralCode;
+    const referralLink = userProfile.referralCode || `https://indcric.com/auth/signup?ref=${userProfile.uid?.substring(0, 8)}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(referralLink);

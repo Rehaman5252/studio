@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -35,11 +36,9 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 </Button>
             </div>
             
-            <div className="space-y-6">
-              <ProfileCompletion userProfile={userProfile} />
-              <DailyStreakCard userProfile={userProfile} />
-              <StatsSummary userProfile={userProfile} />
-            </div>
+            <ProfileCompletion userProfile={userProfile} />
+            <DailyStreakCard userProfile={userProfile} />
+            <StatsSummary userProfile={userProfile} />
 
             <section className="space-y-3 pt-4">
                 <h3 className="text-lg font-semibold text-center text-muted-foreground">My Account</h3>
@@ -49,6 +48,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/certificates" prefetch={true}><Award className="mr-4" /> View Certificates</Link>
                 </Button>
+                
                 <ReferralCard userProfile={userProfile} />
             </section>
             
