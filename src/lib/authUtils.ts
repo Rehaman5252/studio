@@ -86,6 +86,15 @@ export async function handleGoogleSignIn(refCode: string | null = null): Promise
   try {
     const result = await signInWithPopup(auth, provider);
     await createUserDocument(result.user, { refCode });
+
+    // ✅ Cache user data in localStorage immediately after login
+    localStorage.setItem('userCache', JSON.stringify({
+      uid: result.user.uid,
+      displayName: result.user.displayName,
+      email: result.user.email,
+      photoURL: result.user.photoURL,
+    }));
+    
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -107,11 +116,29 @@ export const registerWithEmail = async (email: string, password: string, name: s
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
     await createUserDocument(userCredential.user, { name, refCode });
+
+    // ✅ Cache user data in localStorage immediately after signup
+    localStorage.setItem('userCache', JSON.stringify({
+      uid: userCredential.user.uid,
+      displayName: name,
+      email: email,
+      photoURL: userCredential.user.photoURL,
+    }));
+    
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    
+    // ✅ Cache user data in localStorage immediately after login
+    localStorage.setItem('userCache', JSON.stringify({
+      uid: userCredential.user.uid,
+      displayName: userCredential.user.displayName,
+      email: userCredential.user.email,
+      photoURL: userCredential.user.photoURL,
+    }));
+
     return userCredential;
 };

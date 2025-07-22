@@ -4,7 +4,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ProfileHeader from './ProfileHeader';
@@ -12,36 +11,22 @@ import ProfileCompletion from './ProfileCompletion';
 import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebaseClient';
 import DailyStreakCard from './DailyStreakCard';
+import { useAuth } from '@/context/AuthProvider';
 
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
-    const { toast } = useToast();
     const router = useRouter();
+    const { logout } = useAuth();
 
     const handleLogout = async () => {
-        if (!auth) return;
-        try {
-            await signOut(auth);
-            toast({ 
-                title: "Signed Out", 
-                description: "You have been logged out successfully.",
-            });
-            router.replace('/auth/login');
-        } catch (error) {
-             toast({ 
-                title: "Logout Failed", 
-                description: "Could not log you out. Please try again.",
-                variant: "destructive"
-            });
-        }
+        await logout();
+        router.replace('/auth/login');
     };
 
     return (
-        <div className="max-w-md mx-auto space-y-6">
-            <div className="relative">
+        <div className="space-y-6">
+            <div className="relative max-w-md mx-auto">
                 <ProfileHeader userProfile={userProfile} />
                 <Button asChild variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
                     <Link href="/complete-profile">
@@ -50,10 +35,12 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 </Button>
             </div>
             
-            <ProfileCompletion userProfile={userProfile} />
-            <DailyStreakCard userProfile={userProfile} />
-            <StatsSummary userProfile={userProfile} />
-            <ReferralCard userProfile={userProfile} />
+            <div className="max-w-md mx-auto space-y-6">
+              <ProfileCompletion userProfile={userProfile} />
+              <DailyStreakCard userProfile={userProfile} />
+              <StatsSummary userProfile={userProfile} />
+              <ReferralCard userProfile={userProfile} />
+            </div>
 
             <section className="space-y-3 pt-4">
                 <h3 className="text-lg font-semibold text-center text-muted-foreground">My Account</h3>
