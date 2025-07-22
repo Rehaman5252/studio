@@ -1,22 +1,69 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { useAuth } from './AuthProvider';
+import { getQuizSlotId } from '@/lib/utils';
+import type { QuizAttempt } from '@/lib/mockData';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
   playersPlaying: number;
   playersPlayed: number;
   totalWinners: number;
+  lastAttemptInSlot: QuizAttempt | null;
+  isLoading: boolean;
 }
 
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
+  const { user, loading: isAuthLoading } = useAuth();
+  
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
+  const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  const isLoading = isAuthLoading || isHistoryLoading;
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (!user) {
+        setIsHistoryLoading(false);
+        setLastAttemptInSlot(null);
+        return;
+    }
+    
+    const db = getFirebaseFirestore();
+    if (!db) {
+        setIsHistoryLoading(false);
+        return;
+    }
+    
+    const fetchLastAttempt = async () => {
+        setIsHistoryLoading(true);
+        try {
+            const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                setLastAttemptInSlot(docSnap.data() as QuizAttempt);
+            } else {
+                setLastAttemptInSlot(null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch last quiz attempt:", error);
+            setLastAttemptInSlot(null);
+        } finally {
+            setIsHistoryLoading(false);
+        }
+    }
+    fetchLastAttempt();
+  }, [user, isAuthLoading]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -64,6 +111,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     playersPlaying,
     playersPlayed,
     totalWinners,
+    lastAttemptInSlot,
+    isLoading,
   };
 
   return <QuizStatusContext.Provider value={value}>{children}</QuizStatusContext.Provider>;
