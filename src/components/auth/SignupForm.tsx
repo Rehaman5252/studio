@@ -64,10 +64,15 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        toast({ title: "Error", description: "Authentication services are not ready. Please try again later.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+    }
     try {
         const userCredential = await registerWithEmail(data.email, data.password);
-        const auth = getFirebaseAuth();
-        if (auth && auth.currentUser) {
+        if (auth.currentUser) {
             await updateProfile(auth.currentUser, { displayName: data.name });
             await sendEmailVerification(auth.currentUser);
         }

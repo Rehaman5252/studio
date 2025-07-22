@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
+import { handleGoogleSignIn } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
@@ -56,6 +56,12 @@ export default function LoginForm() {
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
     const auth = getFirebaseAuth();
+    if (!auth) {
+        toast({ title: "Error", description: "Authentication services are not available. Please try again later.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+    }
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       if (!userCredential.user.emailVerified) {
