@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -19,7 +18,6 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 let persistenceEnabled = false;
 
-// This function ensures Firebase is initialized only on the client side.
 function initializeFirebase() {
     if (typeof window !== "undefined") {
         if (!getApps().length) {
@@ -37,29 +35,38 @@ function initializeFirebase() {
         if (app) {
             auth = getAuth(app);
             db = getFirestore(app);
-
-            if (db && !persistenceEnabled) {
-              enableIndexedDbPersistence(db).catch((err) => {
-                if (err.code === 'failed-precondition') {
-                  console.warn('Firestore persistence failed: multiple tabs open.');
-                } else if (err.code === 'unimplemented') {
-                  console.warn('Firestore persistence not supported in this browser.');
-                }
-              });
-              persistenceEnabled = true;
-            }
         }
     }
 }
 
 initializeFirebase();
 
-// Export the initialized instances. Components should import these directly.
-export { auth, db };
+export function getFirebaseAuth(): Auth | null {
+  return auth;
+}
+
+export function getFirebaseFirestore(): Firestore | null {
+  if (typeof window === 'undefined') return null;
+
+  if (db && !persistenceEnabled) {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('⚠️ Firestore persistence failed: multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('⚠️ Firestore persistence not supported in this browser.');
+      }
+    });
+    persistenceEnabled = true;
+  }
+
+  return db;
+}
+
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 export async function isFirebaseOnline(): Promise<boolean> {
+  const db = getFirebaseFirestore();
   if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
     return false;
   }
