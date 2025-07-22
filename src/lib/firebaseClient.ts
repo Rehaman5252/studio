@@ -2,8 +2,14 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  Firestore
+} from "firebase/firestore";
+import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,19 +20,29 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This flag ensures we only check for config once.
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-
-// This check ensures Firebase is only initialized on the client side.
-if (typeof window !== 'undefined' && isFirebaseConfigured) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
+let db: Firestore | null = null;
+if (typeof window !== "undefined") {
+  try {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
+  } catch (error) {
+      console.error("Error initializing Firestore with persistence:", error);
+      // Fallback to in-memory persistence if multi-tab fails
+      if (!db) {
+        try {
+            db = getFirestore(app);
+        } catch (fallbackError) {
+            console.error("Failed to initialize Firestore even with fallback:", fallbackError);
+        }
+      }
+  }
 }
 
-// @ts-ignore
-export { app, auth, db };
+
+const auth: Auth | null = typeof window !== "undefined" ? getAuth(app) : null;
+const provider = typeof window !== "undefined" ? new GoogleAuthProvider() : null;
+
+export { app, db, auth, provider };

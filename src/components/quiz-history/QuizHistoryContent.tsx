@@ -170,8 +170,12 @@ export default function QuizHistoryContent() {
                 );
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
-            } catch (e) {
-                setError("Unable to load quiz history.");
+            } catch (e: any) {
+                if(e.code === 'unavailable') {
+                    setError("You appear to be offline. History may be incomplete.");
+                } else {
+                    setError("Unable to load full quiz history.");
+                }
             } finally {
                 setLoading(false);
             }
@@ -212,7 +216,7 @@ export default function QuizHistoryContent() {
 
     const renderContent = () => {
         if (loading) return <HistorySkeleton />;
-        if (error) return <ErrorState message={error} />;
+        if (error && !history.length) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>
                 <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
@@ -220,6 +224,7 @@ export default function QuizHistoryContent() {
         );
         return (
             <div className="space-y-4 pt-4">
+                {error && <ErrorState message={error} />}
                 {filter === 'all' && history.length > 20 && (
                      <Card className="bg-card/80">
                         <CardContent className="p-4 flex items-center justify-between text-sm">

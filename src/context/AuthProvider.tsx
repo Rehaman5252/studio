@@ -9,7 +9,6 @@ import { auth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { enableIndexedDbPersistence } from 'firebase/firestore';
 import { createUserDocument } from '@/lib/authUtils';
 import { differenceInCalendarDays } from 'date-fns';
 
@@ -43,33 +42,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && db) {
-      enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn("🟡 Persistence failed: multiple tabs open");
-        } else if (err.code === 'unimplemented') {
-          console.warn("🟠 Browser does not support offline persistence");
-        }
-      });
-    }
-  }, []);
-
-  useEffect(() => {
     if (!auth) { 
         setLoading(false);
         return;
     }
-    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
   
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
     if (!user) {
         setProfile(null);
         return;
@@ -94,12 +80,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(data);
             setIsProfileComplete(!!data.profileCompleted);
         } else {
-            // This is handled by the signup logic now, but as a fallback.
             createUserDocument(user).catch(console.error);
         }
     }, (error) => {
         console.error("Profile snapshot error:", error);
-        setIsOffline(true);
+        if(error.code === 'unavailable') setIsOffline(true);
     });
 
     return () => unsubProfile();
