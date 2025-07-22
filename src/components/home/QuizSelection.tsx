@@ -5,6 +5,7 @@ import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { getQuizSlotId } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +21,9 @@ import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
-import BrandCube from './BrandCube';
+import dynamic from 'next/dynamic';
+
+const BrandCube = dynamic(() => import('./BrandCube'), { ssr: false });
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)
@@ -32,7 +35,7 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, isProfileComplete } = useAuth();
+    const { user, profile } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     
@@ -42,10 +45,20 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
+    const isProfileComplete = useMemo(() => {
+        if (!profile) return false;
+        return profile.profileCompleted;
+    }, [profile]);
+    
+    const hasPlayedInCurrentSlot = useMemo(() => {
+        if (!user || !lastAttemptInSlot) return false;
+        return lastAttemptInSlot.slotId === getQuizSlotId();
+    }, [user, lastAttemptInSlot]);
+
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 3000);
+        }, 4500 / 6); // 4.5 seconds for all 6 faces
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -65,12 +78,12 @@ const QuizSelectionComponent = () => {
             setShowAuthAlert(true);
             return;
         }
-        if (lastAttemptInSlot) {
+        if (hasPlayedInCurrentSlot) {
             setShowSlotPlayedAlert(true);
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(brandToStart.brand)}&format=${encodeURIComponent(brandToStart.format)}`);
         }
-    }, [router, user, isProfileComplete, lastAttemptInSlot]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
     
 
     const handleFaceClick = (brand: CubeBrand) => {
@@ -86,13 +99,10 @@ const QuizSelectionComponent = () => {
     };
 
     const handleSlotAlertAction = () => {
-        const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
-        const reviewUrl = `/quiz/results?attempt=${encodeURIComponent(attemptDataString)}&review=true`;
-
         if (lastAttemptInSlot?.reason === 'malpractice') {
-            router.push(reviewUrl);
+            router.push(`/quiz/results?reason=malpractice`);
         } else {
-            router.push(reviewUrl);
+            router.push(`/quiz/results?review=true`);
         }
         setShowSlotPlayedAlert(false);
     };
