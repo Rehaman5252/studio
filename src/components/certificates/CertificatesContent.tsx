@@ -33,15 +33,8 @@ const CertificateItemSkeleton = () => (
 );
 
 export default function CertificatesContent() {
-  const { profile, quizHistory, fetchHistory, historyLoading } = useAuth();
+  const { profile, quizHistory, historyLoading } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Fetch history only if it hasn't been fetched yet.
-    if (quizHistory.length === 0) {
-      fetchHistory();
-    }
-  }, [fetchHistory, quizHistory.length]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);

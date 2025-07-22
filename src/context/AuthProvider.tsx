@@ -50,6 +50,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
+  const fetchHistory = useCallback(async () => {
+      if (!user || historyLoading) return;
+      
+      const db = getFirebaseFirestore();
+      if (!db) {
+          console.error("Firestore not available for history fetch.");
+          setIsOffline(true);
+          return;
+      }
+      
+      const online = await isFirebaseOnline();
+      if(!online) {
+        setIsOffline(true);
+        return;
+      }
+
+      setHistoryLoading(true);
+      try {
+          const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+          const querySnapshot = await getDocs(q);
+          const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+          setQuizHistory(historyData);
+          setIsOffline(false);
+      } catch (e: any) {
+          console.error("Failed to fetch certificate data:", e);
+          if (e.code === 'unavailable') setIsOffline(true);
+      } finally {
+          setHistoryLoading(false);
+      }
+  }, [user, historyLoading]);
+
   useEffect(() => {
     if (!user) { 
         setProfile(null); 
@@ -96,6 +127,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsOffline(true);
           }
         }
+        // Fetch history after profile is loaded/created
+        fetchHistory();
         setLoading(false);
       }, (error) => {
         console.error("Profile snapshot error:", error);
@@ -110,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         unsubProfile();
     };
-  }, [user]);
+  }, [user, fetchHistory]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
@@ -127,38 +160,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, sanitizedData, { merge: true });
   }, [user]);
-  
-  const fetchHistory = useCallback(async () => {
-      if (!user || historyLoading) return;
-      
-      const db = getFirebaseFirestore();
-      if (!db) {
-          console.error("Firestore not available for history fetch.");
-          setIsOffline(true);
-          return;
-      }
-      
-      const online = await isFirebaseOnline();
-      if(!online) {
-        setIsOffline(true);
-        return;
-      }
-
-      setHistoryLoading(true);
-      try {
-          const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
-          const querySnapshot = await getDocs(q);
-          const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-          setQuizHistory(historyData);
-          setIsOffline(false);
-      } catch (e: any) {
-          console.error("Failed to fetch certificate data:", e);
-          if (e.code === 'unavailable') setIsOffline(true);
-      } finally {
-          setHistoryLoading(false);
-      }
-  }, [user, historyLoading]);
-
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();

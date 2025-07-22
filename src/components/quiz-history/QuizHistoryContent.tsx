@@ -135,14 +135,8 @@ function HistorySkeleton() {
 }
 
 export default function QuizHistoryContent() {
-    const { quizHistory, fetchHistory, historyLoading } = useAuth();
+    const { quizHistory, historyLoading } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
-
-    useEffect(() => {
-        if (quizHistory.length === 0) {
-            fetchHistory();
-        }
-    }, [fetchHistory, quizHistory.length]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {

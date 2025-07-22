@@ -105,15 +105,8 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 GenericOffer.displayName = 'GenericOffer';
 
 export default function RewardsContent() {
-  const { user, quizHistory, fetchHistory, historyLoading } = useAuth();
+  const { user, quizHistory, historyLoading } = useAuth();
   
-  useEffect(() => {
-    if (user && quizHistory.length === 0) {
-      fetchHistory();
-    }
-  }, [user, fetchHistory, quizHistory.length]);
-
-
   const hasAttempts = quizHistory.length > 0;
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();

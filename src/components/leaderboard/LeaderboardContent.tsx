@@ -44,73 +44,36 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, profile } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Couldn't connect to the database.");
-            setIsLoading(false);
-            return;
+        // This is a placeholder for a real-time leaderboard implementation.
+        // In a production app, you would query a central 'live_leaderboard' collection.
+        // For this demo, we'll construct a leaderboard from the current user's data if available.
+        const mockLivePlayers: LivePlayer[] = [];
+        
+        if (user && profile) {
+             mockLivePlayers.push({
+                uid: user.uid,
+                name: profile.name || 'You',
+                score: profile.lastScore || 0,
+                time: profile.lastTime || 0,
+                avatar: profile.photoURL,
+                disqualified: false,
+                rank: 1
+            });
         }
+        setPlayers(mockLivePlayers);
 
-        const fetchLivePlayers = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                // In a real app, this would query a shared 'liveSlot' collection.
-                // For this demo, we mock it.
-                const mockLivePlayers: LivePlayer[] = [
-                    { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
-                    { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
-                ];
-                
-                if (user) {
-                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
-                    const userAttemptSnap = await getDocs(q);
-
-                    if (!userAttemptSnap.empty) {
-                        const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        mockLivePlayers.push({
-                            uid: user.uid, name: profile?.name || 'You', score: attempt.score,
-                            time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
-                        });
-                    }
-                }
-
-                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
-                const sorted = uniquePlayers.sort((a, b) => {
-                    if (a.disqualified && !b.disqualified) return 1;
-                    if (!a.disqualified && b.disqualified) return -1;
-                    if (a.score !== b.score) return b.score - a.score;
-                    return a.time - b.time;
-                }).map((p, i) => ({ ...p, rank: i + 1 }));
-
-                setPlayers(sorted);
-            } catch (e: any) {
-                if (e.message.includes('offline') || e.code === 'unavailable') {
-                  setError("You appear to be offline. Please check your connection.");
-                } else {
-                  setError("An error occurred while loading the leaderboard.");
-                }
-                console.error(e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchLivePlayers();
     }, [user, profile]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading) return Array.from({ length: 1 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
+        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">Play a quiz to appear on the live leaderboard!</p>;
         
         return players.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
@@ -134,10 +97,9 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     
     const players: AllTimePlayer[] = useMemo(() => {
-        // This is mocked for now. A real implementation would query an aggregated collection.
         if (!profile) return [];
         return [{
             uid: user!.uid,
@@ -149,9 +111,6 @@ const AllTimeLeaderboard = memo(() => {
         }];
     }, [user, profile]);
     
-    useEffect(() => {
-        setIsLoading(false);
-    }, []);
 
     if (isLoading) return <LeaderboardItemSkeleton />;
 
