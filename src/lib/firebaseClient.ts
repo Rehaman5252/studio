@@ -14,22 +14,48 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This ensures we're only running this on the client
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let persistenceEnabled = false;
 
-// Enable persistence only on the client
-if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed: multiple tabs open.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence not supported in this browser.');
-      }
-    });
+// This function ensures Firebase is initialized only on the client side.
+function initializeFirebase() {
+    if (typeof window !== "undefined") {
+        if (!getApps().length) {
+            try {
+                if (Object.values(firebaseConfig).every(Boolean)) {
+                    app = initializeApp(firebaseConfig);
+                }
+            } catch (e) {
+                console.error("Failed to initialize Firebase", e);
+            }
+        } else {
+            app = getApp();
+        }
+
+        if (app) {
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            if (db && !persistenceEnabled) {
+              enableIndexedDbPersistence(db).catch((err) => {
+                if (err.code === 'failed-precondition') {
+                  console.warn('Firestore persistence failed: multiple tabs open.');
+                } else if (err.code === 'unimplemented') {
+                  console.warn('Firestore persistence not supported in this browser.');
+                }
+              });
+              persistenceEnabled = true;
+            }
+        }
+    }
 }
 
+initializeFirebase();
+
+// Export the initialized instances. Components should import these directly.
+export { auth, db };
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
@@ -39,7 +65,6 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 
   try {
-    // This is a more reliable check. We use a non-existent document to avoid read costs.
     const testDoc = doc(db, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
@@ -47,10 +72,6 @@ export async function isFirebaseOnline(): Promise<boolean> {
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
-    // Some errors might not indicate offline status, but for this check, we treat them as such.
     return false;
   }
 }
-
-// Export the initialized services
-export { auth, db };

@@ -13,7 +13,7 @@ import { sendQuizHistoryEmail } from '@/ai/flows/send-quiz-history-email';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -159,16 +159,18 @@ export default function QuizHistoryContent() {
 
     useEffect(() => {
         if (!user) { setLoading(false); return; }
-        const db = getFirebaseFirestore();
         if (!db) { setError("Firestore not ready"); setLoading(false); return; }
-        setLoading(true); setError(null);
+
+        setLoading(true); 
+        setError(null);
+        
         (async () => {
             try {
-                // Fetch all history once, then filter on the client.
                 const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
             } catch (e: any) {
+                console.error("Firestore error:", e);
                 setError("Unable to load quiz history.");
             } finally {
                 setLoading(false);

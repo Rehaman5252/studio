@@ -1,5 +1,6 @@
 
 'use client';
+
 import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,12 +44,19 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (authLoading) return;
+        if (!db) {
+            setError("Couldn't connect to the database.");
+            setIsLoading(false);
+            return;
+        }
+
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
@@ -86,7 +94,7 @@ const LiveLeaderboard = memo(() => {
 
                 setPlayers(sorted);
             } catch (e: any) {
-                if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                if (e.message.includes('offline') || e.code === 'unavailable') {
                   setError("You appear to be offline. Please check your connection.");
                 } else {
                   setError("An error occurred while loading the leaderboard.");
@@ -97,10 +105,10 @@ const LiveLeaderboard = memo(() => {
             }
         };
         fetchLivePlayers();
-    }, [user, profile]);
+    }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
@@ -126,12 +134,26 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
+    const [isLoading, setIsLoading] = useState(true);
     
     const players: AllTimePlayer[] = useMemo(() => {
         // This is mocked for now. A real implementation would query an aggregated collection.
-        if (!user || !profile || (profile.perfectScores || 0) === 0) return [];
-        return [{ uid: user.uid, name: profile.name, perfectScores: profile.perfectScores, totalPlayed: profile.quizzesPlayed, avatar: profile.photoURL, rank: 1 }];
+        if (!profile) return [];
+        return [{
+            uid: user!.uid,
+            name: profile.name,
+            perfectScores: profile.perfectScores || 0,
+            totalPlayed: profile.quizzesPlayed || 0,
+            avatar: profile.photoURL,
+            rank: 1
+        }];
     }, [user, profile]);
+    
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
+
+    if (isLoading) return <LeaderboardItemSkeleton />;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">

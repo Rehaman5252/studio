@@ -129,6 +129,12 @@ const BrandGifts = () => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
+    if (!db) {
+        setError("Firestore not available.");
+        setLoading(false);
+        return;
+    }
+
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
