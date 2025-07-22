@@ -90,8 +90,8 @@ const LiveLeaderboard = () => {
 
                 setPlayers(sorted);
             } catch (e: any) {
-                if (e.message.includes('offline') || e.code === 'unavailable') {
-                  setError("You appear to be offline. Please check your connection.");
+                if (e.code === 'unavailable') {
+                  setError("You appear to be offline. Please check your connection to view the leaderboard.");
                 } else {
                   setError("An error occurred while loading the leaderboard.");
                 }

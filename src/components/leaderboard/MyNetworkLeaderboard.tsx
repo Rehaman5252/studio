@@ -109,8 +109,12 @@ const MyNetworkLeaderboard = () => {
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
 
             } catch (e: any) {
+                if (e.code === 'unavailable') {
+                    setError("You appear to be offline. Please check your connection.");
+                } else {
+                    setError("Could not load your network's leaderboard.");
+                }
                 console.error("Error fetching network leaderboard:", e);
-                setError("Could not load your network's leaderboard.");
             } finally {
                 setIsLoading(false);
             }

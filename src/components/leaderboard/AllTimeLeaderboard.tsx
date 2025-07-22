@@ -66,8 +66,12 @@ const AllTimeLeaderboard = () => {
                 }));
                 setPlayers(playersData);
             } catch (e: any) {
+                if (e.code === 'unavailable') {
+                    setError("You appear to be offline. Please check your connection.");
+                } else {
+                    setError("Could not load the all-time leaderboard.");
+                }
                 console.error("Error fetching all-time leaderboard:", e);
-                setError("Could not load the all-time leaderboard.");
             } finally {
                 setIsLoading(false);
             }

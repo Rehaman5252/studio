@@ -71,7 +71,7 @@ export default function CertificatesContent() {
             setQuizHistory(historyData);
         } catch (e: any) {
             console.error("Failed to fetch certificate data:", e);
-            if (e.code === 'unavailable' || e.message?.includes('offline')) {
+            if (e.code === 'unavailable') {
                 setError("You appear to be offline. Please check your connection to see your certificates.");
             } else {
                 setError("Could not load your certificates. Please try again later.");
