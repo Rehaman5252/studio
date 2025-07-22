@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -13,36 +14,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 let persistenceEnabled = false;
 
-function initializeFirebase() {
-    if (typeof window !== "undefined") {
-        if (!getApps().length) {
-            try {
-                if (Object.values(firebaseConfig).every(Boolean)) {
-                    app = initializeApp(firebaseConfig);
-                }
-            } catch (e) {
-                console.error("Failed to initialize Firebase", e);
-            }
-        } else {
-            app = getApp();
-        }
-
-        if (app) {
-            auth = getAuth(app);
-            db = getFirestore(app);
-        }
+if (typeof window !== 'undefined' && !getApps().length) {
+    if (Object.values(firebaseConfig).every(v => v)) {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+    } else {
+        console.error("Firebase config is incomplete. Authentication and Firestore will not be available.");
     }
-}
-
-initializeFirebase();
-
-export function getFirebaseAuth(): Auth | null {
-  return auth;
+} else if (typeof window !== 'undefined') {
+    app = getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
 }
 
 export function getFirebaseFirestore(): Firestore | null {
@@ -72,7 +60,6 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 
   try {
-    // This is a more reliable check. We use a non-existent document to avoid read costs.
     const testDoc = doc(db, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
@@ -80,7 +67,9 @@ export async function isFirebaseOnline(): Promise<boolean> {
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
-    // Some errors might not indicate offline status, but for this check, we treat them as such.
     return false;
   }
 }
+
+// @ts-ignore
+export { auth, db };
