@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
+import { WifiOff, ServerCrash, Star } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
 
 const RankIcon = ({ rank }: { rank: number }) => {

@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff } from 'lucide-react';

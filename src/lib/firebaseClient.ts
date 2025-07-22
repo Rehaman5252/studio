@@ -14,46 +14,70 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let persistenceEnabled = false;
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+function initializeFirebase() {
+    if (typeof window !== "undefined") {
+        if (!getApps().length) {
+            try {
+                if (Object.values(firebaseConfig).every(Boolean)) {
+                    app = initializeApp(firebaseConfig);
+                }
+            } catch (e) {
+                console.error("Failed to initialize Firebase", e);
+            }
+        } else {
+            app = getApp();
+        }
 
-// This check ensures Firebase is only initialized on the client side.
-if (typeof window !== 'undefined' && isFirebaseConfigured) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
-
-    try {
-        enableIndexedDbPersistence(db);
-    } catch (err: any) {
-        if (err.code === 'failed-precondition') {
-            console.warn('Firestore persistence failed: Multiple tabs open.');
-        } else if (err.code === 'unimplemented') {
-            console.warn('Firestore persistence is not available in this browser.');
+        if (app) {
+            auth = getAuth(app);
+            db = getFirestore(app);
         }
     }
 }
 
-async function isFirebaseOnline(): Promise<boolean> {
-  if (!isFirebaseConfigured || (typeof window !== 'undefined' && !navigator.onLine)) {
+// Initialize on module load
+initializeFirebase();
+
+export function getFirebaseAuth(): Auth | null {
+  return auth;
+}
+
+export function getFirebaseFirestore(): Firestore | null {
+  if (db && !persistenceEnabled && typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence failed: multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence not supported in this browser.');
+      }
+    });
+    persistenceEnabled = true;
+  }
+  return db;
+}
+
+
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+
+export async function isFirebaseOnline(): Promise<boolean> {
+  const firestoreDb = getFirebaseFirestore();
+  if (!firestoreDb || (typeof window !== 'undefined' && !navigator.onLine)) {
     return false;
   }
+
   try {
-    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    const testDoc = doc(firestoreDb, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
   } catch (error: any) {
-    // This indicates a network failure trying to reach Firestore.
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
-    // For other errors, we can assume it's not a connectivity issue, but for this check, we'll be conservative.
     return false;
   }
 }
-
-// Export the initialized services and utility functions.
-export { app, auth, db, isFirebaseOnline };
