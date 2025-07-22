@@ -1,67 +1,52 @@
-// src/app/certificates/page.tsx - Server Component
+
+'use client';
+
 import React from 'react';
-import CertificatesContent from '@/components/certificates/CertificatesContent';
-import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
-import type { QuizAttempt } from '@/lib/mockData';
-import LoginPrompt from '@/components/auth/LoginPrompt';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
 import { Award } from 'lucide-react';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 
-async function getCertificateData(uid: string): Promise<QuizAttempt[]> {
-    try {
-        const db = getFirebaseFirestore();
-        if (!db) {
-            throw new Error("Firestore is not available on the server.");
-        }
-        const q = query(collection(db, "users", uid, "quizAttempts"), orderBy("timestamp", "desc"));
-        const querySnapshot = await getDocs(q);
-        
-        const historyData = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            // Convert Firestore Timestamps to a serializable format (milliseconds)
-            return {
-                ...data,
-                timestamp: (data.timestamp as Timestamp).toMillis(),
-            } as QuizAttempt;
-        });
-        return historyData;
-    } catch (error) {
-        console.error("Failed to fetch certificate data on server:", error);
-        return [];
-    }
+const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
+  loading: () => <CertificatesSkeleton />,
+  ssr: false,
+});
+
+const CertificatesSkeleton = () => (
+    <div className="space-y-4">
+      <Skeleton className="h-[125px] w-full rounded-lg" />
+      <Skeleton className="h-[125px] w-full rounded-lg" />
+      <Skeleton className="h-[125px] w-full rounded-lg" />
+    </div>
+);
+
+function CertificatesPage() {
+  const { user, loading } = useAuth();
+
+  return (
+    <div className="flex flex-col h-screen bg-background">
+      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
+        <h1 className="text-2xl font-bold text-center text-foreground">My Certificates</h1>
+      </header>
+
+      <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+        {loading ? (
+          <CertificatesSkeleton />
+        ) : user ? (
+          <CertificatesContent />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <LoginPrompt
+              icon={Award}
+              title="Claim Your Certificates"
+              description="Log in to view and download certificates for your perfect quiz scores."
+            />
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }
 
-export default async function CertificatesPage() {
-    const { user, profile } = await getAuthenticatedUser();
-
-    if (!user) {
-        return (
-             <div className="flex flex-col h-screen bg-background">
-                <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
-                    <h1 className="text-2xl font-bold text-center text-foreground">My Certificates</h1>
-                </header>
-                <main className="flex-1 flex items-center justify-center p-4 pb-20">
-                    <LoginPrompt 
-                        icon={Award}
-                        title="Claim Your Certificates"
-                        description="Log in to view and download certificates for your perfect quiz scores."
-                    />
-                </main>
-            </div>
-        )
-    }
-
-    const initialHistory = await getCertificateData(user.uid);
-
-    return (
-        <div className="flex flex-col h-screen bg-background">
-            <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
-                <h1 className="text-2xl font-bold text-center text-foreground">My Certificates</h1>
-            </header>
-            <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                <CertificatesContent initialHistory={initialHistory} initialProfile={profile} />
-            </main>
-        </div>
-    );
-}
+export default CertificatesPage;

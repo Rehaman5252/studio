@@ -1,18 +1,23 @@
+
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, Send } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash, Send } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { sendQuizHistoryEmail } from '@/ai/flows/send-quiz-history-email';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { sendQuizHistoryEmail } from '@/ai/flows/send-quiz-history-email';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -124,12 +129,56 @@ const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
 });
 QuizHistoryItem.displayName = "QuizHistoryItem";
 
+function HistorySkeleton() {
+    return (
+        <div className="space-y-4 pt-4">
+            {[...Array(3)].map((_, i) => (
+                <Card key={i} className="bg-card/80 shadow-lg"><CardHeader><div className="flex justify-between items-center"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-12" /></div><Skeleton className="h-4 w-32 mt-1" /></CardHeader><CardContent className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-40" /></div><Skeleton className="h-9 w-28" /></CardContent></Card>
+            ))}
+        </div>
+    );
+}
 
-export default function QuizHistoryContent({ initialHistory }: { initialHistory: QuizAttempt[] }) {
+const ErrorState = ({ message }: { message: string }) => (
+    <div className="pt-4">
+        <Alert variant="destructive">
+            {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+            <AlertTitle>Error Loading History</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    </div>
+);
+
+export default function QuizHistoryContent() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [filter, setFilter] = useState<'recent' | 'all' | 'perfect'>('recent');
+    const [history, setHistory] = useState<QuizAttempt[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+    useEffect(() => {
+        if (!user) { setLoading(false); return; }
+        const db = getFirebaseFirestore();
+        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
+        setLoading(true); setError(null);
+        (async () => {
+            try {
+                const q = query(
+                    collection(db, "users", user.uid, "quizAttempts"),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
+                const snap = await getDocs(q);
+                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+            } catch (e) {
+                setError("Unable to load quiz history.");
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [user]);
 
     const handleSendHistory = async () => {
         if (!user?.email) {
@@ -138,7 +187,7 @@ export default function QuizHistoryContent({ initialHistory }: { initialHistory:
         }
         setIsSendingEmail(true);
         try {
-            const result = await sendQuizHistoryEmail({ email: user.email, history: initialHistory });
+            const result = await sendQuizHistoryEmail({ email: user.email, history: history });
             if (result.success) {
                 toast({ title: "Email Sent!", description: result.message });
             } else {
@@ -154,24 +203,26 @@ export default function QuizHistoryContent({ initialHistory }: { initialHistory:
     const filteredHistory = useMemo(() => {
         switch(filter) {
             case 'perfect':
-                return initialHistory.filter(a => a.score === a.totalQuestions && !a.reason);
+                return history.filter(a => a.score === a.totalQuestions && !a.reason);
             case 'recent':
-                return initialHistory.slice(0, 5);
+                return history.slice(0, 5);
             case 'all':
             default:
-                return initialHistory.slice(0, 20);
+                return history.slice(0, 20);
         }
-    }, [initialHistory, filter]);
+    }, [history, filter]);
 
     const renderContent = () => {
-        if (!initialHistory.length) return (
+        if (loading) return <HistorySkeleton />;
+        if (error) return <ErrorState message={error} />;
+        if (!filteredHistory.length) return (
             <div>
                 <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
             </div>
         );
         return (
             <div className="space-y-4 pt-4">
-                {filter === 'all' && initialHistory.length > 20 && (
+                {filter === 'all' && history.length > 20 && (
                      <Card className="bg-card/80">
                         <CardContent className="p-4 flex items-center justify-between">
                             <p className="text-sm text-muted-foreground">Showing the last 20 quizzes.</p>

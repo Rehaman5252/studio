@@ -1,57 +1,73 @@
-// src/lib/auth/getAuthenticatedUser.ts
-import { cookies } from 'next/headers';
-import { adminAuth } from '../firebaseAdmin';
-import { getFirebaseFirestore } from '../firebaseClient';
-import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import type { DecodedIdToken } from 'firebase-admin/auth';
-
-interface AuthenticatedUser {
-    user: DecodedIdToken | null;
-    profile: Record<string, any> | null;
-}
-
-/**
- * A server-side utility to get the currently authenticated user's
- * session and profile data.
- * @returns {Promise<AuthenticatedUser>} An object containing the user's decoded token and their Firestore profile.
- */
-export async function getAuthenticatedUser(): Promise<AuthenticatedUser> {
-  const session = cookies().get('session')?.value || '';
-
-  if (!session) {
-    return { user: null, profile: null };
-  }
-
-  try {
-    const decodedIdToken = await adminAuth.verifySessionCookie(session, true);
-    
-    // We get a new firestore instance here to ensure it works server-side.
-    const db = getFirebaseFirestore();
-    if (!db) {
-        throw new Error("Firestore is not initialized on the server");
-    }
-
-    const userDocRef = doc(db, "users", decodedIdToken.uid);
-    const userDoc = await getDoc(userDocRef);
-
-    let profileData = null;
-    if (userDoc.exists()) {
-        profileData = userDoc.data();
-        // Convert Firestore Timestamps to serializable format (e.g., ISO string for dates)
-        Object.keys(profileData).forEach(key => {
-            if (profileData[key] instanceof Timestamp) {
-                profileData[key] = profileData[key].toDate().toISOString();
-            }
-        });
-        if(profileData.dob) {
-            profileData.dob = profileData.dob.split('T')[0];
-        }
-    }
-
-    return { user: decodedIdToken, profile: profileData };
-  } catch (error) {
-    console.error('Session verification failed:', error);
-    // In case of an invalid session cookie, it's best to treat the user as logged out.
-    return { user: null, profile: null };
+{
+  "name": "indcric",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
+    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "@genkit-ai/googleai": "^1.14.0",
+    "@genkit-ai/next": "^1.14.0",
+    "@hookform/resolvers": "^3.9.0",
+    "@radix-ui/react-accordion": "^1.2.0",
+    "@radix-ui/react-alert-dialog": "^1.1.1",
+    "@radix-ui/react-avatar": "^1.1.0",
+    "@radix-ui/react-checkbox": "^1.1.1",
+    "@radix-ui/react-collapsible": "^1.1.0",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-dropdown-menu": "^2.1.1",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-menubar": "^1.1.1",
+    "@radix-ui/react-popover": "^1.1.1",
+    "@radix-ui/react-progress": "^1.1.0",
+    "@radix-ui/react-radio-group": "^1.2.0",
+    "@radix-ui/react-scroll-area": "^1.1.0",
+    "@radix-ui/react-select": "^2.1.1",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slider": "^1.2.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.1.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.4.5",
+    "embla-carousel-react": "^8.1.7",
+    "firebase": "^10.12.4",
+    "framer-motion": "^11.3.17",
+    "genkit": "^1.14.0",
+    "jspdf": "^2.5.1",
+    "lucide-react": "^0.417.0",
+    "next": "latest",
+    "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.52.1",
+    "react-markdown": "^9.0.1",
+    "recharts": "^2.12.7",
+    "tailwind-merge": "^2.4.0",
+    "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.16.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "genkit-cli": "^1.14.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   }
 }
