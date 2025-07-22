@@ -9,7 +9,7 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban, WifiOff, ServerCrash } from 'lucide-react';
+import { Ban, WifiOff, ServerCrash, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
@@ -64,13 +64,8 @@ const LiveLeaderboard = memo(() => {
             setError(null);
             try {
                 // In a real app, this would query a shared 'liveSlot' collection.
-                // For this demo, we mock it.
-                const mockLivePlayers: LivePlayer[] = [
-                    { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
-                    { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
-                ];
+                // For this demo, we are only fetching the current user's attempt.
+                const livePlayers: LivePlayer[] = [];
                 
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
@@ -78,16 +73,15 @@ const LiveLeaderboard = memo(() => {
 
                     if (!userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        mockLivePlayers.push({
+                        livePlayers.push({
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
                             avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
                         });
                     }
                 }
-
-                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
-                const sorted = uniquePlayers.sort((a, b) => {
+                
+                const sorted = livePlayers.sort((a, b) => {
                     if (a.disqualified && !b.disqualified) return 1;
                     if (!a.disqualified && b.disqualified) return -1;
                     if (a.score !== b.score) return b.score - a.score;
@@ -112,7 +106,7 @@ const LiveLeaderboard = memo(() => {
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
+        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">Play in the current slot to appear on the live leaderboard!</p>;
         
         return players.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
@@ -138,17 +132,10 @@ const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     
+    // This is mocked for now. A real implementation would query an aggregated collection.
     const players: AllTimePlayer[] = useMemo(() => {
-        // This is mocked for now. A real implementation would query an aggregated collection.
-        if (!profile) return [];
-        return [{
-            uid: user!.uid,
-            name: profile.name,
-            perfectScores: profile.perfectScores || 0,
-            totalPlayed: profile.quizzesPlayed || 0,
-            avatar: profile.photoURL,
-            rank: 1
-        }];
+        if (!user || !profile || (profile.perfectScores || 0) === 0) return [];
+        return [{ uid: user.uid, name: profile.name, perfectScores: profile.perfectScores, totalPlayed: profile.quizzesPlayed, avatar: profile.photoURL, rank: 1 }];
     }, [user, profile]);
     
     useEffect(() => {
@@ -177,18 +164,37 @@ const AllTimeLeaderboard = memo(() => {
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
+const MyNetworkLeaderboard = memo(() => {
+    return (
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardHeader className="text-center">
+                <CardTitle>🤝 My Network</CardTitle>
+                <CardDescription>Compare your performance with friends.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                <Users className="h-12 w-12 mb-4" />
+                <p className="font-semibold text-lg text-foreground">Coming Soon!</p>
+                <p>The ability to add friends and build your network is on its way.</p>
+            </CardContent>
+        </Card>
+    );
+});
+MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
+
 
 export default function LeaderboardContent() {
   const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-2" : "grid-cols-1")}>
+        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-1")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             {user && <TabsTrigger value="all-time">All-Time</TabsTrigger>}
+            {user && <TabsTrigger value="network">My Network</TabsTrigger>}
         </TabsList>
         <TabsContent value="live"><LiveLeaderboard /></TabsContent>
         {user && <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>}
+        {user && <TabsContent value="network"><MyNetworkLeaderboard /></TabsContent>}
     </Tabs>
   );
 }

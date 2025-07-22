@@ -39,7 +39,7 @@ const sendQuizHistoryEmailFlow = ai.defineFlow(
 
     return {
       success: true,
-      message: `An email with your complete quiz history has been sent to ${input.email}.`,
+      message: `An email with your complete quiz history will be sent to ${input.email}.`,
     };
   }
 );
