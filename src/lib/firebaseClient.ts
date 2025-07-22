@@ -40,12 +40,21 @@ function initializeFirebase() {
     }
 }
 
+// Initialize on module load in the client
 initializeFirebase();
 
+/**
+ * Safely gets the initialized Firebase Auth instance.
+ * @returns The Auth instance or null if not available.
+ */
 export function getFirebaseAuth(): Auth | null {
   return auth;
 }
 
+/**
+ * Safely gets the initialized Firebase Firestore instance.
+ * @returns The Firestore instance or null if not available.
+ */
 export function getFirebaseFirestore(): Firestore | null {
   if (db && !persistenceEnabled && typeof window !== 'undefined') {
     enableIndexedDbPersistence(db).catch((err) => {
@@ -70,6 +79,7 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 
   try {
+    // This is a more reliable check. We use a non-existent document to avoid read costs.
     const testDoc = doc(db, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
@@ -77,6 +87,7 @@ export async function isFirebaseOnline(): Promise<boolean> {
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
+    // Some errors might not indicate offline status, but for this check, we treat them as such.
     return false;
   }
 }
