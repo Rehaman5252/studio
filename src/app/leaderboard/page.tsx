@@ -1,34 +1,36 @@
 
-'use client';
-
 import React from 'react';
-import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { Trophy } from 'lucide-react';
+import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
+import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
-const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
-  loading: () => <LeaderboardSkeleton />,
-  ssr: false,
-});
+async function getLeaderboardData() {
+    try {
+        const db = getFirebaseFirestore();
+        if (!db) {
+            // This will be caught by the try-catch block
+            throw new Error("Firestore is not available on the server.");
+        }
+        
+        // This is a placeholder for fetching top players.
+        // In a real app, you would query an aggregated collection of top users.
+        const mockTopPlayers = [
+            { uid: 'mock-player-1', name: 'Ravi Ashwin', perfectScores: 25, totalPlayed: 150, photoURL: 'https://placehold.co/40x40.png' },
+            { uid: 'mock-player-2', name: 'Jasprit Bumrah', perfectScores: 22, totalPlayed: 130, photoURL: 'https://placehold.co/40x40.png' },
+            { uid: 'mock-player-3', name: 'Shikhar Dhawan', perfectScores: 20, totalPlayed: 180, photoURL: 'https://placehold.co/40x40.png' },
+        ];
+        return mockTopPlayers;
+    } catch (error) {
+        console.error("Failed to fetch leaderboard data:", error);
+        return [];
+    }
+}
 
-const LeaderboardSkeleton = () => (
-    <div className="space-y-2">
-      <Skeleton className="h-10 w-full" />
-      <div className="pt-2 space-y-2">
-        <Skeleton className="h-[60px] w-full" />
-        <Skeleton className="h-[60px] w-full" />
-        <Skeleton className="h-[60px] w-full" />
-        <Skeleton className="h-[60px] w-full" />
-        <Skeleton className="h-[60px] w-full" />
-      </div>
-    </div>
-);
-
-export default function LeaderboardPage() {
-    const { user, loading } = useAuth();
+export default async function LeaderboardPage() {
+    const { user, profile } = await getAuthenticatedUser();
+    const leaderboardData = await getLeaderboardData();
     
     return (
         <motion.div 
@@ -42,19 +44,7 @@ export default function LeaderboardPage() {
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 pb-24">
-                {loading ? (
-                    <LeaderboardSkeleton />
-                ) : user ? (
-                    <LeaderboardContent />
-                ) : (
-                    <div className="flex items-center justify-center h-full">
-                        <LoginPrompt
-                            icon={Trophy}
-                            title="View the Rankings"
-                            description="Log in or sign up to see where you stand on the leaderboard."
-                        />
-                    </div>
-                )}
+                <LeaderboardContent initialUser={user} initialProfile={profile} initialLeaderboard={leaderboardData} />
             </main>
         </motion.div>
     );

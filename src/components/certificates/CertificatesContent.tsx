@@ -9,16 +9,8 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
-const ErrorState = ({ message }: { message: string }) => (
-    <Alert variant="destructive" className="mt-4">
-        <AlertTitle>Error Loading Certificates</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-    </Alert>
-);
-
-export default function CertificatesContent({ initialHistory, error }: { initialHistory: QuizAttempt[], error: string | null }) {
+export default function CertificatesContent({ initialHistory }: { initialHistory: QuizAttempt[] }) {
   const { profile } = useAuth();
   const { toast } = useToast();
   
@@ -38,7 +30,6 @@ export default function CertificatesContent({ initialHistory, error }: { initial
   };
   
   const certificates = useMemo(() => {
-    if (!initialHistory) return [];
     return initialHistory
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
       .map(attempt => ({
@@ -113,10 +104,6 @@ export default function CertificatesContent({ initialHistory, error }: { initial
         toast({ title: 'Copied to clipboard', description: 'Sharing not available, copied to clipboard!' });
     }
   };
-
-  if (error) {
-    return <ErrorState message={error} />;
-  }
   
   return (
     <>

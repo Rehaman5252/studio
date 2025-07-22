@@ -1,54 +1,69 @@
 
-'use client';
-
 import React from 'react';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
-import { ScrollText } from 'lucide-react';
+import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
+import QuizHistoryContent from '@/components/quiz-history/QuizHistoryContent';
+import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import type { QuizAttempt } from '@/lib/mockData';
 import LoginPrompt from '@/components/auth/LoginPrompt';
+import { ScrollText } from 'lucide-react';
 
-const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
-  loading: () => <HistorySkeleton />,
-  ssr: false,
-});
+async function getQuizHistoryData(uid: string) {
+    try {
+        const db = getFirebaseFirestore();
+        if (!db) {
+            throw new Error("Firestore is not available on the server.");
+        }
+        const q = query(
+            collection(db, "users", uid, "quizAttempts"),
+            orderBy("timestamp", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        const historyData = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                timestamp: data.timestamp.toMillis(),
+            };
+        }) as QuizAttempt[];
+        return historyData;
+    } catch (error) {
+        console.error("Failed to fetch quiz history data:", error);
+        return [];
+    }
+}
 
-const HistorySkeleton = () => (
-    <div className="space-y-4">
-      <Skeleton className="h-10 w-full max-w-md mx-auto" />
-      <div className="space-y-4 pt-4">
-        <Skeleton className="h-[148px] w-full" />
-        <Skeleton className="h-[148px] w-full" />
-        <Skeleton className="h-[148px] w-full" />
-      </div>
-    </div>
-);
 
-
-export default function QuizHistoryPage() {
-  const { user, loading } = useAuth();
+export default async function QuizHistoryPage() {
+    const { user } = await getAuthenticatedUser();
   
-  return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
-        <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
-      </header>
+    if (!user) {
+        return (
+             <div className="flex flex-col h-screen bg-background">
+                <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
+                    <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
+                </header>
+                <main className="flex-1 flex items-center justify-center p-4 pb-20">
+                    <LoginPrompt
+                        icon={ScrollText}
+                        title="Track Your Innings"
+                        description="Log in to see your quiz performance, stats, and AI analysis."
+                    />
+                </main>
+            </div>
+        )
+    }
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-        {loading ? (
-            <HistorySkeleton />
-        ) : user ? (
-          <QuizHistoryContent />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-              <LoginPrompt
-                icon={ScrollText}
-                title="Track Your Innings"
-                description="Log in to see your quiz performance, stats, and AI analysis."
-              />
-          </div>
-        )}
-      </main>
-    </div>
-  );
+    const initialHistory = await getQuizHistoryData(user.uid);
+
+    return (
+        <div className="flex flex-col h-screen bg-background">
+        <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
+            <h1 className="text-2xl font-bold text-center text-foreground">Quiz History</h1>
+        </header>
+        <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+            <QuizHistoryContent initialHistory={initialHistory} />
+        </main>
+        </div>
+    );
 }

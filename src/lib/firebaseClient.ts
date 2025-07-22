@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,36 +19,41 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 function initializeFirebase() {
-    if (typeof window !== "undefined") {
-        if (!getApps().length) {
-            try {
-                if (Object.values(firebaseConfig).every(Boolean)) {
-                    app = initializeApp(firebaseConfig);
-                } else {
-                    console.error("Firebase config is incomplete. App will not be initialized.");
-                    return;
-                }
-            } catch (e) {
-                console.error("Failed to initialize Firebase", e);
+    if (getApps().length === 0) {
+        try {
+            if (Object.values(firebaseConfig).every(Boolean)) {
+                app = initializeApp(firebaseConfig);
+            } else {
+                console.error("Firebase config is incomplete.");
                 return;
             }
-        } else {
-            app = getApp();
+        } catch (e) {
+            console.error("Failed to initialize Firebase", e);
+            return;
         }
+    } else {
+        app = getApp();
+    }
 
-        if (app) {
-            auth = getAuth(app);
-            // Initialize Firestore with offline persistence safely
+    if (app) {
+        if (typeof window !== 'undefined') {
+            // Client-side initialization
+            if (!auth) auth = getAuth(app);
             if (!db) {
+                // Initialize with multi-tab persistence on the client
                 db = initializeFirestore(app, {
                     localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
                 });
             }
+        } else {
+            // Server-side initialization (no persistence)
+            if (!auth) auth = getAuth(app);
+            if (!db) db = initializeFirestore(app, { localCache: memoryLocalCache() });
         }
     }
 }
 
-// Initialize on first load
+// Initialize on first import
 initializeFirebase();
 
 export function getFirebaseAuth(): Auth | null {
@@ -56,7 +61,11 @@ export function getFirebaseAuth(): Auth | null {
 }
 
 export function getFirebaseFirestore(): Firestore | null {
-  // The db instance is now initialized safely above.
+  if (!db) {
+    // This re-initialization is a safeguard for edge cases,
+    // especially in serverless environments where state might not persist between invocations.
+    initializeFirebase();
+  }
   return db;
 }
 
