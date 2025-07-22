@@ -105,17 +105,24 @@ export function getFirebaseFirestore(): Firestore {
  * @returns {Promise<boolean>} A promise that resolves to true if connected, false otherwise.
  */
 export async function isFirebaseOnline(): Promise<boolean> {
+    const db = getFirebaseFirestore();
+    // If there's no db instance or the browser reports offline, we're offline.
+    if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+        return false;
+    }
+
     try {
-        const db = getFirebaseFirestore();
-        // If there's no db instance or the browser reports offline, we're offline.
-        if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
-            return false;
-        }
         // Attempt a read on a non-existent document. This is a lightweight operation.
         // If it succeeds, we're online. If it fails with an 'unavailable' code, we're offline.
         await getDoc(doc(db, "systemHealth/connectionTest"));
         return true;
     } catch (error: any) {
-        return error.code !== 'unavailable';
+        // Specifically check for the 'unavailable' error code which indicates an offline client.
+        if (error.code === 'unavailable') {
+            return false;
+        }
+        // For other errors, we might still be "online" but have other issues (e.g. permissions).
+        // For the purpose of this check, we assume online unless explicitly told otherwise.
+        return true;
     }
 }

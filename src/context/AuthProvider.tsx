@@ -12,7 +12,7 @@
  *     load heavy sub-collections like quiz history here, which is critical for performance.
  * 3.  **Connectivity**: It provides a reliable `isOffline` flag for the entire app.
  * 4.  **Automatic Profile Creation**: If a user signs in for the first time, it
- *     automatically creates their profile document in Firestore.
+ *     automatically calls a utility to create their profile document in Firestore.
  */
 
 import type { User } from 'firebase/auth';
@@ -73,15 +73,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const db = getFirebaseFirestore();
         const userDocRef = doc(db, "users", user.uid);
-        unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+        
+        // This is a crucial check. If the user document doesn't exist, create it.
+        // This handles the case for new sign-ups immediately.
+        await createUserDocument(user);
+
+        unsubProfile = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data?.dob instanceof Timestamp) {
                     data.dob = data.dob.toDate().toISOString().split('T')[0];
                 }
                 setProfile(data);
-            } else {
-                await createUserDocument(user);
             }
             setLoading(false);
         }, (error) => {

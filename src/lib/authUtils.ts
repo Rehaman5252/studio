@@ -14,7 +14,7 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
+import { getFirebaseFirestore, getFirebaseAuth, isFirebaseOnline } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
@@ -80,13 +80,17 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
+    const online = await isFirebaseOnline();
+    if (!online) {
+      throw new Error("Client is offline. Cannot verify user document.");
+    }
     await createUserDocument(result.user); // Ensure user doc exists after sign-in.
     return result.user;
   } catch (error: any) {
     // Gracefully handle common "errors" like the user closing the popup.
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
-    } else if (error.code === 'auth/network-request-failed') {
+    } else if (error.message?.includes("offline") || error.code === 'auth/network-request-failed') {
         toast({ title: 'Offline Error', description: 'Please check your internet connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
