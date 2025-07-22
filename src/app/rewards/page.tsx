@@ -5,7 +5,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { Gift, Loader2 } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 
 // Lazy-load the rewards content to keep the initial bundle small.

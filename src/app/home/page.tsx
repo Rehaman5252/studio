@@ -33,7 +33,7 @@ const HomeContentSkeleton = () => (
 );
 
 function HomePage() {
-    const { loading } = useAuth();
+    const { user, loading } = useAuth();
     return (
       <div className="flex flex-col h-screen bg-background text-foreground">
         <header className="p-4 flex items-center justify-center">
@@ -46,7 +46,19 @@ function HomePage() {
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-2">
-            {loading ? <HomeContentSkeleton /> : <HomeClientContent />}
+            {loading ? (
+                <HomeContentSkeleton />
+            ) : user ? (
+                <HomeClientContent />
+            ) : (
+                <div className="flex items-center justify-center pt-10">
+                    <LoginPrompt
+                        icon={HomeIcon}
+                        title="Welcome to indcric!"
+                        description="Sign in to play quizzes, win rewards, and climb the leaderboard."
+                    />
+                </div>
+            )}
           </div>
         </main>
       </div>
