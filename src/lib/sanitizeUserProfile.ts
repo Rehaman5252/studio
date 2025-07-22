@@ -30,17 +30,17 @@ export function sanitizeUserProfile(data: any): any {
     if (Object.prototype.hasOwnProperty.call(data, key) && data[key] !== undefined) {
       const value = data[key];
 
-      if (value instanceof Date) {
-        sanitizedObject[key] = Timestamp.fromDate(value);
-      } else if (value instanceof Timestamp) {
-        // If it's already a timestamp, keep it as is.
-        sanitizedObject[key] = value;
-      } else if (key === 'dob' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      if (key === 'dob' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
         // Special handling for 'dob' string to convert it to a Timestamp.
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
           sanitizedObject[key] = Timestamp.fromDate(date);
         }
+      } else if (value instanceof Date) {
+        sanitizedObject[key] = Timestamp.fromDate(value);
+      } else if (value instanceof Timestamp) {
+        // If it's already a timestamp, keep it as is.
+        sanitizedObject[key] = value;
       } else if (typeof value === 'object' && value !== null) {
         // Recursively sanitize nested objects.
         sanitizedObject[key] = sanitizeUserProfile(value);
