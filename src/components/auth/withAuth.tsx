@@ -3,14 +3,15 @@
 /**
  * @fileOverview withAuth Higher-Order Component (HOC)
  *
- * This HOC protects routes that require authentication.
- * It checks the authentication state from the `useAuth` hook and handles redirects.
+ * This HOC protects routes that require a fully authenticated and validated user.
+ * It checks for:
+ * 1. A valid, authenticated user session.
+ * 2. A completed user profile.
  *
- * - If the user is not logged in, it redirects to the `/auth/login` page.
- * - It shows a loading spinner while checking the auth state.
+ * - If the user is not logged in, it redirects to the login page.
+ * - If the user is logged in but their profile is incomplete, it redirects to the profile completion page.
+ * - It shows a loading spinner while checking auth/profile state.
  * - It shows an offline message if the connection to Firebase is lost.
- * - It passes the original destination URL in a 'from' query parameter so the
- *   user can be redirected back after successfully logging in.
  */
 import React, { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -22,23 +23,24 @@ const withAuth = <P extends object>(
   WrappedComponent: React.ComponentType<P>
 ): React.FC<P> => {
   const WithAuthComponent: React.FC<P> = (props) => {
-    const { user, loading, isOffline } = useAuth();
+    const { user, isProfileComplete, loading, isOffline } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
-      // Don't perform any redirects until the initial auth check is complete.
       if (loading) {
-        return;
+        return; // Wait for auth and profile state to be resolved
       }
-      // If not logged in, redirect to the login page, passing the current path as 'from'.
+      
       if (!user) {
         router.replace(`/auth/login?from=${encodeURIComponent(pathname)}`);
+      } else if (!isProfileComplete) {
+        router.replace('/complete-profile');
       }
-    }, [user, loading, router, pathname]);
 
-    // Show a global loading spinner while waiting for auth state or during redirects.
-    if (loading || !user) {
+    }, [user, isProfileComplete, loading, router, pathname]);
+
+    if (loading || !user || !isProfileComplete) {
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -46,7 +48,6 @@ const withAuth = <P extends object>(
       );
     }
     
-    // Show an offline message if connection is lost.
     if (isOffline) {
         return (
             <div className="flex h-screen w-screen items-center justify-center bg-background p-4">
@@ -61,7 +62,6 @@ const withAuth = <P extends object>(
         );
     }
 
-    // If all checks pass, render the wrapped component.
     return <WrappedComponent {...props} />;
   };
 

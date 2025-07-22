@@ -14,6 +14,7 @@ import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
+import Link from 'next/link';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -115,23 +116,19 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-export default function RewardsContent() {
+const BrandGifts = () => {
   const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setLoading(false); return; }
-
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setError("Firestore not available.");
+    if (authLoading || !user) {
         setLoading(false);
         return;
     }
 
+    const db = getFirebaseFirestore();
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
@@ -150,7 +147,6 @@ export default function RewardsContent() {
     fetchHistory();
   }, [user, authLoading]);
 
-  const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
     history.forEach(attempt => {
@@ -161,29 +157,47 @@ export default function RewardsContent() {
     });
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
-
-  if (loading || authLoading) return <RewardsSkeleton />;
+  
+  if (loading) {
+    return <RewardsSkeleton />;
+  }
+  
+  if (!user) {
+    return (
+        <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><h3 className="font-semibold text-lg text-foreground">Play to Win!</h3><p>Log in and play quizzes to unlock exclusive brand gifts.</p><Button asChild className="mt-4"><Link href="/auth/login">Play a Quiz</Link></Button></CardContent></Card>
+    )
+  }
+  
+  if (error) {
+    return <ErrorState message={error} />
+  }
 
   return (
     <>
-      <section>
-        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
-        {error ? <ErrorState message={error} /> : !user ? (
-          <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Log in and play a quiz to unlock exclusive brand gifts.</p></CardContent></Card>
-        ) : rewardableAttempts.length > 0 ? (
+      <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+      <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
+      {rewardableAttempts.length > 0 ? (
           <Carousel opts={{ align: 'start' }} className="w-full max-w-full"><CarouselContent className="-ml-4">{rewardableAttempts.map((attempt, index) => (<CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4"><ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="hidden sm:flex" /><CarouselNext className="hidden sm:flex" /></Carousel>
-        ) : (
-          <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">{hasAttempts ? "All rewards claimed!" : "No Brand Gifts Yet"}</p><p className="text-sm">{hasAttempts ? "Play again in a new slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}</p></CardContent></Card>
-        )}
-      </section>
-      <section className='mt-8'>
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-        <div className="space-y-4">
-          <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
-          <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
-        </div>
-      </section>
+      ) : (
+          <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p><p className="text-sm">Play any quiz to unlock a special brand gift!</p></CardContent></Card>
+      )}
     </>
-  );
+  )
+}
+
+export default function RewardsContent() {
+    return (
+        <>
+            <section>
+                <BrandGifts />
+            </section>
+            <section className='mt-8'>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+                <div className="space-y-4">
+                <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
+                <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
+                </div>
+            </section>
+        </>
+    )
 }

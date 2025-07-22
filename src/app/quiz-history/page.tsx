@@ -5,16 +5,16 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { ScrollText } from 'lucide-react';
-import LoginPrompt from '@/components/auth/LoginPrompt';
+import { ScrollText, Play } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
-// Lazy-load the main content to improve initial page performance.
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
-  loading: () => <HistorySkeleton />, // Show a skeleton while the component chunk is loading.
-  ssr: false, // This component is client-side only.
+  loading: () => <HistorySkeleton />,
+  ssr: false,
 });
 
-// A skeleton loader to provide immediate visual feedback.
 const HistorySkeleton = () => (
     <div className="space-y-4">
       <Skeleton className="h-10 w-full max-w-md mx-auto" />
@@ -23,6 +23,21 @@ const HistorySkeleton = () => (
         <Skeleton className="h-[148px] w-full" />
         <Skeleton className="h-[148px] w-full" />
       </div>
+    </div>
+);
+
+const NotLoggedInPrompt = () => (
+    <div className="flex items-center justify-center h-full">
+        <Card className="bg-card/80 max-w-sm w-full text-center">
+            <CardContent className="p-8">
+              <ScrollText className="h-12 w-12 mx-auto mb-4 text-primary/50" />
+              <h2 className="text-xl font-bold text-foreground">Track Your Innings</h2>
+              <p className="text-muted-foreground mt-2 mb-4">Log in and play a quiz to see your performance history and AI analysis.</p>
+              <Button asChild size="lg">
+                <Link href="/auth/login">Login to View History</Link>
+              </Button>
+            </CardContent>
+          </Card>
     </div>
 );
 
@@ -38,20 +53,11 @@ export default function QuizHistoryPage() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
         {loading ? (
-            // The lean AuthProvider is loading, show a skeleton to prevent flashes.
             <HistorySkeleton />
         ) : user ? (
-          // User is authenticated, render the component that will fetch its own data.
           <QuizHistoryContent />
         ) : (
-          // No user, prompt to log in.
-          <div className="flex items-center justify-center h-full">
-              <LoginPrompt
-                icon={ScrollText}
-                title="Track Your Innings"
-                description="Log in to see your quiz performance, stats, and AI analysis."
-              />
-          </div>
+          <NotLoggedInPrompt />
         )}
       </main>
     </div>

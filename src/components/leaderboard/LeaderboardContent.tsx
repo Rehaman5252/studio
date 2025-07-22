@@ -61,13 +61,10 @@ const LiveLeaderboard = memo(() => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // This effect will only run on the client, after the component mounts.
-        // It's safe to perform async operations and state updates here.
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
             
-            // This is the crucial fix: we check for an online connection first.
             const online = await isFirebaseOnline();
             if(!online) {
               setError("You appear to be offline. Please check your connection.");
@@ -76,9 +73,8 @@ const LiveLeaderboard = memo(() => {
             }
 
             try {
-                // In a real app, this would query a shared collection of live attempts.
-                // For this demo, we'll just fetch the current user's attempt for this slot.
                 const db = getFirebaseFirestore();
+                // In a real app, this would query a shared collection. For demo, we mock.
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
@@ -97,7 +93,6 @@ const LiveLeaderboard = memo(() => {
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
                             avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
                         };
-                         // Prevent adding duplicate if already in mock
                         if (!mockLivePlayers.some(p => p.uid === user.uid)) {
                             mockLivePlayers.push(livePlayer);
                         }
@@ -123,11 +118,8 @@ const LiveLeaderboard = memo(() => {
             }
         };
 
-        // Don't try to fetch data until the auth state is resolved.
-        if (!authLoading) {
-            fetchLivePlayers();
-        }
-    }, [user, profile, authLoading]);
+        fetchLivePlayers();
+    }, [user, profile]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
@@ -157,8 +149,6 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     
-    // This is derived from the profile, which is already loaded in AuthProvider.
-    // In a real large-scale app, this would be a separate, paginated query.
     const players: AllTimePlayer[] = useMemo(() => {
         if (!profile || !user) return [];
         return [{
@@ -206,5 +196,3 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
-
-    
