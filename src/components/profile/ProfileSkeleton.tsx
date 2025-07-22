@@ -1,9 +1,9 @@
 
 'use client';
 
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Award, Edit, Gift, LogOut, Mail, MessageSquare, Settings, Users } from 'lucide-react';
+import { Award, Edit, Flame, Gift, LogOut, Mail, MessageSquare, Settings, Users } from 'lucide-react';
 
 export default function ProfileSkeleton() {
     return (
@@ -25,6 +25,29 @@ export default function ProfileSkeleton() {
                     <Edit className="h-4 w-4 text-muted-foreground" />
                 </div>
             </div>
+            
+            {/* Streak Skeleton */}
+            <Card className="bg-card shadow-lg">
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Flame className="text-primary" />
+                        <Skeleton className="h-5 w-24" />
+                    </div>
+                     <Skeleton className="h-4 w-48 mt-1" />
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-end justify-between">
+                         <div>
+                            <Skeleton className="h-16 w-20" />
+                            <Skeleton className="h-5 w-24 mt-1" />
+                        </div>
+                        <div className="text-right space-y-1">
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-5 w-24 ml-auto" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Stats Summary Skeleton */}
             <Card className="bg-card shadow-lg">

@@ -12,6 +12,7 @@ import ProfileCompletion from './ProfileCompletion';
 import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
+import DailyStreakCard from './DailyStreakCard';
 import { signOut } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
 
@@ -51,6 +52,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
             </div>
             
             <ProfileCompletion userProfile={userProfile} />
+            <DailyStreakCard userProfile={userProfile} />
             <StatsSummary userProfile={userProfile} />
             <ReferralCard userProfile={userProfile} />
 

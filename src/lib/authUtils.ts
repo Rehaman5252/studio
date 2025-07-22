@@ -11,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
-import { doc, getDoc, setDoc, query, where, getDocs, collection, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, query, where, getDocs, collection, updateDoc, arrayUnion } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
@@ -24,6 +24,14 @@ export async function createUserDocument(user: User, additionalData: Record<stri
   if (!snapshot.exists()) {
     const { email, displayName, photoURL } = user;
     const referralCode = additionalData.refCode || null;
+    
+    // Streak tracking fields
+    const today = new Date().toISOString().split('T')[0];
+    const initialDailyProgress = {
+        date: today,
+        formats: { T20: 0, IPL: 0, WPL: 0, ODI: 0, Test: 0, Mixed: 0 },
+        totalPlayed: 0
+    };
     
     const newUserProfile = {
       uid: user.uid,
@@ -41,6 +49,10 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       referralEarnings: 0,
       referredBy: null,
       referrals: [],
+      // New streak fields
+      currentStreak: 0,
+      lastStreakTimestamp: null,
+      dailyQuizProgress: initialDailyProgress,
     };
 
     try {
