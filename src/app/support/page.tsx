@@ -39,7 +39,7 @@ function SupportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <a href="mailto:support@cricblitz.com" className="text-lg font-semibold text-primary">support@cricblitz.com</a>
+            <a href="mailto:support@indcric.com" className="text-lg font-semibold text-primary">support@indcric.com</a>
           </CardContent>
         </Card>
 

@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -60,23 +60,4 @@ export function getFirebaseFirestore(): Firestore | null {
   return db;
 }
 
-
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
-
-export async function isFirebaseOnline(): Promise<boolean> {
-  const firestoreDb = getFirebaseFirestore();
-  if (!firestoreDb || (typeof window !== 'undefined' && !navigator.onLine)) {
-    return false;
-  }
-
-  try {
-    // This is a more reliable check. We use a non-existent document to avoid read costs.
-    const testDoc = doc(firestoreDb, "systemHealth/connectivityCheck");
-    await getDoc(testDoc);
-    return true;
-  } catch (error: any) {
-    // Any error during this check suggests we are offline or have a permissions issue.
-    // For this check's purpose, we'll treat it as being offline.
-    return false;
-  }
-}
