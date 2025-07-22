@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
@@ -41,14 +41,13 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = () => {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, profile } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
-
+        const db = getFirebaseFirestore();
         if (!db) {
             setError("Couldn't connect to the database.");
             setIsLoading(false);
@@ -103,10 +102,10 @@ const LiveLeaderboard = () => {
             }
         };
         fetchLivePlayers();
-    }, [user, profile, authLoading]);
+    }, [user, profile]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
@@ -121,8 +120,8 @@ const LiveLeaderboard = () => {
     };
 
     return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader className="text-center"><CardTitle>🏏 Current Quiz Leaderboard</CardTitle><CardDescription><LiveInfo /></CardDescription></CardHeader>
+        <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
+            <CardHeader className="text-center"><CardTitle>🏏 Current Match Standings</CardTitle><CardDescription><LiveInfo /></CardDescription></CardHeader>
             <CardContent><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">{renderContent()}</motion.div></CardContent>
         </Card>
     );

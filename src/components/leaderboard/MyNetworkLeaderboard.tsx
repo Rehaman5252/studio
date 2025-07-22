@@ -73,7 +73,6 @@ const MyNetworkLeaderboard = () => {
                     return;
                 }
                 
-                // Fetch profiles of network members
                 const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
                 const playerDocs = await Promise.all(playerPromises);
                 
@@ -126,7 +125,19 @@ const MyNetworkLeaderboard = () => {
     const renderContent = () => {
         if (isLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (networkPlayers.length === 0) return <p className="text-center text-muted-foreground p-4">No network activity yet. Refer some friends!</p>;
+        if (networkPlayers.length === 0) {
+            return (
+                <Card className="bg-card/80 border-dashed border-primary/30 text-center mt-4">
+                    <CardHeader>
+                        <CardTitle>Build Your Network</CardTitle>
+                        <CardDescription>Refer friends to see their stats here!</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                       <p className="text-sm text-muted-foreground">Once your friends sign up using your referral link, you'll be able to track their performance and earn rewards.</p>
+                    </CardContent>
+                </Card>
+            )
+        }
         
         return networkPlayers.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg")}>
@@ -148,7 +159,7 @@ const MyNetworkLeaderboard = () => {
 
 
     return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
+        <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
             <CardHeader className="text-center">
                 <CardTitle>My Network</CardTitle>
                 <CardDescription>Track your friends' perfect scores</CardDescription>
