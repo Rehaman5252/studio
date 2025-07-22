@@ -8,12 +8,15 @@ import {
   signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
-import { auth, db, isFirebaseOnline } from './firebaseClient';
+import { getFirebaseFirestore, getFirebaseAuth, isFirebaseOnline } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData = {}) {
+  const db = getFirebaseFirestore();
+  if (!user || !db) return;
+  
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
@@ -37,12 +40,8 @@ export async function createUserDocument(user: User, additionalData = {}) {
     };
     try {
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
-    } catch (error: any) {
-      if ((error as any).code === 'unavailable') {
-          toast({ title: "Offline", description: "Could not create your profile document. Please check your connection.", variant: "destructive"});
-      } else {
-        toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
-      }
+    } catch (error) {
+      toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
       throw error;
     }
   }
@@ -51,8 +50,9 @@ export async function createUserDocument(user: User, additionalData = {}) {
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (isPopupOpen) {
-    console.warn("Google Sign-In popup is already open.");
+  const auth = getFirebaseAuth();
+  if (isPopupOpen || !auth) {
+    console.warn("Google Sign-In popup is already open or auth is not initialized.");
     return null;
   }
   isPopupOpen = true;
@@ -63,20 +63,22 @@ export async function handleGoogleSignIn(): Promise<User | null> {
   try {
     const result = await signInWithPopup(auth, provider);
     
+    // This is the critical fix: wait for a confirmed online connection
+    // before attempting to interact with Firestore.
     const online = await isFirebaseOnline();
     if (!online) {
       throw new Error("client-offline");
     }
-    
-    // This now happens *after* a successful online check.
+
+    // Now it is safe to create the user document.
     await createUserDocument(result.user);
     return result.user;
 
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
-    } else if (error.message === 'client-offline' || error.code === 'auth/network-request-failed' || error.code === 'unavailable') {
-        toast({ title: 'You Are Offline', description: 'Could not sign in. Please check your connection and try again.', variant: 'destructive' });
+    } else if (error.message === 'client-offline' || error.code === 'auth/network-request-failed' || (error.code === 'unavailable')) {
+        toast({ title: 'You Appear To Be Offline', description: 'Could not sign in. Please check your connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
         toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
@@ -88,9 +90,15 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string) => {
-    return await createUserWithEmailAndPassword(auth, email, password);
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
-    return await signInWithEmailAndPassword(auth, email, password);
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential;
 };
