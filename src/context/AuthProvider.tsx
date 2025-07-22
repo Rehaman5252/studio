@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
 import { auth, db, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -47,6 +47,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     let unsubProfile: () => void = () => {};
+    let unsubHistory: () => void = () => {};
+    
     setLoading(true);
 
     const setupListeners = async () => {
@@ -95,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     return () => {
         unsubProfile();
+        unsubHistory();
     };
   }, [user]);
 

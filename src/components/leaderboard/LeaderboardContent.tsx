@@ -127,8 +127,6 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    const [isLoading, setIsLoading] = useState(true);
-    
     // In a real app, this would query the 'users' collection and sort by perfectScores
     const players: AllTimePlayer[] = useMemo(() => {
         if (!profile) return [];
@@ -141,12 +139,6 @@ const AllTimeLeaderboard = memo(() => {
             rank: 1
         }];
     }, [user, profile]);
-    
-    useEffect(() => {
-        setIsLoading(false);
-    }, []);
-
-    if (isLoading) return <LeaderboardItemSkeleton />;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
