@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
         hostname: 'www.freepnglogos.com',
       },
       {
-        protocol: 'https,"
+        protocol: 'https',
         hostname: 'cdn.icon-icons.com',
       },
       {
