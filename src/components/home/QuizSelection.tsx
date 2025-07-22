@@ -22,6 +22,7 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from './brandData';
 import BrandCube from './BrandCube';
+import type { QuizAttempt } from '@/lib/mockData';
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)
@@ -33,8 +34,7 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, profile } = useAuth();
-    const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
+    const { user, profile, quizHistory, historyLoading } = useAuth();
     const router = useRouter();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
@@ -42,21 +42,22 @@ const QuizSelectionComponent = () => {
     const [rotation, setRotation] = useState(faceRotations[0]);
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
+    
+    const lastAttemptInSlot = useMemo(() => {
+        if (!quizHistory || quizHistory.length === 0) return null;
+        const currentSlotId = getQuizSlotId();
+        return quizHistory.find(attempt => attempt.slotId === currentSlotId) || null;
+    }, [quizHistory]);
 
     const isProfileComplete = useMemo(() => {
         if (!profile) return false;
         return profile.profileCompleted;
     }, [profile]);
-    
-    const hasPlayedInCurrentSlot = useMemo(() => {
-        if (!user || !lastAttemptInSlot) return false;
-        return lastAttemptInSlot.slotId === getQuizSlotId();
-    }, [user, lastAttemptInSlot]);
 
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 3000); // Rotate every 3 seconds
+        }, 3000);
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -76,12 +77,12 @@ const QuizSelectionComponent = () => {
             setShowAuthAlert(true);
             return;
         }
-        if (hasPlayedInCurrentSlot) {
+        if (lastAttemptInSlot) {
             setShowSlotPlayedAlert(true);
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(brandToStart.brand)}&format=${encodeURIComponent(brandToStart.format)}`);
         }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
+    }, [router, user, isProfileComplete, lastAttemptInSlot]);
     
 
     const handleFaceClick = (brand: CubeBrand) => {
@@ -97,10 +98,13 @@ const QuizSelectionComponent = () => {
     };
 
     const handleSlotAlertAction = () => {
+        const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+        const reviewUrl = `/quiz/results?attempt=${encodeURIComponent(attemptDataString)}&review=true`;
+
         if (lastAttemptInSlot?.reason === 'malpractice') {
-            router.push(`/quiz/results?reason=malpractice`);
+            router.push(reviewUrl);
         } else {
-            router.push(`/quiz/results?review=true`);
+            router.push(reviewUrl);
         }
         setShowSlotPlayedAlert(false);
     };
@@ -114,7 +118,7 @@ const QuizSelectionComponent = () => {
         setShowAuthAlert(false);
     }
     
-    if (isQuizStatusLoading) {
+    if (historyLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
