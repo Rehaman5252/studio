@@ -12,7 +12,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -160,7 +160,6 @@ export default function QuizHistoryContent() {
 
     useEffect(() => {
         if (!user) { setLoading(false); return; }
-        const db = getFirebaseFirestore();
         if (!db) { setError("Firestore not ready"); setLoading(false); return; }
         setLoading(true); setError(null);
         (async () => {
@@ -216,7 +215,7 @@ export default function QuizHistoryContent() {
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>
-                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
             </div>
         );
         return (
