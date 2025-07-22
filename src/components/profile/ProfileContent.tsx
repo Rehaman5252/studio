@@ -48,7 +48,6 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/certificates" prefetch={true}><Award className="mr-4" /> View Certificates</Link>
                 </Button>
-                
                 <ReferralCard userProfile={userProfile} />
             </section>
             
