@@ -62,6 +62,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const online = await isFirebaseOnline();
       setIsOffline(!online);
+      if (!online) {
+        setLoading(false);
+        return;
+      }
 
       const userDocRef = doc(db, "users", user.uid);
       

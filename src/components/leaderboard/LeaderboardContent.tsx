@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
@@ -11,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -52,7 +53,6 @@ const LiveLeaderboard = memo(() => {
     useEffect(() => {
         if (authLoading) return;
 
-        const db = getFirebaseFirestore();
         if (!db) {
             setError("Couldn't connect to the database.");
             setIsLoading(false);
