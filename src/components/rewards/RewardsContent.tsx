@@ -95,6 +95,23 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
 });
 ScratchCard.displayName = 'ScratchCard';
 
+const GenericOffer = memo(({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
+    <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ duration: 0.3 }} className="transition-transform hover:scale-103">
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardContent className="p-4 flex items-center gap-4">
+                <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
+                <div>
+                    <h4 className="font-bold text-foreground">{title}</h4>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="ml-auto" aria-label={`Claim offer for ${title}`}><ExternalLink className="text-muted-foreground" /></Button>
+            </CardContent>
+        </Card>
+    </motion.div>
+));
+GenericOffer.displayName = 'GenericOffer';
+
+
 const BrandGifts = () => {
   const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -176,6 +193,16 @@ export default function RewardsContent() {
         <>
             <section>
                 <BrandGifts />
+            </section>
+            <section className='mt-8'>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+                <div className="space-y-4">
+                    <GenericOffer title="Flat 15% on Swiggy" description="First order for new users. Use code: INDCRIC15" image="https://placehold.co/100x100.png" hint="food delivery" />
+                    <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://placehold.co/100x100.png" hint="finance bank" />
+                    <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://placehold.co/100x100.png" hint="shopping cart" />
+                    <GenericOffer title="Myntra: 25% Off" description="On select fashion apparel. Use code: MYN25" image="https://placehold.co/100x100.png" hint="fashion clothing" />
+                    <GenericOffer title="Nykaa Beauty Bonanza" description="Get a free lipstick on orders over ₹1500." image="https://placehold.co/100x100.png" hint="cosmetics makeup" />
+                </div>
             </section>
         </>
     )
