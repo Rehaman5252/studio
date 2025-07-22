@@ -41,6 +41,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       referralEarnings: 0,
       referredBy: null,
       referrals: [],
+      rewardedReferrals: [], // List of UIDs for whom a reward has been paid out
       currentStreak: 0,
       lastStreakTimestamp: null,
     };

@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment, arrayUnion } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -117,19 +117,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     
+    // Update the player's own stats first
     if (updateUserData) {
         const newStats = {
-          quizzesPlayed: (profile.quizzesPlayed || 0) + 1,
-          perfectScores: (profile.perfectScores || 0) + (isPerfect ? 1 : 0),
-          totalRewards: (profile.totalRewards || 0) + (isPerfect ? 100 : 0),
+          quizzesPlayed: increment(1),
+          perfectScores: increment(isPerfect ? 1 : 0),
+          totalRewards: increment(isPerfect ? 100 : 0),
         };
         await updateUserData(newStats);
+    }
+    
+    // Handle the one-time referral bonus
+    if (isPerfect && profile.referredBy) {
+        const referrerRef = doc(db, "users", profile.referredBy);
+        const referrerSnap = await getDoc(referrerRef);
 
-        if (isPerfect && profile.referredBy) {
-            const referrerRef = doc(db, "users", profile.referredBy);
-            await updateDoc(referrerRef, {
-                referralEarnings: increment(50)
-            }).catch(e => console.error("Failed to update referrer earnings:", e));
+        if (referrerSnap.exists()) {
+            const referrerData = referrerSnap.data();
+            const alreadyRewarded = referrerData.rewardedReferrals?.includes(user.uid);
+            
+            if (!alreadyRewarded) {
+                 await updateDoc(referrerRef, {
+                    referralEarnings: increment(50),
+                    rewardedReferrals: arrayUnion(user.uid) // Add user to rewarded list
+                }).catch(e => console.error("Failed to update referrer earnings:", e));
+            }
         }
     }
     
