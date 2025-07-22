@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { auth } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 import { sendEmailVerification } from 'firebase/auth';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -40,6 +40,7 @@ export default function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
+  const refCode = searchParams.get('ref');
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +52,7 @@ export default function SignupForm() {
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
-        const user = await handleGoogleSignIn();
+        const user = await handleGoogleSignIn(refCode);
         if (user) {
             toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
             router.replace('/complete-profile');
@@ -67,9 +68,16 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+    }
+
     try {
-        const userCredential = await registerWithEmail(data.email, data.password);
-        if (auth && auth.currentUser) {
+        const userCredential = await registerWithEmail(data.email, data.password, data.name, refCode);
+        if (auth.currentUser) {
             await sendEmailVerification(auth.currentUser);
         }
         

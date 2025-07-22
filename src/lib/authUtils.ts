@@ -9,12 +9,13 @@ import {
   type User,
   updateProfile,
 } from 'firebase/auth';
-import { db, auth } from './firebaseClient';
+import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc, query, where, getDocs, collection, updateDoc, arrayUnion } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
+  const db = getFirebaseFirestore();
   if (!user || !db) return;
 
   const userDocRef = doc(db, 'users', user.uid);
@@ -77,6 +78,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(refCode: string | null = null): Promise<User | null> {
+  const auth = getFirebaseAuth();
   if (isPopupOpen || !auth) {
     if (!auth) {
         toast({ title: 'Authentication Error', description: 'Firebase Auth is not available. Please try again.', variant: 'destructive' });
@@ -116,6 +118,7 @@ export async function handleGoogleSignIn(refCode: string | null = null): Promise
 }
 
 export const registerWithEmail = async (email: string, password: string, name: string, refCode: string | null = null) => {
+    const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
@@ -132,6 +135,7 @@ export const registerWithEmail = async (email: string, password: string, name: s
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
+    const auth = getFirebaseAuth();
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     

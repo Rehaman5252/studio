@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -54,6 +54,7 @@ const MyNetworkLeaderboard = () => {
         const fetchNetworkData = async () => {
             setIsLoading(true);
             setError(null);
+            const db = getFirebaseFirestore();
             if (!db) {
                 setError("Database not available.");
                 setIsLoading(false);
