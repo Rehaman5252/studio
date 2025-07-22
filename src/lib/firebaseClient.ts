@@ -12,27 +12,31 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This function ensures Firebase is initialized only once and only on the client.
-const getFirebaseApp = (): FirebaseApp => {
-    if (getApps().length) {
-        return getApp();
-    }
-    return initializeApp(firebaseConfig);
-}
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let persistenceEnabled = false;
 
-const app = getFirebaseApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Enable persistence once after initialization
-if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-            console.warn('Firestore persistence failed: multiple tabs open.');
-        } else if (err.code === 'unimplemented') {
-            console.warn('Firestore persistence not supported in this browser.');
-        }
+if (typeof window !== 'undefined' && !getApps().length) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  
+  enableIndexedDbPersistence(db)
+    .then(() => {
+      persistenceEnabled = true;
+    })
+    .catch((err) => {
+      if (err.code == 'failed-precondition') {
+        console.warn("Firestore persistence failed: multiple tabs open.");
+      } else if (err.code == 'unimplemented') {
+        console.warn("Firestore persistence not supported in this browser.");
+      }
     });
+} else {
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
 }
 
 export { auth, db };

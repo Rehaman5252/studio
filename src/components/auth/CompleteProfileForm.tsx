@@ -131,7 +131,6 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
                 variant: "destructive"
             });
         } finally {
-            // This is the critical fix to prevent infinite "Saving..." state.
             setIsSubmitting(false);
         }
     };

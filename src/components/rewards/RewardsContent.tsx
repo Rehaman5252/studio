@@ -75,6 +75,9 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
     'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
+    'WPL': { gift: 'Fan Merchandise', description: 'Get official WPL merchandise.', link: '#' },
+    'Gucci': { gift: '10% Off Coupon', description: 'On select Gucci products.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
