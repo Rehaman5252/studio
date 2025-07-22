@@ -86,3 +86,19 @@ export const GenerateQuizAnalysisOutputSchema = z.object({
     analysis: z.string().describe('A detailed analysis of the user quiz performance, including strengths, weaknesses, and tips for improvement. The analysis should be formatted as markdown.'),
 });
 export type GenerateQuizAnalysisOutput = z.infer<typeof GenerateQuizAnalysisOutputSchema>;
+
+
+// Schema for sending quiz history via email
+export const QuizAttemptSchema = z.object({
+    slotId: z.string(),
+    brand: z.string(),
+    format: z.string(),
+    score: z.number(),
+    totalQuestions: z.number(),
+    questions: z.array(QuizQuestionSchema),
+    userAnswers: z.array(z.string()),
+    timestamp: z.number(),
+    timePerQuestion: z.array(z.number()).optional(),
+    usedHintIndices: z.array(z.number()).optional(),
+    reason: z.string().optional(),
+});

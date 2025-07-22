@@ -52,14 +52,15 @@ const MyNetworkLeaderboard = () => {
         }
 
         const fetchNetworkData = async () => {
-            setIsLoading(true);
-            setError(null);
             if (!db) {
                 setError("Database not available.");
                 setIsLoading(false);
                 return;
             }
 
+            setIsLoading(true);
+            setError(null);
+            
             try {
                 const networkIds = [...(profile.referrals || [])];
                 if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
@@ -75,35 +76,18 @@ const MyNetworkLeaderboard = () => {
                 const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
                 const playerDocs = await Promise.all(playerPromises);
                 
-                const playersData: MyNetworkPlayer[] = [];
-
-                for (const playerDoc of playerDocs) {
-                    if (playerDoc.exists()) {
-                        const playerData = playerDoc.data();
-                        
-                        const q = query(
-                            collection(db, 'users', playerDoc.id, 'quizAttempts'), 
-                            where('score', '==', 5), 
-                            orderBy('timestamp', 'desc'), 
-                            limit(1)
-                        );
-                        
-                        const perfectScoreSnapshot = await getDocs(q);
-                        let latestPerfectScore: QuizAttempt | null = null;
-                        if (!perfectScoreSnapshot.empty) {
-                            latestPerfectScore = perfectScoreSnapshot.docs[0].data() as QuizAttempt;
-                        }
-
-                        playersData.push({
-                            uid: playerDoc.id,
-                            name: playerData.name || 'Unknown User',
-                            avatar: playerData.photoURL,
-                            perfectScores: playerData.perfectScores || 0,
-                            isReferrer: playerDoc.id === profile.referredBy,
-                            latestPerfectScoreTimestamp: latestPerfectScore?.timestamp || null,
-                        });
-                    }
-                }
+                const playersData: MyNetworkPlayer[] = playerDocs
+                    .filter(doc => doc.exists())
+                    .map(doc => {
+                        const data = doc.data();
+                        return {
+                            uid: doc.id,
+                            name: data.name || 'Unknown User',
+                            avatar: data.photoURL,
+                            perfectScores: data.perfectScores || 0,
+                            isReferrer: doc.id === profile.referredBy,
+                        };
+                    });
                 
                 const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
@@ -143,7 +127,7 @@ const MyNetworkLeaderboard = () => {
         }
         
         return networkPlayers.map((player) => (
-            <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg")}>
+            <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center p-2 rounded-lg">
                 <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                 <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
                 <div className="flex-1">

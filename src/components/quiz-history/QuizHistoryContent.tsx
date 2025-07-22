@@ -159,9 +159,11 @@ export default function QuizHistoryContent() {
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     useEffect(() => {
-        if (!user) { setLoading(false); return; }
-        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
-        setLoading(true); setError(null);
+        if (!user || !db) { setLoading(false); return; }
+        
+        setLoading(true);
+        setError(null);
+        
         (async () => {
             try {
                 const q = query(
@@ -189,7 +191,7 @@ export default function QuizHistoryContent() {
         }
         setIsSendingEmail(true);
         try {
-            const result = await sendQuizHistoryEmail({ email: user.email, history: history });
+            const result = await sendQuizHistoryEmail({ email: user.email, history: history as any });
             if (result.success) {
                 toast({ title: "Email Sent!", description: result.message });
             } else {

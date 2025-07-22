@@ -13,7 +13,6 @@ import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
 import DailyStreakCard from './DailyStreakCard';
 import { useAuth } from '@/context/AuthProvider';
-import Policies from './Policies';
 
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {

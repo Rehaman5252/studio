@@ -58,7 +58,7 @@ const LiveLeaderboard = () => {
             setError(null);
             try {
                 // In a real app, this would query a shared 'liveSlot' collection.
-                // For this demo, we mock it.
+                // For this demo, we mock it with some static players.
                 const mockLivePlayers: LivePlayer[] = [
                     { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
                     { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
@@ -66,6 +66,7 @@ const LiveLeaderboard = () => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
+                // Add current user's attempt if they have one for this slot
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);

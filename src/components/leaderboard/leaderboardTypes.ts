@@ -20,5 +20,4 @@ export interface AllTimePlayer extends Player {
 export interface MyNetworkPlayer extends Player {
     perfectScores: number;
     isReferrer: boolean;
-    latestPerfectScoreTimestamp: number | null;
 }

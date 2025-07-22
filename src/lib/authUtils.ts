@@ -11,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
-import { doc, getDoc, setDoc, query, where, getDocs, collection, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
@@ -22,9 +22,6 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 
   if (!snapshot.exists()) {
     const { email, displayName, photoURL } = user;
-    const refCode = additionalData.refCode || null;
-    
-    const referralLink = `https://cricblitz.com/auth/signup?ref=${user.uid.substring(0, 8)}`;
     
     const newUserProfile = {
       uid: user.uid,
@@ -38,34 +35,15 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       totalRewards: 0,
       profileCompleted: false,
       phoneVerified: false,
-      referralCode: referralLink,
+      referralCode: `https://indcric.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
       referralEarnings: 0,
-      referredBy: null,
-      referrals: [],
-      rewardedReferrals: [],
-      currentStreak: 0,
-      lastStreakTimestamp: null,
-      dailyQuizProgress: {},
     };
 
     try {
-      if (refCode) {
-        const q = query(collection(db, "users"), where("referralCode", "==", `https://cricblitz.com/auth/signup?ref=${refCode}`));
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          const referrerDoc = querySnapshot.docs[0];
-          newUserProfile.referredBy = referrerDoc.id;
-          const referrerRef = doc(db, 'users', referrerDoc.id);
-          await updateDoc(referrerRef, {
-            referrals: arrayUnion(user.uid)
-          });
-        }
-      }
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
-      console.error("Error creating user document or updating referrer:", error);
-      toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+      console.error("Error creating user document:", error);
+      toast({ title: "Error", description: "Could not initialize user profile.", variant: "destructive" });
       throw error;
     }
   }
@@ -73,7 +51,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 
 let isPopupOpen = false;
 
-export async function handleGoogleSignIn(refCode: string | null = null): Promise<User | null> {
+export async function handleGoogleSignIn(): Promise<User | null> {
   if (isPopupOpen || !auth) {
     if (!auth) {
         toast({ title: 'Authentication Error', description: 'Firebase Auth is not available. Please try again.', variant: 'destructive' });
@@ -87,15 +65,7 @@ export async function handleGoogleSignIn(refCode: string | null = null): Promise
 
   try {
     const result = await signInWithPopup(auth, provider);
-    await createUserDocument(result.user, { refCode });
-
-    localStorage.setItem('userCache', JSON.stringify({
-      uid: result.user.uid,
-      displayName: result.user.displayName,
-      email: result.user.email,
-      photoURL: result.user.photoURL,
-    }));
-    
+    await createUserDocument(result.user);
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -112,32 +82,16 @@ export async function handleGoogleSignIn(refCode: string | null = null): Promise
   }
 }
 
-export const registerWithEmail = async (email: string, password: string, name: string, refCode: string | null = null) => {
+export const registerWithEmail = async (email: string, password: string, name: string) => {
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
-    await createUserDocument(userCredential.user, { name, refCode });
-
-    localStorage.setItem('userCache', JSON.stringify({
-      uid: userCredential.user.uid,
-      displayName: name,
-      email: email,
-      photoURL: userCredential.user.photoURL,
-    }));
-    
+    await createUserDocument(userCredential.user, { name });
     return userCredential;
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    
-    localStorage.setItem('userCache', JSON.stringify({
-      uid: userCredential.user.uid,
-      displayName: userCredential.user.displayName,
-      email: userCredential.user.email,
-      photoURL: userCredential.user.photoURL,
-    }));
-
     return userCredential;
 };

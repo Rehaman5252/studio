@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, writeBatch, increment, arrayUnion } from 'firebase/firestore';
+import { doc, onSnapshot, writeBatch, increment, arrayUnion, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -31,7 +31,6 @@ const quizFormats = ['T20', 'ODI', 'Test', 'IPL', 'WPL', 'Mixed'];
 const STREAK_QUIZ_TOTAL = 15;
 const STREAK_FORMAT_MIN = 2;
 
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
@@ -48,14 +47,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      // When auth state is resolved, we are no longer in the initial loading state.
+      // Subsequent data loading is handled within the user effect.
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
   
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
     if (!user) {
         setProfile(null);
         return;
@@ -67,11 +66,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
-    setIsOffline(!online);
-    
     const userDocRef = doc(db, "users", user.uid);
-    const unsubProfile = onSnapshot(userDocRef, (docSnap) => {
+    const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data?.dob instanceof Timestamp) {
@@ -80,7 +76,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(data);
             setIsProfileComplete(!!data.profileCompleted);
         } else {
-            createUserDocument(user).catch(console.error);
+            // If the document doesn't exist, it means we have a new user.
+            // Let's create their profile document.
+            try {
+              await createUserDocument(user);
+            } catch (error) {
+              console.error("Failed to create user document:", error);
+            }
         }
     }, (error) => {
         console.error("Profile snapshot error:", error);
@@ -94,89 +96,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
     const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+    await writeBatch(db).set(userDocRef, sanitizeUserProfile(newData), { merge: true }).commit();
   }, [user]);
 
-
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !db || !profile) throw new Error("User not authenticated or DB not available.");
+    if (!user || !db || !profile) throw new Error("User, DB, or profile not available.");
 
     const batch = writeBatch(db);
     const userRef = doc(db, 'users', user.uid);
-
-    const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
-    const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
-    batch.set(attemptRef, sanitizedAttempt, { merge: true });
-
-    const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
+    const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, attempt.slotId);
     
-    const newQuizzesPlayed = (profile.quizzesPlayed || 0) + 1;
-    let newPerfectScores = profile.perfectScores || 0;
-    let newTotalRewards = profile.totalRewards || 0;
+    batch.set(attemptRef, sanitizeUserProfile(attempt));
 
+    const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
     if (isPerfect) {
-        const wasFirstPerfectScore = newPerfectScores === 0;
-        newPerfectScores++;
-        newTotalRewards += 100;
+        const wasFirstPerfectScore = (profile.perfectScores || 0) === 0;
+        batch.update(userRef, { perfectScores: increment(1), totalRewards: increment(100) });
 
         if (wasFirstPerfectScore && profile.referredBy) {
-          const joinDate = profile.createdAt.toDate();
-          const scoreDate = new Date();
-          const daysSinceJoined = differenceInCalendarDays(scoreDate, joinDate);
-          const rewardedReferrals = profile.rewardedReferrals || [];
-          if (daysSinceJoined <= 7 && !rewardedReferrals.includes(user.uid)) {
-            const referrerRef = doc(db, "users", profile.referredBy);
-            batch.update(referrerRef, {
-              referralEarnings: increment(50),
-              rewardedReferrals: arrayUnion(user.uid)
-            });
-          }
+            const joinDate = profile.createdAt?.toDate ? profile.createdAt.toDate() : new Date();
+            const daysSinceJoined = differenceInCalendarDays(new Date(), joinDate);
+            if (daysSinceJoined <= 7) {
+                const referrerRef = doc(db, "users", profile.referredBy);
+                batch.update(referrerRef, { referralEarnings: increment(50) });
+            }
         }
     }
     
-    batch.update(userRef, {
-        quizzesPlayed: newQuizzesPlayed,
-        perfectScores: newPerfectScores,
-        totalRewards: newTotalRewards,
-    });
-    
-
-    const today = new Date();
-    const lastStreakDate = profile.lastStreakTimestamp?.toDate();
-    const streakDiff = lastStreakDate ? differenceInCalendarDays(today, lastStreakDate) : 0;
-    
-    let currentStreak = profile.currentStreak || 0;
-    let dailyProgress = profile.dailyQuizProgress || {};
-
-    if (streakDiff > 1) {
-      currentStreak = 0;
-      dailyProgress = {};
-    } else if (streakDiff === 1) {
-      dailyProgress = {};
-    }
-
-    dailyProgress[attempt.format] = (dailyProgress[attempt.format] || 0) + 1;
-    dailyProgress.total = (dailyProgress.total || 0) + 1;
-
-    const formatsMet = quizFormats.every(f => (dailyProgress[f] || 0) >= STREAK_FORMAT_MIN);
-    
-    if (dailyProgress.total >= STREAK_QUIZ_TOTAL && formatsMet) {
-      if (streakDiff <= 1) {
-        currentStreak += 1;
-      } else {
-        currentStreak = 1;
-      }
-      batch.update(userRef, {
-        currentStreak: currentStreak,
-        lastStreakTimestamp: Timestamp.fromDate(today),
-      });
-      dailyProgress.goalAchieved = true; 
-    }
-    
-    if (!dailyProgress.goalAchieved) {
-      batch.update(userRef, { dailyQuizProgress: dailyProgress });
-    }
-
+    batch.update(userRef, { quizzesPlayed: increment(1) });
     await batch.commit();
 
   }, [user, profile]);
@@ -187,6 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await signOut(auth);
         setUser(null);
         setProfile(null);
+        setLastAttempt(null);
         toast({
             title: "Signed Out",
             description: "You have been logged out successfully.",

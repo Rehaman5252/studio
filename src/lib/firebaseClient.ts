@@ -7,9 +7,9 @@ import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
-  Firestore
+  type Firestore
 } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
+import { getAuth, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -23,6 +23,8 @@ const firebaseConfig = {
 const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 let db: Firestore | null = null;
+
+// Initialize Firestore with persistence only on the client side
 if (typeof window !== "undefined") {
   try {
     db = initializeFirestore(app, {
@@ -41,8 +43,6 @@ if (typeof window !== "undefined") {
   }
 }
 
-
 const auth: Auth | null = typeof window !== "undefined" ? getAuth(app) : null;
-const provider = typeof window !== "undefined" ? new GoogleAuthProvider() : null;
 
-export { app, db, auth, provider };
+export { app, db, auth };

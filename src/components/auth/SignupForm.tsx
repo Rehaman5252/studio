@@ -40,7 +40,6 @@ export default function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
-  const refCode = searchParams.get('ref');
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +51,7 @@ export default function SignupForm() {
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
-        const user = await handleGoogleSignIn(refCode);
+        const user = await handleGoogleSignIn();
         if (user) {
             toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
             router.replace('/complete-profile');
@@ -75,7 +74,7 @@ export default function SignupForm() {
     }
 
     try {
-        const userCredential = await registerWithEmail(data.email, data.password, data.name, refCode);
+        const userCredential = await registerWithEmail(data.email, data.password, data.name);
         if (auth.currentUser) {
             await sendEmailVerification(auth.currentUser);
         }
