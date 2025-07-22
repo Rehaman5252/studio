@@ -61,10 +61,10 @@ const Policies = () => {
                     </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-6">
-                    <AccordionTrigger>Responsible Gaming</AccordionTrigger>
+                    <AccordionTrigger>Responsible Participation & Platform Mission</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>indcric is a platform intended for entertainment and educational purposes to enhance cricket knowledge. While real rewards are offered, it is classified as a game of skill.</p>
-                        <p>We encourage responsible participation. Please play within your limits. This platform should not be treated as a primary source of income. If you feel your gaming habits are becoming problematic, we urge you to seek support from relevant counseling services. Users must be 18 years or older to participate.</p>
+                        <p>indcric is foremost a platform for knowledge sharing, testing, and learning, designed for educational purposes to enhance cricket knowledge. While real rewards are offered as an incentive for engagement, it is classified as a game of skill, not a game of chance.</p>
+                        <p>We encourage responsible participation. Please play within your limits and for the joy of learning. This platform should not be treated as a primary source of income. If you feel your gaming habits are becoming problematic, we urge you to seek support from relevant counseling services. Users must be 18 years or older to participate.</p>
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
