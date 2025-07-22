@@ -24,6 +24,9 @@ export async function createUserDocument(user: User, additionalData: Record<stri
     const { email, displayName, photoURL } = user;
     const refCode = additionalData.refCode || null;
     
+    // Generate a unique referral link based on the user's UID
+    const referralLink = `https://cricblitz.com/auth/signup?ref=${user.uid.substring(0, 8)}`;
+    
     const newUserProfile = {
       uid: user.uid,
       email,
@@ -36,7 +39,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       totalRewards: 0,
       profileCompleted: false,
       phoneVerified: false,
-      referralCode: `https://cricblitz.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
+      referralCode: referralLink,
       referralEarnings: 0,
       referredBy: null,
       referrals: [],
@@ -48,6 +51,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 
     try {
       if (refCode) {
+        // Find the referrer by their unique referral link
         const q = query(collection(db, "users"), where("referralCode", "==", `https://cricblitz.com/auth/signup?ref=${refCode}`));
         const querySnapshot = await getDocs(q);
         
@@ -55,6 +59,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
           const referrerDoc = querySnapshot.docs[0];
           newUserProfile.referredBy = referrerDoc.id;
           const referrerRef = doc(db, 'users', referrerDoc.id);
+          // Add the new user's UID to the referrer's list of referrals
           await updateDoc(referrerRef, {
             referrals: arrayUnion(user.uid)
           });
