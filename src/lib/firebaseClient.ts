@@ -14,64 +14,34 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
-let persistenceEnabled = false;
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-function initializeFirebase() {
-    if (typeof window !== "undefined") {
-        if (!getApps().length) {
-            try {
-                if (Object.values(firebaseConfig).every(Boolean)) {
-                    app = initializeApp(firebaseConfig);
-                }
-            } catch (e) {
-                console.error("Failed to initialize Firebase", e);
-            }
-        } else {
-            app = getApp();
-        }
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
-        if (app) {
-            auth = getAuth(app);
-            db = getFirestore(app);
+if (typeof window !== 'undefined' && isFirebaseConfigured) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+
+    try {
+        enableIndexedDbPersistence(db);
+    } catch (err: any) {
+        if (err.code === 'failed-precondition') {
+            console.warn('Firestore persistence failed: Multiple tabs open.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('Firestore persistence is not available in this browser.');
         }
     }
 }
 
-// Initialize on module load
-initializeFirebase();
-
-export function getFirebaseAuth(): Auth | null {
-  return auth;
-}
-
-export function getFirebaseFirestore(): Firestore | null {
-  if (db && !persistenceEnabled && typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed: multiple tabs open.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence not supported in this browser.');
-      }
-    });
-    persistenceEnabled = true;
-  }
-  return db;
-}
-
-
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
-
-export async function isFirebaseOnline(): Promise<boolean> {
-  const firestoreDb = getFirebaseFirestore();
-  if (!firestoreDb || (typeof window !== 'undefined' && !navigator.onLine)) {
+async function isFirebaseOnline(): Promise<boolean> {
+  if (!isFirebaseConfigured || (typeof window !== 'undefined' && !navigator.onLine)) {
     return false;
   }
-
   try {
-    const testDoc = doc(firestoreDb, "systemHealth/connectivityCheck");
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
   } catch (error: any) {
@@ -81,3 +51,5 @@ export async function isFirebaseOnline(): Promise<boolean> {
     return false;
   }
 }
+
+export { app, auth, db, isFirebaseOnline };

@@ -87,7 +87,6 @@ export async function handleGoogleSignIn(refCode: string | null = null): Promise
     const result = await signInWithPopup(auth, provider);
     await createUserDocument(result.user, { refCode });
 
-    // ✅ Cache user data in localStorage immediately after login
     localStorage.setItem('userCache', JSON.stringify({
       uid: result.user.uid,
       displayName: result.user.displayName,
@@ -117,7 +116,6 @@ export const registerWithEmail = async (email: string, password: string, name: s
     await updateProfile(userCredential.user, { displayName: name });
     await createUserDocument(userCredential.user, { name, refCode });
 
-    // ✅ Cache user data in localStorage immediately after signup
     localStorage.setItem('userCache', JSON.stringify({
       uid: userCredential.user.uid,
       displayName: name,
@@ -132,7 +130,6 @@ export const loginWithEmail = async (email: string, password:string) => {
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
-    // ✅ Cache user data in localStorage immediately after login
     localStorage.setItem('userCache', JSON.stringify({
       uid: userCredential.user.uid,
       displayName: userCredential.user.displayName,

@@ -46,26 +46,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    // ✅ Instant hydration from localStorage
+    // Attempt to hydrate from cache first for instant UI response
     try {
         const cachedUser = localStorage.getItem('userCache');
         if (cachedUser) {
             const parsedUser = JSON.parse(cachedUser);
             setUser(parsedUser);
-            // We can also set a temporary profile from cache to reduce flicker
-            setProfile(parsedUser); 
         }
     } catch (e) {
         console.error("Failed to parse user cache", e);
         localStorage.removeItem('userCache');
     }
     
-    // ✅ Real auth sync (non-blocking)
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        // Update cache with the latest user data from Firebase Auth
         localStorage.setItem('userCache', JSON.stringify({
             uid: firebaseUser.uid,
             displayName: firebaseUser.displayName,
@@ -76,13 +72,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('userCache');
         setProfile(null);
       }
-      setLoading(false); // Stop loading once the live auth state is confirmed
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
   
-  // Separate effect to sync Firestore profile data once user is known
   useEffect(() => {
     if (!user) {
         setProfile(null);
@@ -108,7 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(data);
             setIsProfileComplete(!!data.profileCompleted);
         } else {
-            // This might happen on first login if the doc creation is slow
             console.log("User doc not found, it might be under creation...");
         }
     }, (error) => {
@@ -144,9 +138,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let newTotalRewards = profile.totalRewards || 0;
 
     if (isPerfect) {
+        const wasFirstPerfectScore = newPerfectScores === 0;
         newPerfectScores++;
         newTotalRewards += 100;
-        const wasFirstPerfectScore = newPerfectScores === 1;
 
         if (wasFirstPerfectScore && profile.referredBy) {
           const joinDate = profile.createdAt.toDate();

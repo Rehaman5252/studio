@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { isFirebaseConfigured, auth } from '@/lib/firebaseClient';
+import { isFirebaseConfigured } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,7 +56,7 @@ export default function LoginForm() {
     try {
       const userCredential = await loginWithEmail(data.email, data.password);
       if (!userCredential.user.emailVerified) {
-        toast({ title: 'Email Not Verified', description: 'Please check your inbox to verify your email before logging in.', variant: 'destructive'});
+        toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
         router.push(`/auth/verify-email?from=${encodeURIComponent(from || '/home')}`);
         return;
       }
