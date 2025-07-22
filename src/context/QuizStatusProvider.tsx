@@ -31,7 +31,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
+    if (!user || !db) {
         setIsLoading(false);
         setLastAttemptInSlot(null);
         return;

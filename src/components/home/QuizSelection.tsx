@@ -20,7 +20,7 @@ import { Loader2 } from 'lucide-react';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
-import { brandData, type CubeBrand } from './brandData';
+import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
 
 const BrandCube = dynamic(() => import('./BrandCube'), { ssr: false });
