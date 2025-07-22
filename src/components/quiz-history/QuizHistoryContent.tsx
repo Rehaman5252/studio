@@ -13,7 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -167,8 +167,7 @@ export default function QuizHistoryContent() {
             try {
                 const q = query(
                     collection(db, "users", user.uid, "quizAttempts"),
-                    orderBy("timestamp", "desc"),
-                    limit(50)
+                    orderBy("timestamp", "desc")
                 );
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
@@ -217,15 +216,15 @@ export default function QuizHistoryContent() {
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>
-                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
+                <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
             </div>
         );
         return (
             <div className="space-y-4 pt-4">
                 {filter === 'all' && history.length > 20 && (
                      <Card className="bg-card/80">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground">Showing the last 20 quizzes.</p>
+                        <CardContent className="p-4 flex items-center justify-between text-sm">
+                            <p className="text-muted-foreground">Showing the last 20 quizzes.</p>
                             <Button size="sm" onClick={handleSendHistory} disabled={isSendingEmail}>
                                 {isSendingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                                 Email Full History

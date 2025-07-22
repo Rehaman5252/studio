@@ -9,10 +9,11 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { QuizAttemptSchema } from '@/ai/schemas';
 
 const SendQuizHistoryEmailInputSchema = z.object({
   email: z.string().email().describe('The email address to send the history to.'),
-  history: z.array(z.any()).describe('The full quiz history data.'),
+  history: z.array(QuizAttemptSchema).describe('The full quiz history data.'),
 });
 
 const SendQuizHistoryEmailOutputSchema = z.object({
