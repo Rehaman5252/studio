@@ -13,6 +13,7 @@ import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
 import DailyStreakCard from './DailyStreakCard';
 import { useAuth } from '@/context/AuthProvider';
+import Policies from './Policies';
 
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
@@ -26,7 +27,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
 
     return (
         <div className="space-y-6">
-            <div className="relative max-w-md mx-auto">
+            <div className="relative">
                 <ProfileHeader userProfile={userProfile} />
                 <Button asChild variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
                     <Link href="/complete-profile">
@@ -35,7 +36,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 </Button>
             </div>
             
-            <div className="max-w-md mx-auto space-y-6">
+            <div className="space-y-6">
               <ProfileCompletion userProfile={userProfile} />
               <DailyStreakCard userProfile={userProfile} />
               <StatsSummary userProfile={userProfile} />
@@ -58,6 +59,8 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 </Button>
                  <SupportCard />
             </div>
+
+            <Policies />
 
             <section className="pt-4">
                 <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
