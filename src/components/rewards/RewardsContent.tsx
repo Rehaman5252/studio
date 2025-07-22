@@ -10,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -36,13 +36,6 @@ const RewardsSkeleton = () => (
                 ))}
             </CarouselContent>
         </Carousel>
-      </section>
-      <section>
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-        <div className="space-y-4">
-          <Skeleton className="h-[96px] w-full" />
-          <Skeleton className="h-[96px] w-full" />
-        </div>
       </section>
   </div>
 );
@@ -74,10 +67,9 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: '#' },
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
-     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
-    'WPL': { gift: 'Fan Merchandise', description: 'Get official WPL merchandise.', link: '#' },
+    'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
     'Gucci': { gift: '10% Off Coupon', description: 'On select Gucci products.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -103,22 +95,6 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
 });
 ScratchCard.displayName = 'ScratchCard';
 
-const GenericOffer = memo(({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ duration: 0.3 }} className="transition-transform hover:scale-103">
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardContent className="p-4 flex items-center gap-4">
-                <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
-                <div>
-                    <h4 className="font-bold text-foreground">{title}</h4>
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="ml-auto" aria-label={`Claim offer for ${title}`}><ExternalLink className="text-muted-foreground" /></Button>
-            </CardContent>
-        </Card>
-    </motion.div>
-));
-GenericOffer.displayName = 'GenericOffer';
-
 const BrandGifts = () => {
   const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -129,6 +105,7 @@ const BrandGifts = () => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
+    const db = getFirebaseFirestore();
     if (!db) {
         setError("Firestore not available.");
         setLoading(false);
@@ -200,13 +177,6 @@ export default function RewardsContent() {
         <>
             <section>
                 <BrandGifts />
-            </section>
-            <section className='mt-8'>
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-                <div className="space-y-4">
-                <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
-                <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
-                </div>
             </section>
         </>
     )

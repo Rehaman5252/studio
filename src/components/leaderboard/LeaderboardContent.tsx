@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -53,6 +53,7 @@ const LiveLeaderboard = memo(() => {
     useEffect(() => {
         if (authLoading) return;
 
+        const db = getFirebaseFirestore();
         if (!db) {
             setError("Couldn't connect to the database.");
             setIsLoading(false);
@@ -64,13 +65,8 @@ const LiveLeaderboard = memo(() => {
             setError(null);
             try {
                 // In a real app, this would query a shared 'liveSlot' collection.
-                // For this demo, we mock it.
-                const mockLivePlayers: LivePlayer[] = [
-                    { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
-                    { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
-                ];
+                // For this demo, we only fetch the current user's live attempt.
+                const livePlayers: LivePlayer[] = [];
                 
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
@@ -78,7 +74,7 @@ const LiveLeaderboard = memo(() => {
 
                     if (!userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        mockLivePlayers.push({
+                        livePlayers.push({
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
                             avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
@@ -86,8 +82,7 @@ const LiveLeaderboard = memo(() => {
                     }
                 }
 
-                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
-                const sorted = uniquePlayers.sort((a, b) => {
+                const sorted = livePlayers.sort((a, b) => {
                     if (a.disqualified && !b.disqualified) return 1;
                     if (!a.disqualified && b.disqualified) return -1;
                     if (a.score !== b.score) return b.score - a.score;
@@ -110,7 +105,7 @@ const LiveLeaderboard = memo(() => {
     }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 1 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
@@ -138,8 +133,8 @@ const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     
+    // In a real app, this would query the 'users' collection and sort by perfectScores
     const players: AllTimePlayer[] = useMemo(() => {
-        // This is mocked for now. A real implementation would query an aggregated collection.
         if (!profile) return [];
         return [{
             uid: user!.uid,
@@ -179,22 +174,15 @@ AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
 
 const MyNetworkLeaderboard = memo(() => {
-    const { user } = useAuth();
     const [players, setPlayers] = useState<NetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        // In a real app, you would fetch users whose 'referredBy' field matches the current user's ID.
+        // For now, we show an empty state.
         const fetchNetworkPlayers = async () => {
             setIsLoading(true);
-            // In a real app, you would fetch users referred by the current user.
-            // For this demo, we use mock data.
-            const mockNetworkPlayers: NetworkPlayer[] = [
-                { uid: 'network-1', name: 'Suresh Raina', perfectScores: 12, avatar: 'https://placehold.co/40x40.png' },
-                { uid: 'network-2', name: 'Harbhajan Singh', perfectScores: 8, avatar: 'https://placehold.co/40x40.png' },
-                { uid: 'network-3', name: 'Gautam Gambhir', perfectScores: 5, avatar: 'https://placehold.co/40x40.png' },
-            ].sort((a, b) => b.perfectScores - a.perfectScores).map((p, i) => ({ ...p, rank: i + 1 }));
-
-            setPlayers(mockNetworkPlayers);
+            setPlayers([]); // This will be empty until referral logic is implemented
             setIsLoading(false);
         };
         fetchNetworkPlayers();
