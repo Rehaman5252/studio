@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -11,9 +12,9 @@ import ProfileCompletion from './ProfileCompletion';
 import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
-import DailyStreakCard from './DailyStreakCard';
 import { signOut } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
+import DailyStreakCard from './DailyStreakCard';
 
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
@@ -40,7 +41,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="max-w-md mx-auto space-y-6">
             <div className="relative">
                 <ProfileHeader userProfile={userProfile} />
                 <Button asChild variant="outline" size="icon" className="absolute top-4 right-4 rounded-full h-8 w-8" aria-label="Edit Profile">
