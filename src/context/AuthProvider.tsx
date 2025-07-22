@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -20,9 +20,6 @@ interface AuthContextType {
   lastAttempt: QuizAttempt | null;
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
-  quizHistory: QuizAttempt[];
-  fetchHistory: () => Promise<void>;
-  historyLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,58 +31,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
-  
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const auth = getFirebaseAuth();
-    if (!auth) { 
-        setLoading(false); 
-        return; 
-    }
+    if (!auth) { setLoading(false); return; }
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
 
-  const fetchHistory = useCallback(async () => {
-      if (!user || historyLoading) return;
-      
-      const db = getFirebaseFirestore();
-      if (!db) {
-          console.error("Firestore not available for history fetch.");
-          setIsOffline(true);
-          return;
-      }
-      
-      const online = await isFirebaseOnline();
-      if(!online) {
-        setIsOffline(true);
-        return;
-      }
-
-      setHistoryLoading(true);
-      try {
-          const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
-          const querySnapshot = await getDocs(q);
-          const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-          setQuizHistory(historyData);
-          setIsOffline(false);
-      } catch (e: any) {
-          console.error("Failed to fetch certificate data:", e);
-          if (e.code === 'unavailable') setIsOffline(true);
-      } finally {
-          setHistoryLoading(false);
-      }
-  }, [user, historyLoading]);
-
   useEffect(() => {
     if (!user) { 
         setProfile(null); 
-        setLoading(false);
-        setQuizHistory([]);
+        setLoading(false); 
         return; 
     }
     
@@ -127,8 +85,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsOffline(true);
           }
         }
-        // Fetch history after profile is loaded/created
-        fetchHistory();
         setLoading(false);
       }, (error) => {
         console.error("Profile snapshot error:", error);
@@ -143,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         unsubProfile();
     };
-  }, [user, fetchHistory]);
+  }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
@@ -182,16 +138,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
     }
     
-    setQuizHistory(prev => [sanitizedAttempt, ...prev]);
-
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
   }, [user, updateUserData]);
   
   const value = useMemo(() => ({
     user, profile, loading, isOffline, updateUserData, addQuizAttempt,
-    lastAttempt, setLastAttempt, isProfileComplete,
-    quizHistory, fetchHistory, historyLoading
-  }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete, quizHistory, fetchHistory, historyLoading]);
+    lastAttempt, setLastAttempt, isProfileComplete
+  }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
 
   return (
     <AuthContext.Provider value={value}>
