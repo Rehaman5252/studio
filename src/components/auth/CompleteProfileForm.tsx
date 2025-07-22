@@ -134,6 +134,8 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
+        } finally {
+            // This is the crucial fix: ensure the submitting state is always reset.
             setIsSubmitting(false);
         }
     };
@@ -312,3 +314,5 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         </Card>
     );
 }
+
+    

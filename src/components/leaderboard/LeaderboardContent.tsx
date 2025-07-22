@@ -55,16 +55,19 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        // This effect will only run on the client, after the component mounts.
+        // It's safe to perform async operations and state updates here.
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
             
+            // This is the crucial fix: we check for an online connection first.
             const online = await isFirebaseOnline();
             if(!online) {
               setError("You appear to be offline. Please check your connection.");
@@ -119,11 +122,15 @@ const LiveLeaderboard = memo(() => {
                 setIsLoading(false);
             }
         };
-        fetchLivePlayers();
-    }, [user, profile]);
+
+        // Don't try to fetch data until the auth state is resolved.
+        if (!authLoading) {
+            fetchLivePlayers();
+        }
+    }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">Play in the current quiz to appear on the live board!</p>;
         
@@ -199,3 +206,5 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
+
+    
