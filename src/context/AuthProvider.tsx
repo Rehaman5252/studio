@@ -33,11 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    // Correctly get the auth instance only on the client side.
     const auth = getFirebaseAuth();
     if (!auth) { 
         setLoading(false);
-        // This can happen if Firebase fails to initialize, e.g., missing config
         console.error("Firebase Auth is not available. Check your configuration.");
         return; 
     }
@@ -53,7 +51,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     let unsubProfile: () => void = () => {};
-    
     setLoading(true);
 
     const setupListeners = async () => {
@@ -67,10 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const online = await isFirebaseOnline();
       setIsOffline(!online);
-      if (!online) {
-        setLoading(false);
-        return;
-      }
 
       const userDocRef = doc(db, "users", user.uid);
       
@@ -83,9 +76,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
-          // If the user document doesn't exist, create it.
-          await createUserDocument(user);
-          // The snapshot listener will fire again with the new data.
+          try {
+            await createUserDocument(user);
+          } catch (e) {
+            console.error("Failed to create user document on the fly:", e)
+          }
         }
         setLoading(false);
       }, (error) => {
@@ -93,29 +88,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsOffline(true);
         setLoading(false);
       });
-      
     };
     
     setupListeners();
-    
-    return () => {
-        unsubProfile();
-    };
+    return () => unsubProfile();
   }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
-    setProfile(prev => {
-        const updated = { ...(prev || {}), ...newData };
-        setIsProfileComplete(!!updated.profileCompleted);
-        return updated;
-    });
+    const currentProfile = profile || {};
+    const updatedProfile = { ...currentProfile, ...newData };
+
+    setProfile(updatedProfile);
+    setIsProfileComplete(!!updatedProfile.profileCompleted);
     
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
-  }, [user]);
+  }, [user, profile]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();

@@ -1,3 +1,4 @@
+
 'use client';
 import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db, isFirebaseOnline } from '@/lib/firebaseClient';
+import { getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -52,12 +53,21 @@ const LiveLeaderboard = memo(() => {
             setIsLoading(true);
             setError(null);
             
-            try {
-                const online = await isFirebaseOnline();
-                if (!online) {
-                    throw new Error("client-offline");
-                }
+            const online = await isFirebaseOnline();
+            if (!online) {
+                setError("You appear to be offline. Please check your connection.");
+                setIsLoading(false);
+                return;
+            }
 
+            const db = getFirebaseFirestore();
+            if (!db) {
+                setError("Could not connect to the database.");
+                setIsLoading(false);
+                return;
+            }
+
+            try {
                 // In a real app, this would query a shared 'liveSlot' collection.
                 // For this demo, we mock it.
                 const mockLivePlayers: LivePlayer[] = [
@@ -91,11 +101,7 @@ const LiveLeaderboard = memo(() => {
 
                 setPlayers(sorted);
             } catch (e: any) {
-                if (e.message.includes('client-offline') || e.code === 'unavailable') {
-                  setError("You appear to be offline. Please check your connection.");
-                } else {
-                  setError("An error occurred while loading the leaderboard.");
-                }
+                setError("An error occurred while loading the leaderboard.");
                 console.error(e);
             } finally {
                 setIsLoading(false);

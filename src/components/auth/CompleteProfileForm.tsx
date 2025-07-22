@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -123,14 +124,13 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
             });
             onSaveSuccess();
         } catch (error: any) {
-            console.error("Save Failed:", error);
+            console.error("🔥 Save Failed:", error);
             toast({
                 title: "Save Failed",
                 description: error.message || "Could not save profile. Please try again.",
                 variant: "destructive"
             });
         } finally {
-            // This is the critical fix to reset the button state
             setIsSubmitting(false);
         }
     };

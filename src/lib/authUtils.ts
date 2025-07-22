@@ -63,25 +63,24 @@ export async function handleGoogleSignIn(): Promise<User | null> {
   try {
     const result = await signInWithPopup(auth, provider);
     
-    // This is the critical fix: wait for a confirmed online connection
-    // before attempting to interact with Firestore.
-    const online = await isFirebaseOnline();
-    if (!online) {
-      throw new Error("client-offline");
-    }
+    // Non-blocking attempt to create the user document.
+    // This allows sign-in to succeed even if Firestore connection is slow.
+    isFirebaseOnline().then(online => {
+        if (online) {
+            createUserDocument(result.user).catch(e => console.warn("Deferred user doc creation failed:", e));
+        } else {
+            console.warn("Signed in but Firebase still connecting. User doc creation will be handled by AuthProvider.");
+        }
+    });
 
-    // Now it is safe to create the user document.
-    await createUserDocument(result.user);
     return result.user;
 
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
-    } else if (error.message === 'client-offline' || error.code === 'auth/network-request-failed' || (error.code === 'unavailable')) {
-        toast({ title: 'You Appear To Be Offline', description: 'Could not sign in. Please check your connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
-        toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
+        toast({ title: 'Sign-in Error', description: 'Could not sign in with Google. Check your connection or try again.', variant: 'destructive' });
     }
     return null;
   } finally {
