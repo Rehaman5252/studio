@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot, updateDoc, increment } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -72,9 +72,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
-      const online = await isFirebaseOnline();
+      const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
       setIsOffline(!online);
-      if (!online && !navigator.onLine) {
+      if (!online) {
         setLoading(false);
       }
 
