@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
@@ -9,15 +8,16 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban, WifiOff, ServerCrash } from 'lucide-react';
+import { Ban, WifiOff, ServerCrash, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
+interface NetworkPlayer { rank?: number; name: string; perfectScores: number; avatar?: string; uid: string; }
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -51,6 +51,8 @@ const LiveLeaderboard = memo(() => {
 
     useEffect(() => {
         if (authLoading) return;
+
+        const db = getFirebaseFirestore();
         if (!db) {
             setError("Couldn't connect to the database.");
             setIsLoading(false);
@@ -176,17 +178,78 @@ const AllTimeLeaderboard = memo(() => {
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
 
+const MyNetworkLeaderboard = memo(() => {
+    const { user } = useAuth();
+    const [players, setPlayers] = useState<NetworkPlayer[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchNetworkPlayers = async () => {
+            setIsLoading(true);
+            // In a real app, you would fetch users referred by the current user.
+            // For this demo, we use mock data.
+            const mockNetworkPlayers: NetworkPlayer[] = [
+                { uid: 'network-1', name: 'Suresh Raina', perfectScores: 12, avatar: 'https://placehold.co/40x40.png' },
+                { uid: 'network-2', name: 'Harbhajan Singh', perfectScores: 8, avatar: 'https://placehold.co/40x40.png' },
+                { uid: 'network-3', name: 'Gautam Gambhir', perfectScores: 5, avatar: 'https://placehold.co/40x40.png' },
+            ].sort((a, b) => b.perfectScores - a.perfectScores).map((p, i) => ({ ...p, rank: i + 1 }));
+
+            setPlayers(mockNetworkPlayers);
+            setIsLoading(false);
+        };
+        fetchNetworkPlayers();
+    }, []);
+
+    if (isLoading) {
+        return <LeaderboardItemSkeleton />;
+    }
+    
+    if (players.length === 0) {
+        return (
+            <Card className="bg-card/80">
+                 <CardContent className="p-8 text-center text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-primary/50" />
+                    <p className="font-semibold text-lg text-foreground">Build Your Network!</p>
+                    <p>Refer friends to see their performance and compete with them here.</p>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card className="bg-card/80 border-primary/10 shadow-lg">
+            <CardHeader className="text-center"><CardTitle>🤝 My Network</CardTitle><CardDescription>Rankings of players you referred</CardDescription></CardHeader>
+            <CardContent>
+                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
+                    {players.map((player) => (
+                        <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center p-2 rounded-lg">
+                           <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+                           <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+                           <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p></div>
+                           <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
+                       </motion.div>
+                   ))}
+                </motion.div>
+            </CardContent>
+        </Card>
+    );
+});
+MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
+
+
 export default function LeaderboardContent() {
   const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-2" : "grid-cols-1")}>
+        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-1")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             {user && <TabsTrigger value="all-time">All-Time</TabsTrigger>}
+            {user && <TabsTrigger value="my-network">My Network</TabsTrigger>}
         </TabsList>
         <TabsContent value="live"><LiveLeaderboard /></TabsContent>
         {user && <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>}
+        {user && <TabsContent value="my-network"><MyNetworkLeaderboard /></TabsContent>}
     </Tabs>
   );
 }
