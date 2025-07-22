@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
-import { auth, db, isFirebaseOnline } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -33,11 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    if (!auth) { 
-        console.error("Firebase Auth is not available.");
-        setLoading(false); 
-        return; 
-    }
+    if (typeof window === 'undefined') return;
+    const auth = getFirebaseAuth();
+    if (!auth) { setLoading(false); return; }
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
@@ -53,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
 
     const setupListeners = async () => {
+      const db = getFirebaseFirestore();
       if (!db) {
         console.error("Firestore is not available.");
         setIsOffline(true);
@@ -72,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data?.dob && data.dob instanceof Timestamp) {
+          if (data?.dob instanceof Timestamp) {
             data.dob = data.dob.toDate().toISOString().split('T')[0];
           }
           setProfile(data);
@@ -80,10 +79,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           try {
             await createUserDocument(user);
-            // After creation, onSnapshot will be re-triggered with the new data.
           } catch (e) {
              console.error("Failed to create user document:", e)
-             setIsOffline(true); // Assume offline if doc creation fails
+             setIsOffline(true);
           }
         }
         setLoading(false);
@@ -103,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
+    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
     
     const sanitizedData = sanitizeUserProfile(newData);
@@ -112,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
+    const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or DB not available.");
 
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
