@@ -57,8 +57,8 @@ export default function LoginForm() {
     try {
       const userCredential = await loginWithEmail(data.email, data.password);
       if (!userCredential.user.emailVerified) {
-        toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
-        router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
+        toast({ title: 'Email Not Verified', description: 'Please check your inbox to verify your email before logging in.', variant: 'destructive'});
+        router.push(`/auth/verify-email?from=${encodeURIComponent(from || '/home')}`);
         return;
       }
       toast({ title: "Signed In", description: "Welcome back!" });
@@ -96,8 +96,8 @@ export default function LoginForm() {
   return (
     <Card className="w-full max-w-md shadow-2xl shadow-black/20">
       <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-        <CardDescription>Enter your credentials to access your account</CardDescription>
+        <CardTitle className="text-2xl font-bold">Pad Up & Sign In</CardTitle>
+        <CardDescription>Enter your credentials to get into the game</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
       {!isFirebaseConfigured ? <FirebaseConfigWarning /> : (

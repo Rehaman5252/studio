@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -43,13 +44,15 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       rewardedReferrals: [],
       currentStreak: 0,
       lastStreakTimestamp: null,
-      dailyQuizProgress: {}, // a map to track daily quizzes, e.g., { T20: 1, total: 1 }
+      dailyQuizProgress: {},
     };
 
     try {
       if (refCode) {
-        const q = query(collection(db, "users"), where("referralCode", "like", `%${refCode}`));
+        // Query for a user whose referralCode ends with the provided refCode
+        const q = query(collection(db, "users"), where("referralCode", "==", `https://cricblitz.com/auth/signup?ref=${refCode}`));
         const querySnapshot = await getDocs(q);
+        
         if (!querySnapshot.empty) {
           const referrerDoc = querySnapshot.docs[0];
           newUserProfile.referredBy = referrerDoc.id;
