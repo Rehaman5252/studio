@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
 import { Settings, LogIn } from 'lucide-react';
+import Policies from '@/components/profile/Policies';
 
 function ProfilePageContent() {
   const { user, profile, loading } = useAuth();
@@ -43,6 +44,9 @@ function ProfilePageContent() {
             </section>
              <div className="mt-8 w-full">
                 <SupportCard />
+             </div>
+             <div className="mt-8 w-full">
+                <Policies />
              </div>
           </div>
       </main>
