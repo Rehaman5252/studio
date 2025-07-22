@@ -1,10 +1,9 @@
-
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gift, Award, Settings, LogOut, Edit } from 'lucide-react';
+import { Gift, Award, Settings, LogOut, Edit, Scale } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ProfileHeader from './ProfileHeader';
 import ProfileCompletion from './ProfileCompletion';
@@ -57,10 +56,11 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
                 </Button>
+                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                    <Link href="/policies"><Scale className="mr-4" /> Legal & Policies</Link>
+                </Button>
                  <SupportCard />
             </div>
-
-            <Policies />
 
             <section className="pt-4">
                 <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>

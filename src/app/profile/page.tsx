@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -9,7 +8,7 @@ import ProfileContent from '@/components/profile/ProfileContent';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
-import { Settings, LogIn } from 'lucide-react';
+import { Settings, LogIn, Scale } from 'lucide-react';
 import Policies from '@/components/profile/Policies';
 
 function ProfilePageContent() {
@@ -41,12 +40,12 @@ function ProfilePageContent() {
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
                 </Button>
+                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                    <Link href="/policies"><Scale className="mr-4" /> Legal & Policies</Link>
+                </Button>
             </section>
              <div className="mt-8 w-full">
                 <SupportCard />
-             </div>
-             <div className="mt-8 w-full">
-                <Policies />
              </div>
           </div>
       </main>

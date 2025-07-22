@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -63,7 +62,7 @@ const Policies = () => {
                 <AccordionItem value="item-6">
                     <AccordionTrigger>Responsible Gaming</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>CricBlitz is intended for entertainment and educational purposes to enhance cricket knowledge. While real rewards are offered, we encourage responsible participation.</p>
+                        <p>indcric is intended for entertainment and educational purposes to enhance cricket knowledge. While real rewards are offered, we encourage responsible participation.</p>
                         <p>Please play within your limits. Do not treat this platform as a primary source of income. If you feel your gaming habits are becoming problematic, we urge you to seek support from relevant counseling services.</p>
                     </AccordionContent>
                 </AccordionItem>
