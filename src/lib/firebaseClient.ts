@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, onSnapshot } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, onSnapshot, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -63,34 +63,30 @@ export function getFirebaseFirestore(): Firestore | null {
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-
-export function monitorFirebaseConnection(callback: (status: boolean) => void) {
+export function monitorFirebaseConnection(callback: (status: boolean) => void): () => void {
     const db = getFirebaseFirestore();
     if (!db) {
         callback(false);
         return () => {};
     }
-  // Firestore doesn't have a direct equivalent of Realtime Database's .info/connected.
-  // A common workaround is to listen to a document that is very unlikely to change.
-  // The SDK is smart enough to manage the underlying connection and will trigger
-  // the error handler on disconnection.
-  const dummyDocRef = doc(db, "__connection-check__/status");
+    // Firestore doesn't have a direct equivalent of Realtime Database's .info/connected.
+    // A common workaround is to listen to a document. The SDK is smart enough
+    // to manage the underlying connection and will trigger the error handler on disconnection.
+    const dummyDocRef = doc(db, "__connection-check__/status");
 
-  const unsubscribe = onSnapshot(
-    dummyDocRef,
-    () => {
-      callback(true);
-    },
-    (error) => {
-      console.error("🔥 Firebase connection failed:", error.message);
-      callback(false);
-    }
-  );
+    const unsubscribe = onSnapshot(
+        dummyDocRef,
+        () => { callback(true); },
+        (error) => {
+            console.error("🔥 Firebase connection failed:", error.message);
+            callback(false);
+        }
+    );
 
-  return unsubscribe;
+    return unsubscribe;
 }
 
-// A simple check using a known document can also work for a one-time check.
+
 export async function isFirebaseOnline(): Promise<boolean> {
   const db = getFirebaseFirestore();
   if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
@@ -98,18 +94,13 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 
   try {
-    // This is a more reliable check. We use a non-existent document to avoid read costs.
     const testDoc = doc(db, "systemHealth/connectivityCheck");
-    // The attempt to get a document will fail if offline.
     await getDoc(testDoc);
     return true;
   } catch (error: any) {
-    // Specific error codes can confirm offline status.
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
-    // For this check, we treat most other errors as an offline indicator.
     return false;
   }
 }
-
