@@ -45,13 +45,14 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { setIsLoading(false); return; }
 
     if (!db) {
@@ -80,7 +81,7 @@ export default function CertificatesContent() {
         }
     }
     fetchHistory();
-  }, [user]);
+  }, [user, authLoading]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -189,7 +190,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />
