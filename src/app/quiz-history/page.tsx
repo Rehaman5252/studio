@@ -5,10 +5,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { ScrollText, Play } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { ScrollText } from 'lucide-react';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
   loading: () => <HistorySkeleton />,
@@ -23,21 +21,6 @@ const HistorySkeleton = () => (
         <Skeleton className="h-[148px] w-full" />
         <Skeleton className="h-[148px] w-full" />
       </div>
-    </div>
-);
-
-const NotLoggedInPrompt = () => (
-    <div className="flex items-center justify-center h-full">
-        <Card className="bg-card/80 max-w-sm w-full text-center">
-            <CardContent className="p-8">
-              <ScrollText className="h-12 w-12 mx-auto mb-4 text-primary/50" />
-              <h2 className="text-xl font-bold text-foreground">Track Your Innings</h2>
-              <p className="text-muted-foreground mt-2 mb-4">Log in and play a quiz to see your performance history and AI analysis.</p>
-              <Button asChild size="lg">
-                <Link href="/auth/login">Login to View History</Link>
-              </Button>
-            </CardContent>
-          </Card>
     </div>
 );
 
@@ -57,7 +40,13 @@ export default function QuizHistoryPage() {
         ) : user ? (
           <QuizHistoryContent />
         ) : (
-          <NotLoggedInPrompt />
+          <div className="flex items-center justify-center h-full">
+              <LoginPrompt
+                icon={ScrollText}
+                title="Track Your Innings"
+                description="Log in to see your quiz performance, stats, and AI analysis."
+              />
+          </div>
         )}
       </main>
     </div>

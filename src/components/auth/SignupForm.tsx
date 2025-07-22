@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,6 +64,7 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
+    const auth = getFirebaseAuth();
     if (!auth) {
         toast({ title: "Error", description: "Authentication services are not ready. Please try again later.", variant: "destructive" });
         setIsLoading(false);
