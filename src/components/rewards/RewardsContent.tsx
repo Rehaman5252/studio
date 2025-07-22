@@ -10,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -123,12 +123,9 @@ const BrandGifts = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading || !user) {
-        setLoading(false);
-        return;
-    }
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
 
-    const db = getFirebaseFirestore();
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
@@ -138,7 +135,11 @@ const BrandGifts = () => {
             setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
             console.error("Rewards Fetch Error:", e);
-            setError("Unable to load rewards data. Please check your connection.");
+            if (e.code === 'unavailable') {
+                setError("You appear to be offline. Please check your connection.");
+            } else {
+                setError("Unable to load rewards data.");
+            }
         } finally {
             setLoading(false);
         }
@@ -158,7 +159,7 @@ const BrandGifts = () => {
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
   
-  if (loading) {
+  if (loading || authLoading) {
     return <RewardsSkeleton />;
   }
   

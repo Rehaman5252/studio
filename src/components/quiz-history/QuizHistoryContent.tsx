@@ -12,7 +12,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -148,18 +148,19 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (authLoading) return;
         if (!user) { setLoading(false); return; }
-        const db = getFirebaseFirestore();
-        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
-        setLoading(true); setError(null);
-        (async () => {
+
+        setLoading(true); 
+        setError(null);
+        const fetchHistory = async () => {
             try {
                 const q = query(
                     collection(db, "users", user.uid, "quizAttempts"),
@@ -168,13 +169,20 @@ export default function QuizHistoryContent() {
                 );
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
-            } catch (e) {
-                setError("Unable to load quiz history.");
+            } catch (e: any) {
+                if(e.code === 'unavailable') {
+                    setError("You appear to be offline. Please check your connection.");
+                } else {
+                    setError("Unable to load quiz history.");
+                }
+                console.error("History fetch error:", e);
             } finally {
                 setLoading(false);
             }
-        })();
-    }, [user]);
+        };
+
+        fetchHistory();
+    }, [user, authLoading]);
 
     const filteredHistory = useMemo(() => {
         if (filter === 'perfect') {
@@ -184,7 +192,7 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading) return <HistorySkeleton />;
+        if (loading || authLoading) return <HistorySkeleton />;
         if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>

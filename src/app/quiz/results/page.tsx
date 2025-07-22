@@ -80,23 +80,13 @@ function ResultsComponent() {
     }, [searchParams, router]);
     
     const { isReview, reason, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
-        const isReviewParam = searchParams.get('review') === 'true';
-        const reasonParam = searchParams.get('reason');
-
-        if (!finalAttempt) {
-            return {
-                isReview: isReviewParam, reason: reasonParam, today: '', questions: [], userAnswers: [],
-                brand: 'N/A', format: 'N/A', timePerQuestion: [], usedHintIndices: [], score: 0,
-                totalQuestions: 0, slotId: '', timestamp: 0, isPerfectScore: false, slotTimings: ''
-            };
-        }
-
-        const reason = finalAttempt.reason || reasonParam;
+        const isReview = searchParams.get('review') === 'true';
+        const reason = finalAttempt?.reason || searchParams.get('reason');
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        const { questions = [], userAnswers = [], brand = 'N/A', format = 'N/A', timePerQuestion = [], usedHintIndices = [], score = 0, slotId = '', timestamp: attemptTimestamp } = finalAttempt;
+        const { questions = [], userAnswers = [], brand = 'N/A', format = 'N/A', timePerQuestion = [], usedHintIndices = [], score = 0, slotId = '', timestamp: attemptTimestamp } = finalAttempt || {};
         
-        const total = finalAttempt.totalQuestions || questions.length || 0;
+        const total = finalAttempt?.totalQuestions || questions.length || 0;
         const isPerfect = score === total && total > 0;
         
         let timings = '';
@@ -112,7 +102,7 @@ function ResultsComponent() {
         }
 
         return {
-            isReview: isReviewParam,
+            isReview,
             reason,
             today,
             questions,

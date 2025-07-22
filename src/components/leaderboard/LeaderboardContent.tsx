@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -43,30 +43,18 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        // Wait for auth to be ready before fetching
+        if (authLoading) return;
+
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
-            
-            const online = await isFirebaseOnline();
-            if (!online) {
-                setError("You appear to be offline. Please check your connection.");
-                setIsLoading(false);
-                return;
-            }
-
-            const db = getFirebaseFirestore();
-            if (!db) {
-                setError("Could not connect to the database.");
-                setIsLoading(false);
-                return;
-            }
-
             try {
                 // In a real app, this would query a shared 'liveSlot' collection.
                 // For this demo, we mock it.
@@ -101,17 +89,21 @@ const LiveLeaderboard = memo(() => {
 
                 setPlayers(sorted);
             } catch (e: any) {
-                setError("An error occurred while loading the leaderboard.");
+                if (e.code === 'unavailable' || e.message?.includes('offline')) {
+                  setError("You appear to be offline. Please check your connection.");
+                } else {
+                  setError("An error occurred while loading the leaderboard.");
+                }
                 console.error(e);
             } finally {
                 setIsLoading(false);
             }
         };
         fetchLivePlayers();
-    }, [user, profile]);
+    }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
@@ -140,15 +132,8 @@ const AllTimeLeaderboard = memo(() => {
     
     const players: AllTimePlayer[] = useMemo(() => {
         // This is mocked for now. A real implementation would query an aggregated collection.
-        if (!profile) return [];
-        return [{
-            uid: user!.uid,
-            name: profile.name,
-            perfectScores: profile.perfectScores || 0,
-            totalPlayed: profile.quizzesPlayed || 0,
-            avatar: profile.photoURL,
-            rank: 1
-        }];
+        if (!user || !profile || (profile.perfectScores || 0) === 0) return [];
+        return [{ uid: user.uid, name: profile.name, perfectScores: profile.perfectScores, totalPlayed: profile.quizzesPlayed, avatar: profile.photoURL, rank: 1 }];
     }, [user, profile]);
 
     return (
@@ -156,7 +141,7 @@ const AllTimeLeaderboard = memo(() => {
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {players.length > 0 && players[0].totalPlayed > 0 ? players.map((player) => (
+                    {players.length > 0 ? players.map((player) => (
                         <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                            <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                            <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>

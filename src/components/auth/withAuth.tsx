@@ -11,19 +11,17 @@
  * - If the user is not logged in, it redirects to the login page.
  * - If the user is logged in but their profile is incomplete, it redirects to the profile completion page.
  * - It shows a loading spinner while checking auth/profile state.
- * - It shows an offline message if the connection to Firebase is lost.
  */
 import React, { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { Loader2, WifiOff } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 const withAuth = <P extends object>(
   WrappedComponent: React.ComponentType<P>
 ): React.FC<P> => {
   const WithAuthComponent: React.FC<P> = (props) => {
-    const { user, isProfileComplete, loading, isOffline } = useAuth();
+    const { user, isProfileComplete, loading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -46,20 +44,6 @@ const withAuth = <P extends object>(
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       );
-    }
-    
-    if (isOffline) {
-        return (
-            <div className="flex h-screen w-screen items-center justify-center bg-background p-4">
-                <Alert variant="destructive" className="max-w-md">
-                    <WifiOff className="h-4 w-4" />
-                    <AlertTitle>You Are Offline</AlertTitle>
-                    <AlertDescription>
-                        Please check your internet connection to access this page.
-                    </AlertDescription>
-                </Alert>
-            </div>
-        );
     }
 
     return <WrappedComponent {...props} />;

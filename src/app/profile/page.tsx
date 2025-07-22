@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
 import { Settings, LogIn } from 'lucide-react';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { User as UserIcon } from 'lucide-react';
 
 function ProfilePage() {
   const { user, profile, loading } = useAuth();
@@ -25,12 +27,12 @@ function ProfilePage() {
   if (!user) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center p-4 space-y-6 pb-20 text-center">
-          <div className="max-w-md w-full space-y-4">
-            <h2 className="text-2xl font-bold">Join the Action</h2>
-            <p className="text-muted-foreground">Sign in to view your profile, track your stats, and manage your account.</p>
-            <Button asChild size="lg" className="w-full justify-center text-base py-6">
-                <Link href="/auth/login"><LogIn className="mr-4" /> Pad Up & Sign In</Link>
-            </Button>
+          <div className="max-w-md w-full">
+            <LoginPrompt
+              icon={UserIcon}
+              title="View Your Profile"
+              description="Sign in to view your profile, track your stats, and manage your account."
+            />
              <div className="pt-8 w-full space-y-3">
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
