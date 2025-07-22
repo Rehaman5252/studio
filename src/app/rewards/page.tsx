@@ -2,11 +2,13 @@
 'use client';
 
 import React from 'react';
-import { useAuth } from '@/context/AuthProvider';
-import RewardsContent from '@/components/rewards/RewardsContent';
+import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
+import { Gift, Loader2 } from 'lucide-react';
 
-const RewardsPageSkeleton = () => (
+const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
+  loading: () => (
     <div className="space-y-8">
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
@@ -22,10 +24,12 @@ const RewardsPageSkeleton = () => (
         <Skeleton className="h-[96px] w-full" />
       </div>
     </div>
-);
+  ),
+  ssr: false,
+});
 
 export default function RewardsPage() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
   
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -34,7 +38,13 @@ export default function RewardsPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
-         {loading ? <RewardsPageSkeleton /> : <RewardsContent />}
+         {loading ? (
+            <div className="flex flex-col items-center justify-center h-full py-10">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+         ) : (
+            <RewardsContent />
+         )}
       </main>
     </div>
   );

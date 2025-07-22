@@ -3,18 +3,16 @@
 /**
  * @fileOverview AuthProvider
  *
- * This is the central provider for all user-related data, including authentication
- * state, user profile, and quiz history. It follows a lean data-loading strategy.
+ * This is the central provider for the user's authentication state and core profile.
+ * It follows a lean data-loading strategy to ensure fast initial page loads.
  *
- * 1.  **Authentication**: Listens for Firebase auth state changes.
- * 2.  **Profile Management**: On login, it fetches the user's profile document from
- *     Firestore with a real-time listener. If a profile doesn't exist for a new
- *     user, it creates one automatically.
- * 3.  **Quiz History**: It also attaches a real-time listener to the user's
- *     'quizAttempts' sub-collection, making history available throughout the app
- *     without requiring individual components to re-fetch it.
- * 4.  **Connectivity**: Uses `monitorFirebaseConnection` to provide a reliable
- *     `isOffline` flag for the entire application.
+ * 1.  **Authentication**: Listens for Firebase auth state changes (`onAuthStateChanged`).
+ * 2.  **Profile Management**: On login, it attaches a real-time listener (`onSnapshot`)
+ *     to the user's main profile document in Firestore (`users/{uid}`). It does NOT
+ *     load heavy sub-collections like quiz history here.
+ * 3.  **Connectivity**: It provides a reliable `isOffline` flag for the entire app.
+ * 4.  **Automatic Profile Creation**: If a user signs in for the first time, it
+ *     automatically creates their profile document in Firestore.
  */
 
 import type { User } from 'firebase/auth';
@@ -29,9 +27,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
-  quizHistory: QuizAttempt[];
-  loading: boolean; // True while waiting for auth and initial profile
-  historyLoading: boolean; // True while waiting for quiz history
+  loading: boolean; // True only while waiting for auth and the initial, lean profile
   isOffline: boolean;
   updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
@@ -45,41 +41,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [historyLoading, setHistoryLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
-
-  // Monitor Firebase connection status globally.
+  
+  // Monitor the actual Firebase connection status.
   useEffect(() => {
     const unsubscribe = monitorFirebaseConnection(setIsOffline);
     return () => unsubscribe();
   }, []);
   
-  // Listen for changes in authentication state.
+  // Listen for changes in the user's authentication state.
   useEffect(() => {
     const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
 
-  // When user logs in, set up real-time listeners for their profile and quiz history.
+  // When a user logs in, set up a real-time listener for their core profile document.
+  // This does NOT load heavy sub-collections, so it's very fast.
   useEffect(() => {
     if (!user) {
       setProfile(null);
-      setQuizHistory([]);
       setLoading(false);
-      setHistoryLoading(false);
       return;
     }
 
     setLoading(true);
-    setHistoryLoading(true);
     const db = getFirebaseFirestore();
-
-    // Listener for the user's profile document.
     const userDocRef = doc(db, "users", user.uid);
+
     const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -89,8 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         setProfile(data);
       } else {
-        // If the user document doesn't exist, create it.
-        await createUserDocument(user);
+        await createUserDocument(user); // If profile doesn't exist, create it.
       }
       setLoading(false);
     }, (error) => {
@@ -98,34 +88,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    // Listener for the user's quiz history sub-collection.
-    const historyQuery = query(collection(db, `users/${user.uid}/quizAttempts`), orderBy("timestamp", "desc"));
-    const unsubHistory = onSnapshot(historyQuery, (snapshot) => {
-      const historyData = snapshot.docs.map(doc => doc.data() as QuizAttempt);
-      setQuizHistory(historyData);
-      setHistoryLoading(false);
-    }, (error) => {
-      console.error("History snapshot error:", error);
-      setHistoryLoading(false);
-    });
-
-    // Cleanup listeners on component unmount or user change.
-    return () => {
-      unsubProfile();
-      unsubHistory();
-    };
+    return () => unsubProfile();
   }, [user]);
 
-  // Callback to update user data in Firestore.
+  // Function to update the user's profile data in Firestore.
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     if (!user) throw new Error("User not authenticated.");
     const db = getFirebaseFirestore();
     const userDocRef = doc(db, "users", user.uid);
-    // Sanitize data before sending to Firestore (e.g., remove undefined fields).
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
-  // Callback to add a new quiz attempt and update user stats.
+  // Function to add a quiz attempt and update player stats atomically.
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated.");
     const db = getFirebaseFirestore();
@@ -140,18 +114,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
     };
     
-    // Update both user stats and the quiz attempt record.
     await updateUserData(newStats);
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
   }, [user, profile, updateUserData]);
 
   const isProfileComplete = !!profile?.profileCompleted;
 
-  // Memoize context value to prevent unnecessary re-renders of consuming components.
+  // Memoize the context value to prevent unnecessary re-renders of consumers.
   const value = useMemo(() => ({
-    user, profile, quizHistory, loading, historyLoading, isOffline, 
+    user, profile, loading, isOffline, 
     updateUserData, addQuizAttempt, lastAttempt, setLastAttempt, isProfileComplete
-  }), [user, profile, quizHistory, loading, historyLoading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
+  }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -160,9 +133,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/**
- * Custom hook to easily access the AuthContext.
- */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

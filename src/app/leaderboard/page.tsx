@@ -9,12 +9,10 @@ import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { Trophy } from 'lucide-react';
 
-// Lazy-load the main content to improve initial page load performance.
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
   loading: () => <LeaderboardSkeleton />,
-  ssr: false, // This component is client-side only.
+  ssr: false,
 });
-
 
 const LeaderboardSkeleton = () => (
     <div className="space-y-2">
@@ -49,7 +47,6 @@ export default function LeaderboardPage() {
                 ) : user ? (
                     <LeaderboardContent />
                 ) : (
-                    // Show a prompt to log in if the user is not authenticated.
                     <div className="flex items-center justify-center h-full">
                         <LoginPrompt
                             icon={Trophy}
