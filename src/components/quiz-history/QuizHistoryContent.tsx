@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, memo, useEffect } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, Mail } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -136,13 +136,17 @@ function HistorySkeleton() {
 
 export default function QuizHistoryContent() {
     const { quizHistory, historyLoading } = useAuth();
-    const [filter, setFilter] = useState<'all' | 'perfect'>('all');
+    const [filter, setFilter] = useState<'recent' | 'all' | 'perfect'>('recent');
 
     const filteredHistory = useMemo(() => {
+        if (filter === 'recent') {
+            return quizHistory.slice(0, 5);
+        }
         if (filter === 'perfect') {
             return quizHistory.filter(a => a.score === a.totalQuestions && !a.reason);
         }
-        return quizHistory;
+        // For 'all', we show up to 20
+        return quizHistory.slice(0, 20);
     }, [quizHistory, filter]);
 
     const renderContent = () => {
@@ -158,6 +162,14 @@ export default function QuizHistoryContent() {
                 {filteredHistory.map((attempt) => (
                     <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
                 ))}
+                {filter === 'all' && quizHistory.length > 20 && (
+                    <Card className="bg-card/80 text-center">
+                        <CardContent className="p-4">
+                           <p className="text-sm text-muted-foreground mb-3">Showing the last 20 quizzes. For a complete history, please request a statement.</p>
+                           <Button variant="outline"><Mail className="mr-2" />Request Full History</Button>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         );
     };
@@ -166,7 +178,11 @@ export default function QuizHistoryContent() {
         <>
             <div className="flex justify-center">
                 <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full max-w-md">
-                    <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="perfect">Perfect Scores</TabsTrigger></TabsList>
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="recent">Recent</TabsTrigger>
+                        <TabsTrigger value="all">All</TabsTrigger>
+                        <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
+                    </TabsList>
                 </Tabs>
             </div>
             {renderContent()}
