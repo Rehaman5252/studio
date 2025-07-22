@@ -6,11 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { Home as HomeIcon } from 'lucide-react';
+import HomeClientContent from '@/components/home/HomeClientContent';
 
-const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
-  loading: () => <HomeContentSkeleton />,
-  ssr: false,
-});
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">

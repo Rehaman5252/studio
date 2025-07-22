@@ -161,7 +161,7 @@ export default function QuizHistoryContent() {
     useEffect(() => {
         if (!user) { setLoading(false); return; }
         const db = getFirebaseFirestore();
-        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
+        if (!db) { setError("Firestore not available"); setLoading(false); return; }
         setLoading(true); setError(null);
         (async () => {
             try {

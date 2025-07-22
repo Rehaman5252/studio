@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -57,7 +57,7 @@ export default function CertificatesContent() {
 
     const db = getFirebaseFirestore();
     if (!db) {
-      setError("You appear to be offline. Please check your connection to see your certificates.");
+      setError("Firestore not available. Please check your connection.");
       setIsLoading(false);
       return;
     }

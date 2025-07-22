@@ -6,11 +6,8 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { Gift, Loader2 } from 'lucide-react';
+import RewardsContent from '@/components/rewards/RewardsContent';
 
-const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
-  loading: () => <RewardsSkeleton />,
-  ssr: false,
-});
 
 const RewardsSkeleton = () => (
     <div className="space-y-8">
@@ -41,9 +38,7 @@ export default function RewardsPage() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
          {loading ? (
-            <div className="flex flex-col items-center justify-center h-full py-10">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
+            <RewardsSkeleton />
          ) : (
             <RewardsContent />
          )}

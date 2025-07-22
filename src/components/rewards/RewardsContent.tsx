@@ -141,7 +141,11 @@ export default function RewardsContent() {
             setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
             console.error("Rewards Fetch Error:", e);
-            setError("Unable to load rewards data. Please check your connection.");
+            if (e.code === 'unavailable') {
+                setError("You appear to be offline. Please check your connection.");
+            } else {
+                setError("Unable to load rewards data.");
+            }
         } finally {
             setLoading(false);
         }

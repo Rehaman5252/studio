@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getFirebaseAuth } from '@/lib/firebaseClient';
+import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,8 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { sendEmailVerification, updateProfile } from 'firebase/auth';
+import { sendEmailVerification } from 'firebase/auth';
+import FirebaseConfigWarning from './FirebaseConfigWarning';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -108,45 +109,49 @@ export default function SignupForm() {
         <CardDescription>Enter your details to start your innings</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled}>
-            {isGoogleLoading ? (
-                <><Loader2 className="animate-spin mr-2" /> Signing Up...</>
-            ) : (
-                <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>
-            )}
-        </Button>
-        <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div>
-        </div>
-        
-        <form onSubmit={handleSubmit(onEmailSignUp)} className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isAuthDisabled} />
-                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+        {!isFirebaseConfigured ? <FirebaseConfigWarning /> : (
+            <>
+                <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled}>
+                    {isGoogleLoading ? (
+                        <><Loader2 className="animate-spin mr-2" /> Signing Up...</>
+                    ) : (
+                        <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>
+                    )}
+                </Button>
                 <div className="relative">
-                    <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
-                     <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
-                        {showPassword ? <EyeOff /> : <Eye />}
-                     </Button>
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div>
                 </div>
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-            </div>
-            <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                 {isLoading ? (
-                    <><Loader2 className="animate-spin mr-2" /> Creating Account...</>
-                 ) : "Create Account"}
-            </Button>
-        </form>
+                
+                <form onSubmit={handleSubmit(onEmailSignUp)} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isAuthDisabled} />
+                        {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
+                        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                            <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
+                            <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
+                                {showPassword ? <EyeOff /> : <Eye />}
+                            </Button>
+                        </div>
+                        {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+                        {isLoading ? (
+                            <><Loader2 className="animate-spin mr-2" /> Creating Account...</>
+                        ) : "Create Account"}
+                    </Button>
+                </form>
+            </>
+        )}
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">

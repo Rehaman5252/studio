@@ -34,7 +34,7 @@ function ProfilePage() {
               description="Sign in to view your profile, track your stats, and manage your account."
             />
           </div>
-          <div className="w-full space-y-3 pt-8">
+          <div className="w-full max-w-md space-y-3 pt-8">
             <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                 <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
             </Button>

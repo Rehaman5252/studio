@@ -164,6 +164,7 @@ const AllTimeLeaderboard = memo(() => {
 });
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
+
 const MyNetworkLeaderboard = memo(() => {
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
