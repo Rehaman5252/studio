@@ -9,7 +9,7 @@ import ProfileContent from '@/components/profile/ProfileContent';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
-import { Settings, LogIn } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { User as UserIcon } from 'lucide-react';
 
@@ -26,19 +26,19 @@ function ProfilePage() {
   
   if (!user) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center p-4 space-y-6 pb-20 text-center">
+      <main className="flex flex-1 flex-col items-center p-4 space-y-6 pb-20 text-center">
           <div className="max-w-md w-full">
             <LoginPrompt
               icon={UserIcon}
               title="View Your Profile"
               description="Sign in to view your profile, track your stats, and manage your account."
             />
-             <div className="pt-8 w-full space-y-3">
-                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
-                </Button>
-                <SupportCard />
-             </div>
+          </div>
+          <div className="w-full max-w-md space-y-3 pt-8">
+            <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
+            </Button>
+            <SupportCard />
           </div>
       </main>
     )
