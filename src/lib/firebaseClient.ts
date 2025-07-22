@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,23 +14,40 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
-if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-} else {
-    app = getApp();
-}
+export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
+let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && isFirebaseConfigured) {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
     auth = getAuth(app);
-    setPersistence(auth, browserLocalPersistence);
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+        console.warn("Firebase Auth persistence error", err);
+    });
 
     db = initializeFirestore(app, {
-        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
     });
+}
+
+export async function isFirebaseOnline(): Promise<boolean> {
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+
+  try {
+    const testDoc = doc(db, "systemHealth/connectivityCheck");
+    await getDoc(testDoc);
+    return true;
+  } catch (error: any) {
+    if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
+        return false;
+    }
+    return false;
+  }
 }
 
 // @ts-ignore

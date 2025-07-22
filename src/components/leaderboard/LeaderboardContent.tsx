@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,9 +16,9 @@ import { db } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import LoginPrompt from '../auth/LoginPrompt';
+import AllTimeLeaderboard from './AllTimeLeaderboard';
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
-interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -132,38 +132,13 @@ const LiveLeaderboard = memo(() => {
 LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 
-const AllTimeLeaderboard = memo(() => {
-    const { user, profile } = useAuth();
-    // This is mocked for now. A real implementation would query an aggregated collection.
-    const players: AllTimePlayer[] = useMemo(() => {
-        if (!user || !profile || (profile.perfectScores || 0) === 0) return [];
-        return [{ uid: user.uid, name: profile.name, perfectScores: profile.perfectScores, totalPlayed: profile.quizzesPlayed, avatar: profile.photoURL, rank: 1 }];
-    }, [user, profile]);
-
-    return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
-            <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
-            <CardContent>
-                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {players.length > 0 ? players.map((player) => (
-                        <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
-                           <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-                           <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-                           <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
-                           <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
-                       </motion.div>
-                   )) : <p className="text-center text-muted-foreground p-4">Play quizzes to appear on the All-Time leaderboard!</p>}
-                </motion.div>
-            </CardContent>
-        </Card>
-    );
-});
-AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
-
-
 export default function LeaderboardContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('live');
+
+  if (loading) {
+    return <LeaderboardItemSkeleton />;
+  }
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -175,15 +150,14 @@ export default function LeaderboardContent() {
         {user ? (
           <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>
         ) : (
-          <TabsContent value="all-time">
-            <div className="pt-8 w-full">
-              <LoginPrompt 
-                icon={Users}
-                title="View All-Time Legends"
-                description="Pad up and sign in to see the hall of fame."
-              />
-            </div>
-          </TabsContent>
+          activeTab === 'all-time' &&
+          <div className="pt-8 w-full">
+            <LoginPrompt 
+              icon={Users}
+              title="View All-Time Legends"
+              description="Pad up and sign in to see the hall of fame."
+            />
+          </div>
         )}
     </Tabs>
   );

@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, onSnapshot, writeBatch, increment, Timestamp, getDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, writeBatch, increment, Timestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   useEffect(() => {
-    if (typeof window === "undefined" || !user) {
+    if (!user) {
       setLoading(false);
       return;
     }
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     await batch.commit();
 
-  }, [user, profile, updateUserData]);
+  }, [user, profile]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
