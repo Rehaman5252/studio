@@ -1,4 +1,3 @@
-
 'use client';
 /**
  * @fileOverview Firebase Client Initialization

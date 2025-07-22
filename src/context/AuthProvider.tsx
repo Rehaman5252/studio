@@ -1,4 +1,3 @@
-
 'use client';
 /**
  * @fileOverview AuthProvider
@@ -18,7 +17,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, Timestamp, onSnapshot, getDoc } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
