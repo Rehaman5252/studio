@@ -12,7 +12,7 @@ import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,6 +76,13 @@ const LiveLeaderboard = memo(() => {
                 // In a real app, this would query a shared collection of live attempts.
                 // For this demo, we'll just fetch the current user's attempt for this slot.
                 const db = getFirebaseFirestore();
+                const mockLivePlayers: LivePlayer[] = [
+                    { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
+                    { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
+                    { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
+                    { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
+                ];
+                
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
@@ -85,12 +92,23 @@ const LiveLeaderboard = memo(() => {
                         const livePlayer: LivePlayer = {
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice',
-                            rank: 1 // Assume rank 1 as we are only fetching the user
+                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
                         };
-                        setPlayers([livePlayer]);
+                         // Prevent adding duplicate if already in mock
+                        if (!mockLivePlayers.some(p => p.uid === user.uid)) {
+                            mockLivePlayers.push(livePlayer);
+                        }
                     }
                 }
+                
+                const sorted = mockLivePlayers.sort((a, b) => {
+                    if (a.disqualified && !b.disqualified) return 1;
+                    if (!a.disqualified && b.disqualified) return -1;
+                    if (a.score !== b.score) return b.score - a.score;
+                    return a.time - b.time;
+                }).map((p, i) => ({ ...p, rank: i + 1 }));
+
+                setPlayers(sorted);
             } catch (e: any) {
                 const errorMessage = e.code === 'unavailable' 
                     ? "You appear to be offline. Please check your connection." 

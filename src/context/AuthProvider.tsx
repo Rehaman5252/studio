@@ -72,13 +72,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const db = getFirebaseFirestore();
-        if (!db) {
-          console.error("Firestore is not available.");
-          setLoading(false);
-          setIsOffline(true);
-          return;
-        }
-
         const userDocRef = doc(db, "users", user.uid);
         unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
             if (docSnap.exists()) {
@@ -112,14 +105,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) throw new Error("User not authenticated.");
     const db = getFirebaseFirestore();
     const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+    // Correctly sanitize the new data before merging it into the current profile state
+    const sanitizedData = sanitizeUserProfile(newData);
+    setProfile(prev => ({ ...(prev || {}), ...sanitizedData }));
+    await setDoc(userDocRef, sanitizedData, { merge: true });
   }, [user]);
 
   // Function to add a quiz attempt and update player stats atomically.
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated.");
-    const db = getFirebaseFirestore();
     const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
+    const db = getFirebaseFirestore();
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, sanitizedAttempt.slotId);
 
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
