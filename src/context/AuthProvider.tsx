@@ -19,7 +19,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, monitorFirebaseConnection } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -45,12 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   
-  // Monitor the actual Firebase connection status.
-  useEffect(() => {
-    const unsubscribe = monitorFirebaseConnection(setIsOffline);
-    return () => unsubscribe();
-  }, []);
-  
   // Listen for changes in the user's authentication state.
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -63,7 +57,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // When a user logs in, set up a real-time listener for their core profile document.
-  // This does NOT load heavy sub-collections, so it's very fast.
   useEffect(() => {
     if (!user) {
       setProfile(null);
@@ -72,31 +65,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setLoading(true);
-    const db = getFirebaseFirestore();
-    if (!db) {
-        setLoading(false);
-        return;
-    }
-    const userDocRef = doc(db, "users", user.uid);
 
-    const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        // Convert Firestore Timestamps to a format the <Input type="date"> can use.
-        if (data?.dob instanceof Timestamp) {
-          data.dob = data.dob.toDate().toISOString().split('T')[0];
+    const setupListener = async () => {
+        const online = await isFirebaseOnline();
+        setIsOffline(!online);
+        if (!online) {
+            setLoading(false);
+            return;
         }
-        setProfile(data);
-      } else {
-        await createUserDocument(user); // If profile doesn't exist, create it.
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("Profile snapshot error:", error);
-      setLoading(false);
-    });
 
-    return () => unsubProfile();
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setLoading(false);
+            return;
+        }
+
+        const userDocRef = doc(db, "users", user.uid);
+        const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data?.dob instanceof Timestamp) {
+                    data.dob = data.dob.toDate().toISOString().split('T')[0];
+                }
+                setProfile(data);
+            } else {
+                await createUserDocument(user);
+            }
+            setLoading(false);
+        }, (error) => {
+            console.error("Profile snapshot error:", error);
+            setIsOffline(true);
+            setLoading(false);
+        });
+
+        return unsubProfile;
+    };
+
+    const unsub = setupListener();
+
+    return () => {
+        unsub.then(u => u && u());
+    };
   }, [user]);
 
   // Function to update the user's profile data in Firestore.
@@ -130,7 +139,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isProfileComplete = !!profile?.profileCompleted;
 
-  // Memoize the context value to prevent unnecessary re-renders of consumers.
   const value = useMemo(() => ({
     user, profile, loading, isOffline, 
     updateUserData, addQuizAttempt, lastAttempt, setLastAttempt, isProfileComplete
