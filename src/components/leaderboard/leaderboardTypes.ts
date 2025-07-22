@@ -1,4 +1,4 @@
-// src/components/leaderboard/leaderboardTypes.ts
+
 export interface Player {
     rank?: number;
     name: string;
@@ -15,4 +15,10 @@ export interface LivePlayer extends Player {
 export interface AllTimePlayer extends Player {
     perfectScores: number;
     totalPlayed: number;
+}
+
+export interface MyNetworkPlayer extends Player {
+    perfectScores: number;
+    isReferrer: boolean;
+    latestPerfectScoreTimestamp: number | null;
 }

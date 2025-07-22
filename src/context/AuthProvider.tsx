@@ -64,7 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsOffline(!online);
       if (!online) {
         setLoading(false);
-        // Do not return here, let onSnapshot try to use cache
       }
 
       const userDocRef = doc(db, "users", user.uid);
@@ -78,8 +77,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
-          // This ensures that even for a brand new user, their doc is created.
-          // createUserDocument now handles the "does not exist" check internally.
           await createUserDocument(user);
         }
         setLoading(false);
@@ -128,7 +125,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         await updateUserData(newStats);
 
-        // Handle referral bonus
         if (isPerfect && profile.referredBy) {
             const referrerRef = doc(db, "users", profile.referredBy);
             await updateDoc(referrerRef, {

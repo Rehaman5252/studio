@@ -37,7 +37,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       totalRewards: 0,
       profileCompleted: false,
       phoneVerified: false,
-      referralCode: `cricblitz.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
+      referralCode: `https://indcric.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
       referralEarnings: 0,
       referredBy: null,
       referrals: [],
@@ -47,7 +47,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 
     try {
       if (refCode) {
-        const q = query(collection(db, "users"), where("referralCode", "==", `cricblitz.com/auth/signup?ref=${refCode}`));
+        const q = query(collection(db, "users"), where("referralCode", "like", `%${refCode}`));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
           const referrerDoc = querySnapshot.docs[0];
