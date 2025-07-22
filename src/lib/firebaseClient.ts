@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -33,10 +34,12 @@ function getInitializedAuth(): Auth {
         return auth;
     }
     if (typeof window !== 'undefined') {
+        // This is the recommended way to initialize Auth for the web.
         auth = initializeAuth(app, {
             persistence: browserLocalPersistence,
         });
     } else {
+        // Fallback for server-side or environments without a window object.
         auth = getAuth(app);
     }
     return auth;
@@ -47,10 +50,16 @@ function getInitializedFirestore(): Firestore {
     if (db) {
         return db;
     }
+    // Check if we're in a browser environment before attempting to enable persistence.
     if (typeof window !== 'undefined') {
-        db = initializeFirestore(app, {
-             localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-        });
+        try {
+            db = initializeFirestore(app, {
+                 localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+            });
+        } catch(e) {
+            console.warn("Firestore persistence failed, falling back to memory cache.", e);
+            db = initializeFirestore(app, { localCache: memoryLocalCache() });
+        }
     } else {
         // For server-side rendering, use memory cache.
         db = initializeFirestore(app, { localCache: memoryLocalCache() });

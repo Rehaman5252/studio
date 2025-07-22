@@ -23,15 +23,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 
   if (!snapshot.exists()) {
     const { email, displayName, photoURL } = user;
-    const referralCode = additionalData.refCode || null;
-    
-    // Streak tracking fields
-    const today = new Date().toISOString().split('T')[0];
-    const initialDailyProgress = {
-        date: today,
-        formats: { T20: 0, IPL: 0, WPL: 0, ODI: 0, Test: 0, Mixed: 0 },
-        totalPlayed: 0
-    };
+    const refCode = additionalData.refCode || null;
     
     const newUserProfile = {
       uid: user.uid,
@@ -49,15 +41,13 @@ export async function createUserDocument(user: User, additionalData: Record<stri
       referralEarnings: 0,
       referredBy: null,
       referrals: [],
-      // New streak fields
       currentStreak: 0,
       lastStreakTimestamp: null,
-      dailyQuizProgress: initialDailyProgress,
     };
 
     try {
-      if (referralCode) {
-        const q = query(collection(db, "users"), where("referralCode", "==", `cricblitz.com/auth/signup?ref=${referralCode}`));
+      if (refCode) {
+        const q = query(collection(db, "users"), where("referralCode", "==", `cricblitz.com/auth/signup?ref=${refCode}`));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
           const referrerDoc = querySnapshot.docs[0];

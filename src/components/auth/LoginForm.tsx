@@ -85,6 +85,7 @@ export default function LoginForm() {
             router.replace(from || '/home');
         }
     } catch (error) {
+        // Errors are handled and toasted inside handleGoogleSignIn
     } finally {
         setIsGoogleLoading(false);
     }

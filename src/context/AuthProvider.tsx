@@ -24,18 +24,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const isSameDay = (d1: Date, d2: Date) => {
-    return d1.getFullYear() === d2.getFullYear() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getDate() === d2.getDate();
-}
-
-const isYesterday = (d1: Date, d2: Date) => {
-    const yesterday = new Date(d2);
-    yesterday.setDate(d2.getDate() - 1);
-    return isSameDay(d1, yesterday);
-}
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
@@ -76,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsOffline(!online);
       if (!online) {
         setLoading(false);
+        // Do not return here, let onSnapshot try to use cache
       }
 
       const userDocRef = doc(db, "users", user.uid);
@@ -86,21 +75,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (data?.dob instanceof Timestamp) {
             data.dob = data.dob.toDate().toISOString().split('T')[0];
           }
-          // Streak reset logic
-          if (data?.lastStreakTimestamp) {
-              const lastStreakDate = data.lastStreakTimestamp.toDate();
-              const today = new Date();
-              if (!isSameDay(lastStreakDate, today) && !isYesterday(lastStreakDate, today)) {
-                  // Not today or yesterday, so streak is broken
-                  if (data.currentStreak > 0) {
-                      updateDoc(userDocRef, { currentStreak: 0 });
-                      data.currentStreak = 0;
-                  }
-              }
-          }
           setProfile(data);
           setIsProfileComplete(!!data.profileCompleted);
         } else {
+          // This ensures that even for a brand new user, their doc is created.
+          // createUserDocument now handles the "does not exist" check internally.
           await createUserDocument(user);
         }
         setLoading(false);
@@ -141,53 +120,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     
-    // --- STREAK LOGIC ---
-    let dailyProgress = profile.dailyQuizProgress || {};
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    // Reset daily progress if it's a new day
-    if (dailyProgress.date !== todayStr) {
-        dailyProgress = {
-            date: todayStr,
-            formats: { T20: 0, IPL: 0, WPL: 0, ODI: 0, Test: 0, Mixed: 0 },
-            totalPlayed: 0
-        };
-    }
-    
-    // Update progress for this attempt
-    dailyProgress.totalPlayed += 1;
-    if (dailyProgress.formats.hasOwnProperty(attempt.format)) {
-        dailyProgress.formats[attempt.format] += 1;
-    }
-
-    let streakUpdated = false;
-    let newStreak = profile.currentStreak || 0;
-    
-    // Check if streak condition is met
-    const formatsPlayed = Object.values(dailyProgress.formats).filter(count => (count as number) >= 2).length;
-    if (dailyProgress.totalPlayed >= 15 && formatsPlayed === 6) {
-        // Condition met. Check if we already updated streak today.
-        const lastStreakDate = profile.lastStreakTimestamp ? profile.lastStreakTimestamp.toDate() : null;
-        if (!lastStreakDate || !isSameDay(lastStreakDate, new Date())) {
-            newStreak += 1;
-            streakUpdated = true;
-        }
-    }
-    
-    // --- STATS & REFERRAL LOGIC ---
     if (updateUserData) {
-        const newStats: Partial<any> = {
+        const newStats = {
           quizzesPlayed: (profile.quizzesPlayed || 0) + 1,
           perfectScores: (profile.perfectScores || 0) + (isPerfect ? 1 : 0),
           totalRewards: (profile.totalRewards || 0) + (isPerfect ? 100 : 0),
-          dailyQuizProgress: dailyProgress,
         };
-
-        if (streakUpdated) {
-          newStats.currentStreak = newStreak;
-          newStats.lastStreakTimestamp = new Date();
-        }
-
         await updateUserData(newStats);
 
         // Handle referral bonus
