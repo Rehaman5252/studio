@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseFirestore, isFirebaseOnline } from '@/lib/firebaseClient';
 import { createUserDocument } from '@/lib/authUtils';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -14,12 +14,14 @@ interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
   loading: boolean;
+  historyLoading: boolean;
   isOffline: boolean;
   updateUserData?: (data: Partial<Record<string, any>>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
   lastAttempt: QuizAttempt | null;
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
+  quizHistory: QuizAttempt[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,9 +30,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -40,10 +44,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
+  const fetchHistory = useCallback(async (uid: string) => {
+    setHistoryLoading(true);
+    const db = getFirebaseFirestore();
+    if (!db) {
+      setHistoryLoading(false);
+      return;
+    }
+    try {
+      const q = query(collection(db, "users", uid, "quizAttempts"), orderBy("timestamp", "desc"));
+      const querySnapshot = await getDocs(q);
+      const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+      setQuizHistory(historyData);
+    } catch (e) {
+      console.error("Failed to fetch history:", e);
+      setQuizHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) { 
         setProfile(null); 
         setLoading(false); 
+        setHistoryLoading(false);
+        setQuizHistory([]);
         return; 
     }
     
@@ -67,6 +93,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Fetch history once on login
+      fetchHistory(user.uid);
+
       const userDocRef = doc(db, "users", user.uid);
       
       unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
@@ -80,6 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           try {
             await createUserDocument(user);
+            // Snapshot will re-trigger with the new data
           } catch(e) {
             console.error("Failed to create user document after sign-in.", e);
             setIsOffline(true);
@@ -99,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         unsubProfile();
     };
-  }, [user]);
+  }, [user, fetchHistory]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
@@ -127,24 +157,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isPerfect = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
     
     if (updateUserData) {
-        setProfile(currentProfile => {
-            const newStats = {
-              quizzesPlayed: (currentProfile?.quizzesPlayed || 0) + 1,
-              perfectScores: (currentProfile?.perfectScores || 0) + (isPerfect ? 1 : 0),
-              totalRewards: (currentProfile?.totalRewards || 0) + (isPerfect ? 100 : 0),
-            };
-            updateUserData(newStats); 
-            return { ...(currentProfile || {}), ...newStats };
-        });
+        const currentProfile = profile || {};
+        const newStats = {
+          quizzesPlayed: (currentProfile.quizzesPlayed || 0) + 1,
+          perfectScores: (currentProfile.perfectScores || 0) + (isPerfect ? 1 : 0),
+          totalRewards: (currentProfile.totalRewards || 0) + (isPerfect ? 100 : 0),
+        };
+        await updateUserData(newStats);
     }
-    
     await setDoc(attemptRef, sanitizedAttempt, { merge: true });
-  }, [user, updateUserData]);
+    // Prepend to local history cache for instant UI update
+    setQuizHistory(prev => [sanitizedAttempt, ...prev]);
+  }, [user, profile, updateUserData]);
   
   const value = useMemo(() => ({
     user, profile, loading, isOffline, updateUserData, addQuizAttempt,
-    lastAttempt, setLastAttempt, isProfileComplete
-  }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
+    lastAttempt, setLastAttempt, isProfileComplete, quizHistory, historyLoading
+  }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete, quizHistory, historyLoading]);
 
   return (
     <AuthContext.Provider value={value}>

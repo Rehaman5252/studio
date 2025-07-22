@@ -77,17 +77,3 @@ export async function handleGoogleSignIn(): Promise<User | null> {
     isPopupOpen = false;
   }
 }
-
-export const registerWithEmail = async (email: string, password: string) => {
-    const auth = getFirebaseAuth();
-    if (!auth) throw new Error("Auth not initialized");
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    return userCredential;
-};
-
-export const loginWithEmail = async (email: string, password:string) => {
-    const auth = getFirebaseAuth();
-    if (!auth) throw new Error("Auth not initialized");
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential;
-};

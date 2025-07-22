@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { isFirebaseConfigured } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, getFirebaseAuth } from '@/lib/firebaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -54,8 +55,14 @@ export default function LoginForm() {
 
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        toast({title: "Error", description: "Auth service not ready.", variant: "destructive"});
+        setIsLoading(false);
+        return;
+    }
     try {
-      const userCredential = await loginWithEmail(data.email, data.password);
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       if (!userCredential.user.emailVerified) {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
