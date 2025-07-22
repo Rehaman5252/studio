@@ -1,18 +1,21 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, Mail } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -134,24 +137,55 @@ function HistorySkeleton() {
     );
 }
 
+const ErrorState = ({ message }: { message: string }) => (
+    <div className="pt-4">
+        <Alert variant="destructive">
+            {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+            <AlertTitle>Error Loading History</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    </div>
+);
+
 export default function QuizHistoryContent() {
-    const { quizHistory, historyLoading } = useAuth();
-    const [filter, setFilter] = useState<'recent' | 'all' | 'perfect'>('recent');
+    const { user } = useAuth();
+    const [filter, setFilter] = useState<'all' | 'perfect'>('all');
+    const [history, setHistory] = useState<QuizAttempt[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!user) { setLoading(false); return; }
+        const db = getFirebaseFirestore();
+        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
+        setLoading(true); setError(null);
+        (async () => {
+            try {
+                const q = query(
+                    collection(db, "users", user.uid, "quizAttempts"),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
+                const snap = await getDocs(q);
+                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+            } catch (e) {
+                setError("Unable to load quiz history.");
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [user]);
 
     const filteredHistory = useMemo(() => {
-        if (filter === 'recent') {
-            return quizHistory.slice(0, 5);
-        }
         if (filter === 'perfect') {
-            return quizHistory.filter(a => a.score === a.totalQuestions && !a.reason);
+            return history.filter(a => a.score === a.totalQuestions && !a.reason);
         }
-        // For 'all', we show up to 20
-        return quizHistory.slice(0, 20);
-    }, [quizHistory, filter]);
+        return history;
+    }, [history, filter]);
 
     const renderContent = () => {
-        if (historyLoading && quizHistory.length === 0) return <HistorySkeleton />;
-        
+        if (loading) return <HistorySkeleton />;
+        if (error) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>
                 <Card className="bg-card/80 mt-4"><CardContent className="p-6 text-center text-muted-foreground"><MessageSquareQuote className="h-12 w-12 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg">No Quizzes Found</p><p>Your played quizzes will appear here!</p></CardContent></Card>
@@ -162,14 +196,6 @@ export default function QuizHistoryContent() {
                 {filteredHistory.map((attempt) => (
                     <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
                 ))}
-                {filter === 'all' && quizHistory.length > 20 && (
-                    <Card className="bg-card/80 text-center">
-                        <CardContent className="p-4">
-                           <p className="text-sm text-muted-foreground mb-3">Showing the last 20 quizzes. For a complete history, please request a statement.</p>
-                           <Button variant="outline"><Mail className="mr-2" />Request Full History</Button>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         );
     };
@@ -178,11 +204,7 @@ export default function QuizHistoryContent() {
         <>
             <div className="flex justify-center">
                 <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full max-w-md">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="recent">Recent</TabsTrigger>
-                        <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
-                    </TabsList>
+                    <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="perfect">Perfect Scores</TabsTrigger></TabsList>
                 </Tabs>
             </div>
             {renderContent()}

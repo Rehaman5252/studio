@@ -8,11 +8,13 @@ import { useAuth } from '@/context/AuthProvider';
 import { ScrollText } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 
+// Lazy-load the main content to improve initial page performance.
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
-  loading: () => <HistorySkeleton />,
-  ssr: false,
+  loading: () => <HistorySkeleton />, // Show a skeleton while the component chunk is loading.
+  ssr: false, // This component is client-side only.
 });
 
+// A skeleton loader to provide immediate visual feedback.
 const HistorySkeleton = () => (
     <div className="space-y-4">
       <Skeleton className="h-10 w-full max-w-md mx-auto" />
@@ -36,10 +38,13 @@ export default function QuizHistoryPage() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
         {loading ? (
+            // The lean AuthProvider is loading, show a skeleton to prevent flashes.
             <HistorySkeleton />
         ) : user ? (
+          // User is authenticated, render the component that will fetch its own data.
           <QuizHistoryContent />
         ) : (
+          // No user, prompt to log in.
           <div className="flex items-center justify-center h-full">
               <LoginPrompt
                 icon={ScrollText}

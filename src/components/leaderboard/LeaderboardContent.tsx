@@ -129,10 +129,10 @@ const AllTimeLeaderboard = memo(() => {
     // This is derived from the profile, which is already loaded in AuthProvider.
     // In a real large-scale app, this would be a separate, paginated query.
     const players: AllTimePlayer[] = useMemo(() => {
-        if (!profile) return [];
+        if (!profile || !user) return [];
         return [{
-            uid: user!.uid,
-            name: profile.name,
+            uid: user.uid,
+            name: profile.name || 'You',
             perfectScores: profile.perfectScores || 0,
             totalPlayed: profile.quizzesPlayed || 0,
             avatar: profile.photoURL,
