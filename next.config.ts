@@ -3,10 +3,6 @@ import type {NextConfig} from 'next';
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  // Enables SWC minification for a faster production build.
-  swcMinify: true, 
-  // Enables gzip compression for smaller asset sizes and faster loading.
-  compress: true, 
   typescript: {
     // Allows the project to build even if there are TypeScript errors.
     // Recommended to be false in a CI/CD environment.
@@ -45,7 +41,7 @@ const nextConfig: NextConfig = {
         hostname: 'www.freepnglogos.com',
       },
       {
-        protocol: 'https',
+        protocol: 'https,"
         hostname: 'cdn.icon-icons.com',
       },
       {

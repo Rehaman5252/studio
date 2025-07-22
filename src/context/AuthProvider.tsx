@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   useEffect(() => {
-    if (!user) {
+    if (typeof window === "undefined" || !user) {
       setLoading(false);
       return;
     }
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     await batch.commit();
 
-  }, [user, profile]);
+  }, [user, profile, updateUserData]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
