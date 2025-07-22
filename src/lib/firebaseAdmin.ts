@@ -1,21 +1,28 @@
 
-// src/lib/firebaseAdmin.ts
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { credential } from 'firebase-admin';
+import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+/**
+ * Initializes the Firebase Admin SDK, ensuring it only happens once.
+ * This is crucial for server-side environments like Next.js.
+ */
+export function initializeFirebaseAdmin(): App {
+  if (getApps().length) {
+    return getApps()[0];
+  }
 
-let app: App;
+  // Ensure the service account key is set in environment variables
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!serviceAccountKey) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.');
+  }
 
-if (!getApps().length) {
-  app = initializeApp({
-    credential: credential.cert(JSON.parse(serviceAccount!)),
-  });
-} else {
-  app = getApps()[0];
+  try {
+    const serviceAccount = JSON.parse(serviceAccountKey);
+    return initializeApp({
+      credential: cert(serviceAccount),
+    });
+  } catch (error) {
+    console.error('Error parsing Firebase service account key:', error);
+    throw new Error('Could not initialize Firebase Admin SDK. Service account key may be invalid.');
+  }
 }
-
-const getFirebaseAuth = () => getAuth(app);
-
-export { getFirebaseAuth };
