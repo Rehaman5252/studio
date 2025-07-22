@@ -6,10 +6,13 @@ import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { Trophy } from 'lucide-react';
 
+// Lazy-load the main content to improve initial page load performance.
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
   loading: () => <LeaderboardSkeleton />,
-  ssr: false,
+  ssr: false, // This component is client-side only.
 });
 
 
@@ -27,7 +30,7 @@ const LeaderboardSkeleton = () => (
 );
 
 export default function LeaderboardPage() {
-    const { loading } = useAuth();
+    const { user, loading } = useAuth();
     
     return (
         <motion.div 
@@ -41,7 +44,20 @@ export default function LeaderboardPage() {
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 pb-24">
-                {loading ? <LeaderboardSkeleton /> : <LeaderboardContent />}
+                {loading ? (
+                    <LeaderboardSkeleton />
+                ) : user ? (
+                    <LeaderboardContent />
+                ) : (
+                    // Show a prompt to log in if the user is not authenticated.
+                    <div className="flex items-center justify-center h-full">
+                        <LoginPrompt
+                            icon={Trophy}
+                            title="View the Rankings"
+                            description="Log in or sign up to see where you stand on the leaderboard."
+                        />
+                    </div>
+                )}
             </main>
         </motion.div>
     );

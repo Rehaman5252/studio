@@ -1,90 +1,63 @@
 
 import type {NextConfig} from 'next';
 
+/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  output: 'standalone',
-  swcMinify: true, // Enable SWC minification for faster builds and smaller output
-  compress: true, // Enable gzip compression
+  // Enables SWC minification for a faster production build.
+  swcMinify: true, 
+  // Enables gzip compression for smaller asset sizes and faster loading.
+  compress: true, 
   typescript: {
+    // Allows the project to build even if there are TypeScript errors.
+    // Recommended to be false in a CI/CD environment.
     ignoreBuildErrors: true,
   },
   eslint: {
+    // Allows the project to build even if there are ESLint errors.
     ignoreDuringBuilds: true,
   },
-  generateBuildId: async () => {
-    // This adds the current timestamp to the build ID, ensuring that each
-    // deployment has a unique ID and avoids browser caching issues.
-    return new Date().getTime().toString();
-  },
   images: {
+    // Defines a list of allowed hostnames for the next/image component.
+    // This improves security by preventing images from being loaded from untrusted sources.
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'upload.wikimedia.org',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'assets.stickpng.com',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'cdn.shopify.com',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'videos.pexels.com',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'www.freepnglogos.com',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'cdn.icon-icons.com',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'www.pngkey.com',
-        port: '',
-        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'logolook.net',
-        port: '',
-        pathname: '/**',
       }
     ],
   },
-  modularizeImports: {
-    '@firebase/app': {
-      transform: '@firebase/app/{{member}}',
-    },
-     '@firebase/auth': {
-      transform: '@firebase/auth/{{member}}',
-    },
-     '@firebase/firestore': {
-      transform: '@firebase/firestore/{{member}}',
-    },
-  }
 };
 
 export default nextConfig;

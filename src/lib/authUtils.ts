@@ -1,11 +1,16 @@
 
 'use client';
+/**
+ * @fileOverview Authentication Utilities
+ *
+ * This file contains helper functions for Firebase Authentication processes,
+ * including email/password registration, Google Sign-In, and user document creation.
+ */
 
 import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   type User,
 } from 'firebase/auth';
 import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
@@ -13,13 +18,18 @@ import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
+/**
+ * Creates a user document in Firestore if one doesn't already exist.
+ * This is typically called right after a new user signs up.
+ * @param user - The Firebase User object for the newly authenticated user.
+ * @param additionalData - Any extra data to merge into the new profile.
+ */
 export async function createUserDocument(user: User, additionalData = {}) {
   const db = getFirebaseFirestore();
-  if (!user || !db) return;
-  
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
+  // Only create the document if it doesn't already exist.
   if (!snapshot.exists()) {
     const { email, displayName, photoURL } = user;
     const newUserProfile = {
@@ -39,20 +49,27 @@ export async function createUserDocument(user: User, additionalData = {}) {
       ...additionalData
     };
     try {
+      // Sanitize the profile data before saving to remove any undefined values.
       await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
     } catch (error) {
-      toast({ title: "Error", description: "Could not save user profile.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not create user profile.", variant: "destructive" });
+      console.error("Error creating user document: ", error);
       throw error;
     }
   }
 }
 
+// A flag to prevent multiple sign-in popups from opening simultaneously.
 let isPopupOpen = false;
 
+/**
+ * Handles the Google Sign-In process using a popup.
+ * @returns The authenticated Firebase User object, or null if it fails.
+ */
 export async function handleGoogleSignIn(): Promise<User | null> {
   const auth = getFirebaseAuth();
-  if (isPopupOpen || !auth) {
-    console.warn("Google Sign-In popup is already open or auth is not initialized.");
+  if (isPopupOpen) {
+    console.warn("Google Sign-In popup is already open.");
     return null;
   }
   isPopupOpen = true;
@@ -62,11 +79,13 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 
   try {
     const result = await signInWithPopup(auth, provider);
+    await createUserDocument(result.user); // Ensure user doc exists after sign-in.
     return result.user;
   } catch (error: any) {
+    // Gracefully handle common "errors" like the user closing the popup.
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.warn('Google sign-in was cancelled by the user.');
-    } else if (error.message?.includes("offline") || error.code === 'auth/network-request-failed') {
+    } else if (error.code === 'auth/network-request-failed') {
         toast({ title: 'Offline Error', description: 'Please check your internet connection and try again.', variant: 'destructive' });
     } else {
         console.error("Google Sign-in error:", error);
@@ -77,3 +96,14 @@ export async function handleGoogleSignIn(): Promise<User | null> {
     isPopupOpen = false;
   }
 }
+
+/**
+ * Registers a new user with email and password.
+ * @param email - The user's email.
+ * @param password - The user's chosen password.
+ * @returns The Firebase UserCredential object.
+ */
+export const registerWithEmail = async (email: string, password: string) => {
+    const auth = getFirebaseAuth();
+    return await createUserWithEmailAndPassword(auth, email, password);
+};

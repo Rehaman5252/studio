@@ -1,5 +1,12 @@
 
 'use client';
+/**
+ * @fileOverview LeaderboardContent
+ *
+ * This component displays the leaderboards. It fetches live and all-time
+ * player data on-demand when it's rendered. It uses the `useAuth` hook
+ * to get the current user's information for highlighting them in the list.
+ */
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,9 +23,11 @@ import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
+// Define the data structure for players on the leaderboards.
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
 
+// Component to display rank icons (medals for top 3).
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
     if (rank === 2) return <span className="text-2xl">🥈</span>;
@@ -26,6 +35,7 @@ const RankIcon = ({ rank }: { rank: number }) => {
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
 
+// Skeleton loader for a single leaderboard item.
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
         <Skeleton className="w-8 h-8 rounded-full" />
@@ -35,6 +45,7 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
+// Component to display an error message if data fetching fails.
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
@@ -44,68 +55,53 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = memo(() => {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, profile } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
-
         const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Couldn't connect to the database.");
-            setIsLoading(false);
-            return;
-        }
+        if (!db) { setError("Database not available."); setIsLoading(false); return; }
 
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
             try {
-                // In a real app, this would query a shared 'liveSlot' collection.
-                const livePlayers: LivePlayer[] = [];
-                
+                // In a real app, this would query a shared collection of live attempts.
+                // For this demo, we'll just fetch the current user's attempt for this slot.
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
 
                     if (!userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        livePlayers.push({
+                        const livePlayer: LivePlayer = {
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
-                        });
+                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice',
+                            rank: 1 // Assume rank 1 as we are only fetching the user
+                        };
+                        setPlayers([livePlayer]);
                     }
                 }
-
-                const sorted = livePlayers.sort((a, b) => {
-                    if (a.disqualified && !b.disqualified) return 1;
-                    if (!a.disqualified && b.disqualified) return -1;
-                    if (a.score !== b.score) return b.score - a.score;
-                    return a.time - b.time;
-                }).map((p, i) => ({ ...p, rank: i + 1 }));
-
-                setPlayers(sorted);
             } catch (e: any) {
-                if (e.message.includes('offline') || e.code === 'unavailable') {
-                  setError("You appear to be offline. Please check your connection.");
-                } else {
-                  setError("An error occurred while loading the leaderboard.");
-                }
+                const errorMessage = e.message.includes('offline') || e.code === 'unavailable' 
+                    ? "You appear to be offline. Please check your connection." 
+                    : "An error occurred while loading the leaderboard.";
+                setError(errorMessage);
                 console.error(e);
             } finally {
                 setIsLoading(false);
             }
         };
         fetchLivePlayers();
-    }, [user, profile, authLoading]);
+    }, [user, profile]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
+        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">Play in the current quiz to appear on the live board!</p>;
         
         return players.map((player) => (
             <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
@@ -129,8 +125,9 @@ LiveLeaderboard.displayName = 'LiveLeaderboard';
 
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    const [isLoading, setIsLoading] = useState(true);
     
+    // This is derived from the profile, which is already loaded in AuthProvider.
+    // In a real large-scale app, this would be a separate, paginated query.
     const players: AllTimePlayer[] = useMemo(() => {
         if (!profile) return [];
         return [{
@@ -139,22 +136,16 @@ const AllTimeLeaderboard = memo(() => {
             perfectScores: profile.perfectScores || 0,
             totalPlayed: profile.quizzesPlayed || 0,
             avatar: profile.photoURL,
-            rank: 1
+            rank: 1 // Mock rank
         }];
     }, [user, profile]);
-    
-    useEffect(() => {
-        setIsLoading(false);
-    }, []);
-
-    if (isLoading) return <LeaderboardItemSkeleton />;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {players.length > 0 ? players.map((player) => (
+                    {players.length > 0 && players[0].totalPlayed > 0 ? players.map((player) => (
                         <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && "bg-primary/20 ring-1 ring-primary")}>
                            <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
                            <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
