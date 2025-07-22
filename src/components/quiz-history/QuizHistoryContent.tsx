@@ -6,18 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash, Mail } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
-import { sendQuizHistoryEmail } from '@/ai/flows/send-quiz-history-email';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { useToast } from '@/hooks/use-toast';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -65,7 +63,7 @@ const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
             <DialogTrigger asChild>
                 <Button variant="secondary" size="sm" disabled={!!attempt.reason}>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Analysis
+                    View Analysis
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg bg-card/90 backdrop-blur-sm">
@@ -151,27 +149,36 @@ const ErrorState = ({ message }: { message: string }) => (
 
 export default function QuizHistoryContent() {
     const { user } = useAuth();
-    const { toast } = useToast();
-    const [filter, setFilter] = useState<'recent' | 'all' | 'perfect'>('recent');
+    const [filter, setFilter] = useState<'all' | 'perfect'>('all');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) { setLoading(false); return; }
-        if (!db) { setError("Firestore not ready"); setLoading(false); return; }
+        
+        const db = getFirebaseFirestore();
+        if (!db) { 
+            setError("Firestore not ready. Please check your connection."); 
+            setLoading(false); 
+            return; 
+        }
 
         setLoading(true); 
         setError(null);
         
         (async () => {
             try {
-                const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+                const q = query(
+                    collection(db, "users", user.uid, "quizAttempts"),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
             } catch (e: any) {
                 console.error("Firestore error:", e);
-                setError("Unable to load quiz history.");
+                setError("Unable to load quiz history. Please try again later.");
             } finally {
                 setLoading(false);
             }
@@ -179,35 +186,11 @@ export default function QuizHistoryContent() {
     }, [user]);
 
     const filteredHistory = useMemo(() => {
-        switch (filter) {
-            case 'recent':
-                return history.slice(0, 5);
-            case 'perfect':
-                return history.filter(a => a.score === a.totalQuestions && !a.reason);
-            case 'all':
-                return history.slice(0, 20); // Show last 20 for the "All" tab
-            default:
-                return [];
+        if (filter === 'perfect') {
+            return history.filter(a => a.score === a.totalQuestions && !a.reason);
         }
+        return history;
     }, [history, filter]);
-
-    const handleEmailHistory = async () => {
-        if (!user?.email) {
-            toast({ title: 'Error', description: 'Your email is not available.', variant: 'destructive' });
-            return;
-        }
-        toast({ title: 'Requesting History', description: 'We are preparing your full quiz history...' });
-        try {
-            const result = await sendQuizHistoryEmail({ email: user.email, history });
-            if (result.success) {
-                toast({ title: 'Success!', description: result.message });
-            } else {
-                throw new Error(result.message);
-            }
-        } catch (e: any) {
-            toast({ title: 'Error', description: e.message || 'Could not send history email.', variant: 'destructive' });
-        }
-    };
 
     const renderContent = () => {
         if (loading) return <HistorySkeleton />;
@@ -222,14 +205,6 @@ export default function QuizHistoryContent() {
                 {filteredHistory.map((attempt) => (
                     <QuizHistoryItem key={`${attempt.slotId}-${attempt.format}-${attempt.timestamp}`} attempt={attempt} />
                 ))}
-                {filter === 'all' && history.length > 20 && (
-                    <Card className="bg-card/80 text-center">
-                        <CardContent className="p-4">
-                            <p className="text-sm text-muted-foreground mb-3">Showing the last 20 attempts. For a complete history, request a statement to your email.</p>
-                            <Button onClick={handleEmailHistory}><Mail className="mr-2" /> Email Full History</Button>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         );
     };
@@ -238,11 +213,7 @@ export default function QuizHistoryContent() {
         <>
             <div className="flex justify-center">
                 <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full max-w-md">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="recent">Recent</TabsTrigger>
-                        <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
-                    </TabsList>
+                    <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="perfect">Perfect Scores</TabsTrigger></TabsList>
                 </Tabs>
             </div>
             {renderContent()}

@@ -9,16 +9,15 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban, WifiOff, ServerCrash, Users } from 'lucide-react';
+import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LivePlayer { rank?: number; name: string; score: number; time: number; avatar?: string; uid: string; disqualified?: boolean; }
 interface AllTimePlayer { rank?: number; name: string; perfectScores: number; totalPlayed: number; avatar?: string; uid: string; }
-interface NetworkPlayer { rank?: number; name: string; perfectScores: number; avatar?: string; uid: string; }
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -53,8 +52,9 @@ const LiveLeaderboard = memo(() => {
     useEffect(() => {
         if (authLoading) return;
 
+        const db = getFirebaseFirestore();
         if (!db) {
-            setError("Couldn't connect to the database.");
+            setError("Couldn't connect to the database. Please check your connection.");
             setIsLoading(false);
             return;
         }
@@ -63,7 +63,14 @@ const LiveLeaderboard = memo(() => {
             setIsLoading(true);
             setError(null);
             try {
-                const livePlayers: LivePlayer[] = [];
+                // In a real app, this would query a shared 'liveSlot' collection.
+                // For this demo, we mock it.
+                const mockLivePlayers: LivePlayer[] = [
+                    { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
+                    { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
+                    { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
+                    { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
+                ];
                 
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
@@ -71,7 +78,7 @@ const LiveLeaderboard = memo(() => {
 
                     if (!userAttemptSnap.empty) {
                         const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        livePlayers.push({
+                        mockLivePlayers.push({
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
                             avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
@@ -79,7 +86,8 @@ const LiveLeaderboard = memo(() => {
                     }
                 }
 
-                const sorted = livePlayers.sort((a, b) => {
+                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
+                const sorted = uniquePlayers.sort((a, b) => {
                     if (a.disqualified && !b.disqualified) return 1;
                     if (!a.disqualified && b.disqualified) return -1;
                     if (a.score !== b.score) return b.score - a.score;
@@ -102,7 +110,7 @@ const LiveLeaderboard = memo(() => {
     }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 1 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
@@ -125,10 +133,13 @@ const LiveLeaderboard = memo(() => {
 });
 LiveLeaderboard.displayName = 'LiveLeaderboard';
 
+
 const AllTimeLeaderboard = memo(() => {
     const { user, profile } = useAuth();
-    // In a real app, this would query the 'users' collection and sort by perfectScores
+    const [isLoading, setIsLoading] = useState(true);
+    
     const players: AllTimePlayer[] = useMemo(() => {
+        // This is mocked for now. A real implementation would query an aggregated collection.
         if (!profile) return [];
         return [{
             uid: user!.uid,
@@ -139,6 +150,12 @@ const AllTimeLeaderboard = memo(() => {
             rank: 1
         }];
     }, [user, profile]);
+    
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
+
+    if (isLoading) return <LeaderboardItemSkeleton />;
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -161,69 +178,17 @@ const AllTimeLeaderboard = memo(() => {
 AllTimeLeaderboard.displayName = 'AllTimeLeaderboard';
 
 
-const MyNetworkLeaderboard = memo(() => {
-    const [players, setPlayers] = useState<NetworkPlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchNetworkPlayers = async () => {
-            setIsLoading(true);
-            setPlayers([]); 
-            setIsLoading(false);
-        };
-        fetchNetworkPlayers();
-    }, []);
-
-    if (isLoading) {
-        return <LeaderboardItemSkeleton />;
-    }
-    
-    if (players.length === 0) {
-        return (
-            <Card className="bg-card/80">
-                 <CardContent className="p-8 text-center text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 text-primary/50" />
-                    <p className="font-semibold text-lg text-foreground">Build Your Network!</p>
-                    <p>Refer friends to see their performance and compete with them here.</p>
-                </CardContent>
-            </Card>
-        )
-    }
-
-    return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
-            <CardHeader className="text-center"><CardTitle>🤝 My Network</CardTitle><CardDescription>Rankings of players you referred</CardDescription></CardHeader>
-            <CardContent>
-                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {players.map((player) => (
-                        <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center p-2 rounded-lg">
-                           <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-                           <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-                           <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p></div>
-                           <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
-                       </motion.div>
-                   ))}
-                </motion.div>
-            </CardContent>
-        </Card>
-    );
-});
-MyNetworkLeaderboard.displayName = 'MyNetworkLeaderboard';
-
-
 export default function LeaderboardContent() {
   const { user } = useAuth();
 
   return (
     <Tabs defaultValue="live" className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-1")}>
+        <TabsList className={cn("grid w-full", user ? "grid-cols-2" : "grid-cols-1")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             {user && <TabsTrigger value="all-time">All-Time</TabsTrigger>}
-            {user && <TabsTrigger value="my-network">My Network</TabsTrigger>}
         </TabsList>
         <TabsContent value="live"><LiveLeaderboard /></TabsContent>
         {user && <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>}
-        {user && <TabsContent value="my-network"><MyNetworkLeaderboard /></TabsContent>}
     </Tabs>
   );
 }

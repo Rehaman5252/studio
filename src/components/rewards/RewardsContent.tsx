@@ -10,11 +10,10 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
-import Link from 'next/link';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -74,8 +73,6 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: '#' },
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
-    'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
-    'Gucci': { gift: '10% Off Coupon', description: 'On select Gucci products.', link: '#' },
     'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
@@ -118,8 +115,7 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-
-const BrandGifts = () => {
+export default function RewardsContent() {
   const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,8 +125,9 @@ const BrandGifts = () => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
+    const db = getFirebaseFirestore();
     if (!db) {
-        setError("Firestore not available.");
+        setError("Firestore not available. Please check your connection.");
         setLoading(false);
         return;
     }
@@ -144,11 +141,7 @@ const BrandGifts = () => {
             setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
             console.error("Rewards Fetch Error:", e);
-            if (e.code === 'unavailable') {
-                setError("You appear to be offline. Please check your connection.");
-            } else {
-                setError("Unable to load rewards data.");
-            }
+            setError("Unable to load rewards data. Please check your connection.");
         } finally {
             setLoading(false);
         }
@@ -157,6 +150,7 @@ const BrandGifts = () => {
     fetchHistory();
   }, [user, authLoading]);
 
+  const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
     history.forEach(attempt => {
@@ -167,50 +161,33 @@ const BrandGifts = () => {
     });
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
-  
-  if (loading || authLoading) {
-    return <RewardsSkeleton />;
-  }
-  
-  if (!user) {
-    return (
-        <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><h3 className="font-semibold text-lg text-foreground">Play to Win!</h3><p>Log in and play quizzes to unlock exclusive brand gifts.</p><Button asChild className="mt-4"><Link href="/auth/login">Play a Quiz</Link></Button></CardContent></Card>
-    )
-  }
-  
-  if (error) {
-    return <ErrorState message={error} />
-  }
+
+  if (loading || authLoading) return <RewardsSkeleton />;
 
   return (
     <>
-      <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-      <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
-      {rewardableAttempts.length > 0 ? (
+      <section>
+        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
+        {error ? <ErrorState message={error} /> : !user ? (
+          <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Log in and play a quiz to unlock exclusive brand gifts.</p></CardContent></Card>
+        ) : rewardableAttempts.length > 0 ? (
           <Carousel opts={{ align: 'start' }} className="w-full max-w-full"><CarouselContent className="-ml-4">{rewardableAttempts.map((attempt, index) => (<CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4"><ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="hidden sm:flex" /><CarouselNext className="hidden sm:flex" /></Carousel>
-      ) : (
-          <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p><p className="text-sm">Play any quiz to unlock a special brand gift!</p></CardContent></Card>
-      )}
+        ) : (
+          <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">{hasAttempts ? "All rewards claimed!" : "No Brand Gifts Yet"}</p><p className="text-sm">{hasAttempts ? "Play again in a new slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}</p></CardContent></Card>
+        )}
+      </section>
+      <section className='mt-8'>
+        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+        <div className="space-y-4">
+          <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
+          <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
+          <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://placehold.co/100x100.png" hint="finance bank" />
+          <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://placehold.co/100x100.png" hint="shopping cart" />
+          <GenericOffer title="Myntra: 25% Off" description="On select fashion apparel. Use code: MYN25" image="https://placehold.co/100x100.png" hint="fashion clothing" />
+          <GenericOffer title="Nykaa Beauty Bonanza" description="Get a free lipstick on orders over ₹1500." image="https://placehold.co/100x100.png" hint="cosmetics makeup" />
+        </div>
+      </section>
     </>
-  )
-}
-
-export default function RewardsContent() {
-    return (
-        <>
-            <section>
-                <BrandGifts />
-            </section>
-            <section className='mt-8'>
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-                <div className="space-y-4">
-                    <GenericOffer title="Flat 15% on Swiggy" description="First order for new users. Use code: INDCRIC15" image="https://placehold.co/100x100.png" hint="food delivery" />
-                    <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://placehold.co/100x100.png" hint="finance bank" />
-                    <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://placehold.co/100x100.png" hint="shopping cart" />
-                    <GenericOffer title="Myntra: 25% Off" description="On select fashion apparel. Use code: MYN25" image="https://placehold.co/100x100.png" hint="fashion clothing" />
-                    <GenericOffer title="Nykaa Beauty Bonanza" description="Get a free lipstick on orders over ₹1500." image="https://placehold.co/100x100.png" hint="cosmetics makeup" />
-                </div>
-            </section>
-        </>
-    )
+  );
 }
