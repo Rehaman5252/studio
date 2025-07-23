@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
   loading: () => <HomeContentSkeleton />,
@@ -18,8 +19,8 @@ const HomeContentSkeleton = () => (
             <Skeleton className="h-8 w-3/4 mx-auto" />
             <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
         </div>
-        <div className="flex justify-center items-center h-[288px]">
-            <Skeleton className="w-52 h-52 rounded-lg" />
+        <div className="flex justify-center items-center h-[192px]">
+            <Skeleton className="w-48 h-48 rounded-lg" />
         </div>
         <Skeleton className="h-[124px] w-full rounded-2xl" />
         <div className="grid grid-cols-2 gap-4">
@@ -58,14 +59,19 @@ const MalpracticeWarning = () => {
 
 function HomePage() {
     return (
-      <div className="flex flex-col h-screen bg-background text-foreground">
+      <div className="flex flex-col min-h-screen bg-background text-foreground">
         <header className="p-4 flex items-center justify-center">
-          <div className="text-center">
+          <motion.div 
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.5 }}
+             className="text-center"
+           >
               <h1 className="text-6xl font-extrabold tracking-tight text-shimmer animate-shimmer">
                 indcric
               </h1>
               <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
-          </div>
+          </motion.div>
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-2">

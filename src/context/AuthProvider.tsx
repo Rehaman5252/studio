@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
-  loading: boolean;
+  loading: boolean; // This will now represent only the initial auth check
   isOffline: boolean;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Represents initial auth state check
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
@@ -111,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (error.code === 'unavailable') {
                 setIsOffline(true);
             }
+            setProfile(null); // Clear profile on error
             setLoading(false);
         });
       } else {
@@ -131,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
-        await createUserDocument(result.user); // Eagerly create document
+        await createUserDocument(result.user, {name: result.user.displayName});
         return result.user;
     } catch (error: any) {
         if (error.code !== 'auth/popup-closed-by-user') {
@@ -229,10 +230,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let newNoBallCount = profile.noBallCount || 0;
 
     if (lastNoBallDay !== today) {
-      // It's a new day, reset the count
       newNoBallCount = 1;
     } else {
-      // It's the same day, increment the count
       newNoBallCount++;
     }
 
@@ -241,12 +240,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: serverTimestamp()
     }, { merge: true });
     
-    // Optimistically update local profile
-    setProfile(p => ({
+    setProfile(p => (p ? {
         ...p,
         noBallCount: newNoBallCount,
         lastNoBallTimestamp: Date.now()
-    }));
+    } : null));
 
     return newNoBallCount;
   }, [user, profile]);

@@ -16,15 +16,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Loader2 } from 'lucide-react';
 import GlobalStats from '@/components/home/GlobalStats';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
 
-const BrandCube = dynamic(() => import('./BrandCube'), { ssr: false });
+const BrandCube = dynamic(() => import('./BrandCube'), { 
+    loading: () => <Skeleton className="w-48 h-48 rounded-lg" />,
+    ssr: false 
+});
 
 const faceRotations = [
     { x: 0, y: 0 },    // Front (Mixed)
@@ -66,6 +69,17 @@ const QuizSelectionComponent = () => {
 
 
     const handleStartQuiz = useCallback(() => {
+        if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
+            const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+            const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
+            router.push(reviewUrl);
+            toast({
+                title: "Slot Already Played",
+                description: "Showing your results for this slot.",
+            });
+            return;
+        }
+
         if (!user) {
             router.push(`/auth/login?from=/home`);
             return;
@@ -82,19 +96,8 @@ const QuizSelectionComponent = () => {
             setShowAuthAlert(true);
             return;
         }
-
-        // Strict enforcement of one attempt per slot
-        if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
-            const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
-            const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
-            router.push(reviewUrl);
-            toast({
-                title: "Slot Already Played",
-                description: "Showing your results for this slot.",
-            });
-        } else {
-            router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
-        }
+        
+        router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, lastAttemptInSlot, selectedBrand, toast]);
     
 
@@ -145,7 +148,8 @@ const QuizSelectionComponent = () => {
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
                   onClick={handleBannerOrButtonClick}
-                  isDisabled={isQuizStatusLoading} // Disable button while checking last attempt
+                  isDisabled={isQuizStatusLoading}
+                  hasPlayed={hasPlayedInCurrentSlot}
                 />
             </div>
             

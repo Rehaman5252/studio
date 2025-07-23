@@ -17,8 +17,10 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
-  if (loading || user) {
-    return (
+  // Don't show a global loader here. The LoginForm itself can show loading indicators.
+  // This prevents the flicker of a full-screen loader before the form appears.
+  if (!loading && user) {
+     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
