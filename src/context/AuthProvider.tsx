@@ -57,6 +57,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfile(null); // Clear profile if user logs out
       return;
     }
+    
+    // db can be null on server-side render, so we check for it
+    if (!db) {
+        setIsOffline(true);
+        return;
+    }
 
     const userRef = doc(db, 'users', user.uid);
     let unsubscribeProfile = () => {};
@@ -174,7 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    if (!user) throw new Error("User not authenticated.");
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
     const userDocRef = doc(db, "users", user.uid);
     try {
         const dataToUpdate = sanitizeUserProfile({...newData, updatedAt: serverTimestamp()});
@@ -188,7 +194,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, toast]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) throw new Error("User not authenticated.");
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
     try {
         const batch = writeBatch(db);
         const userRef = doc(db, 'users', user.uid);
@@ -213,7 +219,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, toast]);
 
   const handleMalpractice = useCallback(async (): Promise<number> => {
-    if (!user || !profile) return 0;
+    if (!user || !profile || !db) return 0;
     
     const userRef = doc(db, 'users', user.uid);
     const today = new Date().setHours(0, 0, 0, 0);

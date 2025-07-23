@@ -126,6 +126,11 @@ const BrandGifts = () => {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
+    if (!db) { 
+        setError("Database not connected.");
+        setLoading(false); 
+        return;
+    }
 
     const fetchHistory = async () => {
         setLoading(true);

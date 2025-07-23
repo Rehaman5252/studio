@@ -9,22 +9,32 @@ import ProfileContent from '@/components/profile/ProfileContent';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
-import { Settings, LogIn, Scale, Loader2 } from 'lucide-react';
+import { Settings, LogIn, Scale, Loader2, WifiOff } from 'lucide-react';
 import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 function ProfilePageContent() {
   const { user, loading: authLoading } = useAuth();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<any>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Wait for auth to finish loading
     if (authLoading) return;
+    
+    // If auth is done and there's no user, stop here.
     if (!user) {
       setFetching(false);
       return;
+    }
+    
+    // Ensure db is initialized (it will be null on SSR)
+    if (!db) {
+        setError("Database connection is not available.");
+        setFetching(false);
+        return;
     }
 
     const fetchProfile = async () => {
@@ -34,7 +44,7 @@ function ProfilePageContent() {
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setProfile(docSnap.data() as any);
+          setProfile(docSnap.data());
         } else {
           setError("No profile data found. This is unusual. Please contact support.");
         }
@@ -95,7 +105,8 @@ function ProfilePageContent() {
     return (
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
+          <WifiOff className="h-4 w-4" />
+          <AlertTitle>Connection Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </main>
@@ -105,7 +116,13 @@ function ProfilePageContent() {
   if (!profile) {
       return (
         <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-          <ProfileSkeleton />
+            <Alert>
+              <AlertTitle>No Profile Found</AlertTitle>
+              <AlertDescription>We couldn't find a profile for your account. Please complete your profile.</AlertDescription>
+              <Button asChild className="mt-4">
+                <Link href="/complete-profile">Complete Profile</Link>
+              </Button>
+            </Alert>
         </main>
       );
   }

@@ -161,6 +161,11 @@ export default function QuizHistoryContent() {
     useEffect(() => {
         if (authLoading) return;
         if (!user) { setLoading(false); return; }
+        if (!db) {
+            setError("Database is not connected.");
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError(null);

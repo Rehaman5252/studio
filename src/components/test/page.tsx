@@ -4,21 +4,37 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, isFirebaseOnline, firestore } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
 import { useEffect, useState } from 'react';
+import { getDoc, doc } from 'firebase/firestore';
 
 export default function FirebaseTestPage() {
   const { user, profile, loading: isAuthLoading } = useAuth();
   const [dbStatus, setDbStatus] = useState<boolean | null>(null);
-  const [isOnline, setIsOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
-    isFirebaseOnline().then(setIsOnline);
-    try {
-        setDbStatus(!!firestore);
-    } catch (e) {
+    async function checkFirestore() {
+      // db will be null on SSR, so this check runs client-side.
+      if (!isFirebaseConfigured || !db) {
         setDbStatus(false);
+        return;
+      }
+      try {
+        // Attempt a read to a document that may or may not exist.
+        // We're just checking for connectivity.
+        await getDoc(doc(db, 'health-check/status'));
+        setDbStatus(true);
+      } catch (e: any) {
+        // Permission denied is okay, it means the service is reachable.
+        if (e.code === 'permission-denied' || e.code === 'unauthenticated') {
+            setDbStatus(true);
+        } else {
+            console.error("Firestore health check failed:", e);
+            setDbStatus(false);
+        }
+      }
     }
+    checkFirestore();
   }, []);
 
   const isLoading = isAuthLoading;
@@ -40,18 +56,18 @@ export default function FirebaseTestPage() {
             {isFirebaseConfigured ? `Firebase config loaded successfully.` : 'Firebase config is missing or incomplete. Please check your environment variables.'}
             </AlertDescription>
         </Alert>
-
-        {isOnline === null ? (
+        
+        {dbStatus === null ? (
             <div className="flex items-center justify-center rounded-lg border bg-card p-4">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <p className="ml-4 text-muted-foreground">Checking online status...</p>
+                <p className="ml-4 text-muted-foreground">Checking Firestore connection...</p>
             </div>
         ) : (
-            <Alert variant={isOnline ? 'default' : 'destructive'} className={isOnline ? 'border-green-500/50 bg-green-500/10' : ''}>
-                {isOnline ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
-                <AlertTitle>Firebase Online Status</AlertTitle>
+            <Alert variant={dbStatus ? 'default' : 'destructive'} className={dbStatus ? 'border-green-500/50 bg-green-500/10' : ''}>
+                {dbStatus ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+                <AlertTitle>Firestore Status</AlertTitle>
                 <AlertDescription>
-                {isOnline ? `Firebase client is online and connected.` : 'Firebase client is OFFLINE. Data operations will fail.'}
+                {dbStatus ? `Firestore is online and reachable.` : 'Firestore connection FAILED. This is likely due to incorrect configuration, network issues, or restrictive Firestore rules.'}
                 </AlertDescription>
             </Alert>
         )}
@@ -59,7 +75,7 @@ export default function FirebaseTestPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-8">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="mt-4 text-lg font-medium text-muted-foreground">Checking connection...</p>
+            <p className="mt-4 text-lg font-medium text-muted-foreground">Checking auth state...</p>
           </div>
         ) : (
           <>
@@ -73,12 +89,11 @@ export default function FirebaseTestPage() {
 
             <Alert variant={profile ? 'default' : 'destructive'} className={profile ? 'border-green-500/50 bg-green-500/10' : ''}>
                  {profile ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
-                <AlertTitle>Firestore Status</AlertTitle>
+                <AlertTitle>Profile Data</AlertTitle>
                 <AlertDescription>
-                    {user && profile && `User document found for ${profile.name}. Firestore is connected.`}
-                    {user && !profile && 'Auth is working, but no Firestore document was found for this user. (This is normal for a new user).'}
-                    {!user && 'Waiting for an authenticated user to check Firestore.'}
-                    {!dbStatus && 'Firestore DB instance is not available.'}
+                    {user && profile && `User document found for ${profile.name}.`}
+                    {user && !profile && 'Auth is working, but no Firestore document was found for this user.'}
+                    {!user && 'Waiting for an authenticated user to check for a profile.'}
                 </AlertDescription>
             </Alert>
           </>

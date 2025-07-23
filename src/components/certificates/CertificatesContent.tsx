@@ -54,6 +54,11 @@ export default function CertificatesContent() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { setIsLoading(false); return; }
+    if (!db) { 
+        setError("Database not connected.");
+        setIsLoading(false);
+        return;
+    }
 
     const fetchHistory = async () => {
         if (typeof window === 'undefined') {

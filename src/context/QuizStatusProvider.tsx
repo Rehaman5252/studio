@@ -36,7 +36,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
       return;
     };
     
-    if (!user) {
+    if (!user || !db) { // Check for db instance
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;

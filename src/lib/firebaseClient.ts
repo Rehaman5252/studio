@@ -18,8 +18,16 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
-const db: Firestore = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-});
+
+// Use a client-side check to initialize Firestore with persistence
+// On the server, db will be null.
+const db: Firestore | null =
+  typeof window !== "undefined"
+    ? initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      })
+    : null;
 
 export { app, auth, db };
