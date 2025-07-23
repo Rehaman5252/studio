@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
@@ -11,7 +12,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -149,7 +150,7 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function QuizHistoryContent() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [filter, setFilter] = useState<'recent' | 'all' | 'perfect'>('recent');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -158,8 +159,11 @@ export default function QuizHistoryContent() {
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     useEffect(() => {
+        if (authLoading) return;
         if (!user) { setLoading(false); return; }
-        if (!isFirebaseReady()) { 
+
+        const db = getFirebaseFirestore();
+        if (!db) { 
             setError("Firebase not ready. You may be offline.");
             setLoading(false);
             return;
@@ -183,7 +187,7 @@ export default function QuizHistoryContent() {
                 setLoading(false);
             }
         })();
-    }, [user]);
+    }, [user, authLoading]);
 
     const handleSendHistory = async () => {
         if (!user?.email) {
@@ -218,7 +222,7 @@ export default function QuizHistoryContent() {
     }, [history, filter]);
 
     const renderContent = () => {
-        if (loading) return <HistorySkeleton />;
+        if (loading || authLoading) return <HistorySkeleton />;
         if (error && !history.length) return <ErrorState message={error} />;
         if (!filteredHistory.length) return (
             <div>
