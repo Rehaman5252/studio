@@ -71,8 +71,7 @@ export default function LoginForm() {
             toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
             router.push(`/auth/verify-email?from=${from || '/home'}`);
           } else {
-            const isComplete = (isProfileComplete);
-            handleSuccessfulLogin(isComplete);
+            handleSuccessfulLogin(isProfileComplete);
           }
         }
     } catch (error) {

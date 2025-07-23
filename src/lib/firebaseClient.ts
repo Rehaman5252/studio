@@ -16,28 +16,8 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
-// Initialize Firebase
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
-const firestore: Firestore = getFirestore(app);
+const db: Firestore = getFirestore(app);
 
-// Helper function to check for network connectivity to Firebase
-export const isFirebaseOnline = async (): Promise<boolean> => {
-    if (!isFirebaseConfigured) return false;
-    try {
-        // A lightweight check against a non-existent document
-        const docRef = doc(firestore, 'health-check/status');
-        await getDoc(docRef);
-        return true;
-    } catch (error: any) {
-        // 'unavailable' code is a strong indicator of being offline
-        if (error.code === 'unavailable') {
-            return false;
-        }
-        // If it's any other error, we might still be "online" but have other issues.
-        // For the purpose of this check, we assume connectivity unless explicitly told otherwise.
-        return true; 
-    }
-}
-
-export { app, auth, firestore };
+export { app, auth, db };

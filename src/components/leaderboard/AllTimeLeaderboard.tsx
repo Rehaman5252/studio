@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff } from 'lucide-react';
-import { firestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthProvider';
 
@@ -45,7 +45,7 @@ const AllTimeLeaderboard = () => {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!firestore) {
+        if (!db) {
             setError("Database connection is not available.");
             setIsLoading(false);
             return;
@@ -55,7 +55,7 @@ const AllTimeLeaderboard = () => {
             setIsLoading(true);
             try {
                 const q = query(
-                    collection(firestore, "users"),
+                    collection(db, "users"),
                     orderBy("perfectScores", "desc"),
                     limit(10)
                 );

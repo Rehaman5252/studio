@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -29,19 +29,14 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
-  // This isLoading should ONLY reflect the check for a user's prior attempt.
-  // Auth loading is handled separately.
-  const isLoading = isHistoryLoading;
+  const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    // We wait for auth to finish loading before we check for quiz history.
     if (isAuthLoading) {
-      // If auth is loading, we are definitely loading history too.
-      setIsHistoryLoading(true);
       return;
     };
     
-    if (!user || !firestore) {
+    if (!user) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
@@ -49,20 +44,22 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
-        try {
-            const historyDocRef = doc(firestore, 'users', user.uid, 'quizAttempts', getQuizSlotId());
-            const docSnap = await getDoc(historyDocRef);
-            if (docSnap.exists()) {
-                setLastAttemptInSlot(docSnap.data() as QuizAttempt);
-            } else {
+        if (typeof window !== "undefined") {
+            try {
+                const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+                const docSnap = await getDoc(historyDocRef);
+                if (docSnap.exists()) {
+                    setLastAttemptInSlot(docSnap.data() as QuizAttempt);
+                } else {
+                    setLastAttemptInSlot(null);
+                }
+            } catch (error: any) {
+                console.warn("Could not fetch last quiz attempt:", error.message);
                 setLastAttemptInSlot(null);
+            } finally {
+                setIsHistoryLoading(false);
             }
-        } catch (error: any) {
-            // It's okay if this fails silently (e.g., offline), as it's not critical.
-            // The user will just be able to click "play" and the server rules will apply.
-            console.warn("Could not fetch last quiz attempt:", error.message);
-            setLastAttemptInSlot(null);
-        } finally {
+        } else {
             setIsHistoryLoading(false);
         }
     }

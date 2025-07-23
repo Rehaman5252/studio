@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
@@ -62,8 +62,8 @@ const LiveLeaderboard = () => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
-                if (user && firestore) {
-                    const q = query(collection(firestore, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                if (user && db) {
+                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
 
                     if (!userAttemptSnap.empty) {

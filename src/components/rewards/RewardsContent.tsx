@@ -10,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { firestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -125,24 +125,26 @@ const BrandGifts = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || !firestore) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
 
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
-        try {
-            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
-            const snap = await getDocs(q);
-            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
-        } catch (e: any) {
-            console.error("Rewards Fetch Error:", e);
-            if (e.code === 'unavailable') {
-                setError("You appear to be offline. Please check your connection.");
-            } else {
-                setError("Unable to load rewards data.");
+        if (typeof window !== "undefined") {
+            try {
+                const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+                const snap = await getDocs(q);
+                setHistory(snap.docs.map(d => d.data() as QuizAttempt));
+            } catch (e: any) {
+                console.error("Rewards Fetch Error:", e);
+                if (e.code === 'unavailable') {
+                    setError("You appear to be offline. Please check your connection.");
+                } else {
+                    setError("Unable to load rewards data.");
+                }
+            } finally {
+                setLoading(false);
             }
-        } finally {
-            setLoading(false);
         }
     };
 

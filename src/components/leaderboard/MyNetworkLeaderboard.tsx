@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { firestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -54,7 +54,7 @@ const MyNetworkLeaderboard = () => {
             setError(null);
             
             try {
-                if (!firestore) {
+                if (!db) {
                     throw new Error("Firestore is not available.");
                 }
                 const networkIds: string[] = [...(profile.referrals || [])];
@@ -68,7 +68,7 @@ const MyNetworkLeaderboard = () => {
                     return;
                 }
                 
-                const playerPromises = networkIds.map(id => getDoc(doc(firestore, 'users', id)));
+                const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
                 const playerDocs = await Promise.all(playerPromises);
                 
                 const playersData: MyNetworkPlayer[] = playerDocs

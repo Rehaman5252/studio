@@ -15,8 +15,9 @@ import { isFirebaseConfigured, auth } from '@/lib/firebaseClient';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import FirebaseConfigWarning from './FirebaseConfigWarning';
 
-// Schemas
+
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
 });
@@ -52,6 +53,19 @@ export default function ForgotPasswordForm() {
       setIsLoading(false);
     }
   };
+
+  if (!isFirebaseConfigured) {
+    return (
+       <Card className="w-full max-w-md">
+         <CardHeader>
+           <CardTitle>Configuration Error</CardTitle>
+         </CardHeader>
+         <CardContent>
+            <FirebaseConfigWarning />
+         </CardContent>
+       </Card>
+    )
+  }
 
   if (isSuccess) {
     return (

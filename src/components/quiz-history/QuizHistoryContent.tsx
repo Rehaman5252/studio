@@ -12,7 +12,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { firestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -160,24 +160,26 @@ export default function QuizHistoryContent() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!user || !firestore) { setLoading(false); return; }
+        if (!user) { setLoading(false); return; }
 
         setLoading(true);
         setError(null);
         
         const fetchHistory = async () => {
-            try {
-                const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
-                const snap = await getDocs(q);
-                setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
-            } catch (e: any) {
-                if((e as any).code === 'unavailable') {
-                    setError("You appear to be offline. History may be incomplete.");
-                } else {
-                    setError("Unable to load full quiz history.");
-                }
-            } finally {
-                setLoading(false);
+            if (typeof window !== "undefined") {
+              try {
+                  const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+                  const snap = await getDocs(q);
+                  setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
+              } catch (e: any) {
+                  if((e as any).code === 'unavailable') {
+                      setError("You appear to be offline. History may be incomplete.");
+                  } else {
+                      setError("Unable to load full quiz history.");
+                  }
+              } finally {
+                  setLoading(false);
+              }
             }
         };
 

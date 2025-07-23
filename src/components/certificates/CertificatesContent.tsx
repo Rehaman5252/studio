@@ -9,7 +9,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { firestore } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -63,7 +63,7 @@ export default function CertificatesContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
             const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
             setQuizHistory(historyData);

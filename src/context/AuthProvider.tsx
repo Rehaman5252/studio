@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, increment, Timestamp, writeBatch, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { auth, firestore, isFirebaseConfigured, isFirebaseOnline } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,6 @@ interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
   loading: boolean;
-  isOffline: boolean;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
@@ -34,12 +33,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
+  useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+          setProfile(docSnap.data());
+        }
+        setUser(firebaseUser);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', user.uid);
+    if (!db) return null;
+    const userRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(userRef);
 
     if (!docSnap.exists()) {
@@ -63,34 +85,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
+      setProfile(newUserProfile);
       return newUserProfile;
+    } else {
+      const existingProfile = docSnap.data();
+      setProfile(existingProfile);
+      return existingProfile;
     }
-    return docSnap.data();
   }, []);
-  
-  useEffect(() => {
-    if (!isFirebaseConfigured) {
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userProfile = await handleUserDocument(firebaseUser);
-        setUser(firebaseUser);
-        setProfile(userProfile);
-      } else {
-        setUser(null);
-        setProfile(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [handleUserDocument]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
-    if (!auth) return null;
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -106,7 +110,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, handleUserDocument]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
-    if (!auth) return null;
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
@@ -128,7 +131,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, handleUserDocument]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
-    if (!auth) return null;
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
       return userCredential.user;
@@ -143,7 +145,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const logout = useCallback(async () => {
-    if (!auth) return;
     try {
         await signOut(auth);
         setUser(null);
@@ -157,8 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     if (!user) throw new Error("User not authenticated.");
-    if (!firestore) return;
-    const userDocRef = doc(firestore, "users", user.uid);
+    const userDocRef = doc(db, "users", user.uid);
     try {
         await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
         setProfile(prev => ({...prev, ...newData}));
@@ -170,12 +170,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated.");
-    if (!firestore) return;
-    
     try {
-        const batch = writeBatch(firestore);
-        const userRef = doc(firestore, 'users', user.uid);
-        const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, attempt.slotId);
+        const batch = writeBatch(db);
+        const userRef = doc(db, 'users', user.uid);
+        const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, attempt.slotId);
         
         batch.set(attemptRef, sanitizeUserProfile(attempt));
         
@@ -196,11 +194,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, toast]);
 
   const handleMalpractice = useCallback(async (): Promise<number> => {
-    if (!user || !profile || !firestore) return 0;
+    if (!user || !profile) return 0;
     
-    const userRef = doc(firestore, 'users', user.uid);
+    const userRef = doc(db, 'users', user.uid);
     const today = new Date().setHours(0, 0, 0, 0);
-    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp).setHours(0, 0, 0, 0) : null;
+    const lastNoBallDay = profile.lastNoBallTimestamp?.toDate().setHours(0, 0, 0, 0) || null;
     
     let newNoBallCount = profile.noBallCount || 0;
 
@@ -217,18 +215,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         await setDoc(userRef, updatedProfile, { merge: true });
-        setProfile(p => (p ? { ...p, noBallCount: newNoBallCount, lastNoBallTimestamp: Date.now() } : null));
+        setProfile(p => (p ? { ...p, noBallCount: newNoBallCount, lastNoBallTimestamp: new Date() } : null));
         return newNoBallCount;
     } catch (error) {
         console.error("Handle malpractice failed:", error);
-        return profile.noBallCount; // Return old count on failure
+        return profile.noBallCount;
     }
   }, [user, profile]);
 
   const isProfileComplete = !!profile?.profileCompleted;
 
   const value = {
-    user, profile, loading, isOffline, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
+    user, profile, loading, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
     lastAttempt, setLastAttempt, isProfileComplete, handleMalpractice
   };
 
