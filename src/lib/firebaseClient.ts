@@ -2,8 +2,8 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, type Firestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator, type Auth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator, enableIndexedDbPersistence, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -18,6 +18,7 @@ let app: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
+// This check ensures Firebase is only initialized on the client side.
 if (typeof window !== 'undefined') {
   if (!getApps().length) {
     app = initializeApp(firebaseConfig);
@@ -27,6 +28,22 @@ if (typeof window !== 'undefined') {
 
   auth = getAuth(app);
   firestore = getFirestore(app);
+
+  // --- Emulator Support for Local Development ---
+  // This block checks if the app is running in a development environment
+  // and connects to the local Firebase Emulator Suite if the correct
+  // environment variables are set. This is ideal for offline testing.
+  if (process.env.NODE_ENV === 'development') {
+    if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+      try {
+        console.log("Connecting to Firebase Emulator Suite...");
+        connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
+        connectFirestoreEmulator(firestore, "localhost", 8080);
+      } catch (error) {
+        console.error("Error connecting to Firebase Emulator:", error);
+      }
+    }
+  }
 
   // Enable persistence only if supported
   enableIndexedDbPersistence(firestore).catch((err) => {
