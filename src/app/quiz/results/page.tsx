@@ -84,8 +84,9 @@ function ResultsComponent() {
         }
     }, [searchParams, router]);
     
-    const { isReview, reason, noBallCount, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
-        const isReview = searchParams.get('review') === 'true';
+    const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
+
+    const { reason, noBallCount, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
         const reason = finalAttempt?.reason;
         const noBallCount = reason?.startsWith('malpractice_') ? parseInt(reason.split('_')[1], 10) : 0;
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -108,7 +109,6 @@ function ResultsComponent() {
         }
 
         return {
-            isReview,
             reason,
             noBallCount,
             today,
@@ -125,7 +125,7 @@ function ResultsComponent() {
             isPerfectScore: isPerfect,
             slotTimings: timings
         };
-    }, [finalAttempt, searchParams]);
+    }, [finalAttempt]);
     
     
     const handleViewAnswers = useCallback(() => {
