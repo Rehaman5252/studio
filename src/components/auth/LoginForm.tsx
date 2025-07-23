@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { registerWithEmail } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
@@ -40,7 +39,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { user, signIn } = useAuth();
+  const { signIn } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -85,6 +84,7 @@ export default function LoginForm() {
         toast({ title: "Signed In", description: `Welcome back!` });
         router.replace(from || '/home');
     } catch (error) {
+        // Error is handled in AuthProvider's signIn function
     } finally {
         setIsGoogleLoading(false);
     }

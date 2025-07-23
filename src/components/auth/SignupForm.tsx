@@ -54,6 +54,7 @@ export default function SignupForm() {
         toast({ title: 'Account Created!', description: `Welcome!` });
         router.replace('/complete-profile');
     } catch (error: any) {
+        // Error is handled in AuthProvider's signIn function
     } finally {
         setIsGoogleLoading(false);
     }

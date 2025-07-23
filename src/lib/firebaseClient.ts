@@ -44,20 +44,4 @@ if (typeof window !== 'undefined' && !getApps().length) {
 
 export { app, auth, firestore };
 
-export const googleProvider = new GoogleAuthProvider();
-
-export const signInWithGoogle = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
-  } catch (error) {
-    console.error("Google Sign-In Error", error);
-    return null;
-  }
-};
-
-export const logout = async () => {
-    await signOut(auth);
-};
-
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
