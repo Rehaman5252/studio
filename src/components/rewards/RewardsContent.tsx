@@ -10,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { firestore } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -124,7 +124,8 @@ const BrandGifts = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); return; }
+    const firestore = getFirebaseFirestore();
+    if (!user || !firestore) { setLoading(false); return; }
 
     const fetchHistory = async () => {
         setLoading(true);
@@ -148,14 +149,17 @@ const BrandGifts = () => {
     fetchHistory();
   }, [user, authLoading]);
 
-  const hasAttempts = history.length > 0;
+  // Logic to get one rewardable attempt per brand per day, including malpractice attempts
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
     history.forEach(attempt => {
-      // Logic changed: Now includes attempts with malpractice
-      const key = `${attempt.brand}-${new Date(attempt.timestamp).toDateString()}`;
-      if (!uniqueAttempts.has(key)) uniqueAttempts.set(key, attempt);
+      // Key is now just the slot ID, guaranteeing one card per slot attempt.
+      const key = attempt.slotId;
+      if (!uniqueAttempts.has(key)) {
+        uniqueAttempts.set(key, attempt);
+      }
     });
+    // Return all unique attempts, sorted by time
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
 
@@ -183,12 +187,12 @@ const BrandGifts = () => {
 
   if (rewardableAttempts.length > 0) {
       return (
-        <Carousel opts={{ align: 'start' }} className="w-full max-w-full"><CarouselContent className="-ml-4">{rewardableAttempts.map((attempt, index) => (<CarouselItem key={`${attempt.brand}-${attempt.timestamp}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4"><ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="hidden sm:flex" /><CarouselNext className="hidden sm:flex" /></Carousel>
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full"><CarouselContent className="-ml-4">{rewardableAttempts.map((attempt, index) => (<CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4"><ScratchCard brand={attempt.brand} slotId={attempt.slotId} timestamp={attempt.timestamp} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="hidden sm:flex" /><CarouselNext className="hidden sm:flex" /></Carousel>
       );
   }
 
   return (
-    <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">{hasAttempts ? "All rewards claimed!" : "No Brand Gifts Yet"}</p><p className="text-sm">{hasAttempts ? "Play again in a new slot for more chances to win." : "Play any quiz to unlock a special brand gift!"}</p></CardContent></Card>
+    <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p><p className="text-sm">Play any quiz to unlock a special brand gift!</p></CardContent></Card>
   )
 }
 

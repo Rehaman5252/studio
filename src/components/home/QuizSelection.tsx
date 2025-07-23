@@ -49,6 +49,7 @@ const QuizSelectionComponent = () => {
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
+        // This check is strict: if any attempt exists for this slotId, it's true.
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
@@ -95,6 +96,7 @@ const QuizSelectionComponent = () => {
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex);
+            // This now calls the same logic, ensuring the "one attempt" rule is checked.
             handleStartQuiz();
         }
     };
@@ -163,7 +165,7 @@ const QuizSelectionComponent = () => {
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                     {lastAttemptInSlot?.reason === 'malpractice'
-                        ? "Your previous attempt in this slot was terminated due to unfair play (like switching tabs). Please try again in the next slot."
+                        ? "Your previous attempt in this slot was terminated due to unfair play (like switching tabs). You can review your attempt or try again in the next slot."
                         : "You've already faced the bowler in this 10-minute over. Your scorecard is ready for review. You can step up to the crease again in the next slot!"
                     }
                     </AlertDialogDescription>

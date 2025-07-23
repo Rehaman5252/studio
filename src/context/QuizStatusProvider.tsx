@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -30,14 +30,15 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   // This isLoading reflects only the quiz status loading, not auth.
-  const isLoading = isHistoryLoading;
+  const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
     // We wait for auth to finish loading before we check for quiz history.
     if (isAuthLoading) return;
     
     // If there's no user, there's no history to load.
-    if (!user || !isFirebaseConfigured) {
+    const firestore = getFirebaseFirestore();
+    if (!user || !firestore) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
@@ -54,9 +55,9 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
                 setLastAttemptInSlot(null);
             }
         } catch (error: any) {
-            if (error.code !== 'unavailable') {
-              console.error("Failed to fetch last quiz attempt:", error);
-            }
+            // It's okay if this fails silently (e.g., offline), as it's not critical.
+            // The user will just be able to click "play" and the server rules will apply.
+            console.warn("Could not fetch last quiz attempt:", error.message);
             setLastAttemptInSlot(null);
         } finally {
             setIsHistoryLoading(false);
