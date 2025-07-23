@@ -85,7 +85,9 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 export const registerWithEmail = async (email: string, password: string, name: string) => {
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Update the profile on the Firebase Auth user object
     await updateProfile(userCredential.user, { displayName: name });
+    // Create the user document in Firestore
     await createUserDocument(userCredential.user, { name });
     return userCredential;
 };

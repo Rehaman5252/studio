@@ -37,27 +37,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
+    // This check is crucial for Next.js environments where `auth` might be null on the server.
     if (!auth) {
         setLoading(false);
         return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      // If user logs out, clear profile and stop loading.
       if (!firebaseUser) {
         setProfile(null);
         setIsProfileComplete(false);
         setLoading(false);
       }
     });
+    // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, []);
   
   useEffect(() => {
+    // No user, no need to fetch profile.
     if (!user) {
       setLoading(false);
       return;
     }
     
+    // No DB connection.
     if (!db) {
         console.error("Firestore is not available.");
         setIsOffline(true);
@@ -69,12 +74,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
+            // Convert Firestore Timestamps to strings for form inputs
             if (data?.dob instanceof Timestamp) {
                 data.dob = data.dob.toDate().toISOString().split('T')[0];
             }
             setProfile(data);
             setIsProfileComplete(!!data.profileCompleted);
         } else {
+            // If the user document doesn't exist, create it.
+            // This is essential for new sign-ups.
             try {
               await createUserDocument(user);
               // The snapshot listener will pick up the newly created document.
@@ -118,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     await batch.commit();
 
-  }, [user, profile, updateUserData]);
+  }, [user, profile]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
@@ -145,6 +153,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     lastAttempt, setLastAttempt, isProfileComplete, logout
   }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete, logout]);
 
+  // Render a loading screen while auth state is being determined.
+  // This prevents the auth loop.
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">

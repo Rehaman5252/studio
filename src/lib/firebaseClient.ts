@@ -20,14 +20,17 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-if (typeof window !== "undefined" && isFirebaseConfigured) {
+// This check ensures Firebase is only initialized on the client side.
+if (typeof window !== 'undefined' && isFirebaseConfigured) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
     auth = getAuth(app);
+    // This is set once and handles persistence across sessions.
     setPersistence(auth, browserLocalPersistence).catch((err) => {
         console.warn("Firebase Auth persistence error", err);
     });
 
+    // Use initializeFirestore for modular apps to enable persistence.
     db = initializeFirestore(app, {
         localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
     });
@@ -39,6 +42,7 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 
   try {
+    // This is a more reliable check. We use a non-existent document to avoid read costs.
     const testDoc = doc(db, "systemHealth/connectivityCheck");
     await getDoc(testDoc);
     return true;
@@ -46,9 +50,10 @@ export async function isFirebaseOnline(): Promise<boolean> {
     if (error.code === 'unavailable' || error.code === 'resource-exhausted') {
         return false;
     }
+    // For other errors, we can assume it's not a connectivity issue, but for this check, we'll be conservative.
     return false;
   }
 }
 
-// @ts-ignore
+// @ts-ignore - These are initialized in the client-side check above.
 export { app, auth, db };
