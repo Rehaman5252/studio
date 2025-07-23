@@ -21,6 +21,15 @@ const Policies = () => {
         </CardHeader>
         <CardContent>
             <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="fair-play">
+                    <AccordionTrigger className="font-bold">Fair Play Policy (Malpractice)</AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground space-y-2">
+                        <p>Each user gets a maximum of **3 warnings per day** — we call them **"No-Balls"**.</p>
+                        <p>Every time malpractice is detected (like switching tabs during a quiz), it's counted as a **No-Ball**. The quiz is immediately terminated for that attempt.</p>
+                        <p>On the **third No-Ball of the day**, the user is **declared "Out for the Day"** — meaning they cannot participate in any more quizzes until the next day.</p>
+                        <p>Users will receive a live warning after each No-Ball. The No-Ball count resets at midnight IST daily. This rule is strictly enforced to ensure a level playing field for all participants.</p>
+                    </AccordionContent>
+                </AccordionItem>
                 <AccordionItem value="item-1">
                     <AccordionTrigger>Referral Policy</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">

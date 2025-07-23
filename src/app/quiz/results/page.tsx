@@ -17,9 +17,10 @@ import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
-
-const MalpracticeScreen = memo(() => {
+const MalpracticeScreen = memo(({ noBallCount = 1 }: { noBallCount?: number }) => {
     const router = useRouter();
+    const isOut = noBallCount >= 3;
+
     return (
         <div 
             className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4"
@@ -33,11 +34,11 @@ const MalpracticeScreen = memo(() => {
                  <div className="mx-auto bg-destructive/20 p-4 rounded-full w-fit mb-4">
                     <AlertTriangle className="h-12 w-12 text-destructive" />
                 </div>
-                <h1 className="text-3xl font-extrabold text-destructive">It's a Wicket!</h1>
-                <p className="text-base text-muted-foreground mt-2">Quiz Terminated for Unfair Play</p>
+                <h1 className="text-3xl font-extrabold text-destructive">{isOut ? "You're Out for the Day!" : "It's a No-Ball!"}</h1>
+                <p className="text-base text-muted-foreground mt-2">{isOut ? "3 No-Balls have been recorded." : `Quiz Terminated for Unfair Play. (${noBallCount}/3)`}</p>
                 <div className="space-y-4 mt-4 text-left">
-                     <p className="text-lg">Like a batsman leaving the crease, you strayed from the quiz tab.</p>
-                     <p className="text-sm text-muted-foreground">To ensure a fair game for everyone, this quiz attempt has been declared void. You can start a fresh innings in the next quiz slot.</p>
+                     <p className="text-lg">{isOut ? "You've been timed out!" : "Like a batsman leaving the crease, you strayed from the quiz tab."}</p>
+                     <p className="text-sm text-muted-foreground">{isOut ? "You cannot participate in any more quizzes until tomorrow. See you in the next match!" : `This is your ${noBallCount === 1 ? 'first' : 'second'} No-Ball. One more and you're Out for the Day!`}</p>
                      <Button size="lg" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-4" onClick={() => router.replace('/home')}>
                         <Home className="mr-2 h-5 w-5" /> Back to the Pavilion
                      </Button>
@@ -67,8 +68,7 @@ function ResultsComponent() {
 
     useEffect(() => {
         const attemptDataString = searchParams.get('attempt');
-        const reason = searchParams.get('reason');
-
+        
         if (attemptDataString) {
             try {
                 const decodedString = Buffer.from(decodeURIComponent(attemptDataString), 'base64').toString('utf-8');
@@ -78,18 +78,16 @@ function ResultsComponent() {
                 console.error("Failed to parse attempt data from URL:", error);
                 router.replace('/home');
             }
-        } else if (reason === 'malpractice') {
-             setFinalAttempt({ reason: 'malpractice' } as any);
         } else {
-            // If no data, redirect home after a moment
             const timer = setTimeout(() => router.replace('/home'), 2000);
             return () => clearTimeout(timer);
         }
     }, [searchParams, router]);
     
-    const { isReview, reason, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
+    const { isReview, reason, noBallCount, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
         const isReview = searchParams.get('review') === 'true';
         const reason = finalAttempt?.reason;
+        const noBallCount = reason?.startsWith('malpractice_') ? parseInt(reason.split('_')[1], 10) : 0;
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
         const { questions = [], userAnswers = [], brand = 'N/A', format = 'N/A', timePerQuestion = [], usedHintIndices = [], score = 0, slotId = '', timestamp: attemptTimestamp } = finalAttempt || {};
@@ -112,6 +110,7 @@ function ResultsComponent() {
         return {
             isReview,
             reason,
+            noBallCount,
             today,
             questions,
             userAnswers,
@@ -141,8 +140,8 @@ function ResultsComponent() {
         });
     }, [showAnswers]);
 
-    if (reason === 'malpractice') {
-        return <MalpracticeScreen />;
+    if (reason?.startsWith('malpractice_')) {
+        return <MalpracticeScreen noBallCount={noBallCount} />;
     }
 
     if (!finalAttempt) {
@@ -224,5 +223,3 @@ export default function ResultsPage() {
         </Suspense>
     )
 }
-
-    

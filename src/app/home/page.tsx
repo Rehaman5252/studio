@@ -3,6 +3,9 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
   loading: () => <HomeContentSkeleton />,
@@ -29,6 +32,30 @@ const HomeContentSkeleton = () => (
     </div>
 );
 
+const MalpracticeWarning = () => {
+    const { profile } = useAuth();
+    const noBallCount = profile?.noBallCount || 0;
+
+    if (noBallCount <= 0 || noBallCount >= 3) return null;
+
+    const today = new Date().setHours(0, 0, 0, 0);
+    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp).setHours(0, 0, 0, 0) : null;
+
+    if(lastNoBallDay !== today) return null;
+
+    const warningsLeft = 3 - noBallCount;
+    
+    return (
+        <Alert variant="destructive" className="mb-4 animate-fade-in-up">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Fair Play Warning!</AlertTitle>
+            <AlertDescription>
+                You have {noBallCount} No-Ball(s) today. {warningsLeft} more and you're Out for the Day!
+            </AlertDescription>
+        </Alert>
+    )
+}
+
 function HomePage() {
     return (
       <div className="flex flex-col h-screen bg-background text-foreground">
@@ -42,6 +69,7 @@ function HomePage() {
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
           <div className="container mx-auto px-4 py-2">
+            <MalpracticeWarning />
             <HomeClientContent />
           </div>
         </main>

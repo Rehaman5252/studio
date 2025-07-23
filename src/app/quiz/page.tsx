@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -20,7 +21,7 @@ import InterstitialLoader from '@/components/InterstitialLoader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function QuizComponent() {
-  const { user, loading, addQuizAttempt, setLastAttempt } = useAuth();
+  const { user, loading, addQuizAttempt, setLastAttempt, handleMalpractice, profile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -68,10 +69,15 @@ function QuizComponent() {
     fetchQuiz();
   }, [format, router, toast, user]);
 
-  const submitQuiz = useCallback((currentAnswers: (string | null)[], reason?: 'malpractice') => {
+  const submitQuiz = useCallback(async (currentAnswers: (string | null)[], reason?: 'malpractice' | 'time_up') => {
     if (!user || !questions || !addQuizAttempt || !setLastAttempt) return;
     
     setQuizState('submitting');
+    
+    let malpracticeCount = profile?.noBallCount || 0;
+    if (reason === 'malpractice') {
+      malpracticeCount = await handleMalpractice();
+    }
     
     const finalUserAnswers = currentAnswers.map(ans => ans === null ? "Not Answered" : ans);
     const score = questions.reduce((acc, q, index) => (finalUserAnswers[index] === q.correctAnswer ? acc + 1 : acc), 0);
@@ -88,7 +94,7 @@ function QuizComponent() {
         timestamp: Date.now(),
         timePerQuestion,
         usedHintIndices,
-        reason,
+        reason: reason === 'malpractice' ? `malpractice_${malpracticeCount}` : undefined,
     };
 
     setLastAttempt(attemptData);
@@ -100,7 +106,7 @@ function QuizComponent() {
         console.error("Error submitting quiz results to DB:", error);
         toast({ title: 'Sync Error', description: 'Could not save your quiz results to your history.', variant: 'destructive' });
     });
-  }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt]);
+  }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt, handleMalpractice, profile?.noBallCount]);
 
   const goToNextQuestion = useCallback(() => {
     if (!questions) return;

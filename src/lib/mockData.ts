@@ -12,5 +12,5 @@ export interface QuizAttempt {
   timestamp: number;
   timePerQuestion?: number[];
   usedHintIndices?: number[];
-  reason?: 'malpractice';
+  reason?: `malpractice_${number}`;
 }
