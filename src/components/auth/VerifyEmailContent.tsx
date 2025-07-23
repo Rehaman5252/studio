@@ -18,15 +18,14 @@ export default function VerifyEmailContent() {
             <div className="mx-auto bg-primary/20 p-4 rounded-full w-fit mb-4">
                 <MailCheck className="h-12 w-12 text-primary" />
             </div>
-            <CardTitle className="text-3xl font-extrabold">Almost There!</CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">Verify Your Email</CardDescription>
+            <CardTitle className="text-3xl font-extrabold">Check Your Email</CardTitle>
+            <CardDescription className="text-lg text-muted-foreground">One last step to secure your account.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <p>We've sent a verification link to your email address.</p>
             <p className="text-muted-foreground">
-                Please click the link in that email to activate your account.
-                <br/>
-                <strong className='text-foreground'>Be sure to check all folders, including Spam or Promotions.</strong>
+                We've sent a verification link to your email. Please click the link to complete your registration.
+                <br />
+                <strong className='text-foreground'>Remember to check your spam folder.</strong>
             </p>
             <Button asChild size="lg" className="mt-4">
             <Link href={`/auth/login${from ? `?from=${encodeURIComponent(from)}` : ''}`}>
