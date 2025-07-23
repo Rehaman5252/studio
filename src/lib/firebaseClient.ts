@@ -14,23 +14,41 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This check is crucial for preventing errors when environment variables are not set.
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
-let app: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let firestore: Firestore | null = null;
 
-// Initialize Firebase only on the client side and if configured
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    firestore = getFirestore(app);
-} else {
-    // Provide non-functional placeholders for server-side rendering or if not configured
-    app = {} as FirebaseApp;
-    auth = {} as Auth;
-    firestore = {} as Firestore;
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
 }
 
-export { app, auth, firestore };
+export function getFirebaseAuth(): Auth {
+    if (auth) return auth;
+    if (app) {
+        auth = getAuth(app);
+        return auth;
+    }
+    if (!isFirebaseConfigured) {
+        console.error("Firebase is not configured. Auth features will be disabled.");
+    }
+    // Return a dummy object or throw an error if you need to strictly enforce it
+    return {} as Auth;
+}
+
+export function getFirebaseFirestore(): Firestore {
+    if (firestore) return firestore;
+    if (app) {
+        firestore = getFirestore(app);
+        return firestore;
+    }
+     if (!isFirebaseConfigured) {
+        console.error("Firebase is not configured. Firestore features will be disabled.");
+    }
+    return {} as Firestore;
+}

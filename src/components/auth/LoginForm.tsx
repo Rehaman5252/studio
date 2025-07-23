@@ -64,17 +64,22 @@ export default function LoginForm() {
 
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
-    const user = await loginWithEmail(data.email, data.password);
-    if (user) {
-      if (!user.emailVerified) {
-        toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
-        router.push(`/auth/verify-email?from=${from || '/home'}`);
-      } else {
-        const isComplete = (isProfileComplete);
-        handleSuccessfulLogin(isComplete);
-      }
+    try {
+        const user = await loginWithEmail(data.email, data.password);
+        if (user) {
+          if (!user.emailVerified) {
+            toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
+            router.push(`/auth/verify-email?from=${from || '/home'}`);
+          } else {
+            const isComplete = (isProfileComplete);
+            handleSuccessfulLogin(isComplete);
+          }
+        }
+    } catch (error) {
+        // Errors are already toasted in the provider
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
   
   const onGoogleLogin = async () => {
