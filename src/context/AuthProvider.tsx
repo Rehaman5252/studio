@@ -61,30 +61,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userRef = doc(db, 'users', user.uid);
     let unsubscribeProfile = () => {};
 
-    const fetchProfile = async () => {
-        try {
-            const docSnap = await getDoc(userRef);
-            if (docSnap.exists()) {
-                setProfile(docSnap.data());
-                setIsOffline(false);
-            } else {
-                setProfile(null);
-            }
-        } catch (error: any) {
-            console.error("Firestore Get Error:", error);
-            if (error.code === 'unavailable') {
-                setIsOffline(true);
-                toast({ title: 'You are offline', description: 'Some data may not be up to date.', variant: 'destructive'});
-            }
-        }
-    }
-    
-    fetchProfile();
-    
-    // Set up a real-time listener for ongoing updates
+    // Use onSnapshot for real-time updates.
     unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
+        setIsOffline(false); // We got data, so we're online
+      } else {
+        setProfile(null); // User exists, but no profile document
+      }
+    }, (error) => {
+      console.error("Firestore Snapshot Error:", error);
+      if (error.code === 'unavailable') {
+          setIsOffline(true);
+          toast({ title: 'You are offline', description: 'Some data may not be up to date.', variant: 'destructive'});
       }
     });
 
