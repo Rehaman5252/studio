@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { QuizQuestion } from '@/ai/schemas';
+import Image from 'next/image';
 
 const QuizOption = memo(({ option, index, isSelected, selectedOption, handleAnswerSelect }: {
     option: string;
@@ -44,6 +45,18 @@ const QuestionCardComponent = ({ question, isHintVisible, options, selectedOptio
 }) => (
     <Card className="w-full bg-card shadow-lg">
         <CardHeader>
+            {question.questionType === 'image' && question.imageUrl && (
+                 <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden border">
+                    <Image 
+                        src={question.imageUrl} 
+                        alt={question.questionText} 
+                        fill 
+                        className="object-cover" 
+                        data-ai-hint={question.imageAiHint || 'cricket question'}
+                        priority
+                    />
+                </div>
+            )}
             <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
                 {question.questionText}
             </CardTitle>

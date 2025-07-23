@@ -8,9 +8,12 @@ export const GenerateQuizInputSchema = z.object({
 export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
 export const QuizQuestionSchema = z.object({
+    questionType: z.enum(['text', 'image']).default('text').describe("The type of question, either 'text' or 'image'."),
     questionText: z
       .string()
-      .describe('A unique and very difficult cricket trivia question, focusing on specific statistics, player records, obscure moments, or historic match details.'),
+      .describe('A unique and very difficult cricket trivia question, focusing on specific statistics, player records, obscure moments, or historic match details. If questionType is "image", this text should ask about the image.'),
+    imageUrl: z.string().optional().describe('The URL of an image to be displayed with the question. This should only be present if questionType is "image".'),
+    imageAiHint: z.string().optional().describe('A two-word hint for an AI to find a relevant image if imageUrl is not present. E.g., "Virat Kohli batting" or "Eden Gardens stadium".'),
     options: z
       .array(z.string())
       .length(4)
