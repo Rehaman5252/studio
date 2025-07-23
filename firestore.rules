@@ -3,33 +3,24 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Public collections (if any) can go here
-    // Example: allow public read for a 'posts' collection
-    // match /posts/{postId} {
-    //   allow read: if true;
-    //   allow write: if isSignedIn();
-    // }
-
-    // Users can only read and write to their own document.
-    // New users can create their own document.
+    
+    // Allow public read access to user profiles for leaderboards
+    // but only allow the user themselves to write to their own document.
     match /users/{userId} {
-      allow read, update, delete: if isOwner(userId);
-      allow create: if isSignedIn();
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow users to read their own quiz attempts and create new ones.
+      // Collection group queries for the live leaderboard need broader read access.
+      match /quizAttempts/{attemptId} {
+        allow read: if true; // Allow public read for live leaderboard
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
-    // Quiz attempts can only be created, read, or updated by the user who owns them.
-    match /users/{userId}/quizAttempts/{attemptId} {
-      allow read, write: if isOwner(userId);
+    // This is required for the Firestore health check to work for unauthenticated users.
+    match /health-check/{docId} {
+        allow read, write: if true;
     }
   }
 }
