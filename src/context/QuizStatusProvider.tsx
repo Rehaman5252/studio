@@ -1,12 +1,13 @@
-// src/context/QuizStatusProvider.tsx
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
+import { useFirebaseReady } from '@/hooks/useFirebaseReady';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -21,6 +22,7 @@ const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undef
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: isAuthLoading } = useAuth();
+  const { firebaseReady } = useFirebaseReady();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -32,15 +34,20 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading || !firebaseReady) {
+      if (!isAuthLoading) setIsHistoryLoading(false);
+      return;
+    };
+
     if (!user) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
     }
     
-    if (!isFirebaseReady()) {
-        console.warn("Firebase not ready in QuizStatusProvider (offline or SSR)");
+    const db = getFirebaseFirestore();
+    if (!db) {
+        console.warn("Firestore not available in QuizStatusProvider");
         setIsHistoryLoading(false);
         return;
     }
@@ -65,7 +72,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     fetchLastAttempt();
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, firebaseReady]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
