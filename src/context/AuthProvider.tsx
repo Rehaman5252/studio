@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // A real-time listener for the user's profile document.
     const userRef = doc(db, 'users', user.uid);
     const unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -71,11 +72,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Firestore Snapshot Error:", error);
         if (error.code === 'unavailable') {
             setIsOffline(true);
+            toast({ title: 'You are offline', description: 'Some data may not be up to date.', variant: 'destructive'});
         }
     });
 
     return () => unsubscribeProfile();
-  }, [user]);
+  }, [user, toast]);
 
   const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
     if (!db) return null;
