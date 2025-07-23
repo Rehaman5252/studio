@@ -152,10 +152,9 @@ const BrandGifts = () => {
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
     history.forEach(attempt => {
-      if (!attempt.reason) {
-        const key = `${attempt.brand}-${new Date(attempt.timestamp).toDateString()}`;
-        if (!uniqueAttempts.has(key)) uniqueAttempts.set(key, attempt);
-      }
+      // Logic changed: Now includes attempts with malpractice
+      const key = `${attempt.brand}-${new Date(attempt.timestamp).toDateString()}`;
+      if (!uniqueAttempts.has(key)) uniqueAttempts.set(key, attempt);
     });
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);

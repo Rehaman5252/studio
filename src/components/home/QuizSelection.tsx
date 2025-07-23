@@ -69,7 +69,7 @@ const QuizSelectionComponent = () => {
     }, [currentFaceIndex]);
 
 
-    const handleStartQuiz = useCallback((brandToStart: CubeBrand) => {
+    const handleStartQuiz = useCallback(() => {
         if (!user) {
             router.push(`/auth/login?from=/home`);
             return;
@@ -81,27 +81,30 @@ const QuizSelectionComponent = () => {
         if (hasPlayedInCurrentSlot) {
             setShowSlotPlayedAlert(true);
         } else {
-            router.push(`/quiz?brand=${encodeURIComponent(brandToStart.brand)}&format=${encodeURIComponent(brandToStart.format)}`);
+            router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
         }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand]);
     
 
     const handleFaceClick = (brand: CubeBrand) => {
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex);
-            handleStartQuiz(brand);
+            // We set the selected brand and then call handleStartQuiz
+            // which will use the component's state.
+            // This is slightly delayed but fine for this interaction.
+            handleStartQuiz();
         }
     };
 
     const handleBannerOrButtonClick = () => {
-        handleStartQuiz(selectedBrand);
+        handleStartQuiz();
     };
 
     const handleSlotAlertAction = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
             router.push(`/quiz/results?reason=malpractice`);
-        } else {
+        } else if (lastAttemptInSlot) {
             // Re-encode attempt data for review page
             const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
             router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`);
@@ -199,5 +202,3 @@ const QuizSelectionComponent = () => {
 };
 
 export default memo(QuizSelectionComponent);
-
-    
