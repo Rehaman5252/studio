@@ -1,18 +1,19 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow public read access on the users collection for the All-Time Leaderboard.
-    // Writes are restricted to the authenticated user modifying their own document.
+    // This rule allows anyone to read any user's profile information.
+    // This is required for the All-Time and My Network leaderboards to fetch player names and avatars.
+    // It also allows a collection group query on quizAttempts to power the live leaderboard.
     match /users/{userId} {
       allow read: if true;
+
+      // Users can only write to their own documents.
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // Allow public read access on the quizAttempts subcollection for the
-      // Live Leaderboard's collection group query.
-      // Writes are restricted to the authenticated user.
+      // This rule allows anyone to read the quiz attempts of any user, which is necessary
+      // for the Live Leaderboard to function. Writes are still protected.
       match /quizAttempts/{attemptId} {
         allow read: if true;
         allow write: if request.auth != null && request.auth.uid == userId;
