@@ -61,6 +61,13 @@ const AllTimeLeaderboard = () => {
                     limit(10)
                 );
                 const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    setPlayers([]);
+                    setIsLoading(false);
+                    return;
+                }
+                
                 const playersData = snapshot.docs.map((doc, index) => ({
                     rank: index + 1,
                     uid: doc.id,

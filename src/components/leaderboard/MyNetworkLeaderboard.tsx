@@ -45,7 +45,7 @@ const MyNetworkLeaderboard = () => {
 
     useEffect(() => {
         if (authLoading || !user || !profile) {
-            if (!user) setIsLoading(false);
+            if (!authLoading) setIsLoading(false);
             return;
         }
 

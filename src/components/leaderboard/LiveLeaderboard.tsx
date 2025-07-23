@@ -65,6 +65,13 @@ const LiveLeaderboard = () => {
                 );
 
                 const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    setPlayers([]);
+                    setIsLoading(false);
+                    return;
+                }
+
                 const attemptsData = snapshot.docs.map(doc => ({ ...doc.data(), path: doc.ref.path } as QuizAttempt & { path: string }));
                 
                 // Get user profiles for each attempt
