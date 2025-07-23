@@ -38,7 +38,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { loginWithEmail, signInWithGoogle } = useAuth();
+  const { loginWithEmail, signInWithGoogle, isProfileComplete } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -52,6 +52,15 @@ export default function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
+  const handleSuccessfulLogin = (isComplete: boolean) => {
+    toast({ title: "Signed In", description: "Welcome back!" });
+    if (from) {
+        router.replace(from);
+    } else {
+        router.replace(isComplete ? '/home' : '/complete-profile');
+    }
+  }
+
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
     const user = await loginWithEmail(data.email, data.password);
@@ -60,8 +69,7 @@ export default function LoginForm() {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
       } else {
-        toast({ title: "Signed In", description: "Welcome back!" });
-        router.replace(from || '/home');
+        handleSuccessfulLogin(isProfileComplete);
       }
     }
     setIsLoading(false);
@@ -71,8 +79,7 @@ export default function LoginForm() {
     setIsGoogleLoading(true);
     const user = await signInWithGoogle();
     if (user) {
-        toast({ title: "Signed In", description: `Welcome back!` });
-        router.replace(from || '/home');
+        handleSuccessfulLogin(isProfileComplete);
     }
     setIsGoogleLoading(false);
   }

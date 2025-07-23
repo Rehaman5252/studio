@@ -37,33 +37,3 @@ if (typeof window !== 'undefined' && !getApps().length) {
 export { app, auth, firestore };
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
-
-export function getFirebaseAuth() {
-  return auth;
-}
-
-export function getFirebaseFirestore() {
-  return firestore;
-}
-
-// A simple helper to check if the client is likely online.
-// This is not foolproof but helps in many cases.
-export async function isFirebaseOnline(): Promise<boolean> {
-  try {
-    // We try to get a document that doesn't exist.
-    // The point is to trigger a network request to a known endpoint.
-    const db = getFirebaseFirestore();
-    if (!db) return false;
-    await getDoc(doc(db, '__check', '__online'));
-    return true; // If it doesn't throw, we're online
-  } catch (error: any) {
-    // If the error code suggests a network issue, we're offline.
-    if (error.code === 'unavailable' || error.code === 'permission-denied') {
-        // permission-denied can sometimes indicate network issues with Firestore rules.
-        // For our check, it means we can reach the service.
-        return true; 
-    }
-    // Any other error could be a network issue.
-    return false;
-  }
-}

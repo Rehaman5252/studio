@@ -2,7 +2,7 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, onSnapshot, writeBatch, increment, Timestamp, setDoc, getDoc } from 'firebase/firestore';
 import { auth, firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
@@ -48,7 +48,6 @@ interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
   loading: boolean;
-  isOffline: boolean;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (email: string, password: string, name: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
@@ -67,7 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   useEffect(() => {
@@ -106,7 +104,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }, (error) => {
       console.error("Profile snapshot error:", error);
-      setIsOffline(true);
       setLoading(false);
     });
     
@@ -201,10 +198,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isProfileComplete = !!profile?.profileCompleted;
 
-  const value = useMemo(() => ({
-    user, profile, loading, isOffline, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
+  const value = {
+    user, profile, loading, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
     lastAttempt, setLastAttempt, isProfileComplete
-  }), [user, profile, loading, isOffline, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
+  };
 
   if (loading) {
     return (
