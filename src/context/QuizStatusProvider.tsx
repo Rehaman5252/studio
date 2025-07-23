@@ -1,13 +1,12 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { firestore } from '@/lib/firebaseClient';
+import { firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
-import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -22,7 +21,6 @@ const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undef
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: isAuthLoading } = useAuth();
-  const firebaseReady = useFirebaseReady();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -34,7 +32,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (isAuthLoading || !firebaseReady) return;
+    if (isAuthLoading || !isFirebaseConfigured) return;
     if (!user) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
@@ -61,7 +59,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     fetchLastAttempt();
-  }, [user, isAuthLoading, firebaseReady]);
+  }, [user, isAuthLoading]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();

@@ -12,7 +12,6 @@ import { ServerCrash, WifiOff } from 'lucide-react';
 import { firestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthProvider';
-import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -40,13 +39,12 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const AllTimeLeaderboard = () => {
     const { loading: authLoading } = useAuth();
-    const firebaseReady = useFirebaseReady();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading || !firebaseReady) return;
+        if (authLoading) return;
 
         const fetchAllTimePlayers = async () => {
             setIsLoading(true);
@@ -79,7 +77,7 @@ const AllTimeLeaderboard = () => {
         };
 
         fetchAllTimePlayers();
-    }, [authLoading, firebaseReady]);
+    }, [authLoading]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);

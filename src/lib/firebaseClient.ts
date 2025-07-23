@@ -14,26 +14,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// This check is crucial for preventing errors when environment variables are not set.
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
+
 let app: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
-// This guard ensures Firebase is only initialized on the client side.
-if (typeof window !== 'undefined' && !getApps().length) {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    firestore = getFirestore(app);
-} else if (getApps().length > 0) {
-    app = getApp();
+// Initialize Firebase only on the client side and if configured
+if (typeof window !== 'undefined' && isFirebaseConfigured) {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     firestore = getFirestore(app);
 } else {
-    // Provide non-functional placeholders for SSR
+    // Provide non-functional placeholders for server-side rendering or if not configured
     app = {} as FirebaseApp;
     auth = {} as Auth;
     firestore = {} as Firestore;
 }
 
 export { app, auth, firestore };
-
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);

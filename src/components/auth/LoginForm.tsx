@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebaseClient';
+import FirebaseConfigWarning from './FirebaseConfigWarning';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -69,7 +70,8 @@ export default function LoginForm() {
         toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
         router.push(`/auth/verify-email?from=${from || '/home'}`);
       } else {
-        handleSuccessfulLogin(isProfileComplete);
+        const isComplete = (isProfileComplete);
+        handleSuccessfulLogin(isComplete);
       }
     }
     setIsLoading(false);
@@ -98,28 +100,34 @@ export default function LoginForm() {
         <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled || !isFirebaseConfigured}>
-            {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
-        </Button>
-        <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div></div>
-        <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center justify-between"><Label htmlFor="password">Password</Label><Link href="/auth/forgot-password" className="text-sm font-semibold text-primary hover:underline">Forgot password?</Link></div>
-                <div className="relative">
-                    <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
-                    <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)} aria-label="Toggle password visibility">{showPassword ? <EyeOff /> : <Eye />}</Button>
-                </div>
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-            </div>
-            <Button type="submit" className="w-full" disabled={isAuthDisabled || !isFirebaseConfigured}>
-                {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : "Sign In"}
+        {!isFirebaseConfigured ? (
+          <FirebaseConfigWarning />
+        ) : (
+          <>
+            <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
+                {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
             </Button>
-        </form>
+            <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div></div>
+            <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between"><Label htmlFor="password">Password</Label><Link href="/auth/forgot-password" className="text-sm font-semibold text-primary hover:underline">Forgot password?</Link></div>
+                    <div className="relative">
+                        <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
+                        <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)} aria-label="Toggle password visibility">{showPassword ? <EyeOff /> : <Eye />}</Button>
+                    </div>
+                    {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+                </div>
+                <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+                    {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : "Sign In"}
+                </Button>
+            </form>
+          </>
+        )}
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">New to the crease?{' '}<Link href={`/auth/signup${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="font-semibold text-primary hover:underline">Create an account</Link></p>

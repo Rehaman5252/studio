@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
-  if (!user || !firestore) return;
+  if (!user || !firestore || !isFirebaseConfigured) return;
   
   const userDocRef = doc(firestore, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubscribeProfile: () => void = () => {};
 
-    if (user) {
+    if (user && isFirebaseConfigured) {
       const userDocRef = doc(firestore, "users", user.uid);
       unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -98,9 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           setProfile(data);
         } else {
-          createUserDocument(user).then(() => {
-              // The snapshot listener will pick up the new profile automatically.
-          });
+          console.log("User document not found, may be created shortly.");
         }
       }, (error) => {
         console.error("Profile snapshot error:", error);
@@ -118,6 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Service Unavailable', description: 'Firebase is not configured. Cannot sign in.', variant: 'destructive' });
         return null;
     }
+    
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -135,6 +134,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
+    if (!isFirebaseConfigured) {
+      toast({ title: 'Service Unavailable', description: 'Firebase is not configured.', variant: 'destructive' });
+      return null;
+    }
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
@@ -155,6 +158,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+    if (!isFirebaseConfigured) {
+      toast({ title: 'Service Unavailable', description: 'Firebase is not configured.', variant: 'destructive' });
+      return null;
+    }
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
       return userCredential.user;
@@ -172,7 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
-        await signOut(auth);
+        if (auth) await signOut(auth);
         setUser(null);
         setProfile(null);
         setLastAttempt(null);
@@ -183,13 +190,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    if (!user) throw new Error("User not authenticated or database not available.");
+    if (!user || !isFirebaseConfigured) throw new Error("User not authenticated or database not available.");
     const userDocRef = doc(firestore, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user) throw new Error("User not authenticated or DB not available.");
+    if (!user || !isFirebaseConfigured) throw new Error("User not authenticated or DB not available.");
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.uid);
     const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, attempt.slotId);

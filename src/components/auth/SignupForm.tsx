@@ -17,6 +17,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebaseClient';
 import { Checkbox } from '../ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import FirebaseConfigWarning from './FirebaseConfigWarning';
+
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -104,101 +106,110 @@ export default function SignupForm() {
         <CardDescription>Enter your details to start your innings</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled || !isFirebaseConfigured}>
-            {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing Up...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
-        </Button>
-        <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div>
-        </div>
-        
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onEmailSignUp)} className="space-y-4">
-                <FormField
-                    control={form.control} name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Name</FormLabel>
-                            <FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={isAuthDisabled} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control} name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl><Input type="email" placeholder="sachin@tendulkar.com" {...field} disabled={isAuthDisabled} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control} name="phone"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
-                            <FormControl><Input type="tel" placeholder="9876543210" {...field} disabled={isAuthDisabled} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control} name="password"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <div className="relative">
+        {!isFirebaseConfigured ? (
+          <FirebaseConfigWarning />
+        ) : (
+          <>
+            <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled}>
+                {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing Up...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
+            </Button>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div>
+            </div>
+            
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onEmailSignUp)} className="space-y-4">
+                    <FormField
+                        control={form.control} name="name"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Name</FormLabel>
+                                <FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={isAuthDisabled} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control} name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl><Input type="email" placeholder="sachin@tendulkar.com" {...field} disabled={isAuthDisabled} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control} name="phone"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Phone Number</FormLabel>
+                                <FormControl><Input type="tel" placeholder="9876543210" {...field} disabled={isAuthDisabled} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control} name="password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <div className="relative">
+                                    <FormControl>
+                                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} disabled={isAuthDisabled} />
+                                    </FormControl>
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
+                                        {showPassword ? <EyeOff /> : <Eye />}
+                                    </Button>
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control} name="referralCode"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Referral Code (Optional)</FormLabel>
+                                <FormControl><Input placeholder="FRIEND123" {...field} disabled={isAuthDisabled} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="terms"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-2 space-y-0">
                                 <FormControl>
-                                    <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} disabled={isAuthDisabled} />
+                                    <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        disabled={isAuthDisabled}
+                                    />
                                 </FormControl>
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
-                                    {showPassword ? <EyeOff /> : <Eye />}
-                                </Button>
-                            </div>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control} name="referralCode"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Referral Code (Optional)</FormLabel>
-                            <FormControl><Input placeholder="FRIEND123" {...field} disabled={isAuthDisabled} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                                <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-sm font-normal text-muted-foreground">
+                                        I agree to the{' '}
+                                        <Link href="/policies" className="underline text-primary hover:text-primary/80">
+                                            Terms & Conditions
+                                        </Link>
+                                    </FormLabel>
+                                    <FormMessage />
+                                </div>
+                            </FormItem>
+                        )}
+                    />
 
-                <FormField
-                    control={form.control}
-                    name="terms"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                             <FormControl>
-                                <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal text-muted-foreground !mt-0">
-                                I agree to the{' '}
-                                <Link href="/policies" className="underline text-primary">
-                                    Terms & Conditions
-                                </Link>
-                            </FormLabel>
-                        </FormItem>
-                    )}
-                />
-                {form.formState.errors.terms && <p className="text-sm text-destructive">{form.formState.errors.terms.message}</p>}
-
-                <Button type="submit" className="w-full" disabled={isAuthDisabled || !isFirebaseConfigured}>
-                    {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Creating Account...</> ) : "Create Account"}
-                </Button>
-            </form>
-        </Form>
+                    <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+                        {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Creating Account...</> ) : "Create Account"}
+                    </Button>
+                </form>
+            </Form>
+          </>
+        )}
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">

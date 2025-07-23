@@ -18,7 +18,6 @@ import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { sendQuizHistoryEmail } from '@/ai/flows/send-quiz-history-email';
-import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -152,7 +151,6 @@ const ErrorState = ({ message }: { message: string }) => (
 
 export default function QuizHistoryContent() {
     const { user, loading: authLoading } = useAuth();
-    const firebaseReady = useFirebaseReady();
     const { toast } = useToast();
     const [filter, setFilter] = useState<'recent' | 'all' | 'perfect'>('recent');
     const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -161,7 +159,7 @@ export default function QuizHistoryContent() {
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     useEffect(() => {
-        if (authLoading || !firebaseReady) return;
+        if (authLoading) return;
         if (!user) { setLoading(false); return; }
 
         setLoading(true);
@@ -182,7 +180,7 @@ export default function QuizHistoryContent() {
                 setLoading(false);
             }
         })();
-    }, [user, authLoading, firebaseReady]);
+    }, [user, authLoading]);
 
     const handleSendHistory = async () => {
         if (!user?.email) {
