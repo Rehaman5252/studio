@@ -77,42 +77,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      if (!firebaseUser) {
-        setProfile(null);
-        setLoading(false);
-      }
+      // This is the key fix: The app is "ready" as soon as we know if a user is logged in or not.
+      setLoading(false); 
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
-    if (user === null) {
-        setLoading(false);
-        return;
-    }
-    setLoading(true);
-    
-    const userDocRef = doc(firestore, "users", user.uid);
-    const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data?.dob instanceof Timestamp) {
-          data.dob = data.dob.toDate().toISOString().split('T')[0];
+    let unsubscribeProfile: () => void = () => {};
+
+    if (user) {
+      const userDocRef = doc(firestore, "users", user.uid);
+      unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data?.dob instanceof Timestamp) {
+            data.dob = data.dob.toDate().toISOString().split('T')[0];
+          }
+          setProfile(data);
+        } else {
+          // This case is for when a user exists in Auth but not Firestore.
+          // We can create their document here.
+          createUserDocument(user).then(() => {
+              // The snapshot listener will pick up the new profile automatically.
+          });
         }
-        setProfile(data);
-      } else {
-        await createUserDocument(user);
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("Profile snapshot error:", error);
-      setLoading(false);
-    });
+      }, (error) => {
+        console.error("Profile snapshot error:", error);
+        setProfile(null);
+      });
+    } else {
+      // If there's no user, there's no profile to listen to.
+      setProfile(null);
+    }
     
-    return () => unsubProfile();
+    // Cleanup the profile listener when the user changes or component unmounts.
+    return () => unsubscribeProfile();
   }, [user]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
