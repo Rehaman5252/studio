@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">
@@ -28,11 +29,11 @@ const HomeContentSkeleton = () => (
 );
 
 export default function HomeClientContent() {
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, profile } = useAuth();
+  const { isLoading: quizStatusLoading } = useQuizStatus();
   
-  // The skeleton is now handled by the dynamic import on the page itself.
-  // We can directly render the content.
-  if (authLoading) {
+  // Show skeleton if auth is still checking or if the user is logged in but profile hasn't loaded yet.
+  if (authLoading || quizStatusLoading) {
     return <HomeContentSkeleton />;
   }
 

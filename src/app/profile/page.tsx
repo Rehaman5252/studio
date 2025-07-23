@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -14,7 +15,7 @@ import Policies from '@/components/profile/Policies';
 function ProfilePageContent() {
   const { user, profile, loading } = useAuth();
 
-  if (loading) {
+  if (loading || (user && !profile)) {
     return (
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <ProfileSkeleton />

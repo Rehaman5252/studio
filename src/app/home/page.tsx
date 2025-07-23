@@ -35,12 +35,13 @@ const HomeContentSkeleton = () => (
 
 const MalpracticeWarning = () => {
     const { profile } = useAuth();
-    const noBallCount = profile?.noBallCount || 0;
+    if (!profile) return null;
 
+    const noBallCount = profile.noBallCount || 0;
     if (noBallCount <= 0 || noBallCount >= 3) return null;
 
     const today = new Date().setHours(0, 0, 0, 0);
-    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp).setHours(0, 0, 0, 0) : null;
+    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
 
     if(lastNoBallDay !== today) return null;
 

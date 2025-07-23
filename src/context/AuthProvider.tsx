@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -13,17 +13,16 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
-  loading: boolean;
+  loading: boolean; // This will now represent ONLY the initial auth check
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
   updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
-  lastAttempt: QuizAttempt | null;
-  setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
   handleMalpractice: () => Promise<number>;
+  isOffline: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,32 +31,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
+  const [loading, setLoading] = useState(true); // Represents ONLY the initial auth check
+  const [isOffline, setIsOffline] = useState(false);
 
+  // Effect for initial auth check - this is the ONLY thing `loading` should wait for.
   useEffect(() => {
     if (!isFirebaseConfigured) {
+      console.error("Firebase is not configured. Auth will not work.");
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const docSnap = await getDoc(userRef);
-        if (docSnap.exists()) {
-          setProfile(docSnap.data());
-        }
-        setUser(firebaseUser);
-      } else {
-        setUser(null);
-        setProfile(null);
-      }
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false); // Auth check is complete, unblock the app.
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Effect for profile data fetching - runs independently of the main loading state.
+  useEffect(() => {
+    if (!user) {
+      setProfile(null); // Clear profile if user logs out
+      return;
+    }
+
+    const userRef = doc(db, 'users', user.uid);
+    const unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setProfile(docSnap.data());
+        setIsOffline(false);
+      } else {
+        // This case might happen for a brief moment for new users.
+        // `handleUserDocument` will create it.
+        setProfile(null);
+      }
+    }, (error) => {
+        console.error("Firestore Snapshot Error:", error);
+        if (error.code === 'unavailable') {
+            setIsOffline(true);
+        }
+    });
+
+    return () => unsubscribeProfile();
+  }, [user]);
 
   const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
     if (!db) return null;
@@ -72,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         phone: additionalData.phone || '',
         photoURL: user.photoURL || `https://placehold.co/100x100.png`,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         emailVerified: user.emailVerified,
         referredBy: additionalData.referredBy || '',
         quizzesPlayed: 0,
@@ -85,12 +104,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
-      setProfile(newUserProfile);
+      // No need to setProfile here, the onSnapshot listener will pick it up
       return newUserProfile;
     } else {
-      const existingProfile = docSnap.data();
-      setProfile(existingProfile);
-      return existingProfile;
+      // The onSnapshot listener will keep the profile updated.
+      return docSnap.data();
     }
   }, []);
 
@@ -133,6 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
+      // The onAuthStateChanged listener will handle setting the user and profile
       return userCredential.user;
     } catch (error: any) {
       let description = 'An unexpected error occurred.';
@@ -147,9 +166,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
         await signOut(auth);
-        setUser(null);
-        setProfile(null);
-        setLastAttempt(null);
+        // onAuthStateChanged will handle setting user and profile to null
         toast({ title: "Signed Out", description: "You have been logged out successfully." });
     } catch (error) {
         toast({ title: "Logout Failed", description: "Could not log you out.", variant: "destructive" });
@@ -161,7 +178,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userDocRef = doc(db, "users", user.uid);
     try {
         await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
-        setProfile(prev => ({...prev, ...newData}));
+        // Optimistic update for immediate UI feedback
+        setProfile(prev => prev ? ({...prev, ...newData}) : newData);
     } catch (error) {
         console.error("Update user data failed:", error);
         toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
@@ -198,7 +216,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const userRef = doc(db, 'users', user.uid);
     const today = new Date().setHours(0, 0, 0, 0);
-    const lastNoBallDay = profile.lastNoBallTimestamp?.toDate().setHours(0, 0, 0, 0) || null;
+    // Firestore Timestamps need to be converted to JS Dates before comparison
+    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
     
     let newNoBallCount = profile.noBallCount || 0;
 
@@ -215,6 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         await setDoc(userRef, updatedProfile, { merge: true });
+        // Optimistic update, onSnapshot will sync the real timestamp later
         setProfile(p => (p ? { ...p, noBallCount: newNoBallCount, lastNoBallTimestamp: new Date() } : null));
         return newNoBallCount;
     } catch (error) {
@@ -227,7 +247,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     user, profile, loading, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
-    lastAttempt, setLastAttempt, isProfileComplete, handleMalpractice
+    isProfileComplete, handleMalpractice, isOffline
   };
 
   return (
