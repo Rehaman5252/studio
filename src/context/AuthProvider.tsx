@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -116,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     await batch.commit();
 
-  }, [user, profile, updateUserData]);
+  }, [user, profile]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
