@@ -12,9 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
-  profile: Record<string, any> | null;
   loading: boolean;
-  isOffline: boolean;
+  // This will be deprecated in favor of component-level fetching
+  profile: Record<string, any> | null; 
   isProfileComplete: boolean;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
@@ -24,6 +24,7 @@ interface AuthContextType {
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
   handleMalpractice: () => Promise<number>;
   setLastAttempt: (attempt: QuizAttempt) => void;
+  isOffline: boolean; // Keep for offline UI banner
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,8 +32,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<Record<string, any> | null>(null); // Legacy profile state
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
@@ -210,8 +211,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isProfileComplete = !!profile?.profileCompleted;
 
   const value = {
-    user, profile, loading, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
-    isProfileComplete, handleMalpractice, isOffline, setLastAttempt: () => {}
+    user, loading, profile, isProfileComplete, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
+    handleMalpractice, isOffline, setLastAttempt: () => {}
   };
 
   return (

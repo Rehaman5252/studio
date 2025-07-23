@@ -21,21 +21,18 @@ function ProfilePageContent() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // This effect handles fetching the user's profile data.
-    // It will only run when the auth state is confirmed and a user is present.
-    
-    // Condition 1: Wait for the initial auth check to complete.
+    // Wait for auth to finish loading
     if (authLoading) {
-      return; // Still waiting for onAuthStateChanged
+      return; 
     }
     
-    // Condition 2: If auth is done and there's no user, we can stop.
+    // If auth is done and there's no user, stop.
     if (!user) {
       setFetching(false);
       return;
     }
     
-    // Condition 3: Ensure this only runs on the client where `db` is available.
+    // If db is not available (e.g. on server or client-side init failed)
     if (!db) {
         setError("Database connection is not available.");
         setFetching(false);

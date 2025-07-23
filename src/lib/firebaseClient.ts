@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,18 +16,15 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
-const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
 const auth: Auth = getAuth(app);
 
-// Use a client-side check to initialize Firestore with persistence
+// Use a client-side check to initialize Firestore
 // On the server, db will be null.
 const db: Firestore | null =
   typeof window !== "undefined"
-    ? initializeFirestore(app, {
-        localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
-        }),
-      })
+    ? getFirestore(app)
     : null;
 
 export { app, auth, db };
