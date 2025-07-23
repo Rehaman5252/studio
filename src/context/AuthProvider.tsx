@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -58,8 +58,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    const userRef = doc(db, 'users', user.uid);
+    let unsubscribeProfile = () => {};
+
     const fetchProfile = async () => {
-        const userRef = doc(db, 'users', user.uid);
         try {
             const docSnap = await getDoc(userRef);
             if (docSnap.exists()) {
@@ -80,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchProfile();
     
     // Set up a real-time listener for ongoing updates
-    const unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
+    unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
       }
