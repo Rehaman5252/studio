@@ -6,7 +6,7 @@ import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { LogIn, ServerCrash, WifiOff } from 'lucide-react';
+import { LogIn, ServerCrash, WifiOff, Loader2 } from 'lucide-react';
 import ProfileContent from "@/components/profile/ProfileContent";
 import { useAuth } from "@/context/AuthProvider";
 

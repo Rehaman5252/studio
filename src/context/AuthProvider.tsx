@@ -23,6 +23,7 @@ interface UserDataContextType {
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
   updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
+  setLastAttempt: (attempt: QuizAttempt) => void;
   isOffline: boolean;
 }
 
@@ -35,6 +36,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<any | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -76,6 +78,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
       } else {
+        // This case can happen briefly if a user signs up and the document hasn't been created yet.
+        // We call handleUserDocument to ensure it gets created.
+        handleUserDocument(firebaseUser);
         setProfile(null);
       }
       setProfileLoading(false);
@@ -101,9 +106,10 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const docSnap = await getDoc(userRef);
 
     if (!docSnap.exists()) {
+      const name = additionalData.name || user.displayName || 'New User';
       const newUserProfile = {
         uid: user.uid,
-        name: additionalData.name || user.displayName || 'New User',
+        name: name,
         email: user.email,
         phone: additionalData.phone || '',
         photoURL: user.photoURL || `https://placehold.co/100x100.png`,
@@ -117,7 +123,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         profileCompleted: false,
         guidedTourCompleted: false,
         phoneVerified: false,
-        referralCode: `CricBlitz.com/ref/${(additionalData.name || user.displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
+        referralCode: `indcric.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`,
         referralEarnings: 0,
         noBallCount: 0,
         lastNoBallTimestamp: null,
@@ -169,6 +175,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
+      await handleUserDocument(userCredential.user);
       toast({ title: "Signed In", description: "Welcome back!" });
       return userCredential.user;
     } catch (error: any) {
@@ -179,7 +186,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: 'Login Failed', description, variant: 'destructive' });
       return null;
     }
-  }, [toast]);
+  }, [toast, handleUserDocument]);
 
   const logout = useCallback(async () => {
     await signOut(auth);
@@ -259,6 +266,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     updateUserData, 
     addQuizAttempt, 
     handleMalpractice,
+    setLastAttempt,
     isOffline,
   };
 
