@@ -15,6 +15,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebaseClient';
+import { Checkbox } from '../ui/checkbox';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -28,7 +29,12 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.' }),
+  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
+  referralCode: z.string().optional(),
+  terms: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the terms and conditions." }),
+  }),
 });
 type SignupFormValues = z.infer<typeof signupSchema>;
 
@@ -37,7 +43,7 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { registerWithEmail, signInWithGoogle } = useAuth();
+  const { registerWithEmail, signInWithGoogle, isProfileComplete } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -45,13 +51,21 @@ export default function SignupForm() {
   
   const { register, handleSubmit, formState: { errors } } = useForm<SignupFormValues>({ resolver: zodResolver(signupSchema) });
 
+  const handleSuccessfulGoogleLogin = (isComplete: boolean) => {
+    toast({ title: "Signed In", description: "Welcome!" });
+    if (from) {
+        router.replace(from);
+    } else {
+        router.replace(isComplete ? '/home' : '/complete-profile');
+    }
+  }
+
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
         const user = await signInWithGoogle();
         if (user) {
-            toast({ title: 'Account Created!', description: `Welcome!` });
-            router.replace('/complete-profile');
+            handleSuccessfulGoogleLogin(isProfileComplete);
         }
     } catch(error) {
         console.error("Google signup failed in component", error);
@@ -62,9 +76,9 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
-    const user = await registerWithEmail(data.email, data.password, data.name);
+    const user = await registerWithEmail(data.name, data.email, data.phone, data.password, data.referralCode);
     if (user) {
-      toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
+      toast({ title: 'Account Created!', description: 'Please check your email (including spam/all folders) to verify your account.' });
       router.push(`/auth/verify-email?from=${from || '/home'}`);
     }
     setIsLoading(false);
@@ -98,6 +112,11 @@ export default function SignupForm() {
                 <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
                 {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
+             <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" type="tel" placeholder="9876543210" {...register('phone')} disabled={isAuthDisabled} />
+                {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
+            </div>
             <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -108,6 +127,19 @@ export default function SignupForm() {
                 </div>
                 {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
+            <div className="space-y-2">
+                <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+                <Input id="referralCode" placeholder="FRIEND123" {...register('referralCode')} disabled={isAuthDisabled} />
+            </div>
+            <div className="flex items-center space-x-2">
+                <Checkbox id="terms" {...register('terms')} />
+                <Label htmlFor="terms" className="text-sm font-normal text-muted-foreground">
+                    I agree to the{' '}
+                    <Link href="/policies" className="underline text-primary">Terms & Conditions</Link>
+                </Label>
+            </div>
+             {errors.terms && <p className="text-sm text-destructive">{errors.terms.message}</p>}
+
             <Button type="submit" className="w-full" disabled={isAuthDisabled || !isFirebaseConfigured}>
                  {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Creating Account...</> ) : "Create Account"}
             </Button>

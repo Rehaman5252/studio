@@ -23,7 +23,11 @@ export default function VerifyEmailContent() {
         </CardHeader>
         <CardContent className="space-y-4">
             <p>We've sent a verification link to your email address.</p>
-            <p className="text-muted-foreground">Please click the link in the email to activate your account. You can close this tab.</p>
+            <p className="text-muted-foreground">
+                Please click the link in that email to activate your account.
+                <br/>
+                <strong className='text-foreground'>Be sure to check all folders, including Spam or Promotions.</strong>
+            </p>
             <Button asChild size="lg" className="mt-4">
             <Link href={`/auth/login${from ? `?from=${encodeURIComponent(from)}` : ''}`}>
                 Go to Login

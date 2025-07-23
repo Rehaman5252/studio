@@ -24,6 +24,8 @@ async function createUserDocument(user: User, additionalData: Record<string, any
       email,
       name: additionalData.name || displayName || 'New User',
       photoURL: photoURL || `https://placehold.co/100x100.png`,
+      phone: additionalData.phone || '',
+      referredBy: additionalData.referralCode || '',
       createdAt: new Date(),
       emailVerified: user.emailVerified,
       quizzesPlayed: 0,
@@ -49,7 +51,7 @@ interface AuthContextType {
   profile: Record<string, any> | null;
   loading: boolean;
   signInWithGoogle: () => Promise<User | null>;
-  registerWithEmail: (email: string, password: string, name: string) => Promise<User | null>;
+  registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
   updateUserData?: (data: Partial<Record<string, any>>) => Promise<void>;
@@ -91,12 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
         return;
     }
-    if (user && !loading) {
-        // Auth state is known and not in initial load, so we don't need to show a full-screen loader
-        // This is important for cases like email verification flow where the user object exists but we are waiting for profile.
-    } else {
-        setLoading(true);
-    }
+    setLoading(true);
     
     const userDocRef = doc(firestore, "users", user.uid);
     const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
@@ -135,11 +132,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [toast]);
   
-  const registerWithEmail = useCallback(async (email: string, password: string, name: string): Promise<User | null> => {
+  const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
-        await createUserDocument(userCredential.user, { name });
+        await createUserDocument(userCredential.user, { name, phone, referralCode });
         await sendEmailVerification(userCredential.user);
         return userCredential.user;
     } catch (error: any) {
@@ -147,8 +144,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error.code === 'auth/email-already-in-use') {
             description = 'This email is already registered. Please log in instead.';
         } else if (error.code === 'auth/weak-password') {
-            description = 'The password is too weak. Please use at least 6 characters.';
+            description = 'The password is too weak. Please use at least 8 characters.';
         }
+        console.error("Registration Error: ", error);
         toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
         return null;
     }

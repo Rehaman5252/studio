@@ -66,7 +66,7 @@ export default function LoginForm() {
     const user = await loginWithEmail(data.email, data.password);
     if (user) {
       if (!user.emailVerified) {
-        toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
+        toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
         router.push(`/auth/verify-email?from=${from || '/home'}`);
       } else {
         handleSuccessfulLogin(isProfileComplete);
