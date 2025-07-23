@@ -71,10 +71,9 @@ const ProfileFormSkeleton = () => (
 
 export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: () => void }) {
     const router = useRouter();
-    const { user, updateUserData, loading } = useAuth();
+    const { user, profile, updateUserData, loading } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [profile, setProfile] = useState<any>(null);
     const [isFetchingProfile, setIsFetchingProfile] = useState(true);
 
     const form = useForm<ProfileFormValues>({
@@ -86,40 +85,32 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
     });
     
     useEffect(() => {
-      async function fetchProfile() {
-        if (!user || !db) {
-          setIsFetchingProfile(false);
-          return;
-        }
-        try {
-          const docRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setProfile(data);
+        setIsFetchingProfile(true);
+        if (profile) {
             form.reset({
-                name: data.name || user.displayName || '',
-                email: data.email || user.email || '',
-                phone: data.phone || '',
-                dob: data.dob?.toDate ? data.dob.toDate().toISOString().split('T')[0] : data.dob || '',
-                gender: data.gender || undefined,
-                occupation: data.occupation || undefined,
-                upi: data.upi || '',
-                favoriteFormat: data.favoriteFormat || undefined,
-                favoriteTeam: data.favoriteTeam || '',
-                favoriteCricketer: data.favoriteCricketer || '',
+                name: profile.name || user?.displayName || '',
+                email: profile.email || user?.email || '',
+                phone: profile.phone || '',
+                dob: profile.dob?.toDate ? profile.dob.toDate().toISOString().split('T')[0] : profile.dob || '',
+                gender: profile.gender || undefined,
+                occupation: profile.occupation || undefined,
+                upi: profile.upi || '',
+                favoriteFormat: profile.favoriteFormat || undefined,
+                favoriteTeam: profile.favoriteTeam || '',
+                favoriteCricketer: profile.favoriteCricketer || '',
             });
-          }
-        } catch (error) {
-          console.error("Error fetching profile for form:", error);
-        } finally {
-          setIsFetchingProfile(false);
+            setIsFetchingProfile(false);
+        } else if (!loading) {
+            // If there's no profile but auth is loaded, it might be a new user.
+            // Set some defaults from the auth object itself.
+            form.reset({
+                 ...form.getValues(), // keep existing fields
+                 name: user?.displayName || '',
+                 email: user?.email || '',
+            })
+            setIsFetchingProfile(false);
         }
-      }
-      if (!loading) {
-        fetchProfile();
-      }
-    }, [user, loading, form]);
+    }, [profile, user, loading, form]);
 
 
     const onSubmit = async (data: ProfileFormValues) => {
@@ -324,3 +315,5 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         </Card>
     );
 }
+
+    
