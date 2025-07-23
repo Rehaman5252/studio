@@ -123,7 +123,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         profileCompleted: false,
         guidedTourCompleted: false,
         phoneVerified: false,
-        referralCode: `cricblitz.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`,
+        referralCode: `cricblitz.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`.toLowerCase(),
         referralEarnings: 0,
         noBallCount: 0,
         lastNoBallTimestamp: null,
@@ -131,6 +131,10 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       return newUserProfile;
     } else {
+        // If user logs in with Google and doc exists, ensure their photoURL is updated from Google.
+        if (user.photoURL && user.photoURL !== docSnap.data().photoURL) {
+            await updateDoc(userRef, { photoURL: user.photoURL });
+        }
       return docSnap.data();
     }
   }, [toast]);
@@ -156,6 +160,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
         await updateProfile(user, { displayName: name });
+        // Pass the phone number here
         await handleUserDocument(user, { name, phone, referredBy: referralCode });
         await sendEmailVerification(user);
         return user;
