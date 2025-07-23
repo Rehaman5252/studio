@@ -50,7 +50,17 @@ export default function SignupForm() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const form = useForm<SignupFormValues>({ resolver: zodResolver(signupSchema), defaultValues: { terms: false } });
+  const form = useForm<SignupFormValues>({ 
+    resolver: zodResolver(signupSchema), 
+    defaultValues: { 
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        referralCode: '',
+        terms: false 
+    } 
+  });
 
   const handleSuccessfulGoogleLogin = (isComplete: boolean) => {
     toast({ title: "Signed In", description: "Welcome!" });

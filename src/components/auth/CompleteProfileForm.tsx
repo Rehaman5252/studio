@@ -98,11 +98,11 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
                 email: profile?.email || user?.email || '',
                 phone: profile?.phone || '',
                 dob: profile?.dob || '',
-                gender: profile?.gender,
-                occupation: profile?.occupation,
+                gender: profile?.gender || undefined,
+                occupation: profile?.occupation || '',
                 upi: profile?.upi || '',
-                favoriteFormat: profile?.favoriteFormat,
-                favoriteTeam: profile?.favoriteTeam,
+                favoriteFormat: profile?.favoriteFormat || undefined,
+                favoriteTeam: profile?.favoriteTeam || '',
                 favoriteCricketer: profile?.favoriteCricketer || '',
             });
         }
