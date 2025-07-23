@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -11,6 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { createUserDocument } from '@/lib/authUtils';
 import { Loader2 } from 'lucide-react';
+import { useFirebaseReady } from '@/hooks/useFirebaseReady';
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
+  const firebaseReady = useFirebaseReady();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,11 +38,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    if (!isFirebaseReady()) {
-      setLoading(false);
-      return;
+    // Don't do anything until Firebase has confirmed its auth state.
+    if (!firebaseReady || !auth) {
+        return;
     }
-    const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser) => {
+    
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       if (!firebaseUser) {
         setProfile(null);
@@ -49,23 +51,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     });
+
     return () => unsubscribe();
-  }, []);
+  }, [firebaseReady]);
   
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
+    if (!firebaseReady || !user) {
+      // If firebase is ready but there's no user, we are done loading.
+      if (firebaseReady) setLoading(false);
       return;
     }
     
-    if (!isFirebaseReady()) {
-        console.warn("Firebase not initialized (likely offline or SSR).");
+    if (!db) {
+        console.error("Firestore is not available.");
         setIsOffline(true);
         setLoading(false);
         return;
     }
 
-    const userDocRef = doc(db!, "users", user.uid);
+    setLoading(true);
+    const userDocRef = doc(db, "users", user.uid);
     const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
@@ -89,21 +94,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubProfile();
-  }, [user]);
+  }, [user, firebaseReady]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    if (!user || !db) throw new Error("User not authenticated or database not available.");
-    
-    const userDocRef = doc(db, "users", user.uid);
+    if (!isFirebaseReady() || !user) throw new Error("User not authenticated or database not available.");
+    const userDocRef = doc(db!, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !db || !profile) throw new Error("User, DB, or profile not available.");
+    if (!isFirebaseReady() || !user || !profile) throw new Error("User, DB, or profile not available.");
 
-    const batch = writeBatch(db);
-    const userRef = doc(db, 'users', user.uid);
-    const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, attempt.slotId);
+    const batch = writeBatch(db!);
+    const userRef = doc(db!, 'users', user.uid);
+    const attemptRef = doc(db!, `users/${user.uid}/quizAttempts`, attempt.slotId);
     
     batch.set(attemptRef, sanitizeUserProfile(attempt));
 
@@ -117,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     await batch.commit();
 
-  }, [user, profile, updateUserData]);
+  }, [user, profile]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
@@ -144,7 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     lastAttempt, setLastAttempt, isProfileComplete, logout
   }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete, logout]);
 
-  if (loading) {
+  // Render a loading screen while auth state is being determined. This prevents the auth loop.
+  if (!firebaseReady || loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

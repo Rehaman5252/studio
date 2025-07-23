@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
@@ -32,13 +31,17 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
+    // Don't fetch until auth state is known
     if (isAuthLoading) return;
+    
+    // No user, no history to fetch
     if (!user) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
     }
     
+    // Guard against running before Firebase is initialized on the client
     if (!isFirebaseReady()) {
         console.warn("Firebase not ready in QuizStatusProvider (offline or SSR)");
         setIsHistoryLoading(false);

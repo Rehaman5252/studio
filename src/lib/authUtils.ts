@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -9,15 +8,15 @@ import {
   type User,
   updateProfile,
 } from 'firebase/auth';
-import { auth, db } from './firebaseClient';
+import { auth, db, isFirebaseReady } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
-  if (!user || !db) return;
+  if (!isFirebaseReady() || !user) return;
 
-  const userDocRef = doc(db, 'users', user.uid);
+  const userDocRef = doc(db!, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
@@ -52,20 +51,20 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (isPopupOpen || !auth) {
-    if (!auth) {
-        toast({ title: 'Authentication Error', description: 'Firebase Auth is not available. Please try again.', variant: 'destructive' });
-    }
+  if (!isFirebaseReady()) {
+    toast({ title: 'Authentication Error', description: 'Firebase is not available. Please try again.', variant: 'destructive' });
     return null;
   }
+  if (isPopupOpen) return null;
+  
   isPopupOpen = true;
 
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
   try {
-    const result = await signInWithPopup(auth, provider);
-    await createUserDocument(result.user);
+    const result = await signInWithPopup(auth!, provider);
+    // Let the AuthProvider handle document creation via its onSnapshot listener
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -85,10 +84,8 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 export const registerWithEmail = async (email: string, password: string, name: string) => {
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // Update the profile on the Firebase Auth user object
     await updateProfile(userCredential.user, { displayName: name });
-    // Create the user document in Firestore
-    await createUserDocument(userCredential.user, { name });
+    // Let the AuthProvider handle document creation via its onSnapshot listener
     return userCredential;
 };
 
