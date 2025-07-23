@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
@@ -12,7 +11,7 @@ import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -162,19 +161,12 @@ export default function QuizHistoryContent() {
         if (authLoading) return;
         if (!user) { setLoading(false); return; }
 
-        const db = getFirebaseFirestore();
-        if (!db) { 
-            setError("Firebase not ready. You may be offline.");
-            setLoading(false);
-            return;
-        }
-
         setLoading(true);
         setError(null);
         
         (async () => {
             try {
-                const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+                const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
             } catch (e) {

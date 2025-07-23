@@ -1,111 +1,103 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, setDoc, getDoc, writeBatch, increment } from 'firebase/firestore';
-import { auth, firestore, signInWithGoogle, logout as firebaseLogout } from '@/lib/firebaseClient';
+import type { User } from 'firebase/auth';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, onSnapshot, writeBatch, increment, Timestamp, setDoc } from 'firebase/firestore';
+import { auth, firestore } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
+import { createUserDocument } from '@/lib/authUtils';
 import { Loader2 } from 'lucide-react';
 import useFirebaseReady from '@/hooks/useFirebaseReady';
 
-async function createUserDocument(user: FirebaseUser) {
-    if (!user?.uid) return;
-
-    const userRef = doc(firestore, "users", user.uid);
-    const snapshot = await getDoc(userRef);
-
-    if (!snapshot.exists()) {
-      const { displayName, email, photoURL } = user;
-      await setDoc(userRef, {
-        uid: user.uid,
-        name: displayName || 'New Player',
-        email: email,
-        photoURL: photoURL || `https://placehold.co/100x100.png`,
-        createdAt: new Date().toISOString(),
-        profileCompleted: false,
-        quizzesPlayed: 0,
-        perfectScores: 0,
-        totalRewards: 0,
-        referralEarnings: 0,
-        phoneVerified: false,
-        referralCode: `https://cricblitz.com/auth/signup?ref=${user.uid.substring(0, 8)}`,
-      });
-    }
-}
-
 interface AuthContextType {
-  user: FirebaseUser | null;
+  user: User | null;
   profile: Record<string, any> | null;
   loading: boolean;
-  signIn: () => Promise<void>;
-  logout: () => Promise<void>;
-  updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
-  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
-  setLastAttempt: (attempt: QuizAttempt | null) => void;
+  isOffline: boolean;
+  updateUserData?: (data: Partial<Record<string, any>>) => Promise<void>;
+  addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
   lastAttempt: QuizAttempt | null;
+  setLastAttempt: (attempt: QuizAttempt | null) => void;
+  isProfileComplete: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const firebaseReady = useFirebaseReady();
-  const { toast } = useToast();
-  
+
   useEffect(() => {
     if (!firebaseReady) return;
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        await createUserDocument(firebaseUser);
-        const userDocRef = doc(firestore, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            setProfile(userDoc.data());
-        }
-      } else {
-        setProfile(null);
-      }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setLoading(false);
+      if (!firebaseUser) {
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
   }, [firebaseReady]);
 
-  const signIn = async () => {
-    try {
-        await signInWithGoogle();
-    } catch(e) {
-        toast({ title: "Sign-In Failed", description: "Could not sign in with Google.", variant: "destructive" });
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
     }
-  };
+    
+    let unsubProfile: () => void = () => {};
+    
+    // Do not set loading to true here immediately to avoid flashes
+    // setLoading(true);
 
-  const logout = async () => {
-    await firebaseLogout();
-  };
+    const userDocRef = doc(firestore, "users", user.uid);
+    unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+      try {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data?.dob instanceof Timestamp) {
+            data.dob = data.dob.toDate().toISOString().split('T')[0];
+          }
+          setProfile(data);
+        } else {
+            await createUserDocument(user);
+        }
+      } catch (error) {
+        console.error("Error in snapshot handler:", error);
+      } finally {
+        setLoading(false);
+      }
+    }, (error) => {
+      console.error("Profile snapshot error:", error);
+      setIsOffline(true);
+      setLoading(false);
+    });
+    
+    return () => unsubProfile();
+  }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    if (!user) throw new Error("User not authenticated.");
+    if (!user) throw new Error("User not authenticated or database not available.");
     const userDocRef = doc(firestore, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
-    setProfile(prev => ({...prev, ...newData}));
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated or DB not available.");
-
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.uid);
     const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, attempt.slotId);
-    
     batch.set(attemptRef, sanitizeUserProfile(attempt));
-
     const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
     const statsUpdate: {[key: string]: any} = { quizzesPlayed: increment(1) };
     if (isPerfect) {
@@ -114,10 +106,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     batch.update(userRef, statsUpdate);
     await batch.commit();
+  }, [user]);
 
-  }, [user, updateUserData]);
+  const logout = useCallback(async () => {
+    try {
+        await signOut(auth);
+        setUser(null);
+        setProfile(null);
+        setLastAttempt(null);
+        toast({ title: "Signed Out", description: "You have been logged out successfully." });
+    } catch (error) {
+        toast({ title: "Logout Failed", description: "Could not log you out.", variant: "destructive" });
+    }
+  }, [toast]);
+  
+  const isProfileComplete = !!profile?.profileCompleted;
 
-  if (!firebaseReady || loading) {
+  const value = useMemo(() => ({
+    user, profile, loading, isOffline, updateUserData, addQuizAttempt,
+    lastAttempt, setLastAttempt, isProfileComplete, logout
+  }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete, logout]);
+
+  if (loading && firebaseReady) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -126,14 +136,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, logout, updateUserData, addQuizAttempt, lastAttempt, setLastAttempt }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
-};
+export function useAuth() {
+  const c = useContext(AuthContext);
+  if (!c) throw new Error("useAuth must be inside AuthProvider");
+  return c;
+}
