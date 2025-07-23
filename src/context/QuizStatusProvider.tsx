@@ -32,6 +32,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
+    const currentSlotId = getQuizSlotId();
+    // If the user logs out, or auth is still loading, reset state.
     if (isAuthLoading) {
       return;
     };
@@ -46,7 +48,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         setIsHistoryLoading(true);
         if (typeof window !== "undefined") {
             try {
-                const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+                const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', currentSlotId);
                 const docSnap = await getDoc(historyDocRef);
                 if (docSnap.exists()) {
                     setLastAttemptInSlot(docSnap.data() as QuizAttempt);

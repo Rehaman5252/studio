@@ -51,6 +51,7 @@ const QuizSelectionComponent = () => {
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
+        // Check if the last attempt's slot ID matches the current one.
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
