@@ -40,6 +40,7 @@ function QuizComponent() {
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
   const [adConfig, setAdConfig] = useState<any | null>(null);
   const [quizState, setQuizState] = useState<'loading' | 'playing' | 'ad' | 'submitting'>('loading');
+  const [isAnswerLocked, setIsAnswerLocked] = useState(false); // New lock state
 
   useEffect(() => {
     if (!loading && !user) {
@@ -137,6 +138,7 @@ function QuizComponent() {
     setCurrentQuestionIndex(prev => prev + 1);
     setTimeLeft(20);
     setQuestionStartTime(Date.now());
+    setIsAnswerLocked(false); // Release the lock for the new question
   }, [questions]);
 
   const handleNextWithAdCheck = useCallback(() => {
@@ -159,8 +161,9 @@ function QuizComponent() {
   }, [currentQuestionIndex, goToNextQuestion]);
 
   const handleAnswerSelect = useCallback((option: string) => {
-    if (selectedOption || !questions) return;
+    if (isAnswerLocked || !questions) return; // Check lock here
     
+    setIsAnswerLocked(true); // Set lock immediately
     setSelectedOption(option);
     const timeTaken = (Date.now() - questionStartTime) / 1000;
     setTimePerQuestion(prev => [...prev, timeTaken]);
@@ -176,7 +179,7 @@ function QuizComponent() {
             handleNextWithAdCheck();
         }
     }, 300);
-  }, [selectedOption, questionStartTime, userAnswers, currentQuestionIndex, questions, handleNextWithAdCheck, submitQuiz]);
+  }, [isAnswerLocked, questionStartTime, userAnswers, currentQuestionIndex, questions, handleNextWithAdCheck, submitQuiz]);
   
   const handleAdComplete = useCallback(() => {
       setQuizState('playing');
@@ -184,11 +187,14 @@ function QuizComponent() {
   }, [goToNextQuestion]);
 
   useEffect(() => {
-    if (quizState !== 'playing' || !questions) return;
-    if (timeLeft === 0) { handleAnswerSelect("Not Answered"); return; }
+    if (quizState !== 'playing' || !questions || isAnswerLocked) return; // Check lock
+    if (timeLeft <= 0) { 
+        handleAnswerSelect("Not Answered"); 
+        return; 
+    }
     const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, quizState, questions, handleAnswerSelect]);
+  }, [timeLeft, quizState, questions, handleAnswerSelect, isAnswerLocked]);
 
   const handleHintRequest = () => {
     if (!questions || isHintVisible) return;
@@ -247,10 +253,10 @@ function QuizComponent() {
             <div className="flex justify-center my-6"><Timer timeLeft={timeLeft} /></div>
             <QuestionCard question={currentQuestion} isHintVisible={isHintVisible} options={currentQuestion.options} selectedOption={selectedOption} handleAnswerSelect={handleAnswerSelect} />
             <div className="mt-6 flex justify-between items-center">
-                <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible}>
+                <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible || isAnswerLocked}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
-                <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={!selectedOption}>
+                <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={!selectedOption || isAnswerLocked}>
                     {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} <ChevronsRight className="ml-2" />
                 </Button>
             </div>

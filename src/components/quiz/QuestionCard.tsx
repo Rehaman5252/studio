@@ -43,7 +43,7 @@ const QuestionCardComponent = ({ question, isHintVisible, options, selectedOptio
     selectedOption: string | null;
     handleAnswerSelect: (option: string) => void;
 }) => (
-    <Card className="w-full bg-card shadow-lg">
+    <Card className="w-full bg-card shadow-lg min-h-[360px]">
         <CardHeader>
             {question.questionType === 'image' && question.imageUrl && (
                  <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden border">
