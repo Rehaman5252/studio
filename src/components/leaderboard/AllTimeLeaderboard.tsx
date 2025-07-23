@@ -46,8 +46,9 @@ const AllTimeLeaderboard = () => {
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("Database connection is not available.");
-            setIsLoading(false);
+            // Firestore instance might not be ready on initial render
+            // especially if there are connection issues.
+            // We'll wait until it's available.
             return;
         }
 
@@ -72,6 +73,8 @@ const AllTimeLeaderboard = () => {
             } catch (e: any) {
                 if (e.code === 'unavailable') {
                     setError("You appear to be offline. Please check your connection.");
+                } else if (e.code === 'failed-precondition') {
+                    setError("A Firestore index is required for this query. Please check the console logs for a link to create it automatically in your Firebase console.");
                 } else {
                     setError("Could not load the all-time leaderboard.");
                 }

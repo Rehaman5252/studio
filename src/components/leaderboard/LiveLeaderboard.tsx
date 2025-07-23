@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn, getQuizSlotId } from '@/lib/utils';
@@ -12,7 +12,7 @@ import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collectionGroup, query, where, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
 
@@ -47,37 +47,62 @@ const LiveLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
+        if (authLoading || !db) return;
 
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
+            const slotId = getQuizSlotId();
             try {
-                // In a real app, this would query a shared 'liveSlot' collection.
-                // For this demo, we mock it with some static players.
-                const mockLivePlayers: LivePlayer[] = [
-                    { uid: 'mock-player-1', name: 'Ravi Ashwin', score: 5, time: 45.2, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-2', name: 'Jasprit Bumrah', score: 4, time: 55.8, avatar: 'https://placehold.co/40x40.png' },
-                    { uid: 'mock-player-3', name: 'Shikhar Dhawan', score: 3, time: 65.1, avatar: 'https://placehold.co/40x40.png', disqualified: true },
-                    { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
-                ];
-                
-                if (user && db) {
-                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
-                    const userAttemptSnap = await getDocs(q);
+                // This is a collection group query. It requires a composite index in Firestore.
+                // If you see a 'permission-denied' or 'failed-precondition' error in the console,
+                // it will contain a link to create the index automatically.
+                const q = query(
+                    collectionGroup(db, 'quizAttempts'), 
+                    where("slotId", "==", slotId),
+                    orderBy("score", "desc"),
+                    orderBy("timePerQuestion"), // This needs an array of numbers to work correctly
+                    limit(50)
+                );
 
-                    if (!userAttemptSnap.empty) {
-                        const attempt = userAttemptSnap.docs[0].data() as QuizAttempt;
-                        mockLivePlayers.push({
+                const snapshot = await getDocs(q);
+                const attemptsData = snapshot.docs.map(doc => ({ ...doc.data(), path: doc.ref.path } as QuizAttempt & { path: string }));
+                
+                // Get user profiles for each attempt
+                const playerPromises = attemptsData.map(async (attempt) => {
+                    const userId = attempt.path.split('/')[1]; // Extracts user ID from path 'users/{userId}/quizAttempts/{slotId}'
+                    const userDoc = await getDoc(doc(db, 'users', userId));
+                    const userData = userDoc.data();
+                    const totalTime = Array.isArray(attempt.timePerQuestion) ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+                    
+                    return {
+                        uid: userId,
+                        name: userData?.name || 'Anonymous',
+                        score: attempt.score,
+                        time: totalTime,
+                        avatar: userData?.photoURL,
+                        disqualified: !!attempt.reason?.startsWith('malpractice'),
+                    };
+                });
+                
+                let livePlayers = await Promise.all(playerPromises);
+                
+                // Add the current user to the list if they've played but are not in the top 50
+                if (user && !livePlayers.some(p => p.uid === user.uid)) {
+                    const userAttemptDoc = await getDoc(doc(db, 'users', user.uid, 'quizAttempts', slotId));
+                    if (userAttemptDoc.exists()) {
+                        const attempt = userAttemptDoc.data() as QuizAttempt;
+                         const totalTime = Array.isArray(attempt.timePerQuestion) ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+                        livePlayers.push({
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
-                            time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
+                            time: totalTime,
                             avatar: profile?.photoURL, disqualified: !!attempt.reason?.startsWith('malpractice')
                         });
                     }
                 }
-
-                const uniquePlayers = Array.from(new Map(mockLivePlayers.map(p => [p.uid, p])).values());
-                const sorted = uniquePlayers.sort((a, b) => {
+                
+                // Sort and rank the players
+                const sorted = livePlayers.sort((a, b) => {
                     if (a.disqualified && !b.disqualified) return 1;
                     if (!a.disqualified && b.disqualified) return -1;
                     if (a.score !== b.score) return b.score - a.score;
@@ -88,10 +113,12 @@ const LiveLeaderboard = () => {
             } catch (e: any) {
                 if (e.code === 'unavailable') {
                   setError("You appear to be offline. Please check your connection to view the leaderboard.");
+                } else if (e.code === 'failed-precondition') {
+                    setError("A Firestore index is required for this query. Please check the console logs for a link to create it automatically in your Firebase console.");
                 } else {
                   setError("An error occurred while loading the leaderboard.");
+                  console.error("Live Leaderboard Error: ", e);
                 }
-                console.error(e);
             } finally {
                 setIsLoading(false);
             }
