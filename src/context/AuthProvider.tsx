@@ -5,23 +5,25 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebaseClient';
+import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 
-// This new context will only handle the raw user and auth loading state.
-// Profile data fetching is moved to the components that need it.
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  profile: any | null; // Keep profile here for convenience in other parts of the app
+  isProfileComplete: boolean;
   logout: () => Promise<void>;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
-  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>; // Kept for convenience
-  updateUserData: (data: Partial<Record<string, any>>) => Promise<void>; // Kept for convenience
-  handleMalpractice: (currentProfile: any) => Promise<number>; // Now requires profile passed in
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
+  updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
+  handleMalpractice: () => Promise<number>;
+  setLastAttempt: (attempt: QuizAttempt | null) => void;
+  isOffline: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,16 +31,56 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    if (typeof navigator.onLine === 'boolean') {
+      setIsOffline(!navigator.onLine);
+    }
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      if (firebaseUser) {
+        // Fetch profile when auth state changes
+        try {
+          if (!db) {
+             throw new Error("Firestore not available");
+          }
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const docSnap = await getDoc(userRef);
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+          } else {
+            setProfile(null); // No profile exists yet
+          }
+        } catch (error: any) {
+            console.error("Error fetching profile in AuthProvider:", error);
+            if (error.message?.includes("offline")) {
+                setIsOffline(true);
+            }
+            setProfile(null);
+        }
+      } else {
+        setProfile(null);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
-  
+
   const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
     if (!db) {
         toast({ title: "Connection Error", description: "Database not available. You might be offline.", variant: "destructive" });
@@ -62,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         perfectScores: 0,
         totalRewards: 0,
         profileCompleted: false,
+        guidedTourCompleted: false,
         phoneVerified: false,
         referralCode: `CricBlitz.com/ref/${(additionalData.name || user.displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
         referralEarnings: 0,
@@ -69,9 +112,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
+      setProfile(newUserProfile);
       return newUserProfile;
+    } else {
+      const profileData = docSnap.data();
+      setProfile(profileData);
+      return profileData;
     }
-    return docSnap.data();
   }, [toast]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
@@ -128,6 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     await signOut(auth);
+    setProfile(null);
     toast({ title: "Signed Out", description: "You have been logged out successfully." });
   }, [toast]);
 
@@ -137,6 +185,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const dataToUpdate = sanitizeUserProfile({...newData, updatedAt: serverTimestamp()});
         await updateDoc(userDocRef, dataToUpdate);
+        // Optimistically update local profile state
+        setProfile((prevProfile: any) => ({ ...prevProfile, ...newData }));
     } catch (error) {
         console.error("Update user data failed:", error);
         toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
@@ -168,14 +218,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, toast]);
   
-  const handleMalpractice = useCallback(async (currentProfile: any): Promise<number> => {
-    if (!user || !currentProfile || !db) return 0;
+  const handleMalpractice = useCallback(async (): Promise<number> => {
+    if (!user || !profile || !db) return 0;
     
     const userRef = doc(db, 'users', user.uid);
     const today = new Date().setHours(0, 0, 0, 0);
-    const lastNoBallDay = currentProfile.lastNoBallTimestamp ? new Date(currentProfile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
+    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
     
-    let newNoBallCount = currentProfile.noBallCount || 0;
+    let newNoBallCount = profile.noBallCount || 0;
 
     if (lastNoBallDay !== today) {
       newNoBallCount = 1;
@@ -188,11 +238,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: serverTimestamp()
     };
     
-    await updateDoc(userRef, updatedProfileData);
+    await updateUserData(updatedProfileData);
     return newNoBallCount;
-  }, [user]);
+  }, [user, profile, updateUserData]);
 
-  const value = { user, loading, logout, signInWithGoogle, registerWithEmail, loginWithEmail, updateUserData, addQuizAttempt, handleMalpractice };
+  const setLastAttempt = useCallback((attempt: QuizAttempt | null) => {
+    // This is now just a placeholder if needed elsewhere, but QuizStatusProvider handles the real logic
+  }, []);
+
+  const value = { 
+    user, 
+    loading, 
+    profile, 
+    isProfileComplete: profile?.profileCompleted || false,
+    logout, 
+    signInWithGoogle, 
+    registerWithEmail, 
+    loginWithEmail, 
+    updateUserData, 
+    addQuizAttempt, 
+    handleMalpractice,
+    setLastAttempt,
+    isOffline
+  };
 
   return (
     <AuthContext.Provider value={value}>
