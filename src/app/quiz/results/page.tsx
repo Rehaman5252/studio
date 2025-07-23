@@ -79,8 +79,8 @@ function ResultsComponent() {
                 router.replace('/home');
             }
         } else {
-            const timer = setTimeout(() => router.replace('/home'), 2000);
-            return () => clearTimeout(timer);
+            // If no data, redirect home without delay
+            router.replace('/home');
         }
     }, [searchParams, router]);
     

@@ -58,7 +58,7 @@ const QuizSelectionComponent = () => {
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 4500); // Slower rotation
+        }, 750); // Rotate to a new face every 750ms (4.5s for all 6)
 
         return () => clearInterval(rotationInterval);
     }, []);
