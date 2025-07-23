@@ -101,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // This case might happen for a brand new user.
           // The createUserDocument function should handle creation.
           console.log("User document not found, may be created shortly.");
+          createUserDocument(user);
         }
       }, (error) => {
         console.error("Profile snapshot error:", error);
@@ -143,8 +144,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
-        // The onAuthStateChanged listener will handle creating the document.
-        // We just need to ensure the verification email is sent.
         await sendEmailVerification(userCredential.user);
         await createUserDocument(userCredential.user, { name, phone, referralCode });
         return userCredential.user;
@@ -195,7 +194,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    if (!user || !isFirebaseConfigured || !firestore) throw new Error("User not authenticated or database not available.");
+    if (!user || !isFirebaseConfigured || !firestore) {
+        throw new Error("User not authenticated or database not available.");
+    }
     const userDocRef = doc(firestore, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
@@ -241,5 +242,3 @@ export function useAuth() {
   if (!c) throw new Error("useAuth must be used within AuthProvider");
   return c;
 }
-
-    

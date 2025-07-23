@@ -89,12 +89,17 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
-    const user = await registerWithEmail(data.name, data.email, data.phone, data.password, data.referralCode);
-    if (user) {
-      toast({ title: 'Account Created!', description: 'Please check your email (including spam/all folders) to verify your account.' });
-      router.push(`/auth/verify-email?from=${from || '/home'}`);
+    try {
+        const user = await registerWithEmail(data.name, data.email, data.phone, data.password, data.referralCode);
+        if (user) {
+          toast({ title: 'Account Created!', description: 'Please check your email (including spam/all folders) to verify your account.' });
+          router.push(`/auth/verify-email?from=${from || '/home'}`);
+        }
+    } catch (error) {
+        console.error("Signup failed:", error);
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const isAuthDisabled = isLoading || isGoogleLoading;
