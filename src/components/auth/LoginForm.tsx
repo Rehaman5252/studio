@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,8 +15,9 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
-import { isFirebaseConfigured } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
+import { doc, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -39,7 +40,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { loginWithEmail, signInWithGoogle, isProfileComplete } = useAuth();
+  const { loginWithEmail, signInWithGoogle } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -52,9 +53,16 @@ export default function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
+  
+  const checkProfileComplete = async (userId: string) => {
+    if (!db) return false;
+    const docRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() && docSnap.data().profileCompleted;
+  };
 
-  const handleSuccessfulLogin = (isComplete: boolean) => {
-    toast({ title: "Signed In", description: "Welcome back!" });
+  const handleSuccessfulLogin = async (userId: string) => {
+    const isComplete = await checkProfileComplete(userId);
     if (from) {
         router.replace(from);
     } else {
@@ -71,7 +79,7 @@ export default function LoginForm() {
             toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
             router.push(`/auth/verify-email?from=${from || '/home'}`);
           } else {
-            handleSuccessfulLogin(isProfileComplete);
+            await handleSuccessfulLogin(user.uid);
           }
         }
     } catch (error) {
@@ -86,7 +94,7 @@ export default function LoginForm() {
     try {
         const user = await signInWithGoogle();
         if (user) {
-            handleSuccessfulLogin(isProfileComplete);
+            await handleSuccessfulLogin(user.uid);
         }
     } catch(error) {
         console.error("Google login failed in component", error);
@@ -104,7 +112,7 @@ export default function LoginForm() {
         <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        {!isFirebaseConfigured ? (
+        {!isFirebaseConfigured || !db ? (
           <FirebaseConfigWarning />
         ) : (
           <>

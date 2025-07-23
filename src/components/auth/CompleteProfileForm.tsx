@@ -15,6 +15,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -69,44 +71,55 @@ const ProfileFormSkeleton = () => (
 
 export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: () => void }) {
     const router = useRouter();
-    const { user, profile, updateUserData, loading } = useAuth();
+    const { user, updateUserData, loading } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    const isProfileComplete = profile?.profileCompleted || false;
+    const [profile, setProfile] = useState<any>(null);
+    const [isFetchingProfile, setIsFetchingProfile] = useState(true);
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: '',
-            email: '',
-            phone: '',
-            dob: '',
-            gender: undefined,
-            occupation: undefined,
-            upi: '',
-            favoriteFormat: undefined,
-            favoriteTeam: '',
-            favoriteCricketer: '',
+            name: '', email: '', phone: '', dob: '', gender: undefined, occupation: undefined,
+            upi: '', favoriteFormat: undefined, favoriteTeam: '', favoriteCricketer: '',
         },
     });
     
     useEffect(() => {
-        if (profile || user) {
-            form.reset({
-                name: profile?.name || user?.displayName || '',
-                email: profile?.email || user?.email || '',
-                phone: profile?.phone || '',
-                dob: profile?.dob || '',
-                gender: profile?.gender || '',
-                occupation: profile?.occupation || '',
-                upi: profile?.upi || '',
-                favoriteFormat: profile?.favoriteFormat || '',
-                favoriteTeam: profile?.favoriteTeam || '',
-                favoriteCricketer: profile?.favoriteCricketer || '',
-            });
+      async function fetchProfile() {
+        if (!user || !db) {
+          setIsFetchingProfile(false);
+          return;
         }
-    }, [profile, user, form]);
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setProfile(data);
+            form.reset({
+                name: data.name || user.displayName || '',
+                email: data.email || user.email || '',
+                phone: data.phone || '',
+                dob: data.dob?.toDate ? data.dob.toDate().toISOString().split('T')[0] : data.dob || '',
+                gender: data.gender || undefined,
+                occupation: data.occupation || undefined,
+                upi: data.upi || '',
+                favoriteFormat: data.favoriteFormat || undefined,
+                favoriteTeam: data.favoriteTeam || '',
+                favoriteCricketer: data.favoriteCricketer || '',
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching profile for form:", error);
+        } finally {
+          setIsFetchingProfile(false);
+        }
+      }
+      if (!loading) {
+        fetchProfile();
+      }
+    }, [user, loading, form]);
 
 
     const onSubmit = async (data: ProfileFormValues) => {
@@ -117,7 +130,7 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
 
         setIsSubmitting(true);
         try {
-            await updateUserData({ ...data, profileCompleted: true, updatedAt: new Date() });
+            await updateUserData({ ...data, profileCompleted: true });
             toast({ 
                 title: "Profile Saved!", 
                 description: "Your information has been updated successfully."
@@ -135,9 +148,11 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
         }
     };
 
-    if (loading) {
+    if (loading || isFetchingProfile) {
         return <ProfileFormSkeleton />;
     }
+    
+    const isProfileComplete = profile?.profileCompleted || false;
 
     return (
         <Card className="w-full max-w-lg relative">

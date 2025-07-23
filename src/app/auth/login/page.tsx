@@ -6,22 +6,31 @@ import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 
 export default function LoginPage() {
-  const { user, loading, isProfileComplete } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     // Only redirect if auth is not loading and user exists
     if (!loading && user) {
-       // Once logged in, redirect to home. The logic there will handle if profile is incomplete.
-       // It's better to centralize redirection logic on the target pages.
-       router.replace(isProfileComplete ? '/home' : '/walkthrough');
+       const checkProfileAndRedirect = async () => {
+         let isProfileComplete = false;
+         if (db) {
+            const docRef = doc(db, 'users', user.uid);
+            const docSnap = await getDoc(docRef);
+            isProfileComplete = docSnap.exists() && docSnap.data().profileCompleted;
+         }
+         router.replace(isProfileComplete ? '/home' : '/walkthrough');
+       };
+       checkProfileAndRedirect();
     }
-  }, [user, loading, router, isProfileComplete]);
+  }, [user, loading, router]);
 
   // Show a loader ONLY if we are in the process of redirecting
-  if (loading || (!loading && user)) {
+  if (loading || user) {
      return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

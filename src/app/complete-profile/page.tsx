@@ -1,14 +1,14 @@
 
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 import CompleteProfileForm from '@/components/auth/CompleteProfileForm';
 
 function CompleteProfilePageContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, updateUserData } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
@@ -18,15 +18,15 @@ function CompleteProfilePageContent() {
     }
   }, [user, loading, router]);
 
-  const handleSaveSuccess = useCallback(() => {
+  const handleSaveSuccess = () => {
     router.replace('/home');
-  }, [router]);
+  };
 
-  if (loading && !user) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading...</p>
+        <p className="mt-4 text-muted-foreground">Loading user data...</p>
       </div>
     );
   }

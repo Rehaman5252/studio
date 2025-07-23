@@ -3,71 +3,65 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/context/AuthProvider';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
 import { Settings, LogIn, Scale, WifiOff } from 'lucide-react';
-import { db } from '@/lib/firebaseClient';
+import { db, auth } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 function ProfilePageContent() {
-  const { user, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) {
-      return; 
-    }
-    
-    // If auth is done and there's no user, stop.
-    if (!user) {
-      setFetching(false);
-      return;
-    }
-    
-    // If db is not available (e.g. on server or client-side init failed)
-    if (!db) {
-        setError("Database connection is not available.");
-        setFetching(false);
-        return;
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        setError("");
+        try {
+          if (!db) {
+              setError("Database connection is not available. You might be offline.");
+              setLoading(false);
+              return;
+          }
+          const docRef = doc(db, "users", firebaseUser.uid);
+          const docSnap = await getDoc(docRef);
 
-    const fetchProfile = async () => {
-      setFetching(true);
-      setError("");
-      try {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfile(docSnap.data());
-        } else {
-          // This is a valid state - user is authenticated but has no profile document.
-          // This can happen if document creation failed during signup.
-          setProfile(null); 
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+          } else {
+            setError("No profile data found for your account.");
+          }
+        } catch (err: any) {
+          if (err.message?.includes("offline")) {
+            setError("You appear to be offline. Please check your internet connection.");
+          } else {
+            console.error("Error fetching profile:", err);
+            setError("A network error occurred while fetching your profile.");
+          }
+        } finally {
+          setLoading(false);
         }
-      } catch (err: any) {
-        if (err?.message?.includes("offline")) {
-          setError("You appear to be offline. Please check your internet connection.");
-        } else {
-          console.error("Error fetching profile:", err);
-          setError("A network error occurred while fetching your profile.");
-        }
-      } finally {
-        setFetching(false);
+      } else {
+        // No user is signed in
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
       }
-    };
+    });
 
-    fetchProfile();
-  }, [user, authLoading]); // Rerun this effect if the user or authLoading state changes.
-  
-  if (authLoading || fetching) {
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
     return (
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <ProfileSkeleton />
@@ -110,7 +104,7 @@ function ProfilePageContent() {
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <Alert variant="destructive">
           <WifiOff className="h-4 w-4" />
-          <AlertTitle>Connection Error</AlertTitle>
+          <AlertTitle>Could Not Load Profile</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </main>

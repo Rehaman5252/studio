@@ -5,26 +5,23 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { auth, db } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 
+// This new context will only handle the raw user and auth loading state.
+// Profile data fetching is moved to the components that need it.
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  // This will be deprecated in favor of component-level fetching
-  profile: Record<string, any> | null; 
-  isProfileComplete: boolean;
+  logout: () => Promise<void>;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
-  logout: () => Promise<void>;
-  updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
-  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
-  handleMalpractice: () => Promise<number>;
-  setLastAttempt: (attempt: QuizAttempt) => void;
-  isOffline: boolean; // Keep for offline UI banner
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>; // Kept for convenience
+  updateUserData: (data: Partial<Record<string, any>>) => Promise<void>; // Kept for convenience
+  handleMalpractice: (currentProfile: any) => Promise<number>; // Now requires profile passed in
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,27 +30,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Record<string, any> | null>(null); // Legacy profile state
-  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
-      console.error("Firebase is not configured. Auth will not work.");
-      setLoading(false);
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
-
+  
   const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
     if (!db) {
-        setIsOffline(true);
+        toast({ title: "Connection Error", description: "Database not available. You might be offline.", variant: "destructive" });
         throw new Error("Database not available");
     }
     const userRef = doc(db, 'users', user.uid);
@@ -82,17 +70,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       return newUserProfile;
-    } else {
-      return docSnap.data();
     }
-  }, []);
+    return docSnap.data();
+  }, [toast]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
-    if (!isFirebaseConfigured) return null;
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
         await handleUserDocument(result.user);
+        toast({ title: "Signed In", description: "Welcome back!" });
         return result.user;
     } catch (error: any) {
         if (error.code !== 'auth/popup-closed-by-user') {
@@ -104,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, handleUserDocument]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
-    if (!isFirebaseConfigured) return null;
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
@@ -126,9 +112,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, handleUserDocument]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
-    if (!isFirebaseConfigured) return null;
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
+      toast({ title: "Signed In", description: "Welcome back!" });
       return userCredential.user;
     } catch (error: any) {
       let description = 'An unexpected error occurred.';
@@ -142,7 +128,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     await signOut(auth);
-    setProfile(null);
     toast({ title: "Signed Out", description: "You have been logged out successfully." });
   }, [toast]);
 
@@ -152,10 +137,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const dataToUpdate = sanitizeUserProfile({...newData, updatedAt: serverTimestamp()});
         await updateDoc(userDocRef, dataToUpdate);
-        setProfile(prev => prev ? ({...prev, ...newData}) : newData); // Optimistic update
     } catch (error) {
         console.error("Update user data failed:", error);
         toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
+        throw error;
     }
   }, [user, toast]);
 
@@ -176,22 +161,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         batch.update(userRef, statsUpdate);
-        
         await batch.commit();
     } catch (error) {
         console.error("Add quiz attempt failed:", error);
         toast({ title: "Sync Error", description: "Could not save your quiz attempt to the database.", variant: 'destructive' });
     }
   }, [user, toast]);
-
-  const handleMalpractice = useCallback(async (): Promise<number> => {
-    if (!user || !profile || !db) return 0;
+  
+  const handleMalpractice = useCallback(async (currentProfile: any): Promise<number> => {
+    if (!user || !currentProfile || !db) return 0;
     
     const userRef = doc(db, 'users', user.uid);
     const today = new Date().setHours(0, 0, 0, 0);
-    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
+    const lastNoBallDay = currentProfile.lastNoBallTimestamp ? new Date(currentProfile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
     
-    let newNoBallCount = profile.noBallCount || 0;
+    let newNoBallCount = currentProfile.noBallCount || 0;
 
     if (lastNoBallDay !== today) {
       newNoBallCount = 1;
@@ -206,14 +190,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     await updateDoc(userRef, updatedProfileData);
     return newNoBallCount;
-  }, [user, profile]);
+  }, [user]);
 
-  const isProfileComplete = !!profile?.profileCompleted;
-
-  const value = {
-    user, loading, profile, isProfileComplete, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
-    handleMalpractice, isOffline, setLastAttempt: () => {}
-  };
+  const value = { user, loading, logout, signInWithGoogle, registerWithEmail, loginWithEmail, updateUserData, addQuizAttempt, handleMalpractice };
 
   return (
     <AuthContext.Provider value={value}>
@@ -223,7 +202,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export function useAuth() {
-  const c = useContext(AuthContext);
-  if (!c) throw new Error("useAuth must be used within AuthProvider");
-  return c;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
