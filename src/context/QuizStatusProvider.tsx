@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -37,7 +37,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     if (isAuthLoading) return;
     
     // If there's no user, there's no history to load.
-    const firestore = getFirebaseFirestore();
     if (!user || !firestore) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
