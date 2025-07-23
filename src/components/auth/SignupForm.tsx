@@ -7,16 +7,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { sendEmailVerification } from 'firebase/auth';
-import { Checkbox } from '@/components/ui/checkbox';
-import { getFirebaseAuth } from '@/lib/firebaseClient';
 import { useAuth } from '@/context/AuthProvider';
+import { isFirebaseConfigured } from '@/lib/firebaseClient';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -31,9 +30,7 @@ const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  terms: z.boolean().refine(val => val === true, { message: "You must accept the terms and conditions." }),
 });
-
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupForm() {
@@ -41,20 +38,20 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { signInWithGoogle } = useAuth();
+  const { signIn } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const form = useForm<SignupFormValues>({ resolver: zodResolver(signupSchema) });
+  const { register, handleSubmit, formState: { errors } } = useForm<SignupFormValues>({ resolver: zodResolver(signupSchema) });
 
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
-      await signInWithGoogle();
-      toast({ title: 'Account Created!', description: `Welcome!` });
-      router.replace('/complete-profile');
+        await signIn();
+        toast({ title: 'Account Created!', description: `Welcome!` });
+        router.replace('/complete-profile');
     } catch (error: any) {
     } finally {
         setIsGoogleLoading(false);
@@ -63,11 +60,7 @@ export default function SignupForm() {
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
-
     try {
-        const auth = getFirebaseAuth();
-        if (!auth) throw new Error("Firebase Auth not initialized");
-        
         const userCredential = await registerWithEmail(data.email, data.password, data.name);
         if (userCredential.user) {
             await sendEmailVerification(userCredential.user);
@@ -94,65 +87,43 @@ export default function SignupForm() {
   return (
     <Card className="w-full max-w-md shadow-2xl shadow-black/20">
       <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Join the Squad</CardTitle>
-        <CardDescription>Create an account to start your innings</CardDescription>
+        <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
+        <CardDescription>Enter your details to start your innings</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled}>
-            {isGoogleLoading ? (
-                <><Loader2 className="animate-spin mr-2" /> Signing Up...</>
-            ) : (
-                <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</>
-            )}
+        <Button variant="outline" className="w-full" onClick={onGoogleSignUp} disabled={isAuthDisabled || !isFirebaseConfigured}>
+            {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing Up...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
         </Button>
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div>
         </div>
         
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onEmailSignUp)} className="space-y-4">
-                <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="Sachin Tendulkar" {...field} disabled={isAuthDisabled} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="sachin@tendulkar.com" {...field} disabled={isAuthDisabled} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="password" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <div className="relative">
-                            <FormControl>
-                                <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} disabled={isAuthDisabled} />
-                            </FormControl>
-                            <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)} aria-label="Toggle password visibility">{showPassword ? <EyeOff /> : <Eye />}</Button>
-                        </div>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                
-                <FormField control={form.control} name="terms" render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
-                        <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isAuthDisabled} />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                            <FormLabel className="text-sm font-normal">
-                                I agree to the{' '}
-                                <Link href="/policies" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
-                                    Terms and Conditions
-                                </Link>
-                            </FormLabel>
-                            <FormMessage />
-                        </div>
-                    </FormItem>
-                )} />
-
-                <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                    {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Creating Account...</> ) : "Create Account"}
-                </Button>
-            </form>
-        </Form>
+        <form onSubmit={handleSubmit(onEmailSignUp)} className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" placeholder="Sachin Tendulkar" {...register('name')} disabled={isAuthDisabled} />
+                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="sachin@tendulkar.com" {...register('email')} disabled={isAuthDisabled} />
+                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                    <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...register('password')} disabled={isAuthDisabled} />
+                     <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3" onClick={() => setShowPassword(prev => !prev)} aria-label="Toggle password visibility">
+                        {showPassword ? <EyeOff /> : <Eye />}
+                     </Button>
+                </div>
+                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            </div>
+            <Button type="submit" className="w-full" disabled={isAuthDisabled || !isFirebaseConfigured}>
+                 {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Creating Account...</> ) : "Create Account"}
+            </Button>
+        </form>
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">

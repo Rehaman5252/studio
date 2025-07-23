@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Star } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -38,24 +39,18 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const MyNetworkLeaderboard = () => {
     const { user, profile, loading: authLoading } = useAuth();
+    const firebaseReady = useFirebaseReady();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
-        if (!user || !profile) {
+        if (authLoading || !firebaseReady || !user || !profile) {
             setIsLoading(false);
             return;
         }
 
         const fetchNetworkData = async () => {
-            const db = getFirebaseFirestore();
-            if (!db) {
-                setError("Firebase is not ready. You may be offline.");
-                setIsLoading(false);
-                return;
-            }
             setIsLoading(true);
             setError(null);
             
@@ -71,7 +66,7 @@ const MyNetworkLeaderboard = () => {
                     return;
                 }
                 
-                const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
+                const playerPromises = networkIds.map(id => getDoc(doc(firestore, 'users', id)));
                 const playerDocs = await Promise.all(playerPromises);
                 
                 const playersData: MyNetworkPlayer[] = playerDocs
@@ -104,11 +99,11 @@ const MyNetworkLeaderboard = () => {
 
         fetchNetworkData();
 
-    }, [user, profile, authLoading]);
+    }, [user, profile, authLoading, firebaseReady]);
 
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading || !firebaseReady) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (networkPlayers.length === 0) {
             return (

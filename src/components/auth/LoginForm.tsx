@@ -11,10 +11,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { loginWithEmail } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
-import { loginWithEmail } from '@/lib/authUtils';
+import { isFirebaseConfigured } from '@/lib/firebaseClient';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -37,7 +38,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { signInWithGoogle } = useAuth();
+  const { signIn } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -57,7 +58,7 @@ export default function LoginForm() {
       const userCredential = await loginWithEmail(data.email, data.password);
       if (!userCredential.user.emailVerified) {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
-        router.push(`/auth/verify-email?from=${encodeURIComponent(from || '/home')}`);
+        router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
         return;
       }
       toast({ title: "Signed In", description: "Welcome back!" });
@@ -78,9 +79,9 @@ export default function LoginForm() {
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      await signInWithGoogle();
-      toast({ title: "Signed In", description: `Welcome!` });
-      router.replace(from || '/home');
+        await signIn();
+        toast({ title: "Signed In", description: `Welcome back!` });
+        router.replace(from || '/home');
     } catch (error) {
     } finally {
         setIsGoogleLoading(false);
@@ -92,11 +93,11 @@ export default function LoginForm() {
   return (
     <Card className="w-full max-w-md shadow-2xl shadow-black/20">
       <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Pad Up & Sign In</CardTitle>
-        <CardDescription>Enter your credentials to get into the game</CardDescription>
+        <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+        <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
+        <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled || !isFirebaseConfigured}>
             {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
         </Button>
         <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div></div>
@@ -114,7 +115,7 @@ export default function LoginForm() {
                 </div>
                 {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={isAuthDisabled}>
+            <Button type="submit" className="w-full" disabled={isAuthDisabled || !isFirebaseConfigured}>
                 {isLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : "Sign In"}
             </Button>
         </form>

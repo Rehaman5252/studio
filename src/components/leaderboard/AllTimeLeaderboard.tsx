@@ -8,9 +8,10 @@ import { motion } from 'framer-motion';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff } from 'lucide-react';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthProvider';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -38,25 +39,19 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const AllTimeLeaderboard = () => {
     const { loading: authLoading } = useAuth();
+    const firebaseReady = useFirebaseReady();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
+        if (authLoading || !firebaseReady) return;
 
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Firebase is not ready. You may be offline.");
-            setIsLoading(false);
-            return;
-        }
-        
         const fetchAllTimePlayers = async () => {
             setIsLoading(true);
             try {
                 const q = query(
-                    collection(db, "users"),
+                    collection(firestore, "users"),
                     orderBy("perfectScores", "desc"),
                     limit(10)
                 );
@@ -83,10 +78,10 @@ const AllTimeLeaderboard = () => {
         };
 
         fetchAllTimePlayers();
-    }, [authLoading]);
+    }, [authLoading, firebaseReady]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading || !firebaseReady) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No legends yet. Score perfect quizzes to appear here!</p>;
 

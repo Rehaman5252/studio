@@ -7,10 +7,10 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban, WifiOff, ServerCrash, Loader2 } from 'lucide-react';
+import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { firestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
@@ -50,13 +50,6 @@ const LiveLeaderboard = () => {
     useEffect(() => {
         if (authLoading || !firebaseReady) return;
 
-        const db = getFirebaseFirestore();
-        if (!db) {
-            setError("Firebase is not available. You may be offline.");
-            setIsLoading(false);
-            return;
-        }
-
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
@@ -71,7 +64,7 @@ const LiveLeaderboard = () => {
                 ];
                 
                 if (user) {
-                    const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
+                    const q = query(collection(firestore, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
 
                     if (!userAttemptSnap.empty) {
