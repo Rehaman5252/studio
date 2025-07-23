@@ -58,7 +58,8 @@ function QuizComponent() {
         setQuestions(quizData.questions);
         setUserAnswers(new Array(quizData.questions.length).fill(null));
         setQuestionStartTime(Date.now());
-        setQuizState('playing');
+        // A small timeout to make the loading feel intentional
+        setTimeout(() => setQuizState('playing'), 1500);
       } catch (error) {
         console.error("Failed to generate quiz:", error);
         toast({ title: 'Error', description: 'Could not load quiz. Please try again.', variant: 'destructive' });

@@ -4,9 +4,8 @@
 import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Trophy, Home, Info } from 'lucide-react';
+import { Trophy, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ResultsSummaryCardProps {
     isReview: boolean;
@@ -26,17 +25,6 @@ const ResultsSummaryCardComponent = ({
 }: ResultsSummaryCardProps) => (
     <div className="w-full max-w-md">
         <Card className="w-full text-center bg-card border-0 my-4">
-            {isReview && (
-                <div className="p-4 pt-6 text-left">
-                    <Alert variant="default" className="border-primary bg-primary/10">
-                        <Info className="h-4 w-4 text-primary" />
-                        <AlertTitle>Reviewing Previous Innings</AlertTitle>
-                        <AlertDescription className="text-foreground/80">
-                            This is the scorecard from your last attempt in this slot.
-                        </AlertDescription>
-                    </Alert>
-                </div>
-            )}
             <CardHeader className={cn(isReview && "pt-2")}>
                 <div className="mx-auto bg-primary/20 p-4 rounded-full w-fit mb-4">
                     <Trophy className="h-12 w-12 text-primary" />

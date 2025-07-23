@@ -8,13 +8,15 @@ import type { Ad } from '@/lib/ads';
 import { adLibrary } from '@/lib/ads';
 import { Button } from '@/components/ui/button';
 import { AdDialog } from '@/components/AdDialog';
-import { Home, Loader2, AlertTriangle } from 'lucide-react';
+import { Home, Loader2, AlertTriangle, Info } from 'lucide-react';
 import { ResultsSummaryCard } from '@/components/quiz/ResultsSummaryCard';
 import { Certificate } from '@/components/quiz/Certificate';
 import { AnalysisCard } from '@/components/quiz/AnalysisCard';
 import { AnswerReview } from '@/components/quiz/AnswerReview';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
 
 const MalpracticeScreen = memo(() => {
     const router = useRouter();
@@ -49,7 +51,7 @@ MalpracticeScreen.displayName = "MalpracticeScreen";
 const ResultsLoader = () => (
     <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Calculating your score...</p>
+        <p className="mt-4 text-muted-foreground">The third umpire is reviewing the results...</p>
     </div>
 );
 
@@ -65,6 +67,8 @@ function ResultsComponent() {
 
     useEffect(() => {
         const attemptDataString = searchParams.get('attempt');
+        const reason = searchParams.get('reason');
+
         if (attemptDataString) {
             try {
                 const decodedString = Buffer.from(decodeURIComponent(attemptDataString), 'base64').toString('utf-8');
@@ -74,14 +78,18 @@ function ResultsComponent() {
                 console.error("Failed to parse attempt data from URL:", error);
                 router.replace('/home');
             }
-        } else if (searchParams.get('reason')) {
+        } else if (reason === 'malpractice') {
              setFinalAttempt({ reason: 'malpractice' } as any);
+        } else {
+            // If no data, redirect home after a moment
+            const timer = setTimeout(() => router.replace('/home'), 2000);
+            return () => clearTimeout(timer);
         }
     }, [searchParams, router]);
     
     const { isReview, reason, today, questions, userAnswers, brand, format, timePerQuestion, usedHintIndices, score, totalQuestions, slotId, timestamp, isPerfectScore, slotTimings } = useMemo(() => {
         const isReview = searchParams.get('review') === 'true';
-        const reason = finalAttempt?.reason || searchParams.get('reason');
+        const reason = finalAttempt?.reason;
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
         const { questions = [], userAnswers = [], brand = 'N/A', format = 'N/A', timePerQuestion = [], usedHintIndices = [], score = 0, slotId = '', timestamp: attemptTimestamp } = finalAttempt || {};
@@ -153,6 +161,17 @@ function ResultsComponent() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="flex flex-col items-center min-h-screen bg-background text-foreground p-4 overflow-y-auto"
             >
+                {isReview && (
+                    <div className="w-full max-w-md pt-4">
+                        <Alert variant="default" className="border-primary bg-primary/10">
+                            <Info className="h-4 w-4 text-primary" />
+                            <AlertTitle>Reviewing Previous Innings</AlertTitle>
+                            <AlertDescription className="text-foreground/80">
+                                This is the scorecard from your last attempt in this slot.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                )}
                 <ResultsSummaryCard
                   isReview={isReview}
                   format={format}
