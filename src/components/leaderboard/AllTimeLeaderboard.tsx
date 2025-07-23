@@ -8,8 +8,9 @@ import { motion } from 'framer-motion';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff } from 'lucide-react';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthProvider';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -36,12 +37,16 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const AllTimeLeaderboard = () => {
+    const { loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!isFirebaseReady()) {
+        if (authLoading) return;
+
+        const db = getFirebaseFirestore();
+        if (!db) {
             setError("Firebase is not ready. You may be offline.");
             setIsLoading(false);
             return;
@@ -78,10 +83,10 @@ const AllTimeLeaderboard = () => {
         };
 
         fetchAllTimePlayers();
-    }, []);
+    }, [authLoading]);
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No legends yet. Score perfect quizzes to appear here!</p>;
 

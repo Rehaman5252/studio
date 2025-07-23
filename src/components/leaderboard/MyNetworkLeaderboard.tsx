@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -37,19 +37,21 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const MyNetworkLeaderboard = () => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (authLoading) return;
         if (!user || !profile) {
             setIsLoading(false);
             return;
         }
 
         const fetchNetworkData = async () => {
-            if (!isFirebaseReady()) {
+            const db = getFirebaseFirestore();
+            if (!db) {
                 setError("Firebase is not ready. You may be offline.");
                 setIsLoading(false);
                 return;
@@ -102,11 +104,11 @@ const MyNetworkLeaderboard = () => {
 
         fetchNetworkData();
 
-    }, [user, profile]);
+    }, [user, profile, authLoading]);
 
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (networkPlayers.length === 0) {
             return (

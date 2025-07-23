@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
@@ -40,14 +40,17 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = () => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!isFirebaseReady()) {
-            setError("Firebase is not ready. You may be offline.");
+        if (authLoading) return; // Wait for auth to be ready
+
+        const db = getFirebaseFirestore();
+        if (!db) {
+            setError("Firebase is not available. You may be offline.");
             setIsLoading(false);
             return;
         }
@@ -100,10 +103,10 @@ const LiveLeaderboard = () => {
             }
         };
         fetchLivePlayers();
-    }, [user, profile]);
+    }, [user, profile, authLoading]);
 
     const renderContent = () => {
-        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         

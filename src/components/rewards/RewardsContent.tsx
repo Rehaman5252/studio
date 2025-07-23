@@ -9,7 +9,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -19,6 +19,31 @@ const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
         <Skeleton className="w-full h-full rounded-2xl" />
     </div>
+);
+
+const RewardsSkeleton = () => (
+  <div className="space-y-8">
+      <section>
+        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
+        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+            <CarouselContent className="-ml-4">
+                {[...Array(3)].map((_, index) => (
+                    <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                        <ScratchCardSkeleton />
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+        <div className="space-y-4">
+          <Skeleton className="h-[96px] w-full" />
+          <Skeleton className="h-[96px] w-full" />
+        </div>
+      </section>
+  </div>
 );
 
 const ErrorState = ({ message }: { message: string }) => (
@@ -100,7 +125,8 @@ const BrandGifts = () => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
-    if (!isFirebaseReady()) {
+    const db = getFirebaseFirestore();
+    if (!db) {
         setError("Firebase not available.");
         setLoading(false);
         return;
