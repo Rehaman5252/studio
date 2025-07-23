@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, isFirebaseOnline, getFirebaseFirestore } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, isFirebaseOnline, firestore } from '@/lib/firebaseClient';
 import { useEffect, useState } from 'react';
 
 export default function FirebaseTestPage() {
@@ -15,7 +15,7 @@ export default function FirebaseTestPage() {
   useEffect(() => {
     isFirebaseOnline().then(setIsOnline);
     try {
-        setDbStatus(!!getFirebaseFirestore());
+        setDbStatus(!!firestore);
     } catch (e) {
         setDbStatus(false);
     }

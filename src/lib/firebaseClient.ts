@@ -17,7 +17,41 @@ const firebaseConfig = {
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
 // Initialize Firebase
-const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app: FirebaseApp = isFirebaseConfigured ? (getApps().length ? getApp() : initializeApp(firebaseConfig)) : {} as FirebaseApp;
 
-export const auth: Auth = getAuth(app);
-export const firestore: Firestore = getFirestore(app);
+let authInstance: Auth;
+let firestoreInstance: Firestore;
+
+try {
+  authInstance = isFirebaseConfigured ? getAuth(app) : {} as Auth;
+  firestoreInstance = isFirebaseConfigured ? getFirestore(app) : {} as Firestore;
+} catch (e) {
+  console.error("Firebase initialization failed:", e);
+  authInstance = {} as Auth;
+  firestoreInstance = {} as Firestore;
+}
+
+export const auth: Auth = authInstance;
+export const firestore: Firestore = firestoreInstance;
+
+export const isFirebaseOnline = async (): Promise<boolean> => {
+    if (!isFirebaseConfigured || !firestore) {
+        return false;
+    }
+    try {
+        // A simple "get" operation on a non-existent doc to check connectivity.
+        // This is a lightweight way to test the connection without enabling persistence.
+        const nonExistentDocRef = doc(firestore, 'health-check/status');
+        await getDoc(nonExistentDocRef);
+        return true;
+    } catch (error: any) {
+        // 'unavailable' is a common code for network issues.
+        if (error.code === 'unavailable') {
+            return false;
+        }
+        // It might be another error, but for the purpose of a simple online check,
+        // we can treat most errors as an "offline" or "unreachable" state.
+        console.warn("Firebase connectivity check failed:", error.code);
+        return false;
+    }
+};

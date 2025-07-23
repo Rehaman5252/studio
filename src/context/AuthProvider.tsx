@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, increment, Timestamp, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
-import { auth, firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, increment, Timestamp, writeBatch, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { auth, firestore, isFirebaseConfigured, isFirebaseOnline } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
-  loading: boolean; // This will now represent only the initial auth check
+  loading: boolean;
   isOffline: boolean;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
@@ -33,12 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true); // Represents initial auth state check
+  const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
   const createUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     
     const userRef = doc(firestore, 'users', user.uid);
     const docSnap = await getDoc(userRef);
@@ -71,62 +71,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isFirebaseConfigured) {
       console.warn("Firebase is not configured. Auth features will be disabled.");
       setLoading(false);
-      return () => {};
+      return;
     }
 
-    let unsubscribeProfile: () => void = () => {};
+    let profileUnsubscribe: (() => void) | null = null;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      unsubscribeProfile(); // Clean up old listener
+    const authUnsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      // Clean up previous profile listener if it exists
+      if (profileUnsubscribe) {
+        profileUnsubscribe();
+      }
 
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        if (!firestore) {
+      if (authUser) {
+        setUser(authUser);
+        const userDocRef = doc(firestore, 'users', authUser.uid);
+
+        // Set up a new listener for the current user's profile
+        profileUnsubscribe = onSnapshot(userDocRef, 
+          (docSnap) => {
+            setIsOffline(docSnap.metadata.fromCache);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.dob instanceof Timestamp) {
+                    data.dob = data.dob.toDate().toISOString().split('T')[0];
+                }
+                if (data.lastNoBallTimestamp instanceof Timestamp) {
+                    data.lastNoBallTimestamp = data.lastNoBallTimestamp.toMillis();
+                }
+                setProfile(data);
+            } else {
+                // This case handles a race condition where a user is created
+                // but their document doesn't exist yet. We create it.
+                createUserDocument(authUser);
+            }
             setLoading(false);
-            return;
-        }
-        const userDocRef = doc(firestore, "users", firebaseUser.uid);
-        
-        unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
-          setIsOffline(docSnap.metadata.fromCache);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data?.dob instanceof Timestamp) {
-                data.dob = data.dob.toDate().toISOString().split('T')[0];
-            }
-             if (data?.lastNoBallTimestamp instanceof Timestamp) {
-                data.lastNoBallTimestamp = data.lastNoBallTimestamp.toMillis();
-            }
-            if (firebaseUser.emailVerified !== data.emailVerified) {
-                await setDoc(userDocRef, { emailVerified: firebaseUser.emailVerified }, { merge: true });
-                data.emailVerified = firebaseUser.emailVerified;
-            }
-            setProfile(data);
-          } else {
-            await createUserDocument(firebaseUser);
-          }
-          setLoading(false);
-        }, (error) => {
-            console.error("Firestore Snapshot Error:", error);
+          }, 
+          (error) => {
+            console.error("Firestore onSnapshot error:", error);
             if (error.code === 'unavailable') {
                 setIsOffline(true);
             }
-            setProfile(null); // Clear profile on error
+            setProfile(null);
             setLoading(false);
-        });
+          }
+        );
       } else {
+        // No user is logged in
         setUser(null);
         setProfile(null);
         setLoading(false);
-        setIsOffline(false);
       }
     });
-    
+
+    // Cleanup function for when the AuthProvider unmounts
     return () => {
-      unsubscribeAuth();
-      unsubscribeProfile();
+      authUnsubscribe();
+      if (profileUnsubscribe) {
+        profileUnsubscribe();
+      }
     };
   }, [createUserDocument]);
+
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     const provider = new GoogleAuthProvider();
