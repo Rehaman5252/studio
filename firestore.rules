@@ -1,22 +1,18 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // This rule is a placeholder for a potential future dedicated leaderboard collection.
-    match /leaderboard/{docId} {
-      allow read: if true; 
-      allow write: if false; 
-    }
-
-    // This rule allows anyone to read user profiles (for names, avatars on leaderboards)
-    // but only lets the authenticated user write to their own document.
+    // Allow public read access on the users collection for the All-Time Leaderboard.
+    // Writes are restricted to the authenticated user modifying their own document.
     match /users/{userId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // This rule allows anyone to read quiz attempts (for live leaderboards)
-      // but only lets the authenticated user write their own attempts.
+      // Allow public read access on the quizAttempts subcollection for the
+      // Live Leaderboard's collection group query.
+      // Writes are restricted to the authenticated user.
       match /quizAttempts/{attemptId} {
         allow read: if true;
         allow write: if request.auth != null && request.auth.uid == userId;
