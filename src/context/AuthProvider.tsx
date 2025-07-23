@@ -80,11 +80,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const auth = getFirebaseAuth();
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      if (!firebaseUser) {
-        setLoading(false);
-        setProfile(null);
-      }
+        setLoading(true); // Set loading to true whenever auth state might change
+        setUser(firebaseUser);
+        if (!firebaseUser) {
+            setLoading(false);
+            setProfile(null);
+        }
     });
 
     return () => unsubscribeAuth();
@@ -93,36 +94,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubscribeProfile: () => void = () => {};
 
-    if (user && isFirebaseConfigured) {
-      const firestore = getFirebaseFirestore();
-      const userDocRef = doc(firestore, "users", user.uid);
-      unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data?.dob instanceof Timestamp) {
-            data.dob = data.dob.toDate().toISOString().split('T')[0];
-          }
-          
-          if (user.emailVerified !== data.emailVerified) {
-             try {
-                await setDoc(userDocRef, { emailVerified: user.emailVerified }, { merge: true });
-                data.emailVerified = user.emailVerified;
-             } catch (e) {
-                console.warn("Failed to sync email verification status:", e);
-             }
-          }
-
-          setProfile(data);
-        } else {
-          console.log("User document not found, creating one...");
-          await createUserDocument(user);
-        }
-        setLoading(false); 
-      }, (error) => {
-        console.error("Profile snapshot error:", error);
+    if (user) {
+        const firestore = getFirebaseFirestore();
+        const userDocRef = doc(firestore, "users", user.uid);
+        unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data?.dob instanceof Timestamp) {
+                    data.dob = data.dob.toDate().toISOString().split('T')[0];
+                }
+                if (user.emailVerified !== data.emailVerified) {
+                    try {
+                        await setDoc(userDocRef, { emailVerified: user.emailVerified }, { merge: true });
+                        data.emailVerified = user.emailVerified;
+                    } catch (e) {
+                        console.warn("Failed to sync email verification status:", e);
+                    }
+                }
+                setProfile(data);
+            } else {
+                await createUserDocument(user, { 
+                    name: user.displayName, 
+                    email: user.email, 
+                    photoURL: user.photoURL 
+                });
+            }
+            setLoading(false);
+        }, (error) => {
+            console.error("Profile snapshot error:", error);
+            setProfile(null);
+            setLoading(false);
+        });
+    } else {
+        // No user, so no profile to listen to.
         setProfile(null);
-        setLoading(false); 
-      });
+        setLoading(false);
     }
     
     return () => unsubscribeProfile();
@@ -138,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
-        await createUserDocument(result.user);
+        // The useEffect hook will handle creating the document
         return result.user;
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') {
@@ -160,6 +166,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
+        // The useEffect hook will now handle creating the document when the new user is set.
+        // We can pass the phone number and referral code through a temporary solution or rely on profile completion.
+        // For now, let's create the doc immediately after creation for signup-specific data.
         await createUserDocument(userCredential.user, { name, phone, referralCode });
         await sendEmailVerification(userCredential.user);
         return userCredential.user;
