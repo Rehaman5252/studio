@@ -61,7 +61,6 @@ const LiveLeaderboard = () => {
                     collectionGroup(db, 'quizAttempts'), 
                     where("slotId", "==", slotId),
                     orderBy("score", "desc"),
-                    orderBy("timePerQuestion"), // This needs an array of numbers to work correctly
                     limit(50)
                 );
 
