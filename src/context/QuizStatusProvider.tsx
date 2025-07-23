@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -32,27 +31,21 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    // Don't fetch until auth state is known
-    if (isAuthLoading) return;
-    
-    // No user, no history to fetch
-    if (!user) {
-        setIsHistoryLoading(false);
-        setLastAttemptInSlot(null);
-        return;
+    if (isAuthLoading || !user) {
+      setIsHistoryLoading(false);
+      return;
     }
-    
-    // Guard against running before Firebase is initialized on the client
-    if (!isFirebaseReady()) {
-        console.warn("Firebase not ready in QuizStatusProvider (offline or SSR)");
-        setIsHistoryLoading(false);
-        return;
+
+    if (!db) {
+      console.warn("QuizStatusProvider: Firestore not ready.");
+      setIsHistoryLoading(false);
+      return;
     }
     
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);
         try {
-            const historyDocRef = doc(db!, 'users', user.uid, 'quizAttempts', getQuizSlotId());
+            const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', getQuizSlotId());
             const docSnap = await getDoc(historyDocRef);
             if (docSnap.exists()) {
                 setLastAttemptInSlot(docSnap.data() as QuizAttempt);
@@ -61,7 +54,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
             }
         } catch (error: any) {
             if (error.code !== 'unavailable') {
-                console.error("Failed to fetch last quiz attempt:", error);
+              console.error("Failed to fetch last quiz attempt:", error);
             }
             setLastAttemptInSlot(null);
         } finally {

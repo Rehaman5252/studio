@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -9,15 +8,15 @@ import {
   type User,
   updateProfile,
 } from 'firebase/auth';
-import { auth, db, isFirebaseReady } from './firebaseClient';
+import { auth, db } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
-  if (!isFirebaseReady() || !user) return;
+  if (!db || !user) return;
 
-  const userDocRef = doc(db!, 'users', user.uid);
+  const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
 
   if (!snapshot.exists()) {
@@ -44,7 +43,6 @@ export async function createUserDocument(user: User, additionalData: Record<stri
     } catch (error) {
       console.error("Error creating user document:", error);
       toast({ title: "Error", description: "Could not initialize user profile.", variant: "destructive" });
-      throw error;
     }
   }
 }
@@ -52,7 +50,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  if (!isFirebaseReady()) {
+  if (!auth) {
     toast({ title: 'Authentication Error', description: 'Firebase is not available. Please try again.', variant: 'destructive' });
     return null;
   }
@@ -64,8 +62,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
   provider.setCustomParameters({ prompt: 'select_account' });
 
   try {
-    const result = await signInWithPopup(auth!, provider);
-    // Let the AuthProvider handle document creation via its onSnapshot listener
+    const result = await signInWithPopup(auth, provider);
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
@@ -86,7 +83,6 @@ export const registerWithEmail = async (email: string, password: string, name: s
     if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
-    // Let the AuthProvider handle document creation via its onSnapshot listener
     return userCredential;
 };
 
