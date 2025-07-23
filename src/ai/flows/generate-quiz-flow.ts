@@ -79,14 +79,14 @@ const generateQuizFlow = ai.defineFlow(
   async input => {
     const promptToUse = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
     const {output} = await promptToUse(input);
-    if (!output) {
-      throw new Error("The AI failed to generate quiz questions.");
+    if (!output || !output.questions || output.questions.length !== 5) {
+      throw new Error("The AI failed to generate a valid 5-question quiz.");
     }
     
-    // Validate that image URLs are provided for image questions
+    // Validate that image URLs are provided for image questions, with a robust fallback.
     const validatedQuestions = output.questions.map(q => {
-        if (q.questionType === 'image' && !q.imageUrl) {
-            // Fallback if the AI fails to provide an image URL
+        if (q.questionType === 'image' && (!q.imageUrl || q.imageUrl.trim() === '')) {
+            // Fallback if the AI fails to provide a valid image URL
             return {
                 ...q,
                 imageUrl: `https://placehold.co/600x400.png`

@@ -40,7 +40,7 @@ function QuizComponent() {
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
   const [adConfig, setAdConfig] = useState<any | null>(null);
   const [quizState, setQuizState] = useState<'loading' | 'playing' | 'ad' | 'submitting'>('loading');
-  const [isAnswerLocked, setIsAnswerLocked] = useState(false); // New lock state
+  const [isAnswerLocked, setIsAnswerLocked] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -84,7 +84,8 @@ function QuizComponent() {
         setQuestions(quizData.questions);
         setUserAnswers(new Array(quizData.questions.length).fill(null));
         setQuestionStartTime(Date.now());
-        setTimeout(() => setQuizState('playing'), 500);
+        setTimeLeft(20); // Reset timer for the first question
+        setQuizState('playing'); // Move to playing state immediately
       } catch (error) {
         console.error("Failed to generate quiz:", error);
         toast({ title: 'Error', description: 'Could not load quiz. Please try again.', variant: 'destructive' });
@@ -187,7 +188,7 @@ function QuizComponent() {
   }, [goToNextQuestion]);
 
   useEffect(() => {
-    if (quizState !== 'playing' || !questions || isAnswerLocked) return; // Check lock
+    if (quizState !== 'playing' || !questions || isAnswerLocked) return;
     if (timeLeft <= 0) { 
         handleAnswerSelect("Not Answered"); 
         return; 
@@ -256,7 +257,7 @@ function QuizComponent() {
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible || isAnswerLocked}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
-                <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={!selectedOption || isAnswerLocked}>
+                <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={isAnswerLocked}>
                     {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} <ChevronsRight className="ml-2" />
                 </Button>
             </div>
