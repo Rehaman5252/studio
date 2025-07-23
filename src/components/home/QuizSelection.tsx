@@ -44,19 +44,17 @@ const QuizSelectionComponent = () => {
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
     const [rotation, setRotation] = useState(faceRotations[0]);
-    const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
-        // This check is strict: if any attempt exists for this slotId, it's true.
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 4500 / 6); // 4.5 seconds for all 6 faces
+        }, 4500 / 6);
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -84,35 +82,32 @@ const QuizSelectionComponent = () => {
             setShowAuthAlert(true);
             return;
         }
-        if (hasPlayedInCurrentSlot) {
-            setShowSlotPlayedAlert(true);
+
+        // Strict enforcement of one attempt per slot
+        if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
+            const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+            const reasonParam = lastAttemptInSlot.reason ? `&reason=${lastAttemptInSlot.reason}` : '';
+            router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}${reasonParam}`);
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
         }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand, toast]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, lastAttemptInSlot, selectedBrand, toast]);
     
 
     const handleFaceClick = (brand: CubeBrand) => {
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
-            setCurrentFaceIndex(clickedIndex);
-            // This now calls the same logic, ensuring the "one attempt" rule is checked.
-            handleStartQuiz();
+            setRotation(faceRotations[clickedIndex]);
+            setSelectedBrand(brandData[clickedIndex]);
+            // Use a short delay to allow the cube to rotate before initiating the quiz start logic
+            setTimeout(() => {
+                handleStartQuiz();
+            }, 150);
         }
     };
 
     const handleBannerOrButtonClick = () => {
         handleStartQuiz();
-    };
-
-    const handleSlotAlertAction = () => {
-        if (lastAttemptInSlot?.reason === 'malpractice') {
-            router.push(`/quiz/results?reason=malpractice`);
-        } else if (lastAttemptInSlot) {
-            const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
-            router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`);
-        }
-        setShowSlotPlayedAlert(false);
     };
   
     const handleAuthAlertAction = () => {
@@ -156,28 +151,6 @@ const QuizSelectionComponent = () => {
                   onClick={handleBannerOrButtonClick}
                 />
             </div>
-
-             <AlertDialog open={showSlotPlayedAlert} onOpenChange={setShowSlotPlayedAlert}>
-                <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>
-                    {lastAttemptInSlot?.reason === 'malpractice' ? 'Slot Locked: Unfair Play' : 'Innings Already Played!'}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                    {lastAttemptInSlot?.reason === 'malpractice'
-                        ? "Your previous attempt in this slot was terminated due to unfair play (like switching tabs). You can review your attempt or try again in the next slot."
-                        : "You've already faced the bowler in this 10-minute over. Your scorecard is ready for review. You can step up to the crease again in the next slot!"
-                    }
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Go Back</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleSlotAlertAction}>
-                    {lastAttemptInSlot?.reason === 'malpractice' ? 'View Details' : 'View Scorecard'}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
             
             <AlertDialog open={showAuthAlert} onOpenChange={setShowAuthAlert}>
                 <AlertDialogContent>
