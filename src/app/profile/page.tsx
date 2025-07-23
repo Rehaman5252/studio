@@ -1,9 +1,6 @@
 
 "use client";
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { getUserProfile } from "@/lib/getUserProfile";
 import { motion } from 'framer-motion';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -11,38 +8,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { LogIn, ServerCrash, WifiOff } from 'lucide-react';
 import ProfileContent from "@/components/profile/ProfileContent";
+import { useAuth } from "@/context/AuthProvider";
 
 export default function ProfilePage() {
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const data = await getUserProfile(user.uid);
-          if (data) {
-            setProfile(data);
-          } else {
-            setError("No profile data found. Please complete your profile.");
-          }
-        } catch (err: any) {
-            if (err.message?.includes("offline")) {
-                setError("You appear to be offline. Please check your connection to view your profile.");
-            } else {
-                setError("An error occurred while loading your profile.");
-            }
-            console.error("Profile fetch error:", err);
-        }
-      } else {
-        setError("Please sign in to view your profile.");
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const { user, profile, loading, isOffline } = useAuth();
   
   const renderContent = () => {
     if (loading) {
@@ -53,39 +22,59 @@ export default function ProfilePage() {
       );
     }
 
-    if (error) {
+    if (!user) {
        return (
          <main className="flex-1 p-4 space-y-6 pb-20 flex items-center justify-center">
             <Alert variant="destructive" className="max-w-md">
-                {error.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-                <AlertTitle>Could Not Load Profile</AlertTitle>
+                <LogIn className="h-4 w-4" />
+                <AlertTitle>Not Signed In</AlertTitle>
                 <AlertDescription>
-                    {error}
-                     {error.includes("sign in") && (
-                        <Button asChild className="mt-4">
-                            <Link href="/auth/login?from=/profile"><LogIn className="mr-2"/> Sign In</Link>
-                        </Button>
-                    )}
-                    {error.includes("complete your profile") && (
-                        <Button asChild className="mt-4">
-                            <Link href="/complete-profile">Complete Profile</Link>
-                        </Button>
-                    )}
+                    Please sign in to view your profile.
+                    <Button asChild className="mt-4 w-full">
+                        <Link href="/auth/login?from=/profile"><LogIn className="mr-2"/> Sign In</Link>
+                    </Button>
                 </AlertDescription>
             </Alert>
          </main>
        );
     }
-    
-    if (profile) {
-       return (
-        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-            <ProfileContent userProfile={profile} />
-        </main>
-       );
-    }
 
-    return null;
+    if (isOffline && !profile) {
+        return (
+            <main className="flex-1 p-4 space-y-6 pb-20 flex items-center justify-center">
+                <Alert variant="destructive" className="max-w-md">
+                    <WifiOff className="h-4 w-4" />
+                    <AlertTitle>Could Not Load Profile</AlertTitle>
+                    <AlertDescription>
+                        You appear to be offline. Please check your connection to view your profile.
+                    </AlertDescription>
+                </Alert>
+            </main>
+        )
+    }
+    
+    if (!profile) {
+        return (
+            <main className="flex-1 p-4 space-y-6 pb-20 flex items-center justify-center">
+                <Alert variant="destructive" className="max-w-md">
+                    <ServerCrash className="h-4 w-4" />
+                    <AlertTitle>Profile Not Found</AlertTitle>
+                    <AlertDescription>
+                        No profile data was found. Please complete your profile to continue.
+                        <Button asChild className="mt-4 w-full">
+                            <Link href="/complete-profile">Complete Profile</Link>
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            </main>
+        )
+    }
+    
+    return (
+    <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+        <ProfileContent userProfile={profile} />
+    </main>
+    );
   }
 
   return (
