@@ -22,3 +22,9 @@ export interface MyNetworkPlayer extends Player {
     perfectScores: number;
     isReferrer: boolean;
 }
+
+export interface CurrentQuizLeaderboardDoc {
+    players: LivePlayer[];
+    lastUpdated: any; // Firestore Timestamp
+    slotId: string;
+}

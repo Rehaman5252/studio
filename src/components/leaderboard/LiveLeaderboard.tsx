@@ -1,20 +1,21 @@
 
 'use client';
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn, getQuizSlotId } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { QuizAttempt } from '@/lib/mockData';
 import { db } from '@/lib/firebase';
-import { collectionGroup, query, where, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import type { LivePlayer } from './leaderboardTypes';
+import type { LivePlayer, CurrentQuizLeaderboardDoc } from './leaderboardTypes';
+import { getQuizSlotId } from '@/lib/utils';
+
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -41,7 +42,7 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const LiveLeaderboard = () => {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -52,75 +53,33 @@ const LiveLeaderboard = () => {
         const fetchLivePlayers = async () => {
             setIsLoading(true);
             setError(null);
-            const slotId = getQuizSlotId();
+            
+            const currentSlotId = getQuizSlotId();
+            // This is the new, simpler query path
+            const leaderboardDocRef = doc(db, 'leaderboard', `slot_${currentSlotId}`);
+
             try {
-                // This is a collection group query. It requires a composite index in Firestore.
-                // If you see a 'permission-denied' or 'failed-precondition' error in the console,
-                // it will contain a link to create the index automatically.
-                const q = query(
-                    collectionGroup(db, 'quizAttempts'), 
-                    where("slotId", "==", slotId),
-                    orderBy("score", "desc"),
-                    limit(50)
-                );
+                const docSnap = await getDoc(leaderboardDocRef);
 
-                const snapshot = await getDocs(q);
-
-                if (snapshot.empty) {
+                if (docSnap.exists()) {
+                    const data = docSnap.data() as CurrentQuizLeaderboardDoc;
+                    const sortedPlayers = (data.players || [])
+                        .sort((a, b) => {
+                            if (a.disqualified && !b.disqualified) return 1;
+                            if (!a.disqualified && b.disqualified) return -1;
+                            if (a.score !== b.score) return b.score - a.score;
+                            return a.time - b.time;
+                        })
+                        .map((p, i) => ({ ...p, rank: i + 1 }));
+                    setPlayers(sortedPlayers);
+                } else {
+                    // Document doesn't exist for the current slot, which is a normal case
+                    // at the beginning of a slot before anyone has finished a quiz.
                     setPlayers([]);
-                    setIsLoading(false);
-                    return;
                 }
-
-                const attemptsData = snapshot.docs.map(doc => ({ ...doc.data(), path: doc.ref.path } as QuizAttempt & { path: string }));
-                
-                // Get user profiles for each attempt
-                const playerPromises = attemptsData.map(async (attempt) => {
-                    const userId = attempt.path.split('/')[1]; // Extracts user ID from path 'users/{userId}/quizAttempts/{slotId}'
-                    const userDoc = await getDoc(doc(db, 'users', userId));
-                    const userData = userDoc.data();
-                    const totalTime = Array.isArray(attempt.timePerQuestion) ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
-                    
-                    return {
-                        uid: userId,
-                        name: userData?.name || 'Anonymous',
-                        score: attempt.score,
-                        time: totalTime,
-                        avatar: userData?.photoURL,
-                        disqualified: !!attempt.reason?.startsWith('malpractice'),
-                    };
-                });
-                
-                let livePlayers = await Promise.all(playerPromises);
-                
-                // Add the current user to the list if they've played but are not in the top 50
-                if (user && !livePlayers.some(p => p.uid === user.uid)) {
-                    const userAttemptDoc = await getDoc(doc(db, 'users', user.uid, 'quizAttempts', slotId));
-                    if (userAttemptDoc.exists()) {
-                        const attempt = userAttemptDoc.data() as QuizAttempt;
-                         const totalTime = Array.isArray(attempt.timePerQuestion) ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
-                        livePlayers.push({
-                            uid: user.uid, name: profile?.name || 'You', score: attempt.score,
-                            time: totalTime,
-                            avatar: profile?.photoURL, disqualified: !!attempt.reason?.startsWith('malpractice')
-                        });
-                    }
-                }
-                
-                // Sort and rank the players
-                const sorted = livePlayers.sort((a, b) => {
-                    if (a.disqualified && !b.disqualified) return 1;
-                    if (!a.disqualified && b.disqualified) return -1;
-                    if (a.score !== b.score) return b.score - a.score;
-                    return a.time - b.time;
-                }).map((p, i) => ({ ...p, rank: i + 1 }));
-
-                setPlayers(sorted);
             } catch (e: any) {
                 if (e.code === 'unavailable') {
                   setError("You appear to be offline. Please check your connection to view the leaderboard.");
-                } else if (e.code === 'failed-precondition') {
-                    setError("A Firestore index is required for this query. Please check the console logs for a link to create it automatically in your Firebase console.");
                 } else {
                   setError("An error occurred while loading the leaderboard.");
                   console.error("Live Leaderboard Error: ", e);
@@ -129,16 +88,35 @@ const LiveLeaderboard = () => {
                 setIsLoading(false);
             }
         };
+        
         fetchLivePlayers();
-    }, [user, profile, authLoading]);
+        // Re-fetch every 30 seconds to get new data
+        const interval = setInterval(fetchLivePlayers, 30000);
+        return () => clearInterval(interval);
+
+    }, [authLoading]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
+        if (players.length === 0) return (
+            <p className="text-center text-muted-foreground p-4">
+                The current quiz is in progress. Results will appear here soon!
+            </p>
+        );
         
         return players.map((player) => (
-            <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex items-center p-2 rounded-lg", player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", player.disqualified && "opacity-60")}>
+            <motion.div 
+                key={player.uid} 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className={cn(
+                    "flex items-center p-2 rounded-lg", 
+                    player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", 
+                    player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", 
+                    player.disqualified && "opacity-60"
+                )}
+            >
                 <div className="w-8 text-center">{player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}</div>
                 <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
                 <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p>{!player.disqualified && <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>}</div>
