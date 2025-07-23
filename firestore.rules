@@ -1,17 +1,32 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allows any client to read user profiles and quiz attempts.
-    // This is necessary for the public leaderboards to function.
-    // Writes are still protected.
+
+    // Rules for the 'users' collection
     match /users/{userId} {
+      // Allow anyone to read user profiles for leaderboards, network info, etc.
       allow read: if true;
+      
+      // Allow a user to create their own profile document or update it.
+      // They cannot write to other users' profiles.
       allow write: if request.auth != null && request.auth.uid == userId;
 
+      // Rules for the 'quizAttempts' subcollection within each user document
       match /quizAttempts/{attemptId} {
+        // Allow anyone to read quiz attempts. This is REQUIRED for the 
+        // collectionGroup query used by the Live Leaderboard.
         allow read: if true;
+        
+        // Only the authenticated owner of the profile can write to their own quiz history.
         allow write: if request.auth != null && request.auth.uid == userId;
       }
+    }
+
+    // This rule is required for the Firestore health check to pass without errors.
+    // It allows reading a specific document for connectivity testing.
+    match /health-check/status {
+      allow read: if true;
     }
   }
 }
