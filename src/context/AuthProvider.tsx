@@ -53,6 +53,48 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
+    if (!db) {
+        toast({ title: "Connection Error", description: "Database not available. You might be offline.", variant: "destructive" });
+        throw new Error("Database not available");
+    }
+    const userRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(userRef);
+
+    if (!docSnap.exists()) {
+      const name = additionalData.name || user.displayName || 'New User';
+      const newUserProfile = {
+        uid: user.uid,
+        name: name,
+        email: user.email,
+        phone: additionalData.phone || '',
+        photoURL: user.photoURL || `https://placehold.co/100x100.png`,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        emailVerified: user.emailVerified,
+        referredBy: additionalData.referredBy || '',
+        quizzesPlayed: 0,
+        perfectScores: 0,
+        totalRewards: 0,
+        profileCompleted: false,
+        guidedTourCompleted: false,
+        phoneVerified: false,
+        referralCode: `cricblitz.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`.toLowerCase(),
+        referralEarnings: 0,
+        noBallCount: 0,
+        lastNoBallTimestamp: null,
+      };
+      await setDoc(userRef, sanitizeUserProfile(newUserProfile));
+      return newUserProfile;
+    } else {
+        // If user logs in with Google and doc exists, ensure their photoURL is updated from Google.
+        if (user.photoURL && user.photoURL !== docSnap.data().photoURL) {
+            await updateDoc(userRef, { photoURL: user.photoURL });
+        }
+      return docSnap.data();
+    }
+  }, [toast]);
+  
   useEffect(() => {
     if (firebaseLoading) {
         setProfileLoading(true);
@@ -95,49 +137,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribeProfile();
-  }, [firebaseUser, firebaseLoading]);
-
-  const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
-    if (!db) {
-        toast({ title: "Connection Error", description: "Database not available. You might be offline.", variant: "destructive" });
-        throw new Error("Database not available");
-    }
-    const userRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(userRef);
-
-    if (!docSnap.exists()) {
-      const name = additionalData.name || user.displayName || 'New User';
-      const newUserProfile = {
-        uid: user.uid,
-        name: name,
-        email: user.email,
-        phone: additionalData.phone || '',
-        photoURL: user.photoURL || `https://placehold.co/100x100.png`,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        emailVerified: user.emailVerified,
-        referredBy: additionalData.referredBy || '',
-        quizzesPlayed: 0,
-        perfectScores: 0,
-        totalRewards: 0,
-        profileCompleted: false,
-        guidedTourCompleted: false,
-        phoneVerified: false,
-        referralCode: `cricblitz.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`.toLowerCase(),
-        referralEarnings: 0,
-        noBallCount: 0,
-        lastNoBallTimestamp: null,
-      };
-      await setDoc(userRef, sanitizeUserProfile(newUserProfile));
-      return newUserProfile;
-    } else {
-        // If user logs in with Google and doc exists, ensure their photoURL is updated from Google.
-        if (user.photoURL && user.photoURL !== docSnap.data().photoURL) {
-            await updateDoc(userRef, { photoURL: user.photoURL });
-        }
-      return docSnap.data();
-    }
-  }, [toast]);
+  }, [firebaseUser, firebaseLoading, handleUserDocument]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     const provider = new GoogleAuthProvider();

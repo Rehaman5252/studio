@@ -15,7 +15,7 @@ import { auth } from '@/lib/firebase';
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user } = useAuth(); // Get the auth user object
     const { toast } = useToast();
-    const age = calculateAge(userProfile?.dob);
+    const age = userProfile?.dob ? calculateAge(new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]) : null;
     
     const isPhoneVerified = !!userProfile?.phoneVerified;
     const isEmailVerified = user?.emailVerified || false;

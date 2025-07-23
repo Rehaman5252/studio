@@ -39,8 +39,10 @@ export function maskUpi(upi?: string) {
 }
 
 export function calculateAge(dobString?: string): number | null {
-    if (!dobString || !/^\d{4}-\d{2}-\d{2}$/.test(dobString)) return null;
+    if (!dobString) return null;
     const birthDate = new Date(dobString);
+    if (isNaN(birthDate.getTime())) return null;
+
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const m = today.getMonth() - birthDate.getMonth();
