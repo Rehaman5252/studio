@@ -4,13 +4,14 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
+import { collection } from 'firebase/firestore';
 
 interface UserDataContextType {
   user: User | null; // This is the firebase auth user from the parent provider
@@ -121,6 +122,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
       } else {
+        // This case can happen for a brief moment when a new user signs up.
+        // handleUserDocument will create it, and the next snapshot will catch it.
         handleUserDocument(firebaseUser);
         setProfile(null);
       }
@@ -175,7 +178,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
         await updateProfile(user, { displayName: name });
-        // Pass the phone number here
         await handleUserDocument(user, { name, phone, referredBy: referralCode });
         await sendEmailVerification(user);
         return user;
@@ -195,7 +197,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
-      await handleUserDocument(userCredential.user);
+      // We don't need to call handleUserDocument here as the useEffect will fetch the existing profile.
       toast({ title: "Signed In", description: "Welcome back!" });
       return userCredential.user;
     } catch (error: any)
@@ -207,7 +209,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: 'Login Failed', description, variant: 'destructive' });
       return null;
     }
-  }, [toast, handleUserDocument]);
+  }, [toast]);
 
   const logout = useCallback(async () => {
     await signOut(auth);
@@ -272,9 +274,16 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: serverTimestamp()
     };
     
-    await updateUserData(updatedProfileData);
+    // We can't use updateUserData here because it would cause an infinite loop
+    // as updateUserData depends on this context. Direct update is necessary.
+    const sanitizedData = sanitizeUserProfile(updatedProfileData);
+    await updateDoc(userRef, sanitizedData);
+    
+    // Manually update local profile state to reflect change immediately
+    setProfile((prev: any) => ({ ...prev, ...updatedProfileData }));
+
     return newNoBallCount;
-  }, [firebaseUser, profile, updateUserData]);
+  }, [firebaseUser, profile, db]);
 
   const value = { 
     user: firebaseUser,

@@ -42,7 +42,6 @@ function QuizComponent() {
   const [quizState, setQuizState] = useState<'loading' | 'playing' | 'ad' | 'submitting'>('loading');
 
   useEffect(() => {
-    // Redirect if auth is loaded and there's no user
     if (!loading && !user) {
         router.replace('/auth/login?from=/quiz');
     }
@@ -50,10 +49,23 @@ function QuizComponent() {
 
 
   useEffect(() => {
-    if (!user) return; // Don't fetch quiz if no user
+    if (!user || !profile) return; 
 
+    // **Strict Daily Malpractice Lockout**
+    const today = new Date().setHours(0, 0, 0, 0);
+    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
+    if (profile.noBallCount >= 3 && lastNoBallDay === today) {
+        toast({
+            title: "Out for the Day!",
+            description: "You have received 3 No-Balls and cannot play until tomorrow.",
+            variant: "destructive",
+            duration: 5000,
+        });
+        router.replace('/home');
+        return;
+    }
+    
     // **Strict Slot Enforcement**
-    // If an attempt for this slot exists, redirect to the results immediately.
     if (lastAttemptInSlot) {
         toast({
             title: "Slot Already Played",
@@ -62,7 +74,7 @@ function QuizComponent() {
         const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
         const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
         router.replace(reviewUrl);
-        return; // Stop execution to prevent fetching a new quiz
+        return;
     }
 
     async function fetchQuiz() {
@@ -79,7 +91,7 @@ function QuizComponent() {
       }
     }
     fetchQuiz();
-  }, [format, router, toast, user, lastAttemptInSlot]);
+  }, [format, router, toast, user, lastAttemptInSlot, profile]);
 
   const submitQuiz = useCallback(async (currentAnswers: (string | null)[], reason?: 'malpractice' | 'time_up') => {
     if (!user || !questions || !addQuizAttempt) return;

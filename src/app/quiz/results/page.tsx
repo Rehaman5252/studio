@@ -85,6 +85,8 @@ function ResultsComponent() {
         } else if (lastAttemptInSlot) {
              setFinalAttempt(lastAttemptInSlot);
         } else {
+            // No attempt data in URL and no attempt found for the current slot.
+            // This can happen if a user bookmarks the page. Redirect home.
             router.replace('/home');
         }
     }, [searchParams, router, lastAttemptInSlot]);
