@@ -39,8 +39,8 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, isProfileComplete } = useAuth();
-    const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
+    const { user, isProfileComplete, lastAttemptInSlot } = useAuth();
+    const { isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     const { toast } = useToast();
     
@@ -78,7 +78,7 @@ const QuizSelectionComponent = () => {
             router.push(reviewUrl);
             toast({
                 title: "Slot Already Played",
-                description: "Showing your results for this slot.",
+                description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
             });
             return;
         }
@@ -149,7 +149,7 @@ const QuizSelectionComponent = () => {
                 <GlobalStats />
 
                 <StartQuizButton
-                  brandFormat={selectedBrand.format}
+                  brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
                   onClick={handleBannerOrButtonClick}
                   isDisabled={isQuizStatusLoading}
                   hasPlayed={hasPlayedInCurrentSlot}

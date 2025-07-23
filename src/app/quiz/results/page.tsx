@@ -59,7 +59,7 @@ const ResultsLoader = () => (
 function ResultsComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user } = useAuth();
+    const { user, lastAttemptInSlot } = useAuth();
     
     const [showAnswers, setShowAnswers] = useState(false);
     const [adConfig, setAdConfig] = useState<{ ad: Ad; onFinished: () => void; children?: React.ReactNode; } | null>(null);
@@ -76,13 +76,18 @@ function ResultsComponent() {
                 setFinalAttempt(attemptData);
             } catch (error) {
                 console.error("Failed to parse attempt data from URL:", error);
-                router.replace('/home');
+                if (lastAttemptInSlot) {
+                    setFinalAttempt(lastAttemptInSlot);
+                } else {
+                    router.replace('/home');
+                }
             }
+        } else if (lastAttemptInSlot) {
+             setFinalAttempt(lastAttemptInSlot);
         } else {
-            // If no data, redirect home without delay
             router.replace('/home');
         }
-    }, [searchParams, router]);
+    }, [searchParams, router, lastAttemptInSlot]);
     
     const isReview = useMemo(() => searchParams.get('review') === 'true', [searchParams]);
 
@@ -164,9 +169,9 @@ function ResultsComponent() {
                     <div className="w-full max-w-md pt-4">
                         <Alert variant="default" className="border-primary bg-primary/10">
                             <Info className="h-4 w-4 text-primary" />
-                            <AlertTitle>Reviewing Previous Innings</AlertTitle>
+                            <AlertTitle>Slot Already Played</AlertTitle>
                             <AlertDescription className="text-foreground/80">
-                                This is the scorecard from your last attempt in this slot.
+                                You can only play one quiz per slot. Showing your scorecard from the first attempt.
                             </AlertDescription>
                         </Alert>
                     </div>

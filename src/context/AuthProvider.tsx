@@ -10,12 +10,14 @@ import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
+import { getQuizSlotId } from '@/lib/utils';
 
 interface UserDataContextType {
   user: User | null; // This is the firebase auth user from the parent provider
   profile: any | null; 
   isProfileComplete: boolean;
   loading: boolean; // This now represents profile loading status
+  lastAttemptInSlot: QuizAttempt | null;
   logout: () => Promise<void>;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
@@ -23,7 +25,6 @@ interface UserDataContextType {
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
   updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
-  setLastAttempt: (attempt: QuizAttempt) => void;
   isOffline: boolean;
 }
 
@@ -36,7 +37,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<any | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
-  const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
+  const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -104,12 +105,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     if (!firebaseUser) {
         setProfile(null);
         setProfileLoading(false);
+        setLastAttemptInSlot(null);
         return;
     }
 
     if (!db) {
         console.error("Firestore (db) is not available, possibly due to SSR.");
-        // We don't set offline here because it could just be a server render
         setProfileLoading(false);
         return;
     }
@@ -120,23 +121,37 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
       } else {
-        // This case can happen briefly if a user signs up and the document hasn't been created yet.
-        // We call handleUserDocument to ensure it gets created.
         handleUserDocument(firebaseUser);
         setProfile(null);
       }
       setProfileLoading(false);
-      setIsOffline(false); // If we get data, we are online
+      setIsOffline(false);
     }, (error) => {
         console.error("Error fetching profile with onSnapshot:", error);
-        if (error.code === 'unavailable') { // Explicitly check for offline error
+        if (error.code === 'unavailable') {
             setIsOffline(true);
         }
         setProfile(null);
         setProfileLoading(false);
     });
 
-    return () => unsubscribeProfile();
+    const currentSlotId = getQuizSlotId();
+    const attemptDocRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', currentSlotId);
+    const unsubscribeAttempt = onSnapshot(attemptDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            setLastAttemptInSlot(docSnap.data() as QuizAttempt);
+        } else {
+            setLastAttemptInSlot(null);
+        }
+    }, (error) => {
+        console.warn("Could not listen to slot attempt:", error.message);
+        setLastAttemptInSlot(null);
+    });
+
+    return () => {
+        unsubscribeProfile();
+        unsubscribeAttempt();
+    };
   }, [firebaseUser, firebaseLoading, handleUserDocument]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
@@ -183,7 +198,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       await handleUserDocument(userCredential.user);
       toast({ title: "Signed In", description: "Welcome back!" });
       return userCredential.user;
-    } catch (error: any) {
+    } catch (error: any)
+    {
       let description = 'An unexpected error occurred.';
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           description = 'Invalid credentials. Please check your email and password.';
@@ -229,6 +245,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         
         batch.update(userRef, statsUpdate);
         await batch.commit();
+        setLastAttemptInSlot(attempt);
     } catch (error) {
         console.error("Add quiz attempt failed:", error);
         toast({ title: "Sync Error", description: "Could not save your quiz attempt to the database.", variant: 'destructive' });
@@ -271,7 +288,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     updateUserData, 
     addQuizAttempt, 
     handleMalpractice,
-    setLastAttempt,
+    lastAttemptInSlot,
     isOffline,
   };
 

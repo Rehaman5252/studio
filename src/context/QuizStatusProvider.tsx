@@ -13,64 +13,18 @@ interface QuizStatusContextType {
   playersPlaying: number;
   playersPlayed: number;
   totalWinners: number;
-  lastAttemptInSlot: QuizAttempt | null;
   isLoading: boolean;
 }
 
 const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undefined);
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: isAuthLoading } = useAuth();
+  const { loading: isAuthLoading } = useAuth();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
-  const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-
-  const isLoading = isAuthLoading || isHistoryLoading;
-  const currentSlotId = getQuizSlotId(); // Get current slot ID once per render cycle
-
-  useEffect(() => {
-    // If auth is still loading, do nothing.
-    if (isAuthLoading) {
-      return;
-    };
-    
-    // If no user is logged in or DB is not available, reset state and stop loading.
-    if (!user || !db) {
-        setIsHistoryLoading(false);
-        setLastAttemptInSlot(null);
-        return;
-    }
-    
-    const fetchLastAttempt = async () => {
-        setIsHistoryLoading(true);
-        if (typeof window !== "undefined") {
-            try {
-                // Fetch the specific document for the CURRENT slot.
-                const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', currentSlotId);
-                const docSnap = await getDoc(historyDocRef);
-                if (docSnap.exists()) {
-                    setLastAttemptInSlot(docSnap.data() as QuizAttempt);
-                } else {
-                    setLastAttemptInSlot(null);
-                }
-            } catch (error: any) {
-                console.warn("Could not fetch last quiz attempt:", error.message);
-                setLastAttemptInSlot(null);
-            } finally {
-                setIsHistoryLoading(false);
-            }
-        } else {
-            // Should not happen on client, but as a fallback.
-            setIsHistoryLoading(false);
-        }
-    }
-    fetchLastAttempt();
-    // Dependency array includes currentSlotId to refetch if the slot changes while the user is on the page.
-  }, [user, isAuthLoading, currentSlotId]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -110,8 +64,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     playersPlaying,
     playersPlayed,
     totalWinners,
-    lastAttemptInSlot,
-    isLoading,
+    isLoading: isAuthLoading,
   };
 
   return <QuizStatusContext.Provider value={value}>{children}</QuizStatusContext.Provider>;

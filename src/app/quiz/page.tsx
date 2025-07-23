@@ -21,7 +21,7 @@ import InterstitialLoader from '@/components/InterstitialLoader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function QuizComponent() {
-  const { user, loading, addQuizAttempt, setLastAttempt, handleMalpractice, profile } = useAuth();
+  const { user, loading, addQuizAttempt, handleMalpractice, profile, lastAttemptInSlot } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -52,13 +52,25 @@ function QuizComponent() {
   useEffect(() => {
     if (!user) return; // Don't fetch quiz if no user
 
+    // **Strict Slot Enforcement**
+    // If an attempt for this slot exists, redirect to the results immediately.
+    if (lastAttemptInSlot) {
+        toast({
+            title: "Slot Already Played",
+            description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
+        });
+        const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+        const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
+        router.replace(reviewUrl);
+        return; // Stop execution to prevent fetching a new quiz
+    }
+
     async function fetchQuiz() {
       try {
         const quizData = await generateQuiz({ format });
         setQuestions(quizData.questions);
         setUserAnswers(new Array(quizData.questions.length).fill(null));
         setQuestionStartTime(Date.now());
-        // A small timeout to make the loading feel intentional
         setTimeout(() => setQuizState('playing'), 500);
       } catch (error) {
         console.error("Failed to generate quiz:", error);
@@ -67,10 +79,10 @@ function QuizComponent() {
       }
     }
     fetchQuiz();
-  }, [format, router, toast, user]);
+  }, [format, router, toast, user, lastAttemptInSlot]);
 
   const submitQuiz = useCallback(async (currentAnswers: (string | null)[], reason?: 'malpractice' | 'time_up') => {
-    if (!user || !questions || !addQuizAttempt || !setLastAttempt) return;
+    if (!user || !questions || !addQuizAttempt) return;
     
     setQuizState('submitting');
     
@@ -97,16 +109,14 @@ function QuizComponent() {
         reason: reason === 'malpractice' ? `malpractice_${malpracticeCount}` : undefined,
     };
 
-    setLastAttempt(attemptData);
+    // Save attempt to the database
+    await addQuizAttempt(attemptData);
     
+    // Navigate to results page with the new attempt data
     const attemptDataString = Buffer.from(JSON.stringify(attemptData)).toString('base64');
     router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
-    addQuizAttempt(attemptData).catch(error => {
-        console.error("Error submitting quiz results to DB:", error);
-        toast({ title: 'Sync Error', description: 'Could not save your quiz results to your history.', variant: 'destructive' });
-    });
-  }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, toast, addQuizAttempt, setLastAttempt, handleMalpractice, profile?.noBallCount]);
+  }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, addQuizAttempt, handleMalpractice, profile?.noBallCount]);
 
   const goToNextQuestion = useCallback(() => {
     if (!questions) return;
@@ -195,7 +205,7 @@ function QuizComponent() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [quizState, submitQuiz, userAnswers]);
 
-  if (loading || !user) {
+  if (loading || !user || lastAttemptInSlot) {
     return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
