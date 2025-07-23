@@ -15,8 +15,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
-import { isFirebaseConfigured, auth } from '@/lib/firebaseClient';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { isFirebaseConfigured } from '@/lib/firebaseClient';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -39,7 +38,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { signIn } = useAuth();
+  const { loginWithEmail, signInWithGoogle } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -55,39 +54,27 @@ export default function LoginForm() {
 
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-      if (!userCredential.user.emailVerified) {
+    const user = await loginWithEmail(data.email, data.password);
+    if (user) {
+      if (!user.emailVerified) {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
-        return;
+      } else {
+        toast({ title: "Signed In", description: "Welcome back!" });
+        router.replace(from || '/home');
       }
-      toast({ title: "Signed In", description: "Welcome back!" });
-      router.replace(from || '/home');
-    } catch (error: any) {
-      let description = 'An unexpected error occurred.';
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-          description = 'Invalid credentials. Please check your email and password.';
-      } else if (error.code === 'auth/network-request-failed') {
-          description = 'You appear to be offline. Please check your connection.';
-      }
-      toast({ title: 'Login Failed', description, variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    try {
-        await signIn();
+    const user = await signInWithGoogle();
+    if (user) {
         toast({ title: "Signed In", description: `Welcome back!` });
         router.replace(from || '/home');
-    } catch (error) {
-        // Error is handled in AuthProvider's signIn function
-    } finally {
-        setIsGoogleLoading(false);
     }
+    setIsGoogleLoading(false);
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;

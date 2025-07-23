@@ -3,7 +3,7 @@
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
-import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, onSnapshot, writeBatch, increment, Timestamp, setDoc, getDoc } from 'firebase/firestore';
 import { auth, firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
@@ -11,7 +11,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-async function createUserDocument(user: User, additionalData = {}) {
+async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
   if (!user || !firestore) return;
   
   const userDocRef = doc(firestore, 'users', user.uid);
@@ -22,7 +22,7 @@ async function createUserDocument(user: User, additionalData = {}) {
     const newUserProfile = {
       uid: user.uid,
       email,
-      name: (additionalData as any).name || displayName || 'New User',
+      name: additionalData.name || displayName || 'New User',
       photoURL: photoURL || `https://placehold.co/100x100.png`,
       createdAt: new Date(),
       emailVerified: user.emailVerified,
@@ -49,7 +49,9 @@ interface AuthContextType {
   profile: Record<string, any> | null;
   loading: boolean;
   isOffline: boolean;
-  signIn: () => Promise<void>;
+  signInWithGoogle: () => Promise<User | null>;
+  registerWithEmail: (email: string, password: string, name: string) => Promise<User | null>;
+  loginWithEmail: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
   updateUserData?: (data: Partial<Record<string, any>>) => Promise<void>;
   addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
@@ -64,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
@@ -79,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(firebaseUser);
       if (!firebaseUser) {
         setProfile(null);
-        setLoading(false); // Auth state resolved, no user
+        setLoading(false);
       }
     });
 
@@ -89,11 +91,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user) {
       setLoading(false);
-      return; // No user to fetch profile for, stop loading.
+      return;
     }
     
-    // We have a user, now we listen for their profile.
-    // The loading state will be set to false inside this listener.
     const userDocRef = doc(firestore, "users", user.uid);
     const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
       if (docSnap.exists()) {
@@ -102,40 +102,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data.dob = data.dob.toDate().toISOString().split('T')[0];
         }
         setProfile(data);
-      } else {
-        // If profile doesn't exist, create it.
-        try {
-          await createUserDocument(user);
-        } catch(e) {
-          console.error("Failed to create user document on the fly", e);
-        }
       }
-      setLoading(false); // Profile loaded or created, stop loading.
+      setLoading(false);
     }, (error) => {
       console.error("Profile snapshot error:", error);
       setIsOffline(true);
-      setLoading(false); // Error occurred, stop loading.
+      setLoading(false);
     });
     
     return () => unsubProfile();
   }, [user]);
 
-  const signIn = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     const provider = new GoogleAuthProvider();
     try {
-        await signInWithPopup(auth, provider);
-        // onAuthStateChanged will handle the rest
+        const result = await signInWithPopup(auth, provider);
+        await createUserDocument(result.user);
+        return result.user;
     } catch (error: any) {
-        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-            console.warn('Google sign-in was cancelled by the user.');
-            toast({ title: 'Sign-in Cancelled', description: 'The sign-in process was cancelled.', variant: 'default' });
+        if (error.code === 'auth/popup-closed-by-user') {
+             toast({ title: 'Sign-in cancelled', description: 'You closed the sign-in window.' });
         } else {
             console.error("Google Sign-In Error:", error);
-            toast({ title: 'Sign-in Error', description: 'Could not sign in with Google. Please try again.', variant: 'destructive' });
+            toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
         }
+        return null;
     }
   }, [toast]);
   
+  const registerWithEmail = useCallback(async (email: string, password: string, name: string): Promise<User | null> => {
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName: name });
+        await createUserDocument(userCredential.user, { name });
+        await sendEmailVerification(userCredential.user);
+        return userCredential.user;
+    } catch (error: any) {
+        let description = 'An unexpected error occurred. Please try again.';
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'This email is already registered. Please log in instead.';
+        } else if (error.code === 'auth/weak-password') {
+            description = 'The password is too weak. Please use at least 6 characters.';
+        }
+        toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
+        return null;
+    }
+  }, [toast]);
+
+  const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+    try {
+      const userCredential = await firebaseSignInWithEmail(auth, email, password);
+      return userCredential.user;
+    } catch (error: any) {
+      let description = 'An unexpected error occurred.';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+          description = 'Invalid credentials. Please check your email and password.';
+      } else if (error.code === 'auth/network-request-failed') {
+          description = 'You appear to be offline. Please check your connection.';
+      }
+      toast({ title: 'Login Failed', description, variant: 'destructive' });
+      return null;
+    }
+  }, [toast]);
+
   const logout = useCallback(async () => {
     try {
         await signOut(auth);
@@ -173,9 +202,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isProfileComplete = !!profile?.profileCompleted;
 
   const value = useMemo(() => ({
-    user, profile, loading, isOffline, signIn, logout, updateUserData, addQuizAttempt,
+    user, profile, loading, isOffline, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
     lastAttempt, setLastAttempt, isProfileComplete
-  }), [user, profile, loading, isOffline, signIn, logout, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
+  }), [user, profile, loading, isOffline, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete]);
 
   if (loading) {
     return (

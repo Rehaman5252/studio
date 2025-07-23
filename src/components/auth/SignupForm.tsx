@@ -12,9 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { sendEmailVerification } from 'firebase/auth';
 import { useAuth } from '@/context/AuthProvider';
 import { isFirebaseConfigured } from '@/lib/firebaseClient';
 
@@ -39,7 +37,7 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { signIn } = useAuth();
+  const { registerWithEmail, signInWithGoogle } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -49,39 +47,22 @@ export default function SignupForm() {
 
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
-    try {
-        await signIn();
+    const user = await signInWithGoogle();
+    if (user) {
         toast({ title: 'Account Created!', description: `Welcome!` });
         router.replace('/complete-profile');
-    } catch (error: any) {
-        // Error is handled in AuthProvider's signIn function
-    } finally {
-        setIsGoogleLoading(false);
     }
+    setIsGoogleLoading(false);
   };
 
   const onEmailSignUp = async (data: SignupFormValues) => {
     setIsLoading(true);
-    try {
-        const userCredential = await registerWithEmail(data.email, data.password, data.name);
-        if (userCredential.user) {
-            await sendEmailVerification(userCredential.user);
-        }
-        
-        toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
-        router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
-
-    } catch (error: any) {
-        let description = 'An unexpected error occurred. Please try again.';
-        if (error.code === 'auth/email-already-in-use') {
-            description = 'This email is already registered. Please log in instead.';
-        } else if (error.code === 'auth/weak-password') {
-            description = 'The password is too weak. Please use at least 6 characters.';
-        }
-        toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
-    } finally {
-        setIsLoading(false);
+    const user = await registerWithEmail(data.email, data.password, data.name);
+    if (user) {
+      toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
+      router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
     }
+    setIsLoading(false);
   };
 
   const isAuthDisabled = isLoading || isGoogleLoading;
