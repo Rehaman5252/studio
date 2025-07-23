@@ -1,7 +1,7 @@
 
 "use client";
 import { useEffect, useState } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/getUserProfile";
 import { motion } from 'framer-motion';
