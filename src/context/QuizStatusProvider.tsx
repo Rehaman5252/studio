@@ -1,11 +1,11 @@
-
+// src/context/QuizStatusProvider.tsx
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db, isFirebaseReady } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 interface QuizStatusContextType {
@@ -32,13 +32,18 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = isAuthLoading || isHistoryLoading;
 
   useEffect(() => {
-    if (isAuthLoading || !user) {
-      setIsHistoryLoading(false);
-      setLastAttemptInSlot(null);
-      return;
+    if (isAuthLoading) return;
+    if (!user) {
+        setIsHistoryLoading(false);
+        setLastAttemptInSlot(null);
+        return;
     }
     
-    const db = getFirebaseFirestore();
+    if (!isFirebaseReady()) {
+        console.warn("Firebase not ready in QuizStatusProvider (offline or SSR)");
+        setIsHistoryLoading(false);
+        return;
+    }
     
     const fetchLastAttempt = async () => {
         setIsHistoryLoading(true);

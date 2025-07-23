@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -10,7 +9,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db, isFirebaseReady } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -101,7 +100,11 @@ const BrandGifts = () => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
-    const db = getFirebaseFirestore();
+    if (!isFirebaseReady()) {
+        setError("Firebase not available.");
+        setLoading(false);
+        return;
+    }
 
     const fetchHistory = async () => {
         setLoading(true);

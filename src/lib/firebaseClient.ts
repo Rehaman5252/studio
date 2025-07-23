@@ -1,9 +1,9 @@
-
+// src/lib/firebaseClient.ts
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore, doc, getDoc } from "firebase/firestore";
+import { getAuth, type Auth, setPersistence, browserLocalPersistence, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore, doc, getDoc, connectFirestoreEmulator } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,56 +16,33 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
-function initializeFirebase() {
-    if (typeof window !== "undefined") {
-        if (!getApps().length && isFirebaseConfigured) {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = initializeFirestore(app, {
-                    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-                });
-                setPersistence(auth, browserLocalPersistence);
-            } catch (e) {
-                console.error("Firebase initialization error:", e);
-            }
-        } else if (getApps().length > 0) {
-            app = getApp();
-            auth = getAuth(app);
-            db = getFirestore(app);
-        }
-    }
-}
+if (typeof window !== 'undefined' && !getApps().length && isFirebaseConfigured) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
 
-// Ensure Firebase is initialized on first load
-initializeFirebase();
+  setPersistence(auth, browserLocalPersistence).catch((err) => {
+    console.warn("Firebase Auth persistence error", err);
+  });
 
-/**
- * Returns the singleton Firebase Auth instance.
- * Throws an error if called before initialization.
- */
-export function getFirebaseAuth(): Auth {
-    if (!auth) {
-        initializeFirebase();
-        if (!auth) throw new Error("Firebase Auth is not available. Check your configuration and ensure you're on the client-side.");
-    }
-    return auth;
+} else if (getApps().length > 0) {
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
 }
 
 /**
- * Returns the singleton Firestore instance.
- * Throws an error if called before initialization.
+ * Checks if the Firebase client is initialized and ready to use.
+ * This is crucial for avoiding race conditions on the client.
  */
-export function getFirebaseFirestore(): Firestore {
-    if (!db) {
-        initializeFirebase();
-        if (!db) throw new Error("Firestore is not available. Check your configuration and ensure you're on the client-side.");
-    }
-    return db;
+export function isFirebaseReady(): boolean {
+  return !!auth && !!db;
 }
 
 /**
@@ -73,15 +50,16 @@ export function getFirebaseFirestore(): Firestore {
  * Returns false if offline or if Firebase isn't initialized.
  */
 export async function isFirebaseOnline(): Promise<boolean> {
-  const firestore = getFirebaseFirestore();
-  if (!firestore || (typeof window !== 'undefined' && !navigator.onLine)) {
+  if (!db || (typeof window !== 'undefined' && !navigator.onLine)) {
     return false;
   }
   try {
-    // Using a non-existent doc for a lightweight connectivity check.
-    await getDoc(doc(firestore, "systemHealth/connectivityCheck"));
+    await getDoc(doc(db, "systemHealth/connectivityCheck"));
     return true;
   } catch (error: any) {
     return false;
   }
 }
+
+// @ts-ignore - These are initialized in the client-side check above.
+export { app, auth, db };

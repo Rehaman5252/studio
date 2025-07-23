@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db, isFirebaseReady } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -50,13 +49,15 @@ const MyNetworkLeaderboard = () => {
         }
 
         const fetchNetworkData = async () => {
-            const db = getFirebaseFirestore();
+            if (!isFirebaseReady()) {
+                setError("Firebase is not ready. You may be offline.");
+                setIsLoading(false);
+                return;
+            }
             setIsLoading(true);
             setError(null);
             
             try {
-                // In a real app with a large user base, this logic should be a server-side function.
-                // Fetching documents one-by-one on the client is not scalable.
                 const networkIds: string[] = [...(profile.referrals || [])];
                 if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
                     networkIds.push(profile.referredBy);

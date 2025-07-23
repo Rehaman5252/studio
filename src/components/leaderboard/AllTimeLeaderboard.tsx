@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
@@ -9,7 +8,7 @@ import { motion } from 'framer-motion';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff } from 'lucide-react';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db, isFirebaseReady } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 const RankIcon = ({ rank }: { rank: number }) => {
@@ -42,7 +41,12 @@ const AllTimeLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const db = getFirebaseFirestore();
+        if (!isFirebaseReady()) {
+            setError("Firebase is not ready. You may be offline.");
+            setIsLoading(false);
+            return;
+        }
+        
         const fetchAllTimePlayers = async () => {
             setIsLoading(true);
             try {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -9,14 +8,13 @@ import {
   type User,
   updateProfile,
 } from 'firebase/auth';
-import { getFirebaseFirestore, getFirebaseAuth } from './firebaseClient';
+import { db, auth } from './firebaseClient';
 import { toast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 export async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
-  const db = getFirebaseFirestore();
-  if (!user || !db) return;
+  if (!db) return;
 
   const userDocRef = doc(db, 'users', user.uid);
   const snapshot = await getDoc(userDocRef);
@@ -52,8 +50,7 @@ export async function createUserDocument(user: User, additionalData: Record<stri
 let isPopupOpen = false;
 
 export async function handleGoogleSignIn(): Promise<User | null> {
-  const auth = getFirebaseAuth();
-  if (isPopupOpen) return null;
+  if (isPopupOpen || !auth) return null;
   
   isPopupOpen = true;
 
@@ -76,7 +73,7 @@ export async function handleGoogleSignIn(): Promise<User | null> {
 }
 
 export const registerWithEmail = async (email: string, password: string, name: string) => {
-    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
     await createUserDocument(userCredential.user, { name });
@@ -84,6 +81,6 @@ export const registerWithEmail = async (email: string, password: string, name: s
 };
 
 export const loginWithEmail = async (email: string, password:string) => {
-    const auth = getFirebaseAuth();
+    if (!auth) throw new Error("Auth not initialized");
     return await signInWithEmailAndPassword(auth, email, password);
 };

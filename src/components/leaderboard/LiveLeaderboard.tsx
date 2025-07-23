@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
-import { getFirebaseFirestore } from '@/lib/firebaseClient';
+import { db, isFirebaseReady } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
@@ -47,7 +46,11 @@ const LiveLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const db = getFirebaseFirestore();
+        if (!isFirebaseReady()) {
+            setError("Firebase is not ready. You may be offline.");
+            setIsLoading(false);
+            return;
+        }
 
         const fetchLivePlayers = async () => {
             setIsLoading(true);
@@ -62,7 +65,6 @@ const LiveLeaderboard = () => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
-                // Add current user's attempt if they have one for this slot
                 if (user) {
                     const q = query(collection(db, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
