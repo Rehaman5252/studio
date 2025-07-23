@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, onSnapshot, writeBatch, increment, Timestamp, setDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseFirestore, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
@@ -37,86 +37,90 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setLoading(false);
+      return;
+    }
     const auth = getFirebaseAuth();
     if (!auth) {
-        // This case handles if Firebase fails to initialize entirely.
-        console.error("Firebase Auth is not available.");
-        setLoading(false);
-        setIsOffline(true);
-        return;
+        setLoading(false); 
+        return; 
     }
-    
-    // onAuthStateChanged returns the unsubscribe function.
-    // It fires once on initial load (with user or null) and then on any auth change.
-    // This is our signal that Firebase is ready.
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setLoading(false); // Set loading to false *after* the first auth check.
+      // We set loading to false *after* the first auth check. This is the signal that Firebase is ready.
+      setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    // If there's no user, clear profile data.
-    if (!user) {
-        setProfile(null);
+    if (!user) { 
+        setProfile(null); 
         setIsProfileComplete(false);
-        return;
+        return; 
     }
-
+    
+    let unsubProfile: () => void = () => {};
+    
     const db = getFirebaseFirestore();
     if (!db) {
-        console.error("Firestore is not available.");
-        setIsOffline(true);
-        return;
+      console.error("Firestore is not available.");
+      setIsOffline(true);
+      return;
     }
 
     const userDocRef = doc(db, "users", user.uid);
-    const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+    unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data?.dob instanceof Timestamp) {
-            data.dob = data.dob.toDate().toISOString().split('T')[0];
+          data.dob = data.dob.toDate().toISOString().split('T')[0];
         }
         setProfile(data);
         setIsProfileComplete(!!data.profileCompleted);
       } else {
         try {
-            await createUserDocument(user);
-        } catch (e) {
-            console.error("Failed to create user document on the fly", e);
-            toast({
-                title: "Account Setup Error",
-                description: "Could not initialize your user profile. Please try refreshing.",
-                variant: "destructive"
-            });
+          await createUserDocument(user);
+        } catch(e) {
+          console.error("Failed to create user document on the fly", e);
+          toast({
+            title: "Account Setup Error",
+            description: "Could not initialize your user profile. Please try refreshing.",
+            variant: "destructive"
+          });
         }
       }
     }, (error) => {
-        console.error("Profile snapshot error:", error);
-        if (error.code === 'unavailable') {
-            setIsOffline(true);
-        }
+      console.error("Profile snapshot error:", error);
+      if (error.code === 'unavailable') {
+        setIsOffline(true);
+      }
     });
-
-    return () => unsubProfile();
+    
+    return () => {
+        unsubProfile();
+    };
   }, [user, toast]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     const db = getFirebaseFirestore();
     if (!user || !db) throw new Error("User not authenticated or database not available.");
+    
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     const db = getFirebaseFirestore();
-    if (!user || !db || !profile) throw new Error("User, DB, or profile not available.");
+    if (!user || !db) throw new Error("User not authenticated or DB not available.");
+
     const batch = writeBatch(db);
     const userRef = doc(db, 'users', user.uid);
     const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, attempt.slotId);
+    
     batch.set(attemptRef, sanitizeUserProfile(attempt));
+
     const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
     const statsUpdate: {[key: string]: any} = { quizzesPlayed: increment(1) };
     if (isPerfect) {
@@ -125,13 +129,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     batch.update(userRef, statsUpdate);
     await batch.commit();
-  }, [user, profile, updateUserData]);
+
+  }, [user, updateUserData]);
 
   const logout = useCallback(async () => {
     const auth = getFirebaseAuth();
     if (!auth) return;
     try {
         await signOut(auth);
+        setUser(null);
+        setProfile(null);
+        setLastAttempt(null);
+        toast({
+            title: "Signed Out",
+            description: "You have been logged out successfully.",
+        });
     } catch (error) {
         toast({
             title: "Logout Failed",

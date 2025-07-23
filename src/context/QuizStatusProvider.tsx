@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -59,7 +59,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
                 setLastAttemptInSlot(null);
             }
         } catch (error: any) {
-            // It's common for this to fail if offline, so we only log other errors.
             if (error.code !== 'unavailable') {
               console.error("Failed to fetch last quiz attempt:", error);
             }
@@ -75,7 +74,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     const now = new Date();
     const minutes = now.getMinutes();
     
-    const slotLength = 10; // 10 minutes per slot
+    const slotLength = 10; // 10 minutes
     const slotEndMinute = (Math.floor(minutes / slotLength) + 1) * slotLength;
     
     const endTime = new Date(now);

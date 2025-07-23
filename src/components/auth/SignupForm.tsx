@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +16,7 @@ import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { sendEmailVerification } from 'firebase/auth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { auth } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -68,6 +69,9 @@ export default function SignupForm() {
     setIsLoading(true);
 
     try {
+        const auth = getFirebaseAuth();
+        if (!auth) throw new Error("Firebase Auth not initialized");
+        
         const userCredential = await registerWithEmail(data.email, data.password, data.name);
         if (auth.currentUser) {
             await sendEmailVerification(auth.currentUser);

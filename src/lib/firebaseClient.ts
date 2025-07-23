@@ -2,8 +2,8 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, type Firestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, enableIndexedDbPersistence, type Firestore, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,47 +14,51 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This flag ensures we only check for config once.
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let persistenceEnabled = false;
 
-// This function centralizes the initialization.
 function initializeFirebase() {
-  if (typeof window !== "undefined" && isFirebaseConfigured) {
-    if (!getApps().length) {
-        try {
-            app = initializeApp(firebaseConfig);
+    if (typeof window !== "undefined" && isFirebaseConfigured) {
+        if (!getApps().length) {
+            try {
+                app = initializeApp(firebaseConfig);
+            } catch (e) {
+                console.error("Failed to initialize Firebase", e);
+            }
+        } else {
+            app = getApp();
+        }
+
+        if (app) {
             auth = getAuth(app);
             db = getFirestore(app);
-        } catch (e) {
-            console.error("Failed to initialize Firebase", e);
         }
-    } else if(getApps().length > 0) {
-        app = getApp();
-        auth = getAuth(app);
-        db = getFirestore(app);
     }
-  }
 }
 
-// Initialize on module load
 initializeFirebase();
 
-export function getFirebaseAuth(): Auth {
-  if (!auth) {
-    initializeFirebase(); // Attempt to re-initialize if not available
-    if (!auth) throw new Error("Firebase Auth is not available. Check your configuration and ensure you're on the client-side.");
-  }
+export function getFirebaseAuth(): Auth | null {
+  if (!auth) initializeFirebase();
   return auth;
 }
 
-export function getFirebaseFirestore(): Firestore {
-  if (!db) {
-    initializeFirebase(); // Attempt to re-initialize if not available
-    if (!db) throw new Error("Firebase Firestore is not available. Check your configuration and ensure you're on the client-side.");
+export function getFirebaseFirestore(): Firestore | null {
+  if (!db) initializeFirebase();
+  
+  if (db && !persistenceEnabled && typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence failed: multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence not supported in this browser.');
+      }
+    });
+    persistenceEnabled = true;
   }
   return db;
 }
