@@ -79,7 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      // This is the key fix: The app is "ready" as soon as we know if a user is logged in or not.
       setLoading(false); 
     });
 
@@ -99,8 +98,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           setProfile(data);
         } else {
-          // This case is for when a user exists in Auth but not Firestore.
-          // We can create their document here.
           createUserDocument(user).then(() => {
               // The snapshot listener will pick up the new profile automatically.
           });
@@ -110,15 +107,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfile(null);
       });
     } else {
-      // If there's no user, there's no profile to listen to.
       setProfile(null);
     }
     
-    // Cleanup the profile listener when the user changes or component unmounts.
     return () => unsubscribeProfile();
   }, [user]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
+    if (!isFirebaseConfigured || !auth) {
+        toast({ title: 'Service Unavailable', description: 'Firebase is not configured. Cannot sign in.', variant: 'destructive' });
+        return null;
+    }
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
