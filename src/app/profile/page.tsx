@@ -9,7 +9,7 @@ import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { LogIn } from 'lucide-react';
+import { LogIn, ServerCrash, WifiOff } from 'lucide-react';
 import ProfileContent from "@/components/profile/ProfileContent";
 
 export default function ProfilePage() {
@@ -28,11 +28,12 @@ export default function ProfilePage() {
             setError("No profile data found. Please complete your profile.");
           }
         } catch (err: any) {
-          if (err.message?.includes("offline")) {
-            setError("You appear to be offline. Please check your connection to view your profile.");
-          } else {
-            setError("An error occurred while loading your profile.");
-          }
+            if (err.message?.includes("offline")) {
+                setError("You appear to be offline. Please check your connection to view your profile.");
+            } else {
+                setError("An error occurred while loading your profile.");
+            }
+            console.error("Profile fetch error:", err);
         }
       } else {
         setError("Please sign in to view your profile.");
@@ -56,6 +57,7 @@ export default function ProfilePage() {
        return (
          <main className="flex-1 p-4 space-y-6 pb-20 flex items-center justify-center">
             <Alert variant="destructive" className="max-w-md">
+                {error.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
                 <AlertTitle>Could Not Load Profile</AlertTitle>
                 <AlertDescription>
                     {error}
