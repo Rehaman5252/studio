@@ -84,8 +84,8 @@ export default function ProfilePage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col h-screen bg-background"
     >
-      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-center text-foreground">My Profile</h1>
+      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-foreground">Player's Pavilion</h1>
       </header>
       {renderContent()}
     </motion.div>
