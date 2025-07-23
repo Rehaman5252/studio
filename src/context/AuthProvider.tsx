@@ -77,6 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
             try {
               await createUserDocument(user);
+              // The snapshot listener will pick up the newly created document.
             } catch (error) {
               console.error("Failed to create user document:", error);
             }
@@ -117,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     await batch.commit();
 
-  }, [user, profile]);
+  }, [user, profile, updateUserData]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
