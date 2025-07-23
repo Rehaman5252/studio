@@ -45,18 +45,6 @@ const QuestionCardComponent = ({ question, isHintVisible, options, selectedOptio
 }) => (
     <Card className="w-full bg-card shadow-lg min-h-[360px]">
         <CardHeader>
-            {question.questionType === 'image' && question.imageUrl && (
-                 <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden border">
-                    <Image 
-                        src={question.imageUrl} 
-                        alt={question.questionText} 
-                        fill 
-                        className="object-cover" 
-                        data-ai-hint={question.imageAiHint || 'cricket question'}
-                        priority
-                    />
-                </div>
-            )}
             <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
                 {question.questionText}
             </CardTitle>

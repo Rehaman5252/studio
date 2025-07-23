@@ -22,15 +22,15 @@ const generalPrompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `Generate a 5-question, multiple-choice quiz about "{{format}}" cricket with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
+  prompt: `Generate a 5-question, multiple-choice, text-only quiz about "{{format}}" cricket with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
 The 5 questions must follow this exact structure:
 
-1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue) related to the "{{format}}" format. You must set questionType to "text".
-2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament within the "{{format}}" format. You must set questionType to "text".
-3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning in the "{{format}}" format. You must set questionType to "text".
-4.  **Question 4 (Very Hard / Image-based):** An image-based question. The questionText should ask to identify something in an image (e.g., "Identify the player in this photo," "Which stadium is this?"). You must set questionType to "image". Provide a descriptive two-word 'imageAiHint' (e.g., "Rohit Sharma", "Lords stadium") and a real, publicly accessible 'imageUrl' from 'upload.wikimedia.org'. This must be the ONLY image-based question.
-5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation from the "{{format}}" format. You must set questionType to "text".
+1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue) related to the "{{format}}" format.
+2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament within the "{{format}}" format.
+3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning in the "{{format}}" format.
+4.  **Question 4 (Very Hard):** A text-based question about a rare record, a low-profile but significant match, or a lesser-known player's achievement in the "{{format}}" format.
+5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation from the "{{format}}" format.
 `,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
@@ -48,15 +48,15 @@ const mixedFormatPrompt = ai.definePrompt({
     name: 'generateMixedQuizPrompt',
     input: {schema: GenerateQuizInputSchema},
     output: {schema: GenerateQuizOutputSchema},
-    prompt: `Generate a 5-question, multiple-choice quiz covering T20, IPL, WPL, ODI, and Test cricket, with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
+    prompt: `Generate a 5-question, multiple-choice, text-only quiz covering T20, IPL, WPL, ODI, and Test cricket, with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
 The 5 questions must follow this exact difficulty structure, with each question drawn from a *different* format:
 
-1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue). You must set questionType to "text".
-2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament. You must set questionType to "text".
-3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning. You must set questionType to "text".
-4.  **Question 4 (Very Hard / Image-based):** An image-based question. The questionText should ask to identify something in an image (e.g., "Identify the player in this action shot," "Which famous ground is shown here?"). You must set questionType to "image". Provide a descriptive two-word 'imageAiHint' (e.g., "MS Dhoni", "MCG stadium") and a real, publicly accessible 'imageUrl' from 'upload.wikimedia.org'. This must be the ONLY image-based question.
-5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation. You must set questionType to "text".
+1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue).
+2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament.
+3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning.
+4.  **Question 4 (Very Hard):** A text-based question about a rare record, a low-profile but significant match, or a lesser-known player's achievement.
+5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation.
 `,
     config: {
       // Set extremely permissive safety settings to prevent the model from blocking valid responses.
@@ -82,19 +82,7 @@ const generateQuizFlow = ai.defineFlow(
     if (!output || !output.questions || output.questions.length !== 5) {
       throw new Error("The AI failed to generate a valid 5-question quiz.");
     }
-    
-    // Validate that image URLs are provided for image questions, with a robust fallback.
-    const validatedQuestions = output.questions.map(q => {
-        if (q.questionType === 'image' && (!q.imageUrl || q.imageUrl.trim() === '')) {
-            // Fallback if the AI fails to provide a valid image URL
-            return {
-                ...q,
-                imageUrl: `https://placehold.co/600x400.png`
-            };
-        }
-        return q;
-    });
 
-    return { questions: validatedQuestions };
+    return output;
   }
 );
