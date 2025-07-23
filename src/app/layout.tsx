@@ -28,7 +28,6 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} h-full bg-background font-sans text-foreground`}>
         <Providers>
-          <FirebaseOfflineAlert />
           {children}
         </Providers>
       </body>

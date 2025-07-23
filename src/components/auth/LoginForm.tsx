@@ -77,11 +77,16 @@ export default function LoginForm() {
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    const user = await signInWithGoogle();
-    if (user) {
-        handleSuccessfulLogin(isProfileComplete);
+    try {
+        const user = await signInWithGoogle();
+        if (user) {
+            handleSuccessfulLogin(isProfileComplete);
+        }
+    } catch(error) {
+        console.error("Google login failed in component", error);
+    } finally {
+        setIsGoogleLoading(false);
     }
-    setIsGoogleLoading(false);
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;

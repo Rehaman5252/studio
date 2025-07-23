@@ -100,6 +100,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data.dob = data.dob.toDate().toISOString().split('T')[0];
         }
         setProfile(data);
+      } else {
+        // If the user is authenticated but has no doc, create one.
+        // This handles cases where a user was created in Auth but Firestore doc creation failed.
+        await createUserDocument(user);
       }
       setLoading(false);
     }, (error) => {
@@ -114,7 +118,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
-        await createUserDocument(result.user);
+        // The onAuthStateChanged listener will handle creating the document
+        // and setting the user state, ensuring a single flow.
         return result.user;
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') {
@@ -203,17 +208,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     lastAttempt, setLastAttempt, isProfileComplete
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {loading ? (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

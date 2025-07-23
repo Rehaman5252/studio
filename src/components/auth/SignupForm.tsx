@@ -47,12 +47,17 @@ export default function SignupForm() {
 
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
-    const user = await signInWithGoogle();
-    if (user) {
-        toast({ title: 'Account Created!', description: `Welcome!` });
-        router.replace('/complete-profile');
+    try {
+        const user = await signInWithGoogle();
+        if (user) {
+            toast({ title: 'Account Created!', description: `Welcome!` });
+            router.replace('/complete-profile');
+        }
+    } catch(error) {
+        console.error("Google signup failed in component", error);
+    } finally {
+        setIsGoogleLoading(false);
     }
-    setIsGoogleLoading(false);
   };
 
   const onEmailSignUp = async (data: SignupFormValues) => {
