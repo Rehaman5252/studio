@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -16,9 +15,9 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+let app: FirebaseApp | undefined = undefined;
+let auth: Auth | undefined = undefined;
+let db: Firestore | undefined = undefined;
 
 // This check ensures Firebase is only initialized on the client side.
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
@@ -34,6 +33,10 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
     db = initializeFirestore(app, {
         localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
     });
+}
+
+export function isFirebaseReady(): boolean {
+  return typeof window !== 'undefined' && !!db && !!auth;
 }
 
 export async function isFirebaseOnline(): Promise<boolean> {
@@ -55,5 +58,4 @@ export async function isFirebaseOnline(): Promise<boolean> {
   }
 }
 
-// @ts-ignore - These are initialized in the client-side check above.
 export { app, auth, db };
