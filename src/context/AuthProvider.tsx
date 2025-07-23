@@ -37,11 +37,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const firebaseReady = useFirebaseReady();
 
   useEffect(() => {
-    if (!firebaseReady) return;
+    if (!firebaseReady) {
+      return;
+    }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       if (!firebaseUser) {
+        setProfile(null);
         setLoading(false);
       }
     });
@@ -51,32 +54,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user) {
-      setProfile(null);
+      setLoading(false);
       return;
     }
     
     let unsubProfile: () => void = () => {};
-    
-    // Do not set loading to true here immediately to avoid flashes
-    // setLoading(true);
+    setLoading(true);
 
     const userDocRef = doc(firestore, "users", user.uid);
     unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
-      try {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data?.dob instanceof Timestamp) {
-            data.dob = data.dob.toDate().toISOString().split('T')[0];
-          }
-          setProfile(data);
-        } else {
-            await createUserDocument(user);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data?.dob instanceof Timestamp) {
+          data.dob = data.dob.toDate().toISOString().split('T')[0];
         }
-      } catch (error) {
-        console.error("Error in snapshot handler:", error);
-      } finally {
-        setLoading(false);
+        setProfile(data);
+      } else {
+        try {
+          await createUserDocument(user);
+        } catch(e) {
+          console.error("Failed to create user document on the fly", e);
+        }
       }
+      setLoading(false);
     }, (error) => {
       console.error("Profile snapshot error:", error);
       setIsOffline(true);
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     batch.update(userRef, statsUpdate);
     await batch.commit();
-  }, [user]);
+  }, [user, updateUserData]);
 
   const logout = useCallback(async () => {
     try {
