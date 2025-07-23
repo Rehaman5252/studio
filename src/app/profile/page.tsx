@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
@@ -9,13 +9,51 @@ import ProfileContent from '@/components/profile/ProfileContent';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
-import { Settings, LogIn, Scale } from 'lucide-react';
-import Policies from '@/components/profile/Policies';
+import { Settings, LogIn, Scale, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 function ProfilePageContent() {
-  const { user, profile, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setFetching(false);
+      return;
+    }
+
+    const fetchProfile = async () => {
+      setFetching(true);
+      setError("");
+      try {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as any);
+        } else {
+          setError("No profile data found. This is unusual. Please contact support.");
+        }
+      } catch (err: any) {
+        if (err?.message?.includes("offline")) {
+          setError("You appear to be offline. Please check your internet connection.");
+        } else {
+          setError("Error fetching profile: " + err.message);
+        }
+        console.error("Error fetching profile:", err);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchProfile();
+  }, [authLoading, user]);
   
-  if (loading) {
+  if (authLoading || fetching) {
     return (
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <ProfileSkeleton />
@@ -53,7 +91,17 @@ function ProfilePageContent() {
     )
   }
 
-  // User is logged in, but profile data might still be loading
+  if (error) {
+    return (
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </main>
+    )
+  }
+
   if (!profile) {
       return (
         <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
