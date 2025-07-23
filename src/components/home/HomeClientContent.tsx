@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const HomeSkeleton = () => (
+const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">
         <div className="text-center mb-8">
             <Skeleton className="h-8 w-3/4 mx-auto" />
@@ -28,10 +28,12 @@ const HomeSkeleton = () => (
 );
 
 export default function HomeClientContent() {
-  const { loading } = useAuth();
+  const { loading: authLoading } = useAuth();
+  const { isLoading: quizStatusLoading } = useQuizStatus();
 
-  if (loading) {
-    return <HomeSkeleton />;
+  // Show skeleton if either auth or quiz status is loading
+  if (authLoading || quizStatusLoading) {
+    return <HomeContentSkeleton />;
   }
 
   return (

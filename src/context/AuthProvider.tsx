@@ -9,7 +9,6 @@ import { getFirebaseAuth, getFirebaseFirestore, isFirebaseConfigured } from '@/l
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
 
 async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
   const firestore = getFirebaseFirestore();
@@ -79,60 +78,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     const auth = getFirebaseAuth();
+    let unsubscribeProfile: () => void = () => {};
+
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-        setLoading(true); // Set loading to true whenever auth state might change
         setUser(firebaseUser);
-        if (!firebaseUser) {
-            setLoading(false);
+
+        if (firebaseUser) {
+            const firestore = getFirebaseFirestore();
+            const userDocRef = doc(firestore, "users", firebaseUser.uid);
+            
+            // Clean up previous listener before starting a new one
+            if (unsubscribeProfile) unsubscribeProfile();
+
+            unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data?.dob instanceof Timestamp) {
+                        data.dob = data.dob.toDate().toISOString().split('T')[0];
+                    }
+                    if (firebaseUser.emailVerified !== data.emailVerified) {
+                        try {
+                            await setDoc(userDocRef, { emailVerified: firebaseUser.emailVerified }, { merge: true });
+                            data.emailVerified = firebaseUser.emailVerified;
+                        } catch (e) {
+                            console.warn("Failed to sync email verification status:", e);
+                        }
+                    }
+                    setProfile(data);
+                } else {
+                    await createUserDocument(firebaseUser, { 
+                        name: firebaseUser.displayName, 
+                        email: firebaseUser.email, 
+                        photoURL: firebaseUser.photoURL 
+                    });
+                }
+                setLoading(false);
+            }, (error) => {
+                console.error("Profile snapshot error:", error);
+                setProfile(null);
+                setLoading(false);
+            });
+        } else {
+            // No user, clean up everything
+            if (unsubscribeProfile) unsubscribeProfile();
             setProfile(null);
+            setLoading(false);
         }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+        unsubscribeAuth();
+        unsubscribeProfile();
+    };
   }, []);
-
-  useEffect(() => {
-    let unsubscribeProfile: () => void = () => {};
-
-    if (user) {
-        const firestore = getFirebaseFirestore();
-        const userDocRef = doc(firestore, "users", user.uid);
-        unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data?.dob instanceof Timestamp) {
-                    data.dob = data.dob.toDate().toISOString().split('T')[0];
-                }
-                if (user.emailVerified !== data.emailVerified) {
-                    try {
-                        await setDoc(userDocRef, { emailVerified: user.emailVerified }, { merge: true });
-                        data.emailVerified = user.emailVerified;
-                    } catch (e) {
-                        console.warn("Failed to sync email verification status:", e);
-                    }
-                }
-                setProfile(data);
-            } else {
-                await createUserDocument(user, { 
-                    name: user.displayName, 
-                    email: user.email, 
-                    photoURL: user.photoURL 
-                });
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Profile snapshot error:", error);
-            setProfile(null);
-            setLoading(false);
-        });
-    } else {
-        // No user, so no profile to listen to.
-        setProfile(null);
-        setLoading(false);
-    }
-    
-    return () => unsubscribeProfile();
-  }, [user]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     if (!isFirebaseConfigured) {
@@ -166,9 +164,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
-        // The useEffect hook will now handle creating the document when the new user is set.
-        // We can pass the phone number and referral code through a temporary solution or rely on profile completion.
-        // For now, let's create the doc immediately after creation for signup-specific data.
         await createUserDocument(userCredential.user, { name, phone, referralCode });
         await sendEmailVerification(userCredential.user);
         return userCredential.user;
@@ -260,13 +255,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </AuthContext.Provider>
   );
 };
