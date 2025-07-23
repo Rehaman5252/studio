@@ -7,10 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebaseClient';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import type { QuizAttempt } from '@/lib/mockData';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Star } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
@@ -161,3 +159,5 @@ const MyNetworkLeaderboard = () => {
 };
 
 export default memo(MyNetworkLeaderboard);
+
+    

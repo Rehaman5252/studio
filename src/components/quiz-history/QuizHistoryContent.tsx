@@ -159,7 +159,8 @@ export default function QuizHistoryContent() {
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     useEffect(() => {
-        if (!user || !db) { setLoading(false); return; }
+        if (!user) { setLoading(false); return; }
+        if (!db) { setError("Firestore not available."); setLoading(false); return; }
         
         setLoading(true);
         setError(null);
@@ -260,3 +261,5 @@ export default function QuizHistoryContent() {
         </>
     );
 }
+
+    

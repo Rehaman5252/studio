@@ -40,6 +40,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     }
     
     if (!db) {
+        console.warn("Firestore not available in QuizStatusProvider");
         setIsHistoryLoading(false);
         return;
     }
@@ -54,8 +55,10 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
             } else {
                 setLastAttemptInSlot(null);
             }
-        } catch (error) {
-            console.error("Failed to fetch last quiz attempt:", error);
+        } catch (error: any) {
+            if (error.code !== 'unavailable') {
+                console.error("Failed to fetch last quiz attempt:", error);
+            }
             setLastAttemptInSlot(null);
         } finally {
             setIsHistoryLoading(false);
@@ -124,3 +127,5 @@ export const useQuizStatus = () => {
   }
   return context;
 };
+
+    
