@@ -26,5 +26,6 @@ export interface MyNetworkPlayer extends Player {
 export interface CurrentQuizLeaderboardDoc {
     players: LivePlayer[];
     lastUpdated: any; // Firestore Timestamp
-    slotId: string;
+    quizId: string;
+    status: "in-progress" | "finished" | "idle";
 }

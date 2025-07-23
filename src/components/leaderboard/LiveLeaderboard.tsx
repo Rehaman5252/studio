@@ -14,8 +14,6 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer, CurrentQuizLeaderboardDoc } from './leaderboardTypes';
-import { getQuizSlotId } from '@/lib/utils';
-
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -54,9 +52,7 @@ const LiveLeaderboard = () => {
             setIsLoading(true);
             setError(null);
             
-            const currentSlotId = getQuizSlotId();
-            // This is the new, simpler query path
-            const leaderboardDocRef = doc(db, 'leaderboard', `slot_${currentSlotId}`);
+            const leaderboardDocRef = doc(db, 'leaderboard', 'currentQuiz');
 
             try {
                 const docSnap = await getDoc(leaderboardDocRef);
@@ -73,15 +69,13 @@ const LiveLeaderboard = () => {
                         .map((p, i) => ({ ...p, rank: i + 1 }));
                     setPlayers(sortedPlayers);
                 } else {
-                    // Document doesn't exist for the current slot, which is a normal case
-                    // at the beginning of a slot before anyone has finished a quiz.
                     setPlayers([]);
                 }
             } catch (e: any) {
                 if (e.code === 'unavailable') {
                   setError("You appear to be offline. Please check your connection to view the leaderboard.");
                 } else {
-                  setError("An error occurred while loading the leaderboard.");
+                  setError("An error occurred while loading the leaderboard. The `leaderboard/currentQuiz` document may be missing.");
                   console.error("Live Leaderboard Error: ", e);
                 }
             } finally {
@@ -90,7 +84,6 @@ const LiveLeaderboard = () => {
         };
         
         fetchLivePlayers();
-        // Re-fetch every 30 seconds to get new data
         const interval = setInterval(fetchLivePlayers, 30000);
         return () => clearInterval(interval);
 
