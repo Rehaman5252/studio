@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -101,7 +102,7 @@ const BrandGifts = () => {
     if (!user) { setLoading(false); return; }
 
     if (!isFirebaseReady()) {
-        setError("Firestore not available. Please check your connection.");
+        setError("Firebase not available. Please check your connection.");
         setLoading(false);
         return;
     }

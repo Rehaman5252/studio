@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -38,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   useEffect(() => {
-    // Don't do anything until Firebase has confirmed its auth state.
+    // Wait until our hook confirms Firebase Auth is ready.
     if (!firebaseReady || !auth) {
         return;
     }
@@ -56,22 +57,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseReady]);
   
   useEffect(() => {
-    if (!firebaseReady || !user) {
-      // If firebase is ready but there's no user, we are done loading.
-      if (firebaseReady) setLoading(false);
+    // If there's no user, we're done.
+    if (!user) {
       return;
     }
     
-    if (!db) {
-        console.error("Firestore is not available.");
+    // Guard against running before Firebase is fully initialized.
+    if (!isFirebaseReady()) {
+        console.warn("AuthProvider: Firebase not ready. Deferring profile fetch.");
         setIsOffline(true);
-        setLoading(false);
         return;
     }
 
-    setLoading(true);
-    const userDocRef = doc(db, "users", user.uid);
+    const userDocRef = doc(db!, "users", user.uid);
     const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+        setIsOffline(false); // We have a connection.
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data?.dob instanceof Timestamp) {
@@ -86,15 +86,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               console.error("Failed to create user document:", error);
             }
         }
-        setLoading(false);
     }, (error) => {
         console.error("Profile snapshot error:", error);
         if(error.code === 'unavailable') setIsOffline(true);
-        setLoading(false);
     });
 
     return () => unsubProfile();
-  }, [user, firebaseReady]);
+  }, [user]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
     if (!isFirebaseReady() || !user) throw new Error("User not authenticated or database not available.");
@@ -148,8 +146,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     lastAttempt, setLastAttempt, isProfileComplete, logout
   }), [user, profile, loading, isOffline, updateUserData, addQuizAttempt, lastAttempt, isProfileComplete, logout]);
 
-  // Render a loading screen while auth state is being determined. This prevents the auth loop.
-  if (!firebaseReady || loading) {
+  // Use our hook to show a loader until Firebase has checked auth state.
+  // This is the key fix for the login loop.
+  if (!firebaseReady) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

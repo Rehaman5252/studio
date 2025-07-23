@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
@@ -159,7 +160,7 @@ export default function QuizHistoryContent() {
 
     useEffect(() => {
         if (!user) { setLoading(false); return; }
-        if (!isFirebaseReady()) { setError("Firestore not available."); setLoading(false); return; }
+        if (!isFirebaseReady()) { setError("Firebase not available."); setLoading(false); return; }
         
         setLoading(true);
         setError(null);
