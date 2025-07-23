@@ -76,6 +76,9 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
     'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
+    'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: '#' },
+    'Mixed': { gift: 'Mystery Box', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -156,11 +159,11 @@ const BrandGifts = () => {
     fetchHistory();
   }, [user, authLoading]);
 
-  // Logic to get one rewardable attempt per brand per day, including malpractice attempts
+  // Logic to get one rewardable attempt per slot. This now correctly includes malpractice attempts.
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
     history.forEach(attempt => {
-      // Key is now just the slot ID, guaranteeing one card per slot attempt.
+      // Key is the slot ID, guaranteeing one card per slot attempt, regardless of outcome.
       const key = attempt.slotId;
       if (!uniqueAttempts.has(key)) {
         uniqueAttempts.set(key, attempt);
