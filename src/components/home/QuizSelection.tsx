@@ -54,7 +54,7 @@ const QuizSelectionComponent = () => {
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 4500 / 6);
+        }, 4500); // Slower rotation
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -86,8 +86,12 @@ const QuizSelectionComponent = () => {
         // Strict enforcement of one attempt per slot
         if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
             const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
-            const reasonParam = lastAttemptInSlot.reason ? `&reason=${lastAttemptInSlot.reason}` : '';
-            router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}${reasonParam}`);
+            const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
+            router.push(reviewUrl);
+            toast({
+                title: "Slot Already Played",
+                description: "Showing your results for this slot.",
+            });
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
         }
@@ -119,14 +123,6 @@ const QuizSelectionComponent = () => {
         setShowAuthAlert(false);
     }
     
-    if (isQuizStatusLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center h-64">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        )
-    }
-
     return (
         <>
             <div className="text-center mb-8">
@@ -149,6 +145,7 @@ const QuizSelectionComponent = () => {
                 <StartQuizButton
                   brandFormat={selectedBrand.format}
                   onClick={handleBannerOrButtonClick}
+                  isDisabled={isQuizStatusLoading} // Disable button while checking last attempt
                 />
             </div>
             

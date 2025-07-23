@@ -4,9 +4,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
-import { useQuizStatus } from '@/context/QuizStatusProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse mt-10">
@@ -30,10 +30,9 @@ const HomeContentSkeleton = () => (
 
 export default function HomeClientContent() {
   const { loading: authLoading } = useAuth();
-  const { isLoading: quizStatusLoading } = useQuizStatus();
-
-  // Show skeleton if either auth or quiz status is loading
-  if (authLoading || quizStatusLoading) {
+  
+  // Only show the main skeleton while Firebase auth state is being determined.
+  if (authLoading) {
     return <HomeContentSkeleton />;
   }
 

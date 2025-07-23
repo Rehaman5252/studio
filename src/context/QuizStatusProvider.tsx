@@ -29,15 +29,20 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
-  // This isLoading reflects only the quiz status loading, not auth.
-  const isLoading = isAuthLoading || isHistoryLoading;
+  // This isLoading should ONLY reflect the check for a user's prior attempt.
+  // Auth loading is handled separately.
+  const isLoading = isHistoryLoading;
 
   useEffect(() => {
     // We wait for auth to finish loading before we check for quiz history.
-    if (isAuthLoading) return;
+    if (isAuthLoading) {
+      // If auth is loading, we are definitely loading history too.
+      setIsHistoryLoading(true);
+      return;
+    };
     
     // If there's no user, there's no history to load.
-    if (!user || !firestore) {
+    if (!user) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;

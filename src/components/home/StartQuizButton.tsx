@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 
 interface StartQuizButtonProps {
     brandFormat: string;
@@ -23,8 +23,16 @@ const StartQuizButton = ({ brandFormat, onClick, isDisabled = false }: StartQuiz
                 onClick={onClick}
                 disabled={isDisabled}
             >
-                {`Start ${brandFormat} Quiz`}
-                <ChevronRight className="ml-2 h-5 w-5" />
+                {isDisabled ? (
+                    <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Checking Status...
+                    </>
+                ) : (
+                    <>
+                        {`Start ${brandFormat} Quiz`}
+                        <ChevronRight className="ml-2 h-5 w-5" />
+                    </>
+                )}
             </Button>
         </div>
     );
