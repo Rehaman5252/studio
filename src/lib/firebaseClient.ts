@@ -34,11 +34,17 @@ if (typeof window !== 'undefined') {
   auth = getAuth(app);
 
   // Initialize Firestore with persistent local cache
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager(),
-    }),
-  });
+  try {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch (e) {
+      // This can happen if the cache is already initialized in another tab.
+      console.warn("Firestore persistence could not be enabled.", e);
+      db = getFirestore(app);
+  }
 }
 
 // Utility: Check if Firebase is ready
