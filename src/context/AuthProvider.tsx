@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, increment, Timestamp, writeBatch, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { auth, firestore, isFirebaseConfigured, isFirebaseOnline } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, increment, Timestamp, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { auth, firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
+  const fetchUserProfile = useCallback(async (uid: string) => {
+    if (!firestore) return null;
+    try {
+      const userDocRef = doc(firestore, 'users', uid);
+      const docSnap = await getDoc(userDocRef);
+      setIsOffline(docSnap.metadata.fromCache);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.dob instanceof Timestamp) {
+            data.dob = data.dob.toDate().toISOString().split('T')[0];
+        }
+        if (data.lastNoBallTimestamp instanceof Timestamp) {
+            data.lastNoBallTimestamp = data.lastNoBallTimestamp.toMillis();
+        }
+        return data;
+      }
+      return null;
+    } catch (error: any) {
+        console.error("Failed to fetch user profile:", error);
+        if (error.code === 'unavailable') {
+            setIsOffline(true);
+        }
+        return null;
+    }
+  }, []);
+  
   const createUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
     if (!firestore || !user) return;
     
@@ -64,7 +90,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           lastNoBallTimestamp: null,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
+      return newUserProfile;
     }
+    return docSnap.data();
   }, []);
 
   useEffect(() => {
@@ -73,67 +101,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       return;
     }
-
-    let profileUnsubscribe: (() => void) | null = null;
-
-    const authUnsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      // Clean up previous profile listener if it exists
-      if (profileUnsubscribe) {
-        profileUnsubscribe();
-      }
-
+    
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         setUser(authUser);
-        const userDocRef = doc(firestore, 'users', authUser.uid);
-
-        // Set up a new listener for the current user's profile
-        profileUnsubscribe = onSnapshot(userDocRef, 
-          (docSnap) => {
-            setIsOffline(docSnap.metadata.fromCache);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data.dob instanceof Timestamp) {
-                    data.dob = data.dob.toDate().toISOString().split('T')[0];
-                }
-                if (data.lastNoBallTimestamp instanceof Timestamp) {
-                    data.lastNoBallTimestamp = data.lastNoBallTimestamp.toMillis();
-                }
-                setProfile(data);
-            } else {
-                // This case handles a race condition where a user is created
-                // but their document doesn't exist yet. We create it.
-                createUserDocument(authUser);
-            }
-            setLoading(false);
-          }, 
-          (error) => {
-            console.error("Firestore onSnapshot error:", error);
-            if (error.code === 'unavailable') {
-                setIsOffline(true);
-            }
-            setProfile(null);
-            setLoading(false);
-          }
-        );
+        const userProfile = await fetchUserProfile(authUser.uid);
+        if (userProfile) {
+            setProfile(userProfile);
+        } else {
+            // This case handles a race condition where a user is created
+            // but their document doesn't exist yet. We create it.
+            const newProfile = await createUserDocument(authUser);
+            setProfile(newProfile);
+        }
       } else {
-        // No user is logged in
         setUser(null);
         setProfile(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
-    // Cleanup function for when the AuthProvider unmounts
-    return () => {
-      authUnsubscribe();
-      if (profileUnsubscribe) {
-        profileUnsubscribe();
-      }
-    };
-  }, [createUserDocument]);
-
+    return () => unsubscribe();
+  }, [fetchUserProfile, createUserDocument]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
+    if (!auth) return null;
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -149,6 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, createUserDocument]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
+    if (!auth) return null;
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
@@ -170,6 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, createUserDocument]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+    if (!auth) return null;
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
       return userCredential.user;
@@ -184,6 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const logout = useCallback(async () => {
+    if (!auth) return;
     try {
         await signOut(auth);
         setUser(null);
@@ -200,6 +195,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!firestore) return;
     const userDocRef = doc(firestore, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+    // Optimistically update local profile state
+    setProfile(prev => ({...prev, ...newData}));
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {

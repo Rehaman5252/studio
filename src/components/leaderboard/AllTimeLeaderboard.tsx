@@ -45,6 +45,11 @@ const AllTimeLeaderboard = () => {
 
     useEffect(() => {
         if (authLoading) return;
+        if (!firestore) {
+            setError("Database connection is not available.");
+            setIsLoading(false);
+            return;
+        }
 
         const fetchAllTimePlayers = async () => {
             setIsLoading(true);
