@@ -50,6 +50,7 @@ interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
   loading: boolean;
+  isOffline: boolean;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
@@ -69,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -79,7 +81,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setLoading(false); 
+      if (!firebaseUser) {
+        setLoading(false);
+      }
     });
 
     return () => unsubscribeAuth();
@@ -90,25 +94,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (user && isFirebaseConfigured) {
       const userDocRef = doc(firestore, "users", user.uid);
-      unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+      unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
+        setIsOffline(false);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data?.dob instanceof Timestamp) {
             data.dob = data.dob.toDate().toISOString().split('T')[0];
           }
+          
+          // Sync email verification status
+          if (user.emailVerified !== data.emailVerified) {
+             try {
+                await setDoc(userDocRef, { emailVerified: user.emailVerified }, { merge: true });
+                data.emailVerified = user.emailVerified;
+             } catch (e) {
+                console.warn("Failed to sync email verification status:", e);
+             }
+          }
+
           setProfile(data);
         } else {
-          // This case might happen for a brand new user.
-          // The createUserDocument function should handle creation.
-          console.log("User document not found, may be created shortly.");
-          createUserDocument(user);
+          console.log("User document not found, creating one...");
+          await createUserDocument(user);
         }
+        setLoading(false); 
       }, (error) => {
         console.error("Profile snapshot error:", error);
+        if (error.code === 'unavailable') {
+            setIsOffline(true);
+        }
         setProfile(null);
+        setLoading(false); 
       });
     } else {
       setProfile(null);
+      setLoading(false);
     }
     
     return () => unsubscribeProfile();
@@ -144,8 +164,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
-        await sendEmailVerification(userCredential.user);
         await createUserDocument(userCredential.user, { name, phone, referralCode });
+        await sendEmailVerification(userCredential.user);
         return userCredential.user;
     } catch (error: any) {
         let description = 'An unexpected error occurred. Please try again.';
@@ -198,7 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("User not authenticated or database not available.");
     }
     const userDocRef = doc(firestore, "users", user.uid);
-    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+    return setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
@@ -220,7 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isProfileComplete = !!profile?.profileCompleted;
 
   const value = {
-    user, profile, loading, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
+    user, profile, loading, isOffline, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
     lastAttempt, setLastAttempt, isProfileComplete
   };
 

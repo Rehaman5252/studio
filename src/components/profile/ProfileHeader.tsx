@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -17,7 +18,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const age = calculateAge(userProfile?.dob);
     
     const isPhoneVerified = !!userProfile?.phoneVerified;
-    const isEmailVerified = user?.emailVerified || false;
+    const isEmailVerified = userProfile?.emailVerified || false;
 
     const handleResendVerification = async () => {
         if (!user || !auth) {
