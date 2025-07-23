@@ -98,10 +98,10 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
                 email: profile?.email || user?.email || '',
                 phone: profile?.phone || '',
                 dob: profile?.dob || '',
-                gender: profile?.gender || undefined,
+                gender: profile?.gender || '',
                 occupation: profile?.occupation || '',
                 upi: profile?.upi || '',
-                favoriteFormat: profile?.favoriteFormat || undefined,
+                favoriteFormat: profile?.favoriteFormat || '',
                 favoriteTeam: profile?.favoriteTeam || '',
                 favoriteCricketer: profile?.favoriteCricketer || '',
             });
