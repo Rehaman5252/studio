@@ -69,9 +69,9 @@ function HomePage() {
              className="text-center"
            >
               <h1 className="text-6xl font-extrabold tracking-tight text-shimmer animate-shimmer">
-                indcric
+                CricBlitz
               </h1>
-              <p className="text-sm text-muted-foreground">Win ₹100 every 100 seconds!</p>
+              <p className="text-sm text-muted-foreground">Win exciting rewards every 10 minutes!</p>
           </motion.div>
         </header>
         <main className="flex-1 overflow-y-auto pb-24">

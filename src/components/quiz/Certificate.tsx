@@ -58,13 +58,13 @@ const CertificateComponent = ({ format, userName, date, slotTimings }: { format:
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(218, 165, 32);
-        doc.text('indcric', doc.internal.pageSize.width / 2, 160, { align: 'center' });
+        doc.text('CricBlitz', doc.internal.pageSize.width / 2, 160, { align: 'center' });
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(150, 150, 150);
         doc.text('The Ultimate Cricket Quiz', doc.internal.pageSize.width / 2, 165, { align: 'center' });
         
-        doc.save(`indcric_${format}_Certificate.pdf`);
+        doc.save(`CricBlitz_${format}_Certificate.pdf`);
         
         toast({
             title: "Download Started",
@@ -74,8 +74,8 @@ const CertificateComponent = ({ format, userName, date, slotTimings }: { format:
 
     const handleShare = async () => {
         const shareData = {
-            title: `I earned an indcric Certificate!`,
-            text: `I just got a perfect score in the ${format} quiz on indcric! Think you can beat me?`,
+            title: `I earned a CricBlitz Certificate!`,
+            text: `I just got a perfect score in the ${format} quiz on CricBlitz! Think you can beat me?`,
             url: window.location.href,
         };
         try {

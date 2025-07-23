@@ -15,9 +15,9 @@ function SupportCard() {
             </CardHeader>
             <CardContent className="space-y-3">
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <a href="mailto:support@indcric.com">
+                    <a href="mailto:support@cricblitz.com">
                         <Mail className="mr-4" />
-                        Email: support@indcric.com
+                        Email: support@cricblitz.com
                     </a>
                 </Button>
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
