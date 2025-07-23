@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -22,6 +22,7 @@ interface AuthContextType {
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
   isProfileComplete: boolean;
   handleMalpractice: () => Promise<number>;
+  setLastAttempt: (attempt: QuizAttempt) => void;
   isOffline: boolean;
 }
 
@@ -57,23 +58,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // A real-time listener for the user's profile document.
-    const userRef = doc(db, 'users', user.uid);
+    const fetchProfile = async () => {
+        const userRef = doc(db, 'users', user.uid);
+        try {
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                setProfile(docSnap.data());
+                setIsOffline(false);
+            } else {
+                setProfile(null);
+            }
+        } catch (error: any) {
+            console.error("Firestore Get Error:", error);
+            if (error.code === 'unavailable') {
+                setIsOffline(true);
+                toast({ title: 'You are offline', description: 'Some data may not be up to date.', variant: 'destructive'});
+            }
+        }
+    }
+    
+    fetchProfile();
+    
+    // Set up a real-time listener for ongoing updates
     const unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
-        setIsOffline(false);
-      } else {
-        // This case might happen for a brief moment for new users.
-        // `handleUserDocument` will create it.
-        setProfile(null);
       }
-    }, (error) => {
-        console.error("Firestore Snapshot Error:", error);
-        if (error.code === 'unavailable') {
-            setIsOffline(true);
-            toast({ title: 'You are offline', description: 'Some data may not be up to date.', variant: 'destructive'});
-        }
     });
 
     return () => unsubscribeProfile();
@@ -106,10 +116,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
-      // No need to setProfile here, the onSnapshot listener will pick it up
       return newUserProfile;
     } else {
-      // The onSnapshot listener will keep the profile updated.
       return docSnap.data();
     }
   }, []);
@@ -168,7 +176,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
         await signOut(auth);
-        // onAuthStateChanged will handle setting user and profile to null
         toast({ title: "Signed Out", description: "You have been logged out successfully." });
     } catch (error) {
         toast({ title: "Logout Failed", description: "Could not log you out.", variant: "destructive" });
@@ -179,9 +186,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) throw new Error("User not authenticated.");
     const userDocRef = doc(db, "users", user.uid);
     try {
-        await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+        const dataToUpdate = sanitizeUserProfile({...newData, updatedAt: serverTimestamp()});
+        await updateDoc(userDocRef, dataToUpdate);
         // Optimistic update for immediate UI feedback
-        setProfile(prev => prev ? ({...prev, ...newData}) : newData);
+        setProfile(prev => prev ? ({...prev, ...dataToUpdate}) : dataToUpdate);
     } catch (error) {
         console.error("Update user data failed:", error);
         toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
@@ -193,7 +201,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const batch = writeBatch(db);
         const userRef = doc(db, 'users', user.uid);
-        const attemptRef = doc(db, `users/${user.uid}/quizAttempts`, attempt.slotId);
+        const attemptRef = doc(collection(db, `users/${user.uid}/quizAttempts`), attempt.slotId);
         
         batch.set(attemptRef, sanitizeUserProfile(attempt));
         
@@ -249,7 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     user, profile, loading, signInWithGoogle, registerWithEmail, loginWithEmail, logout, updateUserData, addQuizAttempt,
-    isProfileComplete, handleMalpractice, isOffline
+    isProfileComplete, handleMalpractice, isOffline, setLastAttempt: () => {}
   };
 
   return (

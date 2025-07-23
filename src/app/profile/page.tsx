@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
@@ -11,11 +11,46 @@ import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
 import { Settings, LogIn, Scale } from 'lucide-react';
 import Policies from '@/components/profile/Policies';
+import { db } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
 
 function ProfilePageContent() {
-  const { user, profile, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [profile, setProfile] = useState<Record<string, any> | null>(null);
+  const [fetching, setFetching] = useState(true);
 
-  if (loading || (user && !profile)) {
+  useEffect(() => {
+    // Wait for the initial auth check to complete
+    if (authLoading) return;
+    
+    // If no user is logged in, we can stop fetching.
+    if (!user) {
+      setFetching(false);
+      return;
+    }
+
+    // Auth is done and we have a user, now fetch the profile.
+    const fetchProfile = async () => {
+      setFetching(true);
+      try {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProfile(docSnap.data());
+        } else {
+          console.warn("No profile document found for user:", user.uid);
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchProfile();
+  }, [authLoading, user]);
+
+  if (authLoading || fetching) {
     return (
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <ProfileSkeleton />

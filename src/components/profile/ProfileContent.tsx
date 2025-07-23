@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -10,16 +11,22 @@ import ProfileCompletion from './ProfileCompletion';
 import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import SupportCard from './SupportCard';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth as useAuthOriginal } from '@/context/AuthProvider'; // Renamed to avoid conflict
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebaseClient';
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const router = useRouter();
-    const { logout } = useAuth();
+    const { user } = useAuthOriginal();
 
     const handleLogout = async () => {
-        await logout();
+        await signOut(auth);
         router.replace('/auth/login');
     };
+
+    if (!userProfile) {
+        return <p>No profile data found.</p>;
+    }
 
     return (
         <div className="space-y-6">
