@@ -65,7 +65,7 @@ export default function SignupForm() {
     const user = await registerWithEmail(data.email, data.password, data.name);
     if (user) {
       toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
-      router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
+      router.push(`/auth/verify-email?from=${from || '/home'}`);
     }
     setIsLoading(false);
   };
@@ -116,7 +116,7 @@ export default function SignupForm() {
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">
             Already have an account?{' '}
-            <Link href={`/auth/login${from ? `?from=${from}` : ''}`} className="font-semibold text-primary hover:underline">
+            <Link href={`/auth/login${from ? `?from=${encodeURIComponent(from)}` : ''}`} className="font-semibold text-primary hover:underline">
                 Sign in here
             </Link>
         </p>

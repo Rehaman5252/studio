@@ -31,7 +31,7 @@ async function createUserDocument(user: User, additionalData: Record<string, any
       totalRewards: 0,
       profileCompleted: false,
       phoneVerified: false,
-      referralCode: `CricBlitz.com/ref/${(displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
+      referralCode: `CricBlitz.com/ref/${(additionalData.name || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
       referralEarnings: 0,
       ...additionalData
     };
@@ -87,9 +87,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
+    if (user === null) {
+        setLoading(false);
+        return;
+    }
+    if (user && !loading) {
+        // Auth state is known and not in initial load, so we don't need to show a full-screen loader
+        // This is important for cases like email verification flow where the user object exists but we are waiting for profile.
+    } else {
+        setLoading(true);
     }
     
     const userDocRef = doc(firestore, "users", user.uid);
@@ -101,8 +107,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         setProfile(data);
       } else {
-        // If the user is authenticated but has no doc, create one.
-        // This handles cases where a user was created in Auth but Firestore doc creation failed.
         await createUserDocument(user);
       }
       setLoading(false);
@@ -118,8 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
-        // The onAuthStateChanged listener will handle creating the document
-        // and setting the user state, ensuring a single flow.
+        await createUserDocument(result.user);
         return result.user;
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') {

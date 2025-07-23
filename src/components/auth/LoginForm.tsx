@@ -67,7 +67,7 @@ export default function LoginForm() {
     if (user) {
       if (!user.emailVerified) {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
-        router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);
+        router.push(`/auth/verify-email?from=${from || '/home'}`);
       } else {
         handleSuccessfulLogin(isProfileComplete);
       }
