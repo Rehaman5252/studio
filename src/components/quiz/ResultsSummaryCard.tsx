@@ -30,9 +30,9 @@ const ResultsSummaryCardComponent = ({
                 <div className="p-4 pt-6 text-left">
                     <Alert variant="default" className="border-primary bg-primary/10">
                         <Info className="h-4 w-4 text-primary" />
-                        <AlertTitle>Reviewing Attempt</AlertTitle>
+                        <AlertTitle>Reviewing Previous Innings</AlertTitle>
                         <AlertDescription className="text-foreground/80">
-                            You have already played in this 10-minute slot. Here are your results.
+                            This is the scorecard from your last attempt in this slot.
                         </AlertDescription>
                     </Alert>
                 </div>
