@@ -4,6 +4,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import { Skeleton } from '@/components/ui/skeleton';
 
