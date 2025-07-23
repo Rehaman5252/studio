@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
@@ -11,6 +12,7 @@ import { motion } from 'framer-motion';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Star } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -38,13 +40,14 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const MyNetworkLeaderboard = () => {
     const { user, profile, loading: authLoading } = useAuth();
+    const firebaseReady = useFirebaseReady();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading || !user || !profile) {
-            setIsLoading(false);
+        if (authLoading || !user || !profile || !firebaseReady) {
+            if (!user) setIsLoading(false);
             return;
         }
 
@@ -97,7 +100,7 @@ const MyNetworkLeaderboard = () => {
 
         fetchNetworkData();
 
-    }, [user, profile, authLoading]);
+    }, [user, profile, authLoading, firebaseReady]);
 
 
     const renderContent = () => {

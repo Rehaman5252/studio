@@ -1,21 +1,16 @@
-'use client';
-import { useState, useEffect } from "react";
-import { auth } from "@/lib/firebaseClient";
-import { onAuthStateChanged } from "firebase/auth";
 
-export default function useFirebaseReady() {
-  const [isReady, setIsReady] = useState(false);
+// src/hooks/useFirebaseReady.ts
+import { useEffect, useState } from "react";
+import { isFirebaseConfigured } from "@/lib/firebaseClient";
+
+export default function useFirebaseReady(): boolean {
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // onAuthStateChanged returns an unsubscribe function. When it first fires
-    // (with either a user or null), we know Firebase Auth is initialized.
-    const unsubscribe = onAuthStateChanged(auth, () => {
-      setIsReady(true);
-      unsubscribe(); // We only need this to fire once to know it's ready.
-    });
-
-    return () => unsubscribe();
+    if (typeof window !== "undefined" && isFirebaseConfigured) {
+      setReady(true);
+    }
   }, []);
 
-  return isReady;
+  return ready;
 }

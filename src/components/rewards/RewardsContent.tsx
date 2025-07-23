@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -14,6 +15,7 @@ import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -117,12 +119,13 @@ GenericOffer.displayName = 'GenericOffer';
 
 const BrandGifts = () => {
   const { user, loading: authLoading } = useAuth();
+  const firebaseReady = useFirebaseReady();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || !firebaseReady) return;
     if (!user) { setLoading(false); return; }
 
     const fetchHistory = async () => {
@@ -145,7 +148,7 @@ const BrandGifts = () => {
     };
 
     fetchHistory();
-  }, [user, authLoading]);
+  }, [user, authLoading, firebaseReady]);
 
   const hasAttempts = history.length > 0;
   const rewardableAttempts = useMemo(() => {

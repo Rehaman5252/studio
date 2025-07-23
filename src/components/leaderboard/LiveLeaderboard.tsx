@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
@@ -14,6 +15,7 @@ import { firestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -41,12 +43,13 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const LiveLeaderboard = () => {
     const { user, profile, loading: authLoading } = useAuth();
+    const firebaseReady = useFirebaseReady();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
+        if (authLoading || !firebaseReady) return;
 
         const fetchLivePlayers = async () => {
             setIsLoading(true);
@@ -96,7 +99,7 @@ const LiveLeaderboard = () => {
             }
         };
         fetchLivePlayers();
-    }, [user, profile, authLoading]);
+    }, [user, profile, authLoading, firebaseReady]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);

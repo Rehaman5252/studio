@@ -12,12 +12,6 @@ const inter = Inter({
   display: 'swap',
 });
 
-// Metadata and viewport are not used in a client component,
-// so we manage the title via useEffect or a dedicated component if needed.
-// For simplicity, we'll keep the static parts here.
-// export const metadata: Metadata = { ... };
-// export const viewport: Viewport = { ... };
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,9 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
-          <title>CricBlitz - The Ultimate Cricket Quiz Challenge</title>
-          <meta name="description" content="Test your cricket knowledge on CricBlitz and win exciting prizes. Compete on the live leaderboard and become a true cricket champion. Fast, fun, and built for true cricket fans." />
-          <meta name="keywords" content="cricket, quiz, ipl, t20, odi, test cricket, sports trivia, CricBlitz" />
+          <title>indcric - The Ultimate Cricket Quiz Challenge</title>
+          <meta name="description" content="Test your cricket knowledge on indcric and win exciting prizes. Compete on the live leaderboard and become a true cricket champion. Fast, fun, and built for true cricket fans." />
+          <meta name="keywords" content="cricket, quiz, ipl, t20, odi, test cricket, sports trivia, indcric" />
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="hsl(var(--background))" />
       </head>

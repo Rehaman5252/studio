@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,11 +12,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { loginWithEmail } from '@/lib/authUtils';
+import { registerWithEmail } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
-import { isFirebaseConfigured } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, auth } from '@/lib/firebaseClient';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -38,7 +40,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
-  const { signIn } = useAuth();
+  const { user, signIn } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -55,7 +57,7 @@ export default function LoginForm() {
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      const userCredential = await loginWithEmail(data.email, data.password);
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       if (!userCredential.user.emailVerified) {
         toast({ title: 'Email Not Verified', description: 'Please verify your email before logging in.', variant: 'destructive'});
         router.push(`/auth/verify-email${from ? `?from=${from}` : ''}`);

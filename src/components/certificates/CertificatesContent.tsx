@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { firestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -45,13 +47,14 @@ const ErrorState = ({ message }: { message: string }) => (
 
 export default function CertificatesContent() {
   const { user, profile, loading: authLoading } = useAuth();
+  const firebaseReady = useFirebaseReady();
   const { toast } = useToast();
   const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || !firebaseReady) return;
     if (!user) { setIsLoading(false); return; }
 
     const fetchHistory = async () => {
@@ -74,7 +77,7 @@ export default function CertificatesContent() {
         }
     }
     fetchHistory();
-  }, [user, authLoading]);
+  }, [user, authLoading, firebaseReady]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
