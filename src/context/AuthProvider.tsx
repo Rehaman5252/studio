@@ -79,7 +79,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         profileCompleted: false,
         guidedTourCompleted: false,
         phoneVerified: false,
-        referralCode: `cricblitz.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`.toLowerCase(),
+        referralCode: `indcric.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`.toLowerCase(),
         referralEarnings: 0,
         noBallCount: 0,
         lastNoBallTimestamp: null,
