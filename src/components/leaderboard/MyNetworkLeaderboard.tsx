@@ -54,6 +54,9 @@ const MyNetworkLeaderboard = () => {
             setError(null);
             
             try {
+                if (!firestore) {
+                    throw new Error("Firestore is not available.");
+                }
                 const networkIds: string[] = [...(profile.referrals || [])];
                 if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
                     networkIds.push(profile.referredBy);

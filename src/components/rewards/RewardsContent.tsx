@@ -60,6 +60,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
   const storageKey = useMemo(() => `scratch-card-${slotId}-${brand}-${timestamp}`, [slotId, brand, timestamp]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const savedState = window.localStorage.getItem(storageKey);
     if (savedState === 'true') setIsScratched(true);
   }, [storageKey]);

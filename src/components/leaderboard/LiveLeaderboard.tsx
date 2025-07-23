@@ -62,7 +62,7 @@ const LiveLeaderboard = () => {
                     { uid: 'mock-player-4', name: 'Yuvraj Singh', score: 3, time: 70.0, avatar: 'https://placehold.co/40x40.png' },
                 ];
                 
-                if (user) {
+                if (user && firestore) {
                     const q = query(collection(firestore, "users", user.uid, "quizAttempts"), where("slotId", "==", getQuizSlotId()), limit(1));
                     const userAttemptSnap = await getDocs(q);
 
@@ -71,7 +71,7 @@ const LiveLeaderboard = () => {
                         mockLivePlayers.push({
                             uid: user.uid, name: profile?.name || 'You', score: attempt.score,
                             time: attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0,
-                            avatar: profile?.photoURL, disqualified: attempt.reason === 'malpractice'
+                            avatar: profile?.photoURL, disqualified: !!attempt.reason?.startsWith('malpractice')
                         });
                     }
                 }

@@ -14,11 +14,14 @@ export default function FirebaseTestPage() {
 
   useEffect(() => {
     isFirebaseOnline().then(setIsOnline);
-    setDbStatus(!!firestore);
+    try {
+        setDbStatus(!!firestore);
+    } catch (e) {
+        setDbStatus(false);
+    }
   }, []);
 
   const isLoading = isAuthLoading;
-  const isConfigured = isFirebaseConfigured;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
@@ -30,11 +33,11 @@ export default function FirebaseTestPage() {
           </p>
         </div>
 
-        <Alert variant={isConfigured ? 'default' : 'destructive'} className={isConfigured ? 'border-green-500/50 bg-green-500/10' : ''}>
-            {isConfigured ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+        <Alert variant={isFirebaseConfigured ? 'default' : 'destructive'} className={isFirebaseConfigured ? 'border-green-500/50 bg-green-500/10' : ''}>
+            {isFirebaseConfigured ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
             <AlertTitle>Firebase Configuration</AlertTitle>
             <AlertDescription>
-            {isConfigured ? `Firebase config loaded successfully.` : 'Firebase config is missing or incomplete. Please check your environment variables.'}
+            {isFirebaseConfigured ? `Firebase config loaded successfully.` : 'Firebase config is missing or incomplete. Please check your environment variables.'}
             </AlertDescription>
         </Alert>
 

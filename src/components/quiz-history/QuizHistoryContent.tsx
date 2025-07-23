@@ -104,7 +104,7 @@ const getSlotTimings = (timestamp: number) => {
 };
 
 const QuizHistoryItem = memo(({ attempt }: { attempt: QuizAttempt }) => {
-    const isMalpractice = attempt.reason === 'malpractice';
+    const isMalpractice = !!attempt.reason?.startsWith('malpractice');
     return (
         <Card className={cn("bg-card/80 border-primary/10 shadow-lg", isMalpractice && "bg-destructive/10 border-destructive/20")}>
             <CardHeader>
@@ -160,17 +160,17 @@ export default function QuizHistoryContent() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!user) { setLoading(false); return; }
+        if (!user || !firestore) { setLoading(false); return; }
 
         setLoading(true);
         setError(null);
         
-        (async () => {
+        const fetchHistory = async () => {
             try {
                 const q = query(collection(firestore, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
                 const snap = await getDocs(q);
                 setHistory(snap.docs.map(doc => doc.data() as QuizAttempt));
-            } catch (e) {
+            } catch (e: any) {
                 if((e as any).code === 'unavailable') {
                     setError("You appear to be offline. History may be incomplete.");
                 } else {
@@ -179,7 +179,9 @@ export default function QuizHistoryContent() {
             } finally {
                 setLoading(false);
             }
-        })();
+        };
+
+        fetchHistory();
     }, [user, authLoading]);
 
     const handleSendHistory = async () => {

@@ -56,6 +56,10 @@ export default function CertificatesContent() {
     if (!user) { setIsLoading(false); return; }
 
     const fetchHistory = async () => {
+        if (typeof window === 'undefined') {
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
         setError(null);
         try {

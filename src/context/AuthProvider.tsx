@@ -4,8 +4,8 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, increment, Timestamp, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { auth, firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { doc, getDoc, setDoc, increment, Timestamp, writeBatch, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { auth, firestore, isFirebaseConfigured, isFirebaseOnline } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
@@ -37,83 +37,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
 
-  const fetchUserProfile = useCallback(async (uid: string) => {
-    if (!firestore) return null;
-    try {
-      const userDocRef = doc(firestore, 'users', uid);
-      const docSnap = await getDoc(userDocRef);
-      setIsOffline(docSnap.metadata.fromCache);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.dob instanceof Timestamp) {
-            data.dob = data.dob.toDate().toISOString().split('T')[0];
-        }
-        if (data.lastNoBallTimestamp instanceof Timestamp) {
-            data.lastNoBallTimestamp = data.lastNoBallTimestamp.toMillis();
-        }
-        return data;
-      }
-      return null;
-    } catch (error: any) {
-        console.error("Failed to fetch user profile:", error);
-        if (error.code === 'unavailable') {
-            setIsOffline(true);
-        }
-        return null;
-    }
-  }, []);
-  
-  const createUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
-    if (!firestore || !user) return;
-    
+  const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
+    if (!firestore) return;
     const userRef = doc(firestore, 'users', user.uid);
     const docSnap = await getDoc(userRef);
 
     if (!docSnap.exists()) {
       const newUserProfile = {
-          uid: user.uid,
-          name: additionalData.name || user.displayName,
-          email: user.email,
-          phone: additionalData.phone || '',
-          photoURL: user.photoURL || `https://placehold.co/100x100.png`,
-          createdAt: serverTimestamp(),
-          emailVerified: user.emailVerified,
-          referredBy: additionalData.referredBy || '',
-          quizzesPlayed: 0,
-          perfectScores: 0,
-          totalRewards: 0,
-          profileCompleted: false,
-          phoneVerified: false,
-          referralCode: `CricBlitz.com/ref/${(additionalData.name || user.displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
-          referralEarnings: 0,
-          noBallCount: 0,
-          lastNoBallTimestamp: null,
+        uid: user.uid,
+        name: additionalData.name || user.displayName || 'New User',
+        email: user.email,
+        phone: additionalData.phone || '',
+        photoURL: user.photoURL || `https://placehold.co/100x100.png`,
+        createdAt: serverTimestamp(),
+        emailVerified: user.emailVerified,
+        referredBy: additionalData.referredBy || '',
+        quizzesPlayed: 0,
+        perfectScores: 0,
+        totalRewards: 0,
+        profileCompleted: false,
+        phoneVerified: false,
+        referralCode: `CricBlitz.com/ref/${(additionalData.name || user.displayName || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
+        referralEarnings: 0,
+        noBallCount: 0,
+        lastNoBallTimestamp: null,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       return newUserProfile;
     }
     return docSnap.data();
   }, []);
-
+  
   useEffect(() => {
     if (!isFirebaseConfigured) {
-      console.warn("Firebase is not configured. Auth features will be disabled.");
       setLoading(false);
       return;
     }
-    
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
-        setUser(authUser);
-        const userProfile = await fetchUserProfile(authUser.uid);
-        if (userProfile) {
-            setProfile(userProfile);
-        } else {
-            // This case handles a race condition where a user is created
-            // but their document doesn't exist yet. We create it.
-            const newProfile = await createUserDocument(authUser);
-            setProfile(newProfile);
-        }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userProfile = await handleUserDocument(firebaseUser);
+        setUser(firebaseUser);
+        setProfile(userProfile);
       } else {
         setUser(null);
         setProfile(null);
@@ -122,14 +87,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [fetchUserProfile, createUserDocument]);
+  }, [handleUserDocument]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     if (!auth) return null;
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
-        await createUserDocument(result.user, {name: result.user.displayName});
+        await handleUserDocument(result.user);
         return result.user;
     } catch (error: any) {
         if (error.code !== 'auth/popup-closed-by-user') {
@@ -138,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         return null;
     }
-  }, [toast, createUserDocument]);
+  }, [toast, handleUserDocument]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
     if (!auth) return null;
@@ -146,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
         await updateProfile(user, { displayName: name });
-        await createUserDocument(user, { name, phone, referredBy: referralCode });
+        await handleUserDocument(user, { name, phone, referredBy: referralCode });
         await sendEmailVerification(user);
         return user;
     } catch (error: any) {
@@ -160,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
         return null;
     }
-  }, [toast, createUserDocument]);
+  }, [toast, handleUserDocument]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
     if (!auth) return null;
@@ -194,37 +159,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) throw new Error("User not authenticated.");
     if (!firestore) return;
     const userDocRef = doc(firestore, "users", user.uid);
-    await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
-    // Optimistically update local profile state
-    setProfile(prev => ({...prev, ...newData}));
-  }, [user]);
+    try {
+        await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
+        setProfile(prev => ({...prev, ...newData}));
+    } catch (error) {
+        console.error("Update user data failed:", error);
+        toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
+    }
+  }, [user, toast]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user) throw new Error("User not authenticated.");
     if (!firestore) return;
     
-    const batch = writeBatch(firestore);
-    const userRef = doc(firestore, 'users', user.uid);
-    const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, attempt.slotId);
-    
-    batch.set(attemptRef, sanitizeUserProfile(attempt));
-    
-    const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
-    const statsUpdate: {[key:string]: any} = { quizzesPlayed: increment(1) };
-    if (isPerfect) {
-        statsUpdate.perfectScores = increment(1);
-        statsUpdate.totalRewards = increment(100);
+    try {
+        const batch = writeBatch(firestore);
+        const userRef = doc(firestore, 'users', user.uid);
+        const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, attempt.slotId);
+        
+        batch.set(attemptRef, sanitizeUserProfile(attempt));
+        
+        const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
+        const statsUpdate: {[key:string]: any} = { quizzesPlayed: increment(1) };
+        if (isPerfect) {
+            statsUpdate.perfectScores = increment(1);
+            statsUpdate.totalRewards = increment(100);
+        }
+        
+        batch.update(userRef, statsUpdate);
+        
+        await batch.commit();
+    } catch (error) {
+        console.error("Add quiz attempt failed:", error);
+        toast({ title: "Sync Error", description: "Could not save your quiz attempt to the database.", variant: 'destructive' });
     }
-    
-    batch.update(userRef, statsUpdate);
-    
-    await batch.commit();
-  }, [user]);
+  }, [user, toast]);
 
   const handleMalpractice = useCallback(async (): Promise<number> => {
-    if (!user || !profile) return 0;
-    if (!firestore) return 0;
-
+    if (!user || !profile || !firestore) return 0;
+    
     const userRef = doc(firestore, 'users', user.uid);
     const today = new Date().setHours(0, 0, 0, 0);
     const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp).setHours(0, 0, 0, 0) : null;
@@ -236,19 +209,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       newNoBallCount++;
     }
-
-    await setDoc(userRef, {
+    
+    const updatedProfile = {
         noBallCount: newNoBallCount,
         lastNoBallTimestamp: serverTimestamp()
-    }, { merge: true });
+    };
     
-    setProfile(p => (p ? {
-        ...p,
-        noBallCount: newNoBallCount,
-        lastNoBallTimestamp: Date.now()
-    } : null));
-
-    return newNoBallCount;
+    try {
+        await setDoc(userRef, updatedProfile, { merge: true });
+        setProfile(p => (p ? { ...p, noBallCount: newNoBallCount, lastNoBallTimestamp: Date.now() } : null));
+        return newNoBallCount;
+    } catch (error) {
+        console.error("Handle malpractice failed:", error);
+        return profile.noBallCount; // Return old count on failure
+    }
   }, [user, profile]);
 
   const isProfileComplete = !!profile?.profileCompleted;

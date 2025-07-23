@@ -41,8 +41,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
       return;
     };
     
-    // If there's no user, there's no history to load.
-    if (!user) {
+    if (!user || !firestore) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
