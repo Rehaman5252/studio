@@ -98,6 +98,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           setProfile(data);
         } else {
+          // This case might happen for a brand new user.
+          // The createUserDocument function should handle creation.
           console.log("User document not found, may be created shortly.");
         }
       }, (error) => {
@@ -134,15 +136,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !auth) {
       toast({ title: 'Service Unavailable', description: 'Firebase is not configured.', variant: 'destructive' });
       return null;
     }
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
-        await createUserDocument(userCredential.user, { name, phone, referralCode });
+        // The onAuthStateChanged listener will handle creating the document.
+        // We just need to ensure the verification email is sent.
         await sendEmailVerification(userCredential.user);
+        await createUserDocument(userCredential.user, { name, phone, referralCode });
         return userCredential.user;
     } catch (error: any) {
         let description = 'An unexpected error occurred. Please try again.';
@@ -158,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !auth) {
       toast({ title: 'Service Unavailable', description: 'Firebase is not configured.', variant: 'destructive' });
       return null;
     }
@@ -172,6 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (error.code === 'auth/network-request-failed') {
           description = 'You appear to be offline. Please check your connection.';
       }
+      console.error("Login Error: ", error);
       toast({ title: 'Login Failed', description, variant: 'destructive' });
       return null;
     }
@@ -190,13 +195,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    if (!user || !isFirebaseConfigured) throw new Error("User not authenticated or database not available.");
+    if (!user || !isFirebaseConfigured || !firestore) throw new Error("User not authenticated or database not available.");
     const userDocRef = doc(firestore, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !isFirebaseConfigured) throw new Error("User not authenticated or DB not available.");
+    if (!user || !isFirebaseConfigured || !firestore) throw new Error("User not authenticated or DB not available.");
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.uid);
     const attemptRef = doc(firestore, `users/${user.uid}/quizAttempts`, attempt.slotId);
@@ -236,3 +241,5 @@ export function useAuth() {
   if (!c) throw new Error("useAuth must be used within AuthProvider");
   return c;
 }
+
+    
