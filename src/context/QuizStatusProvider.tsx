@@ -30,15 +30,16 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   const isLoading = isAuthLoading || isHistoryLoading;
+  const currentSlotId = getQuizSlotId(); // Get current slot ID once per render cycle
 
   useEffect(() => {
-    const currentSlotId = getQuizSlotId();
-    // If the user logs out, or auth is still loading, reset state.
+    // If auth is still loading, do nothing.
     if (isAuthLoading) {
       return;
     };
     
-    if (!user || !db) { // Check for db instance
+    // If no user is logged in or DB is not available, reset state and stop loading.
+    if (!user || !db) {
         setIsHistoryLoading(false);
         setLastAttemptInSlot(null);
         return;
@@ -48,6 +49,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         setIsHistoryLoading(true);
         if (typeof window !== "undefined") {
             try {
+                // Fetch the specific document for the CURRENT slot.
                 const historyDocRef = doc(db, 'users', user.uid, 'quizAttempts', currentSlotId);
                 const docSnap = await getDoc(historyDocRef);
                 if (docSnap.exists()) {
@@ -62,11 +64,13 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
                 setIsHistoryLoading(false);
             }
         } else {
+            // Should not happen on client, but as a fallback.
             setIsHistoryLoading(false);
         }
     }
     fetchLastAttempt();
-  }, [user, isAuthLoading]);
+    // Dependency array includes currentSlotId to refetch if the slot changes while the user is on the page.
+  }, [user, isAuthLoading, currentSlotId]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();

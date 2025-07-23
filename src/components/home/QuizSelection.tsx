@@ -70,6 +70,8 @@ const QuizSelectionComponent = () => {
 
 
     const handleStartQuiz = useCallback(() => {
+        // **Strict Slot Enforcement**
+        // If an attempt for this slot exists, redirect to the results immediately.
         if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
             const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
             const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;

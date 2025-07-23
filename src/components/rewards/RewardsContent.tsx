@@ -162,14 +162,14 @@ const BrandGifts = () => {
   // Logic to get one rewardable attempt per slot. This now correctly includes malpractice attempts.
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
-    history.forEach(attempt => {
-      // Key is the slot ID, guaranteeing one card per slot attempt, regardless of outcome.
-      const key = attempt.slotId;
-      if (!uniqueAttempts.has(key)) {
+    // Iterate in reverse to keep the EARLIEST attempt in a slot if multiple exist
+    for (let i = history.length - 1; i >= 0; i--) {
+        const attempt = history[i];
+        // Key is the slot ID, guaranteeing one card per slot attempt.
+        const key = attempt.slotId;
         uniqueAttempts.set(key, attempt);
-      }
-    });
-    // Return all unique attempts, sorted by time
+    }
+    // Return all unique attempts, sorted by time descending to show newest first
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [history]);
 
