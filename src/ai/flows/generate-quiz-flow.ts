@@ -24,13 +24,13 @@ const generalPrompt = ai.definePrompt({
   output: {schema: GenerateQuizOutputSchema},
   prompt: `Generate a 5-question, multiple-choice quiz about "{{format}}" cricket with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
-The 5 questions must follow this exact difficulty structure:
+The 5 questions must follow this exact structure:
 
-1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue) related to the "{{format}}" format. Set questionType to "text".
-2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament within the "{{format}}" format. Set questionType to "text".
-3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning in the "{{format}}" format. Set questionType to "text".
-4.  **Question 4 (Very Hard / Image-based):** An image-based question. The questionText should ask to identify something in an image (e.g., "Identify the player in this photo," "Which stadium is this?"). Set questionType to "image". Provide a descriptive two-word 'imageAiHint' (e.g., "Rohit Sharma batting", "Lords stadium") that can be used to find a relevant photo. DO NOT provide an actual imageUrl.
-5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation from the "{{format}}" format. Set questionType to "text".
+1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue) related to the "{{format}}" format. You must set questionType to "text".
+2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament within the "{{format}}" format. You must set questionType to "text".
+3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning in the "{{format}}" format. You must set questionType to "text".
+4.  **Question 4 (Very Hard / Image-based):** An image-based question. The questionText should ask to identify something in an image (e.g., "Identify the player in this photo," "Which stadium is this?"). You must set questionType to "image". Provide a descriptive two-word 'imageAiHint' (e.g., "Rohit Sharma batting", "Lords stadium") that can be used to find a relevant photo. DO NOT provide an actual imageUrl. This must be the ONLY image-based question.
+5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation from the "{{format}}" format. You must set questionType to "text".
 `,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
@@ -52,11 +52,11 @@ const mixedFormatPrompt = ai.definePrompt({
 
 The 5 questions must follow this exact difficulty structure, with each question drawn from a *different* format:
 
-1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue). Set questionType to "text".
-2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament. Set questionType to "text".
-3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning. Set questionType to "text".
-4.  **Question 4 (Very Hard / Image-based):** An image-based question. The questionText should ask to identify something in an image (e.g., "Identify the player in this action shot," "Which famous ground is shown here?"). Set questionType to "image". Provide a descriptive two-word 'imageAiHint' (e.g., "MS Dhoni keeping", "MCG stadium") that can be used to find a relevant photo. DO NOT provide an actual imageUrl.
-5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation. Set questionType to "text".
+1.  **Question 1 (Easy):** A text-based question about a basic, accessible fact (famous player, major tournament winner, or well-known venue). You must set questionType to "text".
+2.  **Question 2 (Medium):** A text-based question about a common record, a well-known team score, or a top scorer in a specific series/tournament. You must set questionType to "text".
+3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning. You must set questionType to "text".
+4.  **Question 4 (Very Hard / Image-based):** An image-based question. The questionText should ask to identify something in an image (e.g., "Identify the player in this action shot," "Which famous ground is shown here?"). You must set questionType to "image". Provide a descriptive two-word 'imageAiHint' (e.g., "MS Dhoni keeping", "MCG stadium") that can be used to find a relevant photo. DO NOT provide an actual imageUrl. This must be the ONLY image-based question.
+5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation. You must set questionType to "text".
 `,
     config: {
       // Set extremely permissive safety settings to prevent the model from blocking valid responses.
