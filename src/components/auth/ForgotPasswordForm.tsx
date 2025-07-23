@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -31,7 +32,7 @@ export default function ForgotPasswordForm() {
   const emailForm = useForm<EmailFormValues>({ resolver: zodResolver(emailSchema) });
 
   const handleSendResetEmail = async (data: EmailFormValues) => {
-    if (!auth) {
+    if (!isFirebaseConfigured) {
         toast({ title: 'Error', description: 'Authentication service not available.', variant: 'destructive' });
         return;
     }

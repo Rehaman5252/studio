@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebaseClient";
-import { signInWithPhoneNumber } from "firebase/auth";
+import { auth, isFirebaseConfigured } from "@/lib/firebaseClient";
+import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
 
 interface Props {
   children: React.ReactNode;
@@ -41,7 +41,6 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   }, []);
 
   const setupRecaptcha = useCallback(async () => {
-    const auth = getFirebaseAuth();
     if (!isFirebaseConfigured || recaptchaVerifierRef.current || !open) return;
 
     let container = document.getElementById('recaptcha-container-in-dialog');
@@ -52,8 +51,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     }
 
     try {
-      const { RecaptchaVerifier } = await import('firebase/auth');
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
+      const verifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
         size: 'invisible',
         callback: () => {},
         'expired-callback': () => {
@@ -83,9 +81,8 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     setError(null);
     await setupRecaptcha();
     const verifier = recaptchaVerifierRef.current;
-    const auth = getFirebaseAuth();
 
-    if (!verifier || !auth) {
+    if (!verifier) {
       setError("Verifier not ready. Close and try again.");
       return;
     }
@@ -114,9 +111,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
 
     try {
       await confirmation.confirm(otp);
-      if (updateUserData) {
-        await updateUserData({ phoneVerified: true, phone });
-      }
+      await updateUserData({ phoneVerified: true, phone });
       toast({ title: "Verified", description: "Phone number verified." });
       onVerified();
       resetStateAndClose(false);

@@ -58,7 +58,7 @@ export default function LoginForm() {
     if (from) {
         router.replace(from);
     } else {
-        router.replace(isComplete ? '/home' : '/complete-profile');
+        router.replace(isComplete ? '/home' : '/walkthrough');
     }
   }
 

@@ -4,47 +4,11 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, onSnapshot, writeBatch, increment, Timestamp, setDoc, getDoc } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseFirestore, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { doc, onSnapshot, writeBatch, increment, Timestamp, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, firestore, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
-
-async function createUserDocument(user: User, additionalData: Record<string, any> = {}) {
-  const firestore = getFirebaseFirestore();
-  if (!user || !firestore || !isFirebaseConfigured) return;
-  
-  const userDocRef = doc(firestore, 'users', user.uid);
-  const snapshot = await getDoc(userDocRef);
-
-  if (!snapshot.exists()) {
-    const { email, displayName, photoURL } = user;
-    const newUserProfile = {
-      uid: user.uid,
-      email,
-      name: additionalData.name || displayName || 'New User',
-      photoURL: photoURL || `https://placehold.co/100x100.png`,
-      phone: additionalData.phone || '',
-      referredBy: additionalData.referralCode || '',
-      createdAt: new Date(),
-      emailVerified: user.emailVerified,
-      quizzesPlayed: 0,
-      perfectScores: 0,
-      totalRewards: 0,
-      profileCompleted: false,
-      phoneVerified: false,
-      referralCode: `CricBlitz.com/ref/${(additionalData.name || 'user').split(' ')[0]}${user.uid.substring(0, 4)}`,
-      referralEarnings: 0,
-      ...additionalData
-    };
-    try {
-      await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
-    } catch (error) {
-      console.error("Error creating user document:", error);
-      throw error;
-    }
-  }
-}
 
 interface AuthContextType {
   user: User | null;
@@ -54,8 +18,8 @@ interface AuthContextType {
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
-  updateUserData?: (data: Partial<Record<string, any>>) => Promise<void>;
-  addQuizAttempt?: (attempt: QuizAttempt) => Promise<void>;
+  updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
   lastAttempt: QuizAttempt | null;
   setLastAttempt: (attempt: QuizAttempt | null) => void;
   isProfileComplete: boolean;
@@ -74,80 +38,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isFirebaseConfigured) {
       console.warn("Firebase is not configured. Auth features will be disabled.");
       setLoading(false);
-      return;
+      return () => {};
     }
-    
-    const auth = getFirebaseAuth();
+
     let unsubscribeProfile: () => void = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      // If unsubscribeProfile is active, call it to clean up old listener
+      unsubscribeProfile();
+
+      if (firebaseUser) {
         setUser(firebaseUser);
-
-        if (firebaseUser) {
-            const firestore = getFirebaseFirestore();
-            const userDocRef = doc(firestore, "users", firebaseUser.uid);
-            
-            // Clean up previous listener before starting a new one
-            if (unsubscribeProfile) unsubscribeProfile();
-
-            unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data?.dob instanceof Timestamp) {
-                        data.dob = data.dob.toDate().toISOString().split('T')[0];
-                    }
-                    if (firebaseUser.emailVerified !== data.emailVerified) {
-                        try {
-                            await setDoc(userDocRef, { emailVerified: firebaseUser.emailVerified }, { merge: true });
-                            data.emailVerified = firebaseUser.emailVerified;
-                        } catch (e) {
-                            console.warn("Failed to sync email verification status:", e);
-                        }
-                    }
-                    setProfile(data);
-                } else {
-                    await createUserDocument(firebaseUser, { 
-                        name: firebaseUser.displayName, 
-                        email: firebaseUser.email, 
-                        photoURL: firebaseUser.photoURL 
-                    });
-                }
-                setLoading(false);
-            }, (error) => {
-                console.error("Profile snapshot error:", error);
-                setProfile(null);
-                setLoading(false);
-            });
-        } else {
-            // No user, clean up everything
-            if (unsubscribeProfile) unsubscribeProfile();
-            setProfile(null);
-            setLoading(false);
-        }
+        const userDocRef = doc(firestore, "users", firebaseUser.uid);
+        
+        unsubscribeProfile = onSnapshot(userDocRef, async (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            // Convert Firestore Timestamps to serializable format
+            if (data?.dob instanceof Timestamp) {
+                data.dob = data.dob.toDate().toISOString().split('T')[0];
+            }
+            // Sync email verification status from auth to firestore profile
+            if (firebaseUser.emailVerified !== data.emailVerified) {
+                await setDoc(userDocRef, { emailVerified: firebaseUser.emailVerified }, { merge: true });
+                data.emailVerified = firebaseUser.emailVerified;
+            }
+            setProfile(data);
+          } else {
+            // Create user document if it doesn't exist (e.g., first-time Google sign-in)
+            const newUserProfile = {
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName,
+              email: firebaseUser.email,
+              photoURL: firebaseUser.photoURL,
+              createdAt: serverTimestamp(),
+              emailVerified: firebaseUser.emailVerified,
+            };
+            await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
+            setProfile(newUserProfile);
+          }
+          setLoading(false);
+        });
+      } else {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
+    // Cleanup both auth and profile listeners on unmount
     return () => {
-        unsubscribeAuth();
-        unsubscribeProfile();
+      unsubscribeAuth();
+      unsubscribeProfile();
     };
   }, []);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
-    if (!isFirebaseConfigured) {
-        toast({ title: 'Service Unavailable', description: 'Firebase is not configured. Cannot sign in.', variant: 'destructive' });
-        return null;
-    }
-    
-    const auth = getFirebaseAuth();
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
-        // The useEffect hook will handle creating the document
+        // The onAuthStateChanged listener will handle document creation
         return result.user;
     } catch (error: any) {
-        if (error.code === 'auth/popup-closed-by-user') {
-             toast({ title: 'Sign-in cancelled', description: 'You closed the sign-in window.' });
-        } else {
+        if (error.code !== 'auth/popup-closed-by-user') {
             console.error("Google Sign-In Error:", error);
             toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
         }
@@ -156,17 +109,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
-    if (!isFirebaseConfigured) {
-      toast({ title: 'Service Unavailable', description: 'Firebase is not configured.', variant: 'destructive' });
-      return null;
-    }
-    const auth = getFirebaseAuth();
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
-        await createUserDocument(userCredential.user, { name, phone, referralCode });
-        await sendEmailVerification(userCredential.user);
-        return userCredential.user;
+        const { user } = userCredential;
+        await updateProfile(user, { displayName: name });
+        
+        // Create the user document in Firestore immediately after auth creation
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const newUserProfile = {
+          uid: user.uid,
+          email, name, phone,
+          photoURL: `https://placehold.co/100x100.png`,
+          referredBy: referralCode || '',
+          createdAt: serverTimestamp(),
+          emailVerified: user.emailVerified,
+          quizzesPlayed: 0,
+          perfectScores: 0,
+          totalRewards: 0,
+          profileCompleted: false,
+          phoneVerified: false,
+          referralCode: `CricBlitz.com/ref/${name.split(' ')[0]}${user.uid.substring(0, 4)}`,
+          referralEarnings: 0,
+        };
+        await setDoc(userDocRef, sanitizeUserProfile(newUserProfile));
+
+        await sendEmailVerification(user);
+        return user;
     } catch (error: any) {
         let description = 'An unexpected error occurred. Please try again.';
         if (error.code === 'auth/email-already-in-use') {
@@ -181,11 +149,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
-    if (!isFirebaseConfigured) {
-      toast({ title: 'Service Unavailable', description: 'Firebase is not configured.', variant: 'destructive' });
-      return null;
-    }
-    const auth = getFirebaseAuth();
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
       return userCredential.user;
@@ -193,17 +156,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let description = 'An unexpected error occurred.';
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           description = 'Invalid credentials. Please check your email and password.';
-      } else if (error.code === 'auth/network-request-failed') {
-          description = 'You appear to be offline. Please check your connection.';
       }
-      console.error("Login Error: ", error);
       toast({ title: 'Login Failed', description, variant: 'destructive' });
       return null;
     }
   }, [toast]);
 
   const logout = useCallback(async () => {
-    const auth = getFirebaseAuth();
     try {
         await signOut(auth);
         setUser(null);
@@ -216,17 +175,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    const firestore = getFirebaseFirestore();
-    if (!user || !isFirebaseConfigured || !firestore) {
-        throw new Error("User not authenticated or database not available.");
-    }
+    if (!user) throw new Error("User not authenticated.");
     const userDocRef = doc(firestore, "users", user.uid);
     await setDoc(userDocRef, sanitizeUserProfile(newData), { merge: true });
   }, [user]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    const firestore = getFirebaseFirestore();
-    if (!user || !isFirebaseConfigured || !firestore) throw new Error("User not authenticated or DB not available.");
+    if (!user) throw new Error("User not authenticated.");
     
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.uid);

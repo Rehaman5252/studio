@@ -18,28 +18,19 @@ const withAuth = <P extends object>(
     const router = useRouter();
 
     useEffect(() => {
-      if (!loading && user === null) {
+      if (!loading && !user) {
         router.replace('/auth/login');
       }
     }, [user, loading, router]);
 
-    if (loading) {
+    if (loading || !user) {
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       );
     }
-
-    if (!user) {
-      // Still show loader while redirect is happening
-      return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
-    }
-
+    
     return <WrappedComponent {...props} />;
   };
 

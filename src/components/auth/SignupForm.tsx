@@ -64,12 +64,12 @@ export default function SignupForm() {
     } 
   });
 
-  const handleSuccessfulGoogleLogin = (isComplete: boolean) => {
+  const handleSuccessfulGoogleLogin = () => {
     toast({ title: "Signed In", description: "Welcome!" });
     if (from) {
         router.replace(from);
     } else {
-        router.replace(isComplete ? '/home' : '/complete-profile');
+        router.replace('/walkthrough');
     }
   }
 
@@ -78,7 +78,7 @@ export default function SignupForm() {
     try {
         const user = await signInWithGoogle();
         if (user) {
-            handleSuccessfulGoogleLogin(isProfileComplete);
+            handleSuccessfulGoogleLogin();
         }
     } catch(error) {
         console.error("Google signup failed in component", error);

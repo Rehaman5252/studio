@@ -18,10 +18,10 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const age = calculateAge(userProfile?.dob);
     
     const isPhoneVerified = !!userProfile?.phoneVerified;
-    const isEmailVerified = userProfile?.emailVerified || false;
+    const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
-        if (!user || !auth) {
+        if (!user) {
             toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
             return;
         }

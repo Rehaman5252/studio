@@ -22,6 +22,7 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
+import { useToast } from '@/hooks/use-toast';
 
 const BrandCube = dynamic(() => import('./BrandCube'), { ssr: false });
 
@@ -35,9 +36,10 @@ const faceRotations = [
 ];
 
 const QuizSelectionComponent = () => {
-    const { user, profile } = useAuth();
+    const { user, isProfileComplete } = useAuth();
     const { lastAttemptInSlot, isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
+    const { toast } = useToast();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
@@ -45,11 +47,6 @@ const QuizSelectionComponent = () => {
     const [showSlotPlayedAlert, setShowSlotPlayedAlert] = useState(false);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
 
-    const isProfileComplete = useMemo(() => {
-        if (!profile) return false;
-        return profile.profileCompleted;
-    }, [profile]);
-    
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
         return lastAttemptInSlot.slotId === getQuizSlotId();
@@ -74,6 +71,14 @@ const QuizSelectionComponent = () => {
             router.push(`/auth/login?from=/home`);
             return;
         }
+        if (!user.emailVerified) {
+            toast({
+                title: "Email not verified",
+                description: "Please verify your email address before playing a quiz.",
+                variant: "destructive"
+            });
+            return;
+        }
         if (!isProfileComplete) {
             setShowAuthAlert(true);
             return;
@@ -83,16 +88,13 @@ const QuizSelectionComponent = () => {
         } else {
             router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
         }
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand]);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, selectedBrand, toast]);
     
 
     const handleFaceClick = (brand: CubeBrand) => {
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex);
-            // We set the selected brand and then call handleStartQuiz
-            // which will use the component's state.
-            // This is slightly delayed but fine for this interaction.
             handleStartQuiz();
         }
     };
@@ -105,7 +107,6 @@ const QuizSelectionComponent = () => {
         if (lastAttemptInSlot?.reason === 'malpractice') {
             router.push(`/quiz/results?reason=malpractice`);
         } else if (lastAttemptInSlot) {
-            // Re-encode attempt data for review page
             const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
             router.push(`/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`);
         }
