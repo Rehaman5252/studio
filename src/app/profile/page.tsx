@@ -6,75 +6,73 @@ import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { LogIn, ServerCrash, WifiOff, Loader2 } from 'lucide-react';
+import { LogIn, ServerCrash, WifiOff, Loader2, Settings, Scale, UserCheck, Gift, Award } from 'lucide-react';
 import ProfileContent from "@/components/profile/ProfileContent";
 import { useAuth } from "@/context/AuthProvider";
+import SupportCard from "@/components/profile/SupportCard";
+import LoginPrompt from "@/components/auth/LoginPrompt";
+
+const PublicLinks = () => (
+    <section className="space-y-3 pt-4">
+        <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+            <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
+        </Button>
+        <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+            <Link href="/policies"><Scale className="mr-4" /> Legal & Policies</Link>
+        </Button>
+        <SupportCard />
+    </section>
+);
+
 
 export default function ProfilePage() {
   const { user, profile, loading, isOffline } = useAuth();
   
   const renderContent = () => {
     if (loading) {
-      return (
-        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-            <ProfileSkeleton />
-        </main>
-      );
+      return <ProfileSkeleton />;
     }
 
     if (!user) {
        return (
-         <main className="flex-1 p-4 space-y-6 pb-20 flex items-center justify-center">
-            <Alert variant="destructive" className="max-w-md">
-                <LogIn className="h-4 w-4" />
-                <AlertTitle>Not Signed In</AlertTitle>
-                <AlertDescription>
-                    Please sign in to view your profile.
-                    <Button asChild className="mt-4 w-full">
-                        <Link href="/auth/login?from=/profile"><LogIn className="mr-2"/> Sign In</Link>
-                    </Button>
-                </AlertDescription>
-            </Alert>
-         </main>
+         <div className="w-full max-w-md mx-auto">
+             <LoginPrompt
+                icon={UserCheck}
+                title="Ready to Step up to the Crease?"
+                description="Pad up and sign in to view your player stats, achievements, and rewards."
+             />
+         </div>
        );
     }
 
     if (isOffline && !profile) {
         return (
-            <main className="flex-1 p-4 space-y-6 pb-20 flex items-center justify-center">
-                <Alert variant="destructive" className="max-w-md">
-                    <WifiOff className="h-4 w-4" />
-                    <AlertTitle>Could Not Load Profile</AlertTitle>
-                    <AlertDescription>
-                        You appear to be offline. Please check your connection to view your profile.
-                    </AlertDescription>
-                </Alert>
-            </main>
+            <Alert variant="destructive" className="max-w-md">
+                <WifiOff className="h-4 w-4" />
+                <AlertTitle>Could Not Load Profile</AlertTitle>
+                <AlertDescription>
+                    You appear to be offline. Please check your connection to view your profile.
+                </AlertDescription>
+            </Alert>
         )
     }
     
     if (!profile) {
         return (
-            <main className="flex-1 p-4 space-y-6 pb-20 flex items-center justify-center">
-                <Alert variant="destructive" className="max-w-md">
-                    <ServerCrash className="h-4 w-4" />
-                    <AlertTitle>Profile Not Found</AlertTitle>
-                    <AlertDescription>
-                        No profile data was found. Please complete your profile to continue.
-                        <Button asChild className="mt-4 w-full">
-                            <Link href="/complete-profile">Complete Profile</Link>
-                        </Button>
-                    </AlertDescription>
-                </Alert>
-            </main>
+            <Alert variant="destructive" className="max-w-md">
+                <ServerCrash className="h-4 w-4" />
+                <AlertTitle>Profile Not Found</AlertTitle>
+                <AlertDescription>
+                    No profile data was found. Please complete your profile to continue.
+                    <Button asChild className="mt-4 w-full">
+                        <Link href="/complete-profile">Complete Profile</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
         )
     }
     
-    return (
-    <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        <ProfileContent userProfile={profile} />
-    </main>
-    );
+    return <ProfileContent userProfile={profile} />;
   }
 
   return (
@@ -82,12 +80,22 @@ export default function ProfilePage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col h-screen bg-background"
+      className="flex flex-col min-h-screen bg-background"
     >
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-center">
         <h1 className="text-2xl font-bold text-foreground">Player's Pavilion</h1>
       </header>
-      {renderContent()}
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+        {renderContent()}
+        <PublicLinks />
+        {user && 
+            <section>
+                <Button variant="destructive" size="lg" className="w-full" onClick={() => auth.signOut()}>
+                    <LogIn className="mr-2 h-5 w-5" /> Logout
+                </Button>
+            </section>
+        }
+      </main>
     </motion.div>
   );
 }
