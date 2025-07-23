@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
@@ -7,6 +6,7 @@ import { getQuizSlotId } from '@/lib/utils';
 import type { QuizAttempt } from '@/lib/mockData';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -21,6 +21,7 @@ const QuizStatusContext = createContext<QuizStatusContextType | undefined>(undef
 
 export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: isAuthLoading } = useAuth();
+  const firebaseReady = useFirebaseReady();
   
   const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
   const [playersPlaying, setPlayersPlaying] = useState(0);
@@ -29,11 +30,10 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
-  const isLoading = isAuthLoading || isHistoryLoading;
+  const isLoading = isAuthLoading || isHistoryLoading || !firebaseReady;
 
   useEffect(() => {
-    // Wait until auth is resolved before trying to fetch user-specific data.
-    if (isAuthLoading) return;
+    if (isAuthLoading || !firebaseReady) return;
 
     if (!user) {
         setIsHistoryLoading(false);
@@ -68,7 +68,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     fetchLastAttempt();
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, firebaseReady]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();

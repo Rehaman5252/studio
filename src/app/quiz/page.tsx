@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -21,7 +20,7 @@ import InterstitialLoader from '@/components/InterstitialLoader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function QuizComponent() {
-  const { user, loading, addQuizAttempt, setLastAttempt, isOffline } = useAuth();
+  const { user, loading, addQuizAttempt, setLastAttempt } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -198,18 +197,6 @@ function QuizComponent() {
       );
   }
 
-  if (isOffline) {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background p-4">
-            <Alert variant="destructive" className="max-w-md">
-                <WifiOff className="h-4 w-4" />
-                <AlertTitle>You Are Offline</AlertTitle>
-                <AlertDescription>An internet connection is required to play the quiz.</AlertDescription>
-            </Alert>
-        </div>
-    );
-  }
-
   if (quizState === 'loading' || !questions) return <CricketLoading message="Warming up the bowlers..." format={format} />;
   if (quizState === 'submitting') return <CricketLoading message="The umpire is checking... calculating your score!" format={format} />;
   
@@ -253,5 +240,3 @@ export default function QuizPage() {
       </Suspense>
     )
 }
-
-    

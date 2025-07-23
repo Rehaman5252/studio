@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -12,11 +11,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn, registerWithEmail } from '@/lib/authUtils';
+import { registerWithEmail } from '@/lib/authUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { sendEmailVerification } from 'firebase/auth';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
+import { useAuth } from '@/context/AuthProvider';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -41,6 +41,7 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
+  const { signInWithGoogle } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -51,15 +52,10 @@ export default function SignupForm() {
   const onGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
-        const user = await handleGoogleSignIn();
-        if (user) {
-            toast({ title: 'Signed In!', description: `Welcome, ${user.displayName}!` });
-            router.replace('/complete-profile');
-        }
+      await signInWithGoogle();
+      toast({ title: 'Account Created!', description: `Welcome!` });
+      router.replace('/complete-profile');
     } catch (error: any) {
-         if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-             toast({ title: 'Sign Up Failed', description: 'Could not sign in with Google. Please try again.', variant: 'destructive' });
-         }
     } finally {
         setIsGoogleLoading(false);
     }
@@ -73,8 +69,8 @@ export default function SignupForm() {
         if (!auth) throw new Error("Firebase Auth not initialized");
         
         const userCredential = await registerWithEmail(data.email, data.password, data.name);
-        if (auth.currentUser) {
-            await sendEmailVerification(auth.currentUser);
+        if (userCredential.user) {
+            await sendEmailVerification(userCredential.user);
         }
         
         toast({ title: 'Account Created!', description: 'Please check your email to verify your account.' });
@@ -86,12 +82,6 @@ export default function SignupForm() {
             description = 'This email is already registered. Please log in instead.';
         } else if (error.code === 'auth/weak-password') {
             description = 'The password is too weak. Please use at least 6 characters.';
-        } else if (error.code === 'auth/invalid-email') {
-            description = 'The email address is not valid.';
-        } else if (error.code === 'auth/network-request-failed') {
-            description = 'You appear to be offline. Please check your connection and try again.';
-        } else {
-            console.error("Signup Error:", error);
         }
         toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
     } finally {

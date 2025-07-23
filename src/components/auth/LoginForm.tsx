@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -12,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { handleGoogleSignIn, loginWithEmail } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { useAuth } from '@/context/AuthProvider';
+import { loginWithEmail } from '@/lib/authUtils';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
@@ -37,6 +37,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const { toast } = useToast();
+  const { signInWithGoogle } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -77,11 +78,9 @@ export default function LoginForm() {
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-        const user = await handleGoogleSignIn();
-        if (user) {
-            toast({ title: "Signed In", description: `Welcome back, ${user.displayName || 'user'}!` });
-            router.replace(from || '/home');
-        }
+      await signInWithGoogle();
+      toast({ title: "Signed In", description: `Welcome!` });
+      router.replace(from || '/home');
     } catch (error) {
     } finally {
         setIsGoogleLoading(false);

@@ -7,13 +7,14 @@ import { cn, getQuizSlotId } from '@/lib/utils';
 import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ban, WifiOff, ServerCrash } from 'lucide-react';
+import { Ban, WifiOff, ServerCrash, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer } from './leaderboardTypes';
+import useFirebaseReady from '@/hooks/useFirebaseReady';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -41,12 +42,13 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const LiveLeaderboard = () => {
     const { user, profile, loading: authLoading } = useAuth();
+    const firebaseReady = useFirebaseReady();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return; // Wait for auth to be ready
+        if (authLoading || !firebaseReady) return;
 
         const db = getFirebaseFirestore();
         if (!db) {
@@ -103,10 +105,10 @@ const LiveLeaderboard = () => {
             }
         };
         fetchLivePlayers();
-    }, [user, profile, authLoading]);
+    }, [user, profile, authLoading, firebaseReady]);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading || !firebaseReady) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No players in the current quiz yet. Be the first!</p>;
         
