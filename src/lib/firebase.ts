@@ -2,7 +2,7 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -13,15 +13,25 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Initialize Firebase
+// Initialize Firebase App
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
+// Initialize Auth and set persistence
 const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Set persistence to local to help with session management and offline data
 if (typeof window !== "undefined") {
     setPersistence(auth, browserLocalPersistence);
 }
 
-export { auth, db };
+// Conditionally initialize Firestore with offline persistence for the client
+const db =
+  typeof window !== "undefined"
+    ? initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      })
+    : null;
+    
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
+
+export { app, auth, db };

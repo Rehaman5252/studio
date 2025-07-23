@@ -15,7 +15,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
-import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, db } from '@/lib/firebase';
 import FirebaseConfigWarning from './FirebaseConfigWarning';
 import { doc, getDoc } from 'firebase/firestore';
 

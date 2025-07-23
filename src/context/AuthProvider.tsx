@@ -64,8 +64,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (!db) {
-        console.error("Firestore (db) is not available");
-        setIsOffline(true);
+        console.error("Firestore (db) is not available, possibly due to SSR.");
+        // We don't set offline here because it could just be a server render
         setProfileLoading(false);
         return;
     }
@@ -79,9 +79,10 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfile(null);
       }
       setProfileLoading(false);
+      setIsOffline(false); // If we get data, we are online
     }, (error) => {
         console.error("Error fetching profile with onSnapshot:", error);
-        if (error.message?.includes("offline")) {
+        if (error.code === 'unavailable') { // Explicitly check for offline error
             setIsOffline(true);
         }
         setProfile(null);
@@ -259,7 +260,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     addQuizAttempt, 
     handleMalpractice,
     isOffline,
-    setLastAttempt: () => {}, // This is now a dummy function, QuizStatusProvider handles its own logic
   };
 
   return (

@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthProvider';
-import { isFirebaseConfigured } from '@/lib/firebaseClient';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { Checkbox } from '../ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import FirebaseConfigWarning from './FirebaseConfigWarning';

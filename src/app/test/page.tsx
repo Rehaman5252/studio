@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { useEffect, useState } from 'react';
 import { getDoc, doc } from 'firebase/firestore';
 
@@ -14,16 +14,19 @@ export default function FirebaseTestPage() {
 
   useEffect(() => {
     async function checkFirestore() {
+      // db will be null on SSR, so this check runs client-side.
       if (!isFirebaseConfigured || !db) {
         setDbStatus(false);
         return;
       }
       try {
+        // Attempt a read to a document that may or may not exist.
+        // We're just checking for connectivity.
         await getDoc(doc(db, 'health-check/status'));
         setDbStatus(true);
       } catch (e: any) {
+        // Permission denied is okay, it means the service is reachable.
         if (e.code === 'permission-denied' || e.code === 'unauthenticated') {
-            // Permission denied is okay, it means the service is reachable
             setDbStatus(true);
         } else {
             console.error("Firestore health check failed:", e);
