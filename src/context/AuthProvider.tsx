@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebaseClient';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -13,17 +13,17 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   profile: Record<string, any> | null;
-  loading: boolean; // This will now represent ONLY the initial auth check
+  loading: boolean;
+  isOffline: boolean;
+  isProfileComplete: boolean;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
   updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
-  isProfileComplete: boolean;
   handleMalpractice: () => Promise<number>;
   setLastAttempt: (attempt: QuizAttempt) => void;
-  isOffline: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,10 +32,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true); // Represents ONLY the initial auth check
+  const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
-  // Effect for initial auth check - this is the ONLY thing `loading` should wait for.
   useEffect(() => {
     if (!isFirebaseConfigured) {
       console.error("Firebase is not configured. Auth will not work.");
@@ -45,49 +44,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setLoading(false); // Auth check is complete, unblock the app.
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Effect for profile data fetching - runs independently of the main loading state.
-  useEffect(() => {
-    if (!user) {
-      setProfile(null); // Clear profile if user logs out
-      return;
-    }
-    
-    // db can be null on server-side render, so we check for it
+  const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
     if (!db) {
         setIsOffline(true);
-        return;
+        throw new Error("Database not available");
     }
-
-    const userRef = doc(db, 'users', user.uid);
-    let unsubscribeProfile = () => {};
-
-    // Use onSnapshot for real-time updates.
-    unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setProfile(docSnap.data());
-        setIsOffline(false); // We got data, so we're online
-      } else {
-        setProfile(null); // User exists, but no profile document
-      }
-    }, (error) => {
-      console.error("Firestore Snapshot Error:", error);
-      if (error.code === 'unavailable') {
-          setIsOffline(true);
-          toast({ title: 'You are offline', description: 'Some data may not be up to date.', variant: 'destructive'});
-      }
-    });
-
-    return () => unsubscribeProfile();
-  }, [user, toast]);
-
-  const handleUserDocument = useCallback(async (user: User, additionalData: Record<string, any> = {}) => {
-    if (!db) return null;
     const userRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(userRef);
 
@@ -120,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
+    if (!isFirebaseConfigured) return null;
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -135,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, handleUserDocument]);
   
   const registerWithEmail = useCallback(async (name: string, email: string, phone: string, password: string, referralCode?: string): Promise<User | null> => {
+    if (!isFirebaseConfigured) return null;
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
@@ -156,9 +125,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, handleUserDocument]);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+    if (!isFirebaseConfigured) return null;
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
-      // The onAuthStateChanged listener will handle setting the user and profile
       return userCredential.user;
     } catch (error: any) {
       let description = 'An unexpected error occurred.';
@@ -171,12 +140,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const logout = useCallback(async () => {
-    try {
-        await signOut(auth);
-        toast({ title: "Signed Out", description: "You have been logged out successfully." });
-    } catch (error) {
-        toast({ title: "Logout Failed", description: "Could not log you out.", variant: "destructive" });
-    }
+    await signOut(auth);
+    setProfile(null);
+    toast({ title: "Signed Out", description: "You have been logged out successfully." });
   }, [toast]);
 
   const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
@@ -185,8 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const dataToUpdate = sanitizeUserProfile({...newData, updatedAt: serverTimestamp()});
         await updateDoc(userDocRef, dataToUpdate);
-        // Optimistic update for immediate UI feedback
-        setProfile(prev => prev ? ({...prev, ...dataToUpdate}) : dataToUpdate);
+        setProfile(prev => prev ? ({...prev, ...newData}) : newData); // Optimistic update
     } catch (error) {
         console.error("Update user data failed:", error);
         toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
@@ -223,7 +188,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const userRef = doc(db, 'users', user.uid);
     const today = new Date().setHours(0, 0, 0, 0);
-    // Firestore Timestamps need to be converted to JS Dates before comparison
     const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
     
     let newNoBallCount = profile.noBallCount || 0;
@@ -234,20 +198,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       newNoBallCount++;
     }
     
-    const updatedProfile = {
+    const updatedProfileData = {
         noBallCount: newNoBallCount,
         lastNoBallTimestamp: serverTimestamp()
     };
     
-    try {
-        await setDoc(userRef, updatedProfile, { merge: true });
-        // Optimistic update, onSnapshot will sync the real timestamp later
-        setProfile(p => (p ? { ...p, noBallCount: newNoBallCount, lastNoBallTimestamp: new Date() } : null));
-        return newNoBallCount;
-    } catch (error) {
-        console.error("Handle malpractice failed:", error);
-        return profile.noBallCount;
-    }
+    await updateDoc(userRef, updatedProfileData);
+    return newNoBallCount;
   }, [user, profile]);
 
   const isProfileComplete = !!profile?.profileCompleted;

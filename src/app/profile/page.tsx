@@ -9,7 +9,7 @@ import ProfileContent from '@/components/profile/ProfileContent';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import SupportCard from '@/components/profile/SupportCard';
-import { Settings, LogIn, Scale, Loader2, WifiOff } from 'lucide-react';
+import { Settings, LogIn, Scale, WifiOff } from 'lucide-react';
 import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -21,16 +21,21 @@ function ProfilePageContent() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) return;
+    // This effect handles fetching the user's profile data.
+    // It will only run when the auth state is confirmed and a user is present.
     
-    // If auth is done and there's no user, stop here.
+    // Condition 1: Wait for the initial auth check to complete.
+    if (authLoading) {
+      return; // Still waiting for onAuthStateChanged
+    }
+    
+    // Condition 2: If auth is done and there's no user, we can stop.
     if (!user) {
       setFetching(false);
       return;
     }
     
-    // Ensure db is initialized (it will be null on SSR)
+    // Condition 3: Ensure this only runs on the client where `db` is available.
     if (!db) {
         setError("Database connection is not available.");
         setFetching(false);
@@ -46,22 +51,24 @@ function ProfilePageContent() {
         if (docSnap.exists()) {
           setProfile(docSnap.data());
         } else {
-          setError("No profile data found. This is unusual. Please contact support.");
+          // This is a valid state - user is authenticated but has no profile document.
+          // This can happen if document creation failed during signup.
+          setProfile(null); 
         }
       } catch (err: any) {
         if (err?.message?.includes("offline")) {
           setError("You appear to be offline. Please check your internet connection.");
         } else {
-          setError("Error fetching profile: " + err.message);
+          console.error("Error fetching profile:", err);
+          setError("A network error occurred while fetching your profile.");
         }
-        console.error("Error fetching profile:", err);
       } finally {
         setFetching(false);
       }
     };
 
     fetchProfile();
-  }, [authLoading, user]);
+  }, [user, authLoading]); // Rerun this effect if the user or authLoading state changes.
   
   if (authLoading || fetching) {
     return (
@@ -117,8 +124,8 @@ function ProfilePageContent() {
       return (
         <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
             <Alert>
-              <AlertTitle>No Profile Found</AlertTitle>
-              <AlertDescription>We couldn't find a profile for your account. Please complete your profile.</AlertDescription>
+              <AlertTitle>Profile Not Found</AlertTitle>
+              <AlertDescription>We couldn't find a profile for your account. Please complete your profile to continue.</AlertDescription>
               <Button asChild className="mt-4">
                 <Link href="/complete-profile">Complete Profile</Link>
               </Button>
@@ -126,7 +133,6 @@ function ProfilePageContent() {
         </main>
       );
   }
-
 
   return (
     <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
