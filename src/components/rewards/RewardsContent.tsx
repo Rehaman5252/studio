@@ -10,7 +10,7 @@ import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { motion } from 'framer-motion';
-import { db, isFirebaseReady } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -101,17 +101,13 @@ const BrandGifts = () => {
     if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
-    if (!isFirebaseReady()) {
-        setError("Firebase not available. Please check your connection.");
-        setLoading(false);
-        return;
-    }
+    const db = getFirebaseFirestore();
 
     const fetchHistory = async () => {
         setLoading(true);
         setError(null);
         try {
-            const q = query(collection(db!, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
+            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
             const snap = await getDocs(q);
             setHistory(snap.docs.map(d => d.data() as QuizAttempt));
         } catch (e: any) {
@@ -159,14 +155,7 @@ const BrandGifts = () => {
 
   if (!user) {
       return (
-        <Card className="bg-card/80 border-dashed border-primary/30">
-            <CardContent className="p-6 text-center text-muted-foreground">
-                <Play className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                <p className="font-semibold text-lg text-foreground">Play to Win!</p>
-                <p>Log in and play a quiz to unlock exclusive brand gifts.</p>
-                <Button asChild size="sm" className="mt-4"><Link href="/auth/login?from=/rewards">Login to Play</Link></Button>
-            </CardContent>
-        </Card>
+        <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Log in and play a quiz to unlock exclusive brand gifts.</p><Button asChild size="sm" className="mt-4"><Link href="/auth/login?from=/rewards">Login to Play</Link></Button></CardContent></Card>
       );
   }
 

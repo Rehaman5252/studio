@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff } from 'lucide-react';
-import { db } from '@/lib/firebaseClient';
+import { getFirebaseFirestore } from '@/lib/firebaseClient';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 const RankIcon = ({ rank }: { rank: number }) => {
@@ -42,12 +42,8 @@ const AllTimeLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const db = getFirebaseFirestore();
         const fetchAllTimePlayers = async () => {
-            if (!db) {
-                setError("Database not available.");
-                setIsLoading(false);
-                return;
-            }
             setIsLoading(true);
             try {
                 const q = query(
@@ -108,5 +104,3 @@ const AllTimeLeaderboard = () => {
 };
 
 export default memo(AllTimeLeaderboard);
-
-    

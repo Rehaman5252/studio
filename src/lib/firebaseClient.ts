@@ -1,4 +1,4 @@
-// src/lib/firebaseClient.ts
+
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -16,25 +16,72 @@ const firebaseConfig = {
 
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let db: Firestore | undefined;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
-// Initialize only on client side
-if (typeof window !== 'undefined' && isFirebaseConfigured) {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = initializeFirestore(app, {
-        localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager(),
-        }),
-    });
+function initializeFirebase() {
+    if (typeof window !== "undefined") {
+        if (!getApps().length && isFirebaseConfigured) {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = initializeFirestore(app, {
+                    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+                });
+                setPersistence(auth, browserLocalPersistence);
+            } catch (e) {
+                console.error("Firebase initialization error:", e);
+            }
+        } else if (getApps().length > 0) {
+            app = getApp();
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+    }
 }
 
-// Utility: Check if Firebase is ready
-export function isFirebaseReady(): boolean {
-  return typeof window !== 'undefined' && !!app && !!auth && !!db;
+// Ensure Firebase is initialized on first load
+initializeFirebase();
+
+/**
+ * Returns the singleton Firebase Auth instance.
+ * Throws an error if called before initialization.
+ */
+export function getFirebaseAuth(): Auth {
+    if (!auth) {
+        initializeFirebase();
+        if (!auth) throw new Error("Firebase Auth is not available. Check your configuration and ensure you're on the client-side.");
+    }
+    return auth;
 }
 
-// Export instances and the readiness function
-export { app, auth, db };
+/**
+ * Returns the singleton Firestore instance.
+ * Throws an error if called before initialization.
+ */
+export function getFirebaseFirestore(): Firestore {
+    if (!db) {
+        initializeFirebase();
+        if (!db) throw new Error("Firestore is not available. Check your configuration and ensure you're on the client-side.");
+    }
+    return db;
+}
+
+/**
+ * Checks if the Firebase client is connected to the backend.
+ * Returns false if offline or if Firebase isn't initialized.
+ */
+export async function isFirebaseOnline(): Promise<boolean> {
+  const firestore = getFirebaseFirestore();
+  if (!firestore || (typeof window !== 'undefined' && !navigator.onLine)) {
+    return false;
+  }
+  try {
+    // Using a non-existent doc for a lightweight connectivity check.
+    await getDoc(doc(firestore, "systemHealth/connectivityCheck"));
+    return true;
+  } catch (error: any) {
+    return false;
+  }
+}

@@ -4,15 +4,21 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { db } from '@/lib/firebaseClient';
+import { isFirebaseConfigured, isFirebaseOnline, getFirebaseFirestore } from '@/lib/firebaseClient';
 import { useEffect, useState } from 'react';
 
 export default function FirebaseTestPage() {
   const { user, profile, loading: isAuthLoading } = useAuth();
   const [dbStatus, setDbStatus] = useState<boolean | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setDbStatus(!!db);
+    isFirebaseOnline().then(setIsOnline);
+    try {
+        setDbStatus(!!getFirebaseFirestore());
+    } catch (e) {
+        setDbStatus(false);
+    }
   }, []);
 
   const isLoading = isAuthLoading;
@@ -26,6 +32,29 @@ export default function FirebaseTestPage() {
             This page checks the status of your Firebase configuration, Authentication, and Firestore.
           </p>
         </div>
+
+        <Alert variant={isFirebaseConfigured ? 'default' : 'destructive'} className={isFirebaseConfigured ? 'border-green-500/50 bg-green-500/10' : ''}>
+            {isFirebaseConfigured ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+            <AlertTitle>Firebase Configuration</AlertTitle>
+            <AlertDescription>
+            {isFirebaseConfigured ? `Firebase config loaded successfully.` : 'Firebase config is missing or incomplete. Please check your environment variables.'}
+            </AlertDescription>
+        </Alert>
+
+        {isOnline === null ? (
+            <div className="flex items-center justify-center rounded-lg border bg-card p-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">Checking online status...</p>
+            </div>
+        ) : (
+            <Alert variant={isOnline ? 'default' : 'destructive'} className={isOnline ? 'border-green-500/50 bg-green-500/10' : ''}>
+                {isOnline ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+                <AlertTitle>Firebase Online Status</AlertTitle>
+                <AlertDescription>
+                {isOnline ? `Firebase client is online and connected.` : 'Firebase client is OFFLINE. Data operations will fail.'}
+                </AlertDescription>
+            </Alert>
+        )}
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-8">
