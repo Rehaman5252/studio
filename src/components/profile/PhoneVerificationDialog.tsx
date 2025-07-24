@@ -29,36 +29,34 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   
-  const recaptchaRef = useRef<HTMLDivElement>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-
 
   const cleanupRecaptcha = useCallback(() => {
     if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
     }
-    const container = document.getElementById('recaptcha-container');
+    const container = document.getElementById('recaptcha-container-inner');
     if (container) container.innerHTML = '';
   }, []);
-
+  
   const setupRecaptcha = useCallback(() => {
-    if (typeof window !== 'undefined' && recaptchaRef.current && !recaptchaVerifierRef.current) {
+    cleanupRecaptcha(); // Always start clean
+    if (recaptchaContainerRef.current) {
       try {
         const auth = getAuth(app);
-        recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(
-          'recaptcha-container',
-          {
-            size: 'invisible',
-            callback: (response: any) => {
-              // reCAPTCHA solved
-            },
-            'expired-callback': () => {
-              setError("reCAPTCHA expired. Please try sending the code again.");
-              cleanupRecaptcha();
-            }
-          }, auth
-        );
+        const verifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container-inner', {
+          size: 'invisible',
+          callback: (response: any) => {
+            // reCAPTCHA solved, allow sending OTP.
+          },
+          'expired-callback': () => {
+            setError("reCAPTCHA expired. Please try sending the code again.");
+            cleanupRecaptcha();
+          }
+        });
+        recaptchaVerifierRef.current = verifier;
       } catch (err) {
         console.error('reCAPTCHA setup failed:', err);
         setError('Could not initialize reCAPTCHA. Please try again.');
@@ -70,8 +68,10 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   useEffect(() => {
     if (open) {
       setupRecaptcha();
+    } else {
+      cleanupRecaptcha();
     }
-  }, [open, setupRecaptcha]);
+  }, [open, setupRecaptcha, cleanupRecaptcha]);
 
   const handleSendOtp = async () => {
     setError(null);
@@ -90,8 +90,6 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
     } catch (err: any) {
       console.error("OTP send error:", err);
       setError("Failed to send OTP. You may be rate-limited or the number may be incorrect. Please try again.");
-      cleanupRecaptcha(); // Reset reCAPTCHA on failure
-      setupRecaptcha(); // And set it up again for the next try
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +123,6 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         setError(null);
         setIsLoading(false);
         setConfirmationResult(null);
-        cleanupRecaptcha();
       }, 300);
     }
   };
@@ -152,7 +149,9 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             </Alert>
           )}
           
-          <div id="recaptcha-container" ref={recaptchaRef}></div>
+          <div ref={recaptchaContainerRef}>
+            <div id="recaptcha-container-inner"></div>
+          </div>
 
           {step === 'verify' && (
             <div className="py-4">
@@ -176,7 +175,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               </Button>
             ) : (
               <div className="w-full flex justify-between">
-                <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); }} disabled={isLoading}>Back</Button>
+                <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); setupRecaptcha(); }} disabled={isLoading}>Back</Button>
                 <Button onClick={handleVerifyOtp} disabled={isLoading || otp.length < 6}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify & Save'}
                 </Button>
