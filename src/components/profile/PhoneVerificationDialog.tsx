@@ -37,58 +37,65 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const cleanupRecaptcha = useCallback(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
-      const widget = document.querySelector('.grecaptcha-badge');
-      if (widget?.parentElement) {
-        try {
-          document.body.removeChild(widget.parentElement);
-        } catch (e) {}
-      }
-      window.recaptchaVerifier = undefined;
     }
   }, []);
 
   useEffect(() => {
-    const setupRecaptcha = async () => {
-      if (!open || typeof window === 'undefined' || !auth) return;
-
-      if (!window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier = new FirebaseRecaptchaVerifier(
-            'recaptcha-container',
-            {
-              size: 'invisible',
-              callback: () => {},
-              'expired-callback': () => {
-                setError("reCAPTCHA expired. Please try again.");
-                cleanupRecaptcha();
-              }
-            },
-            auth
-          );
-
-          await window.recaptchaVerifier.render();
-        } catch (err) {
-          console.error("reCAPTCHA init error", err);
-          setError("Could not initialize reCAPTCHA. Please try again.");
-          cleanupRecaptcha();
-        }
-      }
-    };
-
-    setupRecaptcha();
-
     return () => {
-      if (!open) cleanupRecaptcha();
+      // Ensure cleanup runs when the component unmounts
+      cleanupRecaptcha();
     };
-  }, [open]);
+  }, [cleanupRecaptcha]);
+
+  const setupRecaptcha = useCallback(() => {
+    if (!open || typeof window === 'undefined' || !auth) return;
+    
+    // Clear any previous instance to avoid errors on re-open
+    cleanupRecaptcha();
+
+    try {
+      // The container MUST be visible when render is called,
+      // so we ensure it's here before initializing.
+      const recaptchaContainer = document.getElementById('recaptcha-container');
+      if (recaptchaContainer) {
+          window.recaptchaVerifier = new FirebaseRecaptchaVerifier(
+          'recaptcha-container',
+          {
+            size: 'invisible',
+            callback: () => {
+              // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+            'expired-callback': () => {
+              setError("reCAPTCHA expired. Please try sending the code again.");
+              cleanupRecaptcha();
+            }
+          },
+          auth
+        );
+        // We don't call render here immediately. It will be called by signInWithPhoneNumber.
+      }
+    } catch (err) {
+      console.error("reCAPTCHA initialization error", err);
+      setError("Could not initialize reCAPTCHA. Please try again.");
+      cleanupRecaptcha();
+    }
+  }, [open, cleanupRecaptcha]);
+
+  useEffect(() => {
+    if (open) {
+      // Setup reCAPTCHA when the dialog opens
+      setupRecaptcha();
+    }
+  }, [open, setupRecaptcha]);
+
 
   const handleSendOtp = async () => {
     setError(null);
     if (!window.recaptchaVerifier) {
-      setError("reCAPTCHA is not ready. Please wait a moment and try again.");
+      setError("reCAPTCHA is not ready. Please close and re-open the dialog.");
       return;
     }
-
+    
     setIsLoading(true);
     try {
       const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier);
@@ -97,7 +104,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       setStep('verify');
     } catch (err: any) {
       console.error("OTP send error:", err);
-      setError("Failed to send OTP. You may be rate-limited or the number may be incorrect.");
+      setError("Failed to send OTP. You may be rate-limited or the number may be incorrect. Please try again.");
       cleanupRecaptcha();
     } finally {
       setIsLoading(false);
@@ -151,8 +158,6 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             </DialogDescription>
           </DialogHeader>
 
-          <div id="recaptcha-container"></div>
-
           {error && (
             <Alert variant="destructive">
               <Terminal className="h-4 w-4" />
@@ -160,6 +165,8 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          
+          <div id="recaptcha-container"></div>
 
           {step === 'verify' && (
             <div className="py-4">
