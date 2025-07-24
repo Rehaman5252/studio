@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
@@ -37,56 +38,52 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const cleanupRecaptcha = useCallback(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
+      const container = document.getElementById('recaptcha-container');
+      if (container) container.innerHTML = '';
+      window.recaptchaVerifier = undefined;
     }
   }, []);
 
+  // Setup reCAPTCHA when the dialog opens
   useEffect(() => {
-    return () => {
-      // Ensure cleanup runs when the component unmounts
-      cleanupRecaptcha();
-    };
-  }, [cleanupRecaptcha]);
+    if (open && step === 'initial') {
+        if (!auth || typeof window === 'undefined') return;
 
-  const setupRecaptcha = useCallback(() => {
-    if (!open || typeof window === 'undefined' || !auth) return;
-    
-    // Clear any previous instance to avoid errors on re-open
-    cleanupRecaptcha();
-
-    try {
-      // The container MUST be visible when render is called,
-      // so we ensure it's here before initializing.
-      const recaptchaContainer = document.getElementById('recaptcha-container');
-      if (recaptchaContainer) {
-          window.recaptchaVerifier = new FirebaseRecaptchaVerifier(
-          'recaptcha-container',
-          {
-            size: 'invisible',
-            callback: () => {
-              // reCAPTCHA solved, allow signInWithPhoneNumber.
-            },
-            'expired-callback': () => {
-              setError("reCAPTCHA expired. Please try sending the code again.");
-              cleanupRecaptcha();
+        // Use a timeout to ensure the DOM is ready for reCAPTCHA
+        const timer = setTimeout(() => {
+            if (window.recaptchaVerifier) {
+                cleanupRecaptcha();
             }
-          },
-          auth
-        );
-        // We don't call render here immediately. It will be called by signInWithPhoneNumber.
-      }
-    } catch (err) {
-      console.error("reCAPTCHA initialization error", err);
-      setError("Could not initialize reCAPTCHA. Please try again.");
-      cleanupRecaptcha();
-    }
-  }, [open, cleanupRecaptcha]);
 
-  useEffect(() => {
-    if (open) {
-      // Setup reCAPTCHA when the dialog opens
-      setupRecaptcha();
+            try {
+                const recaptchaContainer = document.getElementById('recaptcha-container');
+                if (recaptchaContainer) {
+                    const verifier = new FirebaseRecaptchaVerifier(
+                        recaptchaContainer,
+                        {
+                            size: 'invisible',
+                            callback: () => { /* reCAPTCHA solved */ },
+                            'expired-callback': () => {
+                                setError("reCAPTCHA expired. Please try sending the code again.");
+                                cleanupRecaptcha();
+                            }
+                        },
+                        auth
+                    );
+                    window.recaptchaVerifier = verifier;
+                } else {
+                    setError("reCAPTCHA container not found.");
+                }
+            } catch (err) {
+                console.error("reCAPTCHA initialization error", err);
+                setError("Could not initialize reCAPTCHA. Please refresh and try again.");
+                cleanupRecaptcha();
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
     }
-  }, [open, setupRecaptcha]);
+  }, [open, step, cleanupRecaptcha]);
 
 
   const handleSendOtp = async () => {
@@ -105,7 +102,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
     } catch (err: any) {
       console.error("OTP send error:", err);
       setError("Failed to send OTP. You may be rate-limited or the number may be incorrect. Please try again.");
-      cleanupRecaptcha();
+      cleanupRecaptcha(); // Reset reCAPTCHA on failure
     } finally {
       setIsLoading(false);
     }
