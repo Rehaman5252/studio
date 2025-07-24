@@ -37,30 +37,30 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
     }
-    const recaptchaContainer = recaptchaContainerRef.current;
-    if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = '';
-    }
+    // The container div itself does not need to be cleared with innerHTML = ''
+    // as Firebase's own cleanup should handle the iframe.
   }, []);
   
   useEffect(() => {
+    // Only run this effect when the dialog is open
     if (open) {
       if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
         try {
           const auth = getAuth(app);
+          // Set window.recaptchaVerifier for potential debugging, but use the ref internally
           recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
             size: 'invisible',
             callback: () => {
-              // reCAPTCHA solved, allow sending OTP.
+              // reCAPTCHA solved, ready to send OTP.
             },
             'expired-callback': () => {
               setError("reCAPTCHA expired. Please try sending the code again.");
-              cleanupRecaptcha();
+              cleanupRecaptcha(); // Clean up expired verifier
             }
           });
           recaptchaVerifierRef.current.render().catch(err => {
               console.error('reCAPTCHA render error:', err);
-              setError('Could not render reCAPTCHA. Please try again.');
+              setError('Could not render reCAPTCHA. A page refresh might be needed.');
           });
         } catch (err) {
           console.error('reCAPTCHA setup failed:', err);
@@ -68,6 +68,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         }
       }
     } else {
+      // Cleanup when dialog is closed
       cleanupRecaptcha();
     }
   }, [open, cleanupRecaptcha]);
@@ -116,6 +117,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const resetStateAndClose = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
+      // Delay state reset to allow for closing animation
       setTimeout(() => {
         setStep('initial');
         setOtp('');
@@ -148,7 +150,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             </Alert>
           )}
           
-          <div ref={recaptchaContainerRef}></div>
+          <div ref={recaptchaContainerRef} />
 
           {step === 'verify' && (
             <div className="py-4">
