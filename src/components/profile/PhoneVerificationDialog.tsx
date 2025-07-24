@@ -37,36 +37,40 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
     }
-    // The container div itself does not need to be cleared with innerHTML = ''
-    // as Firebase's own cleanup should handle the iframe.
   }, []);
   
   useEffect(() => {
-    // Only run this effect when the dialog is open
     if (open) {
-      if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
-        try {
-          const auth = getAuth(app);
-          // Set window.recaptchaVerifier for potential debugging, but use the ref internally
-          recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
-            size: 'invisible',
-            callback: () => {
-              // reCAPTCHA solved, ready to send OTP.
-            },
-            'expired-callback': () => {
-              setError("reCAPTCHA expired. Please try sending the code again.");
-              cleanupRecaptcha(); // Clean up expired verifier
-            }
-          });
-          recaptchaVerifierRef.current.render().catch(err => {
-              console.error('reCAPTCHA render error:', err);
-              setError('Could not render reCAPTCHA. A page refresh might be needed.');
-          });
-        } catch (err) {
-          console.error('reCAPTCHA setup failed:', err);
-          setError('Could not initialize reCAPTCHA. Please try again.');
+      // Defer initialization to the next event loop tick to ensure the DOM is ready.
+      setTimeout(() => {
+        if (!app) {
+          setError("Firebase app is not configured correctly.");
+          return;
         }
-      }
+
+        if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
+          try {
+            const auth = getAuth(app);
+            recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
+              size: 'invisible',
+              callback: () => {
+                // reCAPTCHA solved, ready to send OTP.
+              },
+              'expired-callback': () => {
+                setError("reCAPTCHA expired. Please try sending the code again.");
+                cleanupRecaptcha(); // Clean up expired verifier
+              }
+            });
+            recaptchaVerifierRef.current.render().catch(err => {
+                console.error('reCAPTCHA render error:', err);
+                setError('Could not render reCAPTCHA. A page refresh might be needed.');
+            });
+          } catch (err) {
+            console.error('reCAPTCHA setup failed:', err);
+            setError('Could not initialize reCAPTCHA. Please try again.');
+          }
+        }
+      }, 0);
     } else {
       // Cleanup when dialog is closed
       cleanupRecaptcha();
