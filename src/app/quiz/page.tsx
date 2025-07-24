@@ -87,12 +87,12 @@ function QuizComponent() {
       try {
         setQuizState('loading');
         
-        // 1. Fetch all questions this user has ever answered.
+        // 1. Fetch all questions this user has ever answered (lifetime uniqueness).
         const userAttemptsQuery = query(collection(db, `users/${user.uid}/quizAttempts`));
         const userAttemptsSnapshot = await getDocs(userAttemptsQuery);
         const userAskedQuestions = userAttemptsSnapshot.docs.flatMap(doc => (doc.data().questions || []).map((q: QuizQuestion) => q.questionText));
         
-        // 2. Fetch all questions asked to *any* user in the last 30 days.
+        // 2. Fetch all questions asked to *any* user in the last 30 days (global 30-day cooldown).
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const thirtyDaysAgoTimestamp = Timestamp.fromDate(thirtyDaysAgo);
@@ -294,3 +294,5 @@ export default function QuizPage() {
       </Suspense>
     )
 }
+
+    

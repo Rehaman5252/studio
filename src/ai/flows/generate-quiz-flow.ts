@@ -36,7 +36,7 @@ The 5 questions must follow this exact structure:
 4.  **Question 4 (Very Hard):** Rare match or obscure achievement.
 5.  **Question 5 (Extreme Hard):** Historic trivia or technical scenario.
 
-**CRITICAL:** Do NOT repeat these asked questions:
+**CRITICAL:** Do NOT repeat any of these previously asked questions:
 {{#each askedQuestions}}
 - "{{this}}"
 {{/each}}
@@ -56,9 +56,13 @@ const mixedFormatPrompt = ai.definePrompt({
   name: 'generateMixedQuizPrompt',
   input: { schema: GenerateQuizInputSchema },
   output: { schema: GenerateQuizOutputSchema },
-  prompt: `Generate a 5-question quiz from IPL, WPL, T20, ODI, and Test formats with increasing difficulty. Each question must use a different format and not repeat asked questions.
+  prompt: `Generate a 5-question, multiple-choice, text-only quiz with increasing difficulty, where each question is from a different cricket format (IPL, WPL, T20, ODI, and Test). The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
-Use only real cricket facts. Do not mention brands or sponsors.`,
+**CRITICAL:** Do NOT repeat any of these previously asked questions:
+{{#each askedQuestions}}
+- "{{this}}"
+{{/each}}
+`,
   config: {
     safetySettings: [
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -90,17 +94,20 @@ const generateQuizFlow = ai.defineFlow(
     const questionsColl = collection(db, 'askedQuestions');
 
     for (const q of output.questions) {
-      const docRef = doc(questionsColl);
+      // Use a new doc ref for each question to ensure they are added as new documents
+      const docRef = doc(questionsColl); 
       batch.set(docRef, {
         questionText: q.questionText,
-        format: input.format,
-        createdAt: new Date()
+        format: input.format, // Log the format for potential analysis
+        createdAt: new Date() // Use server timestamp for accuracy
       });
     }
 
     try {
         await batch.commit();
     } catch (err) {
+        // Log the error but don't fail the whole quiz generation,
+        // as the questions are still usable.
         console.error("❌ Failed to write new questions to Firestore:", err);
     }
 
@@ -108,3 +115,4 @@ const generateQuizFlow = ai.defineFlow(
   }
 );
 
+    

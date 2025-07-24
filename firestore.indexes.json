@@ -46,12 +46,8 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "format",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "createdAt",
-          "order": "ASCENDING"
+          "order": "DESCENDING"
         }
       ]
     }
@@ -59,3 +55,4 @@
   "fieldOverrides": []
 }
 
+    
