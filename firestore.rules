@@ -1,18 +1,27 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Leaderboard access
+
+    // Leaderboard (with nested read access) - PUBLIC
     match /leaderboard/{docId} {
-      allow read: if true; // Allow public read
-      allow write: if false; // Block all public writes
+      allow read: if true;
+      allow write: if false; // Secure: No one can write directly
+
+      match /{subPath=**} {
+        allow read: if true;
+      }
     }
 
-    // Users collection and subcollections
-    match /users/{userId}/{documents=**} {
-      allow read: if true; // Allow public read for profiles and quiz attempts
-      allow write: if request.auth != null && request.auth.uid == userId; // Only allow a user to write to their own documents
+    // Users and quizAttempts - SECURE
+    match /users/{userId} {
+      // User can only read their own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      match /quizAttempts/{attemptId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }
