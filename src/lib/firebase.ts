@@ -15,6 +15,8 @@ const firebaseConfig = {
 
 // Initialize app once only
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+// Safe single-instance usage only
 const auth = getAuth(app);
 const db = getFirestore(app);
 
