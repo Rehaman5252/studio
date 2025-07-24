@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
@@ -55,8 +54,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
     if (open) {
       if (!window.recaptchaVerifier) {
         try {
-          // Corrected argument order: elementId, options, auth
-          window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
+          window.recaptchaVerifier = new FirebaseRecaptchaVerifier('recaptcha-container', {
             size: 'invisible',
             callback: () => {
               // reCAPTCHA solved, allow signInWithPhoneNumber.
@@ -65,7 +63,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               setError("reCAPTCHA expired. Please try sending the code again.");
               cleanupRecaptcha();
             }
-          });
+          }, auth);
           window.recaptchaVerifier.render().catch((err) => {
               console.error("reCAPTCHA render failed", err);
               setError("Could not render reCAPTCHA. Check your ad-blocker or network.");
