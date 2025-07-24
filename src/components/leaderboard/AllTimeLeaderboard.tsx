@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo, useState, useEffect } from 'react';
+import React, 'memo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -119,14 +119,14 @@ const AllTimeLeaderboard = () => {
                 }
                 
             } catch (e: any) {
+                console.error("Error fetching all-time leaderboard:", e);
                 if (e.code === 'unavailable') {
                     setError("You appear to be offline. Please check your connection.");
                 } else if (e.code === 'failed-precondition') {
-                    setError("A Firestore index is required for this query. Please check the console logs for a link to create it automatically in your Firebase console.");
+                    setError("A Firestore index is required for this query. Please check the browser's developer console for a link to create it automatically in your Firebase console.");
                 } else {
                     setError("Could not load the all-time leaderboard.");
                 }
-                console.error("Error fetching all-time leaderboard:", e);
             } finally {
                 setIsLoading(false);
             }
