@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
@@ -52,9 +51,10 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   }, []);
   
   useEffect(() => {
-    if (open && auth) { // Ensure auth is defined before proceeding
+    if (open) {
       if (!window.recaptchaVerifier) {
         try {
+          // Pass the imported auth object here
           window.recaptchaVerifier = new FirebaseRecaptchaVerifier('recaptcha-container', {
             size: 'invisible',
             callback: () => {
@@ -64,7 +64,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               setError("reCAPTCHA expired. Please try again.");
               cleanupRecaptcha();
             }
-          }, auth); // Pass the imported auth object here
+          }, auth); 
           window.recaptchaVerifier.render().catch((err) => {
               console.error("reCAPTCHA render failed", err);
               setError("Could not render reCAPTCHA. Check your ad-blocker or network.");
@@ -81,7 +81,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
           cleanupRecaptcha();
       }
     };
-  }, [open, auth, cleanupRecaptcha]);
+  }, [open, cleanupRecaptcha]);
 
 
   const handleSendOtp = async () => {
