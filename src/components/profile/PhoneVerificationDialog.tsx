@@ -39,22 +39,22 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const cleanupRecaptcha = useCallback(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
-      // It's good practice to try and remove the badge, though it can be tricky
       const widget = document.querySelector('.grecaptcha-badge');
       if (widget?.parentElement) {
-        document.body.removeChild(widget.parentElement);
+        try {
+            document.body.removeChild(widget.parentElement);
+        } catch (e) {
+            // This can fail if the element is already gone, which is fine.
+        }
       }
       window.recaptchaVerifier = undefined;
     }
   }, []);
   
-  // This useEffect handles the setup and cleanup of the reCAPTCHA verifier.
   useEffect(() => {
     if (open) {
-      // Only initialize if it doesn't exist to prevent duplicates
       if (!window.recaptchaVerifier) {
         try {
-          // The container MUST be visible in the DOM before this is called
           window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
             size: 'invisible',
             callback: () => {
@@ -62,9 +62,9 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             },
             'expired-callback': () => {
               setError("reCAPTCHA expired. Please try sending the code again.");
+              cleanupRecaptcha();
             }
           });
-          // It's crucial to render it.
           window.recaptchaVerifier.render().catch((err) => {
               console.error("reCAPTCHA render failed", err);
               setError("Could not render reCAPTCHA. Check your ad-blocker or network.");
@@ -75,9 +75,9 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         }
       }
     }
-    // Cleanup when the component unmounts or dialog closes
+
     return () => {
-      if (!open) { // Only cleanup when dialog is fully closed
+      if (!open) {
           cleanupRecaptcha();
       }
     };
@@ -99,7 +99,8 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       setStep('verify');
     } catch (err: any) {
       console.error("OTP send error:", err);
-      setError("Failed to send OTP. Is the phone number correct? You may also be rate-limited.");
+      setError("Failed to send OTP. Is the phone number correct? You may also be rate-limited by Firebase.");
+      cleanupRecaptcha();
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +115,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       await window.confirmationResult.confirm(otp);
       if(updateUserData) await updateUserData({ phoneVerified: true });
       toast({ title: "Phone Verified!", description: "Your phone number is now verified."});
-      resetStateAndClose(false); // Close dialog on success
+      resetStateAndClose(false);
     } catch (err: any) {
       console.error("OTP verification error:", err);
       setError("The code you entered was invalid. Please try again.");
@@ -133,7 +134,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         setError(null);
         setIsLoading(false);
         window.confirmationResult = undefined;
-        // The main cleanup is now in useEffect, but this ensures state is reset
+        cleanupRecaptcha();
       }, 300);
     }
   };
@@ -152,7 +153,6 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             </DialogDescription>
           </DialogHeader>
 
-          {/* This div must always be in the DOM when the dialog is open for reCAPTCHA to attach */}
           <div id="recaptcha-container"></div>
 
           {error && (
