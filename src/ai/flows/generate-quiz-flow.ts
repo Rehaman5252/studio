@@ -12,7 +12,10 @@ import { db } from '@/lib/firebase';
 import {
   collection,
   writeBatch,
-  doc
+  doc,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
@@ -104,3 +107,4 @@ const generateQuizFlow = ai.defineFlow(
     return output;
   }
 );
+

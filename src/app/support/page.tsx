@@ -27,7 +27,7 @@ function SupportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <a href="mailto:support@indcric.com" className="text-lg font-semibold text-primary">support@indcric.com</a>
+            <a href="mailto:support@indcric.app" className="text-lg font-semibold text-primary">support@indcric.app</a>
           </CardContent>
         </Card>
 

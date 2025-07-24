@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Lightbulb, ChevronsRight } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function QuizComponent() {
@@ -78,15 +78,33 @@ function QuizComponent() {
     }
 
     async function fetchQuiz() {
-      try {
-        if (!db) throw new Error("Firestore not initialized.");
+      if (!user || !db) {
+        toast({ title: 'Error', description: 'Authentication or database service is not available.', variant: 'destructive' });
+        router.push('/home');
+        return;
+      }
 
-        const questionsRef = collection(db, 'askedQuestions');
-        const q = query(questionsRef, where('format', '==', format));
-        const querySnapshot = await getDocs(q);
-        const askedQuestions = querySnapshot.docs.map((doc) => doc.data().questionText as string);
+      try {
+        setQuizState('loading');
         
-        const quizData = await generateQuiz({ format, askedQuestions });
+        // 1. Fetch all questions this user has ever answered.
+        const userAttemptsQuery = query(collection(db, `users/${user.uid}/quizAttempts`));
+        const userAttemptsSnapshot = await getDocs(userAttemptsQuery);
+        const userAskedQuestions = userAttemptsSnapshot.docs.flatMap(doc => (doc.data().questions || []).map((q: QuizQuestion) => q.questionText));
+        
+        // 2. Fetch all questions asked to *any* user in the last 30 days.
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const thirtyDaysAgoTimestamp = Timestamp.fromDate(thirtyDaysAgo);
+        
+        const recentGlobalQuestionsQuery = query(collection(db, 'askedQuestions'), where('createdAt', '>=', thirtyDaysAgoTimestamp));
+        const recentGlobalQuestionsSnapshot = await getDocs(recentGlobalQuestionsQuery);
+        const recentGlobalQuestions = recentGlobalQuestionsSnapshot.docs.map(doc => doc.data().questionText as string);
+        
+        // 3. Combine and de-duplicate the lists of questions to exclude.
+        const allQuestionsToExclude = [...new Set([...userAskedQuestions, ...recentGlobalQuestions])];
+        
+        const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
         
         setQuestions(quizData.questions);
         setUserAnswers(new Array(quizData.questions.length).fill(null));
@@ -95,12 +113,12 @@ function QuizComponent() {
         setQuizState('playing');
       } catch (error) {
         console.error("Failed to generate quiz:", error);
-        toast({ title: 'Error', description: 'Could not load quiz. Please try again.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Could not load a unique quiz. Please try again later.', variant: 'destructive' });
         router.push('/home');
       }
     }
     fetchQuiz();
-  }, [format, router, toast, user, lastAttemptInSlot, profile]);
+  }, [format, router, toast, user, profile, lastAttemptInSlot]);
 
   const submitQuiz = useCallback(async (currentAnswers: (string | null)[], reason?: 'malpractice' | 'time_up') => {
     if (!user || !questions || !addQuizAttempt) return;

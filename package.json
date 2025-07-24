@@ -16,6 +16,7 @@
     "node": "20"
   },
   "dependencies": {
+    "@genkit-ai/core": "1.15.2",
     "@genkit-ai/firebase": "1.15.2",
     "@genkit-ai/googleai": "1.15.2",
     "@genkit-ai/next": "1.15.2",

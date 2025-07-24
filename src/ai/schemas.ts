@@ -80,7 +80,7 @@ export const FlowGenerateQuizAnalysisInputSchema = z.object({
   timePerQuestion: z.array(z.number()).optional().describe('Time taken in seconds for each question.'),
   usedHintIndices: z.array(z.number()).optional().describe('Indices of questions where a hint was used.'),
 });
-export type GenerateQuizAnalysisInput = z.infer<typeof FlowGenerateQuizAnalysisInputSchema>;
+export type FlowGenerateQuizAnalysisInput = z.infer<typeof FlowGenerateQuizAnalysisInputSchema>;
 
 
 export const GenerateQuizAnalysisOutputSchema = z.object({

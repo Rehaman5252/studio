@@ -4,7 +4,7 @@
 /**
  * @fileOverview A flow that generates a detailed analysis of a user's quiz performance.
  *
- * - generateQuizAnalysis - A function that provides feedback and improvement tips.
+ * - generateQuizAnalysis - a function that provides feedback and improvement tips.
  */
 import { ai } from '@/ai/genkit';
 import {
@@ -12,10 +12,10 @@ import {
     FlowGenerateQuizAnalysisInputSchema,
     GenerateQuizAnalysisOutputSchema,
     GenerateQuizAnalysisPromptInputSchema,
+    FlowGenerateQuizAnalysisInput
 } from '@/ai/schemas';
 import { z } from 'zod';
 
-type FlowGenerateQuizAnalysisInput = z.infer<typeof FlowGenerateQuizAnalysisInputSchema>;
 type GenerateQuizAnalysisPromptInput = z.infer<typeof GenerateQuizAnalysisPromptInputSchema>;
 
 export async function generateQuizAnalysis(input: FlowGenerateQuizAnalysisInput): Promise<GenerateQuizAnalysisOutput> {
@@ -63,7 +63,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     inputSchema: FlowGenerateQuizAnalysisInputSchema,
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
-  async (input) => {
+  async (input: FlowGenerateQuizAnalysisInput) => {
     const score = input.questions.reduce((acc, q, index) => 
         (input.userAnswers[index] === q.correctAnswer) ? acc + 1 : acc, 0);
     
