@@ -14,9 +14,7 @@ const firebaseConfig = {
 };
 
 // Initialize once
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-// Use getAuth() and getFirestore() — no duplicate initialization
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
