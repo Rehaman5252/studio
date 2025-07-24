@@ -17,6 +17,7 @@ import {
   writeBatch,
   doc
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { z } from 'zod';
 
 const GenerateQuizPromptInputSchema = z.object({
@@ -83,6 +84,11 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema
   },
   async (input) => {
+    const auth = getAuth();
+    if (!auth.currentUser) {
+        throw new Error("User not authenticated. Cannot generate quiz.");
+    }
+
     if (!db) throw new Error("Firestore not initialized.");
 
     // Step 1: Fetch existing questions
@@ -112,7 +118,13 @@ const generateQuizFlow = ai.defineFlow(
       });
     }
 
-    await batch.commit();
+    try {
+        await batch.commit();
+    } catch (err) {
+        console.error("❌ Failed to write new questions to Firestore:", err);
+        // Decide if you want to re-throw the error or just log it
+        // For now, we log it but still return the quiz to the user
+    }
 
     return output;
   }
