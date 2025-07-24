@@ -1,52 +1,33 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
     
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Users collection:
-    // - Authenticated users can read any user's profile (for leaderboards).
-    // - A user can only write to their own document.
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
-
-      // Quiz Attempts subcollection:
-      // - A user can only write to their own quiz history.
-      // - A user can only read their own quiz history.
-      match /quizAttempts/{attemptId} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-
-    // Leaderboard collection:
-    // - Any authenticated user can read the live leaderboard.
-    // - Writes are handled securely by server-side logic (transactions).
-    match /leaderboard/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Disallow direct client writes
-    }
-
-    // Asked Questions collection:
-    // - Authenticated users can create questions (via the AI flow).
-    // - Authenticated users can list/query questions to prevent duplicates.
-    match /askedQuestions/{questionId} {
-       allow list, create: if isAuthenticated();
-       allow read: if isAuthenticated();
-    }
-
-    // Default deny: all other paths are inaccessible
+    // Default deny all
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // Users can read/write their own data, but others can read limited fields for leaderboards
+    match /users/{userId} {
+      allow read: if request.auth != null; // For leaderboards
+      allow write: if request.auth.uid == userId; // For profile updates
+    }
+
+    // Quiz history is private to the user
+    match /users/{userId}/quizAttempts/{attemptId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Leaderboard is read-only for authenticated users
+    match /leaderboard/{docId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Only backend/transactions should write here
+    }
+
+    // Anyone authenticated can query (list), read, and create from the question bank
+    match /askedQuestions/{questionId} {
+      allow list, read, create: if request.auth != null;
     }
   }
 }
