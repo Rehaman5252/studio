@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -16,8 +15,17 @@ import {
     QuizQuestionSchema
 } from '@/ai/schemas';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, writeBatch, doc } from 'firebase/firestore';
+import { collection, getDocs, query, where, writeBatch, doc, runTransaction } from 'firebase/firestore';
 import { z } from 'zod';
+import {getFirestore} from 'firebase-admin/firestore';
+import {initializeApp, getApps, cert} from 'firebase-admin/app';
+
+// Initialize Firebase Admin SDK
+if (!getApps().length) {
+  initializeApp();
+}
+const adminDb = getFirestore();
+
 
 const GenerateQuizPromptInputSchema = z.object({
     format: z.string(),
@@ -97,13 +105,10 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema,
   },
   async (input) => {
-    if (!db) {
-        throw new Error("Firestore is not initialized. Cannot fetch asked questions.");
-    }
     
-    // 1. Fetch previously asked questions for the given format
-    const questionsQuery = query(collection(db, 'askedQuestions'), where('format', '==', input.format));
-    const querySnapshot = await getDocs(questionsQuery);
+    // 1. Fetch previously asked questions using Admin SDK to bypass client rules
+    const questionsQuery = adminDb.collection('askedQuestions').where('format', '==', input.format);
+    const querySnapshot = await questionsQuery.get();
     const askedQuestions = querySnapshot.docs.map(doc => doc.data().questionText as string);
 
     // 2. Select the correct prompt and generate the quiz
@@ -117,14 +122,13 @@ const generateQuizFlow = ai.defineFlow(
       throw new Error("The AI failed to generate a valid 5-question quiz.");
     }
 
-    // 3. Save the newly generated questions to the question bank
+    // 3. Save the newly generated questions to the question bank using Admin SDK
     try {
-        const batch = writeBatch(db);
-        const questionsCollection = collection(db, 'askedQuestions');
+        const batch = adminDb.batch();
+        const questionsCollection = adminDb.collection('askedQuestions');
         
         output.questions.forEach(question => {
-            // Create a new document reference in the collection
-            const questionRef = doc(questionsCollection);
+            const questionRef = questionsCollection.doc(); // Automatically generate a new ID
             batch.set(questionRef, {
                 questionText: question.questionText,
                 format: input.format,
