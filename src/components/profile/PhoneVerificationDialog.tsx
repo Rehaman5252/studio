@@ -31,38 +31,44 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  // A ref for the container div to ensure it's stable across renders
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
 
   const cleanupRecaptcha = useCallback(() => {
-    const container = document.getElementById('recaptcha-container');
     if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
     }
-    if (container) {
-        container.innerHTML = '';
+    if (recaptchaContainerRef.current) {
+        recaptchaContainerRef.current.innerHTML = '';
     }
     setIsVerifierReady(false);
   }, []);
   
   useEffect(() => {
     if (open) {
+      // Use a short timeout to ensure the dialog and its container are mounted in the DOM
       setTimeout(() => {
         if (!app) {
           setError("Firebase app is not configured correctly.");
           return;
         }
-
-        const container = document.getElementById('recaptcha-container');
-        if (!recaptchaVerifierRef.current && container) {
+        
+        const container = recaptchaContainerRef.current;
+        if (container && !recaptchaVerifierRef.current) {
           try {
             const auth = getAuth(app);
+            // Ensure the container is empty before creating a new verifier
+            container.innerHTML = ''; 
             const verifier = new FirebaseRecaptchaVerifier(auth, container, {
               size: 'invisible',
               callback: () => {
+                console.log("✅ reCAPTCHA challenge solved.");
                 setIsVerifierReady(true);
               },
               'expired-callback': () => {
-                setError("reCAPTCHA expired. Please try again.");
+                console.warn("⚠️ reCAPTCHA expired.");
+                setError("reCAPTCHA expired. Please try sending the code again.");
                 cleanupRecaptcha();
               }
             });
@@ -81,7 +87,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             setError('Could not initialize reCAPTCHA. Please try again.');
           }
         }
-      }, 0);
+      }, 100);
     } else {
       cleanupRecaptcha();
     }
@@ -90,7 +96,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const handleSendOtp = async () => {
     setError(null);
     if (!recaptchaVerifierRef.current || !isVerifierReady) {
-      setError("reCAPTCHA is not ready. Please close and re-open the dialog.");
+      setError("reCAPTCHA is not ready. Please wait a moment or re-open the dialog.");
       return;
     }
     
@@ -150,7 +156,9 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
 
   return (
     <>
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container-wrapper">
+         <div ref={recaptchaContainerRef}></div>
+      </div>
       <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}>{children}</div>
       <Dialog open={open} onOpenChange={resetStateAndClose}>
         <DialogContent>
