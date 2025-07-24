@@ -16,7 +16,7 @@ import {
     QuizQuestionSchema
 } from '@/ai/schemas';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, query, where, writeBatch, doc } from 'firebase/firestore';
 import { z } from 'zod';
 
 const GenerateQuizPromptInputSchema = z.object({
@@ -96,7 +96,7 @@ const generateQuizFlow = ai.defineFlow(
     inputSchema: GenerateQuizInputSchema,
     outputSchema: GenerateQuizOutputSchema,
   },
-  async input => {
+  async (input) => {
     if (!db) {
         throw new Error("Firestore is not initialized. Cannot fetch asked questions.");
     }
@@ -123,7 +123,7 @@ const generateQuizFlow = ai.defineFlow(
         const questionsCollection = collection(db, 'askedQuestions');
         
         output.questions.forEach(question => {
-            // Create a new document for each question in the askedQuestions collection
+            // Create a new document reference in the collection
             const questionRef = doc(questionsCollection);
             batch.set(questionRef, {
                 questionText: question.questionText,

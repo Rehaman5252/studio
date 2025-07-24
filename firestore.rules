@@ -1,33 +1,37 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Default deny all reads and writes
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
-    // Users can read/write their own data, and other authenticated users can read it (for leaderboards).
+    // Users can only read/write their own data.
+    // Any authenticated user can read basic data for leaderboards.
     match /users/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == userId;
 
-      // Users can write their own quiz attempts.
+      // Users can only write to their own quiz attempts subcollection.
       match /quizAttempts/{attemptId} {
-        allow create: if request.auth.uid == userId;
-        allow read: if request.auth.uid == userId;
+        allow read, write: if request.auth.uid == userId;
       }
     }
-
-    // Leaderboard is read-only for authenticated users.
+    
+    // The live leaderboard can be read by anyone authenticated.
+    // Writes are handled by secure server-side transactions.
     match /leaderboard/{docId} {
       allow read: if request.auth != null;
+      allow write: if false; // Disallow direct client writes
     }
 
-    // Authenticated users can query the list of asked questions and create new ones.
+    // Authenticated users can create questions (via the AI flow)
+    // and list them to prevent duplicates.
     match /askedQuestions/{questionId} {
-      allow list, read, create: if request.auth != null;
+      allow read, list, create: if request.auth != null;
+    }
+    
+    // Default deny all other access.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
