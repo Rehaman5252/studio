@@ -43,7 +43,6 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   
   useEffect(() => {
     if (open) {
-      // Defer initialization to the next event loop tick to ensure the DOM is ready.
       setTimeout(() => {
         if (!app) {
           setError("Firebase app is not configured correctly.");
@@ -59,7 +58,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
                 setIsVerifierReady(true);
               },
               'expired-callback': () => {
-                setError("reCAPTCHA expired. Please try sending the code again.");
+                setError("reCAPTCHA expired. Please try again.");
                 cleanupRecaptcha();
               }
             });
@@ -67,13 +66,14 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             recaptchaVerifierRef.current = verifier;
             
             verifier.render().then(() => {
+                console.log("✅ reCAPTCHA rendered and ready");
                 setIsVerifierReady(true);
             }).catch(err => {
-                console.error('reCAPTCHA render error:', err);
-                setError('Could not render reCAPTCHA. A page refresh might be needed.');
+                console.error("❌ reCAPTCHA render error:", err);
+                setError("Could not render reCAPTCHA. A page refresh might be needed, or your browser might be blocking it.");
             });
           } catch (err) {
-            console.error('reCAPTCHA setup failed:', err);
+            console.error('❌ reCAPTCHA setup failed:', err);
             setError('Could not initialize reCAPTCHA. Please try again.');
           }
         }
@@ -98,8 +98,12 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       toast({ title: "OTP Sent", description: `Code sent to +91 ${phone}` });
       setStep('verify');
     } catch (err: any) {
-      console.error("OTP send error:", err);
-      setError("Failed to send OTP. You may be rate-limited or the number may be incorrect. Please try again.");
+      console.error("❌ OTP send error:", err);
+      if (err.code === 'auth/internal-error-encountered') {
+        setError("Firebase encountered an internal error. This might be due to a temporary service issue or a problem with reCAPTCHA. Please try again.");
+      } else {
+        setError("Failed to send OTP. You may be rate-limited or the number may be incorrect. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +120,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       toast({ title: "Phone Verified!", description: "Your phone number is now verified." });
       resetStateAndClose(false);
     } catch (err: any) {
-      console.error("OTP verification error:", err);
+      console.error("❌ OTP verification error:", err);
       setError("The code you entered was invalid. Please try again.");
       toast({ title: "Verification Failed", description: "You entered the wrong code.", variant: 'destructive' });
     } finally {
