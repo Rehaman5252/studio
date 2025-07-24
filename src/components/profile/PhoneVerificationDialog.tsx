@@ -26,6 +26,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const [step, setStep] = useState<'initial' | 'verify'>('initial');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifierReady, setIsVerifierReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   
@@ -37,6 +38,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
     }
+    setIsVerifierReady(false);
   }, []);
   
   useEffect(() => {
@@ -51,17 +53,22 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
           try {
             const auth = getAuth(app);
-            recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
               size: 'invisible',
               callback: () => {
-                // reCAPTCHA solved, ready to send OTP.
+                setIsVerifierReady(true);
               },
               'expired-callback': () => {
                 setError("reCAPTCHA expired. Please try sending the code again.");
-                cleanupRecaptcha(); // Clean up expired verifier
+                cleanupRecaptcha();
               }
             });
-            recaptchaVerifierRef.current.render().catch(err => {
+
+            recaptchaVerifierRef.current = verifier;
+            
+            verifier.render().then(() => {
+                setIsVerifierReady(true);
+            }).catch(err => {
                 console.error('reCAPTCHA render error:', err);
                 setError('Could not render reCAPTCHA. A page refresh might be needed.');
             });
@@ -72,15 +79,14 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         }
       }, 0);
     } else {
-      // Cleanup when dialog is closed
       cleanupRecaptcha();
     }
   }, [open, cleanupRecaptcha]);
 
   const handleSendOtp = async () => {
     setError(null);
-    if (!recaptchaVerifierRef.current) {
-      setError("reCAPTCHA is not ready. Please close and re-open the dialog.");
+    if (!recaptchaVerifierRef.current || !isVerifierReady) {
+      setError("reCAPTCHA is not ready. Please wait or re-open the dialog.");
       return;
     }
     
@@ -121,7 +127,6 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const resetStateAndClose = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
-      // Delay state reset to allow for closing animation
       setTimeout(() => {
         setStep('initial');
         setOtp('');
@@ -156,6 +161,13 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
           
           <div ref={recaptchaContainerRef} />
 
+          {step === 'initial' && !isVerifierReady && !error && (
+            <div className="flex items-center justify-center text-sm text-muted-foreground p-4">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Initializing reCAPTCHA...
+            </div>
+          )}
+
           {step === 'verify' && (
             <div className="py-4">
               <Input
@@ -172,8 +184,8 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
 
           <DialogFooter>
             {step === 'initial' ? (
-              <Button onClick={handleSendOtp} disabled={isLoading} className="w-full">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button onClick={handleSendOtp} disabled={isLoading || !isVerifierReady} className="w-full">
+                {(isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? 'Sending...' : 'Send Code'}
               </Button>
             ) : (

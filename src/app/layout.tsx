@@ -1,6 +1,7 @@
 
 'use client';
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/context/Providers';
@@ -12,11 +13,32 @@ const inter = Inter({
   display: 'swap',
 });
 
+declare global {
+  interface Window {
+    recaptchaLoaded?: boolean;
+  }
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.recaptchaLoaded) {
+      const script = document.createElement('script');
+      script.src = "https://www.google.com/recaptcha/api.js";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        window.recaptchaLoaded = true;
+      };
+      document.body.appendChild(script);
+    }
+  }, []);
+
+
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
