@@ -1,47 +1,13 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Mail, Settings, Send, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Mail, Settings, MessageSquare } from 'lucide-react';
 
 function SupportPage() {
-  const { toast } = useToast();
-  const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!message.trim()) {
-        toast({
-            title: "Empty Message",
-            description: "Please type a message before sending.",
-            variant: "destructive"
-        });
-        return;
-    }
-    
-    setIsSending(true);
-
-    // Simulate sending the message to a backend.
-    // In a real app, this would be an API call.
-    console.log("--- Support Message Sent ---");
-    console.log(message);
-    console.log("----------------------------");
-
-    setTimeout(() => {
-        toast({
-            title: "Message Sent!",
-            description: "Thank you for your feedback. Our team will review it shortly.",
-        });
-        setMessage(''); // Clear the textarea
-        setIsSending(false);
-    }, 1000);
-  };
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -65,33 +31,25 @@ function SupportPage() {
           </CardContent>
         </Card>
 
-        <form onSubmit={handleSubmit}>
-            <Card className="bg-card shadow-lg">
+        <Card className="bg-card shadow-lg">
             <CardHeader>
-                <CardTitle>Send a Message</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <MessageSquare />
+                    WhatsApp Support
+                </CardTitle>
                 <CardDescription>
-                Have feedback or a question? Your message will be logged for our team to review.
+                Chat with us directly on WhatsApp for quick assistance.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <Textarea 
-                    placeholder="Type your message here..." 
-                    rows={5} 
-                    required 
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    disabled={isSending}
-                />
-                <Button type="submit" className="w-full" disabled={isSending}>
-                  {isSending ? (
-                      <><Loader2 className="mr-2 animate-spin" /> Sending...</>
-                  ) : (
-                      <><Send className="mr-2" /> Send Message</>
-                  )}
+                <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer" className="text-lg font-semibold text-primary block">+91 7842722245</a>
+                <Button asChild className="w-full">
+                  <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer">
+                    <MessageSquare className="mr-2" /> Start Chat
+                  </a>
                 </Button>
             </CardContent>
-            </Card>
-        </form>
+        </Card>
 
         <Card className="bg-card shadow-lg">
             <CardHeader>
