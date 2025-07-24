@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 
-function SupportCard() {
+const SupportCardComponent = () => {
     return (
         <Card className="bg-card shadow-lg">
             <CardHeader>
@@ -26,4 +26,5 @@ function SupportCard() {
     );
 };
 
-export default memo(SupportCard);
+const SupportCard = memo(SupportCardComponent);
+export default SupportCard;

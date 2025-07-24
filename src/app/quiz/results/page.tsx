@@ -13,7 +13,6 @@ import { ResultsSummaryCard } from '@/components/quiz/ResultsSummaryCard';
 import { Certificate } from '@/components/quiz/Certificate';
 import { AnalysisCard } from '@/components/quiz/AnalysisCard';
 import { AnswerReview } from '@/components/quiz/AnswerReview';
-import { motion } from 'framer-motion';
 import type { QuizAttempt } from '@/lib/mockData';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
@@ -23,12 +22,9 @@ const MalpracticeScreen = memo(({ noBallCount = 1 }: { noBallCount?: number }) =
 
     return (
         <div 
-            className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4"
+            className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 animate-fade-in-up"
         >
-            <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+            <div
                 className="w-full max-w-md text-center bg-card border-2 border-destructive my-4 rounded-lg p-6 shadow-lg"
             >
                  <div className="mx-auto bg-destructive/20 p-4 rounded-full w-fit mb-4">
@@ -43,7 +39,7 @@ const MalpracticeScreen = memo(({ noBallCount = 1 }: { noBallCount?: number }) =
                         <Home className="mr-2 h-5 w-5" /> Back to the Pavilion
                      </Button>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 });
@@ -161,11 +157,8 @@ function ResultsComponent() {
 
     return (
         <>
-            <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex flex-col items-center min-h-screen bg-background text-foreground p-4 overflow-y-auto"
+            <div 
+                className="flex flex-col items-center min-h-screen bg-background text-foreground p-4 overflow-y-auto animate-fade-in-up"
             >
                 {isReview && (
                     <div className="w-full max-w-md pt-4">
@@ -203,7 +196,7 @@ function ResultsComponent() {
                 {isPerfectScore && <Certificate format={format} userName={user?.displayName || "indcric User"} date={today} slotTimings={slotTimings} />}
                 
                 {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
-            </motion.div>
+            </div>
 
             {adConfig && (
                 <AdDialog

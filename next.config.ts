@@ -1,16 +1,14 @@
-import type { NextConfig } from 'next';
 
 /** @type {import('next').NextConfig} */
-const nextConfig: NextConfig = {
+const nextConfig = {
   reactStrictMode: true,
   typescript: {
-    // This should be false in a CI/CD environment to enforce type safety.
-    // Set to true to allow building even with TypeScript errors.
-    ignoreBuildErrors: true,
+    // Enforcing type safety is crucial for a production app.
+    ignoreBuildErrors: false,
   },
   eslint: {
-    // Allows building even if there are ESLint warnings or errors.
-    ignoreDuringBuilds: true,
+    // It's best practice to resolve linting issues, not ignore them.
+    ignoreDuringBuilds: false,
   },
   images: {
     remotePatterns: [

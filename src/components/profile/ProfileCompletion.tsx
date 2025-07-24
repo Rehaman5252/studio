@@ -11,7 +11,7 @@ const MANDATORY_PROFILE_FIELDS = [
     'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
-function ProfileCompletion({ userProfile }: { userProfile: any }) {
+const ProfileCompletionComponent = ({ userProfile }: { userProfile: any }) => {
     if (!userProfile) {
         return null;
     }
@@ -39,4 +39,5 @@ function ProfileCompletion({ userProfile }: { userProfile: any }) {
     );
 };
 
-export default memo(ProfileCompletion);
+const ProfileCompletion = memo(ProfileCompletionComponent);
+export default ProfileCompletion;

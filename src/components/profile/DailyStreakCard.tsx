@@ -4,7 +4,6 @@
 import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Flame, Star } from 'lucide-react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
 
 const streakMilestones = {
   360: { tagline: "Triple Ton: GOAT of CricBlitz!", reward: 1000000 },
@@ -48,42 +47,10 @@ const DailyStreakCard = ({ userProfile }: { userProfile: any }) => {
   } else if (currentStreak === 0) {
       nextMilestoneDay = milestoneDays[0];
   }
-  
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const rotateX = useTransform(y, [-100, 100], [10, -10]);
-  const rotateY = useTransform(x, [-100, 100], [-10, 10]);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    x.set(mouseX - width / 2);
-    y.set(mouseY - height / 2);
-  }
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  }
 
   return (
-    <motion.div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        transformStyle: 'preserve-3d',
-        rotateX,
-        rotateY,
-        transition: 'all 0.1s ease-out'
-      }}
-    >
-      <Card className="bg-gradient-to-tr from-card to-background shadow-lg border-primary/20" style={{ transformStyle: 'preserve-3d' }}>
+    <div>
+      <Card className="bg-gradient-to-tr from-card to-background shadow-lg border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="text-primary" /> Daily Streaks
@@ -96,10 +63,10 @@ const DailyStreakCard = ({ userProfile }: { userProfile: any }) => {
         </CardHeader>
         <CardContent>
           <div className="flex items-end justify-between">
-            <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20 }}>
+            <div>
               <p className="text-6xl font-extrabold text-foreground">{currentStreak}</p>
               <p className="text-lg font-semibold text-muted-foreground -mt-2">Day Streak</p>
-            </motion.div>
+            </div>
             {milestone?.reward > 0 && (
               <div className="text-right">
                 <p className="font-bold text-lg text-primary flex items-center gap-1"><Star className="h-4 w-4" /> Current Reward</p>
@@ -115,7 +82,7 @@ const DailyStreakCard = ({ userProfile }: { userProfile: any }) => {
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 };
 

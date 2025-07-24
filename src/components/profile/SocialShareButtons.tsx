@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -38,7 +38,7 @@ const LinkedInIcon = () => (
     </svg>
 );
 
-export function SocialShareButtons({ referralLink }: { referralLink: string }) {
+const SocialShareButtonsComponent = ({ referralLink }: { referralLink: string }) => {
   const text = "Join me on indcric! It's the ultimate cricket quiz challenge. Use my link to sign up and we both get rewarded when you play!";
   const title = "indcric: The Ultimate Cricket Quiz";
 
@@ -75,3 +75,5 @@ export function SocialShareButtons({ referralLink }: { referralLink: string }) {
     </TooltipProvider>
   );
 }
+
+export const SocialShareButtons = memo(SocialShareButtonsComponent);

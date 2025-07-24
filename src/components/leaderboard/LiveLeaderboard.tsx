@@ -9,7 +9,6 @@ import LiveInfo from '@/components/leaderboard/LiveInfo';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -24,11 +23,7 @@ const RankIcon = memo(({ rank }: { rank: number }) => {
 RankIcon.displayName = 'RankIcon';
 
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
-    <motion.div 
-        key={player.uid} 
-        layoutId={`live-player-${player.uid}`}
-        initial={{ opacity: 0, y: 10 }} 
-        animate={{ opacity: 1, y: 0 }} 
+    <div
         className={cn(
             "flex items-center p-2 rounded-lg", 
             isCurrentUser && !player.disqualified && "bg-primary/20 ring-1 ring-primary", 
@@ -40,7 +35,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, i
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
         <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p>{!player.disqualified && <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>}</div>
         <div className="text-right">{player.disqualified ? <p className="font-bold text-destructive">Disqualified</p> : <><p className="font-bold text-primary">{player.time.toFixed(1)}s</p><p className="text-xs text-muted-foreground">Time</p></>}</div>
-    </motion.div>
+    </div>
 ));
 LeaderboardItem.displayName = 'LeaderboardItem';
 
@@ -124,7 +119,7 @@ const LiveLeaderboard = () => {
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
             <CardHeader className="text-center"><CardTitle>🏏 Current Match Standings</CardTitle><CardDescription><LiveInfo /></CardDescription></CardHeader>
-            <CardContent><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">{renderContent()}</motion.div></CardContent>
+            <CardContent><div className="space-y-2">{renderContent()}</div></CardContent>
         </Card>
     );
 };

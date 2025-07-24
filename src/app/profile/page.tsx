@@ -1,7 +1,6 @@
 
 "use client";
 import { useEffect } from "react";
-import { motion } from 'framer-motion';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
@@ -62,11 +61,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-col min-h-screen bg-background"
+    <div
+      className="flex flex-col min-h-screen bg-background animate-fade-in-up"
     >
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-center">
         <h1 className="text-2xl font-bold text-foreground">Player's Pavilion</h1>
@@ -74,6 +70,6 @@ export default function ProfilePage() {
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         {renderContent()}
       </main>
-    </motion.div>
+    </div>
   );
 }

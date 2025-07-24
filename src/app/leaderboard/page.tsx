@@ -3,7 +3,6 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const LeaderboardContent = dynamic(() => import('@/components/leaderboard/LeaderboardContent'), {
@@ -26,11 +25,8 @@ const LeaderboardSkeleton = () => (
 
 export default function LeaderboardPage() {
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col h-screen bg-background"
+        <div 
+            className="flex flex-col h-screen bg-background animate-fade-in-up"
         >
             <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
                 <h1 className="text-2xl font-bold text-center text-foreground">Hall of Fame</h1>
@@ -39,6 +35,6 @@ export default function LeaderboardPage() {
             <main className="flex-1 overflow-y-auto p-4 pb-24">
                 <LeaderboardContent />
             </main>
-        </motion.div>
+        </div>
     );
 }

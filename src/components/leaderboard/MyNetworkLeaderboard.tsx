@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { motion } from 'framer-motion';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Star } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
@@ -22,7 +21,7 @@ const RankIcon = memo(({ rank }: { rank: number }) => {
 RankIcon.displayName = 'RankIcon';
 
 const LeaderboardItem = memo(({ player }: { player: MyNetworkPlayer }) => (
-    <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg">
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
         <div className="flex-1">
@@ -35,7 +34,7 @@ const LeaderboardItem = memo(({ player }: { player: MyNetworkPlayer }) => (
                 <p className="text-xs text-muted-foreground">Perfect</p>
             </div>
         </div>
-    </motion.div>
+    </div>
 ));
 LeaderboardItem.displayName = 'LeaderboardItem';
 

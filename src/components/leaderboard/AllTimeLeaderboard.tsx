@@ -5,7 +5,6 @@ import React, { memo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { motion } from 'framer-motion';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff, Star } from 'lucide-react';
@@ -23,10 +22,7 @@ const RankIcon = memo(({ rank }: { rank: number }) => {
 RankIcon.displayName = 'RankIcon';
 
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
-     <motion.div 
-        layoutId={`all-time-player-${player.uid}`}
-        initial={{ opacity: 0, y: 10 }} 
-        animate={{ opacity: 1, y: 0 }} 
+     <div
         className={cn(
             "flex items-center p-2 rounded-lg",
             isCurrentUser && "bg-primary/20 ring-1 ring-primary"
@@ -36,7 +32,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
         <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
         <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
-    </motion.div>
+    </div>
 ));
 LeaderboardItem.displayName = 'LeaderboardItem';
 
@@ -150,11 +146,11 @@ const AllTimeLeaderboard = () => {
 
         return (
             <>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
+                <div className="space-y-2">
                     {players.map((player) => (
                         <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.uid === user?.uid} />
                     ))}
-                </motion.div>
+                </div>
                 {userRank && (
                      <div className="mt-4">
                         <div className="relative my-2"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Your Rank</span></div></div>

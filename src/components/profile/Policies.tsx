@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scale } from 'lucide-react';
 
-const Policies = () => {
+const PoliciesComponent = () => {
   return (
     <Card className="bg-card shadow-lg">
         <CardHeader>
@@ -82,4 +82,5 @@ const Policies = () => {
   );
 };
 
+const Policies = memo(PoliciesComponent);
 export default Policies;
