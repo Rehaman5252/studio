@@ -191,8 +191,8 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
           <DialogFooter>
             {step === 'initial' ? (
               <Button onClick={handleSendOtp} disabled={isLoading || !isVerifierReady} className="w-full">
-                {(isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? 'Sending...' : 'Send Code'}
+                {(isLoading || !isVerifierReady) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? 'Sending...' : !isVerifierReady ? 'Initializing...' : 'Send Code'}
               </Button>
             ) : (
               <div className="w-full flex justify-between">
