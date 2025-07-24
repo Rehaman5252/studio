@@ -1,14 +1,14 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Users, Copy } from 'lucide-react';
 import { SocialShareButtons } from './SocialShareButtons';
 
-function ReferralCard({ userProfile }: { userProfile: any }) {
+export default function ReferralCard({ userProfile }: { userProfile: any }) {
     const { toast } = useToast();
     
     if (!userProfile) {
@@ -53,5 +53,3 @@ function ReferralCard({ userProfile }: { userProfile: any }) {
     </Card>
     );
 };
-
-export default memo(ReferralCard);

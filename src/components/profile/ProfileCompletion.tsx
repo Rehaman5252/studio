@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PercentCircle } from 'lucide-react';
@@ -11,7 +11,7 @@ const MANDATORY_PROFILE_FIELDS = [
     'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'
 ];
 
-const ProfileCompletionComponent = ({ userProfile }: { userProfile: any }) => {
+export default function ProfileCompletion({ userProfile }: { userProfile: any }) {
     if (!userProfile) {
         return null;
     }
@@ -38,6 +38,3 @@ const ProfileCompletionComponent = ({ userProfile }: { userProfile: any }) => {
         </Card>
     );
 };
-
-const ProfileCompletion = memo(ProfileCompletionComponent);
-export default ProfileCompletion;

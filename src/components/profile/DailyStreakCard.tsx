@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Flame, Star } from 'lucide-react';
 
@@ -19,7 +19,7 @@ const streakMilestones = {
 
 type StreakDay = keyof typeof streakMilestones;
 
-const DailyStreakCard = ({ userProfile }: { userProfile: any }) => {
+export default function DailyStreakCard({ userProfile }: { userProfile: any }) {
   const currentStreak = userProfile?.currentStreak || 0;
   
   let milestone: { tagline: string; reward: number; } | null = null;
@@ -85,5 +85,3 @@ const DailyStreakCard = ({ userProfile }: { userProfile: any }) => {
     </div>
   );
 };
-
-export default memo(DailyStreakCard);

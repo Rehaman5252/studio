@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, Users, TrendingUp, Trophy } from 'lucide-react';
 import TimerStat from '@/components/stats/TimerStat';
@@ -10,7 +10,7 @@ import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
 import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 
-const GlobalStats = memo(() => {
+export default function GlobalStats() {
     const { timeLeft, playersPlaying, playersPlayed, totalWinners } = useQuizStatus();
 
     return (
@@ -55,7 +55,4 @@ const GlobalStats = memo(() => {
             </div>
         </div>
     );
-});
-GlobalStats.displayName = 'GlobalStats';
-
-export default GlobalStats;
+};
