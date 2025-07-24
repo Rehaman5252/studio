@@ -13,8 +13,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Initialize once
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Initialize app once only
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+// Safe single-instance usage only
 const auth = getAuth(app);
 const db = getFirestore(app);
 
