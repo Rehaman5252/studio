@@ -70,14 +70,14 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
   };
 
   const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
-    'Amazon': { gift: '₹150 Gift Card', description: 'Credited to your Amazon Pay.', link: '#' },
-    'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: '#' },
-    'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: '#' },
-    'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: '#' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
-    'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: '#' },
-    'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: '#' },
-    'Mixed': { gift: 'Mystery Box', description: 'A special reward from indcric.', link: '#' },
+    'Amazon': { gift: '₹150 Gift Card', description: 'Credited to your Amazon Pay.', link: 'https://www.amazon.in/gp/sva/dashboard' },
+    'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: 'https://www.nike.com/in/' },
+    'Netflix': { gift: '1 Month Free', description: 'Subscription credit added.', link: 'https://www.netflix.com/in/' },
+    'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
+    'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
+    'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
+    'Mixed': { gift: 'Mystery Box', description: 'A special reward from CricBlitz.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -103,8 +103,8 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
 });
 ScratchCard.displayName = 'ScratchCard';
 
-const GenericOffer = memo(({ title, description, image, hint }: { title: string, description: string, image: string, hint: string }) => (
-    <div className="transition-transform hover:scale-103 animate-fade-in-up">
+const GenericOffer = memo(({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
+    <a href={link} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-103 animate-fade-in-up block">
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardContent className="p-4 flex items-center gap-4">
                 <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
@@ -115,7 +115,7 @@ const GenericOffer = memo(({ title, description, image, hint }: { title: string,
                 <Button variant="ghost" size="icon" className="ml-auto" aria-label={`Claim offer for ${title}`}><ExternalLink className="text-muted-foreground" /></Button>
             </CardContent>
         </Card>
-    </div>
+    </a>
 ));
 GenericOffer.displayName = 'GenericOffer';
 
@@ -216,12 +216,10 @@ export default function RewardsContent() {
       <section className='mt-8'>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
         <div className="space-y-4">
-          <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://placehold.co/100x100.png" hint="shoes sport" />
-          <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://placehold.co/100x100.png" hint="food delivery" />
-          <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://placehold.co/100x100.png" hint="finance bank" />
-          <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://placehold.co/100x100.png" hint="shopping cart" />
-          <GenericOffer title="Myntra: 25% Off" description="On select fashion apparel. Use code: MYN25" image="https://placehold.co/100x100.png" hint="fashion clothing" />
-          <GenericOffer title="Nykaa Beauty Bonanza" description="Get a free lipstick on orders over ₹1500." image="https://placehold.co/100x100.png" hint="cosmetics makeup" />
+          <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
+          <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://cdn.icon-icons.com/icons2/2803/PNG/512/swiggy_logo_icon_178723.png" hint="food delivery" link="https://www.swiggy.com/" />
+          <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://www.pngkey.com/png/full/223-2231200_hdfc-bank-hdfc-bank-logo-png.png" hint="finance bank" link="https://www.hdfcbank.com/" />
+          <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://logolook.net/wp-content/uploads/2021/07/Flipkart-logo.png" hint="shopping cart" link="https://www.flipkart.com/" />
         </div>
       </section>
     </>

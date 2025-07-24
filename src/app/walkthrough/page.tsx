@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 const tourSteps = [
   {
     icon: Home,
-    title: 'Welcome to indcric!',
+    title: 'Welcome to CricBlitz!',
     description: 'The ultimate cricket quiz where knowledge meets rewards. Ready to start your innings?',
   },
   {

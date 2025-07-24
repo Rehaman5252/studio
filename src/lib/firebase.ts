@@ -29,4 +29,8 @@ const app = isFirebaseConfigured ? (getApps().length ? getApp() : initializeApp(
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
 
+if (auth) {
+  auth.useDeviceLanguage();
+}
+
 export { app, auth, db };

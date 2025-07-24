@@ -14,6 +14,10 @@ import {
     GenerateQuizAnalysisInput,
     GenerateQuizAnalysisPromptInputSchema,
 } from '@/ai/schemas';
+import { z } from 'zod';
+
+// ✅ Type inferred properly from Zod schema
+type GenerateQuizAnalysisPromptInput = z.infer<typeof GenerateQuizAnalysisPromptInputSchema>;
 
 export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Promise<GenerateQuizAnalysisOutput> {
   return generateQuizAnalysisFlow(input);
@@ -71,7 +75,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         correctAnswer: q.correctAnswer,
     })).filter((q, index) => input.userAnswers[index] !== input.questions[index].correctAnswer);
     
-    const promptInput: GenerateQuizAnalysisPromptInputSchema = {
+    const promptInput: GenerateQuizAnalysisPromptInput = {
         format: input.format,
         score,
         totalQuestions: input.questions.length,

@@ -39,8 +39,9 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
     }
-    if (recaptchaContainerRef.current) {
-        recaptchaContainerRef.current.innerHTML = '';
+    const container = document.getElementById('recaptcha-container');
+    if (container) {
+        container.innerHTML = '';
     }
     setIsVerifierReady(false);
   }, []);
@@ -54,7 +55,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
           return;
         }
         
-        const container = recaptchaContainerRef.current;
+        const container = document.getElementById('recaptcha-container');
         if (container && !recaptchaVerifierRef.current) {
           try {
             const auth = getAuth(app);
@@ -156,9 +157,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
 
   return (
     <>
-      <div id="recaptcha-container-wrapper">
-         <div ref={recaptchaContainerRef}></div>
-      </div>
+      <div id="recaptcha-container"></div>
       <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}>{children}</div>
       <Dialog open={open} onOpenChange={resetStateAndClose}>
         <DialogContent>
