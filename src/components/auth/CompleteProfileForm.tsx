@@ -144,6 +144,7 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
     }
     
     const isProfileComplete = profile?.profileCompleted || false;
+    const isPhoneVerified = profile?.phoneVerified || false;
 
     return (
         <Card className="w-full max-w-lg relative">
@@ -198,7 +199,7 @@ export default function CompleteProfileForm({ onSaveSuccess }: { onSaveSuccess: 
                                             type="tel" 
                                             placeholder="9876543210" 
                                             {...field} 
-                                            disabled={isSubmitting} 
+                                            disabled={isSubmitting || isPhoneVerified} 
                                         />
                                     </FormControl>
                                     <FormMessage />

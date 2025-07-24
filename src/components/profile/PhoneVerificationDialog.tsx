@@ -32,47 +32,41 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   const cleanupVerifier = useCallback(() => {
-    const container = document.getElementById('recaptcha-container-in-dialog');
     if (recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current.clear();
-      recaptchaVerifierRef.current = null;
-      if (container) container.innerHTML = '';
     }
+    const container = document.getElementById('recaptcha-container');
     if (container) {
-      // If it exists but the verifier doesn't, it might be a stale container
-      container.innerHTML = '';
+      container.remove();
     }
   }, []);
 
   const setupRecaptcha = useCallback(() => {
     if (!isFirebaseConfigured || !open || typeof window === 'undefined') return;
 
-    if (recaptchaVerifierRef.current) {
-      cleanupVerifier();
-    }
+    cleanupVerifier(); // Clean up any existing verifier first
     
-    let container = document.getElementById('recaptcha-container-in-dialog');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'recaptcha-container-in-dialog';
-      // Append to a part of the dialog that's always present, or body
-      document.body.appendChild(container);
-    }
+    // Create a new container dynamically
+    const recaptchaContainer = document.createElement('div');
+    recaptchaContainer.id = 'recaptcha-container';
+    document.body.appendChild(recaptchaContainer);
     
     try {
-      const verifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container-in-dialog', {
+      const verifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
-        callback: () => {},
+        callback: () => {
+          // This callback is called when reCAPTCHA is successfully executed.
+        },
         'expired-callback': () => {
-          setError("reCAPTCHA expired. Please try again.");
+          setError("reCAPTCHA expired. Please close and try again.");
           cleanupVerifier();
         },
       });
       verifier.render();
       recaptchaVerifierRef.current = verifier;
     } catch (e: any) {
-      console.error("reCAPTCHA error:", e);
-      setError("Failed to load reCAPTCHA. Please check your network connection or disable ad-blockers and try again.");
+      console.error("reCAPTCHA setup error:", e);
+      setError("Failed to load reCAPTCHA. Please check your network or ad-blocker and try again.");
     }
   }, [open, cleanupVerifier]);
 
@@ -84,16 +78,13 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
       cleanupVerifier();
     }
     
-    // Cleanup on unmount
-    return () => {
-      cleanupVerifier();
-    };
+    return () => cleanupVerifier();
   }, [open, setupRecaptcha, cleanupVerifier]);
 
   const handleSendOtp = async () => {
     setError(null);
     if (!recaptchaVerifierRef.current) {
-      setError("reCAPTCHA is not ready. Please close and re-open the dialog.");
+      setError("reCAPTCHA is not ready. Please wait a moment or try re-opening this dialog.");
       return;
     }
     
@@ -104,10 +95,9 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
       toast({ title: "OTP Sent", description: `Code sent to +91 ${phone}` });
       setStep('verify');
     } catch (err: any) {
-      console.error("OTP error:", err);
-      setError("Failed to send OTP. Check the phone number format or wait a moment before trying again.");
-      cleanupVerifier();
-      setupRecaptcha(); // Try to set it up again
+      console.error("OTP send error:", err);
+      setError("Failed to send OTP. Check the phone number or try again later.");
+      setupRecaptcha(); // Reset reCAPTCHA on failure
     } finally {
       setIsLoading(false);
     }
@@ -121,8 +111,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
     setIsLoading(true);
     try {
       await confirmation.confirm(otp);
-      await updateUserData({ phoneVerified: true, phone });
-      toast({ title: "Success!", description: "Your phone number has been verified." });
+      await updateUserData({ phoneVerified: true });
       onVerified();
       resetStateAndClose(false); // Close dialog on success
     } catch (err: any) {
@@ -144,7 +133,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
         setError(null);
         setIsLoading(false);
         confirmationResultRef.current = null;
-      }, 300); // Delay reset to allow dialog to close smoothly
+      }, 300); // Delay state reset for smoother closing
     }
   };
   
@@ -191,7 +180,7 @@ export function PhoneVerificationDialog({ children, phone, onVerified }: Props) 
             </Button>
           ) : (
             <div className="w-full flex justify-between">
-              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); setupRecaptcha(); }} disabled={isLoading}>Back</Button>
+              <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); }} disabled={isLoading}>Back</Button>
               <Button onClick={handleVerifyOtp} disabled={isLoading || otp.length < 6}>
                 {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify & Save'}
               </Button>

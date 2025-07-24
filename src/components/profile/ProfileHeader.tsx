@@ -11,9 +11,10 @@ import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
-    const { user } = useAuth(); // Get the auth user object
+    const { user, profile, updateUserData } = useAuth(); // Get the auth user object
     const { toast } = useToast();
     const age = userProfile?.dob ? calculateAge(new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]) : null;
     
@@ -49,9 +50,21 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                     <h2 className="text-2xl font-bold text-foreground">{userProfile?.name || 'New User'}</h2>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">
                         <p className="text-muted-foreground text-sm">{maskPhone(userProfile?.phone)}</p>
-                        {isPhoneVerified && (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
-                        )}
+                         {userProfile.phone ? (
+                            isPhoneVerified ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
+                            ) : (
+                                <PhoneVerificationDialog phone={userProfile.phone} onVerified={() => {
+                                    // The onSnapshot in AuthProvider will handle the state update automatically
+                                    toast({ title: "Phone Verified!", description: "Your phone number is now verified."});
+                                }}>
+                                    <Button variant="link" className="p-0 h-auto text-yellow-500 text-sm hover:no-underline">
+                                        <AlertCircle className="h-4 w-4 mr-1" />
+                                        Verify Now
+                                    </Button>
+                                </PhoneVerificationDialog>
+                            )
+                        ) : null}
                     </div>
                     <div className="flex items-center gap-1.5 justify-center sm:justify-start">
                          <p className="text-muted-foreground text-sm">{userProfile?.email || 'No email set'}</p>
