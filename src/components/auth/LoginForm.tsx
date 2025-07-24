@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -35,10 +34,8 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function LoginForm() {
+export default function LoginForm({ from }: { from: string | null }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const from = searchParams.get('from');
   const { toast } = useToast();
   const { loginWithEmail, signInWithGoogle } = useAuth();
 

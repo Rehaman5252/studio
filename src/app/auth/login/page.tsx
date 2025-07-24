@@ -3,7 +3,7 @@
 
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth } from '@/context/AuthProvider';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
@@ -12,6 +12,8 @@ import { db } from '@/lib/firebase';
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
 
   useEffect(() => {
     // Only redirect if auth is not loading and user exists
@@ -40,5 +42,5 @@ export default function LoginPage() {
   }
 
   // If not loading and no user, show the form
-  return <LoginForm />;
+  return <LoginForm from={from} />;
 }
