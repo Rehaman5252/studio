@@ -37,41 +37,40 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
     }
-    const container = document.getElementById('recaptcha-container-inner');
-    if (container) container.innerHTML = '';
+    const recaptchaContainer = recaptchaContainerRef.current;
+    if (recaptchaContainer) {
+        recaptchaContainer.innerHTML = '';
+    }
   }, []);
   
-  const setupRecaptcha = useCallback(() => {
-    cleanupRecaptcha(); // Always start clean
-    if (recaptchaContainerRef.current) {
-      try {
-        const auth = getAuth(app);
-        const verifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container-inner', {
-          size: 'invisible',
-          callback: (response: any) => {
-            // reCAPTCHA solved, allow sending OTP.
-          },
-          'expired-callback': () => {
-            setError("reCAPTCHA expired. Please try sending the code again.");
-            cleanupRecaptcha();
-          }
-        });
-        recaptchaVerifierRef.current = verifier;
-      } catch (err) {
-        console.error('reCAPTCHA setup failed:', err);
-        setError('Could not initialize reCAPTCHA. Please try again.');
-        cleanupRecaptcha();
-      }
-    }
-  }, [cleanupRecaptcha]);
-
   useEffect(() => {
     if (open) {
-      setupRecaptcha();
+      if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
+        try {
+          const auth = getAuth(app);
+          recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            size: 'invisible',
+            callback: () => {
+              // reCAPTCHA solved, allow sending OTP.
+            },
+            'expired-callback': () => {
+              setError("reCAPTCHA expired. Please try sending the code again.");
+              cleanupRecaptcha();
+            }
+          });
+          recaptchaVerifierRef.current.render().catch(err => {
+              console.error('reCAPTCHA render error:', err);
+              setError('Could not render reCAPTCHA. Please try again.');
+          });
+        } catch (err) {
+          console.error('reCAPTCHA setup failed:', err);
+          setError('Could not initialize reCAPTCHA. Please try again.');
+        }
+      }
     } else {
       cleanupRecaptcha();
     }
-  }, [open, setupRecaptcha, cleanupRecaptcha]);
+  }, [open, cleanupRecaptcha]);
 
   const handleSendOtp = async () => {
     setError(null);
@@ -149,9 +148,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             </Alert>
           )}
           
-          <div ref={recaptchaContainerRef}>
-            <div id="recaptcha-container-inner"></div>
-          </div>
+          <div ref={recaptchaContainerRef}></div>
 
           {step === 'verify' && (
             <div className="py-4">
@@ -175,7 +172,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               </Button>
             ) : (
               <div className="w-full flex justify-between">
-                <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); setupRecaptcha(); }} disabled={isLoading}>Back</Button>
+                <Button variant="ghost" onClick={() => { setStep('initial'); setOtp(''); setError(null); }} disabled={isLoading}>Back</Button>
                 <Button onClick={handleVerifyOtp} disabled={isLoading || otp.length < 6}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : 'Verify & Save'}
                 </Button>
