@@ -15,7 +15,7 @@ function ReferralCard({ userProfile }: { userProfile: any }) {
         return null;
     }
 
-    const referralLink = userProfile.referralCode || `https://CricBlitz.com/auth/signup?ref=${userProfile.uid?.substring(0, 8)}`;
+    const referralLink = userProfile.referralCode || `https://indcric.com/auth/signup?ref=${userProfile.uid?.substring(0, 8)}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(referralLink);

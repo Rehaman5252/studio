@@ -11,15 +11,14 @@ import {
     GenerateQuizAnalysisOutput,
     FlowGenerateQuizAnalysisInputSchema,
     GenerateQuizAnalysisOutputSchema,
-    GenerateQuizAnalysisInput,
     GenerateQuizAnalysisPromptInputSchema,
 } from '@/ai/schemas';
 import { z } from 'zod';
 
-// ✅ Type inferred properly from Zod schema
+type FlowGenerateQuizAnalysisInput = z.infer<typeof FlowGenerateQuizAnalysisInputSchema>;
 type GenerateQuizAnalysisPromptInput = z.infer<typeof GenerateQuizAnalysisPromptInputSchema>;
 
-export async function generateQuizAnalysis(input: GenerateQuizAnalysisInput): Promise<GenerateQuizAnalysisOutput> {
+export async function generateQuizAnalysis(input: FlowGenerateQuizAnalysisInput): Promise<GenerateQuizAnalysisOutput> {
   return generateQuizAnalysisFlow(input);
 }
 

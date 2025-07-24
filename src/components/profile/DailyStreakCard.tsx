@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Flame, Star } from 'lucide-react';
 
 const streakMilestones = {
-  360: { tagline: "Triple Ton: GOAT of CricBlitz!", reward: 1000000 },
+  360: { tagline: "Triple Ton: GOAT of indcric!", reward: 1000000 },
   180: { tagline: "Double Century Club: Legendary streak!", reward: 500000 },
   90: { tagline: "Nervous 90s: Consistency at its peak!", reward: 300000 },
   60: { tagline: "The Wall Mode: Unstoppable!", reward: 200000 },
