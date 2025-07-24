@@ -10,7 +10,7 @@ import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff, Star } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, where,getCountFromServer } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where, getCountFromServer } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,7 @@ const RankIcon = ({ rank }: { rank: number }) => {
 
 const LeaderboardItem = ({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
      <motion.div 
+        layoutId={`all-time-player-${player.uid}`}
         initial={{ opacity: 0, y: 10 }} 
         animate={{ opacity: 1, y: 0 }} 
         className={cn(
@@ -77,6 +78,7 @@ const AllTimeLeaderboard = () => {
                     collection(db, "users"),
                     where("perfectScores", ">", 0),
                     orderBy("perfectScores", "desc"),
+                    orderBy("quizzesPlayed", "desc"),
                     limit(10)
                 );
                 const top10Snapshot = await getDocs(top10Query);
@@ -110,7 +112,7 @@ const AllTimeLeaderboard = () => {
                             uid: user.uid,
                             name: profile.name,
                             perfectScores: userPerfectScores,
-                            totalPlayed: profile.quizzesPlayed,
+                            totalPlayed: profile.quizzesPlayed || 0,
                             avatar: profile.photoURL,
                         });
                     } else {
@@ -121,12 +123,13 @@ const AllTimeLeaderboard = () => {
                 
             } catch (e: any) {
                 console.error("Error fetching all-time leaderboard:", e);
-                if (e.code === 'unavailable') {
+                 if (e.code === 'failed-precondition') {
+                    setError("A Firestore index is required. Please check the developer console for a link to create it automatically.");
+                    console.error("Firestore Index Creation Link:", e.message);
+                } else if (e.code === 'unavailable') {
                     setError("You appear to be offline. Please check your connection.");
-                } else if (e.code === 'failed-precondition') {
-                    setError("A Firestore index is required for this query. Please check the browser's developer console for a link to create it automatically in your Firebase console.");
                 } else if (e.code === 'permission-denied') {
-                    setError("Leaderboard permission denied. The security rules may need adjustment to allow reading the 'users' collection.");
+                    setError("Leaderboard permission denied. Check security rules for the 'users' collection.");
                 } else {
                     setError("Could not load the all-time leaderboard.");
                 }

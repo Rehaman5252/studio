@@ -97,6 +97,7 @@ const LiveLeaderboard = () => {
         return players.map((player) => (
             <motion.div 
                 key={player.uid} 
+                layoutId={`live-player-${player.uid}`}
                 initial={{ opacity: 0, y: 10 }} 
                 animate={{ opacity: 1, y: 0 }} 
                 className={cn(

@@ -1,31 +1,33 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+  
+    // Users can only read/write their OWN document.
+    // This protects private information like email, phone, etc.
+    match /users/{userId} {
+      allow write: if request.auth.uid == userId;
+      // Authenticated users can read public profile info for leaderboards.
+      // NOTE: Ensure any sensitive data is not publicly exposed by client-side code.
+      allow read: if request.auth != null;
+    }
 
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
+    // A user can read/write their own quiz attempts.
+    match /users/{userId}/quizAttempts/{attemptId} {
+      allow read, write: if request.auth.uid == userId;
     }
     
-    // PUBLIC: Allow anyone to read the public-facing live leaderboard.
-    // Writes should only be handled by a secure backend environment.
+    // The live leaderboard is public for anyone to read.
+    // Writes should only be handled by secure backend functions or transactions.
     match /leaderboard/currentQuiz {
       allow read: if true;
-      allow write: if false; // Protect from client-side writes
+      allow write: if false; // Protect from direct client writes
     }
     
-    // USER DATA: Users can manage their own profile and quiz history.
-    // Allow any authenticated user to READ user profiles for leaderboards.
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && request.auth.uid == userId;
-
-      // Users can manage their own subcollections.
-      match /{allPaths=**} {
-        allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      }
+    // Health check document for testing connectivity
+    match /health-check/status {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }
