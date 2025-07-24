@@ -80,7 +80,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
     return () => {
       if (!open) cleanupRecaptcha();
     };
-  }, [open, cleanupRecaptcha]);
+  }, [open]);
 
   const handleSendOtp = async () => {
     setError(null);
