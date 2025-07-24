@@ -1,7 +1,5 @@
-
 'use client';
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/context/Providers';
@@ -44,6 +42,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
           onLoad={() => {
             if (typeof window !== 'undefined') {
+              console.log("✅ reCAPTCHA script loaded via next/script.");
               window.recaptchaLoaded = true;
             }
           }}

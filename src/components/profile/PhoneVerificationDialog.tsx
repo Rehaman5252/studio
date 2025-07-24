@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -86,7 +85,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const handleSendOtp = async () => {
     setError(null);
     if (!recaptchaVerifierRef.current || !isVerifierReady) {
-      setError("reCAPTCHA is not ready. Please wait or re-open the dialog.");
+      setError("reCAPTCHA is not ready. Please close and re-open the dialog.");
       return;
     }
     
@@ -99,8 +98,10 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       setStep('verify');
     } catch (err: any) {
       console.error("❌ OTP send error:", err);
-      if (err.code === 'auth/internal-error-encountered') {
+      if (err.code === 'auth/internal-error') {
         setError("Firebase encountered an internal error. This might be due to a temporary service issue or a problem with reCAPTCHA. Please try again.");
+      } else if (err.code === 'auth/too-many-requests') {
+        setError("You have sent too many requests. Please wait a while before trying again.");
       } else {
         setError("Failed to send OTP. You may be rate-limited or the number may be incorrect. Please try again.");
       }
@@ -137,6 +138,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         setError(null);
         setIsLoading(false);
         setConfirmationResult(null);
+        cleanupRecaptcha();
       }, 300);
     }
   };
