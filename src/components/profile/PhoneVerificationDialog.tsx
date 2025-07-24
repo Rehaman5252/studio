@@ -51,34 +51,40 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   }, []);
   
   useEffect(() => {
-    if (open) {
+    const setupRecaptcha = async () => {
+      if (!open || typeof window === 'undefined' || !auth) return;
+  
       if (!window.recaptchaVerifier) {
         try {
-          // Pass the imported auth object here
-          window.recaptchaVerifier = new FirebaseRecaptchaVerifier('recaptcha-container', {
-            size: 'invisible',
-            callback: () => {
-              // reCAPTCHA solved, allow signInWithPhoneNumber.
+          window.recaptchaVerifier = new FirebaseRecaptchaVerifier(
+            'recaptcha-container',
+            {
+              size: 'invisible',
+              callback: () => {
+                // reCAPTCHA solved
+              },
+              'expired-callback': () => {
+                setError("reCAPTCHA expired. Please try again.");
+                cleanupRecaptcha();
+              }
             },
-            'expired-callback': () => {
-              setError("reCAPTCHA expired. Please try again.");
-              cleanupRecaptcha();
-            }
-          }, auth); 
-          window.recaptchaVerifier.render().catch((err) => {
-              console.error("reCAPTCHA render failed", err);
-              setError("Could not render reCAPTCHA. Check your ad-blocker or network.");
-          });
-        } catch(e) {
-            console.error("Recaptcha setup failed", e);
-            setError("Could not initialize reCAPTCHA. Please try again.");
+            auth
+          );
+  
+          await window.recaptchaVerifier.render();
+        } catch (err) {
+          console.error("reCAPTCHA init error", err);
+          setError("Could not initialize reCAPTCHA. Please try again.");
+          cleanupRecaptcha();
         }
       }
-    }
-
+    };
+  
+    setupRecaptcha();
+  
     return () => {
       if (!open) {
-          cleanupRecaptcha();
+        cleanupRecaptcha();
       }
     };
   }, [open, cleanupRecaptcha]);
