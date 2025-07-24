@@ -7,16 +7,27 @@ import {
   GenerateQuizInputSchema,
   GenerateQuizOutputSchema
 } from '@/ai/schemas';
-import { db } from '@/lib/firebase';
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  writeBatch,
-  doc
-} from 'firebase/firestore';
 import { z } from 'zod';
+import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+
+// Initialize Firebase Admin SDK if not already initialized
+if (!getApps().length) {
+  try {
+    initializeApp({
+      credential: cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+      databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+    });
+  } catch (e) {
+    console.error('Firebase Admin SDK initialization error:', e);
+  }
+}
+
+const db = getFirestore();
 
 const GenerateQuizPromptInputSchema = z.object({
   format: z.string(),
@@ -82,15 +93,13 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema
   },
   async (input) => {
-    if (!db) throw new Error("Firestore not initialized.");
-
-    // ✅ Step 1: Fetch existing questions
-    const questionsRef = collection(db, 'askedQuestions');
-    const questionsQuery = query(questionsRef, where('format', '==', input.format));
-    const snapshot = await getDocs(questionsQuery);
+    // 1. Fetch existing questions using Admin SDK
+    const questionsRef = db.collection('askedQuestions');
+    const questionsQuery = questionsRef.where('format', '==', input.format);
+    const snapshot = await questionsQuery.get();
     const askedQuestions = snapshot.docs.map((doc) => doc.data().questionText as string);
 
-    // ✅ Step 2: Generate new quiz
+    // 2. Generate new quiz
     const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
     const { output } = await prompt({ format: input.format, askedQuestions });
 
@@ -98,12 +107,12 @@ const generateQuizFlow = ai.defineFlow(
       throw new Error("AI failed to generate a 5-question quiz.");
     }
 
-    // ✅ Step 3: Save new questions
-    const batch = writeBatch(db);
-    const questionsColl = collection(db, 'askedQuestions');
+    // 3. Save new questions using Admin SDK
+    const batch = db.batch();
+    const questionsColl = db.collection('askedQuestions');
 
     for (const q of output.questions) {
-      const docRef = doc(questionsColl);
+      const docRef = questionsColl.doc();
       batch.set(docRef, {
         questionText: q.questionText,
         format: input.format,
