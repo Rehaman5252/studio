@@ -52,10 +52,9 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   }, []);
   
   useEffect(() => {
-    if (open && auth) { // Ensure auth is defined before proceeding
+    if (open && auth) {
       if (!window.recaptchaVerifier) {
         try {
-          // Corrected argument order: elementId, options, auth
           window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
             size: 'invisible',
             callback: () => {
@@ -78,12 +77,11 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
     }
 
     return () => {
-      // Cleanup on unmount or when dialog closes
       if (!open) {
           cleanupRecaptcha();
       }
     };
-  }, [open, cleanupRecaptcha]);
+  }, [open, auth, cleanupRecaptcha]);
 
 
   const handleSendOtp = async () => {
