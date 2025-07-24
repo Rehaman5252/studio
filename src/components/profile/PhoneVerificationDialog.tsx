@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
@@ -10,19 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { auth } from "@/lib/firebase";
-import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
+import { getAuth, signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
+import { app } from "@/lib/firebase";
 
 interface Props {
   children: React.ReactNode;
   phone: string;
-}
-
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
 }
 
 export function PhoneVerificationDialog({ children, phone }: Props) {
@@ -34,75 +27,71 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  
+  const recaptchaRef = useRef<HTMLDivElement>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+
 
   const cleanupRecaptcha = useCallback(() => {
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      const container = document.getElementById('recaptcha-container');
-      if (container) container.innerHTML = '';
-      window.recaptchaVerifier = undefined;
+    if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
     }
+    const container = document.getElementById('recaptcha-container');
+    if (container) container.innerHTML = '';
   }, []);
 
-  // Setup reCAPTCHA when the dialog opens
-  useEffect(() => {
-    if (open && step === 'initial') {
-        if (!auth || typeof window === 'undefined') return;
-
-        // Use a timeout to ensure the DOM is ready for reCAPTCHA
-        const timer = setTimeout(() => {
-            if (window.recaptchaVerifier) {
-                cleanupRecaptcha();
+  const setupRecaptcha = useCallback(() => {
+    if (typeof window !== 'undefined' && recaptchaRef.current && !recaptchaVerifierRef.current) {
+      try {
+        const auth = getAuth(app);
+        recaptchaVerifierRef.current = new FirebaseRecaptchaVerifier(
+          'recaptcha-container',
+          {
+            size: 'invisible',
+            callback: (response: any) => {
+              // reCAPTCHA solved
+            },
+            'expired-callback': () => {
+              setError("reCAPTCHA expired. Please try sending the code again.");
+              cleanupRecaptcha();
             }
-
-            try {
-                const recaptchaContainer = document.getElementById('recaptcha-container');
-                if (recaptchaContainer) {
-                    const verifier = new FirebaseRecaptchaVerifier(
-                        recaptchaContainer,
-                        {
-                            size: 'invisible',
-                            callback: () => { /* reCAPTCHA solved */ },
-                            'expired-callback': () => {
-                                setError("reCAPTCHA expired. Please try sending the code again.");
-                                cleanupRecaptcha();
-                            }
-                        },
-                        auth
-                    );
-                    window.recaptchaVerifier = verifier;
-                } else {
-                    setError("reCAPTCHA container not found.");
-                }
-            } catch (err) {
-                console.error("reCAPTCHA initialization error", err);
-                setError("Could not initialize reCAPTCHA. Please refresh and try again.");
-                cleanupRecaptcha();
-            }
-        }, 100);
-
-        return () => clearTimeout(timer);
+          }, auth
+        );
+      } catch (err) {
+        console.error('reCAPTCHA setup failed:', err);
+        setError('Could not initialize reCAPTCHA. Please try again.');
+        cleanupRecaptcha();
+      }
     }
-  }, [open, step, cleanupRecaptcha]);
+  }, [cleanupRecaptcha]);
 
+  useEffect(() => {
+    if (open) {
+      setupRecaptcha();
+    }
+  }, [open, setupRecaptcha]);
 
   const handleSendOtp = async () => {
     setError(null);
-    if (!window.recaptchaVerifier) {
+    if (!recaptchaVerifierRef.current) {
       setError("reCAPTCHA is not ready. Please close and re-open the dialog.");
       return;
     }
     
     setIsLoading(true);
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier);
-      window.confirmationResult = confirmationResult;
+      const auth = getAuth(app);
+      const result = await signInWithPhoneNumber(auth, `+91${phone}`, recaptchaVerifierRef.current);
+      setConfirmationResult(result);
       toast({ title: "OTP Sent", description: `Code sent to +91 ${phone}` });
       setStep('verify');
     } catch (err: any) {
       console.error("OTP send error:", err);
       setError("Failed to send OTP. You may be rate-limited or the number may be incorrect. Please try again.");
       cleanupRecaptcha(); // Reset reCAPTCHA on failure
+      setupRecaptcha(); // And set it up again for the next try
     } finally {
       setIsLoading(false);
     }
@@ -110,11 +99,11 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
 
   const handleVerifyOtp = async () => {
     setError(null);
-    if (!window.confirmationResult || otp.length < 6) return;
+    if (!confirmationResult || otp.length < 6) return;
 
     setIsLoading(true);
     try {
-      await window.confirmationResult.confirm(otp);
+      await confirmationResult.confirm(otp);
       if (updateUserData) await updateUserData({ phoneVerified: true });
       toast({ title: "Phone Verified!", description: "Your phone number is now verified." });
       resetStateAndClose(false);
@@ -135,7 +124,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         setOtp('');
         setError(null);
         setIsLoading(false);
-        window.confirmationResult = undefined;
+        setConfirmationResult(null);
         cleanupRecaptcha();
       }, 300);
     }
@@ -163,7 +152,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             </Alert>
           )}
           
-          <div id="recaptcha-container"></div>
+          <div id="recaptcha-container" ref={recaptchaRef}></div>
 
           {step === 'verify' && (
             <div className="py-4">
