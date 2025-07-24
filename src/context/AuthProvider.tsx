@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -237,15 +236,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!firebaseUser || !profile || !db) throw new Error("User not authenticated, profile not loaded, or DB not available.");
 
-    const leaderboardDocRef = doc(db, 'leaderboard', 'currentQuiz');
     const userRef = doc(db, 'users', firebaseUser.uid);
     const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
 
     try {
         await runTransaction(db, async (transaction) => {
-            const leaderboardDoc = await transaction.get(leaderboardDocRef);
-            
-            // 1. Prepare personal user stats update
+            // Prepare personal user stats update
             const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
             const statsUpdate: {[key:string]: any} = { quizzesPlayed: increment(1) };
             if (isPerfect) {
@@ -253,38 +249,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 statsUpdate.totalRewards = increment(100);
             }
             
-            // 2. Prepare live leaderboard update
-            const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
-            const newPlayerEntry: LivePlayer = {
-                uid: firebaseUser.uid,
-                name: profile.name || 'Anonymous',
-                avatar: profile.photoURL || '',
-                score: attempt.score,
-                time: totalTime,
-                disqualified: !!attempt.reason,
-            };
-
-            let updatedPlayers: LivePlayer[] = [];
-            if (leaderboardDoc.exists()) {
-                const currentData = leaderboardDoc.data();
-                // Filter out the current user's previous entry for this slot, if any
-                if (currentData && Array.isArray(currentData.players)) {
-                    updatedPlayers = currentData.players.filter((p: LivePlayer) => p.uid !== firebaseUser.uid);
-                }
-            }
-            updatedPlayers.push(newPlayerEntry);
-            
-            // 3. Execute all writes in the transaction
+            // Execute all writes in the transaction
             transaction.set(attemptRef, sanitizeUserProfile(attempt)); // Set personal quiz history
             transaction.update(userRef, statsUpdate); // Update user's aggregate stats
-            transaction.set(leaderboardDocRef, { // Set/update the live leaderboard
-                players: updatedPlayers,
-                lastUpdated: serverTimestamp(),
-                quizId: attempt.slotId,
-            }, { merge: true });
         });
 
-        // 4. Update local state after successful transaction
+        // Update local state after successful transaction
         setLastAttemptInSlot(attempt);
 
     } catch (error) {
