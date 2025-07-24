@@ -264,7 +264,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             if (leaderboardDoc.exists()) {
                 const currentData = leaderboardDoc.data();
                 // Filter out the current user's previous entry for this slot, if any
-                updatedPlayers = currentData.players.filter((p: LivePlayer) => p.uid !== firebaseUser.uid);
+                if (currentData && Array.isArray(currentData.players)) {
+                    updatedPlayers = currentData.players.filter((p: LivePlayer) => p.uid !== firebaseUser.uid);
+                }
             }
             updatedPlayers.push(newPlayerEntry);
             
