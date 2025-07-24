@@ -38,29 +38,30 @@ export default function LeaderboardContent() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-1")}>
+        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-2")}>
             <TabsTrigger value="live">Current</TabsTrigger>
-            {user && <TabsTrigger value="all-time">All-Time</TabsTrigger>}
+            <TabsTrigger value="all-time">All-Time</TabsTrigger>
             {user && <TabsTrigger value="network">My Network</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="live"><LiveLeaderboard /></TabsContent>
 
-        {user ? (
-          <>
-            <TabsContent value="all-time"><AllTimeLeaderboard /></TabsContent>
-            <TabsContent value="network"><MyNetworkLeaderboard /></TabsContent>
-          </>
-        ) : (
-          (activeTab === 'all-time' || activeTab === 'network') && (
-            <div className="pt-8 w-full">
-              <LoginPrompt 
-                icon={Users}
-                title="View the Rankings"
-                description="Pad up and sign in to see the hall of fame and your network."
-              />
-            </div>
-          )
+        <TabsContent value="all-time">
+            {user ? (
+                 <AllTimeLeaderboard />
+            ) : (
+                <div className="pt-8 w-full">
+                    <LoginPrompt 
+                        icon={Users}
+                        title="View the Hall of Fame"
+                        description="Pad up and sign in to see the all-time cricket legends."
+                    />
+                </div>
+            )}
+        </TabsContent>
+        
+        {user && (
+          <TabsContent value="network"><MyNetworkLeaderboard /></TabsContent>
         )}
     </Tabs>
   );

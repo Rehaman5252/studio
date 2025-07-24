@@ -55,6 +55,9 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                     <Link href="/policies"><Scale className="mr-4" /> Legal & Policies</Link>
                 </Button>
             </section>
+            
+            <SupportCard />
+
             <section>
                 <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
                     <LogOut className="mr-2 h-5 w-5" /> Logout

@@ -4,7 +4,7 @@
 import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 
 function SupportCard() {
@@ -14,7 +14,7 @@ function SupportCard() {
                 <CardTitle className="text-lg">Help & Support</CardTitle>
                 <CardDescription>Connect to reach the Third Umpire.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
                  <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/support">
                         <MessageSquare className="mr-4" />
