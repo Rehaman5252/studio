@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { collection } from 'firebase/firestore';
+import type { LivePlayer } from '@/components/leaderboard/leaderboardTypes';
 
 interface UserDataContextType {
   user: User | null; // This is the firebase auth user from the parent provider
@@ -230,29 +231,72 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseUser, toast]);
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!firebaseUser || !db) throw new Error("User not authenticated or DB not available.");
+    if (!firebaseUser || !profile || !db) throw new Error("User not authenticated, profile not loaded, or DB not available.");
+
+    const leaderboardDocRef = doc(db, 'leaderboard', 'currentQuiz');
+    const userRef = doc(db, 'users', firebaseUser.uid);
+    const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
+
     try {
-        const batch = writeBatch(db);
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
-        
-        batch.set(attemptRef, sanitizeUserProfile(attempt));
-        
-        const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
-        const statsUpdate: {[key:string]: any} = { quizzesPlayed: increment(1) };
-        if (isPerfect) {
-            statsUpdate.perfectScores = increment(1);
-            statsUpdate.totalRewards = increment(100);
-        }
-        
-        batch.update(userRef, statsUpdate);
-        await batch.commit();
+        await runTransaction(db, async (transaction) => {
+            const leaderboardDoc = await transaction.get(leaderboardDocRef);
+            
+            // 1. Prepare personal user stats update
+            const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
+            const statsUpdate: {[key:string]: any} = { quizzesPlayed: increment(1) };
+            if (isPerfect) {
+                statsUpdate.perfectScores = increment(1);
+                statsUpdate.totalRewards = increment(100);
+            }
+            
+            // 2. Prepare live leaderboard update
+            const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
+            const newPlayerEntry: LivePlayer = {
+                uid: firebaseUser.uid,
+                name: profile.name || 'Anonymous',
+                avatar: profile.photoURL || '',
+                score: attempt.score,
+                time: totalTime,
+                disqualified: !!attempt.reason,
+            };
+
+            let updatedPlayers: LivePlayer[] = [];
+            if (leaderboardDoc.exists()) {
+                const currentData = leaderboardDoc.data();
+                // Filter out the current user's previous entry for this slot, if any
+                updatedPlayers = currentData.players.filter((p: LivePlayer) => p.uid !== firebaseUser.uid);
+            }
+            updatedPlayers.push(newPlayerEntry);
+            
+            // 3. Execute all writes in the transaction
+            transaction.set(attemptRef, sanitizeUserProfile(attempt)); // Set personal quiz history
+            transaction.update(userRef, statsUpdate); // Update user's aggregate stats
+            transaction.set(leaderboardDocRef, { // Set/update the live leaderboard
+                players: updatedPlayers,
+                lastUpdated: serverTimestamp(),
+                quizId: attempt.slotId,
+            }, { merge: true });
+        });
+
+        // 4. Update local state after successful transaction
         setLastAttemptInSlot(attempt);
+
     } catch (error) {
-        console.error("Add quiz attempt failed:", error);
-        toast({ title: "Sync Error", description: "Could not save your quiz attempt to the database.", variant: 'destructive' });
+        console.error("Add quiz attempt transaction failed:", error);
+        toast({
+            title: "Sync Error",
+            description: "Could not save your quiz result. Please check your connection.",
+            variant: 'destructive',
+        });
+        // If the transaction fails, we might need to fall back to a simpler write
+        // for personal history to not lose the data entirely.
+        try {
+            await setDoc(attemptRef, sanitizeUserProfile(attempt));
+        } catch (fallbackError) {
+            console.error("Fallback attempt save also failed:", fallbackError);
+        }
     }
-  }, [firebaseUser, toast]);
+  }, [firebaseUser, profile, toast]);
   
   const handleMalpractice = useCallback(async (): Promise<number> => {
     if (!firebaseUser || !profile || !db) return 0;
