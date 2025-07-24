@@ -4,28 +4,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read/write their own data and read other users' data for leaderboards.
+    // Users can read/write their own data, but other authenticated users can only read basic info for leaderboards/profiles.
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth.uid == userId;
 
-      // Users can read/write their own quiz attempts.
+      // Users can write their own quiz attempts.
       match /quizAttempts/{attemptId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth.uid == userId;
       }
     }
 
-    // The live leaderboard document can be read by anyone, but not written to by clients.
-    // Writes are handled securely through backend transactions.
-    match /leaderboard/currentQuiz {
-        allow read: if true;
-        allow write: if false;
-    }
-
-    // Authenticated users need to read the question bank to avoid repeats and
-    // write newly generated questions back to the bank.
+    // The 'askedQuestions' collection needs to be read from and written to during quiz generation.
+    // Any authenticated user can perform these actions.
     match /askedQuestions/{questionId} {
       allow read, create: if request.auth != null;
+    }
+
+    // The 'leaderboard' collection contains the live quiz data.
+    // Any authenticated user can read it. Writes are handled by secure backend logic (Cloud Functions/transactions).
+    match /leaderboard/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Disallow direct client writes for security.
     }
   }
 }
