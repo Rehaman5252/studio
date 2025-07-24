@@ -1,3 +1,4 @@
+
 {
   "indexes": [
     {
@@ -38,6 +39,14 @@
       "fields": [
         { "fieldPath": "name", "order": "ASCENDING" },
         { "fieldPath": "perfectScores", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "askedQuestions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "format", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],
