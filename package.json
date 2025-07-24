@@ -1,3 +1,4 @@
+
 {
   "name": "indcric",
   "version": "0.1.0",
@@ -45,6 +46,7 @@
     "dotenv": "^16.4.5",
     "embla-carousel-react": "^8.1.7",
     "firebase": "^10.12.4",
+    "framer-motion": "^11.3.19",
     "genkit": "^1.14.0",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.417.0",

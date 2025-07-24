@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -29,13 +30,16 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   const cleanupRecaptcha = useCallback(() => {
+    const container = document.getElementById('recaptcha-container');
     if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
+    }
+    if (container) {
+        container.innerHTML = '';
     }
     setIsVerifierReady(false);
   }, []);
@@ -48,10 +52,11 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
           return;
         }
 
-        if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
+        const container = document.getElementById('recaptcha-container');
+        if (!recaptchaVerifierRef.current && container) {
           try {
             const auth = getAuth(app);
-            const verifier = new FirebaseRecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            const verifier = new FirebaseRecaptchaVerifier(auth, container, {
               size: 'invisible',
               callback: () => {
                 setIsVerifierReady(true);
@@ -145,6 +150,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
 
   return (
     <>
+      <div id="recaptcha-container"></div>
       <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}>{children}</div>
       <Dialog open={open} onOpenChange={resetStateAndClose}>
         <DialogContent>
@@ -164,8 +170,6 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
-          <div ref={recaptchaContainerRef} />
 
           {step === 'initial' && !isVerifierReady && !error && (
             <div className="flex items-center justify-center text-sm text-muted-foreground p-4">
