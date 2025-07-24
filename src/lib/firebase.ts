@@ -18,19 +18,14 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize Auth and set persistence
 const auth = getAuth(app);
+
+// In a browser environment, set persistence. This check is crucial.
 if (typeof window !== "undefined") {
     setPersistence(auth, browserLocalPersistence);
 }
 
-// Conditionally initialize Firestore with offline persistence for the client
-const db =
-  typeof window !== "undefined"
-    ? initializeFirestore(app, {
-        localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
-        }),
-      })
-    : null;
+// Initialize Firestore. We use a variable to hold the instance.
+const db = getFirestore(app);
     
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 

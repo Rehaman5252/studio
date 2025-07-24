@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { isFirebaseConfigured, db } from '@/lib/firebaseClient';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { useEffect, useState } from 'react';
 import { getDoc, doc } from 'firebase/firestore';
 
