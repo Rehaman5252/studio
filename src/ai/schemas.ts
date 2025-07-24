@@ -4,6 +4,7 @@ import {z} from 'genkit';
 // Schemas for generateQuizFlow
 export const GenerateQuizInputSchema = z.object({
   format: z.string().describe('The cricket format for the quiz (e.g., IPL, T20, Test, Mixed).'),
+  askedQuestions: z.array(z.string()).optional().describe('An array of questions that should not be repeated.'),
 });
 export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 

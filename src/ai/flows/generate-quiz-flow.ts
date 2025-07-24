@@ -11,19 +11,9 @@ import {
 import { db } from '@/lib/firebase';
 import {
   collection,
-  getDocs,
-  query,
-  where,
   writeBatch,
   doc
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { z } from 'zod';
-
-const GenerateQuizPromptInputSchema = z.object({
-  format: z.string(),
-  askedQuestions: z.array(z.string())
-});
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
   return generateQuizFlow(input);
@@ -31,7 +21,7 @@ export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQu
 
 const generalPrompt = ai.definePrompt({
   name: 'generateQuizPrompt',
-  input: { schema: GenerateQuizPromptInputSchema },
+  input: { schema: GenerateQuizInputSchema },
   output: { schema: GenerateQuizOutputSchema },
   prompt: `Generate a 5-question, multiple-choice, text-only quiz about "{{format}}" cricket with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
@@ -61,7 +51,7 @@ The 5 questions must follow this exact structure:
 
 const mixedFormatPrompt = ai.definePrompt({
   name: 'generateMixedQuizPrompt',
-  input: { schema: GenerateQuizPromptInputSchema },
+  input: { schema: GenerateQuizInputSchema },
   output: { schema: GenerateQuizOutputSchema },
   prompt: `Generate a 5-question quiz from IPL, WPL, T20, ODI, and Test formats with increasing difficulty. Each question must use a different format and not repeat asked questions.
 
@@ -84,28 +74,17 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema
   },
   async (input) => {
-    const auth = getAuth();
-    if (!auth.currentUser) {
-        throw new Error("User not authenticated. Cannot generate quiz.");
-    }
-
     if (!db) throw new Error("Firestore not initialized.");
 
-    // Step 1: Fetch existing questions
-    const questionsRef = collection(db, 'askedQuestions');
-    const questionsQuery = query(questionsRef, where('format', '==', input.format));
-    const snapshot = await getDocs(questionsQuery);
-    const askedQuestions = snapshot.docs.map((doc) => doc.data().questionText as string);
-
-    // Step 2: Generate new quiz
+    // Step 1: Generate new quiz (asked questions are now passed in)
     const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
-    const { output } = await prompt({ format: input.format, askedQuestions });
+    const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
 
     if (!output || output.questions.length !== 5) {
       throw new Error("AI failed to generate a 5-question quiz.");
     }
 
-    // Step 3: Save new questions
+    // Step 2: Save new questions to the question bank
     const batch = writeBatch(db);
     const questionsColl = collection(db, 'askedQuestions');
 
@@ -122,8 +101,7 @@ const generateQuizFlow = ai.defineFlow(
         await batch.commit();
     } catch (err) {
         console.error("❌ Failed to write new questions to Firestore:", err);
-        // Decide if you want to re-throw the error or just log it
-        // For now, we log it but still return the quiz to the user
+        // We log it but still return the quiz to the user
     }
 
     return output;

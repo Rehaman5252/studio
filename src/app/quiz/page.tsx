@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Lightbulb, ChevronsRight, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 function QuizComponent() {
   const { user, loading, addQuizAttempt, handleMalpractice, profile, lastAttemptInSlot } = useAuth();
@@ -51,7 +53,6 @@ function QuizComponent() {
   useEffect(() => {
     if (!user || !profile) return; 
 
-    // **Strict Daily Malpractice Lockout**
     const today = new Date().setHours(0, 0, 0, 0);
     const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
     if (profile.noBallCount >= 3 && lastNoBallDay === today) {
@@ -65,7 +66,6 @@ function QuizComponent() {
         return;
     }
     
-    // **Strict Slot Enforcement**
     if (lastAttemptInSlot) {
         toast({
             title: "Slot Already Played",
@@ -79,12 +79,22 @@ function QuizComponent() {
 
     async function fetchQuiz() {
       try {
-        const quizData = await generateQuiz({ format });
+        if (!db) throw new Error("Firestore not initialized.");
+
+        // ✅ Fetch previously asked questions from the client side
+        const questionsRef = collection(db, 'askedQuestions');
+        const q = query(questionsRef, where('format', '==', format));
+        const querySnapshot = await getDocs(q);
+        const askedQuestions = querySnapshot.docs.map((doc) => doc.data().questionText as string);
+        
+        // ✅ Pass asked questions to the flow
+        const quizData = await generateQuiz({ format, askedQuestions });
+        
         setQuestions(quizData.questions);
         setUserAnswers(new Array(quizData.questions.length).fill(null));
         setQuestionStartTime(Date.now());
-        setTimeLeft(20); // Reset timer for the first question
-        setQuizState('playing'); // Move to playing state immediately
+        setTimeLeft(20);
+        setQuizState('playing');
       } catch (error) {
         console.error("Failed to generate quiz:", error);
         toast({ title: 'Error', description: 'Could not load quiz. Please try again.', variant: 'destructive' });
@@ -122,10 +132,8 @@ function QuizComponent() {
         reason: reason === 'malpractice' ? `malpractice_${malpracticeCount}` : undefined,
     };
 
-    // Save attempt to the database
     await addQuizAttempt(attemptData);
     
-    // Navigate to results page with the new attempt data
     const attemptDataString = Buffer.from(JSON.stringify(attemptData)).toString('base64');
     router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
@@ -138,7 +146,7 @@ function QuizComponent() {
     setCurrentQuestionIndex(prev => prev + 1);
     setTimeLeft(20);
     setQuestionStartTime(Date.now());
-    setIsAnswerLocked(false); // Release the lock for the new question
+    setIsAnswerLocked(false);
   }, [questions]);
 
   const handleNextWithAdCheck = useCallback(() => {
@@ -161,9 +169,9 @@ function QuizComponent() {
   }, [currentQuestionIndex, goToNextQuestion]);
 
   const handleAnswerSelect = useCallback((option: string) => {
-    if (isAnswerLocked || !questions) return; // Check lock here
+    if (isAnswerLocked || !questions) return;
     
-    setIsAnswerLocked(true); // Set lock immediately
+    setIsAnswerLocked(true);
     setSelectedOption(option);
     const timeTaken = (Date.now() - questionStartTime) / 1000;
     setTimePerQuestion(prev => [...prev, timeTaken]);
