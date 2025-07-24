@@ -5,8 +5,8 @@ import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { auth } from "@/lib/firebase";
@@ -17,7 +17,6 @@ interface Props {
   phone: string;
 }
 
-// Add a declaration for the window object to include recaptchaVerifier
 declare global {
   interface Window {
     recaptchaVerifier?: RecaptchaVerifier;
@@ -41,28 +40,24 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       const widget = document.querySelector('.grecaptcha-badge');
       if (widget?.parentElement) {
         try {
-            document.body.removeChild(widget.parentElement);
-        } catch (e) {
-            // This can fail if the element is already gone, which is fine.
-        }
+          document.body.removeChild(widget.parentElement);
+        } catch (e) {}
       }
       window.recaptchaVerifier = undefined;
     }
   }, []);
-  
+
   useEffect(() => {
     const setupRecaptcha = async () => {
       if (!open || typeof window === 'undefined' || !auth) return;
-  
+
       if (!window.recaptchaVerifier) {
         try {
           window.recaptchaVerifier = new FirebaseRecaptchaVerifier(
             'recaptcha-container',
             {
               size: 'invisible',
-              callback: () => {
-                // reCAPTCHA solved
-              },
+              callback: () => {},
               'expired-callback': () => {
                 setError("reCAPTCHA expired. Please try again.");
                 cleanupRecaptcha();
@@ -70,7 +65,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             },
             auth
           );
-  
+
           await window.recaptchaVerifier.render();
         } catch (err) {
           console.error("reCAPTCHA init error", err);
@@ -79,16 +74,13 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
         }
       }
     };
-  
+
     setupRecaptcha();
-  
+
     return () => {
-      if (!open) {
-        cleanupRecaptcha();
-      }
+      if (!open) cleanupRecaptcha();
     };
   }, [open, cleanupRecaptcha]);
-
 
   const handleSendOtp = async () => {
     setError(null);
@@ -96,7 +88,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       setError("reCAPTCHA is not ready. Please wait a moment and try again.");
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const confirmationResult = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier);
@@ -105,7 +97,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       setStep('verify');
     } catch (err: any) {
       console.error("OTP send error:", err);
-      setError("Failed to send OTP. Is the phone number correct? You may also be rate-limited by Firebase.");
+      setError("Failed to send OTP. You may be rate-limited or the number may be incorrect.");
       cleanupRecaptcha();
     } finally {
       setIsLoading(false);
@@ -115,12 +107,12 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const handleVerifyOtp = async () => {
     setError(null);
     if (!window.confirmationResult || otp.length < 6) return;
-    
+
     setIsLoading(true);
     try {
       await window.confirmationResult.confirm(otp);
-      if(updateUserData) await updateUserData({ phoneVerified: true });
-      toast({ title: "Phone Verified!", description: "Your phone number is now verified."});
+      if (updateUserData) await updateUserData({ phoneVerified: true });
+      toast({ title: "Phone Verified!", description: "Your phone number is now verified." });
       resetStateAndClose(false);
     } catch (err: any) {
       console.error("OTP verification error:", err);
@@ -144,7 +136,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       }, 300);
     }
   };
-  
+
   return (
     <>
       <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}>{children}</div>
