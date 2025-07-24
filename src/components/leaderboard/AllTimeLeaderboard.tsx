@@ -8,9 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { ServerCrash, WifiOff } from 'lucide-react';
+import { ServerCrash, WifiOff, Star } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where,getCountFromServer } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthProvider';
+import { cn } from '@/lib/utils';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -18,6 +20,23 @@ const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 3) return <span className="text-2xl">🥉</span>;
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 };
+
+const LeaderboardItem = ({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
+     <motion.div 
+        initial={{ opacity: 0, y: 10 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className={cn(
+            "flex items-center p-2 rounded-lg",
+            isCurrentUser && "bg-primary/20 ring-1 ring-primary"
+        )}
+    >
+        <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+        <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
+        <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
+    </motion.div>
+);
+
 
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
@@ -37,9 +56,11 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const AllTimeLeaderboard = () => {
+    const { user, profile } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [userRank, setUserRank] = useState<AllTimePlayer | null>(null);
 
     useEffect(() => {
         if (!db) {
@@ -48,23 +69,18 @@ const AllTimeLeaderboard = () => {
             return;
         }
 
-        const fetchAllTimePlayers = async () => {
+        const fetchLeaderboardData = async () => {
             setIsLoading(true);
             try {
-                const q = query(
+                // Fetch top 10 players
+                const top10Query = query(
                     collection(db, "users"),
                     orderBy("perfectScores", "desc"),
                     limit(10)
                 );
-                const snapshot = await getDocs(q);
-
-                if (snapshot.empty) {
-                    setPlayers([]);
-                    setIsLoading(false);
-                    return;
-                }
+                const top10Snapshot = await getDocs(top10Query);
                 
-                const playersData = snapshot.docs.map((doc, index) => ({
+                const top10Players = top10Snapshot.docs.map((doc, index) => ({
                     rank: index + 1,
                     uid: doc.id,
                     name: doc.data().name || 'Anonymous Player',
@@ -72,7 +88,36 @@ const AllTimeLeaderboard = () => {
                     totalPlayed: doc.data().quizzesPlayed || 0,
                     avatar: doc.data().photoURL
                 }));
-                setPlayers(playersData);
+                setPlayers(top10Players);
+
+                // If user is logged in, find their rank
+                if (user && profile) {
+                    const userPerfectScores = profile.perfectScores || 0;
+                    const isUserInTop10 = top10Players.some(p => p.uid === user.uid);
+
+                    if (userPerfectScores > 0 && !isUserInTop10) {
+                        // Find how many players have more perfect scores than the user
+                        const rankQuery = query(
+                            collection(db, "users"),
+                            where("perfectScores", ">", userPerfectScores)
+                        );
+                        const higherRankedSnapshot = await getCountFromServer(rankQuery);
+                        const rank = higherRankedSnapshot.data().count + 1;
+                        
+                        setUserRank({
+                            rank: rank,
+                            uid: user.uid,
+                            name: profile.name,
+                            perfectScores: userPerfectScores,
+                            totalPlayed: profile.quizzesPlayed,
+                            avatar: profile.photoURL,
+                        });
+                    } else if (isUserInTop10) {
+                         // User is already in the main list, so no need for a separate rank display
+                         setUserRank(null);
+                    }
+                }
+                
             } catch (e: any) {
                 if (e.code === 'unavailable') {
                     setError("You appear to be offline. Please check your connection.");
@@ -87,31 +132,36 @@ const AllTimeLeaderboard = () => {
             }
         };
 
-        fetchAllTimePlayers();
-    }, []);
+        fetchLeaderboardData();
+    }, [user, profile]);
 
     const renderContent = () => {
         if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No legends yet. Score perfect quizzes to appear here!</p>;
 
-        return players.map((player) => (
-            <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center p-2 rounded-lg">
-               <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-               <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-               <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
-               <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
-           </motion.div>
-       ));
+        return (
+            <>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
+                    {players.map((player) => (
+                        <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.uid === user?.uid} />
+                    ))}
+                </motion.div>
+                {userRank && (
+                     <div className="mt-4">
+                        <div className="relative my-2"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Your Rank</span></div></div>
+                        <LeaderboardItem player={userRank} isCurrentUser={true} />
+                    </div>
+                )}
+            </>
+        )
     };
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
             <CardHeader className="text-center"><CardTitle>🏆 All-Time Legends</CardTitle><CardDescription>Based on number of perfect scores</CardDescription></CardHeader>
             <CardContent>
-                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.05 }} className="space-y-2">
-                    {renderContent()}
-                </motion.div>
+                {renderContent()}
             </CardContent>
         </Card>
     );
