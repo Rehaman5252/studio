@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebaseClient";
 import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
 
 interface Props {
