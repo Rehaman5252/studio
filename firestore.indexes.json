@@ -45,8 +45,14 @@
       "collectionGroup": "askedQuestions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "format", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "format",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
