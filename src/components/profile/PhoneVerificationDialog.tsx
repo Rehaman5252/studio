@@ -52,10 +52,11 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   }, []);
   
   useEffect(() => {
-    if (open) {
+    if (open && auth) { // Ensure auth is defined before proceeding
       if (!window.recaptchaVerifier) {
         try {
-          window.recaptchaVerifier = new FirebaseRecaptchaVerifier('recaptcha-container', {
+          // Corrected argument order: elementId, options, auth
+          window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
             size: 'invisible',
             callback: () => {
               // reCAPTCHA solved, allow signInWithPhoneNumber.
@@ -64,7 +65,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               setError("reCAPTCHA expired. Please try sending the code again.");
               cleanupRecaptcha();
             }
-          }, auth);
+          });
           window.recaptchaVerifier.render().catch((err) => {
               console.error("reCAPTCHA render failed", err);
               setError("Could not render reCAPTCHA. Check your ad-blocker or network.");
@@ -77,6 +78,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
     }
 
     return () => {
+      // Cleanup on unmount or when dialog closes
       if (!open) {
           cleanupRecaptcha();
       }
