@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Ban, WifiOff, ServerCrash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer, CurrentQuizLeaderboardDoc } from './leaderboardTypes';
 
@@ -46,55 +46,51 @@ const LiveLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading || !db) return;
+        if (!db) {
+            setError("Firestore is not available.");
+            setIsLoading(false);
+            return;
+        }
 
-        const fetchLivePlayers = async () => {
+        const leaderboardDocRef = doc(db, 'leaderboard', 'currentQuiz');
+        const unsubscribe = onSnapshot(leaderboardDocRef, (docSnap) => {
             setIsLoading(true);
             setError(null);
             
-            const leaderboardDocRef = doc(db, 'leaderboard', 'currentQuiz');
-
-            try {
-                const docSnap = await getDoc(leaderboardDocRef);
-
-                if (docSnap.exists()) {
-                    const data = docSnap.data() as CurrentQuizLeaderboardDoc;
-                    const sortedPlayers = (data.players || [])
-                        .sort((a, b) => {
-                            if (a.disqualified && !b.disqualified) return 1;
-                            if (!a.disqualified && b.disqualified) return -1;
-                            if (a.score !== b.score) return b.score - a.score;
-                            return a.time - b.time;
-                        })
-                        .map((p, i) => ({ ...p, rank: i + 1 }));
-                    setPlayers(sortedPlayers);
-                } else {
-                    setPlayers([]);
-                }
-            } catch (e: any) {
-                if (e.code === 'unavailable') {
-                  setError("You appear to be offline. Please check your connection to view the leaderboard.");
-                } else {
-                  setError("An error occurred while loading the leaderboard. The `leaderboard/currentQuiz` document may be missing.");
-                  console.error("Live Leaderboard Error: ", e);
-                }
-            } finally {
-                setIsLoading(false);
+            if (docSnap.exists()) {
+                const data = docSnap.data() as CurrentQuizLeaderboardDoc;
+                const sortedPlayers = (data.players || [])
+                    .sort((a, b) => {
+                        if (a.disqualified && !b.disqualified) return 1;
+                        if (!a.disqualified && b.disqualified) return -1;
+                        if (a.score !== b.score) return b.score - a.score;
+                        return a.time - b.time;
+                    })
+                    .map((p, i) => ({ ...p, rank: i + 1 }));
+                setPlayers(sortedPlayers);
+            } else {
+                setPlayers([]);
             }
-        };
-        
-        fetchLivePlayers();
-        const interval = setInterval(fetchLivePlayers, 30000);
-        return () => clearInterval(interval);
+            setIsLoading(false);
+        }, (err) => {
+            console.error("Live Leaderboard Error: ", err);
+            if ((err as any).code === 'unavailable') {
+                setError("You appear to be offline. Please check your connection to view the leaderboard.");
+            } else {
+                setError("An error occurred while loading the leaderboard. The `leaderboard/currentQuiz` document may be missing.");
+            }
+            setIsLoading(false);
+        });
 
-    }, [authLoading]);
+        return () => unsubscribe();
+    }, []);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return (
             <p className="text-center text-muted-foreground p-4">
-                The current quiz is in progress. Results will appear here soon!
+                The current quiz is in progress. Be the first to play!
             </p>
         );
         

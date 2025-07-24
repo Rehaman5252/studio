@@ -15,10 +15,9 @@ import { QuizHeader } from '@/components/quiz/QuizHeader';
 import { Timer } from '@/components/quiz/Timer';
 import CricketLoading from '@/components/CricketLoading';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, ChevronsRight, Loader2, WifiOff } from 'lucide-react';
+import { Lightbulb, ChevronsRight, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function QuizComponent() {
   const { user, loading, addQuizAttempt, handleMalpractice, profile, lastAttemptInSlot } = useAuth();
@@ -225,11 +224,7 @@ function QuizComponent() {
   }, [quizState, submitQuiz, userAnswers]);
 
   if (loading || !user || lastAttemptInSlot) {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
+    return <CricketLoading message="Authenticating..." />;
   }
 
   if (quizState === 'loading' || !questions) return <CricketLoading message="Warming up the bowlers..." format={format} />;

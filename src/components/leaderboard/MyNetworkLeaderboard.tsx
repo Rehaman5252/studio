@@ -48,15 +48,17 @@ const MyNetworkLeaderboard = () => {
             if (!authLoading) setIsLoading(false);
             return;
         }
+        if (!db) {
+            setError("Firestore is not available.");
+            setIsLoading(false);
+            return;
+        }
 
         const fetchNetworkData = async () => {
             setIsLoading(true);
             setError(null);
             
             try {
-                if (!db) {
-                    throw new Error("Firestore is not available.");
-                }
                 const networkIds: string[] = [...(profile.referrals || [])];
                 if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
                     networkIds.push(profile.referredBy);

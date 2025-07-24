@@ -1,24 +1,29 @@
 
 
-export interface Player {
+export interface LivePlayer {
     rank?: number;
     name: string;
     avatar?: string;
     uid: string;
-}
-
-export interface LivePlayer extends Player {
     score: number;
     time: number;
     disqualified?: boolean;
 }
 
-export interface AllTimePlayer extends Player {
+export interface AllTimePlayer {
+    rank?: number;
+    name: string;
+    avatar?: string;
+    uid: string;
     perfectScores: number;
     totalPlayed: number;
 }
 
-export interface MyNetworkPlayer extends Player {
+export interface MyNetworkPlayer {
+    rank?: number;
+    name: string;
+    avatar?: string;
+    uid: string;
     perfectScores: number;
     isReferrer: boolean;
 }

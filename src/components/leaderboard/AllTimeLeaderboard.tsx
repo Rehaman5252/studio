@@ -11,7 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ServerCrash, WifiOff } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { useAuth } from '@/context/AuthProvider';
 
 const RankIcon = ({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -38,17 +37,14 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 const AllTimeLeaderboard = () => {
-    const { loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (authLoading) return;
         if (!db) {
-            // Firestore instance might not be ready on initial render
-            // especially if there are connection issues.
-            // We'll wait until it's available.
+            setError("Firestore is not available.");
+            setIsLoading(false);
             return;
         }
 
@@ -92,10 +88,10 @@ const AllTimeLeaderboard = () => {
         };
 
         fetchAllTimePlayers();
-    }, [authLoading]);
+    }, []);
 
     const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) return <p className="text-center text-muted-foreground p-4">No legends yet. Score perfect quizzes to appear here!</p>;
 

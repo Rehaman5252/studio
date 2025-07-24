@@ -5,6 +5,7 @@ import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
 
 function SupportCard() {
     return (
@@ -14,17 +15,11 @@ function SupportCard() {
                 <CardDescription>Connect to reach the Third Umpire.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <a href="mailto:support@cricblitz.com">
-                        <Mail className="mr-4" />
-                        Email: support@cricblitz.com
-                    </a>
-                </Button>
-                <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <a href="https://wa.me/917842722245" target="_blank" rel="noopener noreferrer">
+                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+                    <Link href="/support">
                         <MessageSquare className="mr-4" />
-                        WhatsApp: +91 7842722245
-                    </a>
+                        Contact Us
+                    </Link>
                 </Button>
             </CardContent>
         </Card>

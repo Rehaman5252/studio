@@ -1,29 +1,16 @@
 
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion } from 'framer-motion';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { LogIn, ServerCrash, WifiOff, Loader2, Settings, Scale, UserCheck, Gift, Award } from 'lucide-react';
+import { UserCheck, ServerCrash, WifiOff } from 'lucide-react';
 import ProfileContent from "@/components/profile/ProfileContent";
 import { useAuth } from "@/context/AuthProvider";
 import SupportCard from "@/components/profile/SupportCard";
 import LoginPrompt from "@/components/auth/LoginPrompt";
-
-const PublicLinks = () => (
-    <section className="space-y-3 pt-4">
-        <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-            <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
-        </Button>
-        <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-            <Link href="/policies"><Scale className="mr-4" /> Legal & Policies</Link>
-        </Button>
-        <SupportCard />
-    </section>
-);
-
+import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
   const { user, profile, loading, isOffline } = useAuth();
@@ -87,14 +74,7 @@ export default function ProfilePage() {
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         {renderContent()}
-        <PublicLinks />
-        {user && 
-            <section>
-                <Button variant="destructive" size="lg" className="w-full" onClick={() => auth.signOut()}>
-                    <LogIn className="mr-2 h-5 w-5" /> Logout
-                </Button>
-            </section>
-        }
+        <SupportCard />
       </main>
     </motion.div>
   );

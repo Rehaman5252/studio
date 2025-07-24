@@ -234,7 +234,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     try {
         const batch = writeBatch(db);
         const userRef = doc(db, 'users', firebaseUser.uid);
-        const attemptRef = doc(collection(db, `users/${firebaseUser.uid}/quizAttempts`), attempt.slotId);
+        const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
         
         batch.set(attemptRef, sanitizeUserProfile(attempt));
         
