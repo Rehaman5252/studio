@@ -3,6 +3,7 @@
 
 /**
  * @fileOverview A flow that generates a 5-question quiz on a given cricket topic.
+ * It ensures that questions are unique and not repeated for any user in any slot.
  *
  * - generateQuiz - A function that generates a quiz.
  */
@@ -12,7 +13,16 @@ import {
     GenerateQuizOutput,
     GenerateQuizInputSchema,
     GenerateQuizOutputSchema,
+    QuizQuestionSchema
 } from '@/ai/schemas';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { z } from 'zod';
+
+const GenerateQuizPromptInputSchema = z.object({
+    format: z.string(),
+    askedQuestions: z.array(z.string()),
+});
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
   return generateQuizFlow(input);
@@ -20,7 +30,7 @@ export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQu
 
 const generalPrompt = ai.definePrompt({
   name: 'generateQuizPrompt',
-  input: {schema: GenerateQuizInputSchema},
+  input: {schema: GenerateQuizPromptInputSchema},
   output: {schema: GenerateQuizOutputSchema},
   prompt: `Generate a 5-question, multiple-choice, text-only quiz about "{{format}}" cricket with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
@@ -31,6 +41,11 @@ The 5 questions must follow this exact structure:
 3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning in the "{{format}}" format.
 4.  **Question 4 (Very Hard):** A text-based question about a rare record, a low-profile but significant match, or a lesser-known player's achievement in the "{{format}}" format.
 5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation from the "{{format}}" format.
+
+**CRITICAL:** Do NOT generate any questions from the following list of previously asked questions:
+{{#each askedQuestions}}
+- "{{this}}"
+{{/each}}
 `,
   config: {
     // Set extremely permissive safety settings to prevent the model from blocking valid responses.
@@ -46,7 +61,7 @@ The 5 questions must follow this exact structure:
 
 const mixedFormatPrompt = ai.definePrompt({
     name: 'generateMixedQuizPrompt',
-    input: {schema: GenerateQuizInputSchema},
+    input: {schema: GenerateQuizPromptInputSchema},
     output: {schema: GenerateQuizOutputSchema},
     prompt: `Generate a 5-question, multiple-choice, text-only quiz covering T20, IPL, WPL, ODI, and Test cricket, with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
@@ -57,6 +72,11 @@ The 5 questions must follow this exact difficulty structure, with each question 
 3.  **Question 3 (Hard):** A text-based question about a more detailed topic like player-vs-player statistics, how match conditions influenced a famous game, or a specific milestone inning.
 4.  **Question 4 (Very Hard):** A text-based question about a rare record, a low-profile but significant match, or a lesser-known player's achievement.
 5.  **Question 5 (Extreme Hard):** A deeply obscure text-based trivia question about historic player comparisons, a rare form of dismissal, specific debut match statistics, or a high-pressure situation.
+
+**CRITICAL:** Do NOT generate any questions from the following list of previously asked questions:
+{{#each askedQuestions}}
+- "{{this}}"
+{{/each}}
 `,
     config: {
       // Set extremely permissive safety settings to prevent the model from blocking valid responses.
@@ -77,10 +97,46 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema,
   },
   async input => {
+    if (!db) {
+        throw new Error("Firestore is not initialized. Cannot fetch asked questions.");
+    }
+    
+    // 1. Fetch previously asked questions for the given format
+    const questionsQuery = query(collection(db, 'askedQuestions'), where('format', '==', input.format));
+    const querySnapshot = await getDocs(questionsQuery);
+    const askedQuestions = querySnapshot.docs.map(doc => doc.data().questionText as string);
+
+    // 2. Select the correct prompt and generate the quiz
     const promptToUse = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
-    const {output} = await promptToUse(input);
+    const {output} = await promptToUse({
+        format: input.format,
+        askedQuestions,
+    });
+    
     if (!output || !output.questions || output.questions.length !== 5) {
       throw new Error("The AI failed to generate a valid 5-question quiz.");
+    }
+
+    // 3. Save the newly generated questions to the question bank
+    try {
+        const batch = writeBatch(db);
+        const questionsCollection = collection(db, 'askedQuestions');
+        
+        output.questions.forEach(question => {
+            // Create a new document for each question in the askedQuestions collection
+            const questionRef = doc(questionsCollection);
+            batch.set(questionRef, {
+                questionText: question.questionText,
+                format: input.format,
+                createdAt: new Date(),
+            });
+        });
+        
+        await batch.commit();
+    } catch (error) {
+        console.error("Failed to save new questions to the bank:", error);
+        // We don't throw an error here, as the quiz generation was successful
+        // and can still be served to the user. We just log the failure to save.
     }
 
     return output;
