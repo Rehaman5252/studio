@@ -36,7 +36,7 @@ const Policies = () => {
                         <p>A user (referrer) earns a one-time ₹50 bonus for each unique new user (referee) who signs up using their valid referral link.</p>
                         <p>The bonus is only credited to the referrer after the referee achieves their first-ever perfect score (5/5) in any quiz format.</p>
                         <p>This perfect score must be achieved within 7 calendar days of the referee's sign-up date. Attempts after this period will not trigger the referral bonus.</p>
-                        <p>A referrer cannot earn a bonus from the same referee more than once. CricBlitz reserves the right to invalidate bonuses earned through fraudulent means (e.g., fake accounts, automated scripts).</p>
+                        <p>A referrer cannot earn a bonus from the same referee more than once. indcric reserves the right to invalidate bonuses earned through fraudulent means (e.g., fake accounts, automated scripts).</p>
                     </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-2">
@@ -66,13 +66,13 @@ const Policies = () => {
                  <AccordionItem value="item-5">
                     <AccordionTrigger>Cookie Policy</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>We use essential cookies to manage your session and authentication. We do not use third-party tracking cookies for advertising purposes. By using CricBlitz, you consent to the use of these essential cookies.</p>
+                        <p>We use essential cookies to manage your session and authentication. We do not use third-party tracking cookies for advertising purposes. By using indcric, you consent to the use of these essential cookies.</p>
                     </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-6">
                     <AccordionTrigger>Responsible Participation & Platform Mission</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground space-y-2">
-                        <p>CricBlitz is foremost a platform for knowledge sharing, testing, and learning, designed for educational purposes to enhance cricket knowledge. While real rewards are offered as an incentive for engagement, it is classified as a game of skill, not a game of chance.</p>
+                        <p>indcric is foremost a platform for knowledge sharing, testing, and learning, designed for educational purposes to enhance cricket knowledge. While real rewards are offered as an incentive for engagement, it is classified as a game of skill, not a game of chance.</p>
                         <p>We encourage responsible participation. Please play within your limits and for the joy of learning. This platform should not be treated as a primary source of income. If you feel your gaming habits are becoming problematic, we urge you to seek support from relevant counseling services. Users must be 18 years or older to participate.</p>
                     </AccordionContent>
                 </AccordionItem>

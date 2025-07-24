@@ -74,7 +74,7 @@ const CertificateComponent = ({ format, userName, date, slotTimings }: { format:
 
     const handleShare = async () => {
         const shareData = {
-            title: `I earned a indcric Certificate!`,
+            title: `I earned an indcric Certificate!`,
             text: `I just got a perfect score in the ${format} quiz on indcric! Think you can beat me?`,
             url: window.location.href,
         };
