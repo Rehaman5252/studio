@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { UserCheck, ServerCrash, WifiOff } from 'lucide-react';
 import ProfileContent from "@/components/profile/ProfileContent";
 import { useAuth } from "@/context/AuthProvider";
-import SupportCard from "@/components/profile/SupportCard";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
 
@@ -74,7 +73,6 @@ export default function ProfilePage() {
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         {renderContent()}
-        <SupportCard />
       </main>
     </motion.div>
   );
