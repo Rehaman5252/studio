@@ -125,6 +125,8 @@ const AllTimeLeaderboard = () => {
                     setError("You appear to be offline. Please check your connection.");
                 } else if (e.code === 'failed-precondition') {
                     setError("A Firestore index is required for this query. Please check the browser's developer console for a link to create it automatically in your Firebase console.");
+                } else if (e.code === 'permission-denied') {
+                    setError("Leaderboard permission denied. The security rules may need adjustment to allow reading the 'users' collection.");
                 } else {
                     setError("Could not load the all-time leaderboard.");
                 }
