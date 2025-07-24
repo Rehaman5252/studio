@@ -36,50 +36,59 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
-
-  const cleanupRecaptcha = useCallback(() => {
+  const cleanupRecaptcha = () => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
       const widget = document.querySelector('.grecaptcha-badge');
       if(widget?.parentNode) {
-        document.body.removeChild(widget.parentNode);
+        // This is a common workaround to remove the reCAPTCHA badge if it persists
+        try {
+            document.body.removeChild(widget.parentNode);
+        } catch (e) {
+            // It might already be gone
+        }
       }
+      window.recaptchaVerifier = undefined;
     }
-  }, []);
-
-  const setupRecaptcha = useCallback(() => {
-    cleanupRecaptcha();
-    try {
-        window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {
-            // reCAPTCHA solved, allow signInWithPhoneNumber.
-          },
-          'expired-callback': () => {
-            setError("reCAPTCHA expired. Please try again.");
-          }
-        });
-    } catch(e) {
-        console.error("Recaptcha setup failed", e);
-        setError("Could not initialize reCAPTCHA. Please check your network or ad-blocker.");
-    }
-  }, [cleanupRecaptcha]);
+  };
 
   useEffect(() => {
     if (open) {
-      setupRecaptcha();
-    } else {
-      cleanupRecaptcha();
+      // Setup reCAPTCHA only when the dialog is opened
+      try {
+        if (!window.recaptchaVerifier) {
+          window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: () => {
+              // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+            'expired-callback': () => {
+              setError("reCAPTCHA expired. Please try sending the code again.");
+            }
+          });
+          // Render it
+          window.recaptchaVerifier.render().catch((err) => {
+              console.error("reCAPTCHA render failed", err);
+              setError("Could not render reCAPTCHA. Please check your network or ad-blocker.");
+          });
+        }
+      } catch(e) {
+          console.error("Recaptcha setup failed", e);
+          setError("Could not initialize reCAPTCHA. Please check your network or ad-blocker.");
+      }
     }
-    return () => cleanupRecaptcha();
-  }, [open, setupRecaptcha, cleanupRecaptcha]);
+
+    // Cleanup when the component unmounts or dialog closes
+    return () => {
+      cleanupRecaptcha();
+    };
+  }, [open]);
 
 
   const handleSendOtp = async () => {
     setError(null);
     if (!window.recaptchaVerifier) {
-      setError("reCAPTCHA is not ready. Please wait a moment or try re-opening this dialog.");
+      setError("reCAPTCHA is not ready. Please wait a moment and try again.");
       return;
     }
     
@@ -91,8 +100,8 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       setStep('verify');
     } catch (err: any) {
       console.error("OTP send error:", err);
-      setError("Failed to send OTP. Check the phone number or try again later.");
-      setupRecaptcha(); // Reset reCAPTCHA on failure
+      setError("Failed to send OTP. Is the phone number correct? You may also be rate-limited if you have tried too many times.");
+      // Don't reset reCAPTCHA here, as user might want to try again immediately.
     } finally {
       setIsLoading(false);
     }
@@ -120,14 +129,14 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const resetStateAndClose = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
-      cleanupRecaptcha();
+      // Delay state reset to allow for smoother closing animation
       setTimeout(() => {
         setStep('initial');
         setOtp('');
         setError(null);
         setIsLoading(false);
         window.confirmationResult = undefined;
-      }, 300); // Delay state reset for smoother closing
+      }, 300);
     }
   };
   
@@ -145,6 +154,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
             </DialogDescription>
           </DialogHeader>
 
+          {/* This div must always be in the DOM when the dialog is open for reCAPTCHA to attach */}
           <div id="recaptcha-container"></div>
 
           {error && (
