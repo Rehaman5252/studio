@@ -1,9 +1,9 @@
-
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+// Your actual Firebase config
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
@@ -13,18 +13,11 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Initialize Firebase App safely
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Initialize once
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Get Auth and Firestore instances
+// Use getAuth() and getFirestore() — no duplicate initialization
 const auth = getAuth(app);
 const db = getFirestore(app);
-    
-// Set persistence in a browser environment
-if (typeof window !== "undefined") {
-    setPersistence(auth, browserLocalPersistence);
-}
-
-export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
 export { app, auth, db };
