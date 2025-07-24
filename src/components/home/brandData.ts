@@ -30,8 +30,8 @@ export const brandData: CubeBrand[] = [
         brand: 'Netflix',
         format: 'T20',
         logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Netflix_2015_N_logo.svg/1200px-Netflix_2015_N_logo.svg.png',
-        logoWidth: 60,
-        logoHeight: 60,
+        logoWidth: 40,
+        logoHeight: 40,
     },
     {
         id: 4,
