@@ -14,14 +14,15 @@ import { collection, query, orderBy, limit, getDocs, where, getCountFromServer }
 import { useAuth } from '@/context/AuthProvider';
 import { cn } from '@/lib/utils';
 
-const RankIcon = ({ rank }: { rank: number }) => {
+const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
     if (rank === 2) return <span className="text-2xl">🥈</span>;
     if (rank === 3) return <span className="text-2xl">🥉</span>;
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
-};
+});
+RankIcon.displayName = 'RankIcon';
 
-const LeaderboardItem = ({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
+const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
      <motion.div 
         layoutId={`all-time-player-${player.uid}`}
         initial={{ opacity: 0, y: 10 }} 
@@ -36,7 +37,8 @@ const LeaderboardItem = ({ player, isCurrentUser }: { player: AllTimePlayer, isC
         <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p><p className="text-sm text-muted-foreground">Played: {player.totalPlayed}</p></div>
         <div className="text-right"><p className="font-bold text-primary">{player.perfectScores}</p><p className="text-xs text-muted-foreground">Perfect Scores</p></div>
     </motion.div>
-);
+));
+LeaderboardItem.displayName = 'LeaderboardItem';
 
 
 const LeaderboardItemSkeleton = () => (

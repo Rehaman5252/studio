@@ -1,21 +1,17 @@
 
-
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typescript: {
-    // Allows the project to build even if there are TypeScript errors.
-    // Recommended to be false in a CI/CD environment.
-    ignoreBuildErrors: true,
+    // Enforcing type safety is crucial for a production app.
+    ignoreBuildErrors: false,
   },
   eslint: {
-    // Allows the project to build even if there are ESLint errors.
-    ignoreDuringBuilds: true,
+    // It's best practice to resolve linting issues, not ignore them.
+    ignoreDuringBuilds: false,
   },
   images: {
-    // Defines a list of allowed hostnames for the next/image component.
-    // This improves security by preventing images from being loaded from untrusted sources.
     remotePatterns: [
       {
         protocol: 'https',

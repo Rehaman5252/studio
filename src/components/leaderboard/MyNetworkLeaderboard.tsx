@@ -13,12 +13,32 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Star } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
 
-const RankIcon = ({ rank }: { rank: number }) => {
+const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
     if (rank === 2) return <span className="text-2xl">🥈</span>;
     if (rank === 3) return <span className="text-2xl">🥉</span>;
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
-};
+});
+RankIcon.displayName = 'RankIcon';
+
+const LeaderboardItem = memo(({ player }: { player: MyNetworkPlayer }) => (
+    <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center p-2 rounded-lg">
+        <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+        <div className="flex-1">
+            <p className="font-semibold text-foreground">{player.name}</p>
+            <p className="text-sm text-muted-foreground">{player.isReferrer ? 'Your Referrer' : 'Your Referral'}</p>
+        </div>
+        <div className="text-right flex items-center gap-2">
+            <div className="flex flex-col items-center">
+                <p className="font-bold text-primary flex items-center gap-1">{player.perfectScores} <Star className="h-4 w-4" /></p>
+                <p className="text-xs text-muted-foreground">Perfect</p>
+            </div>
+        </div>
+    </motion.div>
+));
+LeaderboardItem.displayName = 'LeaderboardItem';
+
 
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
@@ -124,20 +144,7 @@ const MyNetworkLeaderboard = () => {
         }
         
         return networkPlayers.map((player) => (
-            <motion.div key={player.uid} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center p-2 rounded-lg">
-                <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-                <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-                <div className="flex-1">
-                    <p className="font-semibold text-foreground">{player.name}</p>
-                    <p className="text-sm text-muted-foreground">{player.isReferrer ? 'Your Referrer' : 'Your Referral'}</p>
-                </div>
-                <div className="text-right flex items-center gap-2">
-                    <div className="flex flex-col items-center">
-                        <p className="font-bold text-primary flex items-center gap-1">{player.perfectScores} <Star className="h-4 w-4" /></p>
-                        <p className="text-xs text-muted-foreground">Perfect</p>
-                    </div>
-                </div>
-            </motion.div>
+            <LeaderboardItem key={player.uid} player={player} />
         ));
     };
 

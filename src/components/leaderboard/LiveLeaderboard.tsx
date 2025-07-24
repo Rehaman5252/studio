@@ -15,12 +15,34 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import type { LivePlayer, CurrentQuizLeaderboardDoc } from './leaderboardTypes';
 
-const RankIcon = ({ rank }: { rank: number }) => {
+const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
     if (rank === 2) return <span className="text-2xl">🥈</span>;
     if (rank === 3) return <span className="text-2xl">🥉</span>;
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
-};
+});
+RankIcon.displayName = 'RankIcon';
+
+const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
+    <motion.div 
+        key={player.uid} 
+        layoutId={`live-player-${player.uid}`}
+        initial={{ opacity: 0, y: 10 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className={cn(
+            "flex items-center p-2 rounded-lg", 
+            isCurrentUser && !player.disqualified && "bg-primary/20 ring-1 ring-primary", 
+            isCurrentUser && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", 
+            player.disqualified && "opacity-60"
+        )}
+    >
+        <div className="w-8 text-center">{player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}</div>
+        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+        <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p>{!player.disqualified && <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>}</div>
+        <div className="text-right">{player.disqualified ? <p className="font-bold text-destructive">Disqualified</p> : <><p className="font-bold text-primary">{player.time.toFixed(1)}s</p><p className="text-xs text-muted-foreground">Time</p></>}</div>
+    </motion.div>
+));
+LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
@@ -95,23 +117,7 @@ const LiveLeaderboard = () => {
         );
         
         return players.map((player) => (
-            <motion.div 
-                key={player.uid} 
-                layoutId={`live-player-${player.uid}`}
-                initial={{ opacity: 0, y: 10 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                className={cn(
-                    "flex items-center p-2 rounded-lg", 
-                    player.uid === user?.uid && !player.disqualified && "bg-primary/20 ring-1 ring-primary", 
-                    player.uid === user?.uid && player.disqualified && "bg-destructive/20 ring-1 ring-destructive", 
-                    player.disqualified && "opacity-60"
-                )}
-            >
-                <div className="w-8 text-center">{player.disqualified ? <Ban className="text-destructive mx-auto" /> : <RankIcon rank={player.rank!} />}</div>
-                <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-                <div className="flex-1"><p className="font-semibold text-foreground">{player.name}</p>{!player.disqualified && <p className="text-sm text-muted-foreground">Score: {player.score}/5</p>}</div>
-                <div className="text-right">{player.disqualified ? <p className="font-bold text-destructive">Disqualified</p> : <><p className="font-bold text-primary">{player.time.toFixed(1)}s</p><p className="text-xs text-muted-foreground">Time</p></>}</div>
-            </motion.div>
+            <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.uid === user?.uid} />
         ));
     };
 
