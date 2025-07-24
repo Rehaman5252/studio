@@ -15,7 +15,7 @@ import { QuizHeader } from '@/components/quiz/QuizHeader';
 import { Timer } from '@/components/quiz/Timer';
 import CricketLoading from '@/components/CricketLoading';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, ChevronsRight, Loader2 } from 'lucide-react';
+import { Lightbulb, ChevronsRight } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -81,13 +81,11 @@ function QuizComponent() {
       try {
         if (!db) throw new Error("Firestore not initialized.");
 
-        // ✅ Fetch previously asked questions from the client side
         const questionsRef = collection(db, 'askedQuestions');
         const q = query(questionsRef, where('format', '==', format));
         const querySnapshot = await getDocs(q);
         const askedQuestions = querySnapshot.docs.map((doc) => doc.data().questionText as string);
         
-        // ✅ Pass asked questions to the flow
         const quizData = await generateQuiz({ format, askedQuestions });
         
         setQuestions(quizData.questions);

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -75,7 +76,6 @@ const generateQuizFlow = ai.defineFlow(
   async (input) => {
     if (!db) throw new Error("Firestore not initialized.");
 
-    // Step 1: Generate new quiz (asked questions are now passed in)
     const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
     const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
 
@@ -83,7 +83,6 @@ const generateQuizFlow = ai.defineFlow(
       throw new Error("AI failed to generate a 5-question quiz.");
     }
 
-    // Step 2: Save new questions to the question bank
     const batch = writeBatch(db);
     const questionsColl = collection(db, 'askedQuestions');
 
@@ -100,7 +99,6 @@ const generateQuizFlow = ai.defineFlow(
         await batch.commit();
     } catch (err) {
         console.error("❌ Failed to write new questions to Firestore:", err);
-        // We log it but still return the quiz to the user
     }
 
     return output;
