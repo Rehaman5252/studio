@@ -1,16 +1,16 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { auth, isFirebaseConfigured } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { signInWithPhoneNumber, RecaptchaVerifier as FirebaseRecaptchaVerifier } from "firebase/auth";
 
 interface Props {
@@ -35,28 +35,26 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const cleanupRecaptcha = () => {
+
+  const cleanupRecaptcha = useCallback(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
+      // It's good practice to try and remove the badge, though it can be tricky
       const widget = document.querySelector('.grecaptcha-badge');
-      if(widget?.parentNode) {
-        // This is a common workaround to remove the reCAPTCHA badge if it persists
-        try {
-            document.body.removeChild(widget.parentNode);
-        } catch (e) {
-            // It might already be gone
-        }
+      if (widget?.parentElement) {
+        document.body.removeChild(widget.parentElement);
       }
       window.recaptchaVerifier = undefined;
     }
-  };
-
+  }, []);
+  
+  // This useEffect handles the setup and cleanup of the reCAPTCHA verifier.
   useEffect(() => {
     if (open) {
-      // Setup reCAPTCHA only when the dialog is opened
-      try {
-        if (!window.recaptchaVerifier) {
+      // Only initialize if it doesn't exist to prevent duplicates
+      if (!window.recaptchaVerifier) {
+        try {
+          // The container MUST be visible in the DOM before this is called
           window.recaptchaVerifier = new FirebaseRecaptchaVerifier(auth, 'recaptcha-container', {
             size: 'invisible',
             callback: () => {
@@ -66,23 +64,24 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
               setError("reCAPTCHA expired. Please try sending the code again.");
             }
           });
-          // Render it
+          // It's crucial to render it.
           window.recaptchaVerifier.render().catch((err) => {
               console.error("reCAPTCHA render failed", err);
-              setError("Could not render reCAPTCHA. Please check your network or ad-blocker.");
+              setError("Could not render reCAPTCHA. Check your ad-blocker or network.");
           });
+        } catch(e) {
+            console.error("Recaptcha setup failed", e);
+            setError("Could not initialize reCAPTCHA. Please try again.");
         }
-      } catch(e) {
-          console.error("Recaptcha setup failed", e);
-          setError("Could not initialize reCAPTCHA. Please check your network or ad-blocker.");
       }
     }
-
     // Cleanup when the component unmounts or dialog closes
     return () => {
-      cleanupRecaptcha();
+      if (!open) { // Only cleanup when dialog is fully closed
+          cleanupRecaptcha();
+      }
     };
-  }, [open]);
+  }, [open, cleanupRecaptcha]);
 
 
   const handleSendOtp = async () => {
@@ -100,8 +99,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
       setStep('verify');
     } catch (err: any) {
       console.error("OTP send error:", err);
-      setError("Failed to send OTP. Is the phone number correct? You may also be rate-limited if you have tried too many times.");
-      // Don't reset reCAPTCHA here, as user might want to try again immediately.
+      setError("Failed to send OTP. Is the phone number correct? You may also be rate-limited.");
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +112,7 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
     setIsLoading(true);
     try {
       await window.confirmationResult.confirm(otp);
-      await updateUserData({ phoneVerified: true });
+      if(updateUserData) await updateUserData({ phoneVerified: true });
       toast({ title: "Phone Verified!", description: "Your phone number is now verified."});
       resetStateAndClose(false); // Close dialog on success
     } catch (err: any) {
@@ -129,13 +127,13 @@ export function PhoneVerificationDialog({ children, phone }: Props) {
   const resetStateAndClose = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
-      // Delay state reset to allow for smoother closing animation
       setTimeout(() => {
         setStep('initial');
         setOtp('');
         setError(null);
         setIsLoading(false);
         window.confirmationResult = undefined;
+        // The main cleanup is now in useEffect, but this ensures state is reset
       }, 300);
     }
   };
