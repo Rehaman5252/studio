@@ -14,11 +14,11 @@ import { auth } from '@/lib/firebase';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
-    const { user, profile, updateUserData } = useAuth(); // Get the auth user object
+    const { user, profile } = useAuth(); // Get the auth user object
     const { toast } = useToast();
     const age = userProfile?.dob ? calculateAge(new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]) : null;
     
-    const isPhoneVerified = !!userProfile?.phoneVerified;
+    const isPhoneVerified = !!profile?.phoneVerified;
     const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
@@ -54,10 +54,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                             isPhoneVerified ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
                             ) : (
-                                <PhoneVerificationDialog phone={userProfile.phone} onVerified={() => {
-                                    // The onSnapshot in AuthProvider will handle the state update automatically
-                                    toast({ title: "Phone Verified!", description: "Your phone number is now verified."});
-                                }}>
+                                <PhoneVerificationDialog phone={userProfile.phone}>
                                     <Button variant="link" className="p-0 h-auto text-yellow-500 text-sm hover:no-underline">
                                         <AlertCircle className="h-4 w-4 mr-1" />
                                         Verify Now

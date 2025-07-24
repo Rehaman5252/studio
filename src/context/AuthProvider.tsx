@@ -121,7 +121,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const userRef = doc(db, 'users', firebaseUser.uid);
     const unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
-        setProfile(docSnap.data());
+        const data = docSnap.data();
+        setProfile({
+            ...data,
+            phoneVerified: data.phoneVerified || false // Ensure phoneVerified is always a boolean
+        });
       } else {
         // This case can happen for a brief moment when a new user signs up.
         // handleUserDocument will create it, and the next snapshot will catch it.
