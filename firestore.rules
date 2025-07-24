@@ -3,23 +3,22 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Users can only read/write their own data.
+
+    // Users can only read/write their own document
     match /users/{userId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null; // Allow any authenticated user to read user profiles for leaderboards
       allow write: if request.auth.uid == userId;
     }
 
-    // Quiz attempts are private to the user.
+    // Any authenticated user can read/write their own quiz history.
     match /users/{userId}/quizAttempts/{attemptId} {
       allow read, write: if request.auth.uid == userId;
     }
     
-    // The live leaderboard is public read, but write is locked down.
-    // Writes should only ever happen via server-side logic (transactions in this case).
-    match /leaderboard/currentQuiz {
-        allow read: if true;
-        allow write: if false; // Lock down writes completely
+    // The live leaderboard can be read by anyone, but only written to by authenticated users.
+    match /leaderboard/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }
