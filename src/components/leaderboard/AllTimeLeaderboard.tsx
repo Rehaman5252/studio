@@ -72,9 +72,10 @@ const AllTimeLeaderboard = () => {
         const fetchLeaderboardData = async () => {
             setIsLoading(true);
             try {
-                // Fetch top 10 players
+                // Fetch top 10 players with at least one perfect score
                 const top10Query = query(
                     collection(db, "users"),
+                    where("perfectScores", ">", 0),
                     orderBy("perfectScores", "desc"),
                     limit(10)
                 );
@@ -84,7 +85,7 @@ const AllTimeLeaderboard = () => {
                     rank: index + 1,
                     uid: doc.id,
                     name: doc.data().name || 'Anonymous Player',
-                    perfectScores: doc.data().perfectScores || 0,
+                    perfectScores: doc.data().perfectScores,
                     totalPlayed: doc.data().quizzesPlayed || 0,
                     avatar: doc.data().photoURL
                 }));
@@ -112,8 +113,8 @@ const AllTimeLeaderboard = () => {
                             totalPlayed: profile.quizzesPlayed,
                             avatar: profile.photoURL,
                         });
-                    } else if (isUserInTop10) {
-                         // User is already in the main list, so no need for a separate rank display
+                    } else {
+                         // User is either in top 10 or has 0 perfect scores, so no separate rank display needed
                          setUserRank(null);
                     }
                 }
