@@ -94,8 +94,8 @@ function QuizComponent() {
         const userAttemptsSnapshot = await getDocs(userAttemptsQuery);
         const userAskedQuestions = userAttemptsSnapshot.docs.flatMap(doc => (doc.data().questions || []).map((q: QuizQuestion) => q.questionText));
 
-        const thirtyDaysAgo = Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-        const recentGlobalQuestionsQuery = query(collection(db, 'askedQuestions'), where('createdAt', '>=', thirtyDaysAgo));
+        const sevenDaysAgo = Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        const recentGlobalQuestionsQuery = query(collection(db, 'askedQuestions'), where('createdAt', '>=', sevenDaysAgo));
         const recentGlobalQuestionsSnapshot = await getDocs(recentGlobalQuestionsQuery);
         const recentGlobalQuestions = recentGlobalQuestionsSnapshot.docs.map(doc => doc.data().questionText as string);
         
@@ -301,5 +301,7 @@ export default function QuizPage() {
       </Suspense>
     )
 }
+
+    
 
     
