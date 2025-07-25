@@ -51,32 +51,32 @@ export default function DailyStreakCard({ userProfile }: { userProfile: any }) {
   return (
     <div>
       <Card className="bg-gradient-to-tr from-card to-background shadow-lg border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Flame className="text-primary" /> Daily Streaks
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Flame className="text-primary h-5 w-5" /> Daily Streaks
           </CardTitle>
           {milestone?.tagline ? (
-              <CardDescription>{milestone.tagline}</CardDescription>
+              <CardDescription className="text-xs">{milestone.tagline}</CardDescription>
           ) : (
-               <CardDescription>Play 15 quizzes a day to build your streak!</CardDescription>
+               <CardDescription className="text-xs">Play 15 quizzes a day to build your streak!</CardDescription>
           )}
         </CardHeader>
         <CardContent>
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-6xl font-extrabold text-foreground">{currentStreak}</p>
-              <p className="text-lg font-semibold text-muted-foreground -mt-2">Day Streak</p>
+              <p className="text-5xl font-extrabold text-foreground">{currentStreak}</p>
+              <p className="text-md font-semibold text-muted-foreground -mt-2">Day Streak</p>
             </div>
             {milestone?.reward > 0 && (
               <div className="text-right">
-                <p className="font-bold text-lg text-primary flex items-center gap-1"><Star className="h-4 w-4" /> Current Reward</p>
-                <p className="font-semibold text-foreground">Up to ₹{milestone.reward.toLocaleString()}</p>
+                <p className="font-bold text-md text-primary flex items-center gap-1"><Star className="h-4 w-4" /> Current Reward</p>
+                <p className="font-semibold text-foreground text-sm">Up to ₹{milestone.reward.toLocaleString()}</p>
               </div>
             )}
           </div>
           
           {nextMilestoneDay && (
-               <div className="mt-4 text-center text-sm text-muted-foreground">
+               <div className="mt-2 text-center text-xs text-muted-foreground">
                    Keep going! {nextMilestoneDay - currentStreak} day{nextMilestoneDay - currentStreak > 1 ? 's' : ''} to your next milestone.
                </div>
           )}
