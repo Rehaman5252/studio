@@ -1,9 +1,7 @@
 
 'use client';
 
-import React, { memo, useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React, { memo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
@@ -28,7 +26,7 @@ const LeaderboardSkeleton = () => (
     </div>
 );
 
-export default function LeaderboardContent() {
+function LeaderboardContent() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('live');
 
@@ -66,3 +64,5 @@ export default function LeaderboardContent() {
     </Tabs>
   );
 }
+
+export default memo(LeaderboardContent);

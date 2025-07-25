@@ -5,20 +5,12 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/context/Providers';
 import FirebaseOfflineAlert from '@/components/common/FirebaseOfflineAlert';
-import Script from 'next/script';
 
 const inter = Inter({ 
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
 });
-
-declare global {
-  interface Window {
-    recaptchaLoaded?: boolean;
-    recaptchaVerifier?: any;
-  }
-}
 
 export default function RootLayout({
   children,
@@ -39,16 +31,6 @@ export default function RootLayout({
           <FirebaseOfflineAlert />
           {children}
         </Providers>
-        <Script
-          src="https://www.google.com/recaptcha/api.js"
-          strategy="beforeInteractive"
-          onLoad={() => {
-            if (typeof window !== 'undefined') {
-              console.log("✅ reCAPTCHA script loaded via next/script.");
-              window.recaptchaLoaded = true;
-            }
-          }}
-        />
       </body>
     </html>
   );

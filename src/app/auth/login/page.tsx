@@ -4,12 +4,12 @@
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth } from '@/context/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, memo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-export default function LoginPage() {
+function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,3 +44,5 @@ export default function LoginPage() {
   // If not loading and no user, show the form
   return <LoginForm from={from} />;
 }
+
+export default memo(LoginPage);
