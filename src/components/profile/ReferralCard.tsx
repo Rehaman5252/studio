@@ -27,11 +27,11 @@ export default function ReferralCard({ userProfile }: { userProfile: any }) {
 
     return (
      <Card className="bg-card shadow-lg">
-        <CardHeader>
+        <CardHeader className="p-4">
             <CardTitle className="text-lg">Refer & Earn</CardTitle>
-            <CardDescription>Share your link with friends. Earn ₹50 when they score a perfect quiz!</CardDescription>
+            <CardDescription className="text-sm">Share your link to earn ₹50 when a friend scores a perfect quiz!</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                     <Users className="h-8 w-8 text-primary"/>
@@ -41,12 +41,12 @@ export default function ReferralCard({ userProfile }: { userProfile: any }) {
                     </div>
                 </div>
                 <Button variant="secondary" size="sm" onClick={handleCopy}>
-                    <Copy className="mr-2" />
+                    <Copy className="mr-2 h-4 w-4" />
                     Copy Link
                 </Button>
             </div>
             <p className="text-xs text-muted-foreground bg-muted p-2 rounded-md break-all">{referralLink}</p>
-            <div className="mt-4">
+            <div className="mt-3">
                 <SocialShareButtons referralLink={referralLink} />
             </div>
         </CardContent>
