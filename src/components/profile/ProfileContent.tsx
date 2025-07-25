@@ -38,7 +38,9 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 </Button>
             </div>
             
-            <DailyStreakCard userProfile={userProfile} />
+            <div className="max-w-md mx-auto">
+              <DailyStreakCard userProfile={userProfile} />
+            </div>
             <ProfileCompletion userProfile={userProfile} />
             <StatsSummary userProfile={userProfile} />
             <ReferralCard userProfile={userProfile} />
