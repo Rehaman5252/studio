@@ -13,9 +13,6 @@ import {
   collection,
   writeBatch,
   doc,
-  query,
-  where,
-  getDocs
 } from 'firebase/firestore';
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
@@ -26,15 +23,19 @@ const generalPrompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: { schema: GenerateQuizInputSchema },
   output: { schema: GenerateQuizOutputSchema },
-  prompt: `Generate a 5-question, multiple-choice, text-only quiz about "{{format}}" cricket with a clear difficulty progression. The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
+  prompt: `Generate a 5-question, multiple-choice, text-only quiz about "{{format}}" cricket with a clear and strict difficulty progression.
 
-The 5 questions must follow this exact structure:
+The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
 
-1.  **Question 1 (Easy):** A basic fact (famous player, tournament, venue).
-2.  **Question 2 (Medium):** A common record, series stat, or known moment.
-3.  **Question 3 (Hard):** Detailed match info or player stat.
-4.  **Question 4 (Very Hard):** Rare match or obscure achievement.
-5.  **Question 5 (Extreme Hard):** Historic trivia or technical scenario.
+The questions should cover a wide range of topics including: venue stats, team scores, player records (including strike rates, averages, etc.), match outcomes, milestones, historic moments, timelines, and format-specific records.
+
+The 5 questions must follow this exact difficulty structure:
+
+1.  **Question 1 (Easy):** A basic, widely-known fact (e.g., a famous player, a major tournament winner, a very common record).
+2.  **Question 2 (Medium):** A question about a well-known event or stat that requires more specific knowledge (e.g., a specific series score, a notable partnership).
+3.  **Question 3 (Hard):** A detailed question about a specific match, player statistic, or less common record.
+4.  **Question 4 (Very Hard):** A question about an obscure match, a rare player achievement, or a specific but not widely-publicized statistic.
+5.  **Question 5 (Extreme Hard):** A deep trivia question about historic rules, a technical aspect of a specific game, or a record from before the modern era.
 
 **CRITICAL:** Do NOT repeat any of these previously asked questions:
 {{#each askedQuestions}}
@@ -56,7 +57,11 @@ const mixedFormatPrompt = ai.definePrompt({
   name: 'generateMixedQuizPrompt',
   input: { schema: GenerateQuizInputSchema },
   output: { schema: GenerateQuizOutputSchema },
-  prompt: `Generate a 5-question, multiple-choice, text-only quiz with increasing difficulty, where each question is from a different cricket format (IPL, WPL, T20, ODI, and Test). The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
+  prompt: `Generate a 5-question, multiple-choice, text-only quiz with increasing difficulty, where each question is from a different cricket format (IPL, WPL, T20, ODI, and Test).
+
+The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
+
+The questions should cover a wide range of topics including: venue stats, team scores, player records (including strike rates, averages, etc.), match outcomes, milestones, historic moments, timelines, and format-specific records.
 
 **CRITICAL:** Do NOT repeat any of these previously asked questions:
 {{#each askedQuestions}}
