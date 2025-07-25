@@ -15,25 +15,25 @@ interface SelectedBrandCardProps {
 
 const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) => {
     return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key={selectedBrand.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                onClick={onClick}
-                className="cursor-pointer"
+        <div
+            onClick={onClick}
+            className="cursor-pointer"
+        >
+            <Card 
+                className={cn(
+                    "w-full mt-4 rounded-2xl shadow-xl bg-card border-2 border-primary/30 overflow-hidden",
+                    "transition-all hover:border-primary"
+                )}
             >
-                <Card 
-                    className={cn(
-                        "w-full mt-4 rounded-2xl shadow-xl bg-card border-2 border-primary/30 overflow-hidden",
-                        "transition-all hover:border-primary"
-                    )}
-                >
-                    <CardContent className="p-6">
-                        <div
-                            className="flex items-center justify-between"
+                <CardContent className="p-6 relative h-[136px] flex items-center">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={selectedBrand.id}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15 }}
+                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                            className="flex items-center justify-between w-full"
                         >
                             <div>
                                 <h3 className="text-2xl font-bold text-foreground">{selectedBrand.format} Cricket Quiz</h3>
@@ -51,11 +51,11 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
                                     priority
                                 />
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </motion.div>
-        </AnimatePresence>
+                        </motion.div>
+                    </AnimatePresence>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 
