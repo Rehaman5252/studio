@@ -1,6 +1,6 @@
 import {genkit} from '@genkit-ai/core';
 import {googleAI} from '@genkit-ai/googleai';
-import {enableFirebaseTelemetry} from '@genkit-ai/firebase/telemetry';
+import {enableFirebaseTelemetry} from '@genkit-ai/firebase';
 
 // This enables Firebase logs and tracing
 enableFirebaseTelemetry();
