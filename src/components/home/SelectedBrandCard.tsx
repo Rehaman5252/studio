@@ -36,9 +36,7 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
                             className="flex items-center justify-between w-full"
                         >
                             <div>
-                                <h3 className="text-2xl font-bold text-foreground">{selectedBrand.format} Cricket Quiz</h3>
-                                <p className="text-muted-foreground mb-2">Powered by {selectedBrand.brand}</p>
-                                <p className="text-lg font-semibold text-primary">Win Rewards!</p>
+                                <h3 className="text-2xl font-bold text-foreground">Tap here to play the {selectedBrand.format} quiz</h3>
                             </div>
                             <div className="w-20 h-20 rounded-full flex items-center justify-center p-2 shadow-inner bg-white">
                                 <Image
