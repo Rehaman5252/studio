@@ -38,7 +38,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 </Button>
             </div>
             
-            <div className="max-w-md mx-auto">
+            <div>
               <DailyStreakCard userProfile={userProfile} />
             </div>
             <ProfileCompletion userProfile={userProfile} />
