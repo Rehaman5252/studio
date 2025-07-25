@@ -21,10 +21,10 @@ const QuizOption = memo(({ option, index, isSelected, selectedOption, handleAnsw
             disabled={!!selectedOption}
             variant="outline"
             className={cn(
-                'relative w-full h-auto py-3 text-sm whitespace-normal justify-start text-left transition-all duration-300 ease-in-out',
+                'relative w-full h-auto py-3 text-sm whitespace-normal justify-start text-left transition-all duration-300 ease-in-out border-2',
                 !selectedOption && 'hover:bg-primary/10 hover:border-primary',
                 selectedOption && {
-                    'opacity-50': !isSelected,
+                    'opacity-50 border-input': !isSelected,
                     'bg-primary text-primary-foreground border-primary': isSelected,
                 }
             )}
