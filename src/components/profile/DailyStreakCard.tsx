@@ -22,64 +22,61 @@ type StreakDay = keyof typeof streakMilestones;
 export default function DailyStreakCard({ userProfile }: { userProfile: any }) {
   const currentStreak = userProfile?.currentStreak || 0;
   
-  let milestone: { tagline: string; reward: number; } | null = null;
-  let nextMilestoneDay: StreakDay | null = null;
+  let currentMilestone: { tagline: string; reward: number; } | null = null;
+  let nextMilestone: { day: StreakDay; reward: number; } | null = null;
 
   const milestoneDays = Object.keys(streakMilestones).map(Number).sort((a,b) => a-b) as StreakDay[];
 
+  // Find the current milestone based on streak
   for (let i = milestoneDays.length - 1; i >= 0; i--) {
       const day = milestoneDays[i];
       if (currentStreak >= day) {
-          milestone = streakMilestones[day];
-          const nextIndex = i + 1;
-          if (nextIndex < milestoneDays.length) {
-              nextMilestoneDay = milestoneDays[nextIndex];
-          }
+          currentMilestone = streakMilestones[day];
           break;
       }
   }
 
-  if (currentStreak > 0 && !milestone) {
-    const upcomingMilestones = milestoneDays.filter(day => day > currentStreak);
-    if (upcomingMilestones.length > 0) {
-      nextMilestoneDay = upcomingMilestones[0];
+  // Find the next upcoming milestone
+  for (const day of milestoneDays) {
+    if (day > currentStreak) {
+        nextMilestone = { day, reward: streakMilestones[day].reward };
+        break;
     }
-  } else if (currentStreak === 0) {
-      nextMilestoneDay = milestoneDays[0];
   }
 
+  const tagline = currentMilestone?.tagline || "Play 15 quizzes a day to build your streak!";
+  const daysToNextMilestone = nextMilestone ? nextMilestone.day - currentStreak : 0;
+
   return (
-    <Card className="bg-gradient-to-tr from-card to-background shadow-lg border-primary/20">
-      <CardHeader className="py-3 px-4">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Flame className="text-primary h-5 w-5" /> Daily Streaks
-        </CardTitle>
-        {milestone?.tagline ? (
-            <CardDescription className="text-xs">{milestone.tagline}</CardDescription>
-        ) : (
-             <CardDescription className="text-xs">Play 15 quizzes a day to build your streak!</CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="px-4 pb-3">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-4xl font-extrabold text-foreground">{currentStreak}</p>
-            <p className="text-sm font-semibold text-muted-foreground -mt-1">Day Streak</p>
-          </div>
-          {milestone?.reward > 0 && (
-            <div className="text-right">
-              <p className="font-bold text-sm text-primary flex items-center gap-1"><Star className="h-4 w-4" /> Current Reward</p>
-              <p className="font-semibold text-foreground text-xs">Up to ₹{milestone.reward.toLocaleString()}</p>
-            </div>
-          )}
-        </div>
-        
-        {nextMilestoneDay && (
-             <div className="mt-2 text-center text-xs text-muted-foreground">
-                 Keep going! {nextMilestoneDay - currentStreak} day{nextMilestoneDay - currentStreak > 1 ? 's' : ''} to your next milestone.
-             </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="w-full">
+        <Card className="bg-gradient-to-tr from-card to-background shadow-lg border-primary/20 w-full">
+            <CardHeader className="py-3 px-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                <Flame className="text-primary h-5 w-5" /> Daily Streaks
+                </CardTitle>
+                <CardDescription className="text-xs">{tagline}</CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 pb-3">
+                <div className="flex items-end justify-between">
+                    <div>
+                        <p className="text-4xl font-extrabold text-foreground">{currentStreak}</p>
+                        <p className="text-sm font-semibold text-muted-foreground -mt-1">Day Streak</p>
+                    </div>
+                    {nextMilestone && nextMilestone.reward > 0 && (
+                        <div className="text-right">
+                        <p className="font-bold text-sm text-primary flex items-center justify-end gap-1"><Star className="h-4 w-4" /> Next Reward</p>
+                        <p className="font-semibold text-foreground text-lg">Up to ₹{nextMilestone.reward.toLocaleString()}</p>
+                        </div>
+                    )}
+                </div>
+                
+                {daysToNextMilestone > 0 && (
+                    <div className="mt-2 text-center text-xs text-muted-foreground">
+                        Keep going! {daysToNextMilestone} day{daysToNextMilestone > 1 ? 's' : ''} to your next milestone.
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    </div>
   );
 };
