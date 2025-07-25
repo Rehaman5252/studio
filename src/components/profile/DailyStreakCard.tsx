@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Flame, Star } from 'lucide-react';
 
 const streakMilestones = {
-  360: { tagline: "Triple Ton: GOAT of indcric!", reward: 1000000 },
-  180: { tagline: "Double Century Club: Legendary streak!", reward: 500000 },
-  90: { tagline: "Nervous 90s: Consistency at its peak!", reward: 300000 },
-  60: { tagline: "The Wall Mode: Unstoppable!", reward: 200000 },
-  45: { tagline: "Middle Overs Maestro: Rock-solid gameplay!", reward: 150000 },
-  30: { tagline: "Half-Century Hero: You’ve hit ₹1,00,000 form!", reward: 100000 },
-  10: { tagline: "Captain’s Knock: You’re leading the innings!", reward: 0 },
-  6: { tagline: "Powerplay Blitz: Starting strong!", reward: 0 },
   3: { tagline: "Opening Partnership: You’re off the mark!", reward: 0 },
+  6: { tagline: "Powerplay Blitz: Starting strong!", reward: 0 },
+  10: { tagline: "Captain’s Knock: You’re leading the innings!", reward: 0 },
+  30: { tagline: "Half-Century Hero: You’ve hit ₹1,00,000 form!", reward: 100000 },
+  45: { tagline: "Middle Overs Maestro: Rock-solid gameplay!", reward: 150000 },
+  60: { tagline: "The Wall Mode: Unstoppable!", reward: 200000 },
+  90: { tagline: "Nervous 90s: Consistency at its peak!", reward: 300000 },
+  180: { tagline: "Double Century Club: Legendary streak!", reward: 500000 },
+  360: { tagline: "Triple Ton: GOAT of indcric!", reward: 1000000 },
 };
 
 type StreakDay = keyof typeof streakMilestones;
