@@ -1,7 +1,13 @@
 import {genkit} from '@genkit-ai/core';
 import {googleAI} from '@genkit-ai/googleai';
-import {firebase} from '@genkit-ai/firebase';
+import {enableFirebaseTelemetry} from '@genkit-ai/firebase/telemetry';
+
+// This enables Firebase logs and tracing
+enableFirebaseTelemetry();
 
 export const ai = genkit({
-  plugins: [firebase(), googleAI()],
+  plugins: [
+    googleAI(),
+    // no need to include firebase() plugin in the array!
+  ],
 });

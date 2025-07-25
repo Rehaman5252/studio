@@ -1,3 +1,38 @@
+
+======================================================================
+== NPM ERROR OUTPUT
+======================================================================
+
+npm error code ETARGET
+npm error notarget No matching version found for @genkit-ai/googleai@1.15.2.
+npm error notarget In most cases you or one of your dependencies are requesting
+npm error notarget a package version that doesn't exist.
+npm error A complete log of this run can be found in: /home/.npm/_logs/2025-07-25T11_14_19_676Z-debug-0.log
+
+
+======================================================================
+== src/ai/genkit.ts
+======================================================================
+
+import {genkit} from '@genkit-ai/core';
+import {googleAI} from '@genkit-ai/googleai';
+import {enableFirebaseTelemetry} from '@genkit-ai/firebase';
+
+// This enables Firebase logs and tracing
+enableFirebaseTelemetry();
+
+export const ai = genkit({
+  plugins: [
+    googleAI(),
+    // no need to include firebase() plugin in the array!
+  ],
+});
+
+
+======================================================================
+== package.json
+======================================================================
+
 {
   "name": "indcric",
   "version": "0.1.0",
