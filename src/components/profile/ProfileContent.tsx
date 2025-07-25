@@ -12,6 +12,7 @@ import StatsSummary from './StatsSummary';
 import ReferralCard from './ReferralCard';
 import { useAuth } from '@/context/AuthProvider';
 import SupportCard from './SupportCard';
+import DailyStreakCard from './DailyStreakCard';
 
 export default function ProfileContent({ userProfile }: { userProfile: any }) {
     const router = useRouter();
@@ -37,6 +38,7 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
                 </Button>
             </div>
             
+            <DailyStreakCard userProfile={userProfile} />
             <ProfileCompletion userProfile={userProfile} />
             <StatsSummary userProfile={userProfile} />
             <ReferralCard userProfile={userProfile} />
