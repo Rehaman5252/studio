@@ -1,14 +1,13 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   typescript: {
     // TEMPORARY: unblock build for development. Set to false before production release.
-    ignoreBuildErrors: true
+    ignoreBuildErrors: true,
   },
   eslint: {
     // Prevent build on lint errors — recommended for production
-    ignoreDuringBuilds: false
+    ignoreDuringBuilds: false,
   },
   images: {
     remotePatterns: [
@@ -20,9 +19,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'www.freepnglogos.com' },
       { protocol: 'https', hostname: 'cdn.icon-icons.com' },
       { protocol: 'https', hostname: 'www.pngkey.com' },
-      { protocol: 'https', hostname: 'logolook.net' }
-    ]
-  }
+      { protocol: 'https', hostname: 'logolook.net' },
+    ],
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
