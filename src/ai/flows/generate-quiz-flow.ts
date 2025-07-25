@@ -89,35 +89,49 @@ const generateQuizFlow = ai.defineFlow(
     if (!db) throw new Error("Firestore not initialized.");
 
     const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
-    const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
+    let attempt = 0;
+    const maxAttempts = 3;
 
-    if (!output || output.questions.length !== 5) {
-      throw new Error("AI failed to generate a 5-question quiz.");
+    while (attempt < maxAttempts) {
+        attempt++;
+        console.log(`Attempt ${attempt} to generate a quiz for format: ${input.format}`);
+        
+        try {
+            const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
+
+            if (output && output.questions.length === 5) {
+                console.log(`Successfully generated a 5-question quiz on attempt ${attempt}.`);
+                const batch = writeBatch(db);
+                const questionsColl = collection(db, 'askedQuestions');
+
+                for (const q of output.questions) {
+                    const docRef = doc(questionsColl);
+                    batch.set(docRef, {
+                        questionText: q.questionText,
+                        format: input.format,
+                        createdAt: new Date()
+                    });
+                }
+
+                await batch.commit().catch(err => {
+                    console.error("Failed to write new questions to Firestore, but continuing:", err);
+                });
+
+                return output;
+            }
+            
+            console.warn(`Attempt ${attempt} did not yield a 5-question quiz. Output was:`, output);
+        } catch (error) {
+            console.error(`An error occurred on attempt ${attempt}:`, error);
+        }
+
+        if (attempt < maxAttempts) {
+            // Wait for a short duration before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
     }
 
-    const batch = writeBatch(db);
-    const questionsColl = collection(db, 'askedQuestions');
-
-    for (const q of output.questions) {
-      // Use a new doc ref for each question to ensure they are added as new documents
-      const docRef = doc(questionsColl); 
-      batch.set(docRef, {
-        questionText: q.questionText,
-        format: input.format, // Log the format for potential analysis
-        createdAt: new Date() // Use server timestamp for accuracy
-      });
-    }
-
-    try {
-        await batch.commit();
-    } catch (err) {
-        // Log the error but don't fail the whole quiz generation,
-        // as the questions are still usable.
-        console.error("❌ Failed to write new questions to Firestore:", err);
-    }
-
-    return output;
+    // If all attempts fail, throw the final error.
+    throw new Error(`AI failed to generate a 5-question quiz after ${maxAttempts} attempts.`);
   }
 );
-
-    
