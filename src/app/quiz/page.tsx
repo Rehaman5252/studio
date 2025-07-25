@@ -84,35 +84,42 @@ function QuizComponent() {
         return;
       }
 
+      setQuizState('loading');
+      let quizData;
+      
       try {
-        setQuizState('loading');
-        
-        // 1. Fetch all questions this user has ever answered (lifetime uniqueness).
+        // --- Primary Attempt: Get a globally unique quiz ---
+        console.log("Attempting to fetch a globally unique quiz...");
         const userAttemptsQuery = query(collection(db, `users/${user.uid}/quizAttempts`));
         const userAttemptsSnapshot = await getDocs(userAttemptsQuery);
         const userAskedQuestions = userAttemptsSnapshot.docs.flatMap(doc => (doc.data().questions || []).map((q: QuizQuestion) => q.questionText));
-        
-        // 2. Fetch all questions asked to *any* user in the last 30 days (global 30-day cooldown).
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyDaysAgoTimestamp = Timestamp.fromDate(thirtyDaysAgo);
-        
-        const recentGlobalQuestionsQuery = query(collection(db, 'askedQuestions'), where('createdAt', '>=', thirtyDaysAgoTimestamp));
+
+        const thirtyDaysAgo = Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+        const recentGlobalQuestionsQuery = query(collection(db, 'askedQuestions'), where('createdAt', '>=', thirtyDaysAgo));
         const recentGlobalQuestionsSnapshot = await getDocs(recentGlobalQuestionsQuery);
         const recentGlobalQuestions = recentGlobalQuestionsSnapshot.docs.map(doc => doc.data().questionText as string);
         
-        // 3. Combine and de-duplicate the lists of questions to exclude.
         const allQuestionsToExclude = [...new Set([...userAskedQuestions, ...recentGlobalQuestions])];
         
-        const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
-        
+        try {
+          quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
+          console.log("Successfully fetched a globally unique quiz.");
+        } catch (initialError) {
+          console.warn("Could not get a globally unique quiz. This is okay, will try a fallback.", initialError);
+          // --- Fallback Attempt: Get a user-unique quiz ---
+          console.log("Retrying with user-specific exclusion only...");
+          quizData = await generateQuiz({ format, askedQuestions: userAskedQuestions });
+          console.log("Successfully fetched a user-unique quiz on fallback.");
+        }
+
         setQuestions(quizData.questions);
         setUserAnswers(new Array(quizData.questions.length).fill(null));
         setQuestionStartTime(Date.now());
         setTimeLeft(20);
         setQuizState('playing');
+        
       } catch (error) {
-        console.error("Failed to generate quiz:", error);
+        console.error("Failed to generate quiz on both primary and fallback attempts:", error);
         toast({ title: 'Error', description: 'Could not load a unique quiz. Please try again later.', variant: 'destructive' });
         router.push('/home');
       }
