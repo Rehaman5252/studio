@@ -108,8 +108,16 @@ function QuizComponent() {
           console.warn("Could not get a globally unique quiz. This is okay, will try a fallback.", initialError);
           // --- Fallback Attempt: Get a user-unique quiz ---
           console.log("Retrying with user-specific exclusion only...");
-          quizData = await generateQuiz({ format, askedQuestions: userAskedQuestions });
-          console.log("Successfully fetched a user-unique quiz on fallback.");
+          try {
+            quizData = await generateQuiz({ format, askedQuestions: userAskedQuestions });
+            console.log("Successfully fetched a user-unique quiz on fallback.");
+          } catch (secondaryError) {
+            console.warn("Could not get a user-unique quiz. This is okay, will try the final fallback.", secondaryError);
+            // --- Final Fallback Attempt: Get any quiz ---
+            console.log("Retrying with no exclusion...");
+            quizData = await generateQuiz({ format });
+            console.log("Successfully fetched a quiz with no exclusion on final fallback.");
+          }
         }
 
         setQuestions(quizData.questions);
@@ -119,8 +127,8 @@ function QuizComponent() {
         setQuizState('playing');
         
       } catch (error) {
-        console.error("Failed to generate quiz on both primary and fallback attempts:", error);
-        toast({ title: 'Error', description: 'Could not load a unique quiz. Please try again later.', variant: 'destructive' });
+        console.error("Failed to generate quiz on all attempts:", error);
+        toast({ title: 'Error', description: 'Could not load a quiz at this time. Please try again later.', variant: 'destructive' });
         router.push('/home');
       }
     }
