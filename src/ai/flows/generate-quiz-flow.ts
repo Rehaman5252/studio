@@ -16,7 +16,15 @@ import {
 } from 'firebase/firestore';
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
-  return generateQuizFlow(input);
+  try {
+    return await generateQuizFlow(input);
+  } catch (err) {
+    console.error("generateQuizFlow threw an unexpected error:", err);
+    return {
+      questions: [],
+      errorMessage: 'A system error occurred while generating the quiz. Please try again later.'
+    };
+  }
 }
 
 const generalPrompt = ai.definePrompt({
