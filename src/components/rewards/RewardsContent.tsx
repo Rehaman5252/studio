@@ -108,12 +108,14 @@ const GenericOffer = memo(({ title, description, image, hint, link }: { title: s
     <a href={link} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-103 animate-fade-in-up block">
         <Card className="bg-card/80 border-primary/10 shadow-lg">
             <CardContent className="p-4 flex items-center gap-4">
-                <Image src={image} alt={title} width={80} height={80} className="rounded-md" data-ai-hint={hint} />
-                <div>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center p-1 shadow-inner bg-white relative overflow-hidden flex-shrink-0">
+                    <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} />
+                </div>
+                <div className="flex-grow">
                     <h4 className="font-bold text-foreground">{title}</h4>
                     <p className="text-sm text-muted-foreground">{description}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto" aria-label={`Claim offer for ${title}`}><ExternalLink className="text-muted-foreground" /></Button>
+                <Button variant="ghost" size="icon" className="ml-auto flex-shrink-0" aria-label={`Claim offer for ${title}`}><ExternalLink className="text-muted-foreground" /></Button>
             </CardContent>
         </Card>
     </a>
@@ -231,3 +233,5 @@ function RewardsContentComponent() {
 
 const RewardsContent = memo(RewardsContentComponent);
 export default RewardsContent;
+
+    
