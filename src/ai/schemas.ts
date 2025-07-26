@@ -1,5 +1,5 @@
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Schemas for generateQuizFlow
 export const GenerateQuizInputSchema = z.object({
@@ -89,3 +89,4 @@ export const QuizAttemptSchema = z.object({
     usedHintIndices: z.array(z.number()).optional(),
     reason: z.string().optional(),
 });
+    

@@ -20,6 +20,12 @@
     "@genkit-ai/firebase": "1.10.0",
     "@genkit-ai/googleai": "1.10.0",
     "@genkit-ai/next": "1.10.0",
+    "firebase": "^11.0.0",
+    "genkit": "1.10.0",
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8",
     "@hookform/resolvers": "^3.9.0",
     "@opentelemetry/exporter-jaeger": "^1.25.1",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -48,22 +54,17 @@
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
     "embla-carousel-react": "^8.1.7",
-    "firebase": "^11.0.0",
     "framer-motion": "^11.3.19",
-    "genkit": "1.10.0",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.417.0",
-    "next": "14.2.5",
-    "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.1",
     "react-markdown": "^9.0.1",
     "recharts": "^2.12.7",
+    "sonner": "^1.5.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
-    "wav": "^1.0.2",
-    "zod": "^3.23.8"
+    "wav": "^1.0.2"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -76,3 +77,4 @@
     "typescript": "^5"
   }
 }
+    
