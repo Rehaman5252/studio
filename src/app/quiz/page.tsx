@@ -101,23 +101,13 @@ const QuizComponent = memo(function QuizComponent() {
         console.log("📦 Requesting quiz, excluding", allQuestionsToExclude.length, "questions.");
         const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
         
-        const isValid = Array.isArray(quizData.questions) &&
-            quizData.questions.length === 5 &&
-            quizData.questions.every(q =>
-                q?.questionText &&
-                Array.isArray(q.options) &&
-                q.options.length === 4 &&
-                q.correctAnswer &&
-                q.options.includes(q.correctAnswer)
-            );
-
-        if (!isValid) {
-            console.error("🚨 Malformed quiz received by frontend:", quizData);
+        if (!quizData?.questions || quizData.questions.length !== 5) {
+            console.error("❌ Quiz generation failed or returned invalid data:", quizData);
             toast({
-                title: 'Error Loading Quiz',
-                description: quizData.errorMessage || 'Could not load a valid quiz. Please try again.',
+                title: 'Could not load quiz',
+                description: quizData.errorMessage || 'Invalid response from the quiz generator. Please try again.',
                 variant: 'destructive',
-                duration: 5000
+                duration: 5000,
             });
             router.push('/home');
             return;
