@@ -1,15 +1,14 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, useState, Suspense, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthProvider";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { getQuizSlotId } from "@/lib/utils";
-import type { QuizQuestion, QuizAttempt } from '@/lib/mockData';
+import type { QuizQuestion } from '@/ai/schemas';
+import type { QuizAttempt } from '@/lib/mockData';
 
 import CricketLoading from "@/components/CricketLoading";
 import InterstitialLoader from "@/components/InterstitialLoader";
@@ -18,14 +17,14 @@ import { AdDialog } from "@/components/AdDialog";
 import { QuizHeader } from "@/components/quiz/QuizHeader";
 import { Timer } from "@/components/quiz/Timer";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Send } from "lucide-react";
+import { Lightbulb, Send, Loader2 } from "lucide-react";
 import { interstitialAds, adLibrary } from "@/lib/ads";
 import { generateHint } from "@/ai/flows/ai-powered-hints";
 
 function QuizGame() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user, profile, addQuizAttempt, handleMalpractice, lastAttemptInSlot } = useAuth();
+    const { user, profile, addQuizAttempt, handleMalpractice } = useAuth();
 
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [loading, setLoading] = useState(true);
@@ -79,6 +78,7 @@ function QuizGame() {
     useEffect(() => {
         const fetchQuiz = async () => {
             setLoading(true);
+            setError(null);
             try {
                 const response = await fetch('/api/quiz', {
                     method: 'POST',
@@ -86,27 +86,22 @@ function QuizGame() {
                     body: JSON.stringify({ format, askedQuestions }),
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch quiz data from API');
-                }
                 const data = await response.json();
 
-                if (data.error || !data.questions || data.questions.length < 5) {
-                    throw new Error(data.error || 'Invalid quiz data received');
+                if (!response.ok || data.error || !data.questions || data.questions.length < 5) {
+                    throw new Error(data.error || 'Failed to fetch a valid quiz.');
                 }
                 setQuestions(data.questions);
 
             } catch (err: any) {
                 console.error("Quiz loading failed:", err);
-                toast.error(err.message || "A critical error occurred while fetching the quiz.");
-                setError("Could not load the quiz. Please try again.");
-                router.push('/home');
+                setError(err.message || "Could not load the quiz. Please try again.");
             } finally {
                 setLoading(false);
             }
         };
         fetchQuiz();
-    }, [format, brand, router]);
+    }, [format, askedQuestions]);
 
     const finishQuiz = useCallback(async () => {
         const finalAnswers = [...userAnswers];
@@ -139,14 +134,14 @@ function QuizGame() {
     }, [userAnswers, selectedOption, currentQuestionIndex, timePerQuestion, timeLeft, questions, brand, format, usedHintIndices, addQuizAttempt, router]);
 
     useEffect(() => {
-        if (loading || isAnswerLocked || isFetchingHint) return;
+        if (loading || isAnswerLocked || isFetchingHint || error) return;
         if (timeLeft > 0) {
             const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
             return () => clearTimeout(timerId);
         } else {
             handleAnswerSelect(selectedOption || 'Not Answered');
         }
-    }, [timeLeft, loading, isAnswerLocked, selectedOption, isFetchingHint]);
+    }, [timeLeft, loading, isAnswerLocked, selectedOption, isFetchingHint, error]);
 
     const handleAnswerSelect = (option: string) => {
         if (isAnswerLocked) return;
@@ -222,8 +217,8 @@ function QuizGame() {
     };
 
     if (loading) return <CricketLoading message="Fetching fresh questions..." format={format} />;
-    if (error) return <CricketLoading state="error" errorMessage={error} />;
-    if (!questions.length) return <CricketLoading state="error" errorMessage="No questions found." />;
+    if (error) return <CricketLoading state="error" errorMessage={error}><Button onClick={() => router.push('/home')}>Go Home</Button></CricketLoading>;
+    if (!questions.length) return <CricketLoading state="error" errorMessage="No questions found for this format." />;
 
     const currentQuestion = questions[currentQuestionIndex];
 
@@ -304,3 +299,4 @@ export default function QuizPage() {
         </Suspense>
     )
 }
+    

@@ -7,7 +7,8 @@ export const QuizQuestion = z.object({
   question: z.string().describe("The text of the quiz question."),
   options: z.array(z.string()).length(4).describe("An array of exactly four possible answers."),
   correctAnswer: z.string().describe("The correct answer, which must be one of the strings from the options array."),
-  explanation: z.string().optional().describe("A brief explanation for why the answer is correct.")
+  explanation: z.string().optional().describe("A brief explanation for why the answer is correct."),
+  hint: z.string().optional().describe("A helpful hint for the user.")
 });
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 
@@ -77,3 +78,4 @@ export const QuizAttemptSchema = z.object({
   usedHintIndices: z.array(z.number()).optional(),
   reason: z.string().optional(),
 });
+    
