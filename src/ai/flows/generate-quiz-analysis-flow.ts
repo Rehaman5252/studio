@@ -56,6 +56,19 @@ Here is the user's quiz performance data:
   },
 });
 
+// Fallback Markdown Generator
+function getFallbackAnalysis(score: number, total: number, format: string): GenerateQuizAnalysisOutput {
+  return {
+    analysis: `### Analysis Currently Unavailable
+
+We couldn't generate a detailed AI analysis for this quiz at the moment. This can happen occasionally due to high traffic.
+
+**Your Score:** ${score}/${total} in the ${format} quiz.
+
+You can try generating the analysis again from your Quiz History later. Keep up the great effort! 🏏`,
+  };
+}
+
 const generateQuizAnalysisFlow = ai.defineFlow(
   {
     name: 'generateQuizAnalysisFlow',
@@ -63,11 +76,11 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
   async (input: FlowGenerateQuizAnalysisInput) => {
+    const { questions, userAnswers, format, timePerQuestion, usedHintIndices } = input;
+    const score = userAnswers.reduce((acc, ans, idx) => (ans === questions[idx].correctAnswer ? acc + 1 : acc), 0);
+    const totalQuestions = questions.length;
+    
     try {
-        const { questions, userAnswers, format, timePerQuestion, usedHintIndices } = input;
-        const score = userAnswers.reduce((acc, ans, idx) => ans === questions[idx].correctAnswer ? acc + 1 : acc, 0);
-        const totalQuestions = questions.length;
-
         const incorrectAnswers = questions
             .map((q, idx) => ({
               questionNumber: idx + 1,
@@ -75,7 +88,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
               userAnswer: userAnswers[idx] || "Not Answered",
               correctAnswer: q.correctAnswer
             }))
-            .filter(q => q.userAnswer !== q.correctAnswer);
+            .filter((q, idx) => userAnswers[idx] !== questions[idx].correctAnswer);
 
         const promptInput: GenerateQuizAnalysisPromptInput = {
             format,
@@ -97,21 +110,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
 
     } catch (err) {
       console.error('❌ generateQuizAnalysisFlow failed:', err);
-      const score = input.userAnswers.reduce((acc, ans, idx) => ans === input.questions[idx].correctAnswer ? acc + 1 : acc, 0);
-      return getFallbackAnalysis(score, input.questions.length, input.format);
+      return getFallbackAnalysis(score, totalQuestions, format);
     }
   }
 );
-
-// Fallback Markdown Generator
-function getFallbackAnalysis(score: number, total: number, format: string): GenerateQuizAnalysisOutput {
-  return {
-    analysis: `### Analysis Currently Unavailable
-
-We couldn't generate a detailed AI analysis for this quiz at the moment. This can happen occasionally due to high traffic.
-
-**Your Score:** ${score}/${total} in the ${format} quiz.
-
-You can try generating the analysis again from your Quiz History later. Keep up the great effort! 🏏`,
-  };
-}
