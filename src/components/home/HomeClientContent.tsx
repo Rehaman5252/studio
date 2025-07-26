@@ -36,7 +36,7 @@ function HomeClientContentComponent() {
   }
 
   return (
-    <div className="mt-10 animate-fade-in">
+    <div className="animate-fade-in">
         <QuizSelection />
     </div>
   );
