@@ -57,17 +57,16 @@ const QuizSelectionComponent = () => {
 
     useEffect(() => {
         const rotationInterval = setInterval(() => {
-            setCurrentFaceIndex(prevIndex => (prevIndex + 1) % faceRotations.length);
-        }, 750); // Rotate to a new face every 750ms (4.5s for all 6)
+            setCurrentFaceIndex(prevIndex => {
+                const newIndex = (prevIndex + 1) % faceRotations.length;
+                setRotation(faceRotations[newIndex]);
+                setSelectedBrand(brandData[newIndex]);
+                return newIndex;
+            });
+        }, 3000); // Rotate to a new face every 3 seconds
 
         return () => clearInterval(rotationInterval);
     }, []);
-
-    useEffect(() => {
-        setRotation(faceRotations[currentFaceIndex]);
-        setSelectedBrand(brandData[currentFaceIndex]);
-    }, [currentFaceIndex]);
-
 
     const handleStartQuiz = useCallback(() => {
         // **Strict Slot Enforcement**
@@ -107,6 +106,7 @@ const QuizSelectionComponent = () => {
     const handleFaceClick = (brand: CubeBrand) => {
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
+            setCurrentFaceIndex(clickedIndex)
             setRotation(faceRotations[clickedIndex]);
             setSelectedBrand(brandData[clickedIndex]);
             // Use a short delay to allow the cube to rotate before initiating the quiz start logic

@@ -8,6 +8,7 @@ import { useEffect, memo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { motion } from 'framer-motion';
 
 function LoginPage() {
   const { user, loading } = useAuth();
@@ -40,8 +41,15 @@ function LoginPage() {
   if (loading || user) {
      return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4">Checking your credentials...</p>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking your credentials...</p>
+        </motion.div>
       </div>
     );
   }

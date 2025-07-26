@@ -100,7 +100,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
             usedHintIndices: usedHintIndices || [],
         };
         
-        const { output } = await analysisPrompt(promptInput);
+        const {output} = await analysisPrompt(promptInput);
 
         if (output?.analysis && output.analysis.trim().length > 50) {
             return output;

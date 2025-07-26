@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function SignupPage() {
   const { user, loading } = useAuth();
@@ -22,7 +23,15 @@ export default function SignupPage() {
   if (loading || user) {
      return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center gap-4"
+          >
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Finalizing your account...</p>
+        </motion.div>
       </div>
     );
   }

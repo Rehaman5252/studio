@@ -5,48 +5,48 @@
 
 @layer base {
   :root {
-    --background: 0 0% 7%; /* Near Black */
-    --foreground: 45 50% 95%; /* Pale Gold */
-    --card: 0 0% 10%;
-    --card-foreground: 45 50% 95%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 45 50% 95%;
-    --primary: 45 80% 50%; /* Bright Gold */
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 45 50% 95%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 30% 70%;
-    --accent: 45 80% 60%; /* Lighter Gold for accents */
-    --accent-foreground: 0 0% 5%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 45 80% 50%;
+    --background: 220 20% 96%; /* Pale Green Light */
+    --foreground: 220 10% 20%; 
+    --card: 220 20% 100%;
+    --card-foreground: 220 10% 20%;
+    --popover: 220 20% 100%;
+    --popover-foreground: 220 10% 20%;
+    --primary: 120 60% 35%; /* Forest Green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 120 20% 85%;
+    --secondary-foreground: 120 60% 35%;
+    --muted: 120 20% 90%;
+    --muted-foreground: 220 10% 40%;
+    --accent: 20 100% 50%; /* Sunset Orange */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 120 60% 35%;
     --radius: 0.8rem;
   }
  
   .dark {
-    --background: 0 0% 7%; /* Near Black */
-    --foreground: 45 50% 95%; /* Pale Gold */
-    --card: 0 0% 10%;
-    --card-foreground: 45 50% 95%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 45 50% 95%;
-    --primary: 45 80% 50%; /* Bright Gold */
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 45 50% 95%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 30% 70%;
-    --accent: 45 80% 60%; /* Lighter Gold for accents */
+    --background: 120 10% 8%; /* Dark Greenish Black */
+    --foreground: 120 10% 95%;
+    --card: 120 10% 12%;
+    --card-foreground: 120 10% 95%;
+    --popover: 120 10% 8%;
+    --popover-foreground: 120 10% 95%;
+    --primary: 120 60% 45%; /* Brighter Forest Green */
+    --primary-foreground: 120 20% 98%;
+    --secondary: 120 10% 20%;
+    --secondary-foreground: 120 10% 95%;
+    --muted: 120 10% 20%;
+    --muted-foreground: 120 10% 65%;
+    --accent: 20 100% 60%; /* Brighter Sunset Orange */
     --accent-foreground: 0 0% 5%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 45 80% 50%;
+    --destructive: 0 63% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 120 10% 25%;
+    --input: 120 10% 25%;
+    --ring: 120 60% 45%;
   }
 }
 
@@ -178,15 +178,15 @@
     background-color: hsl(var(--card));
     border: 2px solid transparent;
     border-radius: 12px;
-    color: hsl(var(--foreground));
+    color: hsl(var(--card-foreground));
     transition: box-shadow 0.25s ease-in-out, border-color 0.25s ease-in-out, color 0.25s ease-in-out;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px hsla(var(--primary), 0.1);
   }
   
   .cube-face:hover {
     border-color: hsl(var(--primary));
     color: hsl(var(--primary));
-    box-shadow: 0 0 20px 5px hsla(var(--primary), 0.7);
+    box-shadow: 0 0 20px 5px hsla(var(--primary), 0.3);
   }
 
   .cube-face-front {
