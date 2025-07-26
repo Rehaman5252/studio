@@ -112,7 +112,12 @@ const generateQuizFlow = ai.defineFlow(
           askedQuestions: input.askedQuestions
         });
 
-        if (output?.questions?.length === 5) {
+        if (
+          output &&
+          Array.isArray(output.questions) &&
+          output.questions.length === 5 &&
+          output.questions.every(q => q.questionText && q.options?.length === 4 && q.correctAnswer)
+        ) {
           console.log(`✅ Success: Quiz generated on attempt ${attempt}`);
 
           const batch = writeBatch(db);

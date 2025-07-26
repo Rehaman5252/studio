@@ -99,7 +99,10 @@ const QuizComponent = memo(function QuizComponent() {
         
         console.log("📦 Requesting quiz, excluding", allQuestionsToExclude.length, "questions.");
         const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
-        console.log("📦 quizData received from backend:", quizData);
+        
+        if (!quizData || typeof quizData !== 'object') {
+          console.error("🚨 generateQuiz returned invalid object:", quizData);
+        }
 
         if (quizData.errorMessage || !quizData.questions || quizData.questions.length === 0) {
             console.error("Final attempt to generate quiz failed with a structured error:", quizData);
