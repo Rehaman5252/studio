@@ -24,7 +24,7 @@ import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 
-const BrandCube = dynamic(() => import('./BrandCube'), { 
+const BrandCube = dynamic(() => import('@/components/home/BrandCube'), { 
     loading: () => <Skeleton className="w-48 h-48 rounded-lg" />,
     ssr: false 
 });
