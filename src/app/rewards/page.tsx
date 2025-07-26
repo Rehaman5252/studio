@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { Gift, Loader2 } from 'lucide-react';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => (
@@ -41,9 +42,18 @@ export default function RewardsPage() {
          {loading ? (
             <div className="flex flex-col items-center justify-center h-full py-10">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">Loading Rewards...</p>
             </div>
-         ) : (
+         ) : user ? (
             <RewardsContent />
+         ) : (
+            <div className="flex items-center justify-center h-full">
+              <LoginPrompt
+                icon={Gift}
+                title="Unlock Your Trophy Cabinet"
+                description="Log in to view your rewards, scratch cards, and exclusive offers from our partners."
+              />
+            </div>
          )}
       </main>
     </div>

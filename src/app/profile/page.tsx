@@ -1,16 +1,21 @@
 
 "use client";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
+import dynamic from 'next/dynamic';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
-import { UserCheck, ServerCrash, WifiOff } from 'lucide-react';
-import ProfileContent from "@/components/profile/ProfileContent";
+import { UserCheck, ServerCrash, WifiOff, Loader2 } from 'lucide-react';
 import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
 
-export default function ProfilePage() {
+const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
+  loading: () => <ProfileSkeleton />,
+  ssr: false,
+});
+
+function ProfilePageContent() {
   const { user, profile, loading, isOffline } = useAuth();
   
   const renderContent = () => {
@@ -68,8 +73,14 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold text-foreground">Player's Pavilion</h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
-        {renderContent()}
+        <Suspense fallback={<ProfileSkeleton />}>
+          {renderContent()}
+        </Suspense>
       </main>
     </div>
   );
+}
+
+export default function ProfilePage() {
+    return <ProfilePageContent />;
 }

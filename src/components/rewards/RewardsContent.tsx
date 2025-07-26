@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useMemo, memo, useEffect } from 'react';
+import React, { useState, useMemo, memo, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
@@ -14,6 +14,7 @@ import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
+import LoginPrompt from '../auth/LoginPrompt';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -205,13 +206,15 @@ const BrandGifts = () => {
   )
 }
 
-export default function RewardsContent() {
+function RewardsContentComponent() {
   return (
     <>
       <section>
         <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
         <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
-        <BrandGifts />
+        <Suspense fallback={<RewardsSkeleton />}>
+            <BrandGifts />
+        </Suspense>
       </section>
       <section className='mt-8'>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
@@ -225,3 +228,6 @@ export default function RewardsContent() {
     </>
   );
 }
+
+const RewardsContent = memo(RewardsContentComponent);
+export default RewardsContent;
