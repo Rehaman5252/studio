@@ -233,5 +233,3 @@ function RewardsContentComponent() {
 
 const RewardsContent = memo(RewardsContentComponent);
 export default RewardsContent;
-
-    
