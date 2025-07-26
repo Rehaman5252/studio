@@ -281,7 +281,12 @@ const QuizComponent = memo(function QuizComponent() {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  if (!currentQuestion) return <CricketLoading state="error" errorMessage="There was a problem with the next question." />;
+  if (!currentQuestion) {
+      console.error("🚨 Current question is undefined. This should not happen.", { currentQuestionIndex, questions });
+      toast({ title: 'Quiz Error', description: 'Could not load the next question.', variant: 'destructive'});
+      router.push('/home');
+      return <CricketLoading state="error" errorMessage="There was a problem with the next question." />;
+  }
 
   return (
     <>
