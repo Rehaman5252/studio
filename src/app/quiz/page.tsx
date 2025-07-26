@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback, memo } from 'react';
@@ -98,7 +97,9 @@ const QuizComponent = memo(function QuizComponent() {
         
         const allQuestionsToExclude = [...new Set([...userAskedQuestions, ...recentGlobalQuestions])];
         
+        console.log("📦 Requesting quiz, excluding", allQuestionsToExclude.length, "questions.");
         const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
+        console.log("📦 quizData received from backend:", quizData);
 
         if (quizData.errorMessage || !quizData.questions || quizData.questions.length === 0) {
             console.error("Final attempt to generate quiz failed with a structured error:", quizData);
