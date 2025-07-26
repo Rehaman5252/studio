@@ -5,7 +5,8 @@ import {
   GenerateQuizInput,
   GenerateQuizOutput,
   GenerateQuizInputSchema,
-  GenerateQuizOutputSchema
+  GenerateQuizOutputSchema,
+  QuizQuestion
 } from '@/ai/schemas';
 import { db } from '@/lib/firebase';
 import {
@@ -84,6 +85,24 @@ The questions should cover a wide range of topics including: venue stats, team s
   }
 });
 
+function isValidQuizOutput(output: any): output is GenerateQuizOutput {
+  return (
+    output &&
+    Array.isArray(output.questions) &&
+    output.questions.length === 5 &&
+    output.questions.every(
+      (q: any): q is QuizQuestion =>
+        typeof q.questionText === 'string' &&
+        q.questionText.trim() !== '' &&
+        Array.isArray(q.options) &&
+        q.options.length === 4 &&
+        typeof q.correctAnswer === 'string' &&
+        q.correctAnswer.trim() !== '' &&
+        q.options.includes(q.correctAnswer)
+    )
+  );
+}
+
 const generateQuizFlow = ai.defineFlow(
   {
     name: 'generateQuizFlow',
@@ -112,12 +131,7 @@ const generateQuizFlow = ai.defineFlow(
           askedQuestions: input.askedQuestions
         });
 
-        if (
-          output &&
-          Array.isArray(output.questions) &&
-          output.questions.length === 5 &&
-          output.questions.every(q => q.questionText && q.options?.length === 4 && q.correctAnswer)
-        ) {
+        if (isValidQuizOutput(output)) {
           console.log(`✅ Success: Quiz generated on attempt ${attempt}`);
 
           const batch = writeBatch(db);
@@ -139,7 +153,7 @@ const generateQuizFlow = ai.defineFlow(
           return output;
         }
 
-        console.warn(`⚠️ Incomplete quiz on attempt ${attempt}:`, output);
+        console.warn(`⚠️ Incomplete or malformed quiz on attempt ${attempt}:`, output);
       } catch (err) {
         console.error(`❌ Error during attempt ${attempt}:`, err);
       }

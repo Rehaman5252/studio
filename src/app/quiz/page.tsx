@@ -100,7 +100,7 @@ const QuizComponent = memo(function QuizComponent() {
         console.log("📦 Requesting quiz, excluding", allQuestionsToExclude.length, "questions.");
         const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
         
-        if (!quizData || typeof quizData !== 'object') {
+        if (!quizData || typeof quizData !== 'object' || !Array.isArray(quizData.questions)) {
           console.error("🚨 generateQuiz returned invalid object:", quizData);
         }
 
