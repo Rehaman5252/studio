@@ -32,7 +32,9 @@ const generateQuizFlow = ai.defineFlow(
         (q) => !(askedQuestions || []).includes(q.questionText)
       );
       
-      const selected = filtered.sort(() => 0.5 - Math.random()).slice(0, 5);
+      // Shuffle the array to get a random slice
+      const shuffled = filtered.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 5);
 
       if (selected.length < 5) {
         return { errorMessage: 'Not enough unique questions available for this format.' };
