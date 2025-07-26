@@ -67,7 +67,7 @@ function ResultsComponent() {
         
         if (attemptDataString) {
             try {
-                const decodedString = Buffer.from(decodeURIComponent(attemptDataString), 'base64').toString('utf-8');
+                const decodedString = atob(decodeURIComponent(attemptDataString));
                 const attemptData = JSON.parse(decodedString);
                 setFinalAttempt(attemptData);
             } catch (error) {

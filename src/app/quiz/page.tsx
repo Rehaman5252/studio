@@ -71,7 +71,7 @@ const QuizComponent = memo(function QuizComponent() {
             title: "Slot Already Played",
             description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
         });
-        const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+        const attemptDataString = btoa(JSON.stringify(lastAttemptInSlot));
         const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
         router.replace(reviewUrl);
         return;
@@ -158,7 +158,7 @@ const QuizComponent = memo(function QuizComponent() {
 
     await addQuizAttempt(attemptData);
     
-    const attemptDataString = Buffer.from(JSON.stringify(attemptData)).toString('base64');
+    const attemptDataString = btoa(JSON.stringify(attemptData));
     router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
   }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, addQuizAttempt, handleMalpractice, profile?.noBallCount]);
