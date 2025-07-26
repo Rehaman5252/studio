@@ -34,7 +34,7 @@ function LoginPage() {
        };
        checkProfileAndRedirect();
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, from]);
 
   // Show a loader while checking auth state or if user is found (and we are about to redirect)
   // This prevents the login form from flashing on the screen for logged-in users.

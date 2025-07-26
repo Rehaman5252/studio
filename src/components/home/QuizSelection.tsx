@@ -63,7 +63,7 @@ const QuizSelectionComponent = () => {
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 3000); // Rotate to a new face every 3 seconds
+        }, 4000 / 6); // Rotate through all 6 faces in 4 seconds
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -72,7 +72,7 @@ const QuizSelectionComponent = () => {
         // **Strict Slot Enforcement**
         // If an attempt for this slot exists, redirect to the results immediately.
         if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
-            const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
+            const attemptDataString = btoa(JSON.stringify(lastAttemptInSlot));
             const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
             router.push(reviewUrl);
             toast({
