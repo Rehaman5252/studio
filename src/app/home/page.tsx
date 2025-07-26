@@ -68,10 +68,10 @@ function HomePage() {
             transition={{ duration: 0.5 }}
             className="text-center"
           >
-              <h1 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl md:text-4xl">
+              <h1 className="text-5xl font-extrabold tracking-tight text-shimmer animate-shimmer sm:text-6xl">
                 indcric
               </h1>
-              <p className="text-sm text-muted-foreground">The Ultimate Cricket Challenge</p>
+              <p className="text-sm text-muted-foreground mt-2 font-semibold">Win ₹100 for every 100 seconds!</p>
           </motion.div>
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
