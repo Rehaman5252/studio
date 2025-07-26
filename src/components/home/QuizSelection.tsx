@@ -80,7 +80,7 @@ const QuizSelectionComponent = () => {
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 4000); // Rotate through all 6 faces in 24 seconds
+        }, 667); // Rotate through all 6 faces in ~4 seconds
 
         return () => clearInterval(rotationInterval);
     }, []);
