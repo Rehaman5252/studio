@@ -82,7 +82,7 @@ const QuizSelectionComponent = () => {
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 4000); 
+        }, 667); 
 
         return () => clearInterval(rotationInterval);
     }, []);
