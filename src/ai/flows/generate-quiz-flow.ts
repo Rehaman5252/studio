@@ -19,7 +19,7 @@ export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQu
   try {
     return await generateQuizFlow(input);
   } catch (err) {
-    console.error("generateQuizFlow threw an unexpected error:", err);
+    console.error('❌ generateQuizFlow threw an unexpected error:', err);
     return {
       questions: [],
       errorMessage: 'A system error occurred while generating the quiz. Please try again later.'
@@ -93,7 +93,10 @@ const generateQuizFlow = ai.defineFlow(
   },
   async (input) => {
     if (!db) {
-      return { questions: [], errorMessage: 'Firestore not initialized.' };
+      return {
+        questions: [],
+        errorMessage: 'Firestore is not initialized. Please contact support.'
+      };
     }
 
     const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
@@ -105,9 +108,12 @@ const generateQuizFlow = ai.defineFlow(
       console.log(`🧠 Attempt ${attempt}: Generating quiz for format "${input.format}"`);
 
       try {
-        const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
+        const { output } = await prompt({
+          format: input.format,
+          askedQuestions: input.askedQuestions
+        });
 
-        if (output && output.questions && output.questions.length === 5) {
+        if (output?.questions?.length === 5) {
           console.log(`✅ Success: Quiz generated on attempt ${attempt}`);
 
           const batch = writeBatch(db);
@@ -123,22 +129,23 @@ const generateQuizFlow = ai.defineFlow(
           }
 
           await batch.commit().catch(err => {
-            console.warn('Firestore write failed, but continuing as this is non-critical.', err);
+            console.warn('⚠️ Firestore write failed (non-blocking):', err);
           });
+
           return output;
         }
 
-        console.warn(`⚠️ Attempt ${attempt} failed: Incomplete output`, output);
+        console.warn(`⚠️ Incomplete quiz on attempt ${attempt}:`, output);
       } catch (err) {
         console.error(`❌ Error during attempt ${attempt}:`, err);
       }
 
-      await new Promise(res => setTimeout(res, 400)); // Delay before retry
+      await new Promise(res => setTimeout(res, 400)); // brief delay before retry
     }
 
     return {
       questions: [],
-      errorMessage: 'AI could not generate a unique quiz after 3 attempts. Please try again later.'
+      errorMessage: 'AI could not generate a quiz after 3 attempts. Please try again later.'
     };
   }
 );
