@@ -20,10 +20,14 @@ function LoginPage() {
     if (!loading && user) {
        const checkProfileAndRedirect = async () => {
          let isProfileComplete = false;
-         if (db) {
-            const docRef = doc(db, 'users', user.uid);
-            const docSnap = await getDoc(docRef);
-            isProfileComplete = docSnap.exists() && docSnap.data().profileCompleted;
+         if (db && user) {
+            try {
+              const docRef = doc(db, 'users', user.uid);
+              const docSnap = await getDoc(docRef);
+              isProfileComplete = docSnap.exists() && docSnap.data().profileCompleted;
+            } catch (e) {
+                console.error("Failed to check profile completeness", e);
+            }
          }
          router.replace(isProfileComplete ? '/home' : '/walkthrough');
        };
@@ -31,12 +35,13 @@ function LoginPage() {
     }
   }, [user, loading, router]);
 
-  // Show a loader ONLY if we are in the process of redirecting
+  // Show a loader while checking auth state or if user is found (and we are about to redirect)
+  // This prevents the login form from flashing on the screen for logged-in users.
   if (loading || user) {
      return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4">Signing in...</p>
+        <p className="ml-4">Checking your credentials...</p>
       </div>
     );
   }

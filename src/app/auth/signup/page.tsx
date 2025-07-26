@@ -13,11 +13,13 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/home');
+      router.replace('/walkthrough'); // Always go to walkthrough after signup to ensure profile completion.
     }
   }, [user, loading, router]);
   
-  if (!loading && user) {
+  // Show a loader while checking auth state or if user is found (and we are about to redirect)
+  // This prevents the signup form from flashing on the screen for logged-in users.
+  if (loading || user) {
      return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

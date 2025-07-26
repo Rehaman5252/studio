@@ -9,6 +9,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
 import LoginPrompt from '../auth/LoginPrompt';
+import { motion } from 'framer-motion';
+
 
 const LiveLeaderboard = dynamic(() => import('./LiveLeaderboard'), {
     loading: () => <LeaderboardItemSkeleton count={5} />,
@@ -46,6 +48,11 @@ function LeaderboardContentComponent() {
   if (loading) {
     return <LeaderboardSkeleton />;
   }
+  
+  const tabContentVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  };
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -54,36 +61,43 @@ function LeaderboardContentComponent() {
             <TabsTrigger value="all-time">All-Time</TabsTrigger>
             {user && <TabsTrigger value="network">My Network</TabsTrigger>}
         </TabsList>
-
-        <TabsContent value="live">
-            <Suspense fallback={<LeaderboardItemSkeleton />}>
-                <LiveLeaderboard />
-            </Suspense>
-        </TabsContent>
-
-        <TabsContent value="all-time">
-            {user ? (
-                 <Suspense fallback={<LeaderboardItemSkeleton />}>
-                    <AllTimeLeaderboard />
-                </Suspense>
-            ) : (
-                <div className="pt-8 w-full">
-                    <LoginPrompt 
-                        icon={Users}
-                        title="View the Hall of Fame"
-                        description="Pad up and sign in to see the all-time cricket legends."
-                    />
-                </div>
-            )}
-        </TabsContent>
         
-        {user && (
-          <TabsContent value="network">
-             <Suspense fallback={<LeaderboardItemSkeleton count={3} />}>
-                <MyNetworkLeaderboard />
-            </Suspense>
-          </TabsContent>
-        )}
+        <motion.div
+           key={activeTab}
+           variants={tabContentVariants}
+           initial="hidden"
+           animate="visible"
+        >
+            <TabsContent value="live" forceMount={activeTab === 'live'}>
+                <Suspense fallback={<LeaderboardItemSkeleton />}>
+                    <LiveLeaderboard />
+                </Suspense>
+            </TabsContent>
+
+            <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
+                {user ? (
+                     <Suspense fallback={<LeaderboardItemSkeleton />}>
+                        <AllTimeLeaderboard />
+                    </Suspense>
+                ) : (
+                    <div className="pt-8 w-full">
+                        <LoginPrompt 
+                            icon={Users}
+                            title="View the Hall of Fame"
+                            description="Pad up and sign in to see the all-time cricket legends."
+                        />
+                    </div>
+                )}
+            </TabsContent>
+            
+            {user && (
+              <TabsContent value="network" forceMount={activeTab === 'network'}>
+                 <Suspense fallback={<LeaderboardItemSkeleton count={3} />}>
+                    <MyNetworkLeaderboard />
+                </Suspense>
+              </TabsContent>
+            )}
+        </motion.div>
     </Tabs>
   );
 }
