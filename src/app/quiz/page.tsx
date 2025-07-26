@@ -69,10 +69,10 @@ function QuizComponent() {
     if (lastAttemptInSlot) {
         toast({
             title: "Slot Already Played",
-            description: `Showing your results for the \${lastAttemptInSlot.format} quiz.`,
+            description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
         });
         const attemptDataString = Buffer.from(JSON.stringify(lastAttemptInSlot)).toString('base64');
-        const reviewUrl = `/quiz/results?review=true&attempt=\${encodeURIComponent(attemptDataString)}`;
+        const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
         router.replace(reviewUrl);
         return;
     }
@@ -89,7 +89,7 @@ function QuizComponent() {
       try {
         // --- Primary Attempt: Get a globally unique quiz ---
         console.log("Attempting to fetch a globally unique quiz...");
-        const userAttemptsQuery = query(collection(db, `users/\${user.uid}/quizAttempts`));
+        const userAttemptsQuery = query(collection(db, `users/${user.uid}/quizAttempts`));
         const userAttemptsSnapshot = await getDocs(userAttemptsQuery);
         const userAskedQuestions = userAttemptsSnapshot.docs.flatMap(doc => (doc.data().questions || []).map((q: QuizQuestion) => q.questionText));
 
@@ -120,9 +120,9 @@ function QuizComponent() {
           }
         }
 
-        if (quizData.error || !quizData.questions || quizData.questions.length === 0) {
+        if (quizData.errorMessage || !quizData.questions || quizData.questions.length === 0) {
             console.error("Final attempt to generate quiz failed with a structured error:", quizData);
-            toast({ title: 'Error Loading Quiz', description: quizData.message || 'Could not load a quiz. Please try again.', variant: 'destructive', duration: 5000 });
+            toast({ title: 'Error Loading Quiz', description: quizData.errorMessage || 'Could not load a quiz. Please try again.', variant: 'destructive', duration: 5000 });
             router.push('/home');
             return;
         }
@@ -167,13 +167,13 @@ function QuizComponent() {
         timestamp: Date.now(),
         timePerQuestion,
         usedHintIndices,
-        reason: reason === 'malpractice' ? `malpractice_\${malpracticeCount}` : undefined,
+        reason: reason === 'malpractice' ? `malpractice_${malpracticeCount}` : undefined,
     };
 
     await addQuizAttempt(attemptData);
     
     const attemptDataString = Buffer.from(JSON.stringify(attemptData)).toString('base64');
-    router.replace(`/quiz/results?attempt=\${encodeURIComponent(attemptDataString)}`);
+    router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
   }, [user, questions, brand, format, timePerQuestion, usedHintIndices, router, addQuizAttempt, handleMalpractice, profile?.noBallCount]);
 
