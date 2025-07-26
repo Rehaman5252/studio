@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback, memo } from 'react';
@@ -100,13 +101,24 @@ const QuizComponent = memo(function QuizComponent() {
         console.log("📦 Requesting quiz, excluding", allQuestionsToExclude.length, "questions.");
         const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
         
-        if (!quizData || typeof quizData !== 'object' || !Array.isArray(quizData.questions)) {
-          console.error("🚨 generateQuiz returned invalid object:", quizData);
-        }
+        const isValid = Array.isArray(quizData.questions) &&
+            quizData.questions.length === 5 &&
+            quizData.questions.every(q =>
+                q?.questionText &&
+                Array.isArray(q.options) &&
+                q.options.length === 4 &&
+                q.correctAnswer &&
+                q.options.includes(q.correctAnswer)
+            );
 
-        if (quizData.errorMessage || !quizData.questions || quizData.questions.length === 0) {
-            console.error("Final attempt to generate quiz failed with a structured error:", quizData);
-            toast({ title: 'Error Loading Quiz', description: quizData.errorMessage || 'Could not load a quiz. Please try again.', variant: 'destructive', duration: 5000 });
+        if (!isValid) {
+            console.error("🚨 Malformed quiz received by frontend:", quizData);
+            toast({
+                title: 'Error Loading Quiz',
+                description: quizData.errorMessage || 'Could not load a valid quiz. Please try again.',
+                variant: 'destructive',
+                duration: 5000
+            });
             router.push('/home');
             return;
         }

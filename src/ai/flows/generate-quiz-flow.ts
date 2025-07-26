@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -132,7 +133,7 @@ const generateQuizFlow = ai.defineFlow(
         });
 
         if (isValidQuizOutput(output)) {
-          console.log(`✅ Success: Quiz generated on attempt ${attempt}`);
+          console.log(`✅ Success: Valid quiz generated on attempt ${attempt}`);
 
           const batch = writeBatch(db);
           const questionsColl = collection(db, 'askedQuestions');
@@ -153,7 +154,7 @@ const generateQuizFlow = ai.defineFlow(
           return output;
         }
 
-        console.warn(`⚠️ Incomplete or malformed quiz on attempt ${attempt}:`, output);
+        console.warn(`⚠️ Incomplete or malformed quiz on attempt ${attempt}:`, JSON.stringify(output));
       } catch (err) {
         console.error(`❌ Error during attempt ${attempt}:`, err);
       }
@@ -163,7 +164,7 @@ const generateQuizFlow = ai.defineFlow(
 
     return {
       questions: [],
-      errorMessage: 'AI could not generate a quiz after 3 attempts. Please try again later.'
+      errorMessage: 'AI could not generate a valid quiz after 3 attempts. Please try again later.'
     };
   }
 );
