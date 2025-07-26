@@ -122,7 +122,7 @@ function QuizComponent() {
 
         if (quizData.error || !quizData.questions || quizData.questions.length === 0) {
             console.error("Final attempt to generate quiz failed with a structured error:", quizData);
-            toast({ title: 'Error', description: quizData.message || 'Could not load a quiz. Please try again.', variant: 'destructive' });
+            toast({ title: 'Error Loading Quiz', description: quizData.message || 'Could not load a quiz. Please try again.', variant: 'destructive', duration: 5000 });
             router.push('/home');
             return;
         }
@@ -135,7 +135,7 @@ function QuizComponent() {
         
       } catch (error) {
         console.error("A critical, unexpected error occurred during fetchQuiz:", error);
-        toast({ title: 'Error', description: 'A critical error occurred. Please try again later.', variant: 'destructive' });
+        toast({ title: 'Critical Error', description: 'A critical error occurred while fetching the quiz. Please try again later.', variant: 'destructive' });
         router.push('/home');
       }
     }

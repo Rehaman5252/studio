@@ -86,7 +86,14 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema
   },
   async (input) => {
-    if (!db) throw new Error("Firestore not initialized.");
+    if (!db) {
+        console.error("Firestore not initialized.");
+        return {
+            questions: [],
+            error: true,
+            message: "Database connection is not available. Please try again later."
+        };
+    }
 
     const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
     let attempt = 0;
@@ -132,6 +139,7 @@ const generateQuizFlow = ai.defineFlow(
     }
 
     // If all attempts fail, return a structured error message.
+    console.error(`AI failed to generate a 5-question quiz after ${maxAttempts} attempts.`);
     return {
         questions: [],
         error: true,
