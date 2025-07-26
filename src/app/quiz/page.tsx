@@ -87,7 +87,6 @@ const QuizComponent = memo(function QuizComponent() {
       setQuizState('loading');
       
       try {
-        console.log("Attempting to fetch a globally unique quiz...");
         const userAttemptsQuery = query(collection(db, `users/${user.uid}/quizAttempts`));
         const userAttemptsSnapshot = await getDocs(userAttemptsQuery);
         const userAskedQuestions = userAttemptsSnapshot.docs.flatMap(doc => (doc.data().questions || []).map((q: QuizQuestion) => q.questionText));
@@ -99,21 +98,7 @@ const QuizComponent = memo(function QuizComponent() {
         
         const allQuestionsToExclude = [...new Set([...userAskedQuestions, ...recentGlobalQuestions])];
         
-        let quizData;
-        try {
-          quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
-          console.log("Successfully fetched a globally unique quiz.");
-        } catch (initialError) {
-          console.warn("Could not get a globally unique quiz. This is okay, will try a fallback.", initialError);
-          try {
-            quizData = await generateQuiz({ format, askedQuestions: userAskedQuestions });
-            console.log("Successfully fetched a user-unique quiz on fallback.");
-          } catch (secondaryError) {
-            console.warn("Could not get a user-unique quiz. This is okay, will try the final fallback.", secondaryError);
-            quizData = await generateQuiz({ format });
-            console.log("Successfully fetched a quiz with no exclusion on final fallback.");
-          }
-        }
+        const quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
 
         if (quizData.errorMessage || !quizData.questions || quizData.questions.length === 0) {
             console.error("Final attempt to generate quiz failed with a structured error:", quizData);

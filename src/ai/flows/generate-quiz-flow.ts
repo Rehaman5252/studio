@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -94,7 +93,7 @@ const generateQuizFlow = ai.defineFlow(
 
     while (attempt < maxAttempts) {
       attempt++;
-      console.log(`🎯 Attempt ${attempt}: Generating quiz for ${input.format}`);
+      console.log(`🧠 Attempt ${attempt}: Generating quiz for format "${input.format}"`);
 
       try {
         const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
@@ -114,7 +113,9 @@ const generateQuizFlow = ai.defineFlow(
             });
           }
 
-          await batch.commit();
+          await batch.commit().catch(err => {
+            console.warn('Firestore write failed, but continuing as this is non-critical.', err);
+          });
           return output;
         }
 
