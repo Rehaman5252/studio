@@ -1,19 +1,15 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { ComponentType, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { Loader2 } from 'lucide-react';
 
-interface WithAuthProps {
-  // Add any additional props you might want to pass to the wrapped component
-}
-
 const withAuth = <P extends object>(
-  WrappedComponent: React.ComponentType<P>
-): React.FC<P & WithAuthProps> => {
-  const WithAuthComponent: React.FC<P & WithAuthProps> = (props) => {
+  WrappedComponent: ComponentType<P>
+): React.FC<P> => {
+  const WithAuthComponent: React.FC<P> = (props) => {
     const { user, loading } = useAuth();
     const router = useRouter();
 

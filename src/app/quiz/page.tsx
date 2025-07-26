@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
@@ -21,7 +21,7 @@ import InterstitialLoader from '@/components/InterstitialLoader';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-function QuizComponent() {
+const QuizComponent = memo(function QuizComponent() {
   const { user, loading, addQuizAttempt, handleMalpractice, profile, lastAttemptInSlot } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -87,7 +87,6 @@ function QuizComponent() {
       setQuizState('loading');
       
       try {
-        // --- Primary Attempt: Get a globally unique quiz ---
         console.log("Attempting to fetch a globally unique quiz...");
         const userAttemptsQuery = query(collection(db, `users/${user.uid}/quizAttempts`));
         const userAttemptsSnapshot = await getDocs(userAttemptsQuery);
@@ -106,15 +105,11 @@ function QuizComponent() {
           console.log("Successfully fetched a globally unique quiz.");
         } catch (initialError) {
           console.warn("Could not get a globally unique quiz. This is okay, will try a fallback.", initialError);
-          // --- Fallback Attempt: Get a user-unique quiz ---
-          console.log("Retrying with user-specific exclusion only...");
           try {
             quizData = await generateQuiz({ format, askedQuestions: userAskedQuestions });
             console.log("Successfully fetched a user-unique quiz on fallback.");
           } catch (secondaryError) {
             console.warn("Could not get a user-unique quiz. This is okay, will try the final fallback.", secondaryError);
-            // --- Final Fallback Attempt: Get any quiz ---
-            console.log("Retrying with no exclusion...");
             quizData = await generateQuiz({ format });
             console.log("Successfully fetched a quiz with no exclusion on final fallback.");
           }
@@ -224,7 +219,7 @@ function QuizComponent() {
         } else {
             handleNextWithAdCheck();
         }
-    }, 300);
+    }, 1000);
   }, [isAnswerLocked, questionStartTime, userAnswers, currentQuestionIndex, questions, handleNextWithAdCheck, submitQuiz]);
   
   const handleAdComplete = useCallback(() => {
@@ -293,12 +288,20 @@ function QuizComponent() {
         <div className="w-full max-w-2xl mx-auto">
             <QuizHeader format={format} current={currentQuestionIndex} total={questions.length} />
             <div className="flex justify-center my-6"><Timer timeLeft={timeLeft} /></div>
-            <QuestionCard question={currentQuestion} isHintVisible={isHintVisible} options={currentQuestion.options} selectedOption={selectedOption} handleAnswerSelect={handleAnswerSelect} />
+            <QuestionCard
+              question={currentQuestion}
+              isHintVisible={isHintVisible}
+              options={currentQuestion.options}
+              selectedOption={selectedOption}
+              handleAnswerSelect={handleAnswerSelect}
+              isAnswerLocked={isAnswerLocked}
+              correctAnswer={currentQuestion.correctAnswer}
+            />
             <div className="mt-6 flex justify-between items-center">
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible || isAnswerLocked}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)
                 </Button>
-                <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={isAnswerLocked}>
+                <Button onClick={() => handleAnswerSelect(selectedOption || "Not Answered")} disabled={!isAnswerLocked && selectedOption === null}>
                     {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next'} <ChevronsRight className="ml-2" />
                 </Button>
             </div>
@@ -307,7 +310,7 @@ function QuizComponent() {
       {adConfig && adConfig.adType === 'video' && <AdDialog open={!!adConfig} onAdFinished={adConfig.onFinished} duration={adConfig.duration} skippableAfter={adConfig.skippableAfter} adTitle={adConfig.adTitle} adType={adConfig.adType} adUrl={adConfig.adUrl} adHint={adConfig.adHint} />}
     </>
   );
-}
+});
 
 export default function QuizPage() {
     return (

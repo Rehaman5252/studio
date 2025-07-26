@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,20 +27,20 @@ const HomeContentSkeleton = () => (
     </div>
 );
 
-export default function HomeClientContent() {
-  const { loading: authLoading, profile } = useAuth();
+function HomeClientContentComponent() {
+  const { loading: authLoading } = useAuth();
   const { isLoading: quizStatusLoading } = useQuizStatus();
   
-  // Show skeleton if auth is still checking or if the user is logged in but profile hasn't loaded yet.
   if (authLoading || quizStatusLoading) {
     return <HomeContentSkeleton />;
   }
 
   return (
-    <div
-      className="mt-10 animate-fade-in-up"
-    >
+    <div className="mt-10 animate-fade-in-up">
         <QuizSelection />
     </div>
   );
 }
+
+const HomeClientContent = memo(HomeClientContentComponent);
+export default HomeClientContent;

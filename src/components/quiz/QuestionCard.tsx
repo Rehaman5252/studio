@@ -6,26 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { QuizQuestion } from '@/ai/schemas';
-import Image from 'next/image';
 
-const QuizOption = memo(({ option, index, isSelected, selectedOption, handleAnswerSelect }: {
+const QuizOption = memo(({ option, index, isSelected, isCorrect, isRevealed, handleAnswerSelect }: {
     option: string;
     index: number;
     isSelected: boolean;
-    selectedOption: string | null;
+    isCorrect: boolean;
+    isRevealed: boolean;
     handleAnswerSelect: (option: string) => void;
 }) => {
     return (
         <Button
             onClick={() => handleAnswerSelect(option)}
-            disabled={!!selectedOption}
+            disabled={isRevealed}
             variant="outline"
             className={cn(
                 'relative w-full h-auto py-3 text-sm whitespace-normal justify-start text-left transition-all duration-300 ease-in-out border-2',
-                !selectedOption && 'hover:bg-primary/10 hover:border-primary',
-                selectedOption && {
-                    'opacity-50 border-input': !isSelected,
-                    'bg-primary text-primary-foreground border-primary': isSelected,
+                !isRevealed && 'hover:bg-primary/10 hover:border-primary',
+                isRevealed && {
+                    'bg-green-500/20 border-green-500 text-foreground': isCorrect,
+                    'bg-red-500/20 border-red-500 text-foreground': isSelected && !isCorrect,
+                    'opacity-60 border-input': !isSelected && !isCorrect,
                 }
             )}
         >
@@ -36,12 +37,14 @@ const QuizOption = memo(({ option, index, isSelected, selectedOption, handleAnsw
 });
 QuizOption.displayName = 'QuizOption';
 
-const QuestionCardComponent = ({ question, isHintVisible, options, selectedOption, handleAnswerSelect }: {
+const QuestionCardComponent = ({ question, isHintVisible, options, selectedOption, handleAnswerSelect, isAnswerLocked, correctAnswer }: {
     question: QuizQuestion;
     isHintVisible: boolean;
     options: string[];
     selectedOption: string | null;
     handleAnswerSelect: (option: string) => void;
+    isAnswerLocked: boolean;
+    correctAnswer: string;
 }) => (
     <Card className="w-full bg-card shadow-lg min-h-[360px]">
         <CardHeader>
@@ -61,7 +64,8 @@ const QuestionCardComponent = ({ question, isHintVisible, options, selectedOptio
                     option={option}
                     index={index}
                     isSelected={selectedOption === option}
-                    selectedOption={selectedOption}
+                    isCorrect={correctAnswer === option}
+                    isRevealed={isAnswerLocked}
                     handleAnswerSelect={handleAnswerSelect}
                 />
             ))}

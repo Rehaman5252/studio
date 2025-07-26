@@ -1,13 +1,15 @@
 
 import type {Config} from 'tailwindcss';
+const { fontFamily } = require("tailwindcss/defaultTheme")
 
-export default {
+const config = {
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  prefix: "",
   theme: {
     container: {
       center: true,
@@ -18,7 +20,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'sans-serif'],
+        sans: ['var(--font-inter)', ...fontFamily.sans],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -77,32 +79,14 @@ export default {
             height: '0',
           },
         },
-        'spin-slow': {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
-        },
-        'spin-medium': {
-          '0%': { transform: 'rotate(-360deg)' },
-          '100%': { transform: 'rotate(360deg)' },
-        },
-        'spin-fast': {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
-        },
-        'shimmer': {
-          'from': { backgroundPosition: '200% center' },
-          'to': { backgroundPosition: '-200% center' },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'spin-slow': 'spin-slow 3s linear infinite',
-        'spin-medium': 'spin-medium 2.5s linear infinite',
-        'spin-fast': 'spin-fast 1.5s linear infinite',
-        'shimmer': 'shimmer 4s linear infinite',
       },
     },
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
+
+export default config;
