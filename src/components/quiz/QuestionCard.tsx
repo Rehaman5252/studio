@@ -5,7 +5,7 @@ import { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { QuizQuestion } from '@/ai/schemas';
+import type { QuizQuestion } from '@/lib/mockData';
 
 const QuizOption = memo(({ option, index, isSelected, isCorrect, isRevealed, handleAnswerSelect }: {
     option: string;
@@ -49,7 +49,7 @@ const QuestionCardComponent = ({ question, isHintVisible, options, selectedOptio
     <Card className="w-full bg-card shadow-lg min-h-[360px]">
         <CardHeader>
             <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
-                {question.questionText}
+                {question.question}
             </CardTitle>
             {isHintVisible && question.hint && (
                 <p className="text-sm text-primary pt-2 animate-in fade-in">

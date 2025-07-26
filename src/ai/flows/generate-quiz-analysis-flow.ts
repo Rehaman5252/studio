@@ -85,7 +85,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         const incorrectAnswers = questions
             .map((q, idx) => ({
               questionNumber: idx + 1,
-              questionText: q.questionText,
+              questionText: q.question,
               userAnswer: userAnswers[idx] || "Not Answered",
               correctAnswer: q.correctAnswer
             }))

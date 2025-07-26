@@ -23,8 +23,6 @@ import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
-import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
-import type { QuizQuestion } from '@/ai/schemas';
 
 const BrandCube = dynamic(() => import('@/components/home/BrandCube'), { 
     loading: () => <Skeleton className="w-48 h-48 rounded-lg" />,
@@ -55,8 +53,12 @@ const QuizSelectionComponent = () => {
     useEffect(() => {
         const prefetchQuiz = async () => {
             try {
-                // We don't need the result, just warming up the function
-                await generateQuiz({ format: 'Mixed', askedQuestions: [] });
+                // We don't need the result, just warming up the API route
+                 fetch('/api/quiz', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ format: 'Mixed', askedQuestions: [] }),
+                });
             } catch (e) {
                 // Prefetching is best-effort, so we don't show errors
                 console.warn("Quiz prefetching failed in background:", e);
@@ -80,7 +82,7 @@ const QuizSelectionComponent = () => {
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 667); // Rotate through all 6 faces in ~4 seconds
+        }, 4000); 
 
         return () => clearInterval(rotationInterval);
     }, []);

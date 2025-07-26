@@ -2,7 +2,7 @@
 'use client';
 
 import { memo, useState, useEffect, useCallback } from 'react';
-import type { QuizQuestion } from '@/ai/schemas';
+import type { QuizQuestion } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2 } from 'lucide-react';

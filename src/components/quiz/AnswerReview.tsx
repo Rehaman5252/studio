@@ -2,7 +2,7 @@
 'use client';
 
 import { memo } from 'react';
-import type { QuizQuestion } from '@/ai/schemas';
+import type { QuizQuestion } from '@/lib/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, XCircle, MessageCircleQuestion } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,8 +13,8 @@ const AnswerReview = ({ questions, userAnswers }: { questions: QuizQuestion[], u
             <CardHeader><CardTitle>Answer Review</CardTitle></CardHeader>
             <CardContent className="space-y-4">
                 {questions.map((q, i) => (
-                    <div key={`${q.questionText}-${i}`} className="text-sm p-3 rounded-lg bg-background">
-                        <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.questionText}</p>
+                    <div key={`${q.question}-${i}`} className="text-sm p-3 rounded-lg bg-background">
+                        <p className="font-bold mb-2 flex items-start gap-2"><MessageCircleQuestion className="h-5 w-5 mt-0.5 shrink-0"/> {i+1}. {q.question}</p>
                         <p className={cn("flex items-center text-foreground/90", userAnswers[i] === q.correctAnswer ? 'text-green-400' : 'text-red-400' )}>
                           {userAnswers[i] === q.correctAnswer ? <CheckCircle2 className="mr-2 shrink-0"/> : <XCircle className="mr-2 shrink-0"/>}
                           Your answer: {userAnswers[i] || 'Not answered'}
