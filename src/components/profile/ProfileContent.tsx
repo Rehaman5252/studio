@@ -47,16 +47,16 @@ export default function ProfileContent({ userProfile }: { userProfile: any }) {
 
             <section className="space-y-3 pt-4">
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <Link href="/rewards"><Gift className="mr-4" /> My Rewards</Link>
+                    <Link href="/rewards" prefetch={true}><Gift className="mr-4" /> My Rewards</Link>
                 </Button>
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
                     <Link href="/certificates" prefetch={true}><Award className="mr-4" /> View Certificates</Link>
                 </Button>
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <Link href="/settings"><Settings className="mr-4" /> App Settings</Link>
+                    <Link href="/settings" prefetch={true}><Settings className="mr-4" /> App Settings</Link>
                 </Button>
                 <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <Link href="/policies"><Scale className="mr-4" /> Legal & Policies</Link>
+                    <Link href="/policies" prefetch={true}><Scale className="mr-4" /> Legal & Policies</Link>
                 </Button>
             </section>
             

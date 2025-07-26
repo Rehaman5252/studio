@@ -133,17 +133,7 @@ function QuizGame() {
 
     }, [userAnswers, selectedOption, currentQuestionIndex, timePerQuestion, timeLeft, questions, brand, format, usedHintIndices, addQuizAttempt, router]);
 
-    useEffect(() => {
-        if (loading || isAnswerLocked || isFetchingHint || error) return;
-        if (timeLeft > 0) {
-            const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-            return () => clearTimeout(timerId);
-        } else {
-            handleAnswerSelect(selectedOption || 'Not Answered');
-        }
-    }, [timeLeft, loading, isAnswerLocked, selectedOption, isFetchingHint, error, handleAnswerSelect]);
-
-    const handleAnswerSelect = (option: string) => {
+    const handleAnswerSelect = useCallback((option: string) => {
         if (isAnswerLocked) return;
 
         setSelectedOption(option);
@@ -172,7 +162,17 @@ function QuizGame() {
                 finishQuiz();
             }
         }, 1500);
-    };
+    }, [isAnswerLocked, currentQuestionIndex, timeLeft, questions.length, finishQuiz]);
+
+    useEffect(() => {
+        if (loading || isAnswerLocked || isFetchingHint || error) return;
+        if (timeLeft > 0) {
+            const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+            return () => clearTimeout(timerId);
+        } else {
+            handleAnswerSelect(selectedOption || 'Not Answered');
+        }
+    }, [timeLeft, loading, isAnswerLocked, selectedOption, isFetchingHint, error, handleAnswerSelect]);
 
     const goToNextQuestion = () => {
         setIsAnswerLocked(false);

@@ -16,7 +16,7 @@ const SupportCardComponent = () => {
             </CardHeader>
             <CardContent>
                  <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                    <Link href="/support">
+                    <Link href="/support" prefetch={true}>
                         <MessageSquare className="mr-4" />
                         Contact Us
                     </Link>
