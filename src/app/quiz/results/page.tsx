@@ -195,7 +195,7 @@ function ResultsComponent() {
 
                 {isPerfectScore && <Certificate format={format} userName={user?.displayName || "indcric User"} date={today} slotTimings={slotTimings} />}
                 
-                {showAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
+                {showAnswers && questions && userAnswers && <AnswerReview questions={questions} userAnswers={userAnswers} />}
             </div>
 
             {adConfig && (

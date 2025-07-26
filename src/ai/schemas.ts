@@ -1,5 +1,4 @@
-
-import {z} from 'genkit';
+import { z } from 'zod';
 
 // Schemas for generateQuizFlow
 export const GenerateQuizInputSchema = z.object({
@@ -9,28 +8,14 @@ export const GenerateQuizInputSchema = z.object({
 export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
 export const QuizQuestionSchema = z.object({
-    questionText: z
-      .string()
-      .describe('A unique and very difficult cricket trivia question, focusing on specific statistics, player records, obscure moments, or historic match details.'),
-    options: z
-      .array(z.string())
-      .length(4)
-      .describe(
-        'An array of four very close, plausible options for the question, designed to challenge an expert.'
-      ),
-    correctAnswer: z
-      .string()
-      .describe(
-        'The single correct answer, which must exactly match one of the options.'
-      ),
-    hint: z
-        .string()
-        .describe('A helpful, single-sentence hint for the question that does not give away the answer directly.')
-        .optional(),
-    explanation: z
-        .string()
-        .describe('A brief explanation of why the correct answer is right.')
-        .optional()
+  questionText: z.string().min(10, "Question text must be at least 10 characters long."),
+  options: z.array(z.string()).length(4, "There must be exactly 4 options."),
+  correctAnswer: z.string().min(1, "Correct answer cannot be empty."),
+  hint: z.string().optional(),
+  explanation: z.string().optional(),
+}).refine(data => data.options.includes(data.correctAnswer), {
+    message: "Correct answer must be one of the options.",
+    path: ["correctAnswer"],
 });
 export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 

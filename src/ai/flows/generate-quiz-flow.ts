@@ -1,171 +1,129 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
 import {
-  GenerateQuizInput,
-  GenerateQuizOutput,
   GenerateQuizInputSchema,
   GenerateQuizOutputSchema,
-  QuizQuestion
+  QuizQuestionSchema
 } from '@/ai/schemas';
+import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import {
-  collection,
-  writeBatch,
-  doc,
-} from 'firebase/firestore';
+import { collection, writeBatch, doc } from 'firebase/firestore';
 
-export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
-  try {
-    return await generateQuizFlow(input);
-  } catch (err) {
-    console.error('❌ generateQuizFlow threw an unexpected error:', err);
-    return {
-      questions: [],
-      errorMessage: 'A system error occurred while generating the quiz. Please try again later.'
-    };
-  }
+// Mock function to provide a stable source of questions, replacing direct LLM calls for stability.
+async function getCricketQuestions(format: string): Promise<z.infer<typeof QuizQuestionSchema>[]> {
+  // In a real app, this could fetch from a Firestore collection or a dedicated microservice.
+  const allQuestions: z.infer<typeof QuizQuestionSchema>[] = [
+    {
+      questionText: "Who was the Orange Cap winner in IPL 2023?",
+      options: ["Faf du Plessis", "Shubman Gill", "Devdutt Padikkal", "Virat Kohli"],
+      correctAnswer: "Shubman Gill",
+      hint: "He played for Gujarat Titans.",
+      explanation: "Shubman Gill scored 890+ runs in IPL 2023 and won the Orange Cap.",
+    },
+    {
+      questionText: "Who took a hat-trick in the 2023 ODI World Cup semi-final?",
+      options: ["Mohammed Siraj", "Rashid Khan", "Mohammed Shami", "Adam Zampa"],
+      correctAnswer: "Mohammed Shami",
+      hint: "He's India's leading wicket-taker in the tournament.",
+      explanation: "Shami took a hat-trick vs New Zealand in the 2023 World Cup semi-final.",
+    },
+    {
+      questionText: "Which team won the ICC Test Championship 2023?",
+      options: ["India", "New Zealand", "Australia", "England"],
+      correctAnswer: "Australia",
+      hint: "They defeated India in the final.",
+      explanation: "Australia beat India in the WTC final at The Oval in 2023.",
+    },
+    {
+      questionText: "Who holds the record for fastest T20I century?",
+      options: ["David Miller", "Suryakumar Yadav", "Kushal Malla", "Rohit Sharma"],
+      correctAnswer: "Kushal Malla",
+      hint: "He achieved this against Mongolia in Asian Games 2023.",
+      explanation: "Kushal Malla scored a T20I century in 34 balls.",
+    },
+    {
+      questionText: "Who won the Player of the Tournament in IPL 2023?",
+      options: ["Ruturaj Gaikwad", "Mohammed Shami", "Shubman Gill", "Devon Conway"],
+      correctAnswer: "Shubman Gill",
+      hint: "He was also the top run-scorer.",
+      explanation: "Gill dominated with runs and consistent performances.",
+    },
+    {
+        questionText: "Which bowler has the most wickets in Test cricket history?",
+        options: ["Shane Warne", "Anil Kumble", "James Anderson", "Muttiah Muralitharan"],
+        correctAnswer: "Muttiah Muralitharan",
+        hint: "This Sri Lankan spinner has 800 Test wickets.",
+        explanation: "Muttiah Muralitharan of Sri Lanka holds the record with 800 Test wickets."
+    },
+    {
+        questionText: "Who scored the first-ever double century in men's ODI cricket?",
+        options: ["Virender Sehwag", "Chris Gayle", "Sachin Tendulkar", "Rohit Sharma"],
+        correctAnswer: "Sachin Tendulkar",
+        hint: "He achieved this milestone against South Africa in Gwalior.",
+        explanation: "Sachin Tendulkar scored an unbeaten 200 against South Africa in 2010."
+    },
+    {
+        questionText: "In which year was the first-ever day/night Test match played?",
+        options: ["2012", "2015", "2017", "2018"],
+        correctAnswer: "2015",
+        hint: "It was played between Australia and New Zealand.",
+        explanation: "The first day/night Test match was played between Australia and New Zealand in Adelaide in November 2015."
+    }
+  ];
+  // Simple filtering for demonstration; a real app might filter by format tag.
+  return allQuestions;
 }
 
-const generalPrompt = ai.definePrompt({
-  name: 'generateQuizPrompt',
-  input: { schema: GenerateQuizInputSchema },
-  output: { schema: GenerateQuizOutputSchema },
-  prompt: `Generate a 5-question, multiple-choice, text-only quiz about "{{format}}" cricket with a clear and strict difficulty progression.
-
-The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
-
-The questions should cover a wide range of topics including: venue stats, team scores, player records (including strike rates, averages, etc.), match outcomes, milestones, historic moments, timelines, and format-specific records.
-
-The 5 questions must follow this exact difficulty structure:
-
-1.  **Question 1 (Easy):** A basic, widely-known fact.
-2.  **Question 2 (Medium):** A stat that requires more specific knowledge.
-3.  **Question 3 (Hard):** A detailed question about a specific match/player.
-4.  **Question 4 (Very Hard):** A rare achievement or obscure match stat.
-5.  **Question 5 (Extreme Hard):** A deep trivia question from cricket history.
-
-**CRITICAL:** Do NOT repeat any of these previously asked questions:
-{{#each askedQuestions}}
-- "{{this}}"
-{{/each}}`,
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' }
-    ]
-  }
-});
-
-const mixedFormatPrompt = ai.definePrompt({
-  name: 'generateMixedQuizPrompt',
-  input: { schema: GenerateQuizInputSchema },
-  output: { schema: GenerateQuizOutputSchema },
-  prompt: `Generate a 5-question, multiple-choice, text-only quiz with increasing difficulty, where each question is from a different cricket format (IPL, WPL, T20, ODI, and Test).
-
-The questions must be strictly about the sport and not mention any brands or sponsors. The options should be plausible but with one clear correct answer.
-
-The questions should cover a wide range of topics including: venue stats, team scores, player records (including strike rates, averages, etc.), match outcomes, milestones, historic moments, timelines, and format-specific records.
-
-**CRITICAL:** Do NOT repeat any of these previously asked questions:
-{{#each askedQuestions}}
-- "{{this}}"
-{{/each}}`,
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' }
-    ]
-  }
-});
-
-function isValidQuizOutput(output: any): output is GenerateQuizOutput {
-  if (!output || !Array.isArray(output.questions) || output.questions.length !== 5) {
-    return false;
-  }
-
-  return output.questions.every(
-    (q: any): q is QuizQuestion =>
-      q &&
-      typeof q.questionText === 'string' &&
-      q.questionText.trim() !== '' &&
-      Array.isArray(q.options) &&
-      q.options.length === 4 &&
-      q.options.every((opt: any) => typeof opt === 'string' && opt.trim() !== '') &&
-      typeof q.correctAnswer === 'string' &&
-      q.correctAnswer.trim() !== '' &&
-      q.options.includes(q.correctAnswer)
-  );
+export async function generateQuiz(
+  input: z.infer<typeof GenerateQuizInputSchema>
+): Promise<z.infer<typeof GenerateQuizOutputSchema>> {
+  return generateQuizFlow(input);
 }
 
 const generateQuizFlow = ai.defineFlow(
   {
     name: 'generateQuizFlow',
     inputSchema: GenerateQuizInputSchema,
-    outputSchema: GenerateQuizOutputSchema
+    outputSchema: GenerateQuizOutputSchema,
   },
-  async (input) => {
+  async ({ format, askedQuestions }) => {
     if (!db) {
-      return {
-        questions: [],
-        errorMessage: 'Firestore is not initialized. Please contact support.'
-      };
+        return {
+            errorMessage: 'Database connection is not available. Please try again later.'
+        };
     }
+    
+    try {
+      const allQuestions = await getCricketQuestions(format);
+      const filtered = allQuestions.filter(
+        (q) => !(askedQuestions || []).includes(q.questionText)
+      );
+      
+      // Simple shuffle and take 5
+      const selected = filtered.sort(() => 0.5 - Math.random()).slice(0, 5);
 
-    const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
-    let attempt = 0;
-    const maxAttempts = 3;
-
-    while (attempt < maxAttempts) {
-      attempt++;
-      console.log(`🧠 Attempt ${attempt}: Generating quiz for format "${input.format}"`);
-
-      try {
-        const { output } = await prompt({
-          format: input.format,
-          askedQuestions: input.askedQuestions
-        });
-
-        if (isValidQuizOutput(output)) {
-          console.log(`✅ Success: Valid quiz generated on attempt ${attempt}`);
-
-          const batch = writeBatch(db);
-          const questionsColl = collection(db, 'askedQuestions');
-
-          for (const q of output.questions) {
-            const docRef = doc(questionsColl);
-            batch.set(docRef, {
-              questionText: q.questionText,
-              format: input.format,
-              createdAt: new Date()
-            });
-          }
-
-          await batch.commit().catch(err => {
-            console.warn('⚠️ Firestore write failed (non-blocking):', err);
-          });
-
-          return output;
-        }
-
-        console.warn(`⚠️ Incomplete or malformed quiz on attempt ${attempt}:`, JSON.stringify(output));
-      } catch (err) {
-        console.error(`❌ Error during attempt ${attempt}:`, err);
+      if (selected.length < 5) {
+        return { errorMessage: 'Not enough unique questions available for this format.' };
       }
+      
+      // Write the newly selected questions to Firestore to prevent immediate re-use
+      const batch = writeBatch(db);
+      const questionsColl = collection(db, 'askedQuestions');
+      selected.forEach(q => {
+        const docRef = doc(questionsColl);
+        batch.set(docRef, {
+            questionText: q.questionText,
+            format: format,
+            createdAt: new Date(),
+        });
+      });
+      await batch.commit();
 
-      await new Promise(res => setTimeout(res, 400)); // brief delay before retry
+      return { questions: selected };
+    } catch (error) {
+      console.error('❌ generateQuiz flow error:', error);
+      return { errorMessage: 'Failed to generate quiz due to a server error.' };
     }
-
-    return {
-      questions: [],
-      errorMessage: 'AI could not generate a valid quiz after 3 attempts. Please try again later.'
-    };
   }
 );
