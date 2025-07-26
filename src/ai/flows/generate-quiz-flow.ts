@@ -99,7 +99,7 @@ const generateQuizFlow = ai.defineFlow(
         try {
             const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
 
-            if (output && output.questions.length === 5) {
+            if (output && output.questions && output.questions.length === 5) {
                 console.log(`Successfully generated a 5-question quiz on attempt ${attempt}.`);
                 const batch = writeBatch(db);
                 const questionsColl = collection(db, 'askedQuestions');
@@ -131,7 +131,11 @@ const generateQuizFlow = ai.defineFlow(
         }
     }
 
-    // If all attempts fail, throw the final error.
-    throw new Error(`AI failed to generate a 5-question quiz after ${maxAttempts} attempts.`);
+    // If all attempts fail, return a structured error message.
+    return {
+        questions: [],
+        error: true,
+        message: "We couldn't generate a quiz right now. Please try again in a few minutes!"
+    };
   }
 );

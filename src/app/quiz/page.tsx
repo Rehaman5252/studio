@@ -85,7 +85,6 @@ function QuizComponent() {
       }
 
       setQuizState('loading');
-      let quizData;
       
       try {
         // --- Primary Attempt: Get a globally unique quiz ---
@@ -101,6 +100,7 @@ function QuizComponent() {
         
         const allQuestionsToExclude = [...new Set([...userAskedQuestions, ...recentGlobalQuestions])];
         
+        let quizData;
         try {
           quizData = await generateQuiz({ format, askedQuestions: allQuestionsToExclude });
           console.log("Successfully fetched a globally unique quiz.");
@@ -120,6 +120,13 @@ function QuizComponent() {
           }
         }
 
+        if (quizData.error || !quizData.questions || quizData.questions.length === 0) {
+            console.error("Final attempt to generate quiz failed with a structured error:", quizData);
+            toast({ title: 'Error', description: quizData.message || 'Could not load a quiz. Please try again.', variant: 'destructive' });
+            router.push('/home');
+            return;
+        }
+
         setQuestions(quizData.questions);
         setUserAnswers(new Array(quizData.questions.length).fill(null));
         setQuestionStartTime(Date.now());
@@ -127,8 +134,8 @@ function QuizComponent() {
         setQuizState('playing');
         
       } catch (error) {
-        console.error("Failed to generate quiz on all attempts:", error);
-        toast({ title: 'Error', description: 'Could not load a quiz at this time. Please try again later.', variant: 'destructive' });
+        console.error("A critical, unexpected error occurred during fetchQuiz:", error);
+        toast({ title: 'Error', description: 'A critical error occurred. Please try again later.', variant: 'destructive' });
         router.push('/home');
       }
     }
@@ -309,7 +316,3 @@ export default function QuizPage() {
       </Suspense>
     )
 }
-
-    
-
-    
