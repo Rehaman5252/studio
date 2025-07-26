@@ -63,7 +63,7 @@ const QuizSelectionComponent = () => {
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 4000 / 6); // Rotate through all 6 faces in 4 seconds
+        }, 4000); // Rotate through all 6 faces in 4 seconds
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -132,7 +132,7 @@ const QuizSelectionComponent = () => {
     return (
         <>
             <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold">Select your Cricket Format</h2>
+                <h2 className="text-2xl font-bold">Select you Quiz Cricket Format</h2>
                 <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
             
