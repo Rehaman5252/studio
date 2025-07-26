@@ -64,54 +64,55 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     outputSchema: GenerateQuizAnalysisOutputSchema,
   },
   async (input: FlowGenerateQuizAnalysisInput) => {
-    const score = input.questions.reduce((acc, q, index) => 
-        (input.userAnswers[index] === q.correctAnswer) ? acc + 1 : acc, 0);
-    
-    const incorrectAnswers = input.questions.map((q, index) => ({
-        questionNumber: index + 1,
-        questionText: q.questionText,
-        userAnswer: input.userAnswers[index] || 'Not Answered',
-        correctAnswer: q.correctAnswer,
-    })).filter((q, index) => input.userAnswers[index] !== input.questions[index].correctAnswer);
-    
-    const promptInput: GenerateQuizAnalysisPromptInput = {
-        format: input.format,
-        score,
-        totalQuestions: input.questions.length,
-        timePerQuestion: input.timePerQuestion || [],
-        usedHintIndices: input.usedHintIndices || [],
-        incorrectAnswers,
-    };
-    
-    console.log("Attempting to generate AI analysis with the following data:", promptInput);
-
     try {
+        const { questions, userAnswers, format, timePerQuestion, usedHintIndices } = input;
+        const score = userAnswers.reduce((acc, ans, idx) => ans === questions[idx].correctAnswer ? acc + 1 : acc, 0);
+        const totalQuestions = questions.length;
+
+        const incorrectAnswers = questions
+            .map((q, idx) => ({
+              questionNumber: idx + 1,
+              questionText: q.questionText,
+              userAnswer: userAnswers[idx] || "Not Answered",
+              correctAnswer: q.correctAnswer
+            }))
+            .filter(q => q.userAnswer !== q.correctAnswer);
+
+        const promptInput: GenerateQuizAnalysisPromptInput = {
+            format,
+            score,
+            totalQuestions,
+            incorrectAnswers,
+            timePerQuestion: timePerQuestion || [],
+            usedHintIndices: usedHintIndices || [],
+        };
+        
         const { output } = await analysisPrompt(promptInput);
-    
-        if (!output || !output.analysis || output.analysis.trim().length < 50) {
-          // This case handles when the AI returns an empty or very short (likely useless) string.
-          console.warn("AI analysis returned a null or insufficient analysis string. Providing a fallback response.", { output });
-          throw new Error("Insufficient analysis from AI");
-        } else {
-            // If we got a valid output, return it.
-            console.log("Successfully generated AI analysis.");
+
+        if (output?.analysis && output.analysis.trim().length > 50) {
             return output;
         }
 
-    } catch (error) {
-        // This case handles when the analysisPrompt() call itself throws an error or we throw it above.
-        console.error("AI analysis call failed. Providing a fallback response.", { error });
-    }
+        console.warn('⚠️ Analysis output was empty or too short. Returning fallback.');
+        return getFallbackAnalysis(score, totalQuestions, format);
 
-    // This is the fallback logic. It's reached if the AI returns empty/null OR if the AI call throws an error.
-    const fallbackAnalysis = `### Analysis Currently Unavailable
+    } catch (err) {
+      console.error('❌ generateQuizAnalysisFlow failed:', err);
+      const score = input.userAnswers.reduce((acc, ans, idx) => ans === input.questions[idx].correctAnswer ? acc + 1 : acc, 0);
+      return getFallbackAnalysis(score, input.questions.length, input.format);
+    }
+  }
+);
+
+// Fallback Markdown Generator
+function getFallbackAnalysis(score: number, total: number, format: string): GenerateQuizAnalysisOutput {
+  return {
+    analysis: `### Analysis Currently Unavailable
 
 We couldn't generate a detailed AI analysis for this quiz at the moment. This can happen occasionally due to high traffic.
 
-**Your Score:** ${score}/${input.questions.length}
+**Your Score:** ${score}/${total} in the ${format} quiz.
 
-You can try generating the analysis again from your Quiz History later.
-`;
-    return { analysis: fallbackAnalysis };
-  }
-);
+You can try generating the analysis again from your Quiz History later. Keep up the great effort! 🏏`,
+  };
+}
