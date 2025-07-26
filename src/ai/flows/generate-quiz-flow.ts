@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -30,26 +31,16 @@ The questions should cover a wide range of topics including: venue stats, team s
 
 The 5 questions must follow this exact difficulty structure:
 
-1.  **Question 1 (Easy):** A basic, widely-known fact (e.g., a famous player, a major tournament winner, a very common record).
-2.  **Question 2 (Medium):** A question about a well-known event or stat that requires more specific knowledge (e.g., a specific series score, a notable partnership).
-3.  **Question 3 (Hard):** A detailed question about a specific match, player statistic, or less common record.
-4.  **Question 4 (Very Hard):** A question about an obscure match, a rare player achievement, or a specific but not widely-publicized statistic.
-5.  **Question 5 (Extreme Hard):** A deep trivia question about historic rules, a technical aspect of a specific game, or a record from before the modern era.
+1.  **Question 1 (Easy):** A basic, widely-known fact.
+2.  **Question 2 (Medium):** A stat that requires more specific knowledge.
+3.  **Question 3 (Hard):** A detailed question about a specific match/player.
+4.  **Question 4 (Very Hard):** A rare achievement or obscure match stat.
+5.  **Question 5 (Extreme Hard):** A deep trivia question from cricket history.
 
 **CRITICAL:** Do NOT repeat any of these previously asked questions:
 {{#each askedQuestions}}
 - "{{this}}"
-{{/each}}
-`,
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' }
-    ]
-  }
+{{/each}}`,
 });
 
 const mixedFormatPrompt = ai.definePrompt({
@@ -65,17 +56,7 @@ The questions should cover a wide range of topics including: venue stats, team s
 **CRITICAL:** Do NOT repeat any of these previously asked questions:
 {{#each askedQuestions}}
 - "{{this}}"
-{{/each}}
-`,
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' }
-    ]
-  }
+{{/each}}`,
 });
 
 const generateQuizFlow = ai.defineFlow(
@@ -86,12 +67,7 @@ const generateQuizFlow = ai.defineFlow(
   },
   async (input) => {
     if (!db) {
-        console.error("Firestore not initialized.");
-        return {
-            questions: [],
-            error: true,
-            message: "Database connection is not available. Please try again later."
-        };
+      return { questions: [], errorMessage: 'Firestore not initialized.' };
     }
 
     const prompt = input.format === 'Mixed' ? mixedFormatPrompt : generalPrompt;
@@ -99,50 +75,42 @@ const generateQuizFlow = ai.defineFlow(
     const maxAttempts = 3;
 
     while (attempt < maxAttempts) {
-        attempt++;
-        console.log(`Attempt ${attempt} to generate a quiz for format: ${input.format}`);
-        
-        try {
-            const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
+      attempt++;
+      console.log(`🎯 Attempt ${attempt}: Generating quiz for ${input.format}`);
 
-            if (output && output.questions && output.questions.length === 5) {
-                console.log(`Successfully generated a 5-question quiz on attempt ${attempt}.`);
-                const batch = writeBatch(db);
-                const questionsColl = collection(db, 'askedQuestions');
+      try {
+        const { output } = await prompt({ format: input.format, askedQuestions: input.askedQuestions });
 
-                for (const q of output.questions) {
-                    const docRef = doc(questionsColl);
-                    batch.set(docRef, {
-                        questionText: q.questionText,
-                        format: input.format,
-                        createdAt: new Date()
-                    });
-                }
+        if (output && output.questions && output.questions.length === 5) {
+          console.log(`✅ Success: Quiz generated on attempt ${attempt}`);
 
-                await batch.commit().catch(err => {
-                    console.error("Failed to write new questions to Firestore, but continuing:", err);
-                });
+          const batch = writeBatch(db);
+          const questionsColl = collection(db, 'askedQuestions');
 
-                return output;
-            }
-            
-            console.warn(`Attempt ${attempt} did not yield a 5-question quiz. Output was:`, output);
-        } catch (error) {
-            console.error(`An error occurred on attempt ${attempt}:`, error);
+          for (const q of output.questions) {
+            const docRef = doc(questionsColl);
+            batch.set(docRef, {
+              questionText: q.questionText,
+              format: input.format,
+              createdAt: new Date()
+            });
+          }
+
+          await batch.commit();
+          return output;
         }
 
-        if (attempt < maxAttempts) {
-            // Wait for a short duration before retrying
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        console.warn(`⚠️ Attempt ${attempt} failed: Incomplete output`, output);
+      } catch (err) {
+        console.error(`❌ Error during attempt ${attempt}:`, err);
+      }
+
+      await new Promise(res => setTimeout(res, 400)); // Delay before retry
     }
 
-    // If all attempts fail, return a structured error message.
-    console.error(`AI failed to generate a 5-question quiz after ${maxAttempts} attempts.`);
     return {
-        questions: [],
-        error: true,
-        message: "We couldn't generate a quiz right now. Please try again in a few minutes!"
+      questions: [],
+      errorMessage: 'AI could not generate a unique quiz after 3 attempts. Please try again later.'
     };
   }
 );
