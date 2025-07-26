@@ -87,20 +87,21 @@ The questions should cover a wide range of topics including: venue stats, team s
 });
 
 function isValidQuizOutput(output: any): output is GenerateQuizOutput {
-  return (
-    output &&
-    Array.isArray(output.questions) &&
-    output.questions.length === 5 &&
-    output.questions.every(
-      (q: any): q is QuizQuestion =>
-        typeof q.questionText === 'string' &&
-        q.questionText.trim() !== '' &&
-        Array.isArray(q.options) &&
-        q.options.length === 4 &&
-        typeof q.correctAnswer === 'string' &&
-        q.correctAnswer.trim() !== '' &&
-        q.options.includes(q.correctAnswer)
-    )
+  if (!output || !Array.isArray(output.questions) || output.questions.length !== 5) {
+    return false;
+  }
+
+  return output.questions.every(
+    (q: any): q is QuizQuestion =>
+      q &&
+      typeof q.questionText === 'string' &&
+      q.questionText.trim() !== '' &&
+      Array.isArray(q.options) &&
+      q.options.length === 4 &&
+      q.options.every((opt: any) => typeof opt === 'string' && opt.trim() !== '') &&
+      typeof q.correctAnswer === 'string' &&
+      q.correctAnswer.trim() !== '' &&
+      q.options.includes(q.correctAnswer)
   );
 }
 
