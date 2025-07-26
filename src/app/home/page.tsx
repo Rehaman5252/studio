@@ -69,9 +69,9 @@ function HomePage() {
             className="text-center"
           >
               <h1 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl md:text-4xl">
-                CricBlitz
+                indcric
               </h1>
-              <p className="text-sm text-muted-foreground">The Ultimate Cricket Quiz Challenge</p>
+              <p className="text-sm text-muted-foreground">The Ultimate Cricket Challenge</p>
           </motion.div>
         </header>
         <main className="flex-1 overflow-y-auto pb-24">
