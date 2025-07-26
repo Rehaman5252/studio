@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Trophy, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface ResultsSummaryCardProps {
     isReview: boolean;
@@ -15,13 +16,12 @@ interface ResultsSummaryCardProps {
     totalQuestions: number;
     isPerfectScore: boolean;
     message: string;
-    onGoHome: () => void;
     onViewAnswers: () => void;
     isViewingAnswers: boolean;
 }
 
 const ResultsSummaryCardComponent = ({
-    isReview, format, brand, score, totalQuestions, isPerfectScore, message, onGoHome, onViewAnswers, isViewingAnswers
+    isReview, format, brand, score, totalQuestions, isPerfectScore, message, onViewAnswers, isViewingAnswers
 }: ResultsSummaryCardProps) => (
     <div className="w-full max-w-md">
         <Card className="w-full text-center bg-card border-0 my-4">
@@ -49,8 +49,10 @@ const ResultsSummaryCardComponent = ({
                 )}
                 
                 <div className="grid grid-cols-1 gap-3">
-                    <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onGoHome}>
-                        <Home className="mr-2 h-5 w-5" /> Go Home
+                    <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" asChild>
+                        <Link href="/home" prefetch={true}>
+                          <Home className="mr-2 h-5 w-5" /> Go Home
+                        </Link>
                     </Button>
                 </div>
 

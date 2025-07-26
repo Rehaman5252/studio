@@ -23,6 +23,8 @@ import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
+import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
+import type { QuizQuestion } from '@/ai/schemas';
 
 const BrandCube = dynamic(() => import('@/components/home/BrandCube'), { 
     loading: () => <Skeleton className="w-48 h-48 rounded-lg" />,
@@ -48,6 +50,21 @@ const QuizSelectionComponent = () => {
     const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
     const [rotation, setRotation] = useState(faceRotations[0]);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
+    
+    // Performance Optimization: Prefetch quiz questions
+    useEffect(() => {
+        const prefetchQuiz = async () => {
+            try {
+                // We don't need the result, just warming up the function
+                await generateQuiz({ format: 'Mixed', askedQuestions: [] });
+            } catch (e) {
+                // Prefetching is best-effort, so we don't show errors
+                console.warn("Quiz prefetching failed in background:", e);
+            }
+        };
+        // Prefetch immediately on component mount
+        prefetchQuiz();
+    }, []);
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
@@ -110,9 +127,8 @@ const QuizSelectionComponent = () => {
             setRotation(faceRotations[clickedIndex]);
             setSelectedBrand(brandData[clickedIndex]);
             // Use a short delay to allow the cube to rotate before initiating the quiz start logic
-            setTimeout(() => {
-                handleStartQuiz();
-            }, 150);
+            // This is removed to make the click feel instant
+            handleStartQuiz();
         }
     };
 

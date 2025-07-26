@@ -20,6 +20,13 @@ import type { QuizAttempt } from '@/lib/mockData';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const questionVariants = {
+  hidden: { opacity: 0, x: 300 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  exit: { opacity: 0, x: -300, transition: { duration: 0.3, ease: 'easeIn' } },
+};
 
 const QuizComponent = memo(function QuizComponent() {
   const { user, loading, addQuizAttempt, handleMalpractice, profile, lastAttemptInSlot } = useAuth();
@@ -284,15 +291,25 @@ const QuizComponent = memo(function QuizComponent() {
         <div className="w-full max-w-2xl mx-auto">
             <QuizHeader format={format} current={currentQuestionIndex} total={questions.length} />
             <div className="flex justify-center my-6"><Timer timeLeft={timeLeft} /></div>
-            <QuestionCard
-              question={currentQuestion}
-              isHintVisible={isHintVisible}
-              options={currentQuestion.options}
-              selectedOption={selectedOption}
-              handleAnswerSelect={handleAnswerSelect}
-              isAnswerLocked={isAnswerLocked}
-              correctAnswer={currentQuestion.correctAnswer}
-            />
+             <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentQuestionIndex}
+                    variants={questionVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                >
+                    <QuestionCard
+                        question={currentQuestion}
+                        isHintVisible={isHintVisible}
+                        options={currentQuestion.options}
+                        selectedOption={selectedOption}
+                        handleAnswerSelect={handleAnswerSelect}
+                        isAnswerLocked={isAnswerLocked}
+                        correctAnswer={currentQuestion.correctAnswer}
+                    />
+                </motion.div>
+            </AnimatePresence>
             <div className="mt-6 flex justify-between items-center">
                 <Button variant="outline" onClick={handleHintRequest} disabled={isHintVisible || isAnswerLocked}>
                     <Lightbulb className="mr-2" /> Get Hint (Ad)

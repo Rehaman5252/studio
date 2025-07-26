@@ -15,6 +15,7 @@ import { AnalysisCard } from '@/components/quiz/AnalysisCard';
 import { AnswerReview } from '@/components/quiz/AnswerReview';
 import type { QuizAttempt } from '@/lib/mockData';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import Link from 'next/link';
 
 const MalpracticeScreen = memo(({ noBallCount = 1 }: { noBallCount?: number }) => {
     const router = useRouter();
@@ -35,8 +36,10 @@ const MalpracticeScreen = memo(({ noBallCount = 1 }: { noBallCount?: number }) =
                 <div className="space-y-4 mt-4 text-left">
                      <p className="text-lg">{isOut ? "You've been timed out!" : "Like a batsman leaving the crease, you strayed from the quiz tab."}</p>
                      <p className="text-sm text-muted-foreground">{isOut ? "You cannot participate in any more quizzes until tomorrow. See you in the next match!" : `This is your ${noBallCount === 1 ? 'first' : 'second'} No-Ball. One more and you're Out for the Day!`}</p>
-                     <Button size="lg" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-4" onClick={() => router.replace('/home')}>
-                        <Home className="mr-2 h-5 w-5" /> Back to the Pavilion
+                     <Button size="lg" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-4" asChild>
+                        <Link href="/home" prefetch={true}>
+                          <Home className="mr-2 h-5 w-5" /> Back to the Pavilion
+                        </Link>
                      </Button>
                 </div>
             </div>
@@ -179,9 +182,8 @@ function ResultsComponent() {
                   totalQuestions={totalQuestions}
                   isPerfectScore={isPerfectScore}
                   message={message}
-                  onGoHome={() => router.replace('/home')}
-                  onViewAnswers={handleViewAnswers}
                   isViewingAnswers={showAnswers}
+                  onViewAnswers={handleViewAnswers}
                 />
 
                 <AnalysisCard
