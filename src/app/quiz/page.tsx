@@ -141,7 +141,7 @@ function QuizGame() {
         } else {
             handleAnswerSelect(selectedOption || 'Not Answered');
         }
-    }, [timeLeft, loading, isAnswerLocked, selectedOption, isFetchingHint, error]);
+    }, [timeLeft, loading, isAnswerLocked, selectedOption, isFetchingHint, error, handleAnswerSelect]);
 
     const handleAnswerSelect = (option: string) => {
         if (isAnswerLocked) return;
