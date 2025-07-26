@@ -4,13 +4,12 @@ import { ai } from '@/ai/genkit';
 import {
   GenerateQuizInputSchema,
   GenerateQuizOutputSchema,
-  QuizQuestionSchema
+  QuizQuestion,
 } from '@/ai/schemas';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, writeBatch, doc } from 'firebase/firestore';
 import { getCricketQuestions } from '../services/getCricketQuestions';
-
 
 export async function generateQuiz(
   input: z.infer<typeof GenerateQuizInputSchema>

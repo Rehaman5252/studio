@@ -21,7 +21,6 @@ export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 
 export const GenerateQuizOutputSchema = z.object({
   questions: z.array(QuizQuestionSchema).optional(),
-  facts: z.array(z.string()).length(5).describe('An array of 5 interesting, little-known, and engaging facts about the specified cricket format.').optional(),
   errorMessage: z.string().optional().describe('The error message if an error occurred.'),
 });
 export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
