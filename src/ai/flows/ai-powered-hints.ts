@@ -40,7 +40,7 @@ const generateHintFlow = ai.defineFlow(
     inputSchema: GenerateHintInputSchema,
     outputSchema: GenerateHintOutputSchema,
   },
-  async input => {
+  async (input: GenerateHintInput) => {
     const {output} = await prompt(input);
     return output!;
   }
