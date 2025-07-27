@@ -4,7 +4,7 @@
 import { GenerateQuizInputSchema, GenerateQuizOutputSchema, QuizQuestion } from '../schemas';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, doc, runTransaction, DocumentData, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, runTransaction, DocumentData, getDocs, query, where, limit, startAt, getCountFromServer } from 'firebase/firestore';
 import { getQuizSlotId } from '@/lib/utils';
 
 
