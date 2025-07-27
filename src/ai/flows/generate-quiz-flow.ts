@@ -4,8 +4,7 @@
 import { GenerateQuizInputSchema, GenerateQuizOutputSchema, QuizQuestion } from '../schemas';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { adminDb } from '@/lib/firebase-admin'; // Use admin SDK for public question reading
-import { collection, doc, runTransaction, DocumentData, getDocs, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, doc, runTransaction, DocumentData, getDocs, query, where } from 'firebase/firestore';
 import { getQuizSlotId } from '@/lib/utils';
 
 
@@ -21,7 +20,7 @@ import { getQuizSlotId } from '@/lib/utils';
 export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof GenerateQuizOutputSchema>> {
     const { format, userId } = GenerateQuizInputSchema.parse(input);
     
-    if (!db || !adminDb) {
+    if (!db) {
         throw new Error("Firestore is not configured. The quiz cannot be generated.");
     }
 
@@ -40,8 +39,8 @@ export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema
             const slotUsedQuestionIds = slotDoc.exists() ? slotDoc.data().usedQuestionIds || [] : [];
             const excludedIds = Array.from(new Set([...seenQuestionIds, ...slotUsedQuestionIds]));
             
-            // 2. Fetch available questions using the ADMIN SDK to bypass per-user security rules for this public collection.
-            const questionsCollection = collection(adminDb, 'questions');
+            // 2. Fetch available questions using the client SDK. This relies on security rules allowing reads.
+            const questionsCollection = collection(db, 'questions');
             let q = query(questionsCollection, where('format', '==', format));
 
             const querySnapshot = await getDocs(q);
@@ -54,7 +53,7 @@ export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema
             // If we don't have enough questions of the specific format, fall back to Mixed format
             if (potentialQuestions.length < 5 && format !== 'Mixed') {
                 console.log(`Not enough '${format}' questions, falling back to 'Mixed' format.`);
-                const mixedQuery = query(collection(adminDb, 'questions'), where('format', '==', 'Mixed'));
+                const mixedQuery = query(collection(db, 'questions'), where('format', '==', 'Mixed'));
                 const mixedSnapshot = await getDocs(mixedQuery);
                 const mixedQuestions = mixedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DocumentData));
                 potentialQuestions.push(...mixedQuestions.filter(q => !excludedIds.includes(q.id)));
