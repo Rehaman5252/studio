@@ -61,9 +61,17 @@ function getFallbackQuestions(format: string): QuizQuestion[] {
             { id: 'fb_test_4', format: 'Test', question: 'Which country is famous for the "Bodyline" bowling tactic?', options: ['England', 'Australia', 'West Indies', 'South Africa'], correctAnswer: 'England', explanation: 'The "Bodyline" series took place in 1932-33 when England toured Australia.' },
             { id: 'fb_test_5', format: 'Test', question: 'Who is the only batsman to have an average of 99.94 in Test cricket?', options: ['Don Bradman', 'Sachin Tendulkar', 'Steve Smith', 'Jacques Kallis'], correctAnswer: 'Don Bradman', explanation: 'Sir Donald Bradman of Australia is widely regarded as the greatest batsman of all time.' },
         ],
+        'T20': [
+            { id: 'fb_t20_1', format: 'T20', question: 'Which country won the first-ever ICC World T20 in 2007?', options: ['India', 'Pakistan', 'Australia', 'England'], correctAnswer: 'India', explanation: 'India beat Pakistan in a thrilling final to win the inaugural ICC World T20 in South Africa.' },
+            { id: 'fb_t20_2', format: 'T20', question: 'Who holds the record for the fastest century in T20 international cricket?', options: ['David Miller', 'Rohit Sharma', 'Chris Gayle', 'Suryakumar Yadav'], correctAnswer: 'David Miller', explanation: 'David Miller of South Africa scored a 35-ball century against Bangladesh in 2017. Rohit Sharma later equaled this record.' },
+            { id: 'fb_t20_3', format: 'T20', question: 'A bowler is allowed to bowl a maximum of how many overs in a T20 match?', options: ['4', '5', '3', '10'], correctAnswer: '4', explanation: 'In a standard 20-over T20 match, each bowler is restricted to a maximum of 4 overs.' },
+            { id: 'fb_t20_4', format: 'T20', question: 'What is the term for the first six overs of a T20 innings with fielding restrictions?', options: ['Powerplay', 'Free Hit', 'Super Over', 'Opening Stand'], correctAnswer: 'Powerplay', explanation: 'The Powerplay in T20s restricts the fielding team to having only two fielders outside the 30-yard circle.' },
+            { id: 'fb_t20_5', format: 'T20', question: 'Which player has hit the most sixes in T20 international history?', options: ['Rohit Sharma', 'Chris Gayle', 'Martin Guptill', 'Virat Kohli'], correctAnswer: 'Rohit Sharma', explanation: 'Rohit Sharma from India holds the record for hitting the most sixes in T20 International matches.' },
+        ],
     };
     return questions[format] || questions['Test'];
 }
+
 
 export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQuizOutput> {
   return generateQuizFlow(input);
@@ -114,21 +122,15 @@ const generateQuizFlow = ai.defineFlow(
         const llmResponse = await prompt(input);
         const output = llmResponse.output();
 
-        let rawQuestions: z.infer<typeof AIGeneratedResponseSchema>['questions'] = [];
-        
-        // Handle both direct array and nested object responses from the AI
-        if (output && Array.isArray(output)) {
-            // Case where AI returns a direct array
-            rawQuestions = output as any; 
-        } else if (output && 'questions' in output && Array.isArray(output.questions)) {
-            // Case where AI returns an object like { questions: [...] }
-            rawQuestions = output.questions;
-        }
-
-        if (rawQuestions.length === 0) {
-            console.warn('AI returned no questions. Using fallback.');
+        // **Robust Parsing Logic**
+        // Expect the AI to return an object with a 'questions' property.
+        // This is the most reliable pattern.
+        if (!output || !('questions' in output) || !Array.isArray(output.questions)) {
+            console.warn('AI did not return the expected { questions: [...] } structure. Using fallback.');
             return { questions: getFallbackQuestions(input.format) };
         }
+
+        const rawQuestions = output.questions;
 
         // Validate and transform the questions
         const validatedQuestions: QuizQuestion[] = rawQuestions
