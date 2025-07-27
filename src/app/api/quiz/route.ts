@@ -1,5 +1,6 @@
 
 import { generateQuiz, GenerateQuizInput } from '@/ai/flows/generate-quiz-flow';
+import { getFallbackQuestions } from '@/lib/fallback-quiz';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -12,16 +13,28 @@ export async function POST(req: Request) {
 
     console.log(`API received request for format: ${input.format}`);
     
+    // Attempt to generate quiz from AI
     const quizResponse = await generateQuiz(input);
     
+    // If AI fails (returns empty array), use the guaranteed fallback
+    if (!quizResponse || !quizResponse.questions || quizResponse.questions.length < 5) {
+        console.warn(`AI generation failed or returned insufficient questions for format: ${input.format}. Serving fallback quiz.`);
+        const fallbackQuestions = getFallbackQuestions(input.format);
+        return NextResponse.json({ questions: fallbackQuestions });
+    }
+    
+    // If AI succeeds, return its questions
     return NextResponse.json(quizResponse);
 
   } catch (error: any) {
     console.error('🔥 Unhandled error in /api/quiz route:', error);
-    // This is the final safety net. It catches errors thrown from the Genkit flow.
+    // Final safety net: if anything else breaks, serve fallback questions.
+    // This ensures the API NEVER crashes.
+    const { format } = await req.json().catch(() => ({ format: 'Mixed' })); // Safely get format
+    const fallbackQuestions = getFallbackQuestions(format);
     return NextResponse.json(
-      { error: error.message || 'An unexpected error occurred on the server.' },
-      { status: 500 }
+      { questions: fallbackQuestions, error: 'An unexpected server error occurred.' },
+      { status: 200 } // Return 200 so the frontend can still render the quiz
     );
   }
 }
