@@ -33,7 +33,7 @@ function ProfilePageContent() {
 
     if (!user) {
        return (
-         <div className="w-full max-w-md mx-auto">
+         <div className="w-full">
              <LoginPrompt
                 icon={UserCheck}
                 title="Ready to Step up to the Crease?"
