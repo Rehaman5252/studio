@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
+import { Moon, Bell, Music, Vibrate, RefreshCw, FastForward } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings.tsx';
 
@@ -44,6 +44,25 @@ function SettingsPage() {
             <p className="text-xs text-muted-foreground mt-2">
               Light mode is coming soon!
             </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card shadow-lg">
+          <CardHeader>
+            <CardTitle>Preferences</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="flex items-center justify-between">
+              <Label htmlFor="auto-skip-ad" className="flex flex-col gap-1 text-base">
+                <span className="flex items-center gap-2"><FastForward className="h-5 w-5" /> Auto-Skip Ads</span>
+                <span className="text-xs text-muted-foreground font-normal">Automatically skip ads when the option becomes available.</span>
+              </Label>
+              <Switch 
+                id="auto-skip-ad" 
+                checked={settings.autoSkipAd}
+                onCheckedChange={(checked) => setSetting('autoSkipAd', checked)}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -97,7 +116,7 @@ function SettingsPage() {
         </Card>
 
         <Button variant="destructive" className="w-full" onClick={handleReset}>
-          Reset All Settings to Default
+          <RefreshCw className="mr-2 h-4 w-4" /> Reset All Settings
         </Button>
       </main>
     </div>

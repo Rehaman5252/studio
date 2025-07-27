@@ -49,12 +49,17 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
     const timer = setInterval(() => {
       setAdTimeLeft((prev) => {
         const newTime = prev - 1;
-        if (newTime <= duration - skippableAfter) {
+        
+        if (!isSkippable && newTime <= duration - skippableAfter) {
             setIsSkippable(true);
-            // Auto-skip when skippable
-            clearInterval(timer);
-            setTimeout(handleSkip, 500); // Give a brief moment before auto-closing
+            // If auto-skip is enabled, skip immediately.
+            if (settings.autoSkipAd) {
+                clearInterval(timer);
+                setTimeout(handleSkip, 500); // Give a brief moment before auto-closing
+                return newTime;
+            }
         }
+        
         if (newTime <= 0) {
           clearInterval(timer);
           if (adType === 'image') {
@@ -69,7 +74,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
     return () => {
       clearInterval(timer);
     };
-  }, [open, duration, skippableAfter, adType, onAdFinished, settings.sound]);
+  }, [open, duration, skippableAfter, adType, onAdFinished, settings.sound, settings.autoSkipAd, isSkippable]);
 
   const handleVideoEnd = () => {
     onAdFinished();
@@ -111,6 +116,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                                 playsInline
                                 autoPlay
                                 title={adTitle}
+                                muted={isMuted}
                             />
                             <Button variant="ghost" size="icon" className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white" onClick={() => setIsMuted(prev => !prev)} aria-label={isMuted ? "Unmute video" : "Mute video"}>
                                 {isMuted ? <VolumeX /> : <Volume2 />}
@@ -127,11 +133,11 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                     </span>
                     {isSkippable ? (
                         <Button onClick={handleSkip} size="sm" className="h-auto py-1 whitespace-normal">
-                            <SkipForward className="mr-2 h-4 w-4"/> Closing...
+                            <SkipForward className="mr-2 h-4 w-4"/> Skip Ad
                         </Button>
                     ) : (
                          <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
-                           {`Auto-skip in ${adTimeLeft - (duration - skippableAfter)}s`}
+                           {`Skippable in ${adTimeLeft - (duration - skippableAfter)}s`}
                         </Button>
                     )}
                 </div>

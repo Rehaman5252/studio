@@ -7,12 +7,14 @@ interface Settings {
   notifications: boolean;
   sound: boolean;
   vibration: boolean;
+  autoSkipAd: boolean;
 }
 
 const defaultSettings: Settings = {
   notifications: true,
   sound: true,
   vibration: true,
+  autoSkipAd: false, // Default to disabled
 };
 
 // Define the type for the setSetting function separately to avoid JSX parsing issues with generics.
