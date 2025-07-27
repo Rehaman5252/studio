@@ -83,7 +83,7 @@ const generateQuizFlow = ai.defineFlow(
 
         if (!text) {
             console.warn("AI returned empty response. Triggering fallback.");
-            return { questions: [] };
+            throw new Error("AI returned empty response.");
         }
         
         let rawQuestions: any[];
@@ -105,7 +105,7 @@ const generateQuizFlow = ai.defineFlow(
         } catch (e: any) {
             console.error("Failed to parse JSON from AI response:", e.message);
             console.error("Raw AI response:", text);
-            return { questions: [] }; // Gracefully fail by returning empty array
+            throw new Error("Failed to parse JSON from AI response.");
         }
 
         const validatedQuestions: QuizQuestion[] = rawQuestions
@@ -129,16 +129,16 @@ const generateQuizFlow = ai.defineFlow(
 
         if (validatedQuestions.length < 5) {
             console.warn(`AI generated only ${validatedQuestions.length} valid questions. Triggering fallback.`);
-            return { questions: [] }; // Gracefully fail by returning empty array
+            throw new Error(`AI generated only ${validatedQuestions.length} valid questions.`);
         }
 
         console.log('Successfully generated and validated 5 questions from AI.');
         return { questions: validatedQuestions };
 
     } catch (e) {
-        console.error("Catastrophic failure in generateQuizFlow:", e);
-        // On any unexpected error, return empty array to signal failure to the API route.
-        return { questions: [] };
+        console.error("Error in generateQuizFlow:", e);
+        // On any unexpected error, throw to be caught by the API route.
+        throw e;
     }
   }
 );
