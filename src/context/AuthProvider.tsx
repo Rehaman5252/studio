@@ -239,7 +239,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     if (!firebaseUser || !profile || !db) throw new Error("User not authenticated, profile not loaded, or DB not available.");
 
     const userRef = doc(db, 'users', firebaseUser.uid);
-    const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
+    const attemptRef = doc(db, 'users', 'quizAttempts', attempt.slotId);
     const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
     const questionIds = attempt.questions.map(q => q.id);
 
@@ -247,7 +247,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         await runTransaction(db, async (transaction) => {
             const leaderboardDoc = await transaction.get(leaderboardRef);
             let leaderboardPlayers: LivePlayer[] = [];
-            if (leaderboardDoc.exists()) {
+
+            if (leaderboardDoc.exists() && leaderboardDoc.data().quizId === attempt.slotId) {
                 leaderboardPlayers = leaderboardDoc.data().players || [];
             }
             
@@ -281,6 +282,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 players: leaderboardPlayers, 
                 lastUpdated: serverTimestamp(),
                 quizId: attempt.slotId,
+                status: 'in-progress',
             }, { merge: true });
         });
 

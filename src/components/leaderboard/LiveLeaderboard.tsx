@@ -84,7 +84,7 @@ const LiveLeaderboard = () => {
                         return a.time - b.time;
                     })
                     .map((p, i) => ({ ...p, rank: i + 1 }));
-                setPlayers(sortedPlayers);
+                setPlayers(sortedPlayers.slice(0, 25)); // Limit to top 25
             } else {
                 setPlayers([]);
             }
