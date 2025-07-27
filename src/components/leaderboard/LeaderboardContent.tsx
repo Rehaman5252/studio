@@ -83,8 +83,8 @@ function LeaderboardContentComponent() {
                     <div className="pt-8 w-full">
                         <LoginPrompt 
                             icon={Users}
-                            title="View the Hall of Fame"
-                            description="Pad up and sign in to see the all-time cricket legends."
+                            title="The Hall of Fame"
+                            description="Only the legends who've mastered the art of the perfect innings make it here. Sign in to see where you stand."
                         />
                     </div>
                 )}
