@@ -26,7 +26,7 @@ const HistorySkeleton = () => (
 
 
 export default function QuizHistoryPage() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -37,16 +37,8 @@ export default function QuizHistoryPage() {
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
         {loading ? (
             <HistorySkeleton />
-        ) : user ? (
-          <QuizHistoryContent />
         ) : (
-          <div className="flex items-center justify-center h-full">
-              <LoginPrompt
-                icon={ScrollText}
-                title="Review Your Performance"
-                description="Sign in to view your past quizzes, stats, and AI-powered analysis."
-              />
-          </div>
+          <QuizHistoryContent />
         )}
       </main>
     </div>

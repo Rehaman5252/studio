@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash, Send } from 'lucide-react';
+import { Loader2, Calendar, Clock, MessageSquareQuote, Sparkles, AlertTriangle, WifiOff, ServerCrash, Send, Lock } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis-flow';
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +18,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { sendQuizHistoryEmail } from '@/ai/flows/send-quiz-history-email';
+import LoginPrompt from '../auth/LoginPrompt';
 
 const AnalysisDialog = ({ attempt }: { attempt: QuizAttempt }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
@@ -159,8 +160,10 @@ export default function QuizHistoryContent() {
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     useEffect(() => {
-        if (authLoading) return;
-        if (!user) { setLoading(false); return; }
+        if (authLoading || !user) {
+            setLoading(false);
+            return;
+        }
         if (!db) {
             setError("Database is not connected.");
             setLoading(false);
@@ -251,6 +254,29 @@ export default function QuizHistoryContent() {
             </div>
         );
     };
+
+    if (!user && !authLoading) {
+        return (
+            <>
+                <div className="flex justify-center">
+                    <Tabs defaultValue="recent" className="w-full max-w-md">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="recent" disabled>Recent</TabsTrigger>
+                            <TabsTrigger value="all" disabled>All</TabsTrigger>
+                            <TabsTrigger value="perfect" disabled>Perfect</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
+                <div className="pt-4">
+                    <LoginPrompt
+                        icon={ScrollText}
+                        title="Review Your Performance"
+                        description="Sign in to view your past quizzes, stats, and AI-powered analysis."
+                    />
+                </div>
+            </>
+        )
+    }
 
     return (
         <>
