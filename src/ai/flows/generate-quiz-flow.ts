@@ -16,30 +16,28 @@ const generateQuizFlow = ai.defineFlow(
     inputSchema: GenerateQuizInputSchema,
     outputSchema: GenerateQuizOutputSchema,
   },
-  async ({ format, askedQuestions }) => {
+  async ({ format }) => {
     try {
       const allQuestions = await getCricketQuestions();
       
-      const validQuestions = allQuestions.filter(q => q.format === format || format === 'Mixed');
-      
-      // For now, we are not filtering by askedQuestions as the mock list is small.
-      // This ensures we always have enough questions.
-      // const unaskedQuestions = validQuestions.filter(q => !askedQuestions.includes(q.id));
+      // Filter questions based on the selected format. If format is 'Mixed', all questions are valid.
+      const validQuestions = allQuestions.filter(q => format === 'Mixed' || q.format === format);
       
       // A robust app would have a much larger question bank.
-      if (validQuestions.length < 5) {
-         // Fallback to all questions if a specific format has less than 5
-         const allFallback = await getCricketQuestions();
-         return { questions: allFallback.sort(() => 0.5 - Math.random()).slice(0, 5) };
-      }
+      // If we don't have enough questions for the chosen format, fall back to the full list.
+      const questionPool = validQuestions.length < 5 ? allQuestions : validQuestions;
 
-      return { questions: validQuestions.sort(() => 0.5 - Math.random()).slice(0, 5) };
+      // Shuffle the array and pick the first 5 questions.
+      const shuffledQuestions = questionPool.sort(() => 0.5 - Math.random());
+      const selectedQuestions = shuffledQuestions.slice(0, 5);
+
+      return { questions: selectedQuestions };
+      
     } catch (err) {
       console.error("Quiz generation failed in flow:", err);
       // As a last resort, return a generic set of questions if everything else fails
       const fallbackQuestions = await getCricketQuestions();
-      return { questions: fallbackQuestions.slice(0, 5) };
+      return { questions: fallbackQuestions.slice(0, 5).sort(() => 0.5 - Math.random()) };
     }
   }
 );
-    

@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic'; // ensure the route is always dynamic
 
 export async function POST(request: Request) {
   try {
-    const { format, askedQuestions } = await request.json();
+    // The only required parameter is the format.
+    const { format } = await request.json();
     
     if (!format) {
       return NextResponse.json(
@@ -15,7 +16,8 @@ export async function POST(request: Request) {
       );
     }
     
-    const quizData = await generateQuiz({ format, askedQuestions: askedQuestions || [] });
+    // Call the simplified generateQuiz flow, which no longer needs askedQuestions.
+    const quizData = await generateQuiz({ format, askedQuestions: [] });
     
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
       return NextResponse.json(
@@ -33,4 +35,3 @@ export async function POST(request: Request) {
     );
   }
 }
-    

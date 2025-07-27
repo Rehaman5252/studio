@@ -46,7 +46,6 @@ function QuizGame() {
 
     const format = useMemo(() => searchParams.get('format') || 'Mixed', [searchParams]);
     const brand = useMemo(() => searchParams.get('brand') || 'Default Brand', [searchParams]);
-    const askedQuestions = useMemo(() => profile?.askedQuestions?.[format] || [], [profile, format]);
 
     const handleVisibilityChange = useCallback(async () => {
         if (document.hidden && currentQuestionIndex < questions.length) {
@@ -83,7 +82,8 @@ function QuizGame() {
                 const response = await fetch('/api/quiz', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ format, askedQuestions }),
+                    // We only need to send the format now.
+                    body: JSON.stringify({ format }),
                 });
 
                 const data = await response.json();
@@ -101,7 +101,7 @@ function QuizGame() {
             }
         };
         fetchQuiz();
-    }, [format, askedQuestions]);
+    }, [format]);
 
     const finishQuiz = useCallback(async () => {
         const finalAnswers = [...userAnswers];
