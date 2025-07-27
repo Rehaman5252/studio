@@ -77,17 +77,19 @@ function QuizGame() {
     }, [handleVisibilityChange]);
     
     useEffect(() => {
-        // Wait until auth is resolved and we have a user object.
+        // Wait until auth is resolved.
         if (authLoading) {
-            return; // Do nothing while auth is loading
+            return; // Do nothing while auth is loading.
         }
+        
+        // If auth is resolved and there's no user, redirect to login.
         if (!user) {
-            // If auth is resolved and there's no user, redirect to login.
             toast.error("You must be logged in to play a quiz.");
             router.replace('/auth/login?from=/home');
             return;
         }
 
+        // Now that we have a user, fetch the quiz.
         const fetchQuiz = async () => {
             setLoading(true);
             setError(null);
@@ -112,6 +114,7 @@ function QuizGame() {
                 setLoading(false);
             }
         };
+        
         fetchQuiz();
     }, [format, user, authLoading, router]);
 
