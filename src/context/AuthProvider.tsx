@@ -294,7 +294,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             variant: 'destructive',
         });
         try {
+            // Fallback: try to at least save the attempt itself without a transaction
+            const statsUpdate: {[key:string]: any} = {
+              quizzesPlayed: increment(1),
+              seenQuestionIds: arrayUnion(...questionIds)
+            };
+             if (attempt.score === attempt.totalQuestions && !attempt.reason) {
+                statsUpdate.perfectScores = increment(1);
+                statsUpdate.totalRewards = increment(100);
+            }
             await setDoc(attemptRef, sanitizeUserProfile(attempt));
+            await updateDoc(userRef, statsUpdate);
+            
         } catch (fallbackError) {
             console.error("Fallback attempt save also failed:", fallbackError);
         }

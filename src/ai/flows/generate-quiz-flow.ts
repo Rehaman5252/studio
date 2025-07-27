@@ -40,7 +40,8 @@ const generateQuizFlow = ai.defineFlow(
             
             // 2. Fetch available questions from the main 'questions' collection, filtered by format
             const questionsCollection = collection(db, 'questions');
-            const q = query(questionsCollection, where('format', '==', format));
+            let q = query(questionsCollection, where('format', '==', format));
+
             const querySnapshot = await getDocs(q);
             
             let availableQuestions = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as DocumentData));
@@ -50,6 +51,7 @@ const generateQuizFlow = ai.defineFlow(
 
             // If we don't have enough questions of the specific format, fall back to Mixed format
             if (potentialQuestions.length < 5 && format !== 'Mixed') {
+                console.log(`Not enough '${format}' questions, falling back to 'Mixed' format.`);
                 const mixedQuery = query(collection(db, 'questions'), where('format', '==', 'Mixed'));
                 const mixedSnapshot = await getDocs(mixedQuery);
                 const mixedQuestions = mixedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DocumentData));
@@ -74,7 +76,7 @@ const generateQuizFlow = ai.defineFlow(
             return selectedQuestions;
         });
 
-        // The questions are returned by the transaction
+        // The questions are returned by the transaction, parse them with Zod
         return { questions: questions.map(q => QuizQuestion.parse(q)) };
 
     } catch (err: any) {
