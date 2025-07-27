@@ -5,7 +5,7 @@ import { ai } from '@/ai/genkit';
 import { GenerateQuizInputSchema, GenerateQuizOutputSchema, QuizQuestion } from '../schemas';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where, runTransaction } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, runTransaction, DocumentData } from 'firebase/firestore';
 import { getQuizSlotId } from '@/lib/utils';
 
 export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof GenerateQuizOutputSchema>> {
@@ -38,13 +38,12 @@ const generateQuizFlow = ai.defineFlow(
             const slotUsedQuestionIds = slotDoc.exists() ? slotDoc.data().usedQuestionIds || [] : [];
             const excludedIds = Array.from(new Set([...seenQuestionIds, ...slotUsedQuestionIds]));
             
-            // 2. Fetch available questions from the main 'questions' collection
-            const questionsQuery = query(
-                collection(db, 'questions'),
-                where('format', '==', format === 'Mixed' ? 'Mixed' : format) // Allow format filtering
-            );
-            const querySnapshot = await getDocs(questionsQuery);
-            let availableQuestions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
+            // 2. Fetch available questions from the main 'questions' collection, filtered by format
+            const questionsCollection = collection(db, 'questions');
+            const q = query(questionsCollection, where('format', '==', format));
+            const querySnapshot = await getDocs(q);
+            
+            let availableQuestions = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as DocumentData));
 
             // 3. Filter out excluded questions
             let potentialQuestions = availableQuestions.filter(q => !excludedIds.includes(q.id));
@@ -53,15 +52,15 @@ const generateQuizFlow = ai.defineFlow(
             if (potentialQuestions.length < 5 && format !== 'Mixed') {
                 const mixedQuery = query(collection(db, 'questions'), where('format', '==', 'Mixed'));
                 const mixedSnapshot = await getDocs(mixedQuery);
-                const mixedQuestions = mixedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
+                const mixedQuestions = mixedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DocumentData));
                 potentialQuestions.push(...mixedQuestions.filter(q => !excludedIds.includes(q.id)));
                 // Ensure no duplicates if a question was in both original and mixed pool
-                potentialQuestions = Array.from(new Set(potentialQuestions.map(q => q.id))).map(id => potentialQuestions.find(q => q.id === id)!);
+                potentialQuestions = Array.from(new Map(potentialQuestions.map(q => [q.id, q])).values());
             }
             
             if (potentialQuestions.length < 5) {
-                // If still not enough, this is a critical issue. Maybe we need more questions generated.
-                throw new Error(`Not enough unique questions available for format "${format}". Only found ${potentialQuestions.length}.`);
+                // If still not enough, this is a critical issue. We need more questions generated.
+                throw new Error(`Not enough unique questions available for format "${format}". Only found ${potentialQuestions.length}. Please try another format or wait for the next slot.`);
             }
 
             // 4. Select 5 random questions
@@ -78,9 +77,9 @@ const generateQuizFlow = ai.defineFlow(
         // The questions are returned by the transaction
         return { questions: questions.map(q => QuizQuestion.parse(q)) };
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("Quiz generation failed in flow:", err);
-      throw new Error("Could not generate a unique quiz. Please try again in the next slot.");
+      throw new Error(err.message || "Could not generate a unique quiz. Please try again in the next slot.");
     }
   }
 );
