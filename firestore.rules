@@ -1,47 +1,53 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can only write to their own document, but any authenticated
-    // user can read public data for leaderboards.
+    // 👤 User profile + quiz attempts
     match /users/{userId} {
+      // ✅ All logged-in users can read any profile (for leaderboard)
       allow read: if request.auth != null;
+
+      // ✅ Only owner can write to their own profile
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // Rules for the 'quizAttempts' subcollection within each user's document.
-      // A user can read and write to their own quiz history.
+      // ✅ Quiz attempts stored as subcollection under each user
       match /quizAttempts/{attemptId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
-    
-    // The global 'questions' collection can be read by any authenticated user.
+
+    // ❓ Public questions
     match /questions/{questionId} {
-      allow read: if request.auth != null;
-      // Writes should be handled by a backend process/admin SDK.
-      allow write: if false; 
+      allow read: if true;
     }
 
-    // The 'quizSlots' collection stores which questions have been used in a slot.
-    // Any authenticated user can read/write to this to participate in a quiz.
-    match /quizSlots/{slotId} {
+    // ✅ Shared quizAttempts collection (if also used globally)
+    match /quizAttempts/{docId} {
+      allow create, read: if request.auth != null;
+    }
+
+    // ⏳ Slot uniqueness
+    match /slots/{slotId} {
+      allow read, write: if request.auth != null;
+
+      // Subcollection for used questions in this slot (if used)
+      match /usedQuestions/{docId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // 🏆 Leaderboards
+    match /leaderboard/{document=**} {
       allow read, write: if request.auth != null;
     }
 
-    // The 'leaderboard' collection holds the current quiz's live standings.
-    // Any authenticated user can read it. A user can only write their own entry.
-    match /leaderboard/currentQuiz {
-       allow read: if request.auth != null;
-       // Allow writes so players can be added to the leaderboard array.
-       // More specific rules could be added to the 'players' array if needed.
-       allow write: if request.auth != null;
-    }
-    
-    // Fallback rule: deny all other access by default.
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    // 🚫 Deny everything else that isn't explicitly allowed.
+    // This is a good security practice.
+    // NOTE: This rule is commented out as it was causing issues with other unlisted collections.
+    // A more granular approach is taken above.
+    // match /{document=**} {
+    //   allow read, write: if false;
+    // }
   }
 }
