@@ -1,57 +1,48 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if a user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Helper function to check if the user is the owner of the document
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Users can only read and update their own profile
-    match /users/{userId} {
-      allow read, update, delete: if isAuthenticated() && isOwner(userId);
-      allow create: if isAuthenticated();
-      
-      // Users can read/write their own quiz attempts and daily activity
-      match /quizAttempts/{attemptId} {
-        allow read, write: if isAuthenticated() && isOwner(userId);
-      }
-
-      match /dailyActivity/{date} {
-        allow read, write: if isAuthenticated() && isOwner(userId);
-      }
-    }
-
-    // Any authenticated user can read public questions
+    // Allow authenticated users to read and query the public questions collection.
     match /questions/{questionId} {
-      allow read: if isAuthenticated();
-    }
-    
-    // Any authenticated user can submit a question report
-    match /reportedQuestions/{reportId} {
-      allow create: if isAuthenticated();
+      allow get, list: if request.auth != null;
     }
 
-    // Any authenticated user can read the leaderboard
-    match /leaderboard/{docId} {
-        allow read: if isAuthenticated();
+    // Users can read/write their own profile and subcollections.
+    // Other authenticated users can read basic profile info for leaderboards.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+
+      // Users can manage their own quiz attempts.
+      match /quizAttempts/{attemptId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      // Users can manage their own daily activity for streaks.
+       match /dailyActivity/{date} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
-    
-    // Any authenticated user can read quiz slots (to check if they played)
+
+    // Allow authenticated users to write to the quizSlots collection to track uniqueness.
     match /quizSlots/{slotId} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if request.auth != null;
     }
 
-    // Deny all other writes by default for safety
+    // The leaderboard is public to read for anyone, but only authenticated users can write their scores.
+    match /leaderboard/currentQuiz {
+        allow read: if true;
+        allow write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to submit reports for questions.
+    match /reportedQuestions/{reportId} {
+        allow create: if request.auth != null;
+    }
+
+    // By default, deny all other access to prevent unauthorized data access.
     match /{document=**} {
-      allow write: if false;
+      allow read, write: if false;
     }
   }
 }
