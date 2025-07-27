@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthProvider";
 import { getQuizSlotId } from "@/lib/utils";
 import type { QuizQuestion } from '@/ai/schemas';
 import type { QuizAttempt } from '@/lib/mockData';
-import { useSettings } from "@/hooks/use-settings";
+import { useSettings } from "@/hooks/use-settings.tsx";
 
 import CricketLoading from "@/components/CricketLoading";
 import InterstitialLoader from "@/components/InterstitialLoader";

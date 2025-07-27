@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { SkipForward, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
-import { useSettings } from '@/hooks/use-settings';
+import { useSettings } from '@/hooks/use-settings.tsx';
 
 interface AdDialogProps {
   open: boolean;

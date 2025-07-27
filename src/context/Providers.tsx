@@ -8,7 +8,7 @@ import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { QuizStatusProvider } from './QuizStatusProvider';
 import { FirebaseProvider } from '@/providers/FirebaseProvider';
-import { SettingsProvider } from '@/hooks/use-settings';
+import { SettingsProvider } from '@/hooks/use-settings.tsx';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (

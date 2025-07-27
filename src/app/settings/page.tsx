@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useSettings } from '@/hooks/use-settings';
+import { useSettings } from '@/hooks/use-settings.tsx';
 
 function SettingsPage() {
   const { settings, setSetting, resetSettings } = useSettings();
