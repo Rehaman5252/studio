@@ -3,51 +3,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👤 User profile & quiz attempts
+    // User profiles can be read by any authenticated user (for leaderboards),
+    // but only the owner can write to their own profile.
     match /users/{userId} {
-      // ✅ All users can read profiles (for leaderboard, certificates, etc)
       allow read: if request.auth != null;
-
-      // ✅ Only the user can write to their own profile
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // 🧠 Subcollection: quizAttempts
+      // A user can only access their own quiz attempts subcollection.
       match /quizAttempts/{attemptId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // ❓ Public quiz questions
+    // Questions can be read individually or as a collection by any authenticated user.
+    // This is required for the quiz generation flow to query for questions.
     match /questions/{questionId} {
-      allow read: if true;
+      allow read: if request.auth != null;
     }
 
-    // ✅ Shared quizAttempts collection (if used globally)
-    match /quizAttempts/{docId} {
-      allow read, create: if request.auth != null;
-    }
-
-    // 📆 Corrected quiz slot metadata path
+    // Any authenticated user can read or write to quiz slot documents to track
+    // which questions have been used in a given time slot.
     match /quizSlots/{slotId} {
       allow read, write: if request.auth != null;
-
-      match /usedQuestions/{docId} {
-        allow read, write: if request.auth != null;
-      }
     }
 
-    // 🏆 Corrected leaderboard path (was /liveLeaderboard/)
+    // The live leaderboard document can be read by anyone, and written to by
+    // any authenticated user to update their score.
     match /leaderboard/currentQuiz {
       allow read: if true;
+      allow write: if request.auth != null;
     }
 
-    // 🏆 Leaderboard entry subcollection
-    match /leaderboard/currentQuiz/entries/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // 🚫 Fallback: deny everything else
+    // Default deny all other access to prevent unauthorized operations.
     match /{document=**} {
       allow read, write: if false;
     }
