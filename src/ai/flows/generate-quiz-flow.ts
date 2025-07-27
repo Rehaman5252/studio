@@ -23,7 +23,7 @@ const AIGeneratedQuestionSchema = z.object({
   explanation: z.string().optional().describe("A brief explanation for why the answer is correct.")
 });
 
-// The output schema from the AI prompt.
+// The output schema from the AI prompt. We expect an object containing a "questions" array.
 const GenerateQuizOutputSchema = z.object({
   questions: z.array(AIGeneratedQuestionSchema).describe("An array of generated quiz questions."),
 });
@@ -73,13 +73,22 @@ const generateQuizFlow = ai.defineFlow(
     
     const { output } = await quizGenerationPrompt(input);
 
-    if (!output || !output.questions || output.questions.length < input.count) {
+    // AI can sometimes return the array directly instead of a nested object.
+    // This robustly handles both cases.
+    let rawQuestions: z.infer<typeof AIGeneratedQuestionSchema>[] = [];
+    if (output && Array.isArray((output as any).questions)) {
+        rawQuestions = (output as any).questions;
+    } else if (output && Array.isArray(output)) {
+        rawQuestions = output as any;
+    }
+
+    if (!rawQuestions || rawQuestions.length < input.count) {
         throw new Error("The AI failed to generate the required number of questions. Please try again.");
     }
     
     // Ensure the generated questions are valid and the correct answer exists in options.
-    const validatedQuestions = output.questions
-        .filter(q => q.options.includes(q.correctAnswer))
+    const validatedQuestions = rawQuestions
+        .filter(q => q && q.options && Array.isArray(q.options) && q.options.includes(q.correctAnswer))
         .map(q => ({
             ...q,
             id: uuidv4(), // Assign a unique ID
