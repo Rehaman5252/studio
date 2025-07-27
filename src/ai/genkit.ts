@@ -3,7 +3,7 @@
 
 import {genkit} from '@genkit-ai/core';
 import {googleAI} from '@genkit-ai/googleai';
-import {firebaseAuth} from '@genkit-ai/firebase/auth';
+import {firebaseAuth} from '@genkit-ai/firebase';
 
 // This enables Firebase logs and tracing
 export const ai = genkit({
