@@ -1,14 +1,16 @@
 
 "use client";
-import { useEffect, Suspense } from "react";
+import { Suspense } from "react";
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import Link from 'next/link';
-import { UserCheck, ServerCrash, WifiOff, Loader2 } from 'lucide-react';
+import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, Gift, Award } from 'lucide-react';
 import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
+import SupportCard from "@/components/profile/SupportCard";
+import { useRouter } from "next/navigation";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
@@ -16,9 +18,15 @@ const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent
 });
 
 function ProfilePageContent() {
-  const { user, profile, loading, isOffline } = useAuth();
+  const { user, profile, loading, isOffline, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/auth/login');
+  };
   
-  const renderContent = () => {
+  const renderPrivateContent = () => {
     if (loading) {
       return <ProfileSkeleton />;
     }
@@ -62,6 +70,7 @@ function ProfilePageContent() {
         )
     }
     
+    // Render the user-specific components
     return <ProfileContent userProfile={profile} />;
   }
 
@@ -74,8 +83,27 @@ function ProfilePageContent() {
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         <Suspense fallback={<ProfileSkeleton />}>
-          {renderContent()}
+          {renderPrivateContent()}
         </Suspense>
+
+        <section className="space-y-3 pt-4">
+           <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+              <Link href="/settings" prefetch={true}><Settings className="mr-4" /> App Settings</Link>
+          </Button>
+          <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
+              <Link href="/policies" prefetch={true}><Scale className="mr-4" /> Legal & Policies</Link>
+          </Button>
+        </section>
+
+        <SupportCard />
+
+        {user && (
+          <section>
+              <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-5 w-5" /> Logout
+              </Button>
+          </section>
+        )}
       </main>
     </div>
   );
