@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Trophy, User, Gift, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { memo } from 'react';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
@@ -16,7 +17,7 @@ const navItems = [
 ];
 
 
-export default function BottomNav() {
+function BottomNavComponent() {
   const pathname = usePathname();
 
   return (
@@ -28,6 +29,7 @@ export default function BottomNav() {
         className="absolute bottom-4 w-[95%] max-w-lg mx-auto pointer-events-auto"
        >
          <nav className="relative flex justify-around h-16 items-center bg-background/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40">
+           <AnimatePresence>
             {navItems.map(({ href, label, icon: Icon }) => {
               const isActive = pathname === href;
               return (
@@ -46,13 +48,18 @@ export default function BottomNav() {
                           <motion.div
                               layoutId="active-nav-indicator"
                               className="absolute inset-1 bg-primary/20 rounded-xl z-0"
+                              initial={false}
+                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                           />
                       )}
                   </Link>
               );
             })}
+            </AnimatePresence>
          </nav>
        </motion.div>
     </div>
   );
 }
+
+export default memo(BottomNavComponent);

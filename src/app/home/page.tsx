@@ -3,10 +3,10 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthProvider';
 
 const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
   loading: () => <HomeContentSkeleton />,

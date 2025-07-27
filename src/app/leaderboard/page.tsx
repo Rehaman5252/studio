@@ -23,7 +23,7 @@ const LeaderboardSkeleton = () => (
     </div>
 );
 
-export default function LeaderboardPage() {
+function LeaderboardPage() {
     return (
         <div 
             className="flex flex-col h-screen bg-background animate-fade-in-up"
@@ -38,3 +38,5 @@ export default function LeaderboardPage() {
         </div>
     );
 }
+
+export default LeaderboardPage;

@@ -1,16 +1,17 @@
 
 "use client";
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, Gift, Award } from 'lucide-react';
+import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut } from 'lucide-react';
 import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
 import SupportCard from "@/components/profile/SupportCard";
 import { useRouter } from "next/navigation";
+import { memo } from 'react';
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
@@ -109,6 +110,8 @@ function ProfilePageContent() {
   );
 }
 
+const MemoizedProfilePageContent = memo(ProfilePageContent);
+
 export default function ProfilePage() {
-    return <ProfilePageContent />;
+    return <MemoizedProfilePageContent />;
 }

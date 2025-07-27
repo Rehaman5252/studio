@@ -5,8 +5,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { ScrollText } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
+import { ScrollText } from 'lucide-react';
 
 const QuizHistoryContent = dynamic(() => import('@/components/quiz-history/QuizHistoryContent'), {
   loading: () => <HistorySkeleton />,
@@ -25,8 +25,8 @@ const HistorySkeleton = () => (
 );
 
 
-export default function QuizHistoryPage() {
-  const { loading } = useAuth();
+function QuizHistoryPage() {
+  const { user, loading } = useAuth();
   
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -37,10 +37,20 @@ export default function QuizHistoryPage() {
       <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
         {loading ? (
             <HistorySkeleton />
-        ) : (
+        ) : user ? (
           <QuizHistoryContent />
+        ) : (
+          <div className="pt-4">
+            <LoginPrompt
+                icon={ScrollText}
+                title="Review Your Performance"
+                description="Sign in to view your past quizzes, stats, and AI-powered analysis."
+            />
+          </div>
         )}
       </main>
     </div>
   );
 }
+
+export default QuizHistoryPage;
