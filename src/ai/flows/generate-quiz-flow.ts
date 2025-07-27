@@ -6,7 +6,8 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { QuizQuestion } from '../schemas';
+import { v4 as uuidv4 } from 'uuid';
+
 
 const GenerateQuizInputSchema = z.object({
   format: z.string().describe("The cricket format for the quiz (e.g., T20, IPL, Test)."),
@@ -15,9 +16,9 @@ const GenerateQuizInputSchema = z.object({
   previouslyAskedQuestions: z.array(z.string()).optional().describe("A list of questions already asked in the user's current session to ensure variety."),
 });
 
-const GeneratedQuestionSchema = z.object({
-  id: z.string().describe("A unique identifier for the question, which can be a random hash."),
-  format: z.string().describe("The cricket format this question belongs to."),
+// This is the schema for a single question that the AI will generate.
+// Note: 'format' is removed from here because the AI doesn't need to generate it.
+const AIGeneratedQuestionSchema = z.object({
   question: z.string().describe("The text of the quiz question."),
   options: z.array(z.string()).length(4).describe("An array of exactly four possible answers."),
   correctAnswer: z.string().describe("The correct answer, which must be one of the strings from the options array."),
@@ -25,10 +26,21 @@ const GeneratedQuestionSchema = z.object({
 });
 
 const GenerateQuizOutputSchema = z.object({
-  questions: z.array(GeneratedQuestionSchema).describe("An array of generated quiz questions."),
+  questions: z.array(AIGeneratedQuestionSchema).describe("An array of generated quiz questions."),
 });
 
-export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof GenerateQuizOutputSchema>> {
+// This is the final schema for a question, including the id and format we add in code.
+const FinalQuestionSchema = AIGeneratedQuestionSchema.extend({
+    id: z.string(),
+    format: z.string(),
+});
+
+const FinalOutputSchema = z.object({
+    questions: z.array(FinalQuestionSchema),
+});
+
+
+export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof FinalOutputSchema>> {
   return generateQuizFlow(input);
 }
 
@@ -58,7 +70,7 @@ const generateQuizFlow = ai.defineFlow(
   {
     name: 'generateQuizFlow',
     inputSchema: GenerateQuizInputSchema,
-    outputSchema: GenerateQuizOutputSchema,
+    outputSchema: FinalOutputSchema,
   },
   async (input) => {
     
@@ -69,7 +81,13 @@ const generateQuizFlow = ai.defineFlow(
     }
     
     // Ensure the generated questions are valid and the correct answer exists in options.
-    const validatedQuestions = output.questions.filter(q => q.options.includes(q.correctAnswer));
+    const validatedQuestions = output.questions
+        .filter(q => q.options.includes(q.correctAnswer))
+        .map(q => ({
+            ...q,
+            id: uuidv4(), // Assign a unique ID
+            format: input.format, // Add the format back in
+        }));
     
     if (validatedQuestions.length < input.count) {
       console.warn("AI generated some invalid questions which were filtered out.");
