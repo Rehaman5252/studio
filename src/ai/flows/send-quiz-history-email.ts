@@ -3,9 +3,7 @@
 
 /**
  * @fileOverview A flow that sends the user their complete quiz history via email.
- * This is a placeholder and does not actually send an email yet.
- *
- * - sendQuizHistoryEmail - A function to trigger the email sending process.
+ * This flow formats the quiz history and simulates sending an email.
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
@@ -21,6 +19,39 @@ const SendQuizHistoryEmailOutputSchema = z.object({
   message: z.string(),
 });
 
+function formatHistoryForEmail(history: z.infer<typeof SendQuizHistoryEmailInputSchema>['history']): string {
+    let emailBody = "Here is your indcric quiz history:\n\n";
+
+    history.forEach(attempt => {
+        const date = new Date(attempt.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        emailBody += `----------------------------------------\n`;
+        emailBody += `Quiz: ${attempt.format} (Brand: ${attempt.brand})\n`;
+        emailBody += `Date: ${date}\n`;
+        emailBody += `Score: ${attempt.score}/${attempt.totalQuestions}\n`;
+        if (attempt.reason) {
+            emailBody += `Status: Disqualified (Malpractice)\n`;
+        }
+        emailBody += `----------------------------------------\n\n`;
+    });
+
+    return emailBody;
+}
+
+
+// In a real application, you would replace this with an actual email sending service
+// like Nodemailer, SendGrid, or Resend.
+async function sendEmail(to: string, subject: string, body: string) {
+    console.log("--- SIMULATING EMAIL ---");
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log("Body:\n", body);
+    console.log("--- END SIMULATION ---");
+    // Simulate a network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { success: true };
+}
+
+
 export async function sendQuizHistoryEmail(input: z.infer<typeof SendQuizHistoryEmailInputSchema>): Promise<z.infer<typeof SendQuizHistoryEmailOutputSchema>> {
   return sendQuizHistoryEmailFlow(input);
 }
@@ -31,16 +62,23 @@ const sendQuizHistoryEmailFlow = ai.defineFlow(
     inputSchema: SendQuizHistoryEmailInputSchema,
     outputSchema: SendQuizHistoryEmailOutputSchema,
   },
-  async (input) => {
-    console.log(`Request to send quiz history to ${input.email}.`);
-    // In a real application, you would integrate with an email service like SendGrid or Resend.
-    // For now, we just log the action and return a success message.
+  async ({ email, history }) => {
+    console.log(`Request to send quiz history to ${email}.`);
     
-    // Here you would format the `input.history` into a nice HTML or CSV format.
-
-    return {
-      success: true,
-      message: `An email with your complete quiz history will be sent to ${input.email}.`,
-    };
+    const emailBody = formatHistoryForEmail(history);
+    
+    try {
+        await sendEmail(email, "Your indcric Quiz History", emailBody);
+        return {
+          success: true,
+          message: `An email with your complete quiz history has been sent to ${email}.`,
+        };
+    } catch (error) {
+        console.error("Failed to send email:", error);
+        return {
+            success: false,
+            message: "There was an error sending the email. Please try again later.",
+        };
+    }
   }
 );

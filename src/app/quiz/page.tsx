@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthProvider";
 import { getQuizSlotId } from "@/lib/utils";
 import type { QuizQuestion } from '@/ai/schemas';
 import type { QuizAttempt } from '@/lib/mockData';
+import { useSettings } from "@/hooks/use-settings";
 
 import CricketLoading from "@/components/CricketLoading";
 import InterstitialLoader from "@/components/InterstitialLoader";
@@ -25,6 +26,7 @@ function QuizGame() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, profile, addQuizAttempt, handleMalpractice } = useAuth();
+    const { settings } = useSettings();
 
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [loading, setLoading] = useState(true);
@@ -188,33 +190,37 @@ function QuizGame() {
         if (!questions[currentQuestionIndex] || isHintVisible || isFetchingHint) return;
 
         const ad = adLibrary.hintAds[currentQuestionIndex % adLibrary.hintAds.length];
-        setAdConfig({
-            ad,
-            onFinished: async () => {
-                setAdConfig(null);
-                setIsFetchingHint(true);
-                try {
-                    const hintResult = await generateHint({ 
-                        question: questions[currentQuestionIndex].question,
-                        format: format
-                    });
-                    
-                    if (hintResult.hint) {
-                        const newQuestions = [...questions];
-                        newQuestions[currentQuestionIndex].hint = hintResult.hint;
-                        setQuestions(newQuestions);
-                        setIsHintVisible(true);
-                        setUsedHintIndices(prev => [...prev, currentQuestionIndex]);
-                    } else {
-                        toast.error("Could not get a hint at this time.");
-                    }
-                } catch (error) {
-                    toast.error("Failed to generate hint.");
-                } finally {
-                    setIsFetchingHint(false);
+        
+        const onAdFinished = async () => {
+            setAdConfig(null);
+            setIsFetchingHint(true);
+            try {
+                const hintResult = await generateHint({ 
+                    question: questions[currentQuestionIndex].question,
+                    format: format
+                });
+                
+                if (hintResult.hint) {
+                    const newQuestions = [...questions];
+                    newQuestions[currentQuestionIndex].hint = hintResult.hint;
+                    setQuestions(newQuestions);
+                    setIsHintVisible(true);
+                    setUsedHintIndices(prev => [...prev, currentQuestionIndex]);
+                } else {
+                    toast.error("Could not get a hint at this time.");
                 }
+            } catch (error) {
+                toast.error("Failed to generate hint.");
+            } finally {
+                setIsFetchingHint(false);
             }
-        });
+        };
+        
+        if (settings.autoPlayHintAd) {
+             setAdConfig({ ad, onFinished: onAdFinished });
+        } else {
+             onAdFinished();
+        }
     };
 
     if (loading) return <CricketLoading message="Fetching fresh questions..." format={format} />;
@@ -244,6 +250,7 @@ function QuizGame() {
                         isAnswerLocked={isAnswerLocked}
                         correctAnswer={currentQuestion.correctAnswer}
                         isHintVisible={isHintVisible}
+                        currentQuestionIndex={currentQuestionIndex}
                     />
                 </motion.div>
             </AnimatePresence>
@@ -256,7 +263,7 @@ function QuizGame() {
                         </>
                     ) : (
                         <>
-                            <Lightbulb className="mr-2 h-4 w-4" /> Get a Hint (Ad)
+                            <Lightbulb className="mr-2 h-4 w-4" /> Get a Hint {settings.autoPlayHintAd ? '(Ad)' : ''}
                         </>
                     )}
                 </Button>
@@ -300,4 +307,3 @@ export default function QuizPage() {
         </Suspense>
     )
 }
-    

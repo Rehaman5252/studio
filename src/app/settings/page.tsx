@@ -8,15 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Moon, Bell, Music, Vibrate, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/use-settings';
 
 function SettingsPage() {
+  const { settings, setSetting, resetSettings } = useSettings();
   const { toast } = useToast();
 
   const handleReset = () => {
-    // In a real app, you would reset settings in localStorage or a state manager.
+    resetSettings();
     toast({
-        title: "Settings Reset",
-        description: "All settings have been restored to their default values.",
+      title: "Settings Reset",
+      description: "All settings have been restored to their default values.",
     });
   };
 
@@ -37,9 +39,9 @@ function SettingsPage() {
                 <Moon className="h-5 w-5" />
                 <span>Dark Mode</span>
               </Label>
-              <Switch id="dark-mode" defaultChecked disabled/>
+              <Switch id="dark-mode" checked={true} disabled />
             </div>
-             <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Light mode is coming soon!
             </p>
           </CardContent>
@@ -55,7 +57,11 @@ function SettingsPage() {
                 <Bell className="h-5 w-5" />
                 <span>Quiz Reminders & Alerts</span>
               </Label>
-              <Switch id="notifications" defaultChecked />
+              <Switch 
+                id="notifications" 
+                checked={settings.notifications}
+                onCheckedChange={(checked) => setSetting('notifications', checked)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -70,14 +76,22 @@ function SettingsPage() {
                 <Music className="h-5 w-5" />
                 <span>In-App Sounds</span>
               </Label>
-              <Switch id="sound" defaultChecked />
+              <Switch 
+                id="sound" 
+                checked={settings.sound}
+                onCheckedChange={(checked) => setSetting('sound', checked)}
+              />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="vibration" className="flex items-center gap-2 text-base">
                 <Vibrate className="h-5 w-5" />
                 <span>Vibration Feedback</span>
               </Label>
-              <Switch id="vibration" defaultChecked />
+              <Switch 
+                id="vibration" 
+                checked={settings.vibration}
+                onCheckedChange={(checked) => setSetting('vibration', checked)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -92,10 +106,14 @@ function SettingsPage() {
                 <RefreshCw className="h-5 w-5" />
                 <span>Auto-play Hint Ad</span>
               </Label>
-              <Switch id="hint-ad" defaultChecked />
+              <Switch 
+                id="hint-ad" 
+                checked={settings.autoPlayHintAd}
+                onCheckedChange={(checked) => setSetting('autoPlayHintAd', checked)}
+              />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              If off, you'll need to tap to play the ad for a hint.
+              If off, you can still get a hint, but without watching an ad first.
             </p>
           </CardContent>
         </Card>

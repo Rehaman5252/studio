@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { SkipForward, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
+import { useSettings } from '@/hooks/use-settings';
 
 interface AdDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface AdDialogProps {
 }
 
 export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle, adType, adUrl, adHint, children }: AdDialogProps) {
+  const { settings } = useSettings();
   const [adTimeLeft, setAdTimeLeft] = useState(duration);
   const [isSkippable, setIsSkippable] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Mute by default
@@ -34,6 +36,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
 
     if (videoRef.current) {
         videoRef.current.currentTime = 0;
+        videoRef.current.muted = !settings.sound; // Set muted state from settings
         videoRef.current.play().catch(error => console.error("Video autoplay was prevented:", error));
     }
 
@@ -57,7 +60,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
     return () => {
       clearInterval(timer);
     };
-  }, [open, duration, skippableAfter, adType, onAdFinished]);
+  }, [open, duration, skippableAfter, adType, onAdFinished, settings.sound]);
 
   const handleVideoEnd = () => {
     onAdFinished();
@@ -102,7 +105,6 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                             <video
                                 ref={videoRef}
                                 src={adUrl}
-                                muted={isMuted}
                                 onEnded={handleVideoEnd}
                                 className="w-full h-full object-cover rounded-md"
                                 playsInline

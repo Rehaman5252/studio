@@ -78,4 +78,3 @@ export const QuizAttemptSchema = z.object({
   usedHintIndices: z.array(z.number()).optional(),
   reason: z.string().optional(),
 });
-    

@@ -1,11 +1,13 @@
 
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { QuizQuestion } from '@/ai/schemas';
+import { Flag } from 'lucide-react';
+import { ReportQuestionDialog } from './ReportQuestionDialog';
 
 const QuizOption = memo(({ option, index, isSelected, isCorrect, isRevealed, handleAnswerSelect }: {
     option: string;
@@ -37,7 +39,7 @@ const QuizOption = memo(({ option, index, isSelected, isCorrect, isRevealed, han
 });
 QuizOption.displayName = 'QuizOption';
 
-const QuestionCardComponent = ({ question, isHintVisible, options, selectedOption, handleAnswerSelect, isAnswerLocked, correctAnswer }: {
+const QuestionCardComponent = ({ question, isHintVisible, options, selectedOption, handleAnswerSelect, isAnswerLocked, correctAnswer, currentQuestionIndex }: {
     question: QuizQuestion;
     isHintVisible: boolean;
     options: string[];
@@ -45,33 +47,51 @@ const QuestionCardComponent = ({ question, isHintVisible, options, selectedOptio
     handleAnswerSelect: (option: string) => void;
     isAnswerLocked: boolean;
     correctAnswer: string;
-}) => (
-    <Card className="w-full bg-card shadow-lg min-h-[360px]">
-        <CardHeader>
-            <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
-                {question.question}
-            </CardTitle>
-            {isHintVisible && question.hint && (
-                <p className="text-sm text-primary pt-2 animate-in fade-in">
-                    <strong>Hint:</strong> {question.hint}
-                </p>
-            )}
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {options.map((option, index) => (
-                <QuizOption
-                    key={`${option}-${index}`}
-                    option={option}
-                    index={index}
-                    isSelected={selectedOption === option}
-                    isCorrect={correctAnswer === option}
-                    isRevealed={isAnswerLocked}
-                    handleAnswerSelect={handleAnswerSelect}
-                />
-            ))}
-        </CardContent>
-    </Card>
-);
+    currentQuestionIndex: number;
+}) => {
+    const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+    
+    return (
+    <>
+        <Card className="w-full bg-card shadow-lg min-h-[360px]">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <CardTitle className="text-xl md:text-2xl leading-tight text-foreground flex-1 pr-2">
+                        {currentQuestionIndex + 1}. {question.question}
+                    </CardTitle>
+                    <ReportQuestionDialog
+                        question={question}
+                        open={isReportDialogOpen}
+                        onOpenChange={setIsReportDialogOpen}
+                    >
+                         <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={() => setIsReportDialogOpen(true)}>
+                            <Flag className="h-5 w-5" />
+                         </Button>
+                    </ReportQuestionDialog>
+                </div>
+
+                {isHintVisible && question.hint && (
+                    <p className="text-sm text-primary pt-2 animate-in fade-in">
+                        <strong>Hint:</strong> {question.hint}
+                    </p>
+                )}
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {options.map((option, index) => (
+                    <QuizOption
+                        key={`${option}-${index}`}
+                        option={option}
+                        index={index}
+                        isSelected={selectedOption === option}
+                        isCorrect={correctAnswer === option}
+                        isRevealed={isAnswerLocked}
+                        handleAnswerSelect={handleAnswerSelect}
+                    />
+                ))}
+            </CardContent>
+        </Card>
+    </>
+)};
 
 QuestionCardComponent.displayName = 'QuestionCard';
 export const QuestionCard = memo(QuestionCardComponent);

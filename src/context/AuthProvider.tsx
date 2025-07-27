@@ -4,14 +4,13 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction, arrayUnion, Timestamp, collection } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
-import { collection } from 'firebase/firestore';
 import type { LivePlayer } from '@/components/leaderboard/leaderboardTypes';
 
 interface UserDataContextType {
@@ -62,6 +61,21 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Database not available");
     }
     const userRef = doc(db, 'users', user.uid);
+    let referredBy = '';
+    
+    // If a referral code was provided, find the referrer's UID
+    if (additionalData.referralCode) {
+        const usersCol = collection(db, 'users');
+        const q = query(usersCol, where('referralCode', '==', additionalData.referralCode), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            referredBy = querySnapshot.docs[0].id;
+        } else {
+            console.warn(`Referral code "${additionalData.referralCode}" not found.`);
+        }
+    }
+
+
     const docSnap = await getDoc(userRef);
 
     if (!docSnap.exists()) {
@@ -75,7 +89,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         emailVerified: user.emailVerified,
-        referredBy: additionalData.referredBy || '',
+        referredBy: referredBy,
+        referralBonusPaid: false,
         quizzesPlayed: 0,
         perfectScores: 0,
         totalRewards: 0,
@@ -88,12 +103,20 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
         currentStreak: 0,
         lastStreakTimestamp: null,
-        seenQuestionIds: [], // Initialize seen questions array
+        seenQuestionIds: [],
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
+      
+      // If a referrer was found, update their list of referrals
+      if (referredBy) {
+          const referrerRef = doc(db, 'users', referredBy);
+          await updateDoc(referrerRef, {
+              referrals: arrayUnion(user.uid)
+          });
+      }
+
       return newUserProfile;
     } else {
-        // If user logs in with Google and doc exists, ensure their photoURL is updated from Google.
         if (user.photoURL && user.photoURL !== docSnap.data().photoURL) {
             await updateDoc(userRef, { photoURL: user.photoURL });
         }
@@ -127,11 +150,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const data = docSnap.data();
         setProfile({
             ...data,
-            phoneVerified: data.phoneVerified || false // Ensure phoneVerified is always a boolean
+            phoneVerified: data.phoneVerified || false
         });
       } else {
-        // This case can happen for a brief moment when a new user signs up.
-        // handleUserDocument will create it, and the next snapshot will catch it.
         handleUserDocument(firebaseUser);
         setProfile(null);
       }
@@ -186,7 +207,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const { user } = userCredential;
         await updateProfile(user, { displayName: name });
-        await handleUserDocument(user, { name, phone, referredBy: referralCode });
+        await handleUserDocument(user, { name, phone, referralCode });
         await sendEmailVerification(user);
         return user;
     } catch (error: any) {
@@ -205,7 +226,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       const userCredential = await firebaseSignInWithEmail(auth, email, password);
-      // We don't need to call handleUserDocument here as the useEffect will fetch the existing profile.
       toast({ title: "Signed In", description: "Welcome back!" });
       return userCredential.user;
     } catch (error: any)
@@ -251,20 +271,28 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             if (!userDoc.exists()) throw new Error("User profile does not exist.");
             const userProfile = userDoc.data();
 
+            const statsUpdate: {[key:string]: any} = { 
+                quizzesPlayed: increment(1),
+                seenQuestionIds: arrayUnion(...questionIds)
+            };
+            
+            // Referral Bonus Logic
+            const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
+            if (isPerfectScore && userProfile.referredBy && !userProfile.referralBonusPaid) {
+                const referrerRef = doc(db, 'users', userProfile.referredBy);
+                transaction.update(referrerRef, { referralEarnings: increment(50) });
+                statsUpdate.referralBonusPaid = true; // Mark as paid for the current user
+            }
+
             // Daily Activity & Streak Logic
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+            const todayStr = today.toISOString().split('T')[0];
             const dailyActivityRef = doc(db, 'users', firebaseUser.uid, 'dailyActivity', todayStr);
             const dailyActivityDoc = await transaction.get(dailyActivityRef);
             
             let dailyData = dailyActivityDoc.exists() ? dailyActivityDoc.data() : { total: 0, T20: 0, ODI: 0, Test: 0, IPL: 0, WPL: 0, Mixed: 0 };
             dailyData.total = (dailyData.total || 0) + 1;
             dailyData[attempt.format] = (dailyData[attempt.format] || 0) + 1;
-
-            const statsUpdate: {[key:string]: any} = { 
-                quizzesPlayed: increment(1),
-                seenQuestionIds: arrayUnion(...questionIds)
-            };
 
             const lastStreakDate = userProfile.lastStreakTimestamp ? (userProfile.lastStreakTimestamp as Timestamp).toDate() : null;
             const isSameDay = lastStreakDate ? today.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
@@ -317,8 +345,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 time: totalTime,
                 disqualified: isDisqualified,
             });
-
-            const isPerfectScore = attempt.score === attempt.totalQuestions && !isDisqualified;
             
             if (isPerfectScore) {
                 statsUpdate.perfectScores = increment(1);
@@ -345,7 +371,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             variant: 'destructive',
         });
         try {
-            // Fallback: try to at least save the attempt itself without a transaction
             const statsUpdate: {[key:string]: any} = {
               quizzesPlayed: increment(1),
               seenQuestionIds: arrayUnion(...questionIds)
