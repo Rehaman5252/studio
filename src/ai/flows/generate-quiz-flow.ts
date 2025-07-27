@@ -4,7 +4,7 @@
 /**
  * @fileOverview A flow that generates a 5-question cricket quiz.
  * This flow attempts to generate a valid quiz from an AI model.
- * If generation or validation fails, it returns an empty array to be handled by the calling API route.
+ * If generation or validation fails, it throws an error to be handled by the calling API route.
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
@@ -74,73 +74,61 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema,
   },
   async (input: GenerateQuizInput) => {
-    try {
-        console.log('generateQuizFlow started with input:', input);
+    console.log('generateQuizFlow started with input:', input);
 
-        const llmResponse = await prompt(input);
-        const text = llmResponse.text();
+    const llmResponse = await prompt(input);
+    const text = llmResponse.text();
 
-        if (!text) {
-            console.error("AI returned empty response.");
-            return { questions: [] }; // Return empty array on failure
-        }
-        
-        let rawQuestions: any[];
-
-        try {
-            const jsonStart = text.indexOf('{');
-            const jsonEnd = text.lastIndexOf('}');
-            if (jsonStart === -1 || jsonEnd === -1) {
-                console.error("AI response did not contain a JSON object.");
-                return { questions: [] }; // Return empty array on failure
-            }
-            const jsonString = text.substring(jsonStart, jsonEnd + 1);
-            const parsedJson = JSON.parse(jsonString);
-
-            if (parsedJson && Array.isArray(parsedJson.questions)) {
-                rawQuestions = parsedJson.questions;
-            } else {
-                console.error("Parsed JSON does not have a 'questions' array.");
-                return { questions: [] }; // Return empty array on failure
-            }
-        } catch (e: any) {
-            console.error("Failed to parse JSON from AI response:", e.message);
-            console.error("Raw AI response:", text);
-            return { questions: [] }; // Return empty array on failure
-        }
-
-        const validatedQuestions: QuizQuestion[] = rawQuestions
-            .map(q => {
-                const parsed = AIGeneratedQuestionSchema.safeParse(q);
-                if (!parsed.success) {
-                    console.warn('AI generated an invalid question, filtering out:', parsed.error);
-                    return null;
-                }
-                if (!parsed.data.options.includes(parsed.data.correctAnswer)) {
-                    console.warn('AI generated a question where correctAnswer is not in options, filtering out:', parsed.data);
-                    return null;
-                }
-                return {
-                    ...parsed.data,
-                    id: uuidv4(),
-                    format: input.format,
-                };
-            })
-            .filter((q): q is QuizQuestion => q !== null);
-
-        if (validatedQuestions.length < 5) {
-            console.error(`AI generated only ${validatedQuestions.length} valid questions. This will trigger a fallback.`);
-            return { questions: [] }; // Return empty array to signal failure
-        }
-
-        console.log('Successfully generated and validated 5 questions from AI.');
-        return { questions: validatedQuestions };
-
-    } catch (error) {
-        console.error("Catastrophic error in generateQuizFlow:", error);
-        // This is a safety net for unexpected errors (e.g., Genkit service down).
-        // It signals failure to the API route.
-        return { questions: [] };
+    if (!text) {
+        throw new Error("AI returned empty response.");
     }
+    
+    let rawQuestions: any[];
+
+    try {
+        const jsonStart = text.indexOf('{');
+        const jsonEnd = text.lastIndexOf('}');
+        if (jsonStart === -1 || jsonEnd === -1) {
+            throw new Error("AI response did not contain a valid JSON object.");
+        }
+        const jsonString = text.substring(jsonStart, jsonEnd + 1);
+        const parsedJson = JSON.parse(jsonString);
+
+        if (parsedJson && Array.isArray(parsedJson.questions)) {
+            rawQuestions = parsedJson.questions;
+        } else {
+            throw new Error("Parsed JSON does not have a 'questions' array.");
+        }
+    } catch (e: any) {
+        console.error("Failed to parse JSON from AI response:", e.message);
+        console.error("Raw AI response:", text);
+        throw new Error("Failed to parse valid JSON from AI.");
+    }
+
+    const validatedQuestions: QuizQuestion[] = rawQuestions
+        .map(q => {
+            const parsed = AIGeneratedQuestionSchema.safeParse(q);
+            if (!parsed.success) {
+                console.warn('AI generated an invalid question, filtering out:', parsed.error);
+                return null;
+            }
+            if (!parsed.data.options.includes(parsed.data.correctAnswer)) {
+                console.warn('AI generated a question where correctAnswer is not in options, filtering out:', parsed.data);
+                return null;
+            }
+            return {
+                ...parsed.data,
+                id: uuidv4(),
+                format: input.format,
+            };
+        })
+        .filter((q): q is QuizQuestion => q !== null);
+
+    if (validatedQuestions.length < 5) {
+        throw new Error(`AI generated only ${validatedQuestions.length} valid questions. Triggering fallback.`);
+    }
+
+    console.log('Successfully generated and validated 5 questions from AI.');
+    return { questions: validatedQuestions };
   }
 );

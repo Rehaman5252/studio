@@ -13,28 +13,27 @@ export async function POST(req: Request) {
 
     console.log(`API received request for format: ${input.format}`);
     
-    // Attempt to generate quiz from AI
-    const quizResponse = await generateQuiz(input);
-    
-    // If AI fails (returns empty array), use the guaranteed fallback
-    if (!quizResponse || !quizResponse.questions || quizResponse.questions.length < 5) {
-        console.warn(`AI generation failed or returned insufficient questions for format: ${input.format}. Serving fallback quiz.`);
+    try {
+        // Attempt to generate quiz from AI
+        const quizResponse = await generateQuiz(input);
+        // This part will only be reached if the AI flow is successful and returns 5 valid questions.
+        console.log('Successfully served AI-generated quiz.');
+        return NextResponse.json(quizResponse);
+    } catch (error) {
+        // If generateQuiz throws any error, we catch it here.
+        console.warn(`AI generation failed for format: ${input.format}. Serving fallback quiz. Reason:`, (error as Error).message);
         const fallbackQuestions = getFallbackQuestions(input.format);
         return NextResponse.json({ questions: fallbackQuestions });
     }
-    
-    // If AI succeeds, return its questions
-    return NextResponse.json(quizResponse);
 
   } catch (error: any) {
+    // This is a final safety net for issues like invalid JSON in the request body.
     console.error('🔥 Unhandled error in /api/quiz route:', error);
-    // Final safety net: if anything else breaks, serve fallback questions.
-    // This ensures the API NEVER crashes.
-    const { format } = await req.json().catch(() => ({ format: 'Mixed' })); // Safely get format
+    const format = 'Mixed'; // Default format on catastrophic failure
     const fallbackQuestions = getFallbackQuestions(format);
     return NextResponse.json(
       { questions: fallbackQuestions, error: 'An unexpected server error occurred.' },
-      { status: 200 } // Return 200 so the frontend can still render the quiz
+      { status: 500 }
     );
   }
 }
