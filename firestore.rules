@@ -1,32 +1,37 @@
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // User profile, attempts, and status
+    // Users can only read/write their own document.
+    // Public reads for leaderboards are handled below.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
 
+      // Allow authenticated users to read specific fields needed for leaderboards.
+      allow list: if request.auth != null;
+      
+      // Allow authenticated users to read their own quiz history.
       match /quizAttempts/{attemptId} {
-        allow read, write: if request.auth.uid == userId;
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Leaderboard is public read only
+    // Allow authenticated users to read the questions collection.
+    match /questions/{questionId} {
+      allow read: if request.auth != null;
+    }
+
+    // Allow authenticated users to read and write to the quiz slots.
+    match /quizSlots/{slotId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to read and write to the live leaderboard.
     match /leaderboard/{docId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
-
-    // askedQuestions: queried during quiz generation
-    match /askedQuestions/{questionId} {
-      allow read, write, list: if request.auth != null;
-    }
-
-    // quizzes: allow client to read, only admin writes
-    match /quizzes/{quizId} {
-      allow read: if request.auth != null;
-      allow write: if false;
+        allow read, write: if request.auth != null;
     }
   }
 }
