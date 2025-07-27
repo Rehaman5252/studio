@@ -265,12 +265,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 disqualified: isDisqualified,
             });
 
-            const isPerfect = attempt.score === attempt.totalQuestions && !isDisqualified;
+            const isPerfectScore = attempt.score === attempt.totalQuestions && !isDisqualified;
             const statsUpdate: {[key:string]: any} = { 
                 quizzesPlayed: increment(1),
-                seenQuestionIds: arrayUnion(...questionIds) // Add question IDs to user's seen list
+                seenQuestionIds: arrayUnion(...questionIds)
             };
-            if (isPerfect) {
+            if (isPerfectScore) {
                 statsUpdate.perfectScores = increment(1);
                 statsUpdate.totalRewards = increment(100);
             }
