@@ -77,19 +77,16 @@ function QuizGame() {
     }, [handleVisibilityChange]);
     
     useEffect(() => {
-        // Wait until auth is resolved.
         if (authLoading) {
-            return; // Do nothing while auth is loading.
+            return;
         }
         
-        // If auth is resolved and there's no user, redirect to login.
         if (!user) {
             toast.error("You must be logged in to play a quiz.");
             router.replace('/auth/login?from=/home');
             return;
         }
 
-        // Now that we have a user, fetch the quiz.
         const fetchQuiz = async () => {
             setLoading(true);
             setError(null);
@@ -102,7 +99,7 @@ function QuizGame() {
 
                 const data = await response.json();
 
-                if (!response.ok || data.error || !data.questions || data.questions.length < 5) {
+                if (!response.ok || data.error || !data.questions || data.questions.length === 0) {
                     throw new Error(data.error || 'Failed to fetch a valid quiz.');
                 }
                 setQuestions(data.questions);
@@ -231,9 +228,9 @@ function QuizGame() {
         setAdConfig({ ad, onFinished: onAdFinished });
     };
 
-    if (loading || authLoading) return <CricketLoading message="Fetching fresh questions..." format={format} />;
+    if (loading || authLoading) return <CricketLoading message="Generating a fresh set of questions..." format={format} />;
     if (error) return <CricketLoading state="error" errorMessage={error}><Button onClick={() => router.push('/home')}>Go Home</Button></CricketLoading>;
-    if (!questions.length) return <CricketLoading state="error" errorMessage="No questions found for this format." />;
+    if (!questions.length) return <CricketLoading state="error" errorMessage="No questions were generated for this format." />;
 
     const currentQuestion = questions[currentQuestionIndex];
 
