@@ -6,18 +6,16 @@ export const dynamic = 'force-dynamic'; // ensure the route is always dynamic
 
 export async function POST(request: Request) {
   try {
-    // The only required parameter is the format.
-    const { format } = await request.json();
+    const { format, userId } = await request.json();
     
-    if (!format) {
+    if (!format || !userId) {
       return NextResponse.json(
-        { error: 'Format is required.' },
+        { error: 'Format and userId are required.' },
         { status: 400 }
       );
     }
     
-    // Call the simplified generateQuiz flow, which no longer needs askedQuestions.
-    const quizData = await generateQuiz({ format, askedQuestions: [] });
+    const quizData = await generateQuiz({ format, userId });
     
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
       return NextResponse.json(
@@ -27,10 +25,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(quizData);
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error generating quiz:', error);
     return NextResponse.json(
-      { error: 'Failed to generate quiz due to an internal server error.' },
+      { error: error.message || 'Failed to generate quiz due to an internal server error.' },
       { status: 500 }
     );
   }

@@ -50,9 +50,14 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "questions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "format", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
 }
-
-    

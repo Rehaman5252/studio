@@ -7,3 +7,4 @@ import '@/ai/flows/generate-quiz-analysis-flow.ts';
 import '@/ai/flows/generate-quiz-flow.ts';
 import '@/ai/flows/generate-cricket-fact.ts';
 import '@/ai/flows/send-quiz-history-email.ts';
+import '@/ai/flows/generate-and-store-questions.ts';

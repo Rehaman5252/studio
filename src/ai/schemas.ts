@@ -15,7 +15,7 @@ export type QuizQuestion = z.infer<typeof QuizQuestion>;
 
 export const GenerateQuizInputSchema = z.object({
     format: z.string().describe("The cricket format for which to generate the quiz."),
-    askedQuestions: z.array(z.string()).describe("An array of question IDs that the user has already seen to avoid repetition.")
+    userId: z.string().describe("The unique ID of the user requesting the quiz.")
 });
 
 export const GenerateQuizOutputSchema = z.object({

@@ -75,6 +75,8 @@ function QuizGame() {
     }, [handleVisibilityChange]);
     
     useEffect(() => {
+        if (!user) return; // Wait until user is available
+
         const fetchQuiz = async () => {
             setLoading(true);
             setError(null);
@@ -82,8 +84,7 @@ function QuizGame() {
                 const response = await fetch('/api/quiz', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // We only need to send the format now.
-                    body: JSON.stringify({ format }),
+                    body: JSON.stringify({ format, userId: user.uid }),
                 });
 
                 const data = await response.json();
@@ -101,7 +102,7 @@ function QuizGame() {
             }
         };
         fetchQuiz();
-    }, [format]);
+    }, [format, user]);
 
     const finishQuiz = useCallback(async () => {
         const finalAnswers = [...userAnswers];

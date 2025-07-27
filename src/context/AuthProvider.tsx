@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -86,6 +86,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         referralEarnings: 0,
         noBallCount: 0,
         lastNoBallTimestamp: null,
+        seenQuestionIds: [], // Initialize seen questions array
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       return newUserProfile;
@@ -240,6 +241,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const userRef = doc(db, 'users', firebaseUser.uid);
     const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
     const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
+    const questionIds = attempt.questions.map(q => q.id);
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -249,13 +251,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 leaderboardPlayers = leaderboardDoc.data().players || [];
             }
             
-            // Remove existing entry for the user, if any
             leaderboardPlayers = leaderboardPlayers.filter(p => p.uid !== firebaseUser.uid);
             
             const totalTime = attempt.timePerQuestion ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
             const isDisqualified = !!attempt.reason;
 
-            // Add new entry for the user
             leaderboardPlayers.push({
                 uid: firebaseUser.uid,
                 name: profile.name,
@@ -265,25 +265,25 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 disqualified: isDisqualified,
             });
 
-            // Prepare personal user stats update
             const isPerfect = attempt.score === attempt.totalQuestions && !isDisqualified;
-            const statsUpdate: {[key:string]: any} = { quizzesPlayed: increment(1) };
+            const statsUpdate: {[key:string]: any} = { 
+                quizzesPlayed: increment(1),
+                seenQuestionIds: arrayUnion(...questionIds) // Add question IDs to user's seen list
+            };
             if (isPerfect) {
                 statsUpdate.perfectScores = increment(1);
                 statsUpdate.totalRewards = increment(100);
             }
             
-            // Execute all writes in the transaction
-            transaction.set(attemptRef, sanitizeUserProfile(attempt)); // Set personal quiz history
-            transaction.update(userRef, statsUpdate); // Update user's aggregate stats
+            transaction.set(attemptRef, sanitizeUserProfile(attempt));
+            transaction.update(userRef, statsUpdate);
             transaction.set(leaderboardRef, { 
                 players: leaderboardPlayers, 
                 lastUpdated: serverTimestamp(),
-                quizId: attempt.slotId, // Use slotId as the quizId for this period
-            }, { merge: true }); // Merge to avoid overwriting other fields
+                quizId: attempt.slotId,
+            }, { merge: true });
         });
 
-        // Update local state after successful transaction
         setLastAttemptInSlot(attempt);
 
     } catch (error) {
@@ -293,8 +293,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             description: "Could not save your quiz result. Please check your connection.",
             variant: 'destructive',
         });
-        // If the transaction fails, we might need to fall back to a simpler write
-        // for personal history to not lose the data entirely.
         try {
             await setDoc(attemptRef, sanitizeUserProfile(attempt));
         } catch (fallbackError) {
@@ -323,12 +321,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: serverTimestamp()
     };
     
-    // We can't use updateUserData here because it would cause an infinite loop
-    // as updateUserData depends on this context. Direct update is necessary.
     const sanitizedData = sanitizeUserProfile(updatedProfileData);
     await updateDoc(userRef, sanitizedData);
     
-    // Manually update local profile state to reflect change immediately
     setProfile((prev: any) => ({ ...prev, ...updatedProfileData }));
 
     return newNoBallCount;
