@@ -1,53 +1,37 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👤 User profile + quiz attempts
+    // Users can read public profile info for leaderboards, but only write to their own doc.
     match /users/{userId} {
-      // ✅ All logged-in users can read any profile (for leaderboard)
       allow read: if request.auth != null;
-
-      // ✅ Only owner can write to their own profile
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // ✅ Quiz attempts stored as subcollection under each user
+      // Users can only read and write to their own quiz attempts subcollection.
       match /quizAttempts/{attemptId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // ❓ Public questions
+    // Questions are public for all authenticated users to read.
     match /questions/{questionId} {
+      allow read: if request.auth != null;
+    }
+
+    // Quiz slots are used for uniqueness checks and can be read/written by any authenticated user.
+    match /quizSlots/{slotId} {
+       allow read, write: if request.auth != null;
+    }
+    
+    // The live leaderboard document can be read by anyone, but only updated by authenticated users (server-side logic).
+    match /leaderboard/currentQuiz {
       allow read: if true;
+      allow write: if request.auth != null;
     }
-
-    // ✅ Shared quizAttempts collection (if also used globally)
-    match /quizAttempts/{docId} {
-      allow create, read: if request.auth != null;
+    
+    // Default deny all other paths for security.
+    match /{document=**} {
+      allow read, write: if false;
     }
-
-    // ⏳ Slot uniqueness
-    match /slots/{slotId} {
-      allow read, write: if request.auth != null;
-
-      // Subcollection for used questions in this slot (if used)
-      match /usedQuestions/{docId} {
-        allow read, write: if request.auth != null;
-      }
-    }
-
-    // 🏆 Leaderboards
-    match /leaderboard/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-
-    // 🚫 Deny everything else that isn't explicitly allowed.
-    // This is a good security practice.
-    // NOTE: This rule is commented out as it was causing issues with other unlisted collections.
-    // A more granular approach is taken above.
-    // match /{document=**} {
-    //   allow read, write: if false;
-    // }
   }
 }
