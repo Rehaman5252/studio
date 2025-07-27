@@ -1,13 +1,54 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'upload.wikimedia.org',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'videos.pexels.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.freepnglogos.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.icon-icons.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.pngkey.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'logolook.net',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
   webpack: (config, { isServer }) => {
-    // This is to solve a build issue with Genkit and its dependencies.
-    // It makes sure that server-side packages are correctly handled.
-    if (isServer) {
-      config.externals.push('long', 'caching-transform', 'memcpy', 'source-map-support');
-    }
-    config.externals.push('handlebars'); // handlebars is used by a genkit dependency
+    // This is to prevent a webpack error with handlebars
+    config.externals.push('handlebars');
     return config;
   },
 };
