@@ -3,38 +3,50 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // User profiles can be read by any authenticated user (for leaderboards),
-    // but only the owner can write to their own profile.
+    // 👤 User profile & subcollections
     match /users/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // A user can only access their own quiz attempts subcollection.
+      // 📜 Subcollection: quizAttempts
       match /quizAttempts/{attemptId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // 📅 Subcollection: dailyActivity for streaks
+      match /dailyActivity/{date} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Questions can be read individually or as a collection by any authenticated user.
-    // This is required for the quiz generation flow to query for questions.
+    // ❓ Public quiz questions
     match /questions/{questionId} {
-      allow read: if request.auth != null;
+      allow read: if true;
+    }
+    
+    // Allow querying the questions collection
+    match /questions {
+      allow list: if request.auth != null;
     }
 
-    // Any authenticated user can read or write to quiz slot documents to track
-    // which questions have been used in a given time slot.
+    // ✅ Shared quizAttempts collection (if used globally)
+    match /quizAttempts/{docId} {
+      allow read, create: if request.auth != null;
+    }
+
+    // 📆 Corrected quiz slot metadata path
     match /quizSlots/{slotId} {
       allow read, write: if request.auth != null;
     }
 
-    // The live leaderboard document can be read by anyone, and written to by
-    // any authenticated user to update their score.
+    // 🏆 Corrected leaderboard path
     match /leaderboard/currentQuiz {
       allow read: if true;
+      // Allow authenticated users to add/update their own scores
       allow write: if request.auth != null;
     }
 
-    // Default deny all other access to prevent unauthorized operations.
+    // 🚫 Fallback: deny everything else
     match /{document=**} {
       allow read, write: if false;
     }

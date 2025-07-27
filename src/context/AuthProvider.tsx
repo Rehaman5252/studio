@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction, arrayUnion, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -86,6 +86,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         referralEarnings: 0,
         noBallCount: 0,
         lastNoBallTimestamp: null,
+        currentStreak: 0,
+        lastStreakTimestamp: null,
         seenQuestionIds: [], // Initialize seen questions array
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
@@ -145,7 +147,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const currentSlotId = getQuizSlotId();
-    const attemptDocRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', currentSlotId);
+    const attemptDocRef = doc(collection(db, 'users', firebaseUser.uid, 'quizAttempts'), currentSlotId);
     const unsubscribeAttempt = onSnapshot(attemptDocRef, (docSnap) => {
         if (docSnap.exists()) {
             setLastAttemptInSlot(docSnap.data() as QuizAttempt);
@@ -239,12 +241,62 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     if (!firebaseUser || !profile || !db) throw new Error("User not authenticated, profile not loaded, or DB not available.");
 
     const userRef = doc(db, 'users', firebaseUser.uid);
-    const attemptRef = doc(db, 'users', 'quizAttempts', attempt.slotId);
+    const attemptRef = doc(collection(db, 'users', firebaseUser.uid, 'quizAttempts'), attempt.slotId);
     const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
     const questionIds = attempt.questions.map(q => q.id);
 
     try {
         await runTransaction(db, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User profile does not exist.");
+            const userProfile = userDoc.data();
+
+            // Daily Activity & Streak Logic
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+            const dailyActivityRef = doc(db, 'users', firebaseUser.uid, 'dailyActivity', todayStr);
+            const dailyActivityDoc = await transaction.get(dailyActivityRef);
+            
+            let dailyData = dailyActivityDoc.exists() ? dailyActivityDoc.data() : { total: 0, T20: 0, ODI: 0, Test: 0, IPL: 0, WPL: 0, Mixed: 0 };
+            dailyData.total = (dailyData.total || 0) + 1;
+            dailyData[attempt.format] = (dailyData[attempt.format] || 0) + 1;
+
+            const statsUpdate: {[key:string]: any} = { 
+                quizzesPlayed: increment(1),
+                seenQuestionIds: arrayUnion(...questionIds)
+            };
+
+            const lastStreakDate = userProfile.lastStreakTimestamp ? (userProfile.lastStreakTimestamp as Timestamp).toDate() : null;
+            const isSameDay = lastStreakDate ? today.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
+
+            if (!isSameDay) {
+                const meetsStreakConditions =
+                    dailyData.total >= 15 &&
+                    dailyData.T20 >= 2 &&
+                    dailyData.ODI >= 2 &&
+                    dailyData.Test >= 2 &&
+                    dailyData.IPL >= 2 &&
+                    dailyData.WPL >= 2 &&
+                    dailyData.Mixed >= 2;
+
+                if (meetsStreakConditions) {
+                    const yesterday = new Date();
+                    yesterday.setDate(today.getDate() - 1);
+                    const isConsecutive = lastStreakDate ? yesterday.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
+                    
+                    statsUpdate.currentStreak = isConsecutive ? increment(1) : 1;
+                    statsUpdate.lastStreakTimestamp = serverTimestamp();
+                } else if (lastStreakDate) {
+                    const twoDaysAgo = new Date();
+                    twoDaysAgo.setDate(today.getDate() - 2);
+                    if (lastStreakDate < twoDaysAgo) {
+                         statsUpdate.currentStreak = 0;
+                    }
+                }
+            }
+            
+            transaction.set(dailyActivityRef, dailyData, { merge: true });
+
             const leaderboardDoc = await transaction.get(leaderboardRef);
             let leaderboardPlayers: LivePlayer[] = [];
 
@@ -267,10 +319,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             });
 
             const isPerfectScore = attempt.score === attempt.totalQuestions && !isDisqualified;
-            const statsUpdate: {[key:string]: any} = { 
-                quizzesPlayed: increment(1),
-                seenQuestionIds: arrayUnion(...questionIds)
-            };
+            
             if (isPerfectScore) {
                 statsUpdate.perfectScores = increment(1);
                 statsUpdate.totalRewards = increment(100);
@@ -340,7 +389,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     setProfile((prev: any) => ({ ...prev, ...updatedProfileData }));
 
     return newNoBallCount;
-  }, [firebaseUser, profile, db]);
+  }, [firebaseUser, profile]);
 
   const value = { 
     user: firebaseUser,
