@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('API Error generating quiz:', error);
-    // This catches errors in the request parsing itself
+    // This catches errors in the request parsing itself and other unexpected server errors
     return NextResponse.json(
       { error: error.message || 'Failed to generate quiz due to an internal server error.' },
       { status: 500 }
