@@ -96,28 +96,6 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card shadow-lg">
-          <CardHeader>
-            <CardTitle>Hint Preferences</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="hint-ad" className="flex items-center gap-2 text-base">
-                <RefreshCw className="h-5 w-5" />
-                <span>Auto-play Hint Ad</span>
-              </Label>
-              <Switch 
-                id="hint-ad" 
-                checked={settings.autoPlayHintAd}
-                onCheckedChange={(checked) => setSetting('autoPlayHintAd', checked)}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              If off, you can still get a hint, but without watching an ad first.
-            </p>
-          </CardContent>
-        </Card>
-
         <Button variant="destructive" className="w-full" onClick={handleReset}>
           Reset All Settings to Default
         </Button>

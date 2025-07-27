@@ -216,11 +216,7 @@ function QuizGame() {
             }
         };
         
-        if (settings.autoPlayHintAd) {
-             setAdConfig({ ad, onFinished: onAdFinished });
-        } else {
-             onAdFinished();
-        }
+        setAdConfig({ ad, onFinished: onAdFinished });
     };
 
     if (loading) return <CricketLoading message="Fetching fresh questions..." format={format} />;
@@ -263,7 +259,7 @@ function QuizGame() {
                         </>
                     ) : (
                         <>
-                            <Lightbulb className="mr-2 h-4 w-4" /> Get a Hint {settings.autoPlayHintAd ? '(Ad)' : ''}
+                            <Lightbulb className="mr-2 h-4 w-4" /> Get a Hint (Ad)
                         </>
                     )}
                 </Button>

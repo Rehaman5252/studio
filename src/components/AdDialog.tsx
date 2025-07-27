@@ -26,17 +26,23 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
   const [isSkippable, setIsSkippable] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Mute by default
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  const handleSkip = () => {
+      if (videoRef.current) {
+          videoRef.current.pause();
+      }
+      onAdFinished();
+  }
 
   useEffect(() => {
     if (!open) return;
 
-    // Reset state for new ad
     setAdTimeLeft(duration);
     setIsSkippable(false);
 
     if (videoRef.current) {
         videoRef.current.currentTime = 0;
-        videoRef.current.muted = !settings.sound; // Set muted state from settings
+        videoRef.current.muted = !settings.sound;
         videoRef.current.play().catch(error => console.error("Video autoplay was prevented:", error));
     }
 
@@ -45,6 +51,9 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
         const newTime = prev - 1;
         if (newTime <= duration - skippableAfter) {
             setIsSkippable(true);
+            // Auto-skip when skippable
+            clearInterval(timer);
+            setTimeout(handleSkip, 500); // Give a brief moment before auto-closing
         }
         if (newTime <= 0) {
           clearInterval(timer);
@@ -66,18 +75,10 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
     onAdFinished();
   };
   
-  const handleSkip = () => {
-      if (videoRef.current) {
-          videoRef.current.pause();
-      }
-      onAdFinished();
-  }
-
   if (!open) return null;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-        // Prevent closing via overlay click unless skippable
         if (!isOpen && isSkippable) {
             handleSkip();
         }
@@ -126,11 +127,11 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
                     </span>
                     {isSkippable ? (
                         <Button onClick={handleSkip} size="sm" className="h-auto py-1 whitespace-normal">
-                            <SkipForward className="mr-2 h-4 w-4"/> Skip Ad
+                            <SkipForward className="mr-2 h-4 w-4"/> Closing...
                         </Button>
                     ) : (
                          <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
-                           {`Skip in ${adTimeLeft - (duration - skippableAfter)}s`}
+                           {`Auto-skip in ${adTimeLeft - (duration - skippableAfter)}s`}
                         </Button>
                     )}
                 </div>
