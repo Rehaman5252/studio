@@ -9,50 +9,49 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper function to check if the request is from the owner of the document
+    // Helper function to check if the user is the owner of the document
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    // Users can read/write their own data, but cannot delete their main document.
-    // They can also be created by anyone signing up.
+    // Users can only read and update their own profile
     match /users/{userId} {
-      allow read, update, write: if isOwner(userId);
+      allow read, update, delete: if isAuthenticated() && isOwner(userId);
       allow create: if isAuthenticated();
-
-      // Users can only manage their own subcollections
+      
+      // Users can read/write their own quiz attempts and daily activity
       match /quizAttempts/{attemptId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isAuthenticated() && isOwner(userId);
       }
-      match /dailyActivity/{activityId} {
-        allow read, write: if isOwner(userId);
+
+      match /dailyActivity/{date} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
       }
     }
 
-    // Any authenticated user can read the list of questions.
-    // Writes should be handled by a secure backend process (like a Cloud Function or Admin SDK).
+    // Any authenticated user can read public questions
     match /questions/{questionId} {
       allow read: if isAuthenticated();
-      allow write: if false; // Lock down direct client writes for now
     }
     
-    // Any authenticated user can write a report.
+    // Any authenticated user can submit a question report
     match /reportedQuestions/{reportId} {
-        allow create: if isAuthenticated();
+      allow create: if isAuthenticated();
     }
 
-    // Any authenticated user can read leaderboard data.
-    // Writes to the leaderboard are handled by server-side logic (transactions)
-    // which bypasses these rules when initiated from a trusted environment.
+    // Any authenticated user can read the leaderboard
     match /leaderboard/{docId} {
         allow read: if isAuthenticated();
-        allow write: if false; // Prevent clients from writing directly to the leaderboard
     }
     
-    // Quiz slots are used to track which questions have been used globally.
-    // Authenticated users can read and write to this collection.
+    // Any authenticated user can read quiz slots (to check if they played)
     match /quizSlots/{slotId} {
         allow read, write: if isAuthenticated();
+    }
+
+    // Deny all other writes by default for safety
+    match /{document=**} {
+      allow write: if false;
     }
   }
 }
