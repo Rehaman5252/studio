@@ -13,7 +13,6 @@ import { v4 as uuidv4 } from 'uuid';
 const GenerateQuizPromptInputSchema = z.object({
   format: z.string().describe("The cricket format for the quiz (e.g., T20, IPL, Test)."),
   count: z.number().min(1).max(10).default(5).describe("The number of questions to generate."),
-  previouslyAskedQuestions: z.array(z.string()).optional().describe("A list of questions already asked in the user's current session to ensure variety."),
 });
 
 // This is the schema for a single question that the AI will generate.
@@ -59,13 +58,6 @@ Each question must:
 2.  Have one correct answer clearly indicated.
 3.  CRITICALLY: The value for 'correctAnswer' MUST be an exact, case-sensitive match to one of the strings in the 'options' array.
 4.  Include a brief, clear explanation for the correct answer.
-5.  Be completely new and not similar to any of the questions in this list:
-    {{#if previouslyAskedQuestions}}
-    Previously Asked:
-    {{#each previouslyAskedQuestions}}
-    - "{{this}}"
-    {{/each}}
-    {{/if}}
 
 Your response must be structured in the requested JSON format. Do not deviate.
 `,

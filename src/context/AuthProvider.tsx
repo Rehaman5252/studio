@@ -103,7 +103,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
         currentStreak: 0,
         lastStreakTimestamp: null,
-        seenQuestionIds: [],
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       
@@ -263,7 +262,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const userRef = doc(db, 'users', firebaseUser.uid);
     const attemptRef = doc(collection(db, 'users', firebaseUser.uid, 'quizAttempts'), attempt.slotId);
     const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
-    const questionIds = attempt.questions.map(q => q.id);
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -273,7 +271,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
             const statsUpdate: {[key:string]: any} = { 
                 quizzesPlayed: increment(1),
-                seenQuestionIds: arrayUnion(...questionIds)
             };
             
             // Referral Bonus Logic
@@ -373,7 +370,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         try {
             const statsUpdate: {[key:string]: any} = {
               quizzesPlayed: increment(1),
-              seenQuestionIds: arrayUnion(...questionIds)
             };
              if (attempt.score === attempt.totalQuestions && !attempt.reason) {
                 statsUpdate.perfectScores = increment(1);

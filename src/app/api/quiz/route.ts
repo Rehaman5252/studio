@@ -3,8 +3,6 @@ import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import type { QuizQuestion } from '@/ai/schemas';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 
 export const dynamic = 'force-dynamic'; // ensure the route is always dynamic
 
@@ -60,38 +58,21 @@ const getFallbackQuiz = (format: string): QuizQuestion[] => {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { format, userId } = body;
+    const { format } = body;
     
-    if (!format || !userId) {
+    if (!format) {
       return NextResponse.json(
-        { error: 'Format and userId are required.' },
+        { error: 'Format is required.' },
         { status: 400 }
       );
     }
     
-    let previouslyAskedQuestions: string[] = [];
-    if (db) {
-      try {
-        const userDocRef = doc(db, 'users', userId);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          // Correctly access the data from the snapshot
-          const userData = userDocSnap.data();
-          previouslyAskedQuestions = userData?.seenQuestionIds || [];
-        }
-      } catch (dbError) {
-        console.warn("Could not fetch user's seen questions. Proceeding without them.", dbError);
-        // Do not block quiz generation if this fails.
-      }
-    }
-
     const maxRetries = 3;
     let attempt = 0;
     
     while (attempt < maxRetries) {
       try {
-        // The generateQuiz flow now expects previouslyAskedQuestions
-        const quizData = await generateQuiz({ format, count: 5, previouslyAskedQuestions });
+        const quizData = await generateQuiz({ format, count: 5 });
         
         if (quizData && quizData.questions && quizData.questions.length > 0) {
           // Success, return the AI-generated quiz
