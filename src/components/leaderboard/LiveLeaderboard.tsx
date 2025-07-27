@@ -59,6 +59,7 @@ const ErrorState = ({ message }: { message: string }) => (
 const LiveLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
+    const [userRank, setUserRank] = useState<LivePlayer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -84,9 +85,21 @@ const LiveLeaderboard = () => {
                         return a.time - b.time;
                     })
                     .map((p, i) => ({ ...p, rank: i + 1 }));
-                setPlayers(sortedPlayers.slice(0, 25)); // Limit to top 25
+
+                setPlayers(sortedPlayers.slice(0, 25)); // Top 25 players
+
+                if (user) {
+                    const isUserInTop25 = sortedPlayers.slice(0, 25).some(p => p.uid === user.uid);
+                    if (!isUserInTop25) {
+                        const currentUserData = sortedPlayers.find(p => p.uid === user.uid);
+                        setUserRank(currentUserData || null);
+                    } else {
+                        setUserRank(null);
+                    }
+                }
             } else {
                 setPlayers([]);
+                setUserRank(null);
             }
             setIsLoading(false);
         }, (err) => {
@@ -100,7 +113,7 @@ const LiveLeaderboard = () => {
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
@@ -111,15 +124,33 @@ const LiveLeaderboard = () => {
             </p>
         );
         
-        return players.map((player) => (
-            <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.uid === user?.uid} />
-        ));
+        return (
+            <>
+                <div className="space-y-2">
+                    {players.map((player) => (
+                        <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.uid === user?.uid} />
+                    ))}
+                </div>
+                {userRank && (
+                    <div className="mt-4">
+                        <div className="relative my-2">
+                            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-dashed" /></div>
+                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Your Rank</span></div>
+                        </div>
+                        <LeaderboardItem player={userRank} isCurrentUser={true} />
+                        <p className="text-center text-sm text-muted-foreground mt-2">
+                            A little more pace and you'll be in the top 25! Keep going!
+                        </p>
+                    </div>
+                )}
+            </>
+        );
     };
 
     return (
         <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
             <CardHeader className="text-center"><CardTitle>🏏 Current Match Standings</CardTitle><CardDescription><LiveInfo /></CardDescription></CardHeader>
-            <CardContent><div className="space-y-2">{renderContent()}</div></CardContent>
+            <CardContent>{renderContent()}</CardContent>
         </Card>
     );
 };
