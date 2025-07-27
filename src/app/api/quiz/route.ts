@@ -48,10 +48,12 @@ const getFallbackQuiz = (format: string): QuizQuestion[] => {
     }
   ];
 
+  // The fallback questions need to match the FinalQuestionSchema from the flow
   return fallbackQuestions.map(q => ({
     ...q,
     id: uuidv4(),
     format: format,
+    hint: `This question is about ${format} cricket.` // A generic hint
   }));
 };
 
@@ -73,7 +75,9 @@ export async function POST(request: Request) {
         const userDocRef = doc(db, 'users', userId);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
-          previouslyAskedQuestions = userDocSnap.data().seenQuestionIds || [];
+          // Correctly access the data from the snapshot
+          const userData = userDocSnap.data();
+          previouslyAskedQuestions = userData?.seenQuestionIds || [];
         }
       } catch (dbError) {
         console.warn("Could not fetch user's seen questions. Proceeding without them.", dbError);
@@ -86,7 +90,8 @@ export async function POST(request: Request) {
     
     while (attempt < maxRetries) {
       try {
-        const quizData = await generateQuiz({ format, userId, count: 5, previouslyAskedQuestions });
+        // The generateQuiz flow now expects previouslyAskedQuestions
+        const quizData = await generateQuiz({ format, count: 5, previouslyAskedQuestions });
         
         if (quizData && quizData.questions && quizData.questions.length > 0) {
           // Success, return the AI-generated quiz
