@@ -77,7 +77,6 @@ function QuizGame() {
     }, [handleVisibilityChange]);
     
     useEffect(() => {
-        // ** THE FIX IS HERE **
         // Wait until auth is resolved and we have a user object.
         if (authLoading) {
             return; // Do nothing while auth is loading
