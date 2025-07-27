@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -39,4 +39,4 @@ function LeaderboardPage() {
     );
 }
 
-export default LeaderboardPage;
+export default memo(LeaderboardPage);

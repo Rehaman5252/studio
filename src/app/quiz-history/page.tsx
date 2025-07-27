@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
@@ -53,4 +53,4 @@ function QuizHistoryPage() {
   );
 }
 
-export default QuizHistoryPage;
+export default memo(QuizHistoryPage);
