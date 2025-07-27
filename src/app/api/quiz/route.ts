@@ -10,10 +10,10 @@ const getFallbackQuiz = (format: string): QuizQuestion[] => {
   // A set of high-quality, generic cricket questions as a fallback
   const fallbackQuestions = [
     {
-      question: "Who is known as the 'Little Master' in the world of cricket?",
-      options: ["Sachin Tendulkar", "Sunil Gavaskar", "Virat Kohli", "Rahul Dravid"],
-      correctAnswer: "Sunil Gavaskar",
-      explanation: "Sunil Gavaskar was famously nicknamed the 'Little Master' for his technical proficiency against formidable fast bowlers. Sachin Tendulkar is often referred to as the 'Master Blaster'."
+      question: "Who is known as the 'God of Cricket'?",
+      options: ["Sachin Tendulkar", "Virat Kohli", "Ricky Ponting", "Brian Lara"],
+      correctAnswer: "Sachin Tendulkar",
+      explanation: "Sachin Tendulkar is widely regarded as one of the greatest batsmen in the history of cricket and is often referred to as the 'God of Cricket'."
     },
     {
       question: "Which country won the first-ever Cricket World Cup in 1975?",

@@ -53,8 +53,9 @@ const quizGenerationPrompt = ai.definePrompt({
 Each question must:
 1.  Have exactly four options.
 2.  Have one correct answer clearly indicated.
-3.  Include a brief, clear explanation for the correct answer.
-4.  Be completely new and not similar to any of the questions in this list:
+3.  CRITICALLY: The value for 'correctAnswer' MUST be an exact, case-sensitive match to one of the strings in the 'options' array.
+4.  Include a brief, clear explanation for the correct answer.
+5.  Be completely new and not similar to any of the questions in this list:
     {{#if previouslyAskedQuestions}}
     Previously Asked:
     {{#each previouslyAskedQuestions}}
@@ -62,7 +63,7 @@ Each question must:
     {{/each}}
     {{/if}}
 
-Your response must be structured in the requested JSON format.
+Your response must be structured in the requested JSON format. Do not deviate.
 `,
 });
 
