@@ -13,27 +13,35 @@ export async function POST(req: Request) {
 
     console.log(`API received request for format: ${input.format}`);
     
-    try {
-        // Attempt to generate quiz from AI
-        const quizResponse = await generateQuiz(input);
-        // This part will only be reached if the AI flow is successful and returns 5 valid questions.
+    // Attempt to generate quiz from AI
+    const quizResponse = await generateQuiz(input);
+    
+    // Check if the AI generation was successful. The flow returns an empty array on failure.
+    if (quizResponse && quizResponse.questions.length === 5) {
         console.log('Successfully served AI-generated quiz.');
         return NextResponse.json(quizResponse);
-    } catch (error) {
-        // If generateQuiz throws any error, we catch it here.
-        console.warn(`AI generation failed for format: ${input.format}. Serving fallback quiz. Reason:`, (error as Error).message);
+    } else {
+        // If AI generation failed, serve the guaranteed fallback quiz.
+        console.warn(`AI generation failed or returned invalid data for format: ${input.format}. Serving fallback quiz.`);
         const fallbackQuestions = getFallbackQuestions(input.format);
         return NextResponse.json({ questions: fallbackQuestions });
     }
 
   } catch (error: any) {
-    // This is a final safety net for issues like invalid JSON in the request body.
+    // This is a final safety net for unexpected issues like invalid request JSON.
     console.error('🔥 Unhandled error in /api/quiz route:', error);
     const format = 'Mixed'; // Default format on catastrophic failure
-    const fallbackQuestions = getFallbackQuestions(format);
-    return NextResponse.json(
-      { questions: fallbackQuestions, error: 'An unexpected server error occurred.' },
-      { status: 500 }
-    );
+    try {
+        const fallbackQuestions = getFallbackQuestions(format);
+        return NextResponse.json(
+            { questions: fallbackQuestions, error: 'An unexpected server error occurred.' },
+            { status: 200 } // Return 200 to ensure frontend can parse it.
+        );
+    } catch(e) {
+         return NextResponse.json(
+            { error: 'An unexpected server error occurred and fallback failed.' },
+            { status: 500 }
+        );
+    }
   }
 }
