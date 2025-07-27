@@ -1,13 +1,16 @@
+
+'use server';
+
 import {genkit} from '@genkit-ai/core';
 import {googleAI} from '@genkit-ai/googleai';
-import {enableFirebaseTelemetry} from '@genkit-ai/firebase';
+import {firebase} from '@genkit-ai/firebase';
 
 // This enables Firebase logs and tracing
-enableFirebaseTelemetry();
-
 export const ai = genkit({
   plugins: [
+    firebase(), // The firebase() plugin enables telemetry and auth.
     googleAI(),
-    // no need to include firebase() plugin in the array!
   ],
+  logLevel: 'debug',
+  enableTracingAndMetrics: true,
 });

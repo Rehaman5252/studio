@@ -18,7 +18,7 @@ import { getQuizSlotId } from '@/lib/utils';
  * @returns {Promise<object>} A promise that resolves to the generated quiz data.
  */
 export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof GenerateQuizOutputSchema>> {
-    const { format, userId } = input;
+    const { format, userId } = GenerateQuizInputSchema.parse(input);
     
     if (!db) {
         throw new Error("Firestore is not configured. The quiz cannot be generated.");
@@ -81,7 +81,7 @@ export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema
 
         // The questions are returned by the transaction, parse them with Zod
         // This ensures the data structure is correct before sending it back.
-        const validatedQuestions = questions.map(q => QuizQuestion.parse(q));
+        const validatedQuestions = z.array(QuizQuestion).parse(questions);
         return { questions: validatedQuestions };
 
     } catch (err: any) {

@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic'; // ensure the route is always dynamic
 
 export async function POST(request: Request) {
   try {
-    const { format, userId } = await request.json();
+    const body = await request.json();
+    const { format, userId } = body;
     
     if (!format || !userId) {
       return NextResponse.json(
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json(quizData);
   } catch (error: any) {
     console.error('API Error generating quiz:', error);
+    // Always return a JSON response, even on error.
     return NextResponse.json(
       { error: error.message || 'Failed to generate quiz due to an internal server error.' },
       { status: 500 }
