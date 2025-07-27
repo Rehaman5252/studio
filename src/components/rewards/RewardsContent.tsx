@@ -14,7 +14,6 @@ import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
-import LoginPrompt from '../auth/LoginPrompt';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-square p-1">
@@ -193,7 +192,7 @@ const BrandGifts = () => {
 
   if (!user) {
       return (
-        <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Log in and play a quiz to unlock exclusive brand gifts.</p><Button asChild size="sm" className="mt-4"><Link href="/auth/login?from=/rewards">Login to Play</Link></Button></CardContent></Card>
+        <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
       );
   }
 
@@ -209,14 +208,18 @@ const BrandGifts = () => {
 }
 
 function RewardsContentComponent() {
+  const { loading: authLoading } = useAuth();
+  
+  if (authLoading) {
+    return <RewardsSkeleton />;
+  }
+
   return (
     <>
       <section>
         <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
         <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
-        <Suspense fallback={<RewardsSkeleton />}>
-            <BrandGifts />
-        </Suspense>
+        <BrandGifts />
       </section>
       <section className='mt-8'>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
