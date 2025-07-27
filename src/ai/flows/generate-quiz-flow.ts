@@ -1,26 +1,27 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
 import { GenerateQuizInputSchema, GenerateQuizOutputSchema, QuizQuestion } from '../schemas';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where, runTransaction, DocumentData } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where, runTransaction, DocumentData } from 'firebase/firestore';
 import { getQuizSlotId } from '@/lib/utils';
 
-export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof GenerateQuizOutputSchema>> {
-    return await generateQuizFlow(input);
-}
 
-const generateQuizFlow = ai.defineFlow(
-  {
-    name: 'generateQuizFlow',
-    inputSchema: GenerateQuizInputSchema,
-    outputSchema: GenerateQuizOutputSchema,
-  },
-  async ({ format, userId }) => {
+/**
+ * Generates a quiz with 5 unique questions for a given user and format.
+ * This function enforces uniqueness at both the user-level (lifetime) and slot-level (global).
+ *
+ * @param {object} input - The input object.
+ * @param {string} input.format - The cricket format for the quiz.
+ * @param {string} input.userId - The ID of the user requesting the quiz.
+ * @returns {Promise<object>} A promise that resolves to the generated quiz data.
+ */
+export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof GenerateQuizOutputSchema>> {
+    const { format, userId } = input;
+    
     if (!db) {
-        throw new Error("Firestore is not configured");
+        throw new Error("Firestore is not configured. The quiz cannot be generated.");
     }
 
     try {
@@ -42,6 +43,8 @@ const generateQuizFlow = ai.defineFlow(
             const questionsCollection = collection(db, 'questions');
             let q = query(questionsCollection, where('format', '==', format));
 
+            // Transactions require all reads to be done before writes.
+            // We get all docs and filter in memory, which is acceptable for a reasonable number of questions.
             const querySnapshot = await getDocs(q);
             
             let availableQuestions = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as DocumentData));
@@ -77,11 +80,13 @@ const generateQuizFlow = ai.defineFlow(
         });
 
         // The questions are returned by the transaction, parse them with Zod
-        return { questions: questions.map(q => QuizQuestion.parse(q)) };
+        // This ensures the data structure is correct before sending it back.
+        const validatedQuestions = questions.map(q => QuizQuestion.parse(q));
+        return { questions: validatedQuestions };
 
     } catch (err: any) {
       console.error("Quiz generation failed in flow:", err);
+      // Re-throw the error to be caught by the API route
       throw new Error(err.message || "Could not generate a unique quiz. Please try again in the next slot.");
     }
-  }
-);
+}
