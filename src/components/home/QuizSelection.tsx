@@ -57,7 +57,7 @@ const QuizSelectionComponent = () => {
                  fetch('/api/quiz', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ format: 'Mixed', askedQuestions: [] }),
+                    body: JSON.stringify({ format: 'Mixed', userId: 'prefetch-user' }),
                 });
             } catch (e) {
                 // Prefetching is best-effort, so we don't show errors
@@ -88,6 +88,11 @@ const QuizSelectionComponent = () => {
     }, []);
 
     const handleStartQuiz = useCallback(() => {
+        if (!user) {
+            router.push(`/auth/login?from=/home`);
+            return;
+        }
+        
         // **Strict Slot Enforcement**
         // If an attempt for this slot exists, redirect to the results immediately.
         if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
@@ -101,10 +106,6 @@ const QuizSelectionComponent = () => {
             return;
         }
 
-        if (!user) {
-            router.push(`/auth/login?from=/home`);
-            return;
-        }
         if (!user.emailVerified) {
             toast({
                 title: "Email not verified",
