@@ -10,6 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import type { QuizQuestion } from '@/lib/mockData';
+import { getFallbackQuestions } from '@/lib/fallback-quiz';
 
 const GenerateQuizInputSchema = z.object({
   format: z.string().describe("The cricket format for the quiz (e.g., T20, IPL, Test)."),

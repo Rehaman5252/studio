@@ -1,27 +1,14 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  typescript: {
-    // TEMPORARY: unblock build for development. Set to false before production release.
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    // Prevent build on lint errors — recommended for production
-    ignoreDuringBuilds: false,
-  },
-  images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'placehold.co' },
-      { protocol: 'https', hostname: 'upload.wikimedia.org' },
-      { protocol: 'https', hostname: 'assets.stickpng.com' },
-      { protocol: 'https', hostname: 'cdn.shopify.com' },
-      { protocol: 'https', hostname: 'videos.pexels.com' },
-      { protocol: 'https', hostname: 'www.freepnglogos.com' },
-      { protocol: 'https', hostname: 'cdn.icon-icons.com' },
-      { protocol: 'https', hostname: 'www.pngkey.com' },
-      { protocol: 'https', hostname: 'logolook.net' },
-    ],
+  webpack: (config, { isServer }) => {
+    // This is to solve a build issue with Genkit and its dependencies.
+    // It makes sure that server-side packages are correctly handled.
+    if (isServer) {
+      config.externals.push('long', 'caching-transform', 'memcpy', 'source-map-support');
+    }
+    config.externals.push('handlebars'); // handlebars is used by a genkit dependency
+    return config;
   },
 };
 
