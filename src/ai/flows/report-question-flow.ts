@@ -36,7 +36,7 @@ const reportQuestionFlow = ai.defineFlow(
     inputSchema: ReportQuestionInputSchema,
     outputSchema: ReportQuestionOutputSchema,
   },
-  async (input) => {
+  async (input: ReportQuestionInput) => {
     if (!db) {
       return { success: false, message: "Database connection not available." };
     }

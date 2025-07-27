@@ -61,7 +61,7 @@ const generateCricketFactFlow = ai.defineFlow(
     inputSchema: GenerateFactInputSchema,
     outputSchema: GenerateFactOutputSchema,
   },
-  async (input) => {
+  async (input: GenerateFactInput) => {
     const { output } = await prompt(input);
     if (!output) {
       // Provide a fallback fact if the AI fails

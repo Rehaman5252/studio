@@ -13,6 +13,7 @@ const SendQuizHistoryEmailInputSchema = z.object({
   email: z.string().email().describe('The email address to send the history to.'),
   history: z.array(QuizAttemptSchema).describe('The full quiz history data.'),
 });
+export type SendQuizHistoryEmailInput = z.infer<typeof SendQuizHistoryEmailInputSchema>;
 
 const SendQuizHistoryEmailOutputSchema = z.object({
   success: z.boolean(),
@@ -52,7 +53,7 @@ async function sendEmail(to: string, subject: string, body: string) {
 }
 
 
-export async function sendQuizHistoryEmail(input: z.infer<typeof SendQuizHistoryEmailInputSchema>): Promise<z.infer<typeof SendQuizHistoryEmailOutputSchema>> {
+export async function sendQuizHistoryEmail(input: SendQuizHistoryEmailInput): Promise<z.infer<typeof SendQuizHistoryEmailOutputSchema>> {
   return sendQuizHistoryEmailFlow(input);
 }
 
@@ -62,7 +63,7 @@ const sendQuizHistoryEmailFlow = ai.defineFlow(
     inputSchema: SendQuizHistoryEmailInputSchema,
     outputSchema: SendQuizHistoryEmailOutputSchema,
   },
-  async ({ email, history }) => {
+  async ({ email, history }: SendQuizHistoryEmailInput) => {
     console.log(`Request to send quiz history to ${email}.`);
     
     const emailBody = formatHistoryForEmail(history);

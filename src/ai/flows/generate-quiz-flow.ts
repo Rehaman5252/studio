@@ -73,7 +73,7 @@ const generateQuizFlow = ai.defineFlow(
     inputSchema: GenerateQuizInputSchema,
     outputSchema: GenerateQuizOutputSchema,
   },
-  async (input) => {
+  async (input: GenerateQuizInput) => {
     try {
         console.log('generateQuizFlow started with input:', input);
 
