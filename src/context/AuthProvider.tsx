@@ -239,11 +239,34 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     const userRef = doc(db, 'users', firebaseUser.uid);
     const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
+    const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
 
     try {
         await runTransaction(db, async (transaction) => {
+            const leaderboardDoc = await transaction.get(leaderboardRef);
+            let leaderboardPlayers: LivePlayer[] = [];
+            if (leaderboardDoc.exists()) {
+                leaderboardPlayers = leaderboardDoc.data().players || [];
+            }
+            
+            // Remove existing entry for the user, if any
+            leaderboardPlayers = leaderboardPlayers.filter(p => p.uid !== firebaseUser.uid);
+            
+            const totalTime = attempt.timePerQuestion ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+            const isDisqualified = !!attempt.reason;
+
+            // Add new entry for the user
+            leaderboardPlayers.push({
+                uid: firebaseUser.uid,
+                name: profile.name,
+                avatar: profile.photoURL,
+                score: attempt.score,
+                time: totalTime,
+                disqualified: isDisqualified,
+            });
+
             // Prepare personal user stats update
-            const isPerfect = attempt.score === attempt.totalQuestions && !attempt.reason;
+            const isPerfect = attempt.score === attempt.totalQuestions && !isDisqualified;
             const statsUpdate: {[key:string]: any} = { quizzesPlayed: increment(1) };
             if (isPerfect) {
                 statsUpdate.perfectScores = increment(1);
@@ -253,6 +276,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             // Execute all writes in the transaction
             transaction.set(attemptRef, sanitizeUserProfile(attempt)); // Set personal quiz history
             transaction.update(userRef, statsUpdate); // Update user's aggregate stats
+            transaction.set(leaderboardRef, { 
+                players: leaderboardPlayers, 
+                lastUpdated: serverTimestamp(),
+                quizId: attempt.slotId, // Use slotId as the quizId for this period
+            }, { merge: true }); // Merge to avoid overwriting other fields
         });
 
         // Update local state after successful transaction
