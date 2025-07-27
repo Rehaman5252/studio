@@ -11,18 +11,16 @@ export async function POST(req: Request) {
     }
 
     console.log(`API received request for format: ${input.format}`);
-
-    // The generateQuiz flow is now resilient and will return a fallback on its own if it fails.
-    // The retry logic here becomes a secondary layer of defense for network-level failures.
+    
     const quizResponse = await generateQuiz(input);
     
     return NextResponse.json(quizResponse);
 
   } catch (error: any) {
     console.error('🔥 Unhandled error in /api/quiz route:', error);
-    // This is the final safety net. It should rarely be hit now that the flow is resilient.
+    // This is the final safety net. It catches errors thrown from the Genkit flow.
     return NextResponse.json(
-      { error: 'An unexpected error occurred on the server.' },
+      { error: error.message || 'An unexpected error occurred on the server.' },
       { status: 500 }
     );
   }
