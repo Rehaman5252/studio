@@ -25,7 +25,7 @@ import { generateHint } from "@/ai/flows/ai-powered-hints";
 function QuizGame() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user, profile, addQuizAttempt, handleMalpractice } = useAuth();
+    const { user, loading: authLoading, profile, addQuizAttempt, handleMalpractice } = useAuth();
     const { settings } = useSettings();
 
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -77,7 +77,17 @@ function QuizGame() {
     }, [handleVisibilityChange]);
     
     useEffect(() => {
-        if (!user) return; // Wait until user is available
+        // ** THE FIX IS HERE **
+        // Wait until auth is resolved and we have a user object.
+        if (authLoading) {
+            return; // Do nothing while auth is loading
+        }
+        if (!user) {
+            // If auth is resolved and there's no user, redirect to login.
+            toast.error("You must be logged in to play a quiz.");
+            router.replace('/auth/login?from=/home');
+            return;
+        }
 
         const fetchQuiz = async () => {
             setLoading(true);
@@ -104,7 +114,7 @@ function QuizGame() {
             }
         };
         fetchQuiz();
-    }, [format, user]);
+    }, [format, user, authLoading, router]);
 
     const finishQuiz = useCallback(async () => {
         const finalAnswers = [...userAnswers];
@@ -219,7 +229,7 @@ function QuizGame() {
         setAdConfig({ ad, onFinished: onAdFinished });
     };
 
-    if (loading) return <CricketLoading message="Fetching fresh questions..." format={format} />;
+    if (loading || authLoading) return <CricketLoading message="Fetching fresh questions..." format={format} />;
     if (error) return <CricketLoading state="error" errorMessage={error}><Button onClick={() => router.push('/home')}>Go Home</Button></CricketLoading>;
     if (!questions.length) return <CricketLoading state="error" errorMessage="No questions found for this format." />;
 
