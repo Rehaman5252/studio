@@ -3,6 +3,8 @@ import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import type { QuizQuestion } from '@/ai/schemas';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export const dynamic = 'force-dynamic'; // ensure the route is always dynamic
 
@@ -56,7 +58,7 @@ const getFallbackQuiz = (format: string): QuizQuestion[] => {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { format, userId, previouslyAskedQuestions = [] } = body;
+    const { format, userId } = body;
     
     if (!format || !userId) {
       return NextResponse.json(
@@ -65,6 +67,20 @@ export async function POST(request: Request) {
       );
     }
     
+    let previouslyAskedQuestions: string[] = [];
+    if (db) {
+      try {
+        const userDocRef = doc(db, 'users', userId);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          previouslyAskedQuestions = userDocSnap.data().seenQuestionIds || [];
+        }
+      } catch (dbError) {
+        console.warn("Could not fetch user's seen questions. Proceeding without them.", dbError);
+        // Do not block quiz generation if this fails.
+      }
+    }
+
     const maxRetries = 3;
     let attempt = 0;
     

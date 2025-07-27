@@ -3,21 +3,20 @@
 
 /**
  * @fileOverview A flow that generates a unique quiz on-the-fly using an AI model.
+ * This flow is designed to be pure; it accepts all necessary data and does not perform database lookups.
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
-
-const GenerateQuizInputSchema = z.object({
+// Input schema for the AI prompt, containing only what the AI needs.
+const GenerateQuizPromptInputSchema = z.object({
   format: z.string().describe("The cricket format for the quiz (e.g., T20, IPL, Test)."),
   count: z.number().min(1).max(10).default(5).describe("The number of questions to generate."),
-  userId: z.string().describe("The unique ID of the user requesting the quiz to ensure some personalization if needed."),
   previouslyAskedQuestions: z.array(z.string()).optional().describe("A list of questions already asked in the user's current session to ensure variety."),
 });
 
 // This is the schema for a single question that the AI will generate.
-// Note: 'format' is removed from here because the AI doesn't need to generate it.
 const AIGeneratedQuestionSchema = z.object({
   question: z.string().describe("The text of the quiz question."),
   options: z.array(z.string()).length(4).describe("An array of exactly four possible answers."),
@@ -25,28 +24,33 @@ const AIGeneratedQuestionSchema = z.object({
   explanation: z.string().optional().describe("A brief explanation for why the answer is correct.")
 });
 
+// The output schema from the AI prompt.
 const GenerateQuizOutputSchema = z.object({
   questions: z.array(AIGeneratedQuestionSchema).describe("An array of generated quiz questions."),
 });
 
 // This is the final schema for a question, including the id and format we add in code.
-const FinalQuestionSchema = AIGeneratedQuestionSchema.extend({
+export const FinalQuestionSchema = AIGeneratedQuestionSchema.extend({
     id: z.string(),
     format: z.string(),
 });
 
-const FinalOutputSchema = z.object({
+// The final output from the entire flow, ready for the client.
+export const FinalOutputSchema = z.object({
     questions: z.array(FinalQuestionSchema),
 });
 
+export type GenerateQuizFlowInput = z.infer<typeof GenerateQuizPromptInputSchema>;
+export type GenerateQuizFlowOutput = z.infer<typeof FinalOutputSchema>;
 
-export async function generateQuiz(input: z.infer<typeof GenerateQuizInputSchema>): Promise<z.infer<typeof FinalOutputSchema>> {
+
+export async function generateQuiz(input: GenerateQuizFlowInput): Promise<GenerateQuizFlowOutput> {
   return generateQuizFlow(input);
 }
 
 const quizGenerationPrompt = ai.definePrompt({
     name: "generateQuizPrompt",
-    input: { schema: GenerateQuizInputSchema },
+    input: { schema: GenerateQuizPromptInputSchema },
     output: { schema: GenerateQuizOutputSchema },
     prompt: `You are a master cricket quiz creator. Generate {{count}} unique, high-quality, and engaging multiple-choice quiz questions about the "{{format}}" cricket format.
 
@@ -70,7 +74,7 @@ Your response must be structured in the requested JSON format. Do not deviate.
 const generateQuizFlow = ai.defineFlow(
   {
     name: 'generateQuizFlow',
-    inputSchema: GenerateQuizInputSchema,
+    inputSchema: GenerateQuizPromptInputSchema,
     outputSchema: FinalOutputSchema,
   },
   async (input) => {
