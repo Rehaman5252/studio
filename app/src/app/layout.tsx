@@ -1,8 +1,7 @@
-
 import "/app/src/app/globals.css";
 
 export const metadata = {
-  title: "IndCric",
+  title: "CricBlitz",
   description: "Live Cricket Quiz",
 };
 

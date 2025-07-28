@@ -1,18 +1,6 @@
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 
-'use client';
-
-import React from 'react';
-import BottomNav from '@/components/BottomNav';
-
-export default function ProfileLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      {children}
-      <BottomNav />
-    </>
-  );
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
 }
