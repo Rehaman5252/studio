@@ -70,7 +70,7 @@ function HomePage() {
             className="text-center"
           >
               <h1 className="text-5xl font-extrabold tracking-tight text-shimmer animate-shimmer sm:text-6xl">
-                indcric
+                CricBlitz
               </h1>
               <p className="text-sm text-muted-foreground mt-2 font-semibold">Win prizes for your cricket knowledge!</p>
           </motion.div>

@@ -1,3 +1,87 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 210 40% 98%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 210 40% 98%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 120 60% 35%; /* Forest Green */
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 20 100% 50%; /* Sunset Orange */
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 120 10% 10%; /* Darker green for background */
+    --foreground: 210 40% 98%;
+ 
+    --card: 120 10% 12%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 120 10% 10%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 120 60% 45%; /* Lighter Forest Green for dark mode */
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 120 5% 20%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 120 5% 20%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 20 100% 60%; /* Brighter Sunset Orange */
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 120 5% 20%;
+    --input: 120 5% 20%;
+    --ring: 120 60% 45%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.text-shimmer {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary;
+    background-size: 200% 100%;
+    animation: shimmer 5s infinite linear;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
