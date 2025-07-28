@@ -1,4 +1,4 @@
-import "/app/src/styles/globals.css";
+import "/app/src/app/globals.css";
 import { Providers } from "@/context/Providers";
 import { Toaster } from "@/components/ui/toaster";
 

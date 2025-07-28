@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
         setLoading(true);
