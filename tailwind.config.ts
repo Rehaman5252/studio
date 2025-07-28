@@ -1,92 +1,81 @@
+import { z } from "zod";
 
-import type {Config} from 'tailwindcss';
-const { fontFamily } = require("tailwindcss/defaultTheme")
+export const QuizQuestion = z.object({
+  id: z.string().describe("A unique identifier for the question."),
+  format: z.string().describe("The cricket format this question belongs to (e.g., IPL, T20, Test)."),
+  question: z.string().describe("The text of the quiz question."),
+  options: z.array(z.string()).length(4).describe("An array of exactly four possible answers."),
+  correctAnswer: z.string().describe("The correct answer, which must be one of the strings from the options array."),
+  explanation: z.string().optional().describe("A brief explanation for why the answer is correct."),
+  hint: z.string().optional().describe("A helpful hint for the user.")
+});
+export type QuizQuestion = z.infer<typeof QuizQuestion>;
 
-const config = {
-  darkMode: ['class'],
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  prefix: "",
-  theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
-    extend: {
-      fontFamily: {
-        sans: ['var(--font-inter)', ...fontFamily.sans],
-      },
-      colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate')],
-} satisfies Config;
 
-export default config;
+export const GenerateQuizInputSchema = z.object({
+    format: z.string().describe("The cricket format for which to generate the quiz."),
+    userId: z.string().describe("The unique ID of the user requesting the quiz.")
+});
+export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
+
+export const GenerateQuizOutputSchema = z.object({
+    questions: z.array(QuizQuestion).length(5).describe("An array of exactly 5 quiz questions.")
+});
+export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
+
+
+export const GenerateHintInputSchema = z.object({
+  question: z.string().describe("The quiz question for which a hint is needed."),
+  format: z.string().describe("The format of the quiz (e.g., T20, ODI, Test)."),
+});
+export type GenerateHintInput = z.infer<typeof GenerateHintInputSchema>;
+
+export const GenerateHintOutputSchema = z.object({
+  hint: z.string().describe("A concise and relevant hint."),
+});
+export type GenerateHintOutput = z.infer<typeof GenerateHintOutputSchema>;
+
+
+export const FlowGenerateQuizAnalysisInputSchema = z.object({
+  questions: z.array(QuizQuestion),
+  userAnswers: z.array(z.string()),
+  format: z.string(),
+  timePerQuestion: z.array(z.number()).optional(),
+  usedHintIndices: z.array(z.number()).optional(),
+});
+export type FlowGenerateQuizAnalysisInput = z.infer<typeof FlowGenerateQuizAnalysisInputSchema>;
+
+export const GenerateQuizAnalysisPromptInputSchema = z.object({
+  format: z.string(),
+  score: z.number(),
+  totalQuestions: z.number(),
+  incorrectAnswers: z.array(
+    z.object({
+      questionNumber: z.number(),
+      questionText: z.string(),
+      userAnswer: z.string(),
+      correctAnswer: z.string(),
+    })
+  ),
+  timePerQuestion: z.array(z.number()).optional(),
+  usedHintIndices: z.array(z.number()).optional(),
+});
+
+export const GenerateQuizAnalysisOutputSchema = z.object({
+  analysis: z.string().describe("A detailed, personalized performance analysis in Markdown format."),
+});
+export type GenerateQuizAnalysisOutput = z.infer<typeof GenerateQuizAnalysisOutputSchema>;
+
+export const QuizAttemptSchema = z.object({
+  slotId: z.string(),
+  brand: z.string(),
+  format: z.string(),
+  score: z.number(),
+  totalQuestions: z.number(),
+  questions: z.array(QuizQuestion),
+  userAnswers: z.array(z.string()),
+  timestamp: z.number(),
+  timePerQuestion: z.array(z.number()).optional(),
+  usedHintIndices: z.array(z.number()).optional(),
+  reason: z.string().optional(),
+});

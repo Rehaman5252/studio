@@ -1,39 +1,54 @@
-'use server';
 
-import { generateQuizFromAI } from '@/ai/flows/generate-quiz-flow';
-import { QuizQuestion } from '@/lib/mockData';
+import { generateQuiz, GenerateQuizInput } from '@/ai/flows/generate-quiz-flow';
+import { getFallbackQuestions } from '@/lib/fallback-quiz';
 import { NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 
-// This is the new, simplified API route for quizzes.
 export async function POST(req: Request) {
   try {
-    // We no longer need input from the request body for this simplified flow.
-    // The generateQuizFromAI function handles everything internally.
-    const questionsFromAI = await generateQuizFromAI();
+    const input: GenerateQuizInput = await req.json();
 
-    // The AI flow now includes its own fallback, so we can be confident
-    // that we'll always have questions. We just need to format them
-    // into the structure the frontend expects.
-    const formattedQuestions: QuizQuestion[] = questionsFromAI.map(q => ({
-        id: uuidv4(),
-        format: 'Mixed', // Since the prompt is generic, we can default to 'Mixed'
-        question: q.question,
-        options: q.options,
-        correctAnswer: q.answer,
-        explanation: `The correct answer is ${q.answer}.` // Basic explanation
-    }));
+    if (!input.format || !input.userId) {
+      return NextResponse.json({ error: 'Format and userId are required.' }, { status: 400 });
+    }
 
-    return NextResponse.json({ questions: formattedQuestions });
+    console.log(`API received request for format: ${input.format}`);
+    
+    try {
+        const quizResponse = await generateQuiz(input);
+        // The flow now only returns a valid object or throws an error.
+        // We just need to check that we have questions.
+        if (quizResponse && quizResponse.questions.length === 5) {
+            console.log('Successfully served AI-generated quiz.');
+            return NextResponse.json(quizResponse);
+        } else {
+            // This case might be hit if the AI returns a malformed but not error-throwing response.
+            // It's a good safety net.
+            console.warn(`AI generation returned invalid data for format: ${input.format}. Serving fallback quiz.`);
+            const fallbackQuestions = getFallbackQuestions(input.format);
+            return NextResponse.json({ questions: fallbackQuestions });
+        }
+    } catch (aiError) {
+        // This will catch errors thrown from the AI flow itself (e.g., network issues, parsing failures).
+        console.error('AI generation failed, serving fallback quiz.', aiError);
+        const fallbackQuestions = getFallbackQuestions(input.format);
+        return NextResponse.json({ questions: fallbackQuestions });
+    }
 
-  } catch (error) {
-    // This is a final safety net for any unexpected server errors.
+  } catch (error: any) {
+    // This is a final safety net for unexpected issues like invalid request JSON.
     console.error('🔥 Unhandled error in /api/quiz route:', error);
-    // In a catastrophic failure, we send a clear error message.
-    // The frontend has its own fallback UI for this scenario.
-    return NextResponse.json(
-      { error: 'An unexpected server error occurred.' },
-      { status: 500 }
-    );
+    const format = 'Mixed'; // Default format on catastrophic failure
+    try {
+        const fallbackQuestions = getFallbackQuestions(format);
+        return NextResponse.json(
+            { questions: fallbackQuestions, error: 'An unexpected server error occurred.' },
+            { status: 200 } // Return 200 to ensure frontend can parse it.
+        );
+    } catch(e) {
+         return NextResponse.json(
+            { error: 'An unexpected server error occurred and fallback failed.' },
+            { status: 500 }
+        );
+    }
   }
 }

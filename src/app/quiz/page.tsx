@@ -193,7 +193,7 @@ function QuizPage() {
     questionStartTimeRef.current = Date.now();
     questionTimerRef.current = setTimeout(() => {
       handleAnswer('Timed Out');
-    }, 15000);
+    }, 20000); // Increased timeout to 20 seconds
   }, []);
 
   useEffect(() => {

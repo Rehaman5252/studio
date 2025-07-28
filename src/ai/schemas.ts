@@ -17,10 +17,12 @@ export const GenerateQuizInputSchema = z.object({
     format: z.string().describe("The cricket format for which to generate the quiz."),
     userId: z.string().describe("The unique ID of the user requesting the quiz.")
 });
+export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
 export const GenerateQuizOutputSchema = z.object({
     questions: z.array(QuizQuestion).length(5).describe("An array of exactly 5 quiz questions.")
 });
+export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 
 
 export const GenerateHintInputSchema = z.object({
