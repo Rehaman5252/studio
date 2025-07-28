@@ -1,17 +1,3 @@
-# Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
-
-runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 10
-source: .
-environment:
-  variables:
-    NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyAh35l6QoFhYoTUWDc7vA_LpnHN7ZaB92A"
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "cricblitz.firebaseapp.com"
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: "cricblitz"
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "cricblitz.firebasestorage.app"
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "370076403121"
-    NEXT_PUBLIC_FIREBASE_APP_ID: "1:370076403121:web:514b379a7fd3f3d491a990"
-    NEXT_PUBLIC_FIREBASE_DATABASE_URL: "https://cricblitz-default-rtdb.asia-southeast1.firebasedatabase.app"
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -1,10 +1,3 @@
-
-import { config } from 'dotenv';
-config();
-
-import '@/ai/flows/ai-powered-hints.ts';
-import '@/ai/flows/generate-quiz-analysis-flow.ts';
-import '@/ai/flows/generate-quiz-flow.ts';
-import '@/ai/flows/generate-cricket-fact.ts';
-import '@/ai/flows/send-quiz-history-email.ts';
-import '@/ai/flows/report-question-flow.ts';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -1,5 +1,3 @@
-import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
-
-export default function ForgotPasswordPage() {
-  return <ForgotPasswordForm />;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
