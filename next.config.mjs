@@ -1,24 +1,11 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'placehold.co',
-      },
-      {
-        protocol: 'https',
         hostname: 'upload.wikimedia.org',
-      },
-      {
-        protocol: 'https',
-        hostname: 'videos.pexels.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.freepnglogos.com',
       },
       {
         protocol: 'https',
@@ -26,11 +13,27 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'logolook.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.freepnglogos.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'www.pngkey.com',
       },
       {
         protocol: 'https',
-        hostname: 'logolook.net',
+        hostname: 'logowik.com',
+      },
+       {
+        protocol: 'https',
+        hostname: 'videos.pexels.com',
+      },
+       {
+        protocol: 'https',
+        hostname: 'placehold.co',
       },
     ],
   },
