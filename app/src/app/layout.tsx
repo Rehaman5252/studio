@@ -1,6 +1,4 @@
 import "/app/src/app/globals.css";
-import { Providers } from "@/context/Providers";
-import { Toaster } from "@/components/ui/toaster";
 
 export const metadata = {
   title: "IndCric",
@@ -14,10 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
-        <Toaster />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
