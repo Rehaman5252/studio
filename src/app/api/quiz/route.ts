@@ -13,16 +13,21 @@ export async function POST(req: Request) {
 
     console.log(`API received request for format: ${input.format}`);
     
-    // Attempt to generate quiz from AI
-    const quizResponse = await generateQuiz(input);
-    
-    // Check if the AI generation was successful. The flow returns an empty array on failure.
-    if (quizResponse && quizResponse.questions.length === 5) {
-        console.log('Successfully served AI-generated quiz.');
-        return NextResponse.json(quizResponse);
-    } else {
-        // If AI generation failed, serve the guaranteed fallback quiz.
-        console.warn(`AI generation failed or returned invalid data for format: ${input.format}. Serving fallback quiz.`);
+    try {
+        const quizResponse = await generateQuiz(input);
+        if (quizResponse && quizResponse.questions.length === 5) {
+            console.log('Successfully served AI-generated quiz.');
+            return NextResponse.json(quizResponse);
+        } else {
+            // This case might be hit if the AI returns a malformed but not error-throwing response.
+            // It's a good safety net.
+            console.warn(`AI generation returned invalid data for format: ${input.format}. Serving fallback quiz.`);
+            const fallbackQuestions = getFallbackQuestions(input.format);
+            return NextResponse.json({ questions: fallbackQuestions });
+        }
+    } catch (aiError) {
+        // This will catch errors thrown from the AI flow itself (e.g., network issues, parsing failures).
+        console.error('AI generation failed, serving fallback quiz.', aiError);
         const fallbackQuestions = getFallbackQuestions(input.format);
         return NextResponse.json({ questions: fallbackQuestions });
     }

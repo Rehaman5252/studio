@@ -125,9 +125,24 @@ function QuizPage() {
     setError(null);
     try {
       const input: GenerateQuizInput = { format, userId };
-      const response = await generateQuiz(input);
-      if (response && response.questions.length > 0) {
-        setQuestions(response.questions);
+      const response = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API responded with ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data && data.questions && data.questions.length > 0) {
+        setQuestions(data.questions);
         setQuizState('active');
       } else {
         throw new Error('Failed to load quiz questions.');
