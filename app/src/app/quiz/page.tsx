@@ -22,6 +22,7 @@ import InterstitialLoader from '@/components/InterstitialLoader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import CricketLoading from '@/components/CricketLoading';
 import { Textarea } from '@/components/ui/textarea';
+import { getFallbackQuestions } from '@/lib/fallback-quiz';
 
 type QuizState = 'loading' | 'active' | 'answered' | 'completed' | 'error';
 
@@ -121,34 +122,10 @@ function QuizPage() {
   const fetchQuestions = useCallback(async (userId: string) => {
     setQuizState('loading');
     setError(null);
-    try {
-      const response = await fetch('/api/quiz', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ format, userId }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API responded with ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (data && data.questions && data.questions.length > 0) {
-        setQuestions(data.questions);
-        setQuizState('active');
-      } else {
-        throw new Error('Failed to load quiz questions.');
-      }
-    } catch (e: any) {
-      console.error("Fetch Questions Error:", e);
-      setError('Could not start the quiz. Please try again.');
-      setQuizState('error');
-    }
+    // Using fallback questions for client-side testing
+    const fallbackQuestions = getFallbackQuestions(format);
+    setQuestions(fallbackQuestions);
+    setQuizState('active');
   }, [format]);
 
   useEffect(() => {
@@ -156,13 +133,16 @@ function QuizPage() {
       if (user) {
         fetchQuestions(user.uid);
       } else {
-        router.replace(`/auth/login?from=/quiz?format=${format}`);
+        // For testing, we can proceed without a user
+        fetchQuestions('test-user');
+        // In real flow, you'd redirect
+        // router.replace(`/auth/login?from=/quiz?format=${format}`);
       }
     }
   }, [user, authLoading, format, fetchQuestions, router]);
 
   const handleVisibilityChange = useCallback(async () => {
-    if (document.hidden && quizState === 'active') {
+    if (document.hidden && quizState === 'active' && user) {
       const newCount = await handleMalpractice();
 
       const attempt = {
@@ -182,7 +162,7 @@ function QuizPage() {
       const attemptDataString = btoa(JSON.stringify(attempt));
       router.replace(`/quiz/results?malpractice=true&attempt=${encodeURIComponent(attemptDataString)}`);
     }
-  }, [quizState, handleMalpractice, brand, format, userAnswers, questions, addQuizAttempt, router]);
+  }, [quizState, handleMalpractice, brand, format, userAnswers, questions, addQuizAttempt, router, user]);
 
   useEffect(() => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -267,7 +247,16 @@ function QuizPage() {
 
   const handleQuizCompletion = useCallback(async () => {
     setShowAd(null);
-    if (!user || questions.length === 0) return;
+    if (questions.length === 0) {
+        router.push('/results'); // Navigate to dummy results page
+        return;
+    }
+    
+    if (!user) {
+        router.push('/results'); // Navigate to dummy results page
+        return;
+    }
+
 
     const finalScore = userAnswers.filter((ans, i) => ans === questions[i].correctAnswer).length;
 
@@ -368,7 +357,7 @@ function QuizPage() {
                   className="mt-4 p-3 bg-muted rounded-lg text-sm"
                 >
                   <strong className="text-primary">Explanation:</strong> {question.explanation}
-                   <ReportDialog question={question} />
+                   {user && <ReportDialog question={question} />}
                 </motion.div>
               )}
             </div>
@@ -400,7 +389,7 @@ function QuizPage() {
     }
   };
   
-  if (authLoading) {
+  if (authLoading && !user) {
     return <CricketLoading message="Authenticating..." />;
   }
 
