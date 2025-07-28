@@ -1,8 +1,7 @@
-
 export default function RootPage() {
   return (
-    <div style={{ fontSize: '2rem', textAlign: 'center', marginTop: '100px', color: 'white', backgroundColor: 'black', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <main style={{ padding: '2rem', fontSize: '1.5rem', textAlign: 'center' }}>
       ✅ Root Page Rendered Successfully
-    </div>
+    </main>
   );
 }
