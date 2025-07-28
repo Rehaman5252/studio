@@ -5,14 +5,13 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
-import { generateQuiz, GenerateQuizInput } from '@/ai/flows/generate-quiz-flow';
 import { generateHint } from '@/ai/flows/ai-powered-hints';
 import { reportQuestion } from '@/ai/flows/report-question-flow';
 import type { QuizQuestion } from '@/lib/mockData';
 import { adLibrary, interstitialAds } from '@/lib/ads';
 import { getQuizSlotId } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, ChevronRight, Copy, Flag, Lightbulb, Loader2, Send } from 'lucide-react';
+import { Flag, Lightbulb, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -104,7 +103,6 @@ function QuizPage() {
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
   const [usedHintIndices, setUsedHintIndices] = useState<number[]>([]);
-  const [malpracticeCount, setMalpracticeCount] = useState(0);
   
   const [quizState, setQuizState] = useState<QuizState>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -124,11 +122,10 @@ function QuizPage() {
     setQuizState('loading');
     setError(null);
     try {
-      const input: GenerateQuizInput = { format, userId };
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ format, userId }),
       });
 
       if (!response.ok) {
@@ -167,7 +164,6 @@ function QuizPage() {
   const handleVisibilityChange = useCallback(async () => {
     if (document.hidden && quizState === 'active') {
       const newCount = await handleMalpractice();
-      setMalpracticeCount(newCount);
 
       const attempt = {
         slotId: getQuizSlotId(),
