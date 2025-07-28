@@ -1,3 +1,6 @@
-export default function HomePage() {
-  return <h1>Hello, CricBlitz is alive!</h1>;
+
+import { redirect } from 'next/navigation';
+
+export default function RootPage() {
+  redirect('/home');
 }
