@@ -89,6 +89,7 @@ const generateQuizFlow = ai.defineFlow(
         let rawQuestions: any[];
 
         try {
+            // Find the start and end of the JSON object in the response text.
             const jsonStart = text.indexOf('{');
             const jsonEnd = text.lastIndexOf('}');
             if (jsonStart === -1 || jsonEnd === -1) {
@@ -100,21 +101,25 @@ const generateQuizFlow = ai.defineFlow(
             if (parsedJson && Array.isArray(parsedJson.questions)) {
                 rawQuestions = parsedJson.questions;
             } else {
+                // This handles cases where the root object isn't what we expect.
                 throw new Error("Parsed JSON does not have a 'questions' array.");
             }
         } catch (e: any) {
             console.error("Failed to parse JSON from AI response:", e.message);
             console.error("Raw AI response:", text);
+            // Re-throw the error so it's caught by the outer catch block.
             throw new Error("Failed to parse JSON from AI response.");
         }
 
         const validatedQuestions: QuizQuestion[] = rawQuestions
             .map(q => {
+                // Use Zod's safeParse to validate each question object without throwing an error.
                 const parsed = AIGeneratedQuestionSchema.safeParse(q);
                 if (!parsed.success) {
                     console.warn('AI generated an invalid question, filtering out:', parsed.error);
                     return null;
                 }
+                // Critically, check if the correctAnswer is actually one of the options.
                 if (!parsed.data.options.includes(parsed.data.correctAnswer)) {
                     console.warn('AI generated a question where correctAnswer is not in options, filtering out:', parsed.data);
                     return null;
@@ -125,8 +130,10 @@ const generateQuizFlow = ai.defineFlow(
                     format: input.format,
                 };
             })
+            // Remove any null values from the array of questions.
             .filter((q): q is QuizQuestion => q !== null);
 
+        // If after validation we don't have 5 questions, the quiz is incomplete.
         if (validatedQuestions.length < 5) {
             console.warn(`AI generated only ${validatedQuestions.length} valid questions. Triggering fallback.`);
             throw new Error(`AI generated only ${validatedQuestions.length} valid questions.`);
@@ -136,7 +143,7 @@ const generateQuizFlow = ai.defineFlow(
         return { questions: validatedQuestions };
 
     } catch (e) {
-        console.error("Error in generateQuizFlow:", e);
+        console.error("Error in generateQuizFlow, will trigger fallback in API route:", e);
         // On any unexpected error, throw to be caught by the API route.
         throw e;
     }

@@ -15,6 +15,8 @@ export async function POST(req: Request) {
     
     try {
         const quizResponse = await generateQuiz(input);
+        // The flow now only returns a valid object or throws an error.
+        // We just need to check that we have questions.
         if (quizResponse && quizResponse.questions.length === 5) {
             console.log('Successfully served AI-generated quiz.');
             return NextResponse.json(quizResponse);
