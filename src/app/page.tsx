@@ -1,8 +1,8 @@
 
-import { redirect } from 'next/navigation';
+'use client';
 
-// This is the root page of the application.
-// We redirect to /home, which is our main landing and content page.
+// This is the root page of the application for testing purposes.
 export default function RootPage() {
-  redirect('/home');
+  console.log('✅ Root page has successfully rendered.');
+  return <div className="p-8 text-2xl font-bold">Root Page Loaded. Build Successful.</div>;
 }
