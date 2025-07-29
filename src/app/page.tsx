@@ -1,3 +1,4 @@
+// src/app/page.tsx (for Next.js App Router)
 export default function Home() {
   return (
     <div>
