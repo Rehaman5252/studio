@@ -1,10 +1,10 @@
 
-export default function HomePage() {
+
+export default function Home() {
   return (
-    <main style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
-      <h1>Deployment Successful</h1>
-      <p>The application has been deployed correctly.</p>
-      <p>The 404 error should be resolved.</p>
-    </main>
+    <div>
+      <h1>Hello World from CricBlitz!</h1>
+    </div>
   );
 }
+
