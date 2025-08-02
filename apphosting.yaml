@@ -1,9 +1,0 @@
-# apphosting.yaml
-# This file explicitly tells Firebase App Hosting how to build and run your Next.js app.
-run:
-  # The run command is the command used to start the production server.
-  service:
-    # Use the 'npm run start' command, which is the standard way to run a Next.js production app.
-    # The command is defined in the 'scripts' section of your package.json file.
-    # It typically runs 'next start' which serves the optimized production build.
-    cmd: "npm run start"
