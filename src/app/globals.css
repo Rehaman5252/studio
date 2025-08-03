@@ -2,3 +2,142 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 220 89% 60%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220 9% 38%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220 9% 38%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 89% 60%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Animation for Shimmer Effect */
+@keyframes shimmer-bg {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0.6),
+    hsl(var(--primary)),
+    hsl(var(--primary) / 0.6)
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.animate-shimmer {
+  animation: shimmer-bg 5s linear infinite;
+}
+
+/* Custom Cube Animation for Home Screen */
+.scene {
+  width: 192px; /* w-48 */
+  height: 192px; /* h-48 */
+  perspective: 600px;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease-out;
+}
+
+.cube-face {
+  position: absolute;
+  width: 192px; /* w-48 */
+  height: 192px; /* h-48 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem; /* rounded-xl */
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--card-foreground));
+  cursor: pointer;
+  backface-visibility: hidden; /* Improves performance */
+}
+
+.cube-face:hover {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+    border-color: hsl(var(--primary));
+}
+
+/* Positioning the faces of the cube */
+.cube-face-front  { transform: rotateY(  0deg) translateZ(96px); }
+.cube-face-back   { transform: rotateY(180deg) translateZ(96px); }
+.cube-face-right  { transform: rotateY( 90deg) translateZ(96px); }
+.cube-face-left   { transform: rotateY(-90deg) translateZ(96px); }
+.cube-face-top    { transform: rotateX( 90deg) translateZ(96px); }
+.cube-face-bottom { transform: rotateX(-90deg) translateZ(96px); }
+
+/* Custom animation for fade in up */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+

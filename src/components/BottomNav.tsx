@@ -19,9 +19,9 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50">
-      <nav className="grid h-full grid-cols-4 items-center">
+      <nav className="grid h-full max-w-lg grid-cols-4 items-center mx-auto">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
@@ -31,7 +31,7 @@ export default function BottomNav() {
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
-              <item.icon className="h-6 w-6" />
+              <item.icon className="h-6 w-6 mb-0.5" />
               <span className="text-xs">{item.label}</span>
               {isActive && (
                 <motion.div
