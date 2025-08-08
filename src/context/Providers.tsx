@@ -4,7 +4,7 @@
 import React from 'react';
 import { FirebaseProvider } from '@/providers/FirebaseProvider';
 import { UserDataProvider } from './AuthProvider';
-import { SettingsProvider } from '@/hooks/use-settings.tsx';
+import { SettingsProvider } from '@/hooks/use-settings';
 import { QuizStatusProvider } from './QuizStatusProvider';
 
 // This component composes all the providers for the application.
