@@ -4,7 +4,7 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy, Star } from 'lucide-react';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
@@ -14,6 +14,7 @@ import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
+import { brandData } from '@/components/home/brandData';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -54,9 +55,11 @@ const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
-const ScratchCard = memo(({ brand, slotId, timestamp, logoUrl }: { brand: string, slotId: string, timestamp: number, logoUrl: string }) => {
+const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
   const storageKey = useMemo(() => `cricblitz-scratch-card-${slotId}`, [slotId]);
+  
+  const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -91,7 +94,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp, logoUrl }: { brand: string
                     aria-label={`Scratch to reveal gift from ${brand}`}
                 >
                     <div className="w-16 h-16 relative mb-3">
-                         <Image src={logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} />
+                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} />
                     </div>
                     <p className="font-bold text-zinc-800 text-lg">Scratch to reveal!</p>
                     <p className="text-zinc-700 text-sm">From {brand}</p>
@@ -199,7 +202,6 @@ function RewardsContentComponent() {
                 brand={attempt.brand} 
                 slotId={attempt.slotId} 
                 timestamp={attempt.timestamp}
-                logoUrl={`https://placehold.co/100x100.png`} // Fallback logo
               />
             </CarouselItem>
           ))}
@@ -232,5 +234,3 @@ function RewardsContentComponent() {
 
 const RewardsContent = memo(RewardsContentComponent);
 export default RewardsContent;
-
-    
