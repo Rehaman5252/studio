@@ -10,7 +10,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "CricBlitz",
-  description: "The ultimate live cricket quiz challenge.",
+  description: "The ultimate live cricket quiz challenge. Win prizes for your knowledge!",
+  keywords: ["cricket", "quiz", "live quiz", "t20", "odi", "test cricket", "ipl", "rewards"],
 };
 
 export default function RootLayout({
