@@ -1,10 +1,10 @@
+
 // src/app/page.tsx
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
 import { CricketLoading } from '@/components/CricketLoading';
 
 // This component acts as a gatekeeper.
