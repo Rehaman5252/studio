@@ -5,48 +5,65 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 220 89% 60%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220 9% 38%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220 9% 38%;
+    --background: 240 10% 97%; /* Pale Green - Muted for a calm backdrop */
+    --foreground: 240 10% 3.9%;
+    
+    --card: 240 10% 100%;
+    --card-foreground: 240 10% 3.9%;
+    
+    --popover: 240 10% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    --primary: 120 61% 34%; /* Forest Green - For growth and knowledge */
+    --primary-foreground: 60 93% 98%;
+    
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 16 100% 50%; /* Sunset Orange - For excitement and rewards */
+    --accent-foreground: 60 93% 98%;
+    
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 89% 60%;
+    --destructive-foreground: 60 93% 98%;
+    
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 120 61% 34%;
+    
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 217.2 91.2% 59.8%;
+    --background: 120 10% 5%; /* Dark Forest Green */
+    --foreground: 60 93% 98%;
+    
+    --card: 120 10% 8%;
+    --card-foreground: 60 93% 98%;
+    
+    --popover: 120 10% 5%;
+    --popover-foreground: 60 93% 98%;
+
+    --primary: 120 61% 45%; /* A slightly brighter Forest Green for dark mode */
+    --primary-foreground: 60 93% 98%;
+    
+    --secondary: 120 5% 15%;
+    --secondary-foreground: 60 93% 98%;
+    
+    --muted: 120 5% 15%;
+    --muted-foreground: 240 3.8% 63.9%;
+    
+    --accent: 16 100% 55%; /* A slightly brighter Sunset Orange */
+    --accent-foreground: 60 93% 98%;
+
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 60 93% 98%;
+    
+    --border: 120 5% 20%;
+    --input: 120 5% 20%;
+    --ring: 120 61% 45%;
   }
 }
 
@@ -68,9 +85,9 @@
 .text-shimmer {
   background: linear-gradient(
     90deg,
-    hsl(var(--primary) / 0.6),
+    hsl(var(--accent)),
     hsl(var(--primary)),
-    hsl(var(--primary) / 0.6)
+    hsl(var(--accent))
   );
   background-size: 200% auto;
   color: transparent;
@@ -94,7 +111,7 @@
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.5s ease-out;
+  transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .cube-face {
@@ -106,15 +123,18 @@
   justify-content: center;
   border-radius: 0.75rem; /* rounded-xl */
   background-color: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
+  border: 2px solid hsl(var(--border));
   color: hsl(var(--card-foreground));
   cursor: pointer;
   backface-visibility: hidden; /* Improves performance */
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 15px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1);
 }
 
 .cube-face:hover {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 25px hsl(var(--primary) / 0.5);
     border-color: hsl(var(--primary));
+    transform: scale(1.05) translateZ(5px);
 }
 
 /* Positioning the faces of the cube */
@@ -141,3 +161,10 @@
   animation: fade-in-up 0.5s ease-out forwards;
 }
 
+/* Custom grid background for auth pages */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
