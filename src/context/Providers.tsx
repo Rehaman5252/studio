@@ -1,9 +1,10 @@
+
 'use client';
 
 import React from 'react';
 import { UserDataProvider } from './AuthProvider';
-import { SettingsProvider } from '@/hooks/use-settings';
 import { QuizStatusProvider } from './QuizStatusProvider';
+import { SettingsProvider } from '@/hooks/use-settings';
 import { ThemeProvider } from 'next-themes';
 import { FirebaseProvider } from '@/providers/FirebaseProvider';
 
