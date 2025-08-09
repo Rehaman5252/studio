@@ -1,15 +1,16 @@
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const publicRoutes = [
+  '/', // The root is now the public home page
   '/auth/login',
   '/auth/signup',
   '/auth/forgot-password',
   '/auth/verify-email',
   '/policies',
-  '/',
-  '/home',        // allow for testing without auth cookie
-  '/leaderboard', // allow leaderboard for guests
+  '/leaderboard', // Allow guests to see the leaderboard
+  '/test', // a test route
 ];
 
 const authRoutes = [
@@ -23,27 +24,27 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthenticated = request.cookies.has('firebaseIdToken');
 
-  // ✅ If logged in and visiting an auth page, send them to home
+  // Redirect to root if an authenticated user tries to access auth pages
   if (isAuthenticated && authRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/home', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // ✅ If not logged in and visiting a protected page
-  if (!isAuthenticated && !publicRoutes.includes(pathname)) {
-    if (
-      pathname.startsWith('/api/') ||
-      pathname.startsWith('/_next/') ||
-      pathname.includes('.')
-    ) {
+  // Redirect to login if an unauthenticated user tries to access a protected page
+  if (!isAuthenticated && !publicRoutes.some(p => pathname.startsWith(p) && (pathname.length === p.length || pathname[p.length] === '/'))) {
+     // Allow Next.js specific paths and files with extensions to pass through
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.includes('.')) {
       return NextResponse.next();
     }
-    // Always redirect to a known good login page
+    
+    // For protected routes, redirect to login and preserve the intended destination
     const loginUrl = new URL('/auth/login', request.url);
-    loginUrl.searchParams.set('from', pathname);
+    if (pathname !== '/') {
+        loginUrl.searchParams.set('from', pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 
-  // ✅ Otherwise just let the request pass
+  // Allow the request to proceed if none of the above conditions are met
   return NextResponse.next();
 }
 
