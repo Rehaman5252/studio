@@ -1,7 +1,20 @@
 
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+'use client';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+import SignUpForm from "@/components/auth/SignUpForm";
+import { Suspense } from 'react';
+import { useSearchParams }s from 'next/navigation';
+
+function SignUpPageContent() {
+    const searchParams = useSearchParams();
+    const from = searchParams.get('from');
+    return <SignUpForm from={from} />;
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpPageContent />
+    </Suspense>
+  )
 }
