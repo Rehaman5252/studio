@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import Providers from "@/context/Providers";
 import { Toaster } from "@/components/ui/toaster";
+import BottomNav from "@/components/BottomNav";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -28,7 +29,10 @@ export default function RootLayout({
         )}
       >
         <Providers>
-          {children}
+          <div className="relative flex min-h-screen w-full flex-col">
+            <main className="flex-1 pb-16">{children}</main>
+            <BottomNav />
+          </div>
           <Toaster />
         </Providers>
       </body>
