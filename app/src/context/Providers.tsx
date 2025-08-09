@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { UserDataProvider } from './AuthProvider';
+import { AuthProvider } from './AuthProvider';
 import { SettingsProvider } from '@/hooks/use-settings';
 import { QuizStatusProvider } from './QuizStatusProvider';
 import { ThemeProvider } from 'next-themes';
@@ -11,7 +11,7 @@ import { FirebaseProvider } from '@/providers/FirebaseProvider';
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseProvider>
-      <UserDataProvider>
+      <AuthProvider>
         <SettingsProvider>
           <QuizStatusProvider>
             <ThemeProvider
@@ -24,7 +24,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             </ThemeProvider>
           </QuizStatusProvider>
         </SettingsProvider>
-      </UserDataProvider>
+      </AuthProvider>
     </FirebaseProvider>
   );
 }
