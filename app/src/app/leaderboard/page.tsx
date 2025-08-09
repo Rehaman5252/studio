@@ -3,11 +3,6 @@
 import React, { memo } from 'react';
 import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
 
-/**
- * This is the page component for the /leaderboard route.
- * It provides the main structure for the leaderboard screen, including
- * the header and the main content area.
- */
 function LeaderboardPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
