@@ -71,7 +71,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         if (!querySnapshot.empty) {
             referredBy = querySnapshot.docs[0].id;
         } else {
-            console.warn(\`Referral code "\${additionalData.referralCode}" not found.\`);
+            console.warn(`Referral code "${additionalData.referralCode}" not found.`);
         }
     }
 
@@ -85,7 +85,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         name: name,
         email: user.email,
         phone: additionalData.phone || '',
-        photoURL: user.photoURL || \`https://placehold.co/100x100.png\`,
+        photoURL: user.photoURL || `https://placehold.co/100x100.png`,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         emailVerified: user.emailVerified,
@@ -97,7 +97,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         profileCompleted: false,
         guidedTourCompleted: false,
         phoneVerified: false,
-        referralCode: \`ref\${user.uid.substring(0, 4)}\`,
+        referralCode: `ref${user.uid.substring(0, 4)}`,
         referralEarnings: 0,
         noBallCount: 0,
         lastNoBallTimestamp: null,
