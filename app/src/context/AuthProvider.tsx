@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -30,7 +31,7 @@ interface UserDataContextType {
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const { user: firebaseUser, loading: firebaseLoading } = useFirebase();
   const { toast } = useToast();
   
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!querySnapshot.empty) {
             referredBy = querySnapshot.docs[0].id;
         } else {
-            console.warn(`Referral code "${additionalData.referralCode}" not found.`);
+            console.warn(\`Referral code "\${additionalData.referralCode}" not found.\`);
         }
     }
 
@@ -84,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         name: name,
         email: user.email,
         phone: additionalData.phone || '',
-        photoURL: user.photoURL || `https://placehold.co/100x100.png`,
+        photoURL: user.photoURL || \`https://placehold.co/100x100.png\`,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         emailVerified: user.emailVerified,
@@ -96,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         profileCompleted: false,
         guidedTourCompleted: false,
         phoneVerified: false,
-        referralCode: `ref${user.uid.substring(0, 4)}`,
+        referralCode: \`ref\${user.uid.substring(0, 4)}\`,
         referralEarnings: 0,
         noBallCount: 0,
         lastNoBallTimestamp: null,
@@ -437,7 +438,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export function useAuth() {
   const context = useContext(UserDataContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth must be used within a UserDataProvider");
   }
   return context;
 }
