@@ -18,15 +18,16 @@ const RewardsSkeleton = () => (
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-4 w-3/4" />
-        <div className="flex space-x-4">
-          <Skeleton className="h-32 w-32 aspect-square" />
-          <Skeleton className="h-32 w-32 aspect-square" />
+        <div className="flex space-x-4 overflow-x-auto p-1">
+          <Skeleton className="h-48 w-40 flex-shrink-0 rounded-xl" />
+          <Skeleton className="h-48 w-40 flex-shrink-0 rounded-xl" />
+          <Skeleton className="h-48 w-40 flex-shrink-0 rounded-xl" />
         </div>
       </div>
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-[96px] w-full" />
-        <Skeleton className="h-[96px] w-full" />
+        <Skeleton className="h-[96px] w-full rounded-lg" />
+        <Skeleton className="h-[96px] w-full rounded-lg" />
       </div>
     </div>
   );
@@ -41,7 +42,7 @@ function RewardsPage() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
          {loading ? <RewardsSkeleton/> : user ? <RewardsContent /> : (
-            <div className="pt-4">
+            <div className="pt-8">
                 <LoginPrompt 
                     icon={Gift}
                     title="Unlock Your Rewards"

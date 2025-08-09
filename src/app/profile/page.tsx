@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut } from 'lucide-react';
+import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, ChevronRight } from 'lucide-react';
 import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ function ProfilePageContent() {
 
     if (!user) {
        return (
-         <div className="w-full">
+         <div className="w-full pt-8">
              <LoginPrompt
                 icon={UserCheck}
                 title="Ready to Step up to the Crease?"
@@ -45,7 +45,7 @@ function ProfilePageContent() {
 
     if (isOffline && !profile) {
         return (
-            <Alert variant="destructive" className="max-w-md">
+            <Alert variant="destructive" className="max-w-md mx-auto">
                 <WifiOff className="h-4 w-4" />
                 <AlertTitle>Could Not Load Profile</AlertTitle>
                 <AlertDescription>
@@ -57,11 +57,11 @@ function ProfilePageContent() {
     
     if (!profile) {
         return (
-            <Alert variant="destructive" className="max-w-md">
+            <Alert variant="destructive" className="max-w-md mx-auto">
                 <ServerCrash className="h-4 w-4" />
                 <AlertTitle>Profile Not Found</AlertTitle>
                 <AlertDescription>
-                    No profile data was found. Please complete your profile to continue.
+                    We couldn't find your profile data. Please complete your profile to continue.
                     <Button asChild className="mt-4 w-full">
                         <Link href="/complete-profile">Complete Profile</Link>
                     </Button>
@@ -86,23 +86,35 @@ function ProfilePageContent() {
           {renderPrivateContent()}
         </Suspense>
 
-        <section className="space-y-3 pt-4">
-           <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-              <Link href="/settings" prefetch={true}><Settings className="mr-4" /> App Settings</Link>
-          </Button>
-          <Button asChild size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-              <Link href="/policies" prefetch={true}><Scale className="mr-4" /> Legal & Policies</Link>
-          </Button>
-        </section>
-
-        <SupportCard />
-
         {user && (
-          <section>
-              <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
-                  <LogOut className="mr-2 h-5 w-5" /> Logout
-              </Button>
-          </section>
+            <>
+            <section className="space-y-3 pt-4">
+                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                    <Link href="/settings">
+                        <div className="flex items-center">
+                            <Settings className="mr-4" /> App Settings
+                        </div>
+                        <ChevronRight/>
+                    </Link>
+                </Button>
+                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                    <Link href="/policies">
+                        <div className="flex items-center">
+                            <Scale className="mr-4" /> Legal & Policies
+                        </div>
+                        <ChevronRight/>
+                    </Link>
+                </Button>
+            </section>
+
+            <SupportCard />
+            
+            <section>
+                <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-5 w-5" /> Logout
+                </Button>
+            </section>
+            </>
         )}
       </main>
     </div>
