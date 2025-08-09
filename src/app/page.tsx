@@ -1,93 +1,37 @@
-
 'use client';
 
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { memo } from 'react';
+import { CricketLoading } from '@/components/CricketLoading';
 
-const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
-  loading: () => <HomeContentSkeleton />,
-  ssr: false,
-});
+// Acts as a gatekeeper to redirect based on auth/profile state
+export default function GatekeeperPage() {
+  const router = useRouter();
+  const { user, loading, isProfileComplete, profile } = useAuth();
 
-const HomeContentSkeleton = () => (
-    <div className="space-y-8 animate-pulse mt-10">
-        <div className="text-center mb-8">
-            <Skeleton className="h-8 w-3/4 mx-auto" />
-            <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
-        </div>
-        <div className="flex justify-center items-center h-[192px]">
-            <Skeleton className="w-48 h-48 rounded-lg" />
-        </div>
-        <Skeleton className="h-[124px] w-full rounded-2xl" />
-        <div className="grid grid-cols-2 gap-4">
-            <Skeleton className="h-[92px] w-full" />
-            <Skeleton className="h-[92px] w-full" />
-            <Skeleton className="h-[92px] w-full" />
-            <Skeleton className="h-[92px] w-full" />
-        </div>
-        <Skeleton className="h-16 w-full rounded-full" />
+  useEffect(() => {
+    if (loading) return;
+
+    if (user) {
+      if (isProfileComplete) {
+        router.replace('/home');
+      } else if (profile && !profile.guidedTourCompleted) {
+        router.replace('/walkthrough');
+      } else {
+        router.replace('/complete-profile');
+      }
+    } else {
+      router.replace('/auth/login');
+    }
+  }, [user, loading, isProfileComplete, profile, router]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+      <CricketLoading />
+      <p className="mt-4 text-muted-foreground animate-pulse">
+        Checking your credentials...
+      </p>
     </div>
-);
-
-const MalpracticeWarning = () => {
-    const { profile } = useAuth();
-    if (!profile) return null;
-
-    const noBallCount = profile.noBallCount || 0;
-    if (noBallCount <= 0 || noBallCount >= 3) return null;
-
-    const today = new Date().setHours(0, 0, 0, 0);
-    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
-
-    if(lastNoBallDay !== today) return null;
-
-    const warningsLeft = 3 - noBallCount;
-    
-    return (
-        <Alert variant="destructive" className="mb-4 animate-fade-in-up">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Fair Play Warning!</AlertTitle>
-            <AlertDescription>
-                You have {noBallCount} No-Ball(s) today. {warningsLeft} more and you're Out for the Day!
-            </AlertDescription>
-        </Alert>
-    )
+  );
 }
-
-function HomePage() {
-    return (
-      <div className="flex flex-col min-h-screen bg-background text-foreground">
-        <header className="p-4 flex items-center justify-center">
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center"
-          >
-              <h1 className="text-5xl font-extrabold tracking-tight text-shimmer animate-shimmer sm:text-6xl">
-                CricBlitz
-              </h1>
-              <p className="text-sm text-muted-foreground mt-2 font-semibold">Win prizes for your cricket knowledge!</p>
-          </motion.div>
-        </header>
-        <main className="flex-1 overflow-y-auto pb-24">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="container mx-auto px-4 py-2"
-          >
-            <MalpracticeWarning />
-            <HomeClientContent />
-          </motion.div>
-        </main>
-      </div>
-    );
-}
-
-export default memo(HomePage);
