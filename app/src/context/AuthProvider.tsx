@@ -406,7 +406,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const sanitizedData = sanitizeUserProfile(updatedProfileData);
     await updateDoc(userRef, sanitizedData);
     
-    setProfile((prev: any) => ({ ...prev, ...updatedProfileData }));
+    setProfile((prev: any) => ({ ...prev, ...sanitizedData, lastNoBallTimestamp: new Date() }));
 
     return newNoBallCount;
   }, [firebaseUser, profile]);
