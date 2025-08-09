@@ -1,4 +1,3 @@
-
 'use client';
 
 import CertificatesContent from '@/components/certificates/CertificatesContent';
