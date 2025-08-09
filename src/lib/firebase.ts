@@ -24,19 +24,16 @@ export const isFirebaseConfigured = !!(
 
 let app: FirebaseApp;
 
-if (isFirebaseConfigured) {
-    // Initialize Firebase only if it's not already initialized
-    if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
+// Initialize Firebase only on the client side, and only if it's not already initialized.
+if (typeof window !== 'undefined' && isFirebaseConfigured) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 }
 
-// Ensure auth and db are potentially null if not configured
+// Ensure auth and db are potentially null if not configured or on the server.
 const auth = isFirebaseConfigured ? getAuth(app!) : null;
 const db = isFirebaseConfigured ? getFirestore(app!) : null;
 
+// This check prevents errors on the server where auth might be null.
 if (auth) {
   auth.useDeviceLanguage();
 }
