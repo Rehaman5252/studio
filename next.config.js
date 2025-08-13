@@ -37,6 +37,9 @@ const nextConfig = {
         if (!isServer) {
             // Exclude fsevents from client-side bundle
             config.externals.push('fsevents');
+        } else {
+            // Exclude opentelemetry from server-side bundle
+            config.externals.push('@opentelemetry/instrumentation');
         }
         return config;
     },
