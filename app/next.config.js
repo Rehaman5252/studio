@@ -33,11 +33,8 @@ const nextConfig = {
         ],
     },
     webpack: (config, { isServer }) => {
-        if (!isServer) {
-            // Exclude fsevents from client-side bundle
-            config.externals.push('fsevents');
-        } else {
-            // Exclude opentelemetry from server-side bundle
+        if (isServer) {
+            // Exclude opentelemetry from server-side bundle to fix build errors
             config.externals.push('@opentelemetry/instrumentation');
         }
         return config;
