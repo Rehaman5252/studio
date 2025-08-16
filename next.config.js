@@ -43,6 +43,7 @@ const nextConfig = {
     serverActions: {
         bodySizeLimit: '10mb', // Accommodate larger payloads if needed
     },
+    distDir: '.next',
 };
 
 module.exports = nextConfig;
