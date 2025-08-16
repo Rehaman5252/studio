@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    output: 'standalone', // This is crucial for Firebase frameworksBackend
     images: {
         remotePatterns: [
             {
@@ -39,11 +40,9 @@ const nextConfig = {
         }
         return config;
     },
-    // Increase the timeout for server actions, needed for video generation.
     serverActions: {
-        bodySizeLimit: '10mb', // Accommodate larger payloads if needed
+        bodySizeLimit: '10mb',
     },
-    distDir: '.next',
 };
 
 module.exports = nextConfig;
