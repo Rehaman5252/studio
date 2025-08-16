@@ -9,6 +9,9 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": "18"
+  },
   "dependencies": {
     "@genkit-ai/core": "1.10.0",
     "@genkit-ai/firebase": "1.10.0",
