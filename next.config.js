@@ -1,6 +1,6 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'standalone', // This is crucial for Firebase functions deployment
     images: {
         remotePatterns: [
             {
