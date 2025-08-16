@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CricBlitz - Home</title>
+    <style>
+        :root {
+            --background: 240 10% 97%;
+            --foreground: 240 10% 3.9%;
+            --card: 240 10% 100%;
+            --card-foreground: 240 10% 3.9%;
+            --primary: 120 61% 34%;
+            --accent: 16 100% 50%;
+            --muted-foreground: 240 3.8% 46.1%;
+            --border: 240 5.9% 90%;
+            --radius: 0.5rem;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            margin: 0;
+            padding: 0;
+            padding-bottom: 80px; /* Space for bottom nav */
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        header {
+            text-align: center;
+            padding: 1rem;
+        }
+        .shimmer {
+            background: linear-gradient(90deg, hsl(var(--accent)), hsl(var(--primary)), hsl(var(--accent)));
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shimmer-bg 5s linear infinite;
+        }
+        @keyframes shimmer-bg {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .scene {
+            width: 192px;
+            height: 192px;
+            perspective: 600px;
+            margin: 2rem auto;
+        }
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .cube-face {
+            position: absolute;
+            width: 192px;
+            height: 192px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            background-color: hsl(var(--card));
+            border: 2px solid hsl(var(--border));
+            color: hsl(var(--card-foreground));
+            cursor: pointer;
+            backface-visibility: hidden;
+            transition: all 0.2s ease-in-out;
+        }
+        .cube-face:hover {
+            box-shadow: 0 0 25px hsl(var(--primary) / 0.5);
+            border-color: hsl(var(--primary));
+            transform: scale(1.05) translateZ(5px);
+        }
+        .cube-face img {
+            max-width: 80%;
+            max-height: 60%;
+            object-fit: contain;
+        }
+        .cube-face-front  { transform: rotateY(  0deg) translateZ(96px); }
+        .cube-face-back   { transform: rotateY(180deg) translateZ(96px); }
+        .cube-face-right  { transform: rotateY( 90deg) translateZ(96px); }
+        .cube-face-left   { transform: rotateY(-90deg) translateZ(96px); }
+        .cube-face-top    { transform: rotateX( 90deg) translateZ(96px); }
+        .cube-face-bottom { transform: rotateX(-90deg) translateZ(96px); }
+        .card {
+            background-color: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 0.75rem;
+        }
+        .stat-card p {
+            margin: 0.25rem 0 0;
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .start-button {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 2rem);
+            max-width: 568px; /* container max-width - padding */
+            padding: 1rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: white;
+            background-color: hsl(var(--primary));
+            border: none;
+            border-radius: 9999px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px hsl(var(--primary) / 0.4);
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background-color: hsl(var(--card) / 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid hsl(var(--border));
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            align-items: center;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: hsl(var(--muted-foreground));
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+        .nav-item.active {
+            color: hsl(var(--primary));
+        }
+        .nav-item svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="shimmer" style="font-size: 3rem; font-weight: 800; margin-bottom: 0;">CricBlitz</h1>
+            <p style="margin-top: 0.5rem; color: hsl(var(--muted-foreground)); font-weight: 600;">Win prizes for your cricket knowledge!</p>
+        </header>
+
+        <main>
+            <div style="text-align: center; margin-bottom: 1rem;">
+                <h2 style="font-size: 1.5rem; font-weight: 700;">Select Your Quiz Format</h2>
+                <p style="color: hsl(var(--muted-foreground)); font-size: 0.875rem;">Click a face to select and play</p>
+            </div>
+
+            <div class="scene">
+                <div class="cube" id="cube">
+                    <!-- Faces will be injected by JavaScript -->
+                </div>
+            </div>
+
+            <div class="card" id="selected-brand-card">
+                <!-- Selected brand info will be injected by JavaScript -->
+            </div>
+            
+            <div class="stats-grid">
+                <div class="card stat-card">
+                    <div class="value" id="timer">10:00</div>
+                    <p>Next Quiz In</p>
+                </div>
+                <div class="card stat-card">
+                    <div class="value" id="players-playing">1,234</div>
+                    <p>Playing Now</p>
+                </div>
+                <div class="card stat-card">
+                    <div class="value" id="players-today">9,876</div>
+                    <p>Players Today</p>
+                </div>
+                <div class="card stat-card">
+                    <div class="value" id="winners-today">345</div>
+                    <p>Winners Today</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <button class="start-button" id="start-quiz-button">Start Mixed Quiz</button>
+
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17.5c0 .55-.45 1-1 1H6c-.55 0-1-.45-1-1v-2.84"></path><path d="M15 14.66V17.5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-2.84"></path><path d="M9 14.5L12 3l3 11.5"></path></svg>
+            <span>Leaderboard</span>
+        </a>
+        <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0-4.4-3.6-8-8-8s-8 3.6-8 8 3.6 8 8 8 8-3.6 8-8Z"></path><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.9 4.9 1.4 1.4"></path><path d="m17.7 17.7 1.4 1.4"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m4.9 19.1 1.4-1.4"></path><path d="m17.7 6.3 1.4-1.4"></path><path d="M12 12a3 3 0 0 0-3 3c0 1.66 1.34 3 3 3s3-1.34 3-3c0-1.66-1.34-3-3-3Z"></path></svg>
+            <span>Rewards</span>
+        </a>
+        <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Profile</span>
+        </a>
+    </nav>
+    
+    <script>
+        const brandData = [
+            { brand: 'Amazon', format: 'Mixed', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', description: 'A mix of questions from all formats.' },
+            { brand: 'Mastercard', format: 'IPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Mastercard_2019_logo.svg', description: 'Test your knowledge on the IPL.' },
+            { brand: 'Netflix', format: 'T20', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Netflix_2015_N_logo.svg/1200px-Netflix_2015_N_logo.svg.png', description: 'Fast-paced questions on T20 cricket.' },
+            { brand: 'ICICI', format: 'ODI', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/12/ICICI_Bank_Logo.svg', description: 'One Day International facts.' },
+            { brand: 'Gucci', format: 'WPL', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c5/Gucci_logo.svg', description: 'Questions on Women\'s Premier League.' },
+            { brand: 'Nike', format: 'Test', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg', description: 'Put your classic knowledge to the test.' },
+        ];
+
+        const faceClasses = ['front', 'right', 'back', 'left', 'top', 'bottom'];
+        const faceRotations = [
+            { x: 0, y: 0 },    // Front
+            { x: 0, y: -90 },  // Right
+            { x: 0, y: -180 }, // Back
+            { x: 0, y: 90 },   // Left
+            { x: -90, y: 0 },  // Top
+            { x: 90, y: 0 }    // Bottom
+        ];
+
+        let currentFaceIndex = 0;
+        const cube = document.getElementById('cube');
+        const selectedBrandCard = document.getElementById('selected-brand-card');
+        const startQuizButton = document.getElementById('start-quiz-button');
+        
+        function updateUI(index) {
+            currentFaceIndex = index;
+            const brand = brandData[index];
+            const rotation = faceRotations[index];
+
+            cube.style.transform = `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
+            
+            selectedBrandCard.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <img src="${brand.logoUrl}" alt="${brand.brand}" style="width: 80px; height: 56px; object-fit: contain;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.125rem;">${brand.format} Quiz</h3>
+                        <p style="margin: 0; font-size: 0.875rem; color: hsl(var(--muted-foreground));">${brand.description}</p>
+                    </div>
+                </div>
+            `;
+            startQuizButton.innerText = `Start ${brand.format} Quiz`;
+        }
+
+        function createCubeFaces() {
+            brandData.forEach((brand, index) => {
+                const face = document.createElement('div');
+                face.className = `cube-face cube-face-${faceClasses[index]}`;
+                face.innerHTML = `
+                    <img src="${brand.logoUrl}" alt="${brand.brand}">
+                    <p style="font-weight: bold; font-size: 1.5rem; margin: 0.5rem 0 0;">${brand.format}</p>
+                `;
+                face.addEventListener('click', () => {
+                    updateUI(index);
+                    // In a real app, this would navigate or start the quiz
+                    alert(`Starting ${brand.format} quiz!`);
+                });
+                cube.appendChild(face);
+            });
+        }
+        
+        // Timer logic
+        const timerEl = document.getElementById('timer');
+        function updateTimer() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const slotLength = 10;
+            const slotEndMinute = (Math.floor(minutes / slotLength) + 1) * slotLength;
+            const endTime = new Date(now);
+            endTime.setMinutes(slotEndMinute, 0, 0);
+            
+            const diff = endTime.getTime() - now.getTime();
+            const minutesLeft = String(Math.max(0, Math.floor((diff / 1000 / 60) % 60))).padStart(2, '0');
+            const secondsLeft = String(Math.max(0, Math.floor((diff / 1000) % 60))).padStart(2, '0');
+            
+            timerEl.textContent = `${minutesLeft}:${secondsLeft}`;
+        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // Initial setup
+        createCubeFaces();
+        updateUI(0);
+
+        // Auto-rotate cube
+        setInterval(() => {
+            const newIndex = (currentFaceIndex + 1) % faceRotations.length;
+            updateUI(newIndex);
+        }, 3000);
+        
+        startQuizButton.addEventListener('click', () => {
+            alert(`Starting ${brandData[currentFaceIndex].format} quiz!`);
+        });
+
+    </script>
+</body>
+</html>
