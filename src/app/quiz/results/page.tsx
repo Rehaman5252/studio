@@ -46,7 +46,7 @@ const ResultsContent = () => {
           {isPerfectScore ? (
             <>
               <Award className="h-16 w-16 mx-auto text-primary animate-pulse" />
-              <CardTitle className="text-3xl font-extrabold text-shimmer">Perfect Score!</CardTitle>
+              <CardTitle className="text-3xl font-extrabold text-shimmer animate-shimmer">Perfect Score!</CardTitle>
             </>
           ) : (
             <CardTitle className="text-3xl font-bold">Quiz Complete!</CardTitle>
