@@ -1,0 +1,140 @@
+
+'use client';
+
+import React, { memo, useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/context/AuthProvider';
+import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { AllTimePlayer } from './leaderboardTypes';
+
+const RankIcon = memo(({ rank }: { rank: number }) => {
+    if (rank === 1) return <span className="text-2xl">🥇</span>;
+    if (rank === 2) return <span className="text-2xl">🥈</span>;
+    if (rank === 3) return <span className="text-2xl">🥉</span>;
+    return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
+});
+RankIcon.displayName = 'RankIcon';
+
+const LeaderboardItem = memo(({ player }: { player: AllTimePlayer }) => (
+    <div className={cn("flex items-center p-2 rounded-lg transition-colors", player.isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
+        <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+        <p className="font-semibold text-foreground flex-1">{player.name}</p>
+        <div className="text-right flex items-center gap-1">
+            <p className="font-bold text-primary">{player.perfectScores}</p>
+            <Star className="h-4 w-4 text-yellow-500" />
+        </div>
+    </div>
+));
+LeaderboardItem.displayName = 'LeaderboardItem';
+
+
+const LeaderboardItemSkeleton = () => (
+    <div className="flex items-center p-2 rounded-lg">
+        <Skeleton className="w-8 h-8 rounded-full" />
+        <Skeleton className="h-10 w-10 mx-4 rounded-full" />
+        <Skeleton className="h-4 flex-1" />
+        <Skeleton className="h-4 w-12" />
+    </div>
+);
+
+const ErrorState = ({ message }: { message: string }) => (
+    <Alert variant="destructive" className="mt-4">
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        <AlertTitle>Error Loading Leaderboard</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+    </Alert>
+);
+
+const AllTimeLeaderboard = () => {
+    const { user, loading: authLoading } = useAuth();
+    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (authLoading) return;
+        if (!db) {
+            setError("Firestore is not available.");
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchLeaderboard = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const usersCollection = collection(db, 'users');
+                const q = query(usersCollection, orderBy('perfectScores', 'desc'), limit(50));
+                const querySnapshot = await getDocs(q);
+
+                const playersData = querySnapshot.docs.map((doc, index) => {
+                    const data = doc.data();
+                    return {
+                        uid: doc.id,
+                        name: data.name || 'Anonymous Player',
+                        avatar: data.photoURL,
+                        perfectScores: data.perfectScores || 0,
+                        rank: index + 1,
+                        isCurrentUser: user?.uid === doc.id,
+                    };
+                });
+                
+                setPlayers(playersData);
+
+            } catch (e: any) {
+                if (e.code === 'failed-precondition') {
+                    setError("Leaderboard is being indexed. Please check back in a few moments.");
+                } else if (e.code === 'unavailable') {
+                    setError("You appear to be offline. Please check your connection.");
+                } else {
+                     setError("Could not load the leaderboard at this time.");
+                }
+                console.error("Error fetching all-time leaderboard:", e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchLeaderboard();
+
+    }, [authLoading, user]);
+
+
+    const renderContent = () => {
+        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (error) return <ErrorState message={error} />;
+        if (players.length === 0) {
+            return (
+                 <Card className="bg-card/80 border-dashed border-primary/30 text-center mt-4">
+                    <CardContent className="p-6">
+                        <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+                        <p className="font-semibold text-lg text-foreground">The Hall of Fame is Empty</p>
+                        <p className="text-sm text-muted-foreground">Be the first to get a perfect score and claim the top spot!</p>
+                    </CardContent>
+                </Card>
+            )
+        }
+        
+        return players.map((player) => (
+            <LeaderboardItem key={player.uid} player={player} />
+        ));
+    };
+
+
+    return (
+        <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
+            <CardContent className="p-2">
+                <div className="space-y-2">{renderContent()}</div>
+            </CardContent>
+        </Card>
+    );
+};
+
+export default memo(AllTimeLeaderboard);

@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, writeBatch, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -260,7 +260,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     if (!firebaseUser || !profile || !db) throw new Error("User not authenticated, profile not loaded, or DB not available.");
 
     const userRef = doc(db, 'users', firebaseUser.uid);
-    const attemptRef = doc(collection(db, 'users', firebaseUser.uid, 'quizAttempts'), attempt.slotId);
+    const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
     const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
 
     try {
@@ -273,54 +273,30 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 quizzesPlayed: increment(1),
             };
             
-            // Referral Bonus Logic
             const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
             if (isPerfectScore && userProfile.referredBy && !userProfile.referralBonusPaid) {
                 const referrerRef = doc(db, 'users', userProfile.referredBy);
                 transaction.update(referrerRef, { referralEarnings: increment(50) });
-                statsUpdate.referralBonusPaid = true; // Mark as paid for the current user
+                statsUpdate.referralBonusPaid = true;
             }
 
-            // Daily Activity & Streak Logic
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
             const dailyActivityRef = doc(db, 'users', firebaseUser.uid, 'dailyActivity', todayStr);
-            const dailyActivityDoc = await transaction.get(dailyActivityRef);
             
-            let dailyData = dailyActivityDoc.exists() ? dailyActivityDoc.data() : { total: 0, T20: 0, ODI: 0, Test: 0, IPL: 0, WPL: 0, Mixed: 0 };
-            dailyData.total = (dailyData.total || 0) + 1;
-            dailyData[attempt.format] = (dailyData[attempt.format] || 0) + 1;
-
             const lastStreakDate = userProfile.lastStreakTimestamp ? (userProfile.lastStreakTimestamp as Timestamp).toDate() : null;
             const isSameDay = lastStreakDate ? today.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
 
             if (!isSameDay) {
-                const meetsStreakConditions =
-                    dailyData.total >= 15 &&
-                    dailyData.T20 >= 2 &&
-                    dailyData.ODI >= 2 &&
-                    dailyData.Test >= 2 &&
-                    dailyData.IPL >= 2 &&
-                    dailyData.WPL >= 2 &&
-                    dailyData.Mixed >= 2;
-
-                if (meetsStreakConditions) {
-                    const yesterday = new Date();
-                    yesterday.setDate(today.getDate() - 1);
-                    const isConsecutive = lastStreakDate ? yesterday.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
-                    
-                    statsUpdate.currentStreak = isConsecutive ? increment(1) : 1;
-                    statsUpdate.lastStreakTimestamp = serverTimestamp();
-                } else if (lastStreakDate) {
-                    const twoDaysAgo = new Date();
-                    twoDaysAgo.setDate(today.getDate() - 2);
-                    if (lastStreakDate < twoDaysAgo) {
-                         statsUpdate.currentStreak = 0;
-                    }
-                }
+                const yesterday = new Date();
+                yesterday.setDate(today.getDate() - 1);
+                const isConsecutive = lastStreakDate ? yesterday.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
+                
+                statsUpdate.currentStreak = isConsecutive ? increment(1) : 1;
+                statsUpdate.lastStreakTimestamp = serverTimestamp();
             }
             
-            transaction.set(dailyActivityRef, dailyData, { merge: true });
+            transaction.set(dailyActivityRef, { lastPlayed: serverTimestamp() }, { merge: true });
 
             const leaderboardDoc = await transaction.get(leaderboardRef);
             let leaderboardPlayers: LivePlayer[] = [];
@@ -367,20 +343,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             description: "Could not save your quiz result. Please check your connection.",
             variant: 'destructive',
         });
-        try {
-            const statsUpdate: {[key:string]: any} = {
-              quizzesPlayed: increment(1),
-            };
-             if (attempt.score === attempt.totalQuestions && !attempt.reason) {
-                statsUpdate.perfectScores = increment(1);
-                statsUpdate.totalRewards = increment(100);
-            }
-            await setDoc(attemptRef, sanitizeUserProfile(attempt));
-            await updateDoc(userRef, statsUpdate);
-            
-        } catch (fallbackError) {
-            console.error("Fallback attempt save also failed:", fallbackError);
-        }
     }
   }, [firebaseUser, profile, toast]);
   
