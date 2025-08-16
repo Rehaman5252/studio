@@ -1,0 +1,47 @@
+Here is the debugging information you requested.
+
+## 1. Current firebase.json
+
+```json
+{
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
+  }
+}
+```
+
+---
+
+## 2. Full output from `npm run build`
+
+(As an AI, I cannot run local commands. Please paste the full output from your `npm run build` command here.)
+
+```
+<PASTE YOUR BUILD LOGS HERE>
+```
+
+---
+
+## 3. Output from your most recent `firebase deploy`
+
+(As an AI, I cannot run deployment commands. Please paste the full output from your `firebase deploy` command here.)
+
+```
+<PASTE YOUR DEPLOY LOGS HERE>
+```
+
+---
+
+## 4. The URL and path (route) that is showing 404
+
+(As an AI, I do not have access to your browser. Please provide the exact URL that is failing.)
+
+Failing URL: _________________________
