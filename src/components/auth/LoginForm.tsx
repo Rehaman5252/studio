@@ -69,41 +69,31 @@ export default function LoginForm({ from }: { from: string | null }) {
 
   const onLogin = async (data: LoginFormValues) => {
     setIsLoading(true);
-    try {
-        const user = await loginWithEmail(data.email, data.password);
-        if (user) {
-          if (!user.emailVerified) {
-            toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
-            router.push(`/auth/verify-email?from=${from || '/home'}`);
-          } else {
-            await handleSuccessfulLogin(user.uid);
-          }
-        }
-    } catch (error) {
-        // Errors are already toasted in the provider
-    } finally {
-        setIsLoading(false);
+    const user = await loginWithEmail(data.email, data.password);
+    if (user) {
+      if (!user.emailVerified) {
+        toast({ title: 'Email Not Verified', description: 'Please check your email to verify your account.', variant: 'destructive'});
+        router.push(`/auth/verify-email?from=${from || '/home'}`);
+      } else {
+        await handleSuccessfulLogin(user.uid);
+      }
     }
+    setIsLoading(false);
   };
   
   const onGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    try {
-        const user = await signInWithGoogle();
-        if (user) {
-            await handleSuccessfulLogin(user.uid);
-        }
-    } catch(error) {
-        console.error("Google login failed in component", error);
-    } finally {
-        setIsGoogleLoading(false);
+    const user = await signInWithGoogle();
+    if (user) {
+        await handleSuccessfulLogin(user.uid);
     }
+    setIsGoogleLoading(false);
   }
 
   const isAuthDisabled = isLoading || isGoogleLoading;
 
   return (
-    <Card className="w-full max-w-md shadow-2xl shadow-black/20">
+    <Card className="w-full max-w-md shadow-2xl shadow-black/20 bg-card/80 backdrop-blur-lg">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
         <CardDescription>Enter your credentials to access your account</CardDescription>
@@ -116,7 +106,7 @@ export default function LoginForm({ from }: { from: string | null }) {
             <Button variant="outline" className="w-full" onClick={onGoogleLogin} disabled={isAuthDisabled}>
                 {isGoogleLoading ? ( <><Loader2 className="animate-spin mr-2" /> Signing In...</> ) : ( <><GoogleIcon className="mr-3 h-5 w-5" /> Continue with Google</> )}
             </Button>
-            <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div></div>
+            <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card/80 px-2 text-muted-foreground">Or continue with</span></div></div>
             <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>

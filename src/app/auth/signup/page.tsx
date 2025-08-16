@@ -3,7 +3,7 @@
 
 import SignUpForm from "@/components/auth/SignUpForm";
 import { Suspense } from 'react';
-import { useSearchParams }s from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 function SignUpPageContent() {
     const searchParams = useSearchParams();
