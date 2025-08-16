@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -9,7 +10,7 @@ const publicRoutes = [
   '/auth/verify-email',
   '/policies',
   '/leaderboard', // Allow guests to see the leaderboard
-  '/test', // a test route
+  '/home', // Allow home for guests
 ];
 
 const authRoutes = [
@@ -23,12 +24,12 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthenticated = request.cookies.has('firebaseIdToken');
 
-  // Redirect to root if an authenticated user tries to access auth pages
+  // If logged in and visiting an auth page, send them to home
   if (isAuthenticated && authRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/home', request.url));
   }
 
-  // Redirect to login if an unauthenticated user tries to access a protected page
+  // If not logged in and visiting a protected page
   if (!isAuthenticated && !publicRoutes.some(p => pathname.startsWith(p) && (pathname.length === p.length || pathname[p.length] === '/'))) {
      // Allow Next.js specific paths and files with extensions to pass through
     if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.includes('.')) {
