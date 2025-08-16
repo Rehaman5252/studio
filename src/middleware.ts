@@ -2,15 +2,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Define which routes are public and which are only for unauthenticated users
+// Define which routes are public and which are protected
 const publicRoutes = [
   '/auth/login',
   '/auth/signup',
   '/auth/forgot-password',
   '/auth/verify-email',
   '/policies',
-  '/home',
-  '/leaderboard',
   '/api/quiz' // API routes used publicly should be listed
 ];
 
@@ -23,7 +21,7 @@ const authRoutes = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isAuthenticated = request.cookies.has('firebaseIdToken');
+  const isAuthenticated = !!request.cookies.get('firebaseIdToken');
 
   // Allow Next.js specific paths and files with extensions to pass through
   if (pathname.startsWith('/_next/') || pathname.includes('.')) {
@@ -33,12 +31,8 @@ export function middleware(request: NextRequest) {
   // If the user is authenticated...
   if (isAuthenticated) {
     // ...and they are trying to access a login/signup page, redirect them to home.
-    if (isAuthRoute) {
+    if (authRoutes.includes(pathname)) {
       return NextResponse.redirect(new URL('/home', request.url));
-    }
-    // ...and they are visiting the root, let the gatekeeper page handle it.
-    if (pathname === '/') {
-       return NextResponse.next();
     }
   } 
   // If the user is NOT authenticated...
@@ -55,7 +49,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// This config ensures the middleware runs on all paths except for static assets.
+// This config ensures the middleware runs on all paths except for static assets and API routes (unless specified).
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
