@@ -1,0 +1,170 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 97%; /* Pale Green - Muted for a calm backdrop */
+    --foreground: 240 10% 3.9%;
+    
+    --card: 240 10% 100%;
+    --card-foreground: 240 10% 3.9%;
+    
+    --popover: 240 10% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    --primary: 120 61% 34%; /* Forest Green - For growth and knowledge */
+    --primary-foreground: 60 93% 98%;
+    
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 16 100% 50%; /* Sunset Orange - For excitement and rewards */
+    --accent-foreground: 60 93% 98%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 93% 98%;
+    
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 120 61% 34%;
+    
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 120 10% 5%; /* Dark Forest Green */
+    --foreground: 60 93% 98%;
+    
+    --card: 120 10% 8%;
+    --card-foreground: 60 93% 98%;
+    
+    --popover: 120 10% 5%;
+    --popover-foreground: 60 93% 98%;
+
+    --primary: 120 61% 45%; /* A slightly brighter Forest Green for dark mode */
+    --primary-foreground: 60 93% 98%;
+    
+    --secondary: 120 5% 15%;
+    --secondary-foreground: 60 93% 98%;
+    
+    --muted: 120 5% 15%;
+    --muted-foreground: 240 3.8% 63.9%;
+    
+    --accent: 16 100% 55%; /* A slightly brighter Sunset Orange */
+    --accent-foreground: 60 93% 98%;
+
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 60 93% 98%;
+    
+    --border: 120 5% 20%;
+    --input: 120 5% 20%;
+    --ring: 120 61% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Animation for Shimmer Effect */
+@keyframes shimmer-bg {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--accent)),
+    hsl(var(--primary)),
+    hsl(var(--accent))
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.animate-shimmer {
+  animation: shimmer-bg 5s linear infinite;
+}
+
+/* Custom Cube Animation for Home Screen */
+.scene {
+  width: 192px; /* w-48 */
+  height: 192px; /* h-48 */
+  perspective: 600px;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.cube-face {
+  position: absolute;
+  width: 192px; /* w-48 */
+  height: 192px; /* h-48 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem; /* rounded-xl */
+  background-color: hsl(var(--card));
+  border: 2px solid hsl(var(--border));
+  color: hsl(var(--card-foreground));
+  cursor: pointer;
+  backface-visibility: hidden; /* Improves performance */
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 15px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1);
+}
+
+.cube-face:hover {
+    box-shadow: 0 0 25px hsl(var(--primary) / 0.5);
+    border-color: hsl(var(--primary));
+    transform: scale(1.05) translateZ(5px);
+}
+
+/* Positioning the faces of the cube */
+.cube-face-front  { transform: rotateY(  0deg) translateZ(96px); }
+.cube-face-back   { transform: rotateY(180deg) translateZ(96px); }
+.cube-face-right  { transform: rotateY( 90deg) translateZ(96px); }
+.cube-face-left   { transform: rotateY(-90deg) translateZ(96px); }
+.cube-face-top    { transform: rotateX( 90deg) translateZ(96px); }
+.cube-face-bottom { transform: rotateX(-90deg) translateZ(96px); }
+
+/* Custom animation for fade in up */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+/* Custom grid background for auth pages */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 40px 40px;
+}

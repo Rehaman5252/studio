@@ -150,9 +150,9 @@ const QuizSelectionComponent = () => {
     
     return (
         <>
-            <div className="text-center mb-8">
+            <div className="text-center mb-8" id="tour-step-1">
                 <h2 className="text-2xl font-bold">Select Your Quiz Format</h2>
-                <p className="text-sm text-muted-foreground" id="tour-step-1">Click a face to select and play</p>
+                <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
             
             <div className="flex justify-center items-center mt-6 mb-8 h-48 w-full">
