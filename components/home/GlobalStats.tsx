@@ -23,7 +23,7 @@ const StatCard = ({ icon, title, children }: { icon: React.ReactNode, title: str
 const GlobalStatsComponent = () => {
     const { timeLeft, playersPlaying, playersPlayed, totalWinners } = useQuizStatus();
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
             <StatCard icon={<Timer />} title="Quiz Ends">
                 <TimerStat timeLeft={timeLeft} />
             </StatCard>
