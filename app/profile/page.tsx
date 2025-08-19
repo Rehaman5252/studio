@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, ChevronRight } from 'lucide-react';
+import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, ChevronRight, Award } from 'lucide-react';
 import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,14 @@ function ProfilePageContent() {
         {user && (
             <>
             <section className="space-y-3 pt-4">
+                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                    <Link href="/certificates">
+                        <div className="flex items-center">
+                            <Award className="mr-4" /> View Certificates
+                        </div>
+                        <ChevronRight/>
+                    </Link>
+                </Button>
                 <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                     <Link href="/settings">
                         <div className="flex items-center">
