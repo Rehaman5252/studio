@@ -28,8 +28,12 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
             role="button"
             aria-label={`Play ${selectedBrand.format} quiz`}
         >
-            <CardContent className="px-20 py-4 flex items-center gap-4">
-                <div className="relative w-20 h-14 flex-shrink-0">
+            <CardContent className="px-20 py-4 flex items-center justify-between gap-4">
+                <div className="flex-1 text-left">
+                    <h3 className="font-bold text-lg text-foreground">{selectedBrand.format} Quiz</h3>
+                    <p className="text-sm text-muted-foreground">{selectedBrand.description}</p>
+                </div>
+                <div className="relative w-28 h-24 flex-shrink-0">
                     <Image
                         src={selectedBrand.logoUrl}
                         alt={`${selectedBrand.brand} Logo`}
@@ -38,10 +42,6 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
                         className="object-contain"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
-                </div>
-                <div className="flex-1">
-                    <h3 className="font-bold text-lg text-foreground">{selectedBrand.format} Quiz</h3>
-                    <p className="text-sm text-muted-foreground">{selectedBrand.description}</p>
                 </div>
             </CardContent>
         </Card>
