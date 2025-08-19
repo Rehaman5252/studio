@@ -5,9 +5,9 @@ import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
 import React, { memo } from 'react';
 
 const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
-  <div className="bg-secondary/50 p-3 rounded-lg text-center transform transition-transform hover:scale-105">
+  <div className="bg-secondary/50 p-2 rounded-lg text-center transform transition-transform hover:scale-105">
     <div className="text-primary mx-auto w-fit">{icon}</div>
-    <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
+    <p className="text-2xl font-bold text-foreground">{value}</p>
     <p className="text-xs text-muted-foreground font-semibold uppercase">{label}</p>
   </div>
 );
