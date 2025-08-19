@@ -1,11 +1,11 @@
 
 'use client';
 import React, { memo } from 'react';
-import ProfileHeader from './ProfileHeader';
-import ProfileCompletion from './ProfileCompletion';
-import ProfileStats from './ProfileStats';
-import ReferralCard from './ReferralCard';
-import DailyStreakCard from './DailyStreakCard';
+import ProfileHeader from '@/components/profile/ProfileHeader';
+import ProfileCompletion from '@/components/profile/ProfileCompletion';
+import ProfileStats from '@/components/profile/ProfileStats';
+import ReferralCard from '@/components/profile/ReferralCard';
+import DailyStreakCard from '@/components/profile/DailyStreakCard';
 
 function ProfileContentComponent({ userProfile }: { userProfile: any }) {
 
