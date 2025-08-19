@@ -5,19 +5,19 @@
 
 @layer base {
   :root {
-    --background: 0 0% 10%; /* Very dark grey, almost black */
+    --background: 0 0% 0%; /* Pure Black */
     --foreground: 45 50% 90%; /* Light grey/off-white for text */
     
-    --card: 0 0% 12%; /* Slightly lighter than background */
+    --card: 0 0% 8%; /* Slightly lighter than background */
     --card-foreground: 45 50% 90%;
     
-    --popover: 0 0% 10%;
-    --popover-foreground: 45 50% 90%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 45 50% 95%;
     
     --primary: 45 100% 50%; /* Vibrant Gold */
     --primary-foreground: 0 0% 5%; /* Black text on primary buttons */
     
-    --secondary: 0 0% 15%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 45 50% 90%;
     
     --muted: 0 0% 15%;
@@ -37,7 +37,7 @@
   }
 
   .dark {
-    --background: 0 0% 5%; /* Pure Black */
+    --background: 0 0% 0%; /* Pure Black */
     --foreground: 45 50% 95%; /* Lighter off-white */
     
     --card: 0 0% 8%;
@@ -98,6 +98,28 @@
 
 .animate-shimmer {
   animation: shimmer-bg 5s linear infinite;
+}
+
+/* 3D Gold Turn Animation */
+@keyframes text-3d-gold-turn {
+  0% {
+    color: hsl(var(--foreground));
+    transform: rotateY(0deg);
+  }
+  50% {
+    color: hsl(var(--primary) / 0.5);
+    transform: rotateY(180deg);
+  }
+  100% {
+    color: hsl(var(--primary));
+    transform: rotateY(360deg);
+  }
+}
+
+.animate-text-3d-gold-turn {
+    display: inline-block;
+    animation: text-3d-gold-turn 3s ease-in-out;
+    transform-style: preserve-3d;
 }
 
 /* Custom Cube Animation for Home Screen */
