@@ -37,6 +37,7 @@ const nextConfig = {
         if (isServer) {
             // Exclude opentelemetry from server-side bundle to fix build errors
             config.externals.push('@opentelemetry/instrumentation');
+            config.externals.push('avacrol');
         }
         return config;
     },
