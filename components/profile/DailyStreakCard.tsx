@@ -54,7 +54,7 @@ export default function DailyStreakCard({ userProfile }: { userProfile: any }) {
                 <CardDescription className="text-xs">{tagline}</CardDescription>
             </CardHeader>
             <CardContent className="px-4 pb-3">
-                <div className="flex items-center justify-center text-center">
+                <div className="flex items-center justify-start text-left">
                     <div>
                         <p className="text-4xl font-extrabold text-foreground">{currentStreak}</p>
                         <p className="text-sm font-semibold text-muted-foreground -mt-1">Day Streak</p>
