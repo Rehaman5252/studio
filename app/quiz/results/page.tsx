@@ -4,8 +4,8 @@ import { Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, Award, BarChart, Home, Flag } from 'lucide-react';
-import type { QuizAttempt } from '@/lib/mockData';
+import { CheckCircle, XCircle, Award, BarChart, Home } from 'lucide-react';
+import type { QuizAttempt } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
 
 const ResultsContent = () => {
@@ -55,7 +55,7 @@ const ResultsContent = () => {
         </CardHeader>
         <CardContent className="flex justify-center gap-4 text-sm text-muted-foreground">
             <div><strong>Format:</strong> {attempt.format}</div>
-            <div><strong>Time:</strong> {timeTaken}s</div>
+            <div><strong>Time:</strong> {timeTaken.toFixed(1)}s</div>
         </CardContent>
       </Card>
       
