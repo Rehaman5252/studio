@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect } from 'react';
@@ -13,7 +12,7 @@ interface GuidedTourProps {
 const steps: Step[] = [
   {
     target: '#tour-step-1',
-    content: 'Welcome to CricBlitz! This is the main screen where you can select a quiz format. The cube will rotate through different formats.',
+    content: 'Welcome to indcric! This is the main screen where you can select a quiz format. The cube will rotate through different formats.',
     disableBeacon: true,
   },
   {

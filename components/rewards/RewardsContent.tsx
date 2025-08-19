@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -57,7 +56,7 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
-  const storageKey = useMemo(() => `cricblitz-scratch-card-${slotId}`, [slotId]);
+  const storageKey = useMemo(() => `indcric-scratch-card-${slotId}`, [slotId]);
   
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
 
@@ -79,7 +78,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -222,7 +221,7 @@ function RewardsContentComponent() {
       <section className='mt-8'>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
         <div className="space-y-4">
-          <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
+          <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
           <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://cdn.icon-icons.com/icons2/2803/PNG/512/swiggy_logo_icon_178723.png" hint="food delivery" link="https://www.swiggy.com/" />
           <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://www.pngkey.com/png/full/223-2231200_hdfc-bank-hdfc-bank-logo-png.png" hint="finance bank" link="https://www.hdfcbank.com/" />
           <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://logolook.net/wp-content/uploads/2021/07/Flipkart-logo.png" hint="shopping cart" link="https://www.flipkart.com/" />
