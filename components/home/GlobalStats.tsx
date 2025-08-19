@@ -24,16 +24,16 @@ const GlobalStatsComponent = () => {
     const { timeLeft, playersPlaying, playersPlayed, totalWinners } = useQuizStatus();
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatCard icon={<Timer />} title="Slot Ends In">
+            <StatCard icon={<Timer />} title="Quiz Ends">
                 <TimerStat timeLeft={timeLeft} />
             </StatCard>
-            <StatCard icon={<Users />} title="Playing Now">
+            <StatCard icon={<Users />} title="Players Playing">
                 <PlayersPlayingStat count={playersPlaying} />
             </StatCard>
-            <StatCard icon={<Users2 />} title="Players Today">
+            <StatCard icon={<Users2 />} title="Players Played">
                 <PlayersPlayedStat count={playersPlayed} />
             </StatCard>
-            <StatCard icon={<Trophy />} title="Winners Today">
+            <StatCard icon={<Trophy />} title="Total Winners">
                 <TotalWinnersStat count={totalWinners} />
             </StatCard>
         </div>
