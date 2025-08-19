@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo } from 'react';
@@ -42,7 +41,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
 
     return (
         <Card className="bg-card shadow-lg relative">
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 left-2">
                 <EditProfileDialog userProfile={userProfile} />
             </div>
             <CardContent className="p-4 flex flex-col sm:flex-row items-center text-center sm:text-left gap-4">
