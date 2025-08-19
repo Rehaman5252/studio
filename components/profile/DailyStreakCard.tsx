@@ -54,22 +54,16 @@ export default function DailyStreakCard({ userProfile }: { userProfile: any }) {
                 <CardDescription className="text-xs">{tagline}</CardDescription>
             </CardHeader>
             <CardContent className="px-4 pb-3">
-                <div className="flex items-end justify-between">
+                <div className="flex items-center justify-center text-center">
                     <div>
                         <p className="text-4xl font-extrabold text-foreground">{currentStreak}</p>
                         <p className="text-sm font-semibold text-muted-foreground -mt-1">Day Streak</p>
                     </div>
-                    {nextMilestone && (
-                        <div className="text-right">
-                            <p className="font-bold text-sm text-primary flex items-center justify-end gap-1"><Star className="h-4 w-4" /> Next Reward</p>
-                            <p className="font-semibold text-foreground text-lg">{nextMilestone.reward}</p>
-                        </div>
-                    )}
                 </div>
                 
                 {daysToNextMilestone > 0 && (
                     <div className="mt-2 text-center text-xs text-muted-foreground">
-                        Keep going! {daysToNextMilestone} day{daysToNextMilestone > 1 ? 's' : ''} to your next milestone.
+                        Keep going! {daysToNextMilestone} day{daysToNextMilestone > 1 ? 's' : ''} to your next reward.
                     </div>
                 )}
             </CardContent>
