@@ -127,7 +127,7 @@ function HomePage() {
               <p className="text-sm text-muted-foreground mt-2 font-semibold">win ₹100 for every 100 seconds !</p>
           </motion.div>
         </header>
-        <main className="flex-1 overflow-y-auto pb-36">
+        <main className="flex-1 overflow-y-auto pb-24">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -136,16 +136,18 @@ function HomePage() {
           >
             <MalpracticeWarning />
             <HomeClientContent setSelectedBrand={setSelectedBrand} />
+
+             <div className="mt-8 px-4">
+                <StartQuizButton
+                    brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
+                    onClick={handleStartQuiz}
+                    isDisabled={isQuizStatusLoading}
+                    hasPlayed={hasPlayedInCurrentSlot}
+                />
+            </div>
+
           </motion.div>
         </main>
-        <footer className="fixed bottom-16 left-0 right-0 p-4 z-40">
-           <StartQuizButton
-                brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
-                onClick={handleStartQuiz}
-                isDisabled={isQuizStatusLoading}
-                hasPlayed={hasPlayedInCurrentSlot}
-            />
-        </footer>
       </div>
     );
 }
