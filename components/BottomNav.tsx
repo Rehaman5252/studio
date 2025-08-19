@@ -19,7 +19,7 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50">
-      <nav id="tour-step-3" className="grid h-full grid-cols-5 items-center">
+      <nav id="tour-step-3" className="flex h-full items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -27,7 +27,7 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center h-full text-sm font-medium transition-colors relative',
+                'flex flex-1 flex-col items-center justify-center h-full text-sm font-medium transition-colors relative',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
