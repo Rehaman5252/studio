@@ -13,7 +13,7 @@ interface TimerStatProps {
 
 const TimerStat = ({ timeLeft }: TimerStatProps) => {
   return (
-    <span className="text-2xl font-bold text-primary">
+    <span className="text-2xl font-bold">
       {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
     </span>
   );

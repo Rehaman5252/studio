@@ -14,7 +14,7 @@ const StatCard = ({ icon, title, children }: { icon: React.ReactNode, title: str
   <Card className="bg-card/80 shadow-md border-primary/10 hover:border-primary/30 transition-all">
     <CardContent className="p-3 text-center flex flex-col items-center justify-center h-full">
       <div className="text-primary">{icon}</div>
-      <div className="mt-1">{children}</div>
+      <div className="mt-1 text-foreground">{children}</div>
       <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-1">{title}</p>
     </CardContent>
   </Card>
