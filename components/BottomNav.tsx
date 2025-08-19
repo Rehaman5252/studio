@@ -28,16 +28,16 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center h-full text-sm font-medium transition-colors relative',
+                'flex flex-row items-center justify-center h-full text-sm font-medium transition-colors relative gap-1',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
-              <item.icon className="h-6 w-6 mb-0.5" />
+              <item.icon className="h-5 w-5" />
               <span className="text-xs">{item.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="active-nav-indicator"
-                  className="absolute bottom-0 h-1 w-8 rounded-full bg-primary"
+                  className="absolute bottom-0 h-1 w-full rounded-full bg-primary"
                 />
               )}
             </Link>
