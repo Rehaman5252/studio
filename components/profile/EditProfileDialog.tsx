@@ -109,7 +109,7 @@ export function EditProfileDialog({ userProfile }: EditProfileDialogProps) {
             Keep your information up to date.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
+        <div className="flex-grow overflow-y-auto pr-4 -mr-4">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" id="edit-profile-form">
             <div>
                 <Label htmlFor="name">Full Name</Label>
