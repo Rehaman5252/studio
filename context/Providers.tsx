@@ -6,7 +6,7 @@ import { UserDataProvider } from './AuthProvider';
 import { QuizStatusProvider } from './QuizStatusProvider';
 import { SettingsProvider } from '@/hooks/use-settings';
 import { ThemeProvider } from 'next-themes';
-import { FirebaseProvider } from './FirebaseProvider';
+import { FirebaseProvider } from '@/providers/FirebaseProvider';
 
 // This component composes all the providers for the application.
 export default function Providers({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -19,6 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 
 
 const QUESTION_TIME_LIMIT = 15; // seconds
@@ -120,26 +121,17 @@ export default function QuizView({
                     <h1 className="text-lg font-semibold">Question {questionNumber}/{totalQuestions}</h1>
                 </div>
                 <div className="relative h-16 w-16">
-                     <svg className="transform -rotate-90" viewBox="0 0 120 120">
-                        <circle cx="60" cy="60" r="54" fill="none" stroke="hsl(var(--muted))" strokeWidth="12" />
-                        <motion.circle
-                            cx="60"
-                            cy="60"
-                            r="54"
-                            fill="none"
-                            stroke="hsl(var(--primary))"
-                            strokeWidth="12"
-                            pathLength="1"
-                            strokeDasharray="1"
-                            strokeDashoffset={0}
-                            initial={{ strokeDashoffset: 1 }}
-                            animate={{ strokeDashoffset: 1 - (timeLeft / QUESTION_TIME_LIMIT) }}
-                            transition={{ duration: 1, ease: "linear" }}
-                        />
-                    </svg>
-                     <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold">
-                        {timeLeft}
-                    </div>
+                     <CircularProgressbar
+                        value={timeLeft}
+                        maxValue={QUESTION_TIME_LIMIT}
+                        text={`${timeLeft}`}
+                        styles={buildStyles({
+                            textColor: 'hsl(var(--primary))',
+                            pathColor: 'hsl(var(--primary))',
+                            trailColor: 'hsl(var(--muted))',
+                            textSize: '28px',
+                        })}
+                     />
                 </div>
             </header>
 

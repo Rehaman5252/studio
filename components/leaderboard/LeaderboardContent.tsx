@@ -8,19 +8,19 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
-import LoginPrompt from '../auth/LoginPrompt';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 import { motion } from 'framer-motion';
 
 
-const LiveLeaderboard = dynamic(() => import('./LiveLeaderboard'), {
+const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
     loading: () => <LeaderboardItemSkeleton count={5} />,
     ssr: false,
 });
-const AllTimeLeaderboard = dynamic(() => import('./AllTimeLeaderboard'), {
+const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard'), {
     loading: () => <LeaderboardItemSkeleton count={5} />,
     ssr: false,
 });
-const MyNetworkLeaderboard = dynamic(() => import('./MyNetworkLeaderboard'), {
+const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard'), {
     loading: () => <LeaderboardItemSkeleton count={3} />,
     ssr: false,
 });
@@ -75,7 +75,7 @@ function LeaderboardContentComponent() {
             </TabsContent>
 
             <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
-                <Suspense fallback={<LeaderboardItemSkeleton />}>
+                 <Suspense fallback={<LeaderboardItemSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>
