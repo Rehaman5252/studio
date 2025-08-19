@@ -82,7 +82,7 @@ const QuizSelectionComponent = () => {
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 3000); 
+        }, 750); // 4500ms / 6 faces = 750ms per face
 
         return () => clearInterval(rotationInterval);
     }, []);
