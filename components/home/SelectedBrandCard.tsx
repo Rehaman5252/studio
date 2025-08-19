@@ -28,7 +28,7 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
             role="button"
             aria-label={`Play ${selectedBrand.format} quiz`}
         >
-            <CardContent className="px-8 py-4 flex items-center gap-4">
+            <CardContent className="px-20 py-4 flex items-center gap-4">
                 <div className="relative w-20 h-14 flex-shrink-0">
                     <Image
                         src={selectedBrand.logoUrl}
