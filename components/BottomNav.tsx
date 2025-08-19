@@ -19,7 +19,7 @@ export default function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50">
-      <nav id="tour-step-3" className="grid h-full max-w-lg grid-cols-5 items-center mx-auto">
+      <nav id="tour-step-3" className="grid h-full grid-cols-5 items-center">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
