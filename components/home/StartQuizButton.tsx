@@ -14,7 +14,7 @@ interface StartQuizButtonProps {
 
 const StartQuizButton = ({ brandFormat, onClick, isDisabled, hasPlayed }: StartQuizButtonProps) => {
     return (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-40 sm:static sm:bottom-auto sm:left-auto sm:translate-x-0 sm:w-full sm:max-w-none">
+        <div className="w-full">
              <Button 
                 size="lg" 
                 className="w-full h-16 rounded-full text-xl font-bold shadow-lg"

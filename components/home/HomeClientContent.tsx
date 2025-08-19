@@ -5,11 +5,14 @@ import React, { memo } from 'react';
 import QuizSelection from '@/components/home/QuizSelection';
 import { useAuth } from '@/context/AuthProvider';
 import GuidedTour from '@/components/home/GuidedTour';
-import { useRouter } from 'next/navigation';
+import type { CubeBrand } from './brandData';
 
-const HomeClientContentComponent = () => {
+interface HomeClientContentProps {
+    setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
+}
+
+const HomeClientContentComponent = ({ setSelectedBrand }: HomeClientContentProps) => {
     const { profile, updateUserData } = useAuth();
-    const router = useRouter();
     
     const needsTour = profile && !profile.guidedTourCompleted;
 
@@ -25,7 +28,7 @@ const HomeClientContentComponent = () => {
     
     return (
         <>
-            <QuizSelection />
+            <QuizSelection setSelectedBrand={setSelectedBrand} />
             {profile && <GuidedTour run={needsTour} onFinish={handleTourFinish} />}
         </>
     );

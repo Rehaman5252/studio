@@ -17,7 +17,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import GlobalStats from '@/components/home/GlobalStats';
-import StartQuizButton from '@/components/home/StartQuizButton';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
@@ -38,16 +37,24 @@ const faceRotations = [
     { x: 90, y: 0 }    // Bottom (Test)
 ];
 
-const QuizSelectionComponent = () => {
+interface QuizSelectionProps {
+    setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
+}
+
+const QuizSelectionComponent = ({ setSelectedBrand }: QuizSelectionProps) => {
     const { user, isProfileComplete, lastAttemptInSlot } = useAuth();
     const { isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     const { toast } = useToast();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
-    const [selectedBrand, setSelectedBrand] = useState<CubeBrand>(brandData[0]);
+    const [localSelectedBrand, setLocalSelectedBrand] = useState<CubeBrand>(brandData[0]);
     const [rotation, setRotation] = useState(faceRotations[0]);
     const [showAuthAlert, setShowAuthAlert] = useState(false);
+
+    useEffect(() => {
+        setSelectedBrand(localSelectedBrand);
+    }, [localSelectedBrand, setSelectedBrand]);
     
     // Performance Optimization: Prefetch quiz questions
     useEffect(() => {
@@ -79,7 +86,7 @@ const QuizSelectionComponent = () => {
             setCurrentFaceIndex(prevIndex => {
                 const newIndex = (prevIndex + 1) % faceRotations.length;
                 setRotation(faceRotations[newIndex]);
-                setSelectedBrand(brandData[newIndex]);
+                setLocalSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
         }, 750); // 4500ms / 6 faces = 750ms per face
@@ -119,8 +126,8 @@ const QuizSelectionComponent = () => {
             return;
         }
         
-        router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, lastAttemptInSlot, selectedBrand, toast]);
+        router.push(`/quiz?brand=${encodeURIComponent(localSelectedBrand.brand)}&format=${encodeURIComponent(localSelectedBrand.format)}`);
+    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, lastAttemptInSlot, localSelectedBrand, toast]);
     
 
     const handleFaceClick = (brand: CubeBrand) => {
@@ -128,7 +135,7 @@ const QuizSelectionComponent = () => {
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex)
             setRotation(faceRotations[clickedIndex]);
-            setSelectedBrand(brandData[clickedIndex]);
+            setLocalSelectedBrand(brandData[clickedIndex]);
             // Use a short delay to allow the cube to rotate before initiating the quiz start logic
             // This is removed to make the click feel instant
             handleStartQuiz();
@@ -160,19 +167,12 @@ const QuizSelectionComponent = () => {
             </div>
 
             <SelectedBrandCard 
-                selectedBrand={selectedBrand} 
+                selectedBrand={localSelectedBrand} 
                 onClick={handleBannerOrButtonClick} 
             />
 
             <div className="mt-8 space-y-8" id="tour-step-2">
                 <GlobalStats />
-
-                <StartQuizButton
-                  brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
-                  onClick={handleBannerOrButtonClick}
-                  isDisabled={isQuizStatusLoading}
-                  hasPlayed={hasPlayedInCurrentSlot}
-                />
             </div>
             
             <AlertDialog open={showAuthAlert} onOpenChange={setShowAuthAlert}>

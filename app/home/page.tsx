@@ -8,6 +8,13 @@ import { AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import { memo } from 'react';
+import StartQuizButton from '@/components/home/StartQuizButton';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { useMemo, useState } from 'react';
+import { getQuizSlotId } from '@/lib/utils';
+import { brandData } from '@/components/home/brandData';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
   loading: () => <HomeContentSkeleton />,
@@ -60,6 +67,51 @@ const MalpracticeWarning = () => {
 }
 
 function HomePage() {
+    const { user, isProfileComplete, lastAttemptInSlot } = useAuth();
+    const { isLoading: isQuizStatusLoading } = useQuizStatus();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [selectedBrand, setSelectedBrand] = useState(brandData[0]);
+
+    const hasPlayedInCurrentSlot = useMemo(() => {
+        if (!user || !lastAttemptInSlot) return false;
+        // Check if the last attempt's slot ID matches the current one.
+        return lastAttemptInSlot.slotId === getQuizSlotId();
+    }, [user, lastAttemptInSlot]);
+
+    const handleStartQuiz = () => {
+        if (!user) {
+            router.push(`/auth/login?from=/home`);
+            return;
+        }
+        
+        if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
+            const attemptDataString = btoa(JSON.stringify(lastAttemptInSlot));
+            const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
+            router.push(reviewUrl);
+            toast({
+                title: "Slot Already Played",
+                description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
+            });
+            return;
+        }
+
+        if (!user.emailVerified) {
+            toast({
+                title: "Email not verified",
+                description: "Please verify your email address before playing a quiz.",
+                variant: "destructive"
+            });
+            return;
+        }
+        if (!isProfileComplete) {
+            // This case should be handled by the QuizSelection component's alert dialog
+            return;
+        }
+        
+        router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
+    };
+
     return (
       <div className="flex flex-col min-h-screen bg-background text-foreground">
         <header className="p-4 flex items-center justify-center">
@@ -75,7 +127,7 @@ function HomePage() {
               <p className="text-sm text-muted-foreground mt-2 font-semibold">win ₹100 for every 100 seconds !</p>
           </motion.div>
         </header>
-        <main className="flex-1 overflow-y-auto pb-24">
+        <main className="flex-1 overflow-y-auto pb-36">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -83,9 +135,17 @@ function HomePage() {
             className="px-4 py-2 mt-10"
           >
             <MalpracticeWarning />
-            <HomeClientContent />
+            <HomeClientContent setSelectedBrand={setSelectedBrand} />
           </motion.div>
         </main>
+        <footer className="fixed bottom-16 left-0 right-0 p-4 z-40">
+           <StartQuizButton
+                brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
+                onClick={handleStartQuiz}
+                isDisabled={isQuizStatusLoading}
+                hasPlayed={hasPlayedInCurrentSlot}
+            />
+        </footer>
       </div>
     );
 }
