@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -6,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { Gift } from 'lucide-react';
+import { GenericOffer } from '@/components/rewards/RewardsContent';
+
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => <RewardsSkeleton />,
@@ -44,11 +47,20 @@ function RewardsPage() {
             <div className="pt-8">
                 <LoginPrompt 
                     icon={Gift}
-                    title="Unlock Your Rewards"
-                    description="Sign in to view your brand gifts, scratch cards, and exclusive offers."
+                    title="Unlock Your Brand Gifts"
+                    description="Sign in to view your brand gifts and scratch cards."
                 />
             </div>
          )}
+         <section>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+            <div className="space-y-4">
+                <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
+                <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://cdn.icon-icons.com/icons2/2803/PNG/512/swiggy_logo_icon_178723.png" hint="food delivery" link="https://www.swiggy.com/" />
+                <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://www.pngkey.com/png/full/223-2231200_hdfc-bank-hdfc-bank-logo-png.png" hint="finance bank" link="https://www.hdfcbank.com/" />
+                <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://logolook.net/wp-content/uploads/2021/07/Flipkart-logo.png" hint="shopping cart" link="https://www.flipkart.com/" />
+            </div>
+        </section>
       </main>
     </div>
   );
