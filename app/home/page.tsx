@@ -121,7 +121,7 @@ function HomePage() {
             transition={{ duration: 0.5 }}
             className="text-center"
           >
-              <h1 className="text-9xl font-extrabold tracking-tight animate-text-3d-gold-turn">
+              <h1 className="text-[24rem] font-extrabold tracking-tight leading-none text-shimmer animate-shimmer">
                 indcric
               </h1>
               <p className="text-sm text-muted-foreground mt-2 font-semibold">win ₹100 for every 100 seconds !</p>
