@@ -35,6 +35,21 @@ export const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
+const getSlotTimings = (timestamp: number) => {
+    const attemptDate = new Date(timestamp);
+    const minutes = attemptDate.getMinutes();
+    const slotStartMinute = Math.floor(minutes / 10) * 10;
+    
+    const slotStartTime = new Date(attemptDate);
+    slotStartTime.setMinutes(slotStartMinute, 0, 0);
+    
+    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+  };
+
 export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const router = useRouter();
 
@@ -51,6 +66,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const attemptDate = new Date(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions;
   const isDisqualified = !!attempt.reason;
+  const slotTiming = getSlotTimings(attempt.timestamp);
 
   return (
     <Card key={attempt.slotId} className="bg-card/80 border-primary/10 shadow-lg animate-fade-in-up">
@@ -75,7 +91,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                       </div>
                       <div className="flex items-center gap-2">
                           <Clock className="h-3.5 w-3.5" />
-                          <span>{attemptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>{slotTiming}</span>
                       </div>
                   </div>
               </div>
