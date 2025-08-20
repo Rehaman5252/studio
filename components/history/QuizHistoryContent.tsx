@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Ban, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff } from 'lucide-react';
+import { Award, Ban, BrainCircuit, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -38,9 +38,14 @@ export const ErrorState = ({ message }: { message: string }) => (
 export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const router = useRouter();
 
-  const handleReview = (attempt: QuizAttempt) => {
-    const attemptDataString = btoa(JSON.stringify(attempt));
+  const handleReview = (attemptData: QuizAttempt) => {
+    const attemptDataString = btoa(JSON.stringify(attemptData));
     router.push(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
+  };
+
+  const handleAnalysis = (attemptData: QuizAttempt) => {
+    const attemptDataString = btoa(JSON.stringify(attemptData));
+    router.push(`/quiz/analysis?attempt=${encodeURIComponent(attemptDataString)}`);
   };
 
   const attemptDate = new Date(attempt.timestamp);
@@ -76,9 +81,13 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
           </div>
       </CardHeader>
       <CardContent className="flex justify-end gap-2">
-          <Button variant="secondary" size="sm" onClick={() => handleReview(attempt)}>
+          <Button variant="ghost" size="sm" onClick={() => handleReview(attempt)}>
             <Eye className="mr-2 h-4 w-4" />
-            Review Quiz
+            Review
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => handleAnalysis(attempt)} disabled={isDisqualified}>
+            <BrainCircuit className="mr-2 h-4 w-4" />
+            View Analysis
           </Button>
       </CardContent>
     </Card>
