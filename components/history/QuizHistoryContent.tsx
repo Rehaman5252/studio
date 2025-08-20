@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Ban, BrainCircuit, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff } from 'lucide-react';
+import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -103,7 +103,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
             Review
           </Button>
           <Button variant="secondary" size="sm" onClick={() => handleAnalysis(attempt)} disabled={isDisqualified}>
-            <BrainCircuit className="mr-2 h-4 w-4" />
+            <Sparkles className="mr-2 h-4 w-4" />
             View Analysis
           </Button>
       </CardContent>
