@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
         - Correct Answer: {{this.correctAnswer}}
         - Time Taken: {{../timePerQuestion.[@index]}}s
       {{/each}}
-    - Total time for answered questions: {{#reduce timePerQuestion 'add' 0}}{{this}}{{/reduce}}s
+    - Total time for answered questions: {{#if timePerQuestion}}{{#reduce timePerQuestion 'add' 0}}{{this}}{{/reduce}}s{{else}}N/A{{/if}}
 
     Based on this data, generate a concise analysis covering these four areas:
     1.  **Overall Performance:** A brief, encouraging summary of the user's performance.

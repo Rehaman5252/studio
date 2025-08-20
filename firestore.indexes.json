@@ -12,9 +12,8 @@
       "collectionGroup": "quizAttempts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "quizId", "order": "ASCENDING" },
-        { "fieldPath": "score", "order": "DESCENDING" },
-        { "fieldPath": "timeTaken", "order": "ASCENDING" }
+        { "fieldPath": "score", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
     {
@@ -55,14 +54,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "format", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "quizAttempts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "score", "order": "ASCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     }
   ],
