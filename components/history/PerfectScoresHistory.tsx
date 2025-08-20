@@ -31,19 +31,17 @@ export default function PerfectScoresHistory() {
         setError(null);
         try {
             const attemptsRef = collection(db, "users", user.uid, "quizAttempts");
-            // This query requires a composite index on score and timestamp.
-            // Firestore might prompt you to create it in the console error logs.
+            // This query requires a composite index on score (==) and timestamp (desc).
             const q = query(
                 attemptsRef, 
-                where("score", ">", 4), // Use a broader query to leverage the index
-                orderBy("score", "desc"),
+                where("score", "==", 5),
                 orderBy("timestamp", "desc")
             );
 
             const querySnapshot = await getDocs(q);
             const historyData = querySnapshot.docs
                 .map(doc => doc.data() as QuizAttempt)
-                .filter(attempt => attempt.score === attempt.totalQuestions && !attempt.reason); // Accurate check on the client
+                .filter(attempt => !attempt.reason); // Ensure disqualified attempts aren't shown
 
             setQuizHistory(historyData);
         } catch (e: any) {
