@@ -63,8 +63,9 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                   }
               </div>
               <div className="flex-grow">
-                  <CardTitle className="text-lg">{attempt.format} Quiz ({attempt.brand})</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg">{attempt.format} Quiz</CardTitle>
+                  <CardDescription>Sponsored by {attempt.brand}</CardDescription>
+                  <CardDescription className="pt-2">
                       {isDisqualified ? 'Disqualified (No Ball)' : `Scored ${attempt.score}/${attempt.totalQuestions}`}
                   </CardDescription>
                   <div className="text-xs text-muted-foreground mt-2 space-y-1">
