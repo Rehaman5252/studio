@@ -37,7 +37,7 @@
       "collectionGroup": "quizAttempts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "score", "order": "ASCENDING" },
+        { "fieldPath": "score", "order": "DESCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },

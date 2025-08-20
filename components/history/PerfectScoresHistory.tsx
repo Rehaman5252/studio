@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -36,14 +35,15 @@ export default function PerfectScoresHistory() {
             // Firestore might prompt you to create it in the console error logs.
             const q = query(
                 attemptsRef, 
-                where("score", "==", 5), // Assuming 5 is always the total questions
+                where("score", ">", 4), // Use a broader query to leverage the index
+                orderBy("score", "desc"),
                 orderBy("timestamp", "desc")
             );
 
             const querySnapshot = await getDocs(q);
             const historyData = querySnapshot.docs
                 .map(doc => doc.data() as QuizAttempt)
-                .filter(attempt => attempt.score === attempt.totalQuestions); // Double check in client
+                .filter(attempt => attempt.score === attempt.totalQuestions && !attempt.reason); // Accurate check on the client
 
             setQuizHistory(historyData);
         } catch (e: any) {
