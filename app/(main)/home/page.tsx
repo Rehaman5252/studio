@@ -25,11 +25,11 @@ const HomeClientContent = dynamic(() => import('@/components/home/HomeClientCont
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse">
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
             <Skeleton className="h-8 w-3/4 mx-auto" />
             <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
         </div>
-        <div className="flex justify-center items-center h-[192px]">
+        <div className="flex justify-center items-center h-[250px]">
             <Skeleton className="w-48 h-48 rounded-lg" />
         </div>
         <Skeleton className="h-[124px] w-full rounded-2xl" />

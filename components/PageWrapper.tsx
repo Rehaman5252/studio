@@ -26,7 +26,7 @@ export default function PageWrapper({ title, children, showBackButton, breadcrum
                   {showBackButton && <BackButton />}
                 </div>
                 <div className="flex-1 text-center">
-                    {title && <h1 className="text-2xl font-bold text-foreground leading-tight">{title}</h1>}
+                    {title && (typeof title === 'string' ? <h1 className="text-2xl font-bold text-foreground leading-tight">{title}</h1> : title)}
                     {breadcrumb && <p className="text-sm text-muted-foreground">{breadcrumb}</p>}
                 </div>
                 <div className="absolute right-0">
