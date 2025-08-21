@@ -1,18 +1,11 @@
-
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { cn } from "@/lib/utils";
-import Providers from "@/context/Providers";
-import { Toaster } from "@/components/ui/toaster";
-import BottomNav from "@/components/BottomNav";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+import './globals.css';
+import type { Metadata } from 'next';
+import Providers from '@/context/Providers';
+import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: "CricBlitz",
-  description: "CricBlitz - The ultimate cricket quiz. Test your knowledge and win rewards!",
-  keywords: ["cricket", "quiz", "live quiz", "t20", "odi", "test cricket", "ipl", "rewards", "CricBlitz"],
+  title: 'CricBlitz',
+  description: 'The Ultimate Cricket Quiz',
 };
 
 export default function RootLayout({
@@ -22,19 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "min-h-screen bg-background font-sans antialiased",
-          inter.variable
-        )}
-      >
+      <body>
         <Providers>
-          <div className="relative flex flex-col min-h-screen w-full items-center">
-            <main className="flex-1 w-full max-w-md mx-auto pb-20">
-              {children}
-            </main>
-            <BottomNav />
-          </div>
+          {children}
           <Toaster />
         </Providers>
       </body>

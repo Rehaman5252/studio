@@ -65,7 +65,7 @@ function ProfilePageContent() {
                 <AlertDescription>
                     We couldn't find your profile data. Please complete your profile to continue.
                     <Button asChild className="mt-4 w-full">
-                        <Link href="/complete-profile">Complete Profile</Link>
+                        <Link href="/profile">Complete Profile</Link>
                     </Button>
                 </AlertDescription>
             </Alert>
