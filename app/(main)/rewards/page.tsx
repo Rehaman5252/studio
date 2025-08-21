@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import { Gift } from 'lucide-react';
+import { Gift, Trophy } from 'lucide-react';
 import { GenericOffer } from '@/components/rewards/RewardsContent';
 import PageWrapper from '@/components/PageWrapper';
 
@@ -42,9 +42,9 @@ function RewardsPage() {
          {loading ? <RewardsSkeleton/> : user ? <RewardsContent /> : (
             <div className="pt-8">
                 <LoginPrompt 
-                    icon={Gift}
-                    title="Unlock Your Brand Gifts"
-                    description="Sign in to view your brand gifts and scratch cards."
+                    icon={Trophy}
+                    title="Claim Your Man of the Match Awards! 🏆"
+                    description="You've played a great innings! Sign in to claim the brand gifts and rewards you've earned."
                 />
             </div>
          )}
