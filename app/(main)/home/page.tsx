@@ -17,6 +17,7 @@ import { brandData } from '@/components/home/brandData';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import PageWrapper from '@/components/PageWrapper';
+import CricketFact from '@/components/home/CricketFact';
 
 const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
   loading: () => <HomeContentSkeleton />,
@@ -145,6 +146,10 @@ function HomePage() {
                     isDisabled={isQuizStatusLoading}
                     hasPlayed={hasPlayedInCurrentSlot}
                 />
+            </div>
+            
+            <div className="mt-8">
+              <CricketFact format={selectedBrand.format} />
             </div>
 
           </motion.div>
