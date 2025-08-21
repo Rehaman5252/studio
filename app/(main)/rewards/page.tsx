@@ -38,7 +38,7 @@ const RewardsSkeleton = () => (
 function RewardsPage() {
   const { user, loading } = useAuth();
   return (
-    <PageWrapper title="Rewards Center">
+    <PageWrapper title="Trophy Cabinet">
          {loading ? <RewardsSkeleton/> : user ? <RewardsContent /> : (
             <div className="pt-8">
                 <LoginPrompt 

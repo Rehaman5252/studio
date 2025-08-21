@@ -7,7 +7,7 @@ import PageWrapper from '@/components/PageWrapper';
 
 function LeaderboardPage() {
   return (
-    <PageWrapper title="Leaderboard">
+    <PageWrapper title="Hall of Fame">
       <LeaderboardContent />
     </PageWrapper>
   );

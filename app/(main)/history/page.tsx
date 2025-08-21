@@ -35,7 +35,7 @@ export default function HistoryPage() {
   const [activeTab, setActiveTab] = useState('recent');
   
   return (
-    <PageWrapper title="Quiz History">
+    <PageWrapper title="My Innings">
         {loading ? <HistorySkeleton /> : !user ? (
             <div className="pt-8">
                 <LoginPrompt 
