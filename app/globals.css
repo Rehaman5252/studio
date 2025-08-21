@@ -74,8 +74,8 @@
 
 /* 3D Cube Styles */
 .scene {
-  width: 200px;
-  height: 200px;
+  width: 184px;
+  height: 184px;
   perspective: 600px;
 }
 
@@ -89,10 +89,10 @@
 
 .cube-face {
   position: absolute;
-  width: 200px;
-  height: 200px;
+  width: 184px;
+  height: 184px;
   border: 2px solid hsl(var(--primary));
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: bold;
   color: hsl(var(--primary-foreground));
   background: hsla(var(--primary), 0.8);
@@ -105,12 +105,12 @@
   backface-visibility: hidden;
 }
 
-.cube-face-front { transform: rotateY(0deg) translateZ(100px); }
-.cube-face-right { transform: rotateY(90deg) translateZ(100px); }
-.cube-face-back { transform: rotateY(180deg) translateZ(100px); }
-.cube-face-left { transform: rotateY(-90deg) translateZ(100px); }
-.cube-face-top { transform: rotateX(90deg) translateZ(100px); }
-.cube-face-bottom { transform: rotateX(-90deg) translateZ(100px); }
+.cube-face-front { transform: rotateY(0deg) translateZ(92px); }
+.cube-face-right { transform: rotateY(90deg) translateZ(92px); }
+.cube-face-back { transform: rotateY(180deg) translateZ(92px); }
+.cube-face-left { transform: rotateY(-90deg) translateZ(92px); }
+.cube-face-top { transform: rotateX(90deg) translateZ(92px); }
+.cube-face-bottom { transform: rotateX(-90deg) translateZ(92px); }
 
 /* Brand animation */
 @layer utilities {
