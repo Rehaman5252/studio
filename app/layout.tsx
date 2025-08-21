@@ -30,7 +30,7 @@ export default function RootLayout({
       >
         <Providers>
           <div className="relative flex flex-col min-h-screen w-full items-center">
-            <main className="flex-1 w-full max-w-md mx-auto pb-16">
+            <main className="flex-1 w-full max-w-md mx-auto pb-20">
               {children}
             </main>
             <BottomNav />
