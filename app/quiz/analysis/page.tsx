@@ -1,14 +1,18 @@
+
 'use client';
 
 import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, Lightbulb, TrendingUp, Zap, Target, BarChart, Sparkles, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Home, Sparkles } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { generateQuizAnalysis, QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import PageWrapper from '@/components/PageWrapper';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { AlertTriangle, BarChart, Target, Zap, Lightbulb } from 'lucide-react';
+
 
 const AnalysisSkeleton = () => (
     <div className="space-y-4 animate-pulse">
@@ -85,26 +89,24 @@ const AnalysisContent = () => {
 
     if (!attempt) {
         return (
-            <div className="text-center p-4">
-                <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Could not load quiz data for analysis.</AlertDescription>
-                </Alert>
-                <Button onClick={() => router.push('/history')} className="mt-4">Back to History</Button>
-            </div>
+            <PageWrapper title="Analysis Error" showBackButton>
+                 <div className="text-center p-4">
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Could not load quiz data for analysis.</AlertDescription>
+                    </Alert>
+                    <Button onClick={() => router.push('/history')} className="mt-4">Back to History</Button>
+                </div>
+            </PageWrapper>
         );
     }
     
     const timeTaken = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8 space-y-6">
-            <header className="text-center space-y-2">
-                 <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold">
-                    <Sparkles className="h-5 w-5" />
-                    AI Performance Analysis
-                </div>
+        <PageWrapper title="AI Performance Analysis" showBackButton>
+             <header className="text-center space-y-2 mb-6">
                 <h1 className="text-3xl font-bold">Your Quiz Debrief</h1>
                 <p className="text-muted-foreground">An AI-powered look into your {attempt.format} quiz performance.</p>
                  <div className="flex justify-center gap-4 text-sm text-muted-foreground">
@@ -174,14 +176,16 @@ const AnalysisContent = () => {
                     <Home className="mr-2" /> Play Again
                 </Button>
             </div>
-        </div>
+        </PageWrapper>
     );
 };
 
 export default function QuizAnalysisPage() {
     return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>}>
-            <AnalysisContent />
-        </Suspense>
+        <div className="min-h-screen bg-background text-foreground">
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>}>
+                <AnalysisContent />
+            </Suspense>
+        </div>
     )
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import CertificatesContent from '@/components/certificates/CertificatesContent';
@@ -18,7 +19,7 @@ export default function CertificatesPage() {
   const { user, loading } = useAuth();
   
   return (
-    <PageWrapper title="My Certificates">
+    <PageWrapper title="My Certificates" showBackButton>
         {loading ? <CertificatesSkeleton /> : user ? <CertificatesContent /> : (
             <div className="pt-8">
                 <LoginPrompt 

@@ -1,12 +1,14 @@
+
 'use client';
 
 import { Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, Award, BarChart, Home } from 'lucide-react';
+import { CheckCircle, XCircle, Award, BarChart, Home, Sparkles } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
+import PageWrapper from '@/components/PageWrapper';
 
 const ResultsContent = () => {
   const searchParams = useSearchParams();
@@ -23,23 +25,33 @@ const ResultsContent = () => {
     }
   }, [attemptData]);
 
+  const handleAnalysis = (attemptData: QuizAttempt) => {
+    const attemptDataString = btoa(JSON.stringify(attemptData));
+    router.push(`/quiz/analysis?attempt=${encodeURIComponent(attemptDataString)}`);
+  };
+
   if (!attempt) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
-        <h2 className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</h2>
-        <p className="text-muted-foreground">There was an error retrieving your scorecard.</p>
-        <Button onClick={() => router.push('/home')} className="mt-4">
-          Return to Home
-        </Button>
-      </div>
+        <PageWrapper title="Error">
+            <div className="flex flex-col items-center justify-center text-center p-4">
+                <h2 className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</h2>
+                <p className="text-muted-foreground">There was an error retrieving your scorecard.</p>
+                <Button onClick={() => router.push('/home')} className="mt-4">
+                Return to Home
+                </Button>
+            </div>
+        </PageWrapper>
     );
   }
 
   const timeTaken = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
   const isPerfectScore = attempt.score === attempt.totalQuestions;
+  const isDisqualified = !!attempt.reason;
+
+  const pageTitle = isDisqualified ? "Disqualified" : isPerfectScore ? "Perfect Score!" : "Quiz Complete";
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8 space-y-6">
+    <PageWrapper title={pageTitle} showBackButton>
       <Card className="text-center shadow-lg border-primary/20">
         <CardHeader>
           {isPerfectScore ? (
@@ -48,19 +60,32 @@ const ResultsContent = () => {
               <CardTitle className="text-3xl font-extrabold text-shimmer animate-shimmer">Perfect Score!</CardTitle>
             </>
           ) : (
-            <CardTitle className="text-3xl font-bold">Quiz Complete!</CardTitle>
+            <CardTitle className="text-3xl font-bold">{isDisqualified ? 'Disqualified (No-Ball)' : 'Quiz Complete!'}</CardTitle>
           )}
-          <CardDescription className="text-lg">You scored</CardDescription>
-          <p className="text-5xl font-bold">{attempt.score}<span className="text-3xl text-muted-foreground">/{attempt.totalQuestions}</span></p>
+          <CardDescription className="text-lg">{isDisqualified ? 'Malpractice was detected.' : 'You scored'}</CardDescription>
+          {!isDisqualified && (
+            <p className="text-5xl font-bold">{attempt.score}<span className="text-3xl text-muted-foreground">/{attempt.totalQuestions}</span></p>
+          )}
         </CardHeader>
         <CardContent className="flex justify-center gap-4 text-sm text-muted-foreground">
             <div><strong>Format:</strong> {attempt.format}</div>
-            <div><strong>Time:</strong> {timeTaken.toFixed(1)}s</div>
+             {!isDisqualified && (<div><strong>Time:</strong> {timeTaken.toFixed(1)}s</div>)}
         </CardContent>
       </Card>
       
-      {/* This is where AI performance analysis would go */}
-      {/* <Card><CardContent><p>AI Coach: ...</p></CardContent></Card> */}
+       <div className="space-y-4">
+         <Button 
+            variant="secondary" 
+            size="lg" 
+            className="w-full" 
+            onClick={() => handleAnalysis(attempt)} 
+            disabled={isDisqualified}
+        >
+            <Sparkles className="mr-2 h-5 w-5" />
+            View AI Performance Analysis
+        </Button>
+      </div>
+
 
       <div className="space-y-4">
         <h3 className="text-xl font-bold text-center">Answer Review</h3>
@@ -101,15 +126,17 @@ const ResultsContent = () => {
            <Home className="mr-2" /> Play Again
         </Button>
       </div>
-    </div>
+    </PageWrapper>
   );
 };
 
 
 export default function QuizResultsPage() {
     return (
-        <Suspense fallback={<div>Loading results...</div>}>
-            <ResultsContent />
-        </Suspense>
+        <div className="min-h-screen bg-background text-foreground">
+             <Suspense fallback={<div>Loading results...</div>}>
+                <ResultsContent />
+            </Suspense>
+        </div>
     )
 }

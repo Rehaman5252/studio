@@ -1,16 +1,18 @@
+
 "use client";
 import React, { Suspense, memo } from "react";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, ChevronRight, Award } from 'lucide-react';
+import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, ChevronRight, Award, Edit } from 'lucide-react';
 import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
 import SupportCard from "@/components/profile/SupportCard";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/PageWrapper";
+import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
@@ -74,8 +76,16 @@ function ProfilePageContent() {
     return <ProfileContent userProfile={profile} />;
   }
 
+  const actions = user && profile ? (
+    <EditProfileDialog userProfile={profile}>
+      <Button variant="ghost" size="icon">
+        <Edit className="h-5 w-5" />
+      </Button>
+    </EditProfileDialog>
+  ) : null;
+
   return (
-    <PageWrapper title="Player's Pavilion">
+    <PageWrapper title="Player's Pavilion" actions={actions}>
         <Suspense fallback={<ProfileSkeleton />}>
           {renderPrivateContent()}
         </Suspense>
