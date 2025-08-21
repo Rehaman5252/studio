@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -28,8 +29,8 @@ export default function RootLayout({
         )}
       >
         <Providers>
-          <div className="relative flex flex-col min-h-screen w-full items-center">
-            <main className="flex-1 w-full max-w-md mx-auto">
+          <div className="relative flex flex-col min-h-screen w-full">
+            <main className="flex-1 w-full max-w-md mx-auto pb-16">
               {children}
             </main>
             <BottomNav />
