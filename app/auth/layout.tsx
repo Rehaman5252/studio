@@ -8,8 +8,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <h1 className="text-6xl font-extrabold tracking-tight animate-colorChange drop-shadow-lg">
                 indcric
             </h1>
-            <p className="mt-3 text-lg text-foreground">
-                Win ₹100 for every 100 seconds!
+            <p className="mt-3 text-lg text-foreground/80">
+                Step up to the crease and show your knowledge!
             </p>
         </header>
         <main className="w-full max-w-lg">
