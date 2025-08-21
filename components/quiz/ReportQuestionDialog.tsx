@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -95,7 +94,7 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="report-question-form">
               <FormField
                 control={form.control}
                 name="reason"
@@ -140,7 +139,7 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
                     Cancel
                   </Button>
                 </DialogClose>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" form="report-question-form" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Submit Report
                 </Button>
