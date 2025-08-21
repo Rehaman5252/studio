@@ -113,11 +113,13 @@
 .cube-face-bottom { transform: rotateX(-90deg) translateZ(100px); }
 
 /* Brand animation */
-@keyframes colorChange {
-  0%, 100% { color: #ffffff; }
-  50% { color: #ffd700; } /* gold */
-}
+@layer utilities {
+  @keyframes colorChange {
+    0%, 100% { color: #ffffff !important; }
+    50% { color: #ffd700 !important; }
+  }
 
-.animate-colorChange {
-  animation: colorChange 2.5s infinite ease-in-out;
+  .animate-colorChange {
+    animation: colorChange 2.5s infinite ease-in-out;
+  }
 }
