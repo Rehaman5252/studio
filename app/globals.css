@@ -112,12 +112,12 @@
 .cube-face-top { transform: rotateX(90deg) translateZ(100px); }
 .cube-face-bottom { transform: rotateX(-90deg) translateZ(100px); }
 
-/* Color animation for brand */
+/* Brand animation */
 @keyframes colorChange {
-  0%, 100% { color: white; }
-  50% { color: gold; }
+  0%, 100% { color: #ffffff; }
+  50% { color: #ffd700; } /* gold */
 }
 
 .animate-colorChange {
-  animation: colorChange 3s infinite ease-in-out;
+  animation: colorChange 2.5s infinite ease-in-out;
 }
