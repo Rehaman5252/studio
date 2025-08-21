@@ -34,43 +34,54 @@ export default function HistoryPage() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('recent');
   
-  return (
-    <PageWrapper title="My Innings">
-        {loading ? <HistorySkeleton /> : !user ? (
-            <div className="pt-8">
+  const renderContent = () => {
+    if (loading) return <HistorySkeleton />;
+
+    if (!user) {
+        return (
+             <div className="pt-8">
                 <LoginPrompt 
                     icon={History}
-                    title="View Your Quiz History"
-                    description="Sign in to see all your past quiz attempts and review your performance."
+                    title="Review Your Past Innings! 🏏"
+                    description="Sign in to analyze your previous quiz performances, shot by shot."
                 />
             </div>
-        ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="recent">Recent</TabsTrigger>
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
-                </TabsList>
-                
-                <motion.div
-                   key={activeTab}
-                   initial={{ opacity: 0, y: 10 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   transition={{ duration: 0.3 }}
-                   className="mt-4"
-                >
-                    <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                        <RecentHistory />
-                    </TabsContent>
-                    <TabsContent value="all" forceMount={activeTab === 'all'}>
-                        <AllHistory />
-                    </TabsContent>
-                    <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                        <PerfectScoresHistory />
-                    </TabsContent>
-                </motion.div>
-            </Tabs>
-        )}
+        )
+    }
+
+    return (
+        <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+        >
+            <TabsContent value="recent" forceMount={activeTab === 'recent'}>
+                <RecentHistory />
+            </TabsContent>
+            <TabsContent value="all" forceMount={activeTab === 'all'}>
+                <AllHistory />
+            </TabsContent>
+            <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
+                <PerfectScoresHistory />
+            </TabsContent>
+        </motion.div>
+    )
+  }
+
+  return (
+    <PageWrapper title="My Innings">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="recent">Recent</TabsTrigger>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
+            </TabsList>
+            
+            <div className="mt-4">
+                {renderContent()}
+            </div>
+        </Tabs>
     </PageWrapper>
   );
 }
