@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import { History, ServerCrash, WifiOff } from 'lucide-react';
+import { History, ServerCrash, WifiOff, Award, Trophy, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -37,18 +37,6 @@ export default function HistoryPage() {
   const renderContent = () => {
     if (loading) return <HistorySkeleton />;
 
-    if (!user) {
-        return (
-             <div className="pt-8">
-                <LoginPrompt 
-                    icon={History}
-                    title="Review Your Past Innings! 🏏"
-                    description="Sign in to analyze your previous quiz performances, shot by shot."
-                />
-            </div>
-        )
-    }
-
     return (
         <motion.div
             key={activeTab}
@@ -57,13 +45,37 @@ export default function HistoryPage() {
             transition={{ duration: 0.3 }}
         >
             <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                <RecentHistory />
+                {user ? <RecentHistory /> : (
+                    <div className="pt-8">
+                        <LoginPrompt 
+                            icon={History}
+                            title="Check Your Recent Form"
+                            description="Just finished a match? Sign in to see how you performed in your last few innings."
+                        />
+                    </div>
+                )}
             </TabsContent>
             <TabsContent value="all" forceMount={activeTab === 'all'}>
-                <AllHistory />
+                 {user ? <AllHistory /> : (
+                    <div className="pt-8">
+                        <LoginPrompt 
+                            icon={Trophy}
+                            title="View Your Career Stats"
+                            description="Sign in to access your complete match history and track your progress over time."
+                        />
+                    </div>
+                )}
             </TabsContent>
             <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                <PerfectScoresHistory />
+                {user ? <PerfectScoresHistory /> : (
+                    <div className="pt-8">
+                        <LoginPrompt 
+                            icon={Award}
+                            title="Your Hall of Fame"
+                            description="Sign in to see all your perfect scores and celebrate your moments of glory!"
+                        />
+                    </div>
+                )}
             </TabsContent>
         </motion.div>
     )
