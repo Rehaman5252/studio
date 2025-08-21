@@ -26,7 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="relative flex min-h-screen w-full flex-col">
             <main className="flex-1">
-              {children}
+              <div className="max-w-7xl mx-auto w-full">
+                {children}
+              </div>
             </main>
             <BottomNav />
           </div>
