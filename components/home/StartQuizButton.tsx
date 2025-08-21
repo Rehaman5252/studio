@@ -4,6 +4,7 @@
 import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BarChart } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface StartQuizButtonProps {
     brandFormat: string;
@@ -12,12 +13,16 @@ interface StartQuizButtonProps {
     hasPlayed: boolean;
 }
 
-const StartQuizButton = ({ brandFormat, onClick, isDisabled, hasPlayed }: StartQuizButtonProps) => {
+const StartQuizButtonComponent = ({ brandFormat, onClick, isDisabled, hasPlayed }: StartQuizButtonProps) => {
     return (
-        <div className="w-full">
+        <motion.div 
+            className="w-full"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+        >
              <Button 
                 size="lg" 
-                className="w-full h-16 rounded-full text-xl font-bold shadow-lg"
+                className="w-full h-16 rounded-full text-xl font-bold shadow-lg transition-all duration-300 ease-in-out"
                 onClick={onClick}
                 disabled={isDisabled}
              >
@@ -31,8 +36,8 @@ const StartQuizButton = ({ brandFormat, onClick, isDisabled, hasPlayed }: StartQ
                     </>
                 )}
             </Button>
-        </div>
+        </motion.div>
     );
 };
 
-export default memo(StartQuizButton);
+export default memo(StartQuizButtonComponent);

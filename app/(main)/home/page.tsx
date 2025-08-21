@@ -127,7 +127,7 @@ function HomePage() {
                 handleStartQuiz={handleStartQuiz} 
             />
 
-             <div className="mt-8">
+             <div className="mt-6">
                 <StartQuizButton
                     brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
                     onClick={handleStartQuiz}

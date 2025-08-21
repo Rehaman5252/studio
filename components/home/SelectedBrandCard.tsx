@@ -13,7 +13,7 @@ interface SelectedBrandCardProps {
   onClick: () => void;
 }
 
-const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) => {
+const SelectedBrandCardComponent = ({ selectedBrand, onClick }: SelectedBrandCardProps) => {
   return (
     <motion.div
         key={selectedBrand.id}
@@ -23,17 +23,17 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
         transition={{ duration: 0.2 }}
     >
         <Card 
-            className="rounded-2xl shadow-lg cursor-pointer hover:bg-secondary/50 transition-colors border-primary/20"
+            className="rounded-2xl shadow-lg cursor-pointer bg-card/50 hover:bg-secondary/50 transition-all duration-300 ease-in-out border-primary/20 hover:border-primary/40 transform hover:-translate-y-1"
             onClick={onClick}
             role="button"
             aria-label={`Play ${selectedBrand.format} quiz`}
         >
-            <CardContent className="px-20 py-4 flex items-center justify-between gap-4">
+            <CardContent className="px-4 py-4 sm:px-6 flex items-center justify-between gap-4">
                 <div className="flex-1 text-left">
                     <h3 className="font-bold text-lg text-foreground">{selectedBrand.format} Quiz</h3>
                     <p className="text-sm text-muted-foreground">{selectedBrand.description}</p>
                 </div>
-                <div className="relative w-28 h-24 flex-shrink-0">
+                <div className="relative w-24 h-20 sm:w-28 sm:h-24 flex-shrink-0">
                     <Image
                         src={selectedBrand.logoUrl}
                         alt={`${selectedBrand.brand} Logo`}
@@ -49,4 +49,4 @@ const SelectedBrandCard = ({ selectedBrand, onClick }: SelectedBrandCardProps) =
   );
 };
 
-export default memo(SelectedBrandCard);
+export default memo(SelectedBrandCardComponent);

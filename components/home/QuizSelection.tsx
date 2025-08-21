@@ -40,7 +40,7 @@ interface QuizSelectionProps {
 }
 
 const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelectionProps) => {
-    const { user, isProfileComplete } = useAuth();
+    const { isProfileComplete } = useAuth();
     const router = useRouter();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
@@ -96,7 +96,7 @@ const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelec
     
     return (
         <>
-            <div className="text-center mb-4" id="tour-step-1">
+            <div className="text-center" id="tour-step-1">
                 <h2 className="text-2xl font-bold">Select Your Quiz Format</h2>
                 <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
@@ -110,7 +110,7 @@ const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelec
                 onClick={initiateQuiz} 
             />
 
-            <div className="mt-8 space-y-8" id="tour-step-2">
+            <div className="mt-6 space-y-8" id="tour-step-2">
                 <GlobalStats />
             </div>
             

@@ -8,7 +8,9 @@ import PageWrapper from '@/components/PageWrapper';
 export default function PoliciesPage() {
   return (
     <PageWrapper title="Legal & Policies" showBackButton>
-        <Policies />
+        <div className="max-w-4xl mx-auto">
+            <Policies />
+        </div>
     </PageWrapper>
   );
 }

@@ -10,20 +10,21 @@ import PlayersPlayedStat from '@/components/stats/PlayersPlayedStat';
 import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 
-const StatCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
-  <Card className="bg-card/80 shadow-md border-primary/10 hover:border-primary/30 transition-all">
+const StatCard = memo(({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
+  <Card className="bg-card/80 shadow-md border-primary/10 hover:border-primary/30 transition-all duration-300 ease-in-out transform hover:-translate-y-1">
     <CardContent className="p-3 text-center flex flex-col items-center justify-center h-full">
       <div className="text-primary">{icon}</div>
       <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-1">{title}</p>
       <div className="mt-1 text-foreground">{children}</div>
     </CardContent>
   </Card>
-);
+));
+StatCard.displayName = 'StatCard';
 
 const GlobalStatsComponent = () => {
     const { timeLeft, playersPlaying, playersPlayed, totalWinners } = useQuizStatus();
     return (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard icon={<Timer />} title="Quiz Ends">
                 <TimerStat timeLeft={timeLeft} />
             </StatCard>
