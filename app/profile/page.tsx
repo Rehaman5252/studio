@@ -10,6 +10,7 @@ import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
 import SupportCard from "@/components/profile/SupportCard";
 import { useRouter } from "next/navigation";
+import PageWrapper from "@/components/PageWrapper";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
@@ -74,13 +75,7 @@ function ProfilePageContent() {
   }
 
   return (
-    <div
-      className="flex flex-col min-h-screen bg-background animate-fade-in-up"
-    >
-      <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-foreground">Player's Pavilion</h1>
-      </header>
-      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 max-w-7xl mx-auto w-full">
+    <PageWrapper title="Player's Pavilion">
         <Suspense fallback={<ProfileSkeleton />}>
           {renderPrivateContent()}
         </Suspense>
@@ -123,8 +118,7 @@ function ProfilePageContent() {
             </section>
             </>
         )}
-      </main>
-    </div>
+    </PageWrapper>
   );
 }
 
