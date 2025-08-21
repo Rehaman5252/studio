@@ -47,7 +47,7 @@ const LeaderboardItemSkeleton = () => (
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Error Loading Leaderboard</AlertTitle>
+        <AlertTitle>Rain Delay!</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
 );
@@ -90,11 +90,11 @@ const AllTimeLeaderboard = () => {
 
             } catch (e: any) {
                 if (e.code === 'failed-precondition') {
-                    setError("Leaderboard is being indexed. Please check back in a few moments.");
+                    setError("The covers are on! Our leaderboard is being prepared. Please check back in a moment.");
                 } else if (e.code === 'unavailable') {
-                    setError("You appear to be offline. Please check your connection.");
+                    setError("Bad connection has stopped play. Please check your network and try again.");
                 } else {
-                     setError("Could not load the leaderboard at this time.");
+                     setError("A technical fault has interrupted play. We're working to get it fixed.");
                 }
                 console.error("Error fetching all-time leaderboard:", e);
             } finally {
