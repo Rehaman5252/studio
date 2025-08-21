@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import Providers from "@/context/Providers";
 import { Toaster } from "@/components/ui/toaster";
+import BottomNav from "@/components/BottomNav";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -27,10 +28,11 @@ export default function RootLayout({
         )}
       >
         <Providers>
-          <div className="relative flex flex-col items-center min-h-screen w-full">
-            <main className="w-full flex-1">
+          <div className="relative flex flex-col min-h-screen w-full">
+            <main className="flex-1 w-full max-w-md mx-auto">
               {children}
             </main>
+            <BottomNav />
           </div>
           <Toaster />
         </Providers>

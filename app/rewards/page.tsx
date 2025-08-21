@@ -48,7 +48,7 @@ function RewardsPage() {
                 />
             </div>
          )}
-         <section>
+         <section className="pt-6">
             <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
             <div className="space-y-4">
                 <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
