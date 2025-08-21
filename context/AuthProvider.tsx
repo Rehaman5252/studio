@@ -278,10 +278,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             };
             
             const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
+            
+            // Referral Bonus Logic
             if (isPerfectScore && userProfile.referredBy && !userProfile.referralBonusPaid) {
-                const referrerRef = doc(db, 'users', userProfile.referredBy);
-                transaction.update(referrerRef, { referralEarnings: increment(50) });
-                statsUpdate.referralBonusPaid = true;
+                const accountCreationTime = (userProfile.createdAt as Timestamp).toDate();
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+                if (accountCreationTime > sevenDaysAgo) {
+                    const referrerRef = doc(db, 'users', userProfile.referredBy);
+                    transaction.update(referrerRef, { referralEarnings: increment(50) });
+                    statsUpdate.referralBonusPaid = true;
+                }
             }
             
             const today = new Date();
