@@ -133,19 +133,19 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
                   </FormItem>
                 )}
               />
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" disabled={isSubmitting}>
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button type="submit" form="report-question-form" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Submit Report
-                </Button>
-              </DialogFooter>
             </form>
         </Form>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" disabled={isSubmitting}>
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button type="submit" form="report-question-form" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Submit Report
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
