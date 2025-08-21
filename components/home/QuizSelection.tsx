@@ -89,7 +89,7 @@ const QuizSelectionComponent = ({ setSelectedBrand }: QuizSelectionProps) => {
                 setLocalSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 750); // 4500ms / 6 faces = 750ms per face
+        }, 4500); // Rotate every 4.5 seconds
 
         return () => clearInterval(rotationInterval);
     }, []);
@@ -150,7 +150,7 @@ const QuizSelectionComponent = ({ setSelectedBrand }: QuizSelectionProps) => {
         if (!user) {
             router.push('/auth/login?from=/home');
         } else {
-            router.push('/complete-profile');
+            router.push('/profile'); // Redirect to profile to complete it
         }
         setShowAuthAlert(false);
     }
@@ -162,7 +162,7 @@ const QuizSelectionComponent = ({ setSelectedBrand }: QuizSelectionProps) => {
                 <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
             
-            <div className="flex justify-center items-center mt-20 mb-8 h-48 w-full">
+            <div className="flex justify-center items-center mb-8 h-48 w-full">
                 <BrandCube onFaceClick={handleFaceClick} rotation={rotation} />
             </div>
 

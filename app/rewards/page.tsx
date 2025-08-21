@@ -39,7 +39,7 @@ function RewardsPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 bg-card/80 backdrop-blur-lg sticky top-0 z-10 border-b">
-        <h1 className="text-2xl font-bold text-center text-foreground">Trophy Cabinet</h1>
+        <h1 className="text-2xl font-bold text-center text-foreground">Rewards Center</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-8 pb-20">
@@ -55,7 +55,7 @@ function RewardsPage() {
          <section>
             <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
             <div className="space-y-4">
-                <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
+                <GenericOffer title="20% off on Puma Shoes" description="Use code: CRICBLITZ20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
                 <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://cdn.icon-icons.com/icons2/2803/PNG/512/swiggy_logo_icon_178723.png" hint="food delivery" link="https://www.swiggy.com/" />
                 <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://www.pngkey.com/png/full/223-2231200_hdfc-bank-hdfc-bank-logo-png.png" hint="finance bank" link="https://www.hdfcbank.com/" />
                 <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://logolook.net/wp-content/uploads/2021/07/Flipkart-logo.png" hint="shopping cart" link="https://www.flipkart.com/" />

@@ -51,9 +51,10 @@ const cricketTeams = [
 
 interface EditProfileDialogProps {
   userProfile: any;
+  children: React.ReactNode;
 }
 
-export function EditProfileDialog({ userProfile }: EditProfileDialogProps) {
+export function EditProfileDialog({ userProfile, children }: EditProfileDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const { updateUserData } = useAuth();
@@ -97,16 +98,13 @@ export function EditProfileDialog({ userProfile }: EditProfileDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <Edit className="h-4 w-4" />
-          <span className="sr-only">Edit Profile</span>
-        </Button>
+        {children}
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Your Profile</DialogTitle>
           <DialogDescription>
-            Keep your information up to date.
+            Keep your information up to date to participate in quizzes.
           </DialogDescription>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto pr-4 -mr-4">

@@ -9,9 +9,9 @@ import BottomNav from "@/components/BottomNav";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "indcric",
-  description: "indcric - The ultimate cricket quiz. Win ₹100 every 100 seconds!",
-  keywords: ["cricket", "quiz", "live quiz", "t20", "odi", "test cricket", "ipl", "rewards", "indcric"],
+  title: "CricBlitz",
+  description: "CricBlitz - The ultimate cricket quiz. Test your knowledge and win rewards!",
+  keywords: ["cricket", "quiz", "live quiz", "t20", "odi", "test cricket", "ipl", "rewards", "CricBlitz"],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

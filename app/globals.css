@@ -5,65 +5,65 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%; /* Pure Black */
-    --foreground: 45 50% 90%; /* Light grey/off-white for text */
+    --background: 94 84% 95%; /* Pale Green */
+    --foreground: 120 28% 15%; /* Dark Forest Green for text */
     
-    --card: 0 0% 8%; /* Slightly lighter than background */
-    --card-foreground: 45 50% 90%;
+    --card: 94 84% 98%; /* Slightly whiter than background */
+    --card-foreground: 120 28% 15%;
     
-    --popover: 0 0% 5%;
-    --popover-foreground: 45 50% 95%;
+    --popover: 94 84% 100%;
+    --popover-foreground: 120 28% 15%;
     
-    --primary: 45 100% 50%; /* Vibrant Gold */
-    --primary-foreground: 0 0% 5%; /* Black text on primary buttons */
+    --primary: 120 61% 34%; /* Forest Green */
+    --primary-foreground: 94 84% 98%; 
     
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 45 50% 90%;
+    --secondary: 120 10% 85%;
+    --secondary-foreground: 120 28% 15%;
     
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 10% 60%;
+    --muted: 120 10% 90%;
+    --muted-foreground: 120 10% 40%;
 
-    --accent: 50 100% 60%; /* A slightly brighter, warmer gold */
-    --accent-foreground: 0 0% 5%;
+    --accent: 16 100% 50%; /* Sunset Orange */
+    --accent-foreground: 0 0% 100%;
     
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 60 93% 98%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 45 100% 50%;
+    --border: 120 10% 88%;
+    --input: 120 10% 88%;
+    --ring: 120 61% 34%;
     
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 0%; /* Pure Black */
-    --foreground: 45 50% 95%; /* Lighter off-white */
+    --background: 120 28% 8%; /* Dark Forest Green */
+    --foreground: 94 80% 90%; /* Light Pale Green for text */
     
-    --card: 0 0% 8%;
-    --card-foreground: 45 50% 95%;
+    --card: 120 28% 12%;
+    --card-foreground: 94 80% 90%;
     
-    --popover: 0 0% 5%;
-    --popover-foreground: 45 50% 95%;
+    --popover: 120 28% 10%;
+    --popover-foreground: 94 80% 90%;
 
-    --primary: 45 100% 50%; /* Vibrant Gold */
-    --primary-foreground: 0 0% 5%;
+    --primary: 120 61% 45%; /* A slightly brighter Forest Green */
+    --primary-foreground: 0 0% 100%;
     
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 45 50% 95%;
+    --secondary: 120 28% 18%;
+    --secondary-foreground: 94 80% 90%;
     
-    --muted: 0 0% 12%;
-    --muted-foreground: 45 10% 70%;
+    --muted: 120 28% 18%;
+    --muted-foreground: 94 80% 70%;
     
-    --accent: 50 100% 60%; /* Brighter, warmer gold */
-    --accent-foreground: 0 0% 5%;
+    --accent: 16 100% 60%; /* Brighter Sunset Orange */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 60 93% 98%;
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 45 100% 50%;
+    --border: 120 28% 22%;
+    --input: 120 28% 22%;
+    --ring: 120 61% 45%;
   }
 }
 
@@ -75,51 +75,6 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
-}
-
-/* Custom Animation for Shimmer Effect */
-@keyframes shimmer-bg {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.text-shimmer {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--accent)),
-    hsl(var(--primary)),
-    hsl(var(--accent))
-  );
-  background-size: 200% auto;
-  color: transparent;
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-.animate-shimmer {
-  animation: shimmer-bg 5s linear infinite;
-}
-
-/* 3D Gold Turn Animation */
-@keyframes text-3d-gold-turn {
-  0% {
-    color: hsl(var(--foreground));
-    transform: rotateY(0deg);
-  }
-  50% {
-    color: hsl(var(--primary) / 0.5);
-    transform: rotateY(180deg);
-  }
-  100% {
-    color: hsl(var(--primary));
-    transform: rotateY(360deg);
-  }
-}
-
-.animate-text-3d-gold-turn {
-    display: inline-block;
-    animation: text-3d-gold-turn 3s ease-in-out;
-    transform-style: preserve-3d;
 }
 
 /* Custom Cube Animation for Home Screen */
@@ -146,7 +101,7 @@
   justify-content: center;
   border-radius: 0.75rem; /* rounded-xl */
   background-color: hsl(var(--card));
-  border: 2px solid hsl(var(--border));
+  border: 1px solid hsl(var(--border));
   color: hsl(var(--card-foreground));
   cursor: pointer;
   backface-visibility: hidden; /* Improves performance */
@@ -182,12 +137,4 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 0.5s ease-out forwards;
-}
-
-/* Custom grid background for auth pages */
-.bg-grid {
-  background-image:
-    linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
-  background-size: 40px 40px;
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -57,7 +56,7 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
   const [isScratched, setIsScratched] = useState(false);
-  const storageKey = useMemo(() => `indcric-scratch-card-${slotId}`, [slotId]);
+  const storageKey = useMemo(() => `cricblitz-scratch-card-${slotId}`, [slotId]);
   
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
 
@@ -79,7 +78,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -124,7 +123,7 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
                     <h4 className="font-bold text-foreground">{title}</h4>
                     <p className="text-sm text-muted-foreground">{description}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink /></Button>
+                <Button variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink className="h-4 w-4" /></Button>
             </CardContent>
         </Card>
     </a>

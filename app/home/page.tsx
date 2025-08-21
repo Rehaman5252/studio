@@ -22,7 +22,7 @@ const HomeClientContent = dynamic(() => import('@/components/home/HomeClientCont
 });
 
 const HomeContentSkeleton = () => (
-    <div className="space-y-8 animate-pulse mt-10">
+    <div className="space-y-8 animate-pulse">
         <div className="text-center mb-8">
             <Skeleton className="h-8 w-3/4 mx-auto" />
             <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
@@ -114,30 +114,16 @@ function HomePage() {
 
     return (
       <div className="flex flex-col min-h-screen bg-background text-foreground">
-        <header className="p-4 flex items-center justify-center">
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center"
-          >
-              <h1 className="text-[24rem] font-extrabold tracking-tight leading-none text-shimmer animate-shimmer">
-                indcric
-              </h1>
-              <p className="text-sm text-muted-foreground mt-2 font-semibold">win ₹100 for every 100 seconds !</p>
-          </motion.div>
-        </header>
-        <main className="flex-1 overflow-y-auto pb-24">
+        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="px-4 py-2 mt-10"
           >
             <MalpracticeWarning />
             <HomeClientContent setSelectedBrand={setSelectedBrand} />
 
-             <div className="mt-8 px-4">
+             <div className="mt-8">
                 <StartQuizButton
                     brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
                     onClick={handleStartQuiz}

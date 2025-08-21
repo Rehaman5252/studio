@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Edit } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
@@ -42,7 +42,12 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     return (
         <Card className="bg-card shadow-lg relative">
             <div className="absolute top-2 right-2">
-                <EditProfileDialog userProfile={userProfile} />
+                <EditProfileDialog userProfile={userProfile}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Edit Profile</span>
+                    </Button>
+                </EditProfileDialog>
             </div>
             <CardContent className="p-4 flex flex-col sm:flex-row items-center text-center sm:text-left gap-4">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
