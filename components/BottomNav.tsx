@@ -15,6 +15,18 @@ const navItems = [
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 
+const iconVariants = {
+  initial: { y: 0 },
+  animate: {
+    y: [0, -4, 0],
+    transition: {
+      duration: 2.5,
+      ease: "easeInOut",
+      repeat: Infinity,
+    },
+  },
+};
+
 export default function BottomNav() {
   const pathname = usePathname();
 
@@ -26,7 +38,7 @@ export default function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50">
       <nav id="tour-step-3" className="flex h-full items-center justify-around max-w-md mx-auto">
-        {navItems.map((item) => {
+        {navItems.map((item, index) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -37,7 +49,15 @@ export default function BottomNav() {
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
-              <motion.div whileTap={{ scale: 0.8, y: -5 }}>
+              <motion.div 
+                variants={iconVariants}
+                initial="initial"
+                animate={isActive ? "animate" : "initial"}
+                transition={{
+                  delay: index * 0.1, // Stagger the animation start
+                }}
+                whileTap={{ scale: 0.8, y: -5 }}
+              >
                  <item.icon className="h-6 w-6 mb-0.5" />
               </motion.div>
               <span className="text-xs">{item.label}</span>
