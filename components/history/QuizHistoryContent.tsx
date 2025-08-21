@@ -70,7 +70,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
 
   return (
     <Card key={attempt.slotId} className="bg-card/80 border-primary/10 shadow-lg animate-fade-in-up">
-      <CardHeader>
+      <CardHeader className='pb-4'>
           <div className="flex items-start gap-4">
                <div className="mt-1 flex-shrink-0">
                   {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
@@ -84,28 +84,30 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                   <CardDescription className="pt-2">
                       {isDisqualified ? 'Disqualified (No Ball)' : `Scored ${attempt.score}/${attempt.totalQuestions}`}
                   </CardDescription>
-                  <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                      <div className="flex items-center gap-2">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{slotTiming}</span>
-                      </div>
-                  </div>
               </div>
           </div>
       </CardHeader>
-      <CardContent className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => handleReview(attempt)}>
-            <Eye className="mr-2 h-4 w-4" />
-            Review
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => handleAnalysis(attempt)} disabled={isDisqualified}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            View Analysis
-          </Button>
+      <CardContent className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground space-y-1">
+              <div className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>{slotTiming}</span>
+              </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => handleReview(attempt)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Review
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => handleAnalysis(attempt)} disabled={isDisqualified}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Analysis
+            </Button>
+          </div>
       </CardContent>
     </Card>
   );
