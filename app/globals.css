@@ -31,10 +31,6 @@
     --ring: 120 61% 34%;
 
     --radius: 0.5rem;
-
-    /* Custom theme colors */
-    --brand-shimmer-from: hsl(0, 0%, 100%); /* White */
-    --brand-shimmer-to: hsl(38, 92%, 50%); /* Gold */
   }
 
   .dark {
@@ -116,21 +112,12 @@
 .cube-face-top { transform: rotateX(90deg) translateZ(100px); }
 .cube-face-bottom { transform: rotateX(-90deg) translateZ(100px); }
 
-/* Shimmer animation */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
+/* Color animation for brand */
+@keyframes colorChange {
+  0%, 100% { color: white; }
+  50% { color: gold; }
 }
 
-.animate-shimmer {
-  animation: shimmer 5s infinite linear;
-  background: linear-gradient(to right, var(--brand-shimmer-from) 20%, var(--brand-shimmer-to) 50%, var(--brand-shimmer-from) 80%);
-  background-size: 1000px 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.animate-colorChange {
+  animation: colorChange 3s infinite ease-in-out;
 }
