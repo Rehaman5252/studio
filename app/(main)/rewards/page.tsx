@@ -40,7 +40,7 @@ function RewardsPage() {
   return (
     <PageWrapper title="Trophy Cabinet">
          {loading ? <RewardsSkeleton/> : user ? <RewardsContent /> : (
-            <div className="pt-8">
+            <div className="pt-4">
                 <LoginPrompt 
                     icon={Trophy}
                     title="Claim Your Man of the Match Awards! 🏆"
