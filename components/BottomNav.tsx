@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -36,12 +37,16 @@ export default function BottomNav() {
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
-              <item.icon className="h-6 w-6 mb-0.5" />
+              <motion.div whileTap={{ scale: 0.8, y: -5 }}>
+                 <item.icon className="h-6 w-6 mb-0.5" />
+              </motion.div>
               <span className="text-xs">{item.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="active-nav-indicator"
                   className="absolute bottom-0 h-1 w-8 rounded-full bg-primary"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 0.3 } }}
                 />
               )}
             </Link>
