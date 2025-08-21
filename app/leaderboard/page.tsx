@@ -10,7 +10,7 @@ function LeaderboardPage() {
         <h1 className="text-2xl font-bold text-center text-foreground">Leaderboard</h1>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 max-w-7xl mx-auto w-full">
         <LeaderboardContent />
       </main>
     </div>

@@ -114,7 +114,7 @@ function HomePage() {
 
     return (
       <div className="flex flex-col min-h-screen bg-background text-foreground">
-        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
+        <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-24 max-w-7xl mx-auto w-full">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
