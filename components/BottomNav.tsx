@@ -17,8 +17,13 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
 
+  // Hide nav on auth pages and quiz pages
+  if (pathname.startsWith('/auth') || pathname.startsWith('/quiz')) {
+    return null;
+  }
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50">
+    <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50 md:max-w-md md:mx-auto">
       <nav id="tour-step-3" className="flex h-full items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname === item.href;

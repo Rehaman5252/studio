@@ -25,12 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
       >
         <Providers>
-          <div className="relative flex min-h-screen w-full flex-col">
-            <div className="container mx-auto h-full max-w-md">
-              <main className="flex-1 py-4">
-                {children}
-              </main>
-            </div>
+          <div className="relative flex flex-col items-center min-h-screen w-full">
+            <main className="w-full max-w-md flex-1 py-4">
+              {children}
+            </main>
             <BottomNav />
           </div>
           <Toaster />

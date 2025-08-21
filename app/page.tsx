@@ -16,15 +16,14 @@ export default function GatekeeperPage() {
     if (loading) return;
 
     if (user) {
-      // If the user is authenticated, check if their profile is complete.
-      // If not, they might be sent to a walkthrough or complete-profile page.
-      // For now, we direct to home, and home can handle the rest.
+      // If the user is authenticated, direct to home.
+      // Home page will handle profile completion or tour logic.
       router.replace('/home');
     } else {
       // If the user is not authenticated, send them to the login page.
       router.replace('/auth/login');
     }
-  }, [user, loading, profile, router]);
+  }, [user, loading, router]);
 
   // Display a loading indicator while checking authentication.
   return (
