@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="relative flex min-h-screen w-full flex-col">
             <main className="flex-1">
-              <div className="max-w-7xl mx-auto w-full">
+              <div className="max-w-7xl mx-auto w-full p-4">
                 {children}
               </div>
             </main>
