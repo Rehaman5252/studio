@@ -122,4 +122,22 @@
   .animate-colorChange {
     animation: colorChange 2.5s infinite ease-in-out;
   }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(to right, hsl(var(--foreground)) 20%, hsl(var(--primary)) 40%, hsl(var(--primary)) 60%, hsl(var(--foreground)) 80%);
+    background-size: 200% auto;
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: shimmer 5s linear infinite;
+  }
 }

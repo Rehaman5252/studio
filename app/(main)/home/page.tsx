@@ -115,7 +115,12 @@ function HomePage() {
     };
 
     return (
-      <PageWrapper title="indcric" hideBorder>
+      <PageWrapper hideBorder>
+          <header className="text-center mb-4">
+              <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
+                  indcric
+              </h1>
+          </header>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -19,8 +19,8 @@ export default function PageWrapper({ title, children, showBackButton, breadcrum
     <div className="flex flex-col space-y-4 pb-24 px-4 pt-6 sm:px-6 lg:px-8">
         {(title || showBackButton || actions) && (
             <header className={cn(
-                "relative flex items-center justify-between gap-4 sticky top-0 bg-background/80 backdrop-blur-lg py-3 z-40 -mt-6 mb-0",
-                !hideBorder && "border-b"
+                "relative flex items-center justify-between gap-4 py-3 z-40 -mt-6 mb-0",
+                !hideBorder && "border-b sticky top-0 bg-background/80 backdrop-blur-lg"
             )}>
                 <div className="absolute left-0">
                   {showBackButton && <BackButton />}
