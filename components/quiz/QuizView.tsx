@@ -122,8 +122,8 @@ export default function QuizView({
                         maxValue={QUESTION_TIME_LIMIT}
                         text={`${timeLeft}`}
                         styles={buildStyles({
-                            textColor: 'hsl(var(--primary))',
-                            pathColor: 'hsl(var(--primary))',
+                            textColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                            pathColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
                             trailColor: 'hsl(var(--muted))',
                             textSize: '28px',
                         })}

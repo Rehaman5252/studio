@@ -56,8 +56,8 @@ const ResultsContent = () => {
         <CardHeader>
           {isPerfectScore ? (
             <>
-              <Award className="h-16 w-16 mx-auto text-primary animate-pulse" />
-              <CardTitle className="text-3xl font-extrabold text-shimmer animate-shimmer">Perfect Score!</CardTitle>
+              <Award className="h-16 w-16 mx-auto text-yellow-400 animate-pulse" />
+              <CardTitle className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">Perfect Score!</CardTitle>
             </>
           ) : (
             <CardTitle className="text-3xl font-bold">{isDisqualified ? 'Disqualified (No-Ball)' : 'Quiz Complete!'}</CardTitle>
