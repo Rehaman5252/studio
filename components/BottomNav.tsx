@@ -25,6 +25,11 @@ const iconVariants = {
       repeat: Infinity,
     },
   },
+  hover: {
+    y: -5,
+    scale: 1.1,
+    transition: { type: "spring", stiffness: 300 }
+  }
 };
 
 export default function BottomNav() {
@@ -53,6 +58,7 @@ export default function BottomNav() {
                 variants={iconVariants}
                 initial="initial"
                 animate={isActive ? "animate" : "initial"}
+                whileHover="hover"
                 transition={{
                   delay: index * 0.1, // Stagger the animation start
                 }}
