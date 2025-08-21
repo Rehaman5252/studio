@@ -182,10 +182,8 @@ const AnalysisContent = () => {
 
 export default function QuizAnalysisPage() {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>}>
-                <AnalysisContent />
-            </Suspense>
-        </div>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>}>
+            <AnalysisContent />
+        </Suspense>
     )
 }

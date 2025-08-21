@@ -1,3 +1,4 @@
+
 'use client';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
@@ -25,7 +26,7 @@ export default function WalkthroughPage() {
 
   if (profile === null) {
       // You can show a loading spinner here while the profile is being fetched.
-      return <div>Loading...</div>
+      return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
   return (

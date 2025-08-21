@@ -133,10 +133,8 @@ const ResultsContent = () => {
 
 export default function QuizResultsPage() {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-             <Suspense fallback={<div>Loading results...</div>}>
-                <ResultsContent />
-            </Suspense>
-        </div>
+        <Suspense fallback={<div>Loading results...</div>}>
+            <ResultsContent />
+        </Suspense>
     )
 }

@@ -26,11 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <Providers>
           <div className="relative flex min-h-screen w-full flex-col">
-            <main className="flex-1">
-              <div className="container mx-auto h-full max-w-md p-4">
+            <div className="container mx-auto h-full max-w-md">
+              <main className="flex-1 py-4">
                 {children}
-              </div>
-            </main>
+              </main>
+            </div>
             <BottomNav />
           </div>
           <Toaster />

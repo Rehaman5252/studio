@@ -28,7 +28,7 @@ export default function GatekeeperPage() {
 
   // Display a loading indicator while checking authentication.
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+    <div className="flex flex-col items-center justify-center min-h-screen">
       <CricketLoading />
       <p className="mt-4 text-muted-foreground animate-pulse">
         Checking credentials...

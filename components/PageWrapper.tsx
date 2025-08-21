@@ -29,6 +29,7 @@ export default function PageWrapper({ title, children, showBackButton, breadcrum
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="space-y-6"
         >
             {children}
         </motion.div>
