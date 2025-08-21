@@ -1,13 +1,15 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff } from 'lucide-react';
+import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { AdDialog } from '../AdDialog';
+import { adLibrary } from '@/lib/ads';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -52,10 +54,39 @@ const getSlotTimings = (timestamp: number) => {
 
 export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const router = useRouter();
+  const [showAdDialog, setShowAdDialog] = useState(false);
+  const [isReviewed, setIsReviewed] = useState(false);
+  const reviewedStorageKey = 'cricblitz-reviewed-attempts';
 
-  const handleReview = (attemptData: QuizAttempt) => {
-    const attemptDataString = btoa(JSON.stringify(attemptData));
+  useEffect(() => {
+    // Check local storage to see if this attempt has been reviewed
+    const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
+    if (reviewedItems.includes(attempt.slotId)) {
+        setIsReviewed(true);
+    }
+  }, [attempt.slotId]);
+
+  const navigateToResults = () => {
+    const attemptDataString = btoa(JSON.stringify(attempt));
     router.push(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
+  };
+
+  const handleReviewClick = () => {
+    if (!isReviewed) {
+        setShowAdDialog(true);
+    }
+  };
+
+  const handleAdFinished = () => {
+    setShowAdDialog(false);
+    // Mark as reviewed in local storage
+    const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
+    if (!reviewedItems.includes(attempt.slotId)) {
+        reviewedItems.push(attempt.slotId);
+        localStorage.setItem(reviewedStorageKey, JSON.stringify(reviewedItems));
+    }
+    setIsReviewed(true);
+    navigateToResults();
   };
 
   const handleAnalysis = (attemptData: QuizAttempt) => {
@@ -69,46 +100,68 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const slotTiming = getSlotTimings(attempt.timestamp);
 
   return (
-    <Card key={attempt.slotId} className="bg-card/80 border-primary/10 shadow-lg animate-fade-in-up">
-      <CardHeader className='pb-4'>
-          <div className="flex items-start gap-4">
-               <div className="mt-1 flex-shrink-0">
-                  {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
-                  : isPerfectScore ? <Award className="h-8 w-8 text-yellow-500" />
-                  : <CheckCircle className="h-8 w-8 text-green-600" />
-                  }
-              </div>
-              <div className="flex-grow">
-                  <CardTitle className="text-lg">{attempt.format} Quiz</CardTitle>
-                  <CardDescription>Sponsored by {attempt.brand}</CardDescription>
-                  <CardDescription className="pt-2">
-                      {isDisqualified ? 'Disqualified (No Ball)' : `Scored ${attempt.score}/${attempt.totalQuestions}`}
-                  </CardDescription>
-              </div>
-          </div>
-      </CardHeader>
-      <CardContent className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground space-y-1">
-              <div className="flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>{slotTiming}</span>
-              </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => handleReview(attempt)}>
-                <Eye className="mr-2 h-4 w-4" />
-                Review
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleAnalysis(attempt)} disabled={isDisqualified}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Analysis
-            </Button>
-          </div>
-      </CardContent>
-    </Card>
+    <>
+        <Card key={attempt.slotId} className="bg-card/80 border-primary/10 shadow-lg animate-fade-in-up">
+        <CardHeader className='pb-4'>
+            <div className="flex items-start gap-4">
+                <div className="mt-1 flex-shrink-0">
+                    {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
+                    : isPerfectScore ? <Award className="h-8 w-8 text-yellow-500" />
+                    : <CheckCircle className="h-8 w-8 text-green-600" />
+                    }
+                </div>
+                <div className="flex-grow">
+                    <CardTitle className="text-lg">{attempt.format} Quiz</CardTitle>
+                    <CardDescription>Sponsored by {attempt.brand}</CardDescription>
+                    <CardDescription className="pt-2">
+                        {isDisqualified ? 'Disqualified (No Ball)' : `Scored ${attempt.score}/${attempt.totalQuestions}`}
+                    </CardDescription>
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+            <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{slotTiming}</span>
+                </div>
+            </div>
+            <div className="flex gap-2">
+                {isReviewed ? (
+                     <Button variant="ghost" size="sm" disabled>
+                        <Check className="mr-2 h-4 w-4" />
+                        Reviewed
+                    </Button>
+                ) : (
+                    <Button variant="ghost" size="sm" onClick={handleReviewClick}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Review
+                    </Button>
+                )}
+                <Button variant="secondary" size="sm" onClick={() => handleAnalysis(attempt)} disabled={isDisqualified}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Analysis
+                </Button>
+            </div>
+        </CardContent>
+        </Card>
+        {showAdDialog && (
+            <AdDialog
+                open={showAdDialog}
+                onAdFinished={handleAdFinished}
+                duration={adLibrary.resultsAd.duration}
+                skippableAfter={adLibrary.resultsAd.skippableAfter}
+                adTitle={adLibrary.resultsAd.title}
+                adType={adLibrary.resultsAd.type}
+                adUrl={adLibrary.resultsAd.url}
+            >
+                 <p className="text-xs text-muted-foreground mt-2">Watch this ad to review your answers. This is a one-time action per quiz.</p>
+            </AdDialog>
+        )}
+    </>
   );
 };

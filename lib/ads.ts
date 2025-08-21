@@ -31,7 +31,7 @@ export const adLibrary: {
         url: 'https://videos.pexels.com/video-files/5993356/5993356-hd_1920_1080_25fps.mp4',
         title: 'Answers sponsored by: Indigo Airlines',
         duration: 30,
-        skippableAfter: 15,
+        skippableAfter: 10,
     }
 };
 
