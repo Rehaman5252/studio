@@ -157,12 +157,12 @@ const QuizSelectionComponent = ({ setSelectedBrand }: QuizSelectionProps) => {
     
     return (
         <>
-            <div className="text-center mb-8" id="tour-step-1">
+            <div className="text-center mb-4" id="tour-step-1">
                 <h2 className="text-2xl font-bold">Select Your Quiz Format</h2>
                 <p className="text-sm text-muted-foreground">Click a face to select and play</p>
             </div>
             
-            <div className="flex justify-center items-center mb-8 h-48 w-full">
+            <div className="flex justify-center items-center mt-4 mb-12 h-[250px] w-full">
                 <BrandCube onFaceClick={handleFaceClick} rotation={rotation} />
             </div>
 
