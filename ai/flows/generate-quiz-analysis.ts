@@ -27,7 +27,7 @@ export async function generateQuizAnalysis(input: QuizAttempt): Promise<QuizAnal
 
 const prompt = ai.definePrompt({
     name: 'generateQuizAnalysisPrompt',
-    input: { schema: QuizAttempt },
+    input: { schema: QuizAttempt.extend({ totalTime: z.string().optional() }) },
     output: { schema: QuizAnalysisOutputSchema },
     prompt: `
     You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
@@ -82,4 +82,3 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         return output;
     }
 );
-
