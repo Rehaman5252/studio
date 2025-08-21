@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, Lightbulb, TrendingUp, Zap, Target, BarChart, BrainCircuit, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Home, Lightbulb, TrendingUp, Zap, Target, BarChart, Sparkles, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -102,7 +102,7 @@ const AnalysisContent = () => {
         <div className="min-h-screen bg-background text-foreground p-4 md:p-6 lg:p-8 space-y-6">
             <header className="text-center space-y-2">
                  <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold">
-                    <BrainCircuit className="h-5 w-5" />
+                    <Sparkles className="h-5 w-5" />
                     AI Performance Analysis
                 </div>
                 <h1 className="text-3xl font-bold">Your Quiz Debrief</h1>
