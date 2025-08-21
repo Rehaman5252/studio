@@ -114,13 +114,19 @@ function HomePage() {
         router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
     };
 
+    const headerContent = (
+      <div className="text-center">
+        <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
+          indcric
+        </h1>
+        <p className="mt-1 text-base text-foreground/80">
+          Win ₹100 for every 100 seconds!
+        </p>
+      </div>
+    );
+
     return (
-      <PageWrapper hideBorder>
-          <header className="text-center mb-4">
-              <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
-                  indcric
-              </h1>
-          </header>
+      <PageWrapper title={headerContent as unknown as string} hideBorder>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
