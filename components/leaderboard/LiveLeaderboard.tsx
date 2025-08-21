@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { WifiOff, ServerCrash, Clock, Ban } from 'lucide-react';
+import { WifiOff, ServerCrash, Clock, Ban, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
 
@@ -117,12 +117,15 @@ const LiveLeaderboard = () => {
             return (
                 <Card className="bg-card/80 border-dashed border-primary/30 text-center mt-4">
                     <CardHeader>
-                        <CardTitle>Waiting for Players</CardTitle>
-                        <CardDescription>The next quiz starts in {timeLeft.minutes}:{String(timeLeft.seconds).padStart(2, '0')}</CardDescription>
+                        <CardTitle className="flex items-center justify-center gap-2">
+                           <Users className="h-6 w-6" /> The Dressing Room is Filling Up...
+                        </CardTitle>
+                        <CardDescription>The next quiz starts in {timeLeft.minutes}:{String(timeLeft.seconds).padStart(2, '0')}. Get ready!</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                       <Clock className="h-10 w-10 mx-auto text-primary/50 mb-2" />
-                       <p className="text-sm text-muted-foreground">Play a quiz to appear on the leaderboard!</p>
+                    <CardContent className="p-6">
+                       <Clock className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+                       <p className="text-sm text-muted-foreground font-semibold">The pitch is ready, players are taking their positions.</p>
+                       <p className="text-xs text-muted-foreground mt-1">Play this round to make your mark on the leaderboard! 🏏</p>
                     </CardContent>
                 </Card>
             )
