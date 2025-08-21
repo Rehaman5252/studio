@@ -11,11 +11,23 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { QuizAttempt } from '@/ai/schemas';
 
+const QuestionAnalysisSchema = z.object({
+    question: z.string().describe("The original question text."),
+    userAnswer: z.string().describe("The answer the user provided."),
+    correctAnswer: z.string().describe("The correct answer."),
+    isCorrect: z.boolean().describe("Whether the user's answer was correct."),
+    timeTaken: z.number().describe("Time taken for this question in seconds."),
+    category: z.string().describe("A specific category for the question (e.g., 'IPL History', 'Test Bowling Records', 'Player Nicknames', 'Cricket Rules').")
+});
+
 const QuizAnalysisOutputSchema = z.object({
     overallPerformance: z.string().describe("A brief, encouraging summary of the user's overall performance in one or two sentences."),
-    keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated (e.g., speed, accuracy in a specific topic)."),
-    areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement (e.g., time management on difficult questions, knowledge gaps)."),
-    smartTips: z.array(z.string()).describe("A list of 2-3 clever tips or strategies the user can employ in future quizzes to maximize their score and speed."),
+    accuracy: z.number().describe("The user's accuracy percentage."),
+    averageTimePerQuestion: z.number().describe("The average time the user took per question, in seconds."),
+    keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
+    areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories they answered incorrectly or slowly."),
+    coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),
+    analyzedQuestions: z.array(QuestionAnalysisSchema).describe("An array containing the analysis for each individual question.")
 });
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
 
@@ -27,30 +39,29 @@ export async function generateQuizAnalysis(input: QuizAttempt): Promise<QuizAnal
 
 const prompt = ai.definePrompt({
     name: 'generateQuizAnalysisPrompt',
-    input: { schema: QuizAttempt.extend({ totalTime: z.string().optional() }) },
+    input: { schema: QuizAttempt },
     output: { schema: QuizAnalysisOutputSchema },
     prompt: `
-    You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
+    You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful, detailed, and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
 
-    Analyze the following quiz data:
-    - Format: {{format}}
+    Analyze the following quiz data for the "{{format}}" format:
     - Score: {{score}} out of {{totalQuestions}}
-    - Questions, User Answers, Correct Answers, and Explanations:
+    - Questions, User Answers, and Time Taken:
       {{#each questions}}
       - Q{{@index + 1}}: {{this.question}}
-        - Your Answer: {{../userAnswers.[@index]}} ({{#if (eq ../userAnswers.[@index] this.correctAnswer)}}Correct{{else}}Incorrect{{/if}})
+        - Your Answer: {{../userAnswers.[@index]}}
         - Correct Answer: {{this.correctAnswer}}
         - Time Taken: {{../timePerQuestion.[@index]}}s
       {{/each}}
-    - Total time for answered questions: {{totalTime}}s
 
-    Based on this data, generate a concise analysis covering these four areas:
-    1.  **Overall Performance:** A brief, encouraging summary of the user's performance.
-    2.  **Key Strengths:** Identify 2-3 positive aspects. This could be speed on correct answers, knowledge in a specific area (deduced from questions), or consistency.
-    3.  **Areas for Improvement:** Identify 2-3 areas where the user could improve. Focus on patterns, like spending too much time on wrong answers, or a specific type of question they got wrong. Be specific and constructive.
-    4.  **Smart Tips:** Provide 2-3 actionable strategies for the next quiz. For example, "For questions about player records, try to associate the player with their era first to narrow down options." or "If unsure, the process of elimination is your best friend. Quickly rule out one or two options."
-
-    Generate the analysis in the format requested.
+    Based on this data, generate a comprehensive analysis. Follow these steps:
+    1.  **Calculate Metrics:** Determine the overall accuracy percentage and the average time per question.
+    2.  **Categorize Each Question:** For each question, assign a specific, granular category. Examples: 'IPL Batting Records', 'Test Match History', 'Cricket Terminology', 'Player Nicknames', 'World Cup 2011'.
+    3.  **Overall Summary:** Write a brief, encouraging summary of the user's performance.
+    4.  **Identify Strengths:** Based on the question categories answered correctly and quickly, identify 2-3 key strengths.
+    5.  **Identify Improvement Areas:** Based on the categories where answers were incorrect or slow, identify 2-3 areas for improvement.
+    6.  **Provide a Coach's Tip:** Give one single, powerful, and personalized tip for the user to focus on for their next quiz.
+    7.  **Format Output:** Compile all this information into the required JSON format, including the detailed analysis for every single question.
   `,
 });
 
@@ -62,23 +73,31 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         outputSchema: QuizAnalysisOutputSchema,
     },
     async (input) => {
-        const totalTime = input.timePerQuestion?.reduce((acc, time) => acc + time, 0) ?? 0;
-        
-        const { output } = await prompt({
-            ...input,
-            totalTime: totalTime.toFixed(1),
-        });
+        const { output } = await prompt(input);
 
         if (!output) {
+            const accuracy = (input.score / input.totalQuestions) * 100;
+            const averageTime = (input.timePerQuestion?.reduce((a,b) => a+b, 0) || 0) / input.totalQuestions;
             // Fallback logic in case the AI fails
             return {
-                overallPerformance: "A solid effort! You've got a great foundation to build upon.",
+                overallPerformance: "A solid effort! You've got a great foundation to build upon. Review your answers below.",
+                accuracy: parseFloat(accuracy.toFixed(1)),
+                averageTimePerQuestion: parseFloat(averageTime.toFixed(1)),
                 keyStrengths: ["Good pace on questions you knew.", "Strong foundational knowledge."],
                 areasForImprovement: ["Double-check questions with tricky wording.", "Time management on tougher questions could be improved."],
-                smartTips: ["Use the process of elimination to increase your odds on tricky questions.", "Don't be afraid to trust your first instinct."]
+                coachTip: "Before your next quiz, try focusing on one specific era or tournament. This can help you build deeper knowledge in one go!",
+                analyzedQuestions: input.questions.map((q, i) => ({
+                    question: q.question,
+                    userAnswer: input.userAnswers[i],
+                    correctAnswer: q.correctAnswer,
+                    isCorrect: input.userAnswers[i] === q.correctAnswer,
+                    timeTaken: input.timePerQuestion?.[i] || 0,
+                    category: "General"
+                }))
             };
         }
 
         return output;
     }
 );
+
