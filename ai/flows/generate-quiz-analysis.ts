@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -41,7 +42,7 @@ const prompt = ai.definePrompt({
         - Correct Answer: {{this.correctAnswer}}
         - Time Taken: {{../timePerQuestion.[@index]}}s
       {{/each}}
-    - Total time for answered questions: {{#if timePerQuestion}}{{#reduce timePerQuestion 'add' 0}}{{this}}{{/reduce}}s{{else}}N/A{{/if}}
+    - Total time for answered questions: {{totalTime}}s
 
     Based on this data, generate a concise analysis covering these four areas:
     1.  **Overall Performance:** A brief, encouraging summary of the user's performance.
@@ -61,7 +62,12 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         outputSchema: QuizAnalysisOutputSchema,
     },
     async (input) => {
-        const { output } = await prompt(input);
+        const totalTime = input.timePerQuestion?.reduce((acc, time) => acc + time, 0) ?? 0;
+        
+        const { output } = await prompt({
+            ...input,
+            totalTime: totalTime.toFixed(1),
+        });
 
         if (!output) {
             // Fallback logic in case the AI fails
@@ -76,3 +82,4 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         return output;
     }
 );
+
