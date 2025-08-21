@@ -5,17 +5,63 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 120 100% 97%; /* Pale Green */
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
 
-    --border: 214.3 31.8% 91.4%;
+    --primary: 120 61% 34%; /* Forest Green */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --accent: 24 97% 53%; /* Sunset Orange */
+    --accent-foreground: 210 40% 98%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    
+    --input: 214.3 31.8% 91.4%;
+    --ring: 120 61% 34%;
+
+    --radius: 0.5rem;
+
+    /* Custom theme colors */
+    --brand-shimmer-from: #228B22; /* Forest Green */
+    --brand-shimmer-to: #FF4500; /* Sunset Orange */
   }
 
-  body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --primary: 120 61% 40%; /* Darker Forest Green */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --accent: 24 97% 53%;
+    --accent-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --input: 217.2 32.6% 17.5%;
+    --ring: 120 61% 40%;
+    
+    --border: 217.2 32.6% 17.5%;
   }
 }
 
@@ -23,4 +69,67 @@
   * {
     @apply border-border;
   }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* 3D Cube Styles */
+.scene {
+  width: 200px;
+  height: 200px;
+  perspective: 600px;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 1s;
+}
+
+.cube-face {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border: 2px solid hsl(var(--primary));
+  font-size: 2rem;
+  font-weight: bold;
+  color: hsl(var(--primary-foreground));
+  background: hsla(var(--primary), 0.8);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-backface-visibility: hidden; /* Safari */
+  backface-visibility: hidden;
+}
+
+.cube-face-front { transform: rotateY(0deg) translateZ(100px); }
+.cube-face-right { transform: rotateY(90deg) translateZ(100px); }
+.cube-face-back { transform: rotateY(180deg) translateZ(100px); }
+.cube-face-left { transform: rotateY(-90deg) translateZ(100px); }
+.cube-face-top { transform: rotateX(90deg) translateZ(100px); }
+.cube-face-bottom { transform: rotateX(-90deg) translateZ(100px); }
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 5s infinite linear;
+  background: linear-gradient(to right, var(--brand-shimmer-from) 20%, var(--brand-shimmer-to) 50%, var(--brand-shimmer-from) 80%);
+  background-size: 1000px 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
