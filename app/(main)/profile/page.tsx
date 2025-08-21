@@ -90,10 +90,9 @@ function ProfilePageContent() {
           {renderPrivateContent()}
         </Suspense>
 
-        {user && (
-            <>
-            <section className="space-y-3 pt-4">
-                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+        <section className="space-y-3 pt-4">
+            {user && (
+                 <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                     <Link href="/certificates">
                         <div className="flex items-center">
                             <Award className="mr-4" /> View Certificates
@@ -101,32 +100,33 @@ function ProfilePageContent() {
                         <ChevronRight/>
                     </Link>
                 </Button>
-                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
-                    <Link href="/settings">
-                        <div className="flex items-center">
-                            <Settings className="mr-4" /> App Settings
-                        </div>
-                        <ChevronRight/>
-                    </Link>
-                </Button>
-                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
-                    <Link href="/policies">
-                        <div className="flex items-center">
-                            <Scale className="mr-4" /> Legal & Policies
-                        </div>
-                        <ChevronRight/>
-                    </Link>
-                </Button>
-            </section>
+            )}
+            <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                <Link href="/settings">
+                    <div className="flex items-center">
+                        <Settings className="mr-4" /> App Settings
+                    </div>
+                    <ChevronRight/>
+                </Link>
+            </Button>
+            <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                <Link href="/policies">
+                    <div className="flex items-center">
+                        <Scale className="mr-4" /> Legal & Policies
+                    </div>
+                    <ChevronRight/>
+                </Link>
+            </Button>
+        </section>
 
-            <SupportCard />
-            
+        <SupportCard />
+        
+        {user && (
             <section>
                 <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
                     <LogOut className="mr-2 h-5 w-5" /> Logout
                 </Button>
             </section>
-            </>
         )}
     </PageWrapper>
   );
