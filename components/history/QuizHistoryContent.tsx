@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { AdDialog } from '../AdDialog';
 import { adLibrary } from '@/lib/ads';
+import AnalysisDialog from './AnalysisDialog';
+import ReviewDialog from './ReviewDialog';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -55,45 +57,37 @@ const getSlotTimings = (timestamp: number) => {
 export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const router = useRouter();
   const [showAdDialog, setShowAdDialog] = useState(false);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [isReviewed, setIsReviewed] = useState(false);
   const reviewedStorageKey = 'cricblitz-reviewed-attempts';
 
   useEffect(() => {
-    // Check local storage to see if this attempt has been reviewed
     const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
     if (reviewedItems.includes(attempt.slotId)) {
         setIsReviewed(true);
     }
   }, [attempt.slotId]);
 
-  const navigateToResults = () => {
-    const attemptDataString = btoa(JSON.stringify(attempt));
-    router.push(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
-  };
-
   const handleReviewClick = () => {
     if (!isReviewed) {
         setShowAdDialog(true);
+    } else {
+        setShowReviewDialog(true);
     }
   };
 
   const handleAdFinished = () => {
     setShowAdDialog(false);
-    // Mark as reviewed in local storage
     const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
     if (!reviewedItems.includes(attempt.slotId)) {
         reviewedItems.push(attempt.slotId);
         localStorage.setItem(reviewedStorageKey, JSON.stringify(reviewedItems));
     }
     setIsReviewed(true);
-    navigateToResults();
+    setShowReviewDialog(true);
   };
-
-  const handleAnalysis = (attemptData: QuizAttempt) => {
-    const attemptDataString = btoa(JSON.stringify(attemptData));
-    router.push(`/quiz/analysis?attempt=${encodeURIComponent(attemptDataString)}`);
-  };
-
+  
   const attemptDate = new Date(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions;
   const isDisqualified = !!attempt.reason;
@@ -131,24 +125,22 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
             </div>
             <div className="flex gap-2">
-                {isReviewed ? (
-                     <Button variant="ghost" size="sm" disabled>
-                        <Check className="mr-2 h-4 w-4" />
-                        Reviewed
-                    </Button>
-                ) : (
-                    <Button variant="ghost" size="sm" onClick={handleReviewClick}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Review
-                    </Button>
-                )}
-                <Button variant="secondary" size="sm" onClick={() => handleAnalysis(attempt)} disabled={isDisqualified}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Analysis
+                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
+                    {isReviewed ? <Check className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                    {isReviewed ? 'Reviewed' : 'Review'}
                 </Button>
+                
+                <AnalysisDialog attempt={attempt}>
+                    <Button variant="secondary" size="sm" disabled={isDisqualified}>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Analysis
+                    </Button>
+                </AnalysisDialog>
             </div>
         </CardContent>
         </Card>
+        
+        {/* Ad before showing review */}
         {showAdDialog && (
             <AdDialog
                 open={showAdDialog}
@@ -162,6 +154,13 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                  <p className="text-xs text-muted-foreground mt-2">Watch this ad to review your answers. This is a one-time action per quiz.</p>
             </AdDialog>
         )}
+
+        {/* Review Dialog */}
+        <ReviewDialog
+            open={showReviewDialog}
+            onOpenChange={setShowReviewDialog}
+            attempt={attempt}
+        />
     </>
   );
 };

@@ -9,6 +9,7 @@ import { CheckCircle, XCircle, Award, BarChart, Home, Sparkles } from 'lucide-re
 import type { QuizAttempt } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
 import PageWrapper from '@/components/PageWrapper';
+import AnalysisDialog from '@/components/history/AnalysisDialog';
 
 const ResultsContent = () => {
   const searchParams = useSearchParams();
@@ -24,11 +25,6 @@ const ResultsContent = () => {
       return null;
     }
   }, [attemptData]);
-
-  const handleAnalysis = (attemptData: QuizAttempt) => {
-    const attemptDataString = btoa(JSON.stringify(attemptData));
-    router.push(`/quiz/analysis?attempt=${encodeURIComponent(attemptDataString)}`);
-  };
 
   if (!attempt) {
     return (
@@ -75,15 +71,12 @@ const ResultsContent = () => {
       
        {!isDisqualified && (
          <div className="space-y-4">
-            <Button 
-                variant="secondary" 
-                size="lg" 
-                className="w-full" 
-                onClick={() => handleAnalysis(attempt)} 
-            >
-                <Sparkles className="mr-2 h-5 w-5" />
-                View AI Performance Analysis
-            </Button>
+            <AnalysisDialog attempt={attempt}>
+                <Button variant="secondary" size="lg" className="w-full">
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    View AI Performance Analysis
+                </Button>
+            </AnalysisDialog>
         </div>
        )}
 
