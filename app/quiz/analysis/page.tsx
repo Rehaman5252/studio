@@ -14,6 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { AlertTriangle, BarChart, Target, Zap } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const AnalysisSkeleton = () => (
@@ -240,3 +241,4 @@ export default function QuizAnalysisPage() {
     )
 }
 
+    
