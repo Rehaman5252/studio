@@ -5,15 +5,16 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Flame, Star } from 'lucide-react';
 
-const streakMilestones = {
-  3: { tagline: "Getting your eye in!", reward: "Bonus Hints" },
-  7: { tagline: "On a Roll!", reward: "Exclusive Avatar Frame" },
-  14: { tagline: "Two Weeks Strong!", reward: "250 Coins" },
-  30: { tagline: "One Month Mastery!", reward: "1,000 Coins" },
-  60: { tagline: "Two Month Legend!", reward: "Golden Avatar Frame" },
-  90: { tagline: "Three Month GOAT!", reward: "5,000 Coins" },
-  180: { tagline: "Half-Year Hero!", reward: "10,000 Coins" },
-  365: { tagline: "Year-Long Champion!", reward: "Hall of Fame Entry" },
+const streakMilestones: { [key: number]: { tagline: string; reward: string } } = {
+  3: { tagline: "Opening Partnership: You’re off the mark!", reward: "Bonus Hints" },
+  6: { tagline: "Powerplay Blitz: Starting strong!", reward: "Exclusive Avatar Frame" },
+  10: { tagline: "Captain’s Knock: You’re leading the innings!", reward: "Special Badge" },
+  30: { tagline: "Half-Century Hero: You’ve hit form!", reward: "Up to ₹1,00,000" },
+  45: { tagline: "Middle Overs Maestro: Rock-solid gameplay!", reward: "Up to ₹1,50,000" },
+  60: { tagline: "The Wall Mode: Unstoppable!", reward: "Up to ₹2,00,000" },
+  90: { tagline: "Nervous 90s: Consistency at its peak!", reward: "Up to ₹3,00,000" },
+  180: { tagline: "Double Century Club: Legendary streak!", reward: "Up to ₹5,00,000" },
+  360: { tagline: "Triple Ton: GOAT of IndCric!", reward: "Up to ₹10,00,000" },
 };
 
 type StreakDay = keyof typeof streakMilestones;
@@ -61,9 +62,9 @@ export default function DailyStreakCard({ userProfile }: { userProfile: any }) {
                     </div>
                 </div>
                 
-                {daysToNextMilestone > 0 && (
+                {nextMilestone && (
                     <div className="mt-2 text-center text-xs text-muted-foreground">
-                        Keep going! {daysToNextMilestone} day{daysToNextMilestone > 1 ? 's' : ''} to your next reward.
+                        Keep going! {daysToNextMilestone} day{daysToNextMilestone > 1 ? 's' : ''} to your next reward: <span className="font-bold text-foreground/80">{nextMilestone.reward}</span>
                     </div>
                 )}
             </CardContent>

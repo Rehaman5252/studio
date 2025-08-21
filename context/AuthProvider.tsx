@@ -283,20 +283,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 transaction.update(referrerRef, { referralEarnings: increment(50) });
                 statsUpdate.referralBonusPaid = true;
             }
-
+            
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            const dailyActivityRef = doc(db, 'users', firebaseUser.uid, 'dailyActivity', todayStr);
-            const dailyActivityDoc = await transaction.get(dailyActivityRef);
-            
-            let dailyData = dailyActivityDoc.exists() ? dailyActivityDoc.data() : { total: 0, T20: 0, ODI: 0, Test: 0, IPL: 0, WPL: 0, Mixed: 0 };
-            dailyData.total = (dailyData.total || 0) + 1;
-            
-            const formatKey = attempt.format as keyof typeof dailyData;
-            if(formatKey in dailyData){
-              dailyData[formatKey] = (dailyData[formatKey] || 0) + 1;
-            }
-
             const lastStreakDate = userProfile.lastStreakTimestamp ? (userProfile.lastStreakTimestamp as Timestamp).toDate() : null;
             const isSameDay = lastStreakDate ? today.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
 
@@ -304,30 +292,15 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 const yesterday = new Date();
                 yesterday.setDate(today.getDate() - 1);
                 
-                const lastActivityRef = doc(db, 'users', firebaseUser.uid, 'dailyActivity', yesterday.toISOString().split('T')[0]);
-                const lastActivityDoc = await transaction.get(lastActivityRef);
+                const isConsecutiveDay = lastStreakDate ? yesterday.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
 
-                if(lastActivityDoc.exists()){
-                    const lastDayData = lastActivityDoc.data();
-                    const meetsStreakConditions =
-                        lastDayData.total >= 1 && // Just one quiz per day needed now
-                        Object.values(lastDayData).some(val => typeof val === 'number' && val > 0);
-
-
-                    if (meetsStreakConditions) {
-                        statsUpdate.currentStreak = increment(1);
-                        statsUpdate.lastStreakTimestamp = serverTimestamp();
-                    } else {
-                        statsUpdate.currentStreak = 1; // Reset to 1 if yesterday's conditions weren't met
-                        statsUpdate.lastStreakTimestamp = serverTimestamp();
-                    }
+                if (isConsecutiveDay) {
+                    statsUpdate.currentStreak = increment(1);
                 } else {
-                     statsUpdate.currentStreak = 1; // Start new streak
-                     statsUpdate.lastStreakTimestamp = serverTimestamp();
+                    statsUpdate.currentStreak = 1; // Reset to 1 if not consecutive
                 }
+                statsUpdate.lastStreakTimestamp = serverTimestamp();
             }
-            
-            transaction.set(dailyActivityRef, dailyData, { merge: true });
 
             const leaderboardDoc = await transaction.get(leaderboardRef);
             let leaderboardPlayers: LivePlayer[] = [];
