@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 Win ₹100 for every 100 seconds!
             </p>
         </header>
-        <main className="w-full max-w-md">
+        <main className="w-full max-w-lg">
             {children}
         </main>
     </div>

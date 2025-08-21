@@ -7,7 +7,7 @@ export default function MainAppLayout({
 }) {
   return (
     <div className="flex justify-center w-full">
-      <div className="w-full max-w-md bg-background">
+      <div className="w-full bg-background">
         <main>{children}</main>
         <BottomNav />
       </div>
