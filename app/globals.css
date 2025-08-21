@@ -32,8 +32,8 @@
     --radius: 0.5rem;
 
     /* Custom theme colors */
-    --brand-shimmer-from: #228B22; /* Forest Green */
-    --brand-shimmer-to: #FF4500; /* Sunset Orange */
+    --brand-shimmer-from: hsl(38, 92%, 50%); /* Gold */
+    --brand-shimmer-to: hsl(24, 97%, 53%); /* Sunset Orange */
   }
 
   .dark {
