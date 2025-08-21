@@ -1,11 +1,11 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lightbulb, Volume2, VolumeX, Loader2, AlertTriangle } from 'lucide-react';
 import { QuizQuestion } from '@/ai/schemas';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -57,12 +57,9 @@ export default function QuizView({
     const [showNoBallAlert, setShowNoBallAlert] = useState(false);
     
     const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({
-        tick: null,
-        correct: null,
-        wrong: null
+        tick: null
     });
 
-    // Malpractice Detection
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
@@ -71,14 +68,13 @@ export default function QuizView({
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [onNoBall]);
+    }, []);
 
     const handleNoBallConfirm = () => {
         setShowNoBallAlert(false);
         onNoBall('no-ball');
     };
     
-    // Timer and Auto-Submit Logic
     useEffect(() => {
         setTimeLeft(QUESTION_TIME_LIMIT);
         setSelectedOption(null);
@@ -87,7 +83,7 @@ export default function QuizView({
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    onAnswer(selectedOption || ""); // Submit empty if no answer
+                    onAnswer(selectedOption || ""); 
                     return 0;
                 }
                 if(prev <= 6 && !isMuted) {

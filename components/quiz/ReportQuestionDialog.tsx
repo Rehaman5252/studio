@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -12,7 +13,6 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthProvider';
@@ -82,8 +82,8 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-destructive">
-          <Flag className="mr-2 h-4 w-4" /> Report this question
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
+          <Flag className="mr-2 h-4 w-4" /> Report Question
         </Button>
       </DialogTrigger>
       <DialogContent>

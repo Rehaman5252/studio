@@ -73,18 +73,19 @@ const ResultsContent = () => {
         </CardContent>
       </Card>
       
-       <div className="space-y-4">
-         <Button 
-            variant="secondary" 
-            size="lg" 
-            className="w-full" 
-            onClick={() => handleAnalysis(attempt)} 
-            disabled={isDisqualified}
-        >
-            <Sparkles className="mr-2 h-5 w-5" />
-            View AI Performance Analysis
-        </Button>
-      </div>
+       {!isDisqualified && (
+         <div className="space-y-4">
+            <Button 
+                variant="secondary" 
+                size="lg" 
+                className="w-full" 
+                onClick={() => handleAnalysis(attempt)} 
+            >
+                <Sparkles className="mr-2 h-5 w-5" />
+                View AI Performance Analysis
+            </Button>
+        </div>
+       )}
 
 
       <div className="space-y-4">
@@ -112,7 +113,9 @@ const ResultsContent = () => {
                 <p className="text-xs text-muted-foreground font-semibold">EXPLANATION</p>
                 <p className="text-sm">{question.explanation}</p>
               </Card>
-               <ReportQuestionDialog questionId={question.id} questionText={question.question} />
+               <div className="pt-2 flex justify-center">
+                <ReportQuestionDialog questionId={question.id} questionText={question.question} />
+               </div>
             </CardContent>
           </Card>
         ))}

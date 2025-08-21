@@ -1,11 +1,9 @@
 
 'use client';
 
-import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { getQuizSlotId } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +18,6 @@ import GlobalStats from '@/components/home/GlobalStats';
 import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const BrandCube = dynamic(() => import('@/components/home/BrandCube'), { 
@@ -39,120 +36,62 @@ const faceRotations = [
 
 interface QuizSelectionProps {
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
+    handleStartQuiz: () => void;
 }
 
-const QuizSelectionComponent = ({ setSelectedBrand }: QuizSelectionProps) => {
-    const { user, isProfileComplete, lastAttemptInSlot } = useAuth();
-    const { isLoading: isQuizStatusLoading } = useQuizStatus();
+const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelectionProps) => {
+    const { user, isProfileComplete } = useAuth();
     const router = useRouter();
-    const { toast } = useToast();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
-    const [localSelectedBrand, setLocalSelectedBrand] = useState<CubeBrand>(brandData[0]);
+    const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [rotation, setRotation] = useState(faceRotations[0]);
-    const [showAuthAlert, setShowAuthAlert] = useState(false);
 
     useEffect(() => {
-        setSelectedBrand(localSelectedBrand);
-    }, [localSelectedBrand, setSelectedBrand]);
-    
-    // Performance Optimization: Prefetch quiz questions
-    useEffect(() => {
-        const prefetchQuiz = async () => {
-            try {
-                // We don't need the result, just warming up the API route
-                 fetch('/api/quiz', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ format: 'Mixed', userId: 'prefetch-user' }),
-                });
-            } catch (e) {
-                // Prefetching is best-effort, so we don't show errors
-                console.warn("Quiz prefetching failed in background:", e);
-            }
-        };
         // Prefetch immediately on component mount
-        prefetchQuiz();
+        fetch('/api/quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ format: 'Mixed', userId: 'prefetch-user' }),
+        }).catch(e => console.warn("Quiz prefetching failed in background:", e));
     }, []);
-
-    const hasPlayedInCurrentSlot = useMemo(() => {
-        if (!user || !lastAttemptInSlot) return false;
-        // Check if the last attempt's slot ID matches the current one.
-        return lastAttemptInSlot.slotId === getQuizSlotId();
-    }, [user, lastAttemptInSlot]);
-
+    
     useEffect(() => {
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => {
                 const newIndex = (prevIndex + 1) % faceRotations.length;
                 setRotation(faceRotations[newIndex]);
-                setLocalSelectedBrand(brandData[newIndex]);
+                setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
         }, 4500); // Rotate every 4.5 seconds
 
         return () => clearInterval(rotationInterval);
-    }, []);
-
-    const handleStartQuiz = useCallback(() => {
-        if (!user) {
-            router.push(`/auth/login?from=/home`);
-            return;
-        }
-        
-        // **Strict Slot Enforcement**
-        // If an attempt for this slot exists, redirect to the results immediately.
-        if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
-            const attemptDataString = btoa(JSON.stringify(lastAttemptInSlot));
-            const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
-            router.push(reviewUrl);
-            toast({
-                title: "Slot Already Played",
-                description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
-            });
-            return;
-        }
-
-        if (!user.emailVerified) {
-            toast({
-                title: "Email not verified",
-                description: "Please verify your email address before playing a quiz.",
-                variant: "destructive"
-            });
-            return;
-        }
-        if (!isProfileComplete) {
-            setShowAuthAlert(true);
-            return;
-        }
-        
-        router.push(`/quiz?brand=${encodeURIComponent(localSelectedBrand.brand)}&format=${encodeURIComponent(localSelectedBrand.format)}`);
-    }, [router, user, isProfileComplete, hasPlayedInCurrentSlot, lastAttemptInSlot, localSelectedBrand, toast]);
+    }, [setSelectedBrand]);
     
-
+    const initiateQuiz = useCallback(() => {
+        if (!isProfileComplete) {
+            setShowProfileAlert(true);
+        } else {
+            handleStartQuiz();
+        }
+    }, [isProfileComplete, handleStartQuiz]);
+    
     const handleFaceClick = (brand: CubeBrand) => {
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
-            setCurrentFaceIndex(clickedIndex)
             setRotation(faceRotations[clickedIndex]);
-            setLocalSelectedBrand(brandData[clickedIndex]);
+            setSelectedBrand(brandData[clickedIndex]);
             // Use a short delay to allow the cube to rotate before initiating the quiz start logic
-            // This is removed to make the click feel instant
-            handleStartQuiz();
+            setTimeout(() => {
+               initiateQuiz();
+            }, 300);
         }
-    };
-
-    const handleBannerOrButtonClick = () => {
-        handleStartQuiz();
     };
   
     const handleAuthAlertAction = () => {
-        if (!user) {
-            router.push('/auth/login?from=/home');
-        } else {
-            router.push('/profile'); // Redirect to profile to complete it
-        }
-        setShowAuthAlert(false);
+        router.push('/profile');
+        setShowProfileAlert(false);
     }
     
     return (
@@ -167,31 +106,26 @@ const QuizSelectionComponent = ({ setSelectedBrand }: QuizSelectionProps) => {
             </div>
 
             <SelectedBrandCard 
-                selectedBrand={localSelectedBrand} 
-                onClick={handleBannerOrButtonClick} 
+                selectedBrand={brandData[currentFaceIndex]} 
+                onClick={initiateQuiz} 
             />
 
             <div className="mt-8 space-y-8" id="tour-step-2">
                 <GlobalStats />
             </div>
             
-            <AlertDialog open={showAuthAlert} onOpenChange={setShowAuthAlert}>
+            <AlertDialog open={showProfileAlert} onOpenChange={setShowProfileAlert}>
                 <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>
-                    {!user ? 'Login Required' : 'Profile Incomplete'}
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>Profile Incomplete</AlertDialogTitle>
                     <AlertDialogDescription>
-                    {!user 
-                        ? 'You need to be logged in to play a quiz.' 
-                        : 'Please complete your profile to start playing quizzes and earning rewards.'
-                    }
+                        Please complete your profile to start playing quizzes and earning rewards.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleAuthAlertAction}>
-                    {!user ? 'Go to Login' : 'Complete Profile'}
+                        Complete Profile
                     </AlertDialogAction>
                 </AlertDialogFooter>
                 </AlertDialogContent>

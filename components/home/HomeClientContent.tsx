@@ -9,9 +9,10 @@ import type { CubeBrand } from './brandData';
 
 interface HomeClientContentProps {
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
+    handleStartQuiz: () => void;
 }
 
-const HomeClientContentComponent = ({ setSelectedBrand }: HomeClientContentProps) => {
+const HomeClientContentComponent = ({ setSelectedBrand, handleStartQuiz }: HomeClientContentProps) => {
     const { profile, updateUserData } = useAuth();
     
     const needsTour = profile && !profile.guidedTourCompleted;
@@ -28,7 +29,10 @@ const HomeClientContentComponent = ({ setSelectedBrand }: HomeClientContentProps
     
     return (
         <>
-            <QuizSelection setSelectedBrand={setSelectedBrand} />
+            <QuizSelection 
+                setSelectedBrand={setSelectedBrand} 
+                handleStartQuiz={handleStartQuiz} 
+            />
             {profile && <GuidedTour run={needsTour} onFinish={handleTourFinish} />}
         </>
     );

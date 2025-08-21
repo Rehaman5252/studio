@@ -89,8 +89,7 @@ function HomePage() {
         
         if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
             const attemptDataString = btoa(JSON.stringify(lastAttemptInSlot));
-            const reviewUrl = `/quiz/results?review=true&attempt=${encodeURIComponent(attemptDataString)}`;
-            router.push(reviewUrl);
+            router.push(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
             toast({
                 title: "Slot Already Played",
                 description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
@@ -107,7 +106,8 @@ function HomePage() {
             return;
         }
         if (!isProfileComplete) {
-            // This case should be handled by the QuizSelection component's alert dialog
+            // This case is handled by the HomeClientContent component's alert dialog
+             // This is a prop drill down, but keeps logic centralized.
             return;
         }
         
@@ -122,7 +122,10 @@ function HomePage() {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <MalpracticeWarning />
-            <HomeClientContent setSelectedBrand={setSelectedBrand} />
+            <HomeClientContent 
+                setSelectedBrand={setSelectedBrand} 
+                handleStartQuiz={handleStartQuiz} 
+            />
 
              <div className="mt-8">
                 <StartQuizButton

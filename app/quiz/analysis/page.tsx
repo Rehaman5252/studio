@@ -132,10 +132,10 @@ const AnalysisContent = () => {
                         </CardContent>
                     </Card>
 
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-green-500"><Zap /> Key Strengths</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-primary"><Zap /> Key Strengths</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ul className="list-disc pl-5 space-y-1">
@@ -145,7 +145,7 @@ const AnalysisContent = () => {
                         </Card>
                          <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-yellow-500"><Target /> Areas for Improvement</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-destructive"><Target /> Areas for Improvement</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ul className="list-disc pl-5 space-y-1">
@@ -157,7 +157,7 @@ const AnalysisContent = () => {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-blue-500"><Lightbulb /> Smart Tips for Next Time</CardTitle>
+                            <CardTitle className="flex items-center gap-2 text-accent"><Lightbulb /> Smart Tips for Next Time</CardTitle>
                         </CardHeader>
                         <CardContent>
                              <ul className="list-disc pl-5 space-y-1">
