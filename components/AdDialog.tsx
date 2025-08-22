@@ -50,13 +50,11 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
       setAdTimeLeft((prev) => {
         const newTime = prev - 1;
         
-        if (!isSkippable && newTime <= duration - skippableAfter) {
+        if (newTime <= duration - skippableAfter) {
             setIsSkippable(true);
-            // If auto-skip is enabled, skip immediately.
             if (settings.autoSkipAd) {
                 clearInterval(timer);
                 setTimeout(handleSkip, 500); // Give a brief moment before auto-closing
-                return newTime;
             }
         }
         
@@ -74,7 +72,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
     return () => {
       clearInterval(timer);
     };
-  }, [open, duration, skippableAfter, adType, onAdFinished, settings.sound, settings.autoSkipAd, isSkippable]);
+  }, [open, duration, skippableAfter, adType, onAdFinished, settings.sound, settings.autoSkipAd]);
 
   const handleVideoEnd = () => {
     onAdFinished();
