@@ -17,8 +17,8 @@ export default function CricketFact({ format }: { format: string }) {
     setLoading(true);
     try {
       // Pass the current list of facts to avoid repetition if AI is called again.
-      const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: facts });
-      setFacts(newFacts);
+      const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: facts || [] });
+      setFacts(newFacts || []);
       setCurrentFactIndex(0);
     } catch (error) {
       console.error('Failed to fetch cricket facts:', error);
@@ -38,13 +38,13 @@ export default function CricketFact({ format }: { format: string }) {
   }, [format]);
 
   const handleAnotherFact = () => {
-    if (facts.length > 0) {
+    if (facts && facts.length > 0) {
       setCurrentFactIndex((prevIndex) => (prevIndex + 1) % facts.length);
     }
   };
   
   // This ensures that even if the index is somehow out of bounds, it doesn't crash.
-  const currentFact = facts.length > 0 ? facts[currentFactIndex] : '';
+  const currentFact = (facts && facts.length > 0) ? facts[currentFactIndex] : '';
 
   return (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -70,7 +70,7 @@ export default function CricketFact({ format }: { format: string }) {
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={loading || facts.length === 0}>
+          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={loading || !facts || facts.length === 0}>
             {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
