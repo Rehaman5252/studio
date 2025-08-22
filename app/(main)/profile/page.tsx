@@ -13,7 +13,7 @@ import SupportCard from "@/components/profile/SupportCard";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/PageWrapper";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
-import CommentarySection from "@/components/profile/CommentarySection";
+import CommentaryButton from "@/components/profile/CommentaryButton";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
@@ -119,10 +119,10 @@ function ProfilePageContent() {
                 </Link>
             </Button>
         </section>
+        
+        {user && <CommentaryButton />}
 
         <SupportCard />
-        
-        {user && profile && <CommentarySection />}
 
         {user && (
             <section className="pt-4">
