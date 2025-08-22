@@ -65,7 +65,7 @@ const ResultsContent = () => {
           )}
            {attempt.source && (
             <div className="flex justify-center pt-2">
-                <Badge variant="secondary" className="font-normal">
+                <Badge variant={attempt.source === 'ai' ? "default" : "outline"} className="font-normal">
                     {attempt.source === 'ai' ? <Cpu className="h-3 w-3 mr-1.5"/> : <BookOpen className="h-3 w-3 mr-1.5"/>}
                     {attempt.source === 'ai' ? 'AI Generated Quiz' : 'Classic Quiz'}
                 </Badge>

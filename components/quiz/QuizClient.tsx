@@ -20,11 +20,9 @@ interface QuizClientProps {
   format: string;
 }
 
-// The API now returns the quiz data along with its source
 type QuizAPIResponse = QuizData & {
-  source: 'ai' | 'fallback';
+  source?: 'ai' | 'fallback'; // Make source optional to handle older data or API errors
 };
-
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
@@ -69,15 +67,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         if (data.questions.length < 5) {
             throw new Error('Invalid quiz data received from server.');
         }
+
+        const dataWithSource = { ...data, source: data.source ?? 'fallback' };
+        setQuizData(dataWithSource);
         
-        if (data.source === 'fallback') {
+        if (dataWithSource.source === 'fallback') {
             toast({
-                title: "Using Classic Quiz",
-                description: "AI is busy, but here's a great quiz for you!",
+                title: "Classic Quiz Round!",
+                description: "This round is powered by our classic quiz engine while AI prepares more fresh challenges!",
             });
         }
         
-        setQuizData(data);
       } catch (e: any) {
         console.error("Quiz fetch failed:", e);
         setError("Could not load the quiz. Please try again later.");
@@ -94,8 +94,30 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     fetchQuiz();
   }, [format, user, toast]);
 
+  const buildAttempt = useCallback((overrides: Partial<QuizAttempt> = {}): QuizAttempt => {
+    if (!quizData || !user) throw new Error("Quiz data or user not available for building attempt.");
+
+    const score = 'score' in overrides 
+        ? (overrides.score as number)
+        : quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
+
+    return {
+        userId: user.uid,
+        slotId: getQuizSlotId(),
+        brand,
+        format,
+        questions: quizData.questions,
+        userAnswers,
+        score,
+        totalQuestions: quizData.questions.length,
+        timestamp: Date.now(),
+        timePerQuestion,
+        source: quizData.source,
+        ...overrides,
+    };
+  }, [quizData, user, brand, format, userAnswers, timePerQuestion]);
+
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
-    if (!quizData || !user) return;
     const noBallCount = await handleMalpractice();
     toast({
         title: "No Ball!",
@@ -103,57 +125,23 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         variant: "destructive"
     });
     
-    const attempt: QuizAttempt = {
-      userId: user.uid,
-      slotId: getQuizSlotId(),
-      brand,
-      format,
-      questions: quizData.questions,
-      userAnswers,
-      score: 0,
-      totalQuestions: quizData.questions.length,
-      timestamp: Date.now(),
-      timePerQuestion,
-      reason,
-      source: quizData.source,
-    };
+    const attempt = buildAttempt({ reason, score: 0 });
 
     await addQuizAttempt(attempt);
     
     const attemptDataString = btoa(JSON.stringify(attempt));
     router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
-  }, [quizData, user, userAnswers, timePerQuestion, brand, format, handleMalpractice, addQuizAttempt, router, toast]);
+  }, [handleMalpractice, toast, buildAttempt, addQuizAttempt, router]);
 
   const finishQuiz = useCallback(async () => {
-    if (!quizData || !user) return;
-
-    let score = 0;
-    quizData.questions.forEach((q, i) => {
-      if (userAnswers[i] === q.correctAnswer) {
-        score++;
-      }
-    });
-
-    const attempt: QuizAttempt = {
-      userId: user.uid,
-      slotId: getQuizSlotId(),
-      brand,
-      format,
-      questions: quizData.questions,
-      userAnswers,
-      score,
-      totalQuestions: quizData.questions.length,
-      timestamp: Date.now(),
-      timePerQuestion,
-      source: quizData.source,
-    };
+    const attempt = buildAttempt();
     
     await addQuizAttempt(attempt);
 
     const attemptDataString = btoa(JSON.stringify(attempt));
     router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
 
-  }, [user, quizData, userAnswers, timePerQuestion, brand, format, addQuizAttempt, router]);
+  }, [buildAttempt, addQuizAttempt, router]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
