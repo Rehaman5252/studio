@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, where, getCountFromServer } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -96,12 +96,20 @@ const StreakLeaderboard = () => {
                    if (userDoc.exists()) {
                         const data = userDoc.data();
                         if ((data.currentStreak || 0) > 0) {
+                            // Fetch user's actual rank
+                            const rankQuery = query(
+                                usersCollection,
+                                where('currentStreak', '>', data.currentStreak)
+                            );
+                            const snapshot = await getCountFromServer(rankQuery);
+                            const higherRankCount = snapshot.data().count;
+                            
                             setCurrentUserData({
                                 uid: user.uid,
                                 name: data.name || 'You',
                                 avatar: data.photoURL,
                                 currentStreak: data.currentStreak,
-                                rank: undefined, // No rank for users outside top 50
+                                rank: higherRankCount + 1,
                                 isCurrentUser: true,
                             });
                         } else {
