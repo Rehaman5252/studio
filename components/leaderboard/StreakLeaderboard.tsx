@@ -1,29 +1,30 @@
 
 'use client';
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, Fragment } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
 
-const RankIcon = memo(({ rank }: { rank: number }) => {
+const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
     if (rank === 2) return <span className="text-2xl">🥈</span>;
     if (rank === 3) return <span className="text-2xl">🥉</span>;
+    if (!rank) return <span className="text-lg font-bold text-muted-foreground">--</span>;
     return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
-const LeaderboardItem = memo(({ player }: { player: StreakPlayer }) => (
-    <div className={cn("flex items-center p-2 rounded-lg transition-colors", player.isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
-        <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
+const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: StreakPlayer, isCurrentUser?: boolean }) => (
+    <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
+        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         <div className="text-right flex items-center gap-1">
@@ -55,6 +56,7 @@ const ErrorState = ({ message }: { message: string }) => (
 const StreakLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<StreakPlayer[]>([]);
+    const [currentUserData, setCurrentUserData] = useState<StreakPlayer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +73,7 @@ const StreakLeaderboard = () => {
             setError(null);
             try {
                 const usersCollection = collection(db, 'users');
-                const q = query(usersCollection, orderBy('currentStreak', 'desc'), limit(50));
+                const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
                 const querySnapshot = await getDocs(q);
 
                 const playersData = querySnapshot.docs.map((doc, index) => {
@@ -87,6 +89,28 @@ const StreakLeaderboard = () => {
                 }).filter(player => player.currentStreak > 0);
                 
                 setPlayers(playersData);
+
+                if (user && !playersData.some(p => p.uid === user.uid)) {
+                   const userDocRef = doc(db, 'users', user.uid);
+                   const userDoc = await getDoc(userDocRef);
+                   if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        if ((data.currentStreak || 0) > 0) {
+                            setCurrentUserData({
+                                uid: user.uid,
+                                name: data.name || 'You',
+                                avatar: data.photoURL,
+                                currentStreak: data.currentStreak,
+                                rank: undefined, // No rank for users outside top 50
+                                isCurrentUser: true,
+                            });
+                        } else {
+                            setCurrentUserData(null);
+                        }
+                   }
+                } else {
+                    setCurrentUserData(null);
+                }
 
             } catch (e: any) {
                 if (e.code === 'failed-precondition') {
@@ -122,9 +146,19 @@ const StreakLeaderboard = () => {
             )
         }
         
-        return players.map((player) => (
-            <LeaderboardItem key={player.uid} player={player} />
-        ));
+        return (
+            <>
+                {players.map((player) => (
+                    <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.isCurrentUser} />
+                ))}
+                {currentUserData && (
+                    <>
+                        <div className="text-center text-muted-foreground text-sm py-2">...</div>
+                        <LeaderboardItem player={currentUserData} isCurrentUser={true} />
+                    </>
+                )}
+            </>
+        );
     };
 
 

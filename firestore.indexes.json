@@ -78,6 +78,14 @@
       "fields": [
         { "fieldPath": "currentStreak", "order": "DESCENDING" }
       ]
+    },
+     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "currentStreak", "order": "DESCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

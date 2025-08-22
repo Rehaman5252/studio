@@ -315,23 +315,30 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 }
             }
             
+            // Daily Streak Logic
             const today = new Date();
+            today.setHours(0, 0, 0, 0); // Start of today
             const lastStreakDate = userProfile.lastStreakTimestamp ? (userProfile.lastStreakTimestamp as Timestamp).toDate() : null;
-            const isSameDay = lastStreakDate ? today.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
+            if (lastStreakDate) {
+                lastStreakDate.setHours(0, 0, 0, 0); // Start of last streak day
+            }
+            
+            const isSameDay = lastStreakDate ? today.getTime() === lastStreakDate.getTime() : false;
 
             if (!isSameDay) {
-                const yesterday = new Date();
+                const yesterday = new Date(today);
                 yesterday.setDate(today.getDate() - 1);
-                
-                const isConsecutiveDay = lastStreakDate ? yesterday.toISOString().split('T')[0] === lastStreakDate.toISOString().split('T')[0] : false;
 
-                if (isConsecutiveDay) {
+                if (lastStreakDate && lastStreakDate.getTime() === yesterday.getTime()) {
+                    // It's a consecutive day
                     statsUpdate.currentStreak = increment(1);
                 } else {
-                    statsUpdate.currentStreak = 1; // Reset to 1 if not consecutive
+                    // Not consecutive, so reset streak
+                    statsUpdate.currentStreak = 1;
                 }
                 statsUpdate.lastStreakTimestamp = serverTimestamp();
             }
+
 
             const leaderboardDoc = await transaction.get(leaderboardRef);
             let leaderboardPlayers: LivePlayer[] = [];
@@ -440,5 +447,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
