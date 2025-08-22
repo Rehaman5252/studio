@@ -60,7 +60,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [isReviewed, setIsReviewed] = useState(false);
-  const reviewedStorageKey = 'cricblitz-reviewed-attempts';
+  const reviewedStorageKey = 'indcric-reviewed-attempts';
 
   useEffect(() => {
     const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');

@@ -4,7 +4,7 @@ import Providers from '@/context/Providers';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'CricBlitz',
+  title: 'indcric',
   description: 'The Ultimate Cricket Quiz',
 };
 

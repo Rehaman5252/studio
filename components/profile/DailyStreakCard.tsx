@@ -14,7 +14,7 @@ const streakMilestones: { [key: number]: { tagline: string; reward: string } } =
   60: { tagline: "The Wall Mode: Unstoppable!", reward: "Up to ₹2,00,000" },
   90: { tagline: "Nervous 90s: Consistency at its peak!", reward: "Up to ₹3,00,000" },
   180: { tagline: "Double Century Club: Legendary streak!", reward: "Up to ₹5,00,000" },
-  360: { tagline: "Triple Ton: GOAT of IndCric!", reward: "Up to ₹10,00,000" },
+  360: { tagline: "Triple Ton: GOAT of indcric!", reward: "Up to ₹10,00,000" },
 };
 
 type StreakDay = keyof typeof streakMilestones;
