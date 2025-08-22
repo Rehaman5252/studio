@@ -7,8 +7,10 @@ import { fallbackQuizData } from '@/lib/fallback-quiz';
  * @fileOverview API route for generating a quiz.
  *
  * This route handles POST requests to generate a new quiz for a given format and user.
- * It includes robust error handling and a fallback mechanism.
+ * It includes robust error handling, a timeout mechanism, and a fallback system.
  */
+
+const GENERATION_TIMEOUT = 8000; // 8 seconds
 
 export async function POST(req: NextRequest) {
   let format = 'mixed'; // Default format, lowercase
@@ -22,12 +24,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Format and userId are required.' }, { status: 400 });
     }
 
-    // Generate the quiz using the Genkit flow
-    const quizData = await generateQuiz({ format, userId });
+    // Race the AI generation against a timeout
+    const quizData = await Promise.race([
+        generateQuiz({ format, userId }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), GENERATION_TIMEOUT))
+    ]);
     
     // Validate the output
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
-      console.warn(`[Fallback] Generated quiz for format '${format}' was invalid or incomplete. Using fallback.`);
+      if (!quizData) {
+        console.warn(`[Fallback] AI generation timed out for format '${format}'. Using fallback.`);
+      } else {
+        console.warn(`[Fallback] Generated quiz for format '${format}' was invalid or incomplete. Using fallback.`);
+      }
       const fallback = fallbackQuizData[format] || fallbackQuizData.mixed;
       return NextResponse.json(fallback);
     }
