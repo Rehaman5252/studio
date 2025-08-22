@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
@@ -17,7 +17,8 @@ export default function CricketFact({ format }: { format: string }) {
     const getFacts = async (currentFormat: string) => {
       setIsLoading(true);
       try {
-        const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
+        // Pass the current fact list to avoid immediate repetition
+        const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: currentFacts });
         if (newFacts && newFacts.length > 0) {
           setCurrentFacts(newFacts);
           setCurrentFactIndex(0);
