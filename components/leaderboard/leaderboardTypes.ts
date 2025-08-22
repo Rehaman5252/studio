@@ -27,3 +27,12 @@ export interface MyNetworkPlayer {
     isReferrer: boolean;
     rank?: number;
 }
+
+export interface StreakPlayer {
+    uid: string;
+    name: string;
+    avatar: string;
+    currentStreak: number;
+    rank?: number;
+    isCurrentUser?: boolean;
+}

@@ -24,6 +24,10 @@ const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNe
     loading: () => <LeaderboardItemSkeleton count={3} />,
     ssr: false,
 });
+const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakLeaderboard'), {
+    loading: () => <LeaderboardItemSkeleton count={5} />,
+    ssr: false,
+});
 
 
 const LeaderboardItemSkeleton = ({ count = 5 }: { count?: number }) => (
@@ -56,9 +60,10 @@ function LeaderboardContentComponent() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-3" : "grid-cols-2")}>
+        <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             <TabsTrigger value="all-time">All-Time</TabsTrigger>
+            <TabsTrigger value="streaks">Streaks</TabsTrigger>
             {user && <TabsTrigger value="network">My Network</TabsTrigger>}
         </TabsList>
         
@@ -77,6 +82,12 @@ function LeaderboardContentComponent() {
             <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
                  <Suspense fallback={<LeaderboardItemSkeleton />}>
                     <AllTimeLeaderboard />
+                </Suspense>
+            </TabsContent>
+
+             <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
+                 <Suspense fallback={<LeaderboardItemSkeleton />}>
+                    <StreakLeaderboard />
                 </Suspense>
             </TabsContent>
             
