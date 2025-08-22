@@ -50,23 +50,24 @@ export default function BottomNav() {
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
-              <motion.div
-                variants={iconVariants}
-                whileHover="hover"
-                whileTap="tap"
-              >
-                 <item.icon className="h-6 w-6 mb-0.5" />
-              </motion.div>
-              <span className="text-xs">{item.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="active-nav-indicator"
-                  className="absolute bottom-0 h-1 w-8 rounded-full bg-primary"
+                  className="absolute inset-0 rounded-lg bg-primary/10 shadow-glow"
                   initial={false}
                   animate={{ opacity: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
+              <motion.div
+                variants={iconVariants}
+                whileHover="hover"
+                whileTap="tap"
+                className="relative"
+              >
+                 <item.icon className="h-6 w-6 mb-0.5" />
+              </motion.div>
+              <span className="text-xs relative">{item.label}</span>
             </Link>
           );
         })}

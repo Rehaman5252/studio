@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+import { cn } from '@/lib/utils';
 
 
 const QUESTION_TIME_LIMIT = 15; // seconds
@@ -155,7 +156,10 @@ export default function QuizView({
                                         >
                                             <Label 
                                                 htmlFor={`option-${index}`} 
-                                                className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedOption === option ? 'border-primary bg-primary/10' : 'border-border bg-card'}`}
+                                                className={cn(
+                                                    "flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all",
+                                                    selectedOption === option ? 'shadow-glow animate-glow' : 'border-border bg-card'
+                                                )}
                                             >
                                                 <RadioGroupItem value={option} id={`option-${index}`} className="mr-4" />
                                                 <span className="flex-1 text-base">{option}</span>

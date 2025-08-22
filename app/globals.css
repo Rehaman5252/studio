@@ -91,11 +91,11 @@
   position: absolute;
   width: 184px;
   height: 184px;
-  border: 2px solid hsl(var(--primary));
+  border: 1px solid hsl(var(--border));
   font-size: 1.75rem;
   font-weight: bold;
   color: hsl(var(--primary));
-  background: hsla(var(--card));
+  background: hsla(var(--card), 0.8);
   backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
@@ -103,11 +103,13 @@
   cursor: pointer;
   -webkit-backface-visibility: hidden; /* Safari */
   backface-visibility: hidden;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s;
 }
 
 .cube-face:hover {
-    background: hsla(var(--primary), 0.8);
+    background: hsla(var(--primary), 0.9);
     color: hsl(var(--primary-foreground));
+    box-shadow: 0 0 15px 5px hsla(var(--primary), 0.4);
 }
 
 .cube-face-front { transform: rotateY(0deg) translateZ(92px); }
@@ -144,5 +146,26 @@
     background-clip: text;
     -webkit-background-clip: text;
     animation: shimmer 5s linear infinite;
+  }
+
+  @keyframes subtle-glow {
+    0% {
+      box-shadow: 0 0 8px 0px hsla(var(--primary), 0.3);
+    }
+    50% {
+      box-shadow: 0 0 12px 2px hsla(var(--primary), 0.5);
+    }
+    100% {
+      box-shadow: 0 0 8px 0px hsla(var(--primary), 0.3);
+    }
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 8px 0px hsla(var(--primary), 0.3);
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
+  .animate-glow {
+    animation: subtle-glow 2.5s infinite ease-in-out;
   }
 }
