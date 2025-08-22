@@ -32,7 +32,7 @@ const StartQuizButtonComponent = ({ brandFormat, onClick, isDisabled, hasPlayed 
                     </>
                 ) : (
                     <>
-                        Start {brandFormat} Quiz <ArrowRight className="ml-2"/>
+                        Start {brandFormat} Quiz
                     </>
                 )}
             </Button>
