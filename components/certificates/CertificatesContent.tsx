@@ -1,15 +1,13 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
-import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -44,42 +42,8 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { profile, quizHistory } = useAuth();
   const { toast } = useToast();
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setIsLoading(false); return; }
-    if (!db) { 
-        setError("Database not connected.");
-        setIsLoading(false);
-        return;
-    }
-
-    const fetchHistory = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
-            const querySnapshot = await getDocs(q);
-            const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
-            setQuizHistory(historyData);
-        } catch (e: any) {
-            console.error("Failed to fetch certificate data:", e);
-            if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You appear to be offline. Please check your connection to see your certificates.");
-            } else {
-                setError("Could not load your certificates. Please try again later.");
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    fetchHistory();
-  }, [user, authLoading]);
   
   const getSlotTimings = (timestamp: number) => {
     const attemptDate = new Date(timestamp);
@@ -97,8 +61,7 @@ export default function CertificatesContent() {
   };
   
   const certificates = useMemo(() => {
-    if (!quizHistory) return [];
-    return quizHistory
+    return quizHistory.data
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
       .map(attempt => ({
         id: attempt.slotId + attempt.format,
@@ -108,7 +71,7 @@ export default function CertificatesContent() {
         brand: attempt.brand,
         format: attempt.format,
       }));
-  }, [quizHistory]);
+  }, [quizHistory.data]);
 
   const handleDownload = (cert: typeof certificates[0]) => {
     const doc = new jsPDF();
@@ -188,7 +151,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (isLoading || authLoading) {
+  if (quizHistory.loading) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />
@@ -197,8 +160,8 @@ export default function CertificatesContent() {
     );
   }
 
-  if (error) {
-    return <ErrorState message={error} />;
+  if (quizHistory.error) {
+    return <ErrorState message={quizHistory.error} />;
   }
   
   return (
@@ -255,3 +218,5 @@ export default function CertificatesContent() {
     </>
   );
 }
+
+    

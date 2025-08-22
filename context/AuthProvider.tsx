@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/lib/mockData';
@@ -19,6 +19,11 @@ interface UserDataContextType {
   isProfileComplete: boolean;
   loading: boolean; // This now represents profile loading status
   lastAttemptInSlot: QuizAttempt | null;
+  quizHistory: {
+    data: QuizAttempt[];
+    loading: boolean;
+    error: string | null;
+  },
   logout: () => Promise<void>;
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
@@ -39,6 +44,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
+  const [quizHistory, setQuizHistory] = useState<{data: QuizAttempt[], loading: boolean, error: string | null}>({ data: [], loading: true, error: null });
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -133,6 +139,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfile(null);
         setProfileLoading(false);
         setLastAttemptInSlot(null);
+        setQuizHistory({ data: [], loading: false, error: null });
         return;
     }
 
@@ -178,10 +185,26 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         console.warn("Could not listen to slot attempt:", error.message);
         setLastAttemptInSlot(null);
     });
+    
+    setQuizHistory(prev => ({ ...prev, loading: true }));
+    const historyQuery = query(collection(db, "users", firebaseUser.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+    const unsubscribeHistory = onSnapshot(historyQuery, (querySnapshot) => {
+        const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
+        setQuizHistory({ data: historyData, loading: false, error: null });
+    }, (error) => {
+        console.error("Error fetching quiz history:", error);
+        let errorMessage = "Could not load your history. Please try again later.";
+        if (error.code === 'unavailable') {
+            errorMessage = "You appear to be offline. Please check your connection.";
+        }
+        setQuizHistory({ data: [], loading: false, error: errorMessage });
+    });
+
 
     return () => {
         unsubscribeProfile();
         unsubscribeAttempt();
+        unsubscribeHistory();
     };
   }, [firebaseUser, firebaseLoading, handleUserDocument]);
 
@@ -391,6 +414,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     loading: firebaseLoading || profileLoading,
     profile, 
     isProfileComplete: profile?.profileCompleted || false,
+    quizHistory,
     logout, 
     signInWithGoogle, 
     registerWithEmail, 
@@ -416,3 +440,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

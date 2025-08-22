@@ -1,66 +1,20 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Award } from 'lucide-react';
-import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { HistoryItem, HistoryItemSkeleton, ErrorState } from './QuizHistoryContent';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function PerfectScoresHistory() {
-  const { user, loading: authLoading } = useAuth();
-  const [quizHistory, setQuizHistory] = useState<QuizAttempt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { quizHistory } = useAuth();
 
-  useEffect(() => {
-    if (authLoading || !user) {
-        setIsLoading(false);
-        return;
-    }
-    if (!db) { 
-        setError("Database not connected.");
-        setIsLoading(false);
-        return;
-    }
+  const perfectScores = useMemo(() => {
+    return quizHistory.data.filter(attempt => attempt.score === attempt.totalQuestions && !attempt.reason);
+  }, [quizHistory.data]);
 
-    const fetchHistory = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const attemptsRef = collection(db, "users", user.uid, "quizAttempts");
-            // This query requires a composite index on score (==) and timestamp (desc).
-            const q = query(
-                attemptsRef, 
-                where("score", "==", 5),
-                orderBy("timestamp", "desc")
-            );
-
-            const querySnapshot = await getDocs(q);
-            const historyData = querySnapshot.docs
-                .map(doc => doc.data() as QuizAttempt)
-                .filter(attempt => !attempt.reason); // Ensure disqualified attempts aren't shown
-
-            setQuizHistory(historyData);
-        } catch (e: any) {
-            console.error("Failed to fetch perfect score history:", e);
-             if (e.code === 'unavailable' || e.message?.includes('offline')) {
-                setError("You appear to be offline. Please check your connection to see your history.");
-            } else if (e.code === 'failed-precondition') {
-                setError("The required data is still being indexed. Please check back in a few moments.");
-            } else {
-                setError("Could not load your quiz history. Please try again later.");
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    fetchHistory();
-  }, [user, authLoading]);
-  
-  if (isLoading || authLoading) {
+  if (quizHistory.loading) {
     return (
         <div className="space-y-4">
             {[...Array(3)].map((_, i) => <HistoryItemSkeleton key={i} />)}
@@ -68,11 +22,11 @@ export default function PerfectScoresHistory() {
     );
   }
 
-  if (error) {
-    return <ErrorState message={error} />;
+  if (quizHistory.error) {
+    return <ErrorState message={quizHistory.error} />;
   }
   
-  if (quizHistory.length === 0) {
+  if (perfectScores.length === 0) {
     return (
         <Card className="bg-card/80">
             <CardContent className="p-8 text-center text-muted-foreground">
@@ -86,9 +40,11 @@ export default function PerfectScoresHistory() {
   
   return (
       <div className="space-y-4">
-        {quizHistory.map((attempt) => (
+        {perfectScores.map((attempt) => (
           <HistoryItem key={attempt.slotId} attempt={attempt} />
         ))}
       </div>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
@@ -8,8 +9,6 @@ import Image from 'next/image';
 import type { QuizAttempt } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { db } from '@/lib/firebase';
-import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
@@ -132,56 +131,22 @@ GenericOffer.displayName = 'GenericOffer';
 
 
 function RewardsContentComponent() {
-  const { user, loading: authLoading } = useAuth();
-  const [history, setHistory] = useState<QuizAttempt[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setLoading(false); return; }
-    if (!db) { 
-        setError("Database not connected.");
-        setLoading(false); 
-        return;
-    }
-
-    const fetchHistory = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const q = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"), limit(50));
-            const snap = await getDocs(q);
-            setHistory(snap.docs.map(d => d.data() as QuizAttempt));
-        } catch (e: any) {
-            console.error("Rewards Fetch Error:", e);
-            if (e.code === 'unavailable') {
-                setError("You appear to be offline. Please check your connection.");
-            } else {
-                setError("Unable to load rewards data.");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    fetchHistory();
-  }, [user, authLoading]);
-
+  const { user, quizHistory, loading } = useAuth();
+  
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
-    for (let i = history.length - 1; i >= 0; i--) {
-        const attempt = history[i];
+    for (let i = quizHistory.data.length - 1; i >= 0; i--) {
+        const attempt = quizHistory.data[i];
         if (attempt.slotId) {
             uniqueAttempts.set(attempt.slotId, attempt);
         }
     }
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
-  }, [history]);
+  }, [quizHistory.data]);
 
   const BrandGifts = () => {
-    if (loading || authLoading) return <RewardsSkeleton />;
-    if (error) return <ErrorState message={error} />;
+    if (loading) return <RewardsSkeleton />;
+    if (quizHistory.error) return <ErrorState message={quizHistory.error} />;
     if (!user) {
       return (
         <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
@@ -224,3 +189,5 @@ function RewardsContentComponent() {
 
 const RewardsContent = memo(RewardsContentComponent);
 export default RewardsContent;
+
+    
