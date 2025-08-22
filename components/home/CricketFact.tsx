@@ -87,7 +87,7 @@ export default function CricketFact({ format }: { format: string }) {
             ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Next Update
+            Next Delivery
           </Button>
         </div>
       </CardContent>
