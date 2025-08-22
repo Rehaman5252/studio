@@ -14,11 +14,11 @@ export default function CricketFact({ format }: { format: string }) {
   const [seenFacts, setSeenFacts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getFact = useCallback(async () => {
+  const getFact = useCallback(async (currentSeen: string[]) => {
     setLoading(true);
     try {
       // Pass the current seenFacts to the flow
-      const newFact = await generateCricketFact({ format, seenFacts });
+      const newFact = await generateCricketFact({ format, seenFacts: currentSeen });
       setFact(newFact);
       // Add the new fact to the list of seen facts for the current session
       setSeenFacts(prev => [...prev, newFact]);
@@ -29,12 +29,12 @@ export default function CricketFact({ format }: { format: string }) {
     } finally {
       setLoading(false);
     }
-  }, [format, seenFacts]); // Depend on seenFacts to pass the updated list
+  }, [format]);
 
   useEffect(() => {
     // This effect runs only when the component mounts or the format changes.
     // It resets the seen facts and fetches the first one.
-    const initialSeen = [] as string[];
+    const initialSeen: string[] = [];
     setSeenFacts(initialSeen);
     
     setLoading(true);
@@ -53,8 +53,8 @@ export default function CricketFact({ format }: { format: string }) {
   }, [format]); // Re-run only when format changes
 
   const handleAnotherFact = () => {
-    // This function will now use the latest state of seenFacts
-    getFact();
+    // Pass the current state of seenFacts directly to the fetch function
+    getFact(seenFacts);
   };
 
   return (
@@ -62,7 +62,7 @@ export default function CricketFact({ format }: { format: string }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
             <Lightbulb className="text-primary"/>
-            Cricket Feed
+            Dressing Room Banter
         </CardTitle>
       </CardHeader>
       <CardContent>
