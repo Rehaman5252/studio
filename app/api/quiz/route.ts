@@ -11,10 +11,11 @@ import { fallbackQuizData } from '@/lib/fallback-quiz';
  */
 
 export async function POST(req: NextRequest) {
-  let format = 'Mixed'; // Default format
+  let format = 'mixed'; // Default format, lowercase
   try {
     const body = await req.json();
-    format = body.format; // Assign format from the request
+    // Normalize format to lowercase to handle potential casing inconsistencies from the client
+    format = (body.format || 'mixed').toLowerCase();
     const { userId } = body;
 
     if (!format || !userId) {
@@ -26,19 +27,22 @@ export async function POST(req: NextRequest) {
     
     // Validate the output
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
-      console.warn(`Generated quiz for format '${format}' was invalid. Using fallback.`);
-      const fallback = fallbackQuizData[format] || fallbackQuizData.Mixed;
+      console.warn(`[Fallback] Generated quiz for format '${format}' was invalid or incomplete. Using fallback.`);
+      const fallback = fallbackQuizData[format] || fallbackQuizData.mixed;
       return NextResponse.json(fallback);
     }
     
     return NextResponse.json(quizData);
 
   } catch (error) {
-    console.error("Error in /api/quiz route:", error);
+    if (process.env.NODE_ENV === "development") {
+        console.error("Error in /api/quiz route, using fallback:", error);
+    }
+    console.warn(`[Fallback] An error occurred during generation for format '${format}'. Using fallback.`);
 
     // Fallback mechanism in case of any unexpected error during generation
-    // Use the format variable that was captured at the beginning.
-    const fallback = fallbackQuizData[format] || fallbackQuizData.Mixed;
+    // Use the format variable that was captured and normalized at the beginning.
+    const fallback = fallbackQuizData[format] || fallbackQuizData.mixed;
     return NextResponse.json(fallback);
   }
 }
