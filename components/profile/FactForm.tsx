@@ -87,7 +87,7 @@ export default function FactForm({ onSubmitted }: { onSubmitted: () => void }) {
                                     <div className="flex justify-between items-center">
                                         <FormLabel>Fact</FormLabel>
                                         <Button type="button" variant="ghost" size="sm" onClick={handleRefine} disabled={isRefining}>
-                                            {isRefining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            {isRefining ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
                                             <span className="ml-2">Refine with AI</span>
                                         </Button>
                                     </div>

@@ -33,7 +33,7 @@ export const HistoryItemSkeleton = () => (
 
 export const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
         <AlertTitle>Error Loading History</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -102,7 +102,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                 <div className="mt-1 flex-shrink-0">
                     {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
                     : isPerfectScore ? <Award className="h-8 w-8 text-primary" />
-                    : <CheckCircle className="h-8 w-8 text-green-600" />
+                    : <CheckCircle className="h-8 w-8 text-primary" />
                     }
                 </div>
                 <div className="flex-grow">
@@ -117,17 +117,17 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
         <CardContent className="flex items-center justify-between">
             <div className="text-xs text-muted-foreground space-y-1">
                 <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5" />
+                    <Calendar className="h-3.5 w-3.5 text-primary" />
                     <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5" />
+                    <Clock className="h-3.5 w-3.5 text-primary" />
                     <span>{slotTiming}</span>
                 </div>
             </div>
             <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed}>
-                    {isReviewed ? <Check className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                    {isReviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
                     {isReviewed ? 'Reviewed' : 'Review'}
                 </Button>
                 

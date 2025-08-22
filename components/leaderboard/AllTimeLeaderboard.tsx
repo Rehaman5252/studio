@@ -28,7 +28,7 @@ const LeaderboardItem = memo(({ player }: { player: AllTimePlayer }) => (
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         <div className="text-right flex items-center gap-1">
             <p className="font-bold text-primary">{player.perfectScores}</p>
-            <Star className="h-4 w-4 text-yellow-500" />
+            <Star className="h-4 w-4 text-primary" />
         </div>
     </div>
 ));
@@ -46,7 +46,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
         <AlertTitle>Rain Delay!</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>

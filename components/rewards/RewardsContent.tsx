@@ -47,7 +47,7 @@ const RewardsSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
         <AlertTitle>Error Loading Rewards</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -122,7 +122,7 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
                     <h4 className="font-bold text-foreground">{title}</h4>
                     <p className="text-sm text-muted-foreground">{description}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink className="h-4 w-4 text-primary" /></Button>
             </CardContent>
         </Card>
     </a>
@@ -189,5 +189,3 @@ function RewardsContentComponent() {
 
 const RewardsContent = memo(RewardsContentComponent);
 export default RewardsContent;
-
-    

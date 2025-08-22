@@ -52,11 +52,11 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                         <p className="text-muted-foreground text-sm">{maskPhone(userProfile?.phone)}</p>
                          {userProfile.phone ? (
                             isPhoneVerified ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified" />
+                                <CheckCircle2 className="h-4 w-4 text-primary" title="Verified" />
                             ) : (
                                 <PhoneVerificationDialog phone={userProfile.phone}>
                                     <Button variant="link" className="p-0 h-auto text-yellow-500 text-sm hover:no-underline">
-                                        <AlertCircle className="h-4 w-4 mr-1" />
+                                        <AlertCircle className="h-4 w-4 mr-1 text-primary" />
                                         Verify Now
                                     </Button>
                                 </PhoneVerificationDialog>
@@ -67,10 +67,10 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
                          <p className="text-muted-foreground text-sm">{userProfile?.email || 'No email set'}</p>
                          {userProfile?.email && (
                             isEmailVerified ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified"/>
+                                <CheckCircle2 className="h-4 w-4 text-primary" title="Verified"/>
                             ) : (
                                 <Button variant="link" className="p-0 h-auto text-yellow-500 text-sm hover:no-underline" onClick={handleResendVerification}>
-                                    <AlertCircle className="h-4 w-4 mr-1" />
+                                    <AlertCircle className="h-4 w-4 mr-1 text-primary" />
                                     Resend Link
                                 </Button>
                             )

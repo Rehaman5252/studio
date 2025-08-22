@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -22,7 +23,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
     return (
         <Card className="bg-card shadow-lg">
             <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2"><Gift /> Refer & Earn</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2"><Gift className="text-primary"/> Refer & Earn</CardTitle>
                 <CardDescription>
                     Invite friends to indcric! You'll earn a bonus for every friend who signs up and scores their first perfect quiz.
                 </CardDescription>
@@ -34,7 +35,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                         <p className="text-sm font-mono p-2 border rounded-md bg-secondary truncate">{referralLink}</p>
                     </div>
                     <Button onClick={onCopy} size="icon" className="shrink-0">
-                        {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {hasCopied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4 text-primary" />}
                     </Button>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">

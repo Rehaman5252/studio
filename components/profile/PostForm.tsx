@@ -89,7 +89,7 @@ export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
                                     <div className="flex justify-between items-center">
                                         <FormLabel>Title</FormLabel>
                                         <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('title')} disabled={!!isRefining}>
-                                            {isRefining === 'title' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            {isRefining === 'title' ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
                                             <span className="ml-2">Refine</span>
                                         </Button>
                                     </div>
@@ -108,7 +108,7 @@ export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
                                      <div className="flex justify-between items-center">
                                         <FormLabel>Content</FormLabel>
                                          <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('content')} disabled={!!isRefining}>
-                                            {isRefining === 'content' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            {isRefining === 'content' ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
                                             <span className="ml-2">Refine</span>
                                         </Button>
                                     </div>

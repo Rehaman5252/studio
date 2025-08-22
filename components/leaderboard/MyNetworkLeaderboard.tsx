@@ -32,7 +32,7 @@ const LeaderboardItem = memo(({ player }: { player: MyNetworkPlayer }) => (
         </div>
         <div className="text-right flex items-center gap-2">
             <div className="flex flex-col items-center">
-                <p className="font-bold text-primary flex items-center gap-1">{player.perfectScores} <Star className="h-4 w-4" /></p>
+                <p className="font-bold text-primary flex items-center gap-1">{player.perfectScores} <Star className="h-4 w-4 text-primary" /></p>
                 <p className="text-xs text-muted-foreground">Perfect</p>
             </div>
         </div>
@@ -52,7 +52,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
         <AlertTitle>Error Loading Network</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -29,7 +30,7 @@ const SupportCardComponent = () => {
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button size="lg" className="w-full justify-start text-base py-6" variant="secondary">
-                             <MessageSquare className="mr-4" />
+                             <MessageSquare className="mr-4 text-primary" />
                              Contact Us
                         </Button>
                     </DialogTrigger>
@@ -43,12 +44,12 @@ const SupportCardComponent = () => {
                         <div className="space-y-3 py-4">
                             <Button asChild size="lg" className="w-full justify-start text-base py-8">
                                 <a href={`mailto:${supportEmail}`}>
-                                    <Mail className="mr-4" /> Email Us
+                                    <Mail className="mr-4 text-primary" /> Email Us
                                 </a>
                             </Button>
                             <Button asChild size="lg" className="w-full justify-start text-base py-8" variant="outline">
                                 <a href={`https://wa.me/${supportWhatsApp}`} target="_blank" rel="noopener noreferrer">
-                                    <Phone className="mr-4" /> WhatsApp
+                                    <Phone className="mr-4 text-primary" /> WhatsApp
                                 </a>
                             </Button>
                         </div>

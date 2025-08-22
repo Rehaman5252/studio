@@ -182,14 +182,14 @@ export default function QuizView({
 
             <footer className="mt-auto grid grid-cols-2 gap-4">
                 <Button variant="outline" onClick={onHintRequest} disabled={isHintLoading || !!hint}>
-                    {isHintLoading ? <Loader2 className="animate-spin" /> : <Lightbulb />}
+                    {isHintLoading ? <Loader2 className="animate-spin text-primary" /> : <Lightbulb className="text-primary" />}
                     Get a Hint
                 </Button>
                 <Button onClick={handleSubmit} disabled={!selectedOption}>
                     Submit Answer
                 </Button>
                  <Button variant="ghost" className="absolute bottom-4 right-4" size="icon" onClick={() => setIsMuted(prev => !prev)}>
-                    {isMuted ? <VolumeX /> : <Volume2 />}
+                    {isMuted ? <VolumeX className="text-primary"/> : <Volume2 className="text-primary"/>}
                 </Button>
             </footer>
 

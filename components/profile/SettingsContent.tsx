@@ -59,35 +59,35 @@ const SettingsContentComponent = () => {
         </CardHeader>
         <CardContent className="space-y-4">
             <SettingsItem 
-                icon={theme === 'dark' ? <Moon /> : <Sun />}
+                icon={theme === 'dark' ? <Moon className="text-primary"/> : <Sun className="text-primary"/>}
                 title="Dark Mode"
                 description="Toggle between light and dark themes."
                 checked={theme === 'dark'}
                 onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
             />
             <SettingsItem 
-                icon={<Bell />}
+                icon={<Bell className="text-primary"/>}
                 title="Notifications"
                 description="Receive alerts for upcoming quizzes."
                 checked={settings.notifications}
                 onCheckedChange={(value) => setSetting('notifications', value)}
             />
             <SettingsItem 
-                icon={<Volume2 />}
+                icon={<Volume2 className="text-primary"/>}
                 title="Sound Effects"
                 description="Enable or disable in-game sounds."
                 checked={settings.sound}
                 onCheckedChange={(value) => setSetting('sound', value)}
             />
             <SettingsItem 
-                icon={<Waves />}
+                icon={<Waves className="text-primary"/>}
                 title="Vibration"
                 description="Enable or disable haptic feedback."
                 checked={settings.vibration}
                 onCheckedChange={(value) => setSetting('vibration', value)}
             />
              <SettingsItem 
-                icon={<SkipForward />}
+                icon={<SkipForward className="text-primary"/>}
                 title="Auto-Skip Ads"
                 description="Automatically skip ads when possible."
                 checked={settings.autoSkipAd}

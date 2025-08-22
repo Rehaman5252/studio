@@ -29,7 +29,7 @@ const LeaderboardItem = memo(({ player }: { player: LivePlayer }) => (
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         {player.disqualified ? (
             <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
-                <Ban className="h-4 w-4"/> Disqualified
+                <Ban className="h-4 w-4 text-primary"/> Disqualified
             </div>
         ) : (
             <div className="text-right">
@@ -52,7 +52,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
         <AlertTitle>Rain Delay!</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -118,7 +118,7 @@ const LiveLeaderboard = () => {
                 <Card className="bg-card/80 border-dashed border-primary/30 text-center mt-4">
                     <CardHeader>
                         <CardTitle className="flex items-center justify-center gap-2">
-                           <Users className="h-6 w-6" /> The Dressing Room is Filling Up...
+                           <Users className="h-6 w-6 text-primary" /> The Dressing Room is Filling Up...
                         </CardTitle>
                         <CardDescription>The next quiz starts in {timeLeft.minutes}:{String(timeLeft.seconds).padStart(2, '0')}. Get ready!</CardDescription>
                     </CardHeader>

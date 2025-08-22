@@ -78,7 +78,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6 py-4">
                     {loading ? <AnalysisSkeleton /> : error ? (
-                        <Alert variant="destructive" className="my-4"><AlertTriangle className="h-4 w-4" /><AlertTitle>Analysis Failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
+                        <Alert variant="destructive" className="my-4"><AlertTriangle className="h-4 w-4 text-primary" /><AlertTitle>Analysis Failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
                     ) : analysis && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-3 gap-4">
@@ -87,14 +87,14 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                                 <StatCard title="Avg. Time" value={analysis.averageTimePerQuestion} unit="s" />
                             </div>
 
-                            <Card className="bg-card/50"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart /> Performance Summary</CardTitle></CardHeader><CardContent><p>{analysis.overallPerformance}</p></CardContent></Card>
+                            <Card className="bg-card/50"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart className="text-primary"/> Performance Summary</CardTitle></CardHeader><CardContent><p>{analysis.overallPerformance}</p></CardContent></Card>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Card><CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Zap className="text-primary" /> Key Strengths</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.keyStrengths.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
-                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><Target /> Areas for Improvement</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
+                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><Target className="text-primary"/> Areas for Improvement</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
                             </div>
 
-                            <Card className="bg-accent/10 border-accent/50"><CardHeader><CardTitle className="flex items-center gap-2 text-accent"><Lightbulb /> Coach's Tip</CardTitle></CardHeader><CardContent><p className="text-sm">{analysis.coachTip}</p></CardContent></Card>
+                            <Card className="bg-accent/10 border-accent/50"><CardHeader><CardTitle className="flex items-center gap-2 text-accent"><Lightbulb className="text-primary"/> Coach's Tip</CardTitle></CardHeader><CardContent><p className="text-sm">{analysis.coachTip}</p></CardContent></Card>
 
                             <Card>
                                 <CardHeader><CardTitle>Question Breakdown</CardTitle><CardDescription>A detailed look at each question.</CardDescription></CardHeader>
@@ -128,4 +128,3 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         </Dialog>
     );
 }
-

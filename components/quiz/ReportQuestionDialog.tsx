@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -82,7 +83,7 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
-          <Flag className="mr-2 h-4 w-4" /> Report Question
+          <Flag className="mr-2 h-4 w-4 text-primary" /> Report Question
         </Button>
       </DialogTrigger>
       <DialogContent>

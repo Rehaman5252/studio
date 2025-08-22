@@ -108,7 +108,7 @@ export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void 
                                  <div className="flex justify-between items-center">
                                     <FormLabel>Question</FormLabel>
                                     <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('question')} disabled={!!isRefining}>
-                                        {isRefining === 'question' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                        {isRefining === 'question' ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
                                         <span className="ml-2">Refine</span>
                                     </Button>
                                 </div>
@@ -123,7 +123,7 @@ export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void 
                                     <div className="flex justify-between items-center">
                                         <FormLabel>Option {index + 1}</FormLabel>
                                         <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine(`options.${index}.value`)} disabled={!!isRefining}>
-                                            {isRefining === `options.${index}.value` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            {isRefining === `options.${index}.value` ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
                                             <span className="ml-2">Refine</span>
                                         </Button>
                                     </div>
@@ -151,7 +151,7 @@ export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void 
                                 <div className="flex justify-between items-center">
                                     <FormLabel>Explanation (Optional)</FormLabel>
                                     <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('explanation')} disabled={!!isRefining}>
-                                        {isRefining === 'explanation' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                        {isRefining === 'explanation' ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
                                         <span className="ml-2">Refine</span>
                                     </Button>
                                 </div>

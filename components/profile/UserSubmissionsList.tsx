@@ -27,7 +27,7 @@ const SubmissionItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
         <AlertTitle>Error Loading Submissions</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -43,9 +43,9 @@ const getStatusVariant = (status: string) => {
 
 const getIconForType = (type: string) => {
     switch (type) {
-        case 'fact': return <FileText className="h-5 w-5" />;
-        case 'post': return <Newspaper className="h-5 w-5" />;
-        case 'question': return <HelpCircle className="h-5 w-5" />;
+        case 'fact': return <FileText className="h-5 w-5 text-primary" />;
+        case 'post': return <Newspaper className="h-5 w-5 text-primary" />;
+        case 'question': return <HelpCircle className="h-5 w-5 text-primary" />;
         default: return null;
     }
 }

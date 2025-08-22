@@ -36,7 +36,7 @@ export default function ReviewDialog({ open, onOpenChange, attempt }: ReviewDial
                                 <div className="text-sm space-y-2">
                                     <p className="flex items-start gap-2">
                                         {attempt.userAnswers[index] === question.correctAnswer ?
-                                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" /> :
+                                            <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /> :
                                             <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                                         }
                                         <span>Your Answer: <span className="font-semibold">{attempt.userAnswers[index] || "Not Answered"}</span></span>
@@ -66,4 +66,3 @@ export default function ReviewDialog({ open, onOpenChange, attempt }: ReviewDial
         </Dialog>
     );
 }
-

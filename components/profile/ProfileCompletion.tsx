@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -25,7 +26,7 @@ export default function ProfileCompletion({ userProfile }: { userProfile: any })
         <Card className="bg-card shadow-lg">
             <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                    <PercentCircle /> Profile Completion
+                    <PercentCircle className="text-primary"/> Profile Completion
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
