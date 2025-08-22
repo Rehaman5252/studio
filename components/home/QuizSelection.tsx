@@ -35,17 +35,19 @@ const faceRotations = [
 ];
 
 interface QuizSelectionProps {
+    selectedBrand: CubeBrand;
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
     handleStartQuiz: () => void;
 }
 
-const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelectionProps) => {
+const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQuiz }: QuizSelectionProps) => {
     const { isProfileComplete } = useAuth();
     const router = useRouter();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [rotation, setRotation] = useState(faceRotations[0]);
+    const [isRotating, setIsRotating] = useState(true);
 
     useEffect(() => {
         // Prefetch immediately on component mount
@@ -57,6 +59,8 @@ const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelec
     }, []);
     
     useEffect(() => {
+        if (!isRotating) return;
+
         const rotationInterval = setInterval(() => {
             setCurrentFaceIndex(prevIndex => {
                 const newIndex = (prevIndex + 1) % faceRotations.length;
@@ -67,7 +71,7 @@ const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelec
         }, 4500); // Rotate every 4.5 seconds
 
         return () => clearInterval(rotationInterval);
-    }, [setSelectedBrand]);
+    }, [isRotating, setSelectedBrand]);
     
     const initiateQuiz = useCallback(() => {
         if (!isProfileComplete) {
@@ -78,8 +82,10 @@ const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelec
     }, [isProfileComplete, handleStartQuiz]);
     
     const handleFaceClick = (brand: CubeBrand) => {
+        setIsRotating(false); // Stop auto-rotation on user interaction
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
+            setCurrentFaceIndex(clickedIndex);
             setRotation(faceRotations[clickedIndex]);
             setSelectedBrand(brandData[clickedIndex]);
             // Use a short delay to allow the cube to rotate before initiating the quiz start logic
@@ -98,7 +104,7 @@ const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelec
         <>
             <div className="text-center" id="tour-step-1">
                 <h2 className="text-2xl font-bold">Select Your Quiz Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face to select and play</p>
+                <p className="text-sm text-muted-foreground">Click a face to select or wait for rotation</p>
             </div>
             
             <div className="flex justify-center items-center mt-0 mb-4 h-[250px] w-full">
@@ -106,7 +112,7 @@ const QuizSelectionComponent = ({ setSelectedBrand, handleStartQuiz }: QuizSelec
             </div>
 
             <SelectedBrandCard 
-                selectedBrand={brandData[currentFaceIndex]} 
+                selectedBrand={selectedBrand} 
                 onClick={initiateQuiz} 
             />
 

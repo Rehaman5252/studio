@@ -145,6 +145,7 @@ function HomePage() {
           >
             <MalpracticeWarning />
             <HomeClientContent 
+                selectedBrand={selectedBrand}
                 setSelectedBrand={setSelectedBrand} 
                 handleStartQuiz={handleStartQuiz} 
             />
