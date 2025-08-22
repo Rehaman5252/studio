@@ -1,3 +1,4 @@
+
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import { NextRequest, NextResponse } from 'next/server';
 import { fallbackQuizData } from '@/lib/fallback-quiz';
@@ -10,8 +11,11 @@ import { fallbackQuizData } from '@/lib/fallback-quiz';
  */
 
 export async function POST(req: NextRequest) {
+  let format = 'Mixed'; // Default format
   try {
-    const { format, userId } = await req.json();
+    const body = await req.json();
+    format = body.format; // Assign format from the request
+    const { userId } = body;
 
     if (!format || !userId) {
       return NextResponse.json({ error: 'Format and userId are required.' }, { status: 400 });
@@ -33,13 +37,8 @@ export async function POST(req: NextRequest) {
     console.error("Error in /api/quiz route:", error);
 
     // Fallback mechanism in case of any unexpected error during generation
-    try {
-        const { format } = await req.json();
-        const fallback = fallbackQuizData[format] || fallbackQuizData.Mixed;
-        return NextResponse.json(fallback);
-    } catch (e) {
-        // If even reading the request fails, return a generic fallback
-        return NextResponse.json(fallbackQuizData.Mixed);
-    }
+    // Use the format variable that was captured at the beginning.
+    const fallback = fallbackQuizData[format] || fallbackQuizData.Mixed;
+    return NextResponse.json(fallback);
   }
 }
