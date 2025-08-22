@@ -15,9 +15,9 @@ export default function CricketFact({ format }: { format: string }) {
   const formatRef = useRef(format);
 
   const getFacts = useCallback(async (currentFormat: string) => {
-    // Only set loading true if we have no facts, to avoid disabling the button
-    if (facts.length <= 1) {
-      setIsLoading(true);
+    // Only set loading true if we are fetching for the very first time.
+    if (facts.length <= 1 && facts[0].includes('Canada')) {
+        setIsLoading(true);
     }
     
     try {
@@ -35,18 +35,13 @@ export default function CricketFact({ format }: { format: string }) {
 
 
   useEffect(() => {
-    // Fetch facts only when the format actually changes
-    if (format !== formatRef.current) {
+    // Fetch facts only when the format actually changes or on initial load.
+    if (format !== formatRef.current || (isLoading && facts[0].includes('Canada'))) {
         formatRef.current = format;
         getFacts(format);
-    } else {
-        // On initial load, also fetch
-        if (isLoading) { // Check isLoading to only run once on mount
-             getFacts(format);
-        }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format, getFacts]);
+  }, [format]);
 
   const handleAnotherFact = () => {
     if (facts.length > 0) {
@@ -80,8 +75,8 @@ export default function CricketFact({ format }: { format: string }) {
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || facts.length < 2}>
-            {isLoading && facts.length < 2 ? (
+          <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading && facts.length <= 1}>
+            {isLoading && facts.length <=1 ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
