@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
@@ -17,14 +17,15 @@ export default function CricketFact({ format }: { format: string }) {
     const getFacts = async (currentFormat: string) => {
       setIsLoading(true);
       try {
+        // Fetch new facts but don't update the displayed ones immediately
         const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
         if (newFacts && newFacts.length > 0) {
           setCurrentFacts(newFacts);
           setCurrentFactIndex(0);
         }
+        // If fetch fails, we just keep the old facts, so no visual disruption.
       } catch (error) {
         console.error('Failed to fetch cricket facts:', error);
-        // If fetching fails, we just keep the existing facts, so no change is visible to the user.
       } finally {
         setIsLoading(false);
       }
