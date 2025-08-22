@@ -1,3 +1,4 @@
+
 'use client';
 import {
     Accordion,
@@ -62,6 +63,25 @@ export default function Policies() {
                 <li><strong>Rewards:</strong> Milestone rewards are granted for reaching specific streak lengths. These rewards are non-transferable and subject to the terms of the specific reward. CricBlitz reserves the right to modify the streak milestones and rewards at any time.</li>
             </ul>
           </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="item-8">
+            <AccordionTrigger>Commentary Box &amp; User Contributions</AccordionTrigger>
+            <AccordionContent className="prose dark:prose-invert max-w-none">
+              <h4>Content Submission</h4>
+              <p>The "Commentary Box" feature allows users to contribute original cricket-related content, including facts, posts, and quiz questions, to the CricBlitz community.</p>
+              <h4>Verification Process</h4>
+              <p>All user-submitted content is subject to review and verification by our moderation team. Content will not be published on the platform until it has been approved. You can view the status of your submissions (e.g., "Under Verification", "Verified", "Rejected") in your contribution history.</p>
+              <h4>Content Guidelines</h4>
+              <ul>
+                <li><strong>Originality:</strong> All submissions must be your own original work. Plagiarism or submitting content copied from other sources is strictly prohibited.</li>
+                <li><strong>Accuracy:</strong> Facts and quiz questions must be accurate and verifiable.</li>
+                <li><strong>Appropriateness:</strong> Content must not be offensive, abusive, defamatory, or contain any inappropriate material.</li>
+              </ul>
+              <h4>Content Rights &amp; Usage</h4>
+              <p>By submitting content, you grant CricBlitz a perpetual, worldwide, non-exclusive, royalty-free license to use, reproduce, modify, publish, and display the content on our platform and in our marketing materials. You will be credited for your contribution where appropriate.</p>
+              <h4>Contribution Rewards</h4>
+              <p>Users can earn rewards, such as Gift Vouchers, by meeting specific contribution quotas. A reward is only unlocked after the required number of submissions for each content type (facts, posts, questions) has been successfully verified and approved by our moderators. CricBlitz reserves the right to change the reward structure and quotas at any time.</p>
+            </AccordionContent>
         </AccordionItem>
          <AccordionItem value="item-6">
           <AccordionTrigger>Privacy Policy</AccordionTrigger>
