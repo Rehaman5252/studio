@@ -5,57 +5,43 @@ import { useState, useEffect, useCallback }
 from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { generateCricketFact } from '@/ai/flows/generate-cricket-fact';
+import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
 import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function CricketFact({ format }: { format: string }) {
-  const [fact, setFact] = useState('');
-  const [seenFacts, setSeenFacts] = useState<string[]>([]);
+  const [facts, setFacts] = useState<string[]>([]);
+  const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const getFact = useCallback(async (currentSeen: string[]) => {
+  const getFacts = useCallback(async (currentFormat: string) => {
     setLoading(true);
     try {
-      // Pass the current seenFacts to the flow
-      const newFact = await generateCricketFact({ format, seenFacts: currentSeen });
-      setFact(newFact);
-      // Add the new fact to the list of seen facts for the current session
-      setSeenFacts(prev => [...prev, newFact]);
+      // Fetch a list of 10 facts
+      const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
+      setFacts(newFacts);
+      setCurrentFactIndex(0);
     } catch (error) {
-      console.error('Failed to fetch cricket fact:', error);
+      console.error('Failed to fetch cricket facts:', error);
       // Provide a default fact on error
-      setFact('Did you know? The first official international cricket match was played between Canada and the United States in 1844.');
+      setFacts(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
+      setCurrentFactIndex(0);
     } finally {
       setLoading(false);
     }
-  }, [format]);
+  }, []);
 
   useEffect(() => {
     // This effect runs only when the component mounts or the format changes.
-    // It resets the seen facts and fetches the first one.
-    const initialSeen: string[] = [];
-    setSeenFacts(initialSeen);
-    
-    setLoading(true);
-    generateCricketFact({ format, seenFacts: initialSeen })
-      .then(newFact => {
-        setFact(newFact);
-        setSeenFacts([newFact]); // Start the session with the first fact
-      })
-      .catch(error => {
-        console.error('Failed to fetch initial cricket fact:', error);
-        setFact('Did you know? The first official international cricket match was played between Canada and the United States in 1844.');
-      })
-      .finally(() => setLoading(false));
-      
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format]); // Re-run only when format changes
+    getFacts(format);
+  }, [format, getFacts]);
 
   const handleAnotherFact = () => {
-    // Pass the current state of seenFacts directly to the fetch function
-    getFact(seenFacts);
+    // Simply loop through the pre-fetched facts
+    setCurrentFactIndex(prevIndex => (prevIndex + 1) % facts.length);
   };
+  
+  const currentFact = facts[currentFactIndex] || '';
 
   return (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -69,19 +55,19 @@ export default function CricketFact({ format }: { format: string }) {
         <div className="min-h-[60px] flex items-center justify-center text-center">
             <AnimatePresence mode="wait">
                 <motion.p
-                    key={fact} // Use fact as key for animation to trigger on change
+                    key={currentFact} // Use currentFact as key for animation to trigger on change
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                     className="text-sm text-muted-foreground"
                 >
-                    {loading && !fact ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : fact}
+                    {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : currentFact}
                 </motion.p>
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={loading}>
+          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={loading || facts.length === 0}>
             {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
