@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
     
     Correct any spelling mistakes, fix grammatical errors, and improve the overall phrasing for clarity and impact.
     
-    IMPORTANT: Do NOT change the core meaning or add any new information. Only polish the existing text. Return only the refined text.
+    IMPORTANT: Do NOT change the core meaning or add any new information. Only polish the existing text.
 
     Original Text: "{{text}}"
     `,
@@ -47,10 +47,12 @@ const refineTextFlow = ai.defineFlow(
         outputSchema: RefineTextOutputSchema,
     },
     async (input) => {
-        const { output } = await prompt(input);
+        // The input from the client might not be a Zod object, so we validate it.
+        const validatedInput = RefineTextInputSchema.parse(input);
+        const { output } = await prompt(validatedInput);
         if (!output) {
             // In case of failure, return the original text
-            return { refinedText: input.text };
+            return { refinedText: validatedInput.text };
         }
         return output;
     }
