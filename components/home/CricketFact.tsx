@@ -57,7 +57,7 @@ export default function CricketFact({ format }: { format: string }) {
   const factToDisplay = facts[currentIndex] || '';
 
   return (
-    <Card className="bg-card/80 shadow-lg border-0">
+    <Card className="bg-card/80 shadow-lg border border-primary">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
             <Lightbulb className="text-primary"/>
@@ -80,11 +80,11 @@ export default function CricketFact({ format }: { format: string }) {
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={isLoading || facts.length < 2}>
+          <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || facts.length < 2}>
             {isLoading && facts.length < 2 ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-                <RefreshCw className="mr-2 h-4 w-4 text-primary" />
+                <RefreshCw className="mr-2 h-4 w-4" />
             )}
             Next Delivery
           </Button>
