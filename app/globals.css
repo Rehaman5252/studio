@@ -1,7 +1,7 @@
 
 @tailwind base;
-@tailwind components;
 @tailwind utilities;
+@tailwind components;
 
 /* Theme variables */
 @layer base {
@@ -94,8 +94,8 @@
   border: 2px solid hsl(var(--primary));
   font-size: 1.75rem;
   font-weight: bold;
-  color: hsl(var(--primary-foreground));
-  background: hsla(var(--primary), 0.8);
+  color: hsl(var(--primary));
+  background: hsla(var(--card));
   backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
@@ -103,6 +103,11 @@
   cursor: pointer;
   -webkit-backface-visibility: hidden; /* Safari */
   backface-visibility: hidden;
+}
+
+.cube-face:hover {
+    background: hsla(var(--primary), 0.8);
+    color: hsl(var(--primary-foreground));
 }
 
 .cube-face-front { transform: rotateY(0deg) translateZ(92px); }
@@ -115,7 +120,7 @@
 /* Brand animation */
 @layer utilities {
   @keyframes colorChange {
-    0%, 100% { color: hsl(var(--primary-foreground)); }
+    0%, 100% { color: hsl(var(--foreground)); }
     50% { color: hsl(var(--accent)); }
   }
 
