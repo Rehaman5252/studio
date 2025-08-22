@@ -15,7 +15,7 @@ interface SelectedBrandCardProps {
 const SelectedBrandCardComponent = ({ selectedBrand, onClick }: SelectedBrandCardProps) => {
   return (
     <Card 
-        className="rounded-2xl shadow-lg cursor-pointer bg-card/50 hover:bg-secondary/50 transition-colors duration-300 ease-in-out hover:border-primary/40 transform hover:-translate-y-1"
+        className="rounded-2xl shadow-lg cursor-pointer bg-card/50 hover:bg-secondary/50 transition-colors duration-300 ease-in-out transform hover:-translate-y-1 border-0"
         onClick={onClick}
         role="button"
         aria-label={`Play ${selectedBrand.format} quiz`}

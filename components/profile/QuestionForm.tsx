@@ -95,7 +95,7 @@ export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void 
     };
 
     return (
-        <Card className="border-dashed">
+        <Card className="border-0">
              <CardHeader>
                 <CardTitle>Submit a Quiz Question</CardTitle>
                 <CardDescription>Create a multiple-choice question for other players.</CardDescription>

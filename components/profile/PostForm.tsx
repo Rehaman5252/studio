@@ -73,7 +73,7 @@ export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
     };
 
     return (
-        <Card className="border-dashed">
+        <Card className="border-0">
              <CardHeader>
                 <CardTitle>Write a Post</CardTitle>
                 <CardDescription>Share your analysis, opinion, or a short story about cricket.</CardDescription>

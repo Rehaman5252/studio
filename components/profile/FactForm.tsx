@@ -71,7 +71,7 @@ export default function FactForm({ onSubmitted }: { onSubmitted: () => void }) {
     };
 
     return (
-        <Card className="border-dashed">
+        <Card className="border-0">
             <CardHeader>
                 <CardTitle>Submit a Cricket Fact</CardTitle>
                 <CardDescription>Share an interesting and verifiable cricket fact.</CardDescription>
