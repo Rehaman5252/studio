@@ -7,11 +7,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, where, getCountFromServer } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
+import { calculateUserRank } from '@/lib/calculateUserRank';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -95,30 +96,22 @@ const StreakLeaderboard = () => {
                    const userDoc = await getDoc(userDocRef);
                    if (userDoc.exists()) {
                         const data = userDoc.data();
-                        if ((data.currentStreak || 0) > 0) {
-                            
-                            // Count users with a strictly higher streak
-                            const higherStreakQuery = query(usersCollection, where('currentStreak', '>', data.currentStreak));
-                            const higherSnapshot = await getCountFromServer(higherStreakQuery);
+                        const streak = data.currentStreak || 0;
 
-                            // For tie-breaking, use UID as a stable, unique fallback if name is missing
+                        if (streak > 0) {
                             const queryKey = data.name || user.uid;
-
-                            // Count users with the same streak but alphabetically earlier name (or UID)
-                            const tieBreakerQuery = query(
-                                usersCollection,
-                                where('currentStreak', '==', data.currentStreak),
-                                where('name', '<', queryKey)
-                            );
-                            const tieSnapshot = await getCountFromServer(tieBreakerQuery);
-
-                            const userRank = higherSnapshot.data().count + tieSnapshot.data().count + 1;
+                            const userRank = await calculateUserRank({
+                                db,
+                                field: 'currentStreak',
+                                value: streak,
+                                nameKey: queryKey,
+                            });
                             
                             setCurrentUserData({
                                 uid: user.uid,
-                                name: data.name || 'You', // Display "You" in the UI for anonymity
+                                name: data.name || 'You',
                                 avatar: data.photoURL,
-                                currentStreak: data.currentStreak,
+                                currentStreak: streak,
                                 rank: userRank,
                                 isCurrentUser: true,
                             });
