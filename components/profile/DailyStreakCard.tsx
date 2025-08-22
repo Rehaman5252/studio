@@ -47,7 +47,7 @@ export default function DailyStreakCard({ userProfile }: { userProfile: any }) {
 
   return (
     <div className="w-full">
-        <Card className="bg-gradient-to-tr from-accent/10 to-primary/10 shadow-lg border-primary/20 w-full">
+        <Card className="bg-gradient-to-tr from-accent/10 to-primary/10 shadow-lg w-full">
             <CardHeader className="py-3 px-4">
                 <CardTitle className="flex items-center gap-2 text-base">
                     <Flame className="text-primary h-5 w-5" /> Daily Streak

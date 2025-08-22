@@ -14,7 +14,7 @@ import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
 
 export const HistoryItemSkeleton = () => (
-    <Card className="bg-card/80 border-primary/10 shadow-lg">
+    <Card className="bg-card/80 shadow-lg">
         <CardHeader>
             <div className="flex items-start gap-4">
                 <div className="animate-pulse bg-muted rounded-md h-8 w-8 mt-1 flex-shrink-0" />
@@ -96,7 +96,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
 
   return (
     <>
-        <Card key={attempt.slotId} className="bg-card/80 border-primary/10 shadow-lg animate-fade-in-up">
+        <Card key={attempt.slotId} className="bg-card/80 shadow-lg animate-fade-in-up">
         <CardHeader className='pb-4'>
             <div className="flex items-start gap-4">
                 <div className="mt-1 flex-shrink-0">

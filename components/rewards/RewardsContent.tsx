@@ -113,7 +113,7 @@ ScratchCard.displayName = 'ScratchCard';
 
 export const GenericOffer = memo(({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
     <a href={link} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-103 animate-fade-in-up block">
-        <Card className="bg-card/80 border-primary/10 shadow-lg hover:border-primary/30">
+        <Card className="bg-card/80 shadow-lg hover:border-primary/30">
             <CardContent className="p-4 flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center p-2 shadow-inner bg-white relative overflow-hidden flex-shrink-0">
                     <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} />
@@ -149,12 +149,12 @@ function RewardsContentComponent() {
     if (quizHistory.error) return <ErrorState message={quizHistory.error} />;
     if (!user) {
       return (
-        <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
+        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
       );
     }
     if (rewardableAttempts.length === 0) {
       return (
-        <Card className="bg-card/80 border-dashed border-primary/30"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p><p className="text-sm">Play any quiz to unlock a special brand gift!</p></CardContent></Card>
+        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p><p className="text-sm">Play any quiz to unlock a special brand gift!</p></CardContent></Card>
       );
     }
     return (

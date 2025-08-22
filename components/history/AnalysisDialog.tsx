@@ -94,7 +94,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                                 <Card><CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><Target className="text-primary"/> Areas for Improvement</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
                             </div>
 
-                            <Card className="bg-accent/10 border-accent/50"><CardHeader><CardTitle className="flex items-center gap-2 text-accent"><Lightbulb className="text-primary"/> Coach's Tip</CardTitle></CardHeader><CardContent><p className="text-sm">{analysis.coachTip}</p></CardContent></Card>
+                            <Card className="bg-accent/10"><CardHeader><CardTitle className="flex items-center gap-2 text-accent"><Lightbulb className="text-primary"/> Coach's Tip</CardTitle></CardHeader><CardContent><p className="text-sm">{analysis.coachTip}</p></CardContent></Card>
 
                             <Card>
                                 <CardHeader><CardTitle>Question Breakdown</CardTitle><CardDescription>A detailed look at each question.</CardDescription></CardHeader>

@@ -48,7 +48,7 @@ const ResultsContent = () => {
 
   return (
     <PageWrapper title={pageTitle} showBackButton>
-      <Card className="text-center shadow-lg border-primary/20">
+      <Card className="text-center shadow-lg">
         <CardHeader>
           {isPerfectScore ? (
             <>

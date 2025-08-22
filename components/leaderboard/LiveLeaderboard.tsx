@@ -115,7 +115,7 @@ const LiveLeaderboard = () => {
         if (status === 'error' && error) return <ErrorState message={error} />;
         if (status === 'waiting' || players.length === 0) {
             return (
-                <Card className="bg-card/80 border-dashed border-primary/30 text-center mt-4">
+                <Card className="bg-card/80 text-center mt-4">
                     <CardHeader>
                         <CardTitle className="flex items-center justify-center gap-2">
                            <Users className="h-6 w-6 text-primary" /> The Dressing Room is Filling Up...
@@ -138,7 +138,7 @@ const LiveLeaderboard = () => {
 
 
     return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
+        <Card className="bg-card/80 shadow-lg mt-4">
             <CardContent className="p-2">
                 <div className="space-y-2">{renderContent()}</div>
             </CardContent>

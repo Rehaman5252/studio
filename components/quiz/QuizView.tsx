@@ -157,8 +157,8 @@ export default function QuizView({
                                             <Label 
                                                 htmlFor={`option-${index}`} 
                                                 className={cn(
-                                                    "flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all",
-                                                    selectedOption === option ? 'shadow-glow animate-glow' : 'border-border bg-card'
+                                                    "flex items-center p-4 rounded-lg cursor-pointer transition-all",
+                                                    selectedOption === option ? 'shadow-glow animate-glow' : 'bg-card'
                                                 )}
                                             >
                                                 <RadioGroupItem value={option} id={`option-${index}`} className="mr-4" />
@@ -176,7 +176,7 @@ export default function QuizView({
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-4 p-3 bg-accent/20 border border-accent rounded-lg text-sm text-center"
+                        className="mt-4 p-3 bg-accent/20 rounded-lg text-sm text-center"
                     >
                        <span className="font-bold">Hint:</span> {hint}
                     </motion.div>

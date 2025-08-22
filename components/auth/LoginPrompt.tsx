@@ -16,7 +16,7 @@ export default function LoginPrompt({ icon: Icon, title, description }: LoginPro
     const pathname = usePathname();
 
     return (
-        <Card className="bg-card/80 border-dashed border-primary/30 animate-fade-in-up">
+        <Card className="bg-card/80 animate-fade-in-up">
             <CardHeader className="text-center">
                 <div className="mx-auto bg-primary/20 p-4 rounded-full w-fit mb-4">
                     <Icon className="h-12 w-12 text-primary" />

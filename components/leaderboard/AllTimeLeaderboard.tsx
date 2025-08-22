@@ -112,7 +112,7 @@ const AllTimeLeaderboard = () => {
         if (error) return <ErrorState message={error} />;
         if (players.length === 0) {
             return (
-                 <Card className="bg-card/80 border-dashed border-primary/30 text-center mt-4">
+                 <Card className="bg-card/80 text-center mt-4">
                     <CardContent className="p-6">
                         <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
                         <p className="font-semibold text-lg text-foreground">The Hall of Fame is Empty</p>
@@ -129,7 +129,7 @@ const AllTimeLeaderboard = () => {
 
 
     return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
+        <Card className="bg-card/80 shadow-lg mt-4">
             <CardContent className="p-2">
                 <div className="space-y-2">{renderContent()}</div>
             </CardContent>

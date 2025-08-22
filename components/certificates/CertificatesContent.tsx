@@ -13,7 +13,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
-        <Card className="bg-card/80 border-primary/10 shadow-lg">
+        <Card className="bg-card/80 shadow-lg">
             <CardHeader>
                 <div className="flex items-start gap-4">
                     <Skeleton className="h-8 w-8 rounded-md mt-1 flex-shrink-0" />
@@ -170,7 +170,7 @@ export default function CertificatesContent() {
           <div className="space-y-4">
             {certificates.map((cert) => (
               <div key={cert.id}>
-                <Card className="bg-card/80 border-primary/10 shadow-lg">
+                <Card className="bg-card/80 shadow-lg">
                   <CardHeader>
                     <div className="flex items-start gap-4">
                         <Trophy className="h-8 w-8 text-primary mt-1 flex-shrink-0" />

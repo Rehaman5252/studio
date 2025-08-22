@@ -132,7 +132,7 @@ const MyNetworkLeaderboard = () => {
         if (error) return <ErrorState message={error} />;
         if (networkPlayers.length === 0) {
             return (
-                <Card className="bg-card/80 border-dashed border-primary/30 text-center mt-4">
+                <Card className="bg-card/80 text-center mt-4">
                      <CardContent className="p-6">
                         <Users className="h-10 w-10 mx-auto text-primary/50 mb-4" />
                         <p className="font-semibold text-lg text-foreground">Build Your Network</p>
@@ -150,7 +150,7 @@ const MyNetworkLeaderboard = () => {
 
 
     return (
-        <Card className="bg-card/80 border-primary/10 shadow-lg mt-4">
+        <Card className="bg-card/80 shadow-lg mt-4">
             <CardHeader className="text-center">
                 <CardTitle>My Network</CardTitle>
                 <CardDescription>Track your friends' perfect scores</CardDescription>

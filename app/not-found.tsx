@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 export default function NotFound() {
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="w-full max-w-md text-center shadow-lg border-destructive/50 animate-fade-in-up">
+      <Card className="w-full max-w-md text-center shadow-lg animate-fade-in-up">
         <CardHeader>
           <div className="mx-auto bg-destructive/10 p-4 rounded-full w-fit mb-4">
             <Frown className="h-16 w-16 text-destructive" />

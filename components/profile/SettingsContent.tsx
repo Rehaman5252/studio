@@ -12,7 +12,7 @@ import { Skeleton } from '../ui/skeleton';
 import { useTheme } from 'next-themes';
 
 const SettingsItem = ({ icon, title, description, checked, onCheckedChange, disabled = false }: { icon: React.ReactNode, title: string, description: string, checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) => (
-    <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+    <div className="flex items-center justify-between space-x-2 rounded-lg p-4">
       <div className="flex items-start space-x-4">
         <div className="text-primary mt-1">{icon}</div>
         <div className="flex flex-col">
@@ -57,7 +57,7 @@ const SettingsContentComponent = () => {
           <CardTitle>Preferences</CardTitle>
           <CardDescription>Manage your in-app experience.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 divide-y divide-border">
             <SettingsItem 
                 icon={theme === 'dark' ? <Moon className="text-primary"/> : <Sun className="text-primary"/>}
                 title="Dark Mode"
