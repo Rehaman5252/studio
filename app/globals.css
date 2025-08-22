@@ -103,12 +103,13 @@
   cursor: pointer;
   -webkit-backface-visibility: hidden; /* Safari */
   backface-visibility: hidden;
-  transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
 }
 
 .cube-face:hover {
     background: hsla(var(--primary), 0.9);
     color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--primary));
     box-shadow: 0 0 15px 5px hsla(var(--primary), 0.4);
 }
 
