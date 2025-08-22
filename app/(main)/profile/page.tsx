@@ -155,8 +155,6 @@ function ProfilePageContent() {
   );
 }
 
-const MemoizedProfilePageContent = memo(ProfilePageContent);
+const ProfilePage = memo(ProfilePageContent);
 
-export default function ProfilePage() {
-    return <MemoizedProfilePageContent />;
-}
+export default ProfilePage;

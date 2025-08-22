@@ -1,6 +1,10 @@
+
+'use client';
+
+import { memo } from 'react';
 import BottomNav from '@/components/BottomNav';
 
-export default function MainAppLayout({
+function MainAppLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -12,3 +16,5 @@ export default function MainAppLayout({
     </>
   );
 }
+
+export default memo(MainAppLayout);
