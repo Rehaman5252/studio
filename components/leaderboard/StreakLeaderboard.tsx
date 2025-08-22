@@ -96,20 +96,27 @@ const StreakLeaderboard = () => {
                    if (userDoc.exists()) {
                         const data = userDoc.data();
                         if ((data.currentStreak || 0) > 0) {
-                            // Fetch user's actual rank
-                            const rankQuery = query(
+                            
+                            // Count users with a strictly higher streak
+                            const higherStreakQuery = query(usersCollection, where('currentStreak', '>', data.currentStreak));
+                            const higherSnapshot = await getCountFromServer(higherStreakQuery);
+
+                            // Count users with the same streak but alphabetically earlier name
+                            const tieBreakerQuery = query(
                                 usersCollection,
-                                where('currentStreak', '>', data.currentStreak)
+                                where('currentStreak', '==', data.currentStreak),
+                                where('name', '<', data.name || 'You')
                             );
-                            const snapshot = await getCountFromServer(rankQuery);
-                            const higherRankCount = snapshot.data().count;
+                            const tieSnapshot = await getCountFromServer(tieBreakerQuery);
+
+                            const userRank = higherSnapshot.data().count + tieSnapshot.data().count + 1;
                             
                             setCurrentUserData({
                                 uid: user.uid,
                                 name: data.name || 'You',
                                 avatar: data.photoURL,
                                 currentStreak: data.currentStreak,
-                                rank: higherRankCount + 1,
+                                rank: userRank,
                                 isCurrentUser: true,
                             });
                         } else {
