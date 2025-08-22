@@ -73,6 +73,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
     if (!isReviewed) {
         setShowAdDialog(true);
     } else {
+        // If already reviewed, just show the dialog without an ad
         setShowReviewDialog(true);
     }
   };
@@ -125,7 +126,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
             </div>
             <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
+                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed}>
                     {isReviewed ? <Check className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
                     {isReviewed ? 'Reviewed' : 'Review'}
                 </Button>
