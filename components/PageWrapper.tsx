@@ -6,7 +6,7 @@ import BackButton from "./BackButton";
 import { cn } from "@/lib/utils";
 
 interface PageWrapperProps {
-  title?: string;
+  title?: ReactNode;
   children: ReactNode;
   showBackButton?: boolean;
   breadcrumb?: string;

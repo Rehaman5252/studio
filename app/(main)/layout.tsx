@@ -6,11 +6,9 @@ export default function MainAppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex justify-center w-full">
-      <div className="w-full bg-background">
-        <main>{children}</main>
-        <BottomNav />
-      </div>
-    </div>
+    <>
+      <main>{children}</main>
+      <BottomNav />
+    </>
   );
 }

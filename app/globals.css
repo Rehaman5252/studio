@@ -115,8 +115,8 @@
 /* Brand animation */
 @layer utilities {
   @keyframes colorChange {
-    0%, 100% { color: #ffffff !important; }
-    50% { color: #ffd700 !important; }
+    0%, 100% { color: hsl(var(--primary-foreground)); }
+    50% { color: hsl(var(--accent)); }
   }
 
   .animate-colorChange {

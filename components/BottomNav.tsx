@@ -16,19 +16,15 @@ const navItems = [
 ];
 
 const iconVariants = {
-  initial: { y: 0 },
-  animate: {
-    y: [0, -4, 0],
-    transition: {
-      duration: 2.5,
-      ease: "easeInOut",
-      repeat: Infinity,
-    },
-  },
+  initial: { y: 0, scale: 1 },
   hover: {
-    y: -5,
+    y: -4,
     scale: 1.1,
-    transition: { type: "spring", stiffness: 300 }
+    transition: { type: "spring", stiffness: 300, damping: 15 }
+  },
+  tap: {
+    scale: 0.9,
+    y: 0,
   }
 };
 
@@ -43,26 +39,21 @@ export default function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50">
       <nav id="tour-step-3" className="flex h-full items-center justify-around max-w-md mx-auto">
-        {navItems.map((item, index) => {
+        {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center h-full text-sm font-medium transition-colors relative',
+                'flex flex-1 flex-col items-center justify-center h-full text-sm font-medium transition-colors relative group',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
-              <motion.div 
+              <motion.div
                 variants={iconVariants}
-                initial="initial"
-                animate={isActive ? "animate" : "initial"}
                 whileHover="hover"
-                transition={{
-                  delay: index * 0.1, // Stagger the animation start
-                }}
-                whileTap={{ scale: 0.8, y: -5 }}
+                whileTap="tap"
               >
                  <item.icon className="h-6 w-6 mb-0.5" />
               </motion.div>
@@ -71,8 +62,9 @@ export default function BottomNav() {
                 <motion.div
                   layoutId="active-nav-indicator"
                   className="absolute bottom-0 h-1 w-8 rounded-full bg-primary"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { duration: 0.3 } }}
+                  initial={false}
+                  animate={{ opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
             </Link>
