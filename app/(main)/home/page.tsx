@@ -44,7 +44,7 @@ const HomeContentSkeleton = () => (
     </div>
 );
 
-const MalpracticeWarning = () => {
+const MalpracticeWarning = memo(() => {
     const { profile } = useAuth();
     if (!profile) return null;
 
@@ -67,10 +67,12 @@ const MalpracticeWarning = () => {
             </AlertDescription>
         </Alert>
     )
-}
+});
+MalpracticeWarning.displayName = 'MalpracticeWarning';
+
 
 function HomePage() {
-    const { user, isProfileComplete, lastAttemptInSlot } = useAuth();
+    const { user, isProfileComplete, lastAttemptInSlot, loading: authLoading } = useAuth();
     const { isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     const { toast } = useToast();
@@ -125,6 +127,14 @@ function HomePage() {
         </p>
       </div>
     );
+
+    if (authLoading) {
+      return (
+        <PageWrapper title={headerContent as unknown as string} hideBorder>
+            <HomeContentSkeleton />
+        </PageWrapper>
+      )
+    }
 
     return (
       <PageWrapper title={headerContent as unknown as string} hideBorder>

@@ -3,13 +3,13 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthProvider';
+import { useFirebase } from '@/providers/FirebaseProvider';
 import { CricketLoading } from '@/components/CricketLoading';
 
 // This page acts as a gatekeeper, redirecting users based on their auth status.
 export default function GatekeeperPage() {
   const router = useRouter();
-  const { user, loading, profile } = useAuth();
+  const { user, loading } = useFirebase();
 
   useEffect(() => {
     // Wait until the authentication status is determined
@@ -17,7 +17,7 @@ export default function GatekeeperPage() {
 
     if (user) {
       // If the user is authenticated, direct to home.
-      // Home page will handle profile completion or tour logic.
+      // The Home page will handle its own loading state for profile data.
       router.replace('/home');
     } else {
       // If the user is not authenticated, send them to the login page.
