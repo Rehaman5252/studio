@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData, QuizQuestion, QuizAttempt } from '@/ai/schemas';
+import { QuizData, QuizAttempt } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
@@ -12,8 +12,8 @@ import { AdDialog } from '@/components/AdDialog';
 import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
-import { getQuizSlotId } from '@/lib/utils';
 import { useSettings } from '@/hooks/use-settings';
+import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 
 interface QuizClientProps {
   brand: string;
@@ -23,9 +23,6 @@ interface QuizClientProps {
 type QuizAPIResponse = QuizData & {
   source?: 'ai' | 'fallback';
 };
-
-const encodeAttempt = (attempt: QuizAttempt) => 
-     encodeURIComponent(btoa(JSON.stringify(attempt)));
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
@@ -97,33 +94,23 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     fetchQuiz();
   }, [format, user, toast]);
 
-  const buildAttempt = useCallback((overrides: Partial<QuizAttempt> = {}): QuizAttempt => {
-    if (!quizData || !user) throw new Error("Quiz data or user not available for building attempt.");
-
-    const score = 'score' in overrides 
-        ? (overrides.score as number)
-        : quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
+  const finishQuiz = useCallback(async () => {
+    if (!quizData || !user) return;
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers,
+      timePerQuestion,
+    });
     
-    const unansweredCount = quizData.questions.length - userAnswers.length;
-
-    return {
-        userId: user.uid,
-        slotId: getQuizSlotId(),
-        brand,
-        format,
-        questions: quizData.questions,
-        userAnswers,
-        score,
-        totalQuestions: quizData.questions.length,
-        timestamp: Date.now(),
-        timePerQuestion,
-        source: quizData.source,
-        unanswered: unansweredCount,
-        ...overrides,
-    };
-  }, [quizData, user, brand, format, userAnswers, timePerQuestion]);
+    await addQuizAttempt(attempt);
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+  }, [quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
+    if (!quizData || !user) return;
     const noBallCount = await handleMalpractice();
     toast({
         title: "No Ball!",
@@ -131,21 +118,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         variant: "destructive"
     });
     
-    const attempt = buildAttempt({ reason, score: 0 });
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers,
+      timePerQuestion,
+      overrides: { reason, score: 0 },
+    });
 
     await addQuizAttempt(attempt);
-    
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [handleMalpractice, toast, buildAttempt, addQuizAttempt, router]);
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
 
-  const finishQuiz = useCallback(async () => {
-    const attempt = buildAttempt();
-    
-    await addQuizAttempt(attempt);
-
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-
-  }, [buildAttempt, addQuizAttempt, router]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
