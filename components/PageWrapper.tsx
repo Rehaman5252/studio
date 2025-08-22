@@ -16,7 +16,7 @@ interface PageWrapperProps {
 
 export default function PageWrapper({ title, children, showBackButton, breadcrumb, actions, hideBorder = false }: PageWrapperProps) {
   return (
-    <div className="flex flex-col space-y-4 pb-24 px-4 pt-2 sm:px-6 lg:px-8">
+    <div className="flex flex-col pb-24 px-4 pt-2 sm:px-6 lg:px-8">
         {(title || showBackButton || actions) && (
             <header className={cn(
                 "relative flex items-center justify-between gap-4 py-3 z-40 mb-0 sticky top-0 bg-background/80 backdrop-blur-lg -mx-4 px-4",
