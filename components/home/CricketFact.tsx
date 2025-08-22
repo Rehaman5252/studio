@@ -17,13 +17,11 @@ export default function CricketFact({ format }: { format: string }) {
     const getFacts = async (currentFormat: string) => {
       setIsLoading(true);
       try {
-        // Fetch new facts but don't update the displayed ones immediately
         const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
         if (newFacts && newFacts.length > 0) {
           setCurrentFacts(newFacts);
           setCurrentFactIndex(0);
         }
-        // If fetch fails, we just keep the old facts, so no visual disruption.
       } catch (error) {
         console.error('Failed to fetch cricket facts:', error);
       } finally {
@@ -35,7 +33,7 @@ export default function CricketFact({ format }: { format: string }) {
   }, [format]);
 
   const handleAnotherFact = () => {
-    if (currentFacts && currentFacts.length > 0) {
+    if (currentFacts.length > 0) {
       setCurrentFactIndex((prevIndex) => (prevIndex + 1) % currentFacts.length);
     }
   };
@@ -66,7 +64,7 @@ export default function CricketFact({ format }: { format: string }) {
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={isLoading || !currentFacts || currentFacts.length < 2}>
+          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={isLoading || currentFacts.length < 2}>
             {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
