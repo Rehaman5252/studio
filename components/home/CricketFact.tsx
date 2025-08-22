@@ -13,16 +13,17 @@ export default function CricketFact({ format }: { format: string }) {
   const [fact, setFact] = useState('');
   const [seenFacts, setSeenFacts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [key, setKey] = useState(0); // Add a key to force re-render
 
   const getFact = useCallback(async (currentSeenFacts: string[]) => {
     setLoading(true);
     try {
       const newFact = await generateCricketFact({ format, seenFacts: currentSeenFacts });
       setFact(newFact);
+      // Add the new fact to the list of seen facts for the current session
       setSeenFacts(prev => [...prev, newFact]);
     } catch (error) {
       console.error('Failed to fetch cricket fact:', error);
+      // Provide a default fact on error
       setFact('Did you know? The first official international cricket match was played between Canada and the United States in 1844.');
     } finally {
       setLoading(false);
@@ -30,15 +31,15 @@ export default function CricketFact({ format }: { format: string }) {
   }, [format]);
 
   useEffect(() => {
-    // Reset seen facts when format changes
+    // When the format changes, reset the seen facts and get a new one
     const initialSeen: string[] = [];
     setSeenFacts(initialSeen);
     getFact(initialSeen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format]); // Only run when format changes
+  }, [format]); // This effect specifically runs when the cricket format changes.
 
   const handleAnotherFact = () => {
-    // We pass the current list of seen facts directly
+    // Pass the current list of seen facts to the fetch function
     getFact(seenFacts);
   };
 
@@ -47,14 +48,14 @@ export default function CricketFact({ format }: { format: string }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
             <Lightbulb className="text-primary"/>
-            Did you know?
+            Today's Cricket Bite
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="min-h-[60px] flex items-center justify-center text-center">
             <AnimatePresence mode="wait">
                 <motion.p
-                    key={fact} // Use fact as key for animation
+                    key={fact} // Use fact as key for animation to trigger on change
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -72,7 +73,7 @@ export default function CricketFact({ format }: { format: string }) {
             ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Another Fact
+            Another One
           </Button>
         </div>
       </CardContent>

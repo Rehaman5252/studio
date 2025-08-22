@@ -2,9 +2,9 @@
 'use server';
 
 /**
- * @fileOverview A flow that generates a single, unique, and interesting cricket fact.
+ * @fileOverview A flow that generates a single, unique, and interesting cricket fact, update, or anecdote.
  *
- * - generateCricketFact - A function that generates a fact for a given cricket format.
+ * - generateCricketFact - A function that generates a piece of content for a given cricket format.
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
@@ -16,7 +16,7 @@ const GenerateFactInputSchema = z.object({
 type GenerateFactInput = z.infer<typeof GenerateFactInputSchema>;
 
 const GenerateFactOutputSchema = z.object({
-  fact: z.string().describe('A single, interesting, little-known, and engaging fact about the specified cricket format.'),
+  fact: z.string().describe('A single, interesting, little-known, and engaging piece of information about the specified cricket format. This can be a fact, a recent update, a historical ancedote, or a funny moment.'),
 });
 type GenerateFactOutput = z.infer<typeof GenerateFactOutputSchema>;
 
@@ -31,11 +31,11 @@ const prompt = ai.definePrompt({
   name: 'generateCricketFactPrompt',
   input: { schema: GenerateFactInputSchema },
   output: { schema: GenerateFactOutputSchema },
-  prompt: `You are a cricket encyclopedia.
+  prompt: `You are a cricket encyclopedia with a witty and engaging personality.
   
-  Generate a single, interesting, little-known, and engaging fact about the "{{format}}" cricket format.
+  Generate a single, interesting, little-known, and engaging piece of information about "{{format}}" cricket. This could be a surprising fact, a funny real-life moment, a notable update from your knowledge cutoff, or a fascinating historical anecdote.
   
-  The fact must be strictly about the sport and not mention any brands or sponsors.
+  The content must be strictly about the sport and not mention any brands or sponsors.
   
   Crucially, the fact MUST NOT be similar to any of the facts in the following list of already seen facts:
   {{#each seenFacts}}
