@@ -34,6 +34,7 @@ export const QuizAttempt = z.object({
   totalQuestions: z.number().int().describe("The total number of questions in the quiz."),
   timestamp: z.number().describe("The Unix timestamp when the quiz was completed."),
   timePerQuestion: z.optional(z.array(z.number())).describe("Time taken in seconds for each question."),
+  unanswered: z.optional(z.number().int()).describe("The number of questions the user did not answer."),
   reason: z.optional(z.string()).describe("Reason for disqualification, if any (e.g., 'no-ball')."),
   source: z.enum(['ai', 'fallback']).optional().describe("The source of the quiz data."),
 });

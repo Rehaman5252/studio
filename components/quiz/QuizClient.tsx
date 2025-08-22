@@ -21,8 +21,11 @@ interface QuizClientProps {
 }
 
 type QuizAPIResponse = QuizData & {
-  source?: 'ai' | 'fallback'; // Make source optional to handle older data or API errors
+  source?: 'ai' | 'fallback';
 };
+
+const encodeAttempt = (attempt: QuizAttempt) => 
+     encodeURIComponent(btoa(JSON.stringify(attempt)));
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
@@ -100,6 +103,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const score = 'score' in overrides 
         ? (overrides.score as number)
         : quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
+    
+    const unansweredCount = quizData.questions.length - userAnswers.length;
 
     return {
         userId: user.uid,
@@ -113,6 +118,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         timestamp: Date.now(),
         timePerQuestion,
         source: quizData.source,
+        unanswered: unansweredCount,
         ...overrides,
     };
   }, [quizData, user, brand, format, userAnswers, timePerQuestion]);
@@ -129,8 +135,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
     await addQuizAttempt(attempt);
     
-    const attemptDataString = btoa(JSON.stringify(attempt));
-    router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
   }, [handleMalpractice, toast, buildAttempt, addQuizAttempt, router]);
 
   const finishQuiz = useCallback(async () => {
@@ -138,8 +143,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     
     await addQuizAttempt(attempt);
 
-    const attemptDataString = btoa(JSON.stringify(attempt));
-    router.replace(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
 
   }, [buildAttempt, addQuizAttempt, router]);
 
