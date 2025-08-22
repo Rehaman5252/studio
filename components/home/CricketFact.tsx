@@ -16,21 +16,26 @@ export default function CricketFact({ format }: { format: string }) {
   const getFacts = useCallback(async (currentFormat: string) => {
     setLoading(true);
     try {
-      const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
+      // Pass the current list of facts to avoid repetition if AI is called again.
+      const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: facts });
       setFacts(newFacts);
       setCurrentFactIndex(0);
     } catch (error) {
       console.error('Failed to fetch cricket facts:', error);
+      // Set a default fact in case of an error, to prevent a blank state.
       setFacts(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
       setCurrentFactIndex(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [facts]); // Depend on 'facts' to pass them as seenFacts
 
   useEffect(() => {
     getFacts(format);
-  }, [format, getFacts]);
+    // The disabled eslint rule is to ensure this effect runs ONLY when the format changes.
+    // We do not want to re-run it when getFacts function reference changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [format]);
 
   const handleAnotherFact = () => {
     if (facts.length > 0) {
@@ -38,7 +43,8 @@ export default function CricketFact({ format }: { format: string }) {
     }
   };
   
-  const currentFact = facts[currentFactIndex] || '';
+  // This ensures that even if the index is somehow out of bounds, it doesn't crash.
+  const currentFact = facts.length > 0 ? facts[currentFactIndex] : '';
 
   return (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
