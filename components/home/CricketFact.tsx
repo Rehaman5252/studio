@@ -14,10 +14,11 @@ export default function CricketFact({ format }: { format: string }) {
   const [seenFacts, setSeenFacts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getFact = useCallback(async (currentSeenFacts: string[]) => {
+  const getFact = useCallback(async () => {
     setLoading(true);
     try {
-      const newFact = await generateCricketFact({ format, seenFacts: currentSeenFacts });
+      // Pass the current seenFacts to the flow
+      const newFact = await generateCricketFact({ format, seenFacts });
       setFact(newFact);
       // Add the new fact to the list of seen facts for the current session
       setSeenFacts(prev => [...prev, newFact]);
@@ -28,19 +29,32 @@ export default function CricketFact({ format }: { format: string }) {
     } finally {
       setLoading(false);
     }
-  }, [format]);
+  }, [format, seenFacts]); // Depend on seenFacts to pass the updated list
 
   useEffect(() => {
-    // When the format changes, reset the seen facts and get a new one
-    const initialSeen: string[] = [];
+    // This effect runs only when the component mounts or the format changes.
+    // It resets the seen facts and fetches the first one.
+    const initialSeen = [] as string[];
     setSeenFacts(initialSeen);
-    getFact(initialSeen);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format]); // This effect specifically runs when the cricket format changes.
+    
+    setLoading(true);
+    generateCricketFact({ format, seenFacts: initialSeen })
+      .then(newFact => {
+        setFact(newFact);
+        setSeenFacts([newFact]); // Start the session with the first fact
+      })
+      .catch(error => {
+        console.error('Failed to fetch initial cricket fact:', error);
+        setFact('Did you know? The first official international cricket match was played between Canada and the United States in 1844.');
+      })
+      .finally(() => setLoading(false));
+      
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [format]); // Re-run only when format changes
 
   const handleAnotherFact = () => {
-    // Pass the current list of seen facts to the fetch function
-    getFact(seenFacts);
+    // This function will now use the latest state of seenFacts
+    getFact();
   };
 
   return (
@@ -48,7 +62,7 @@ export default function CricketFact({ format }: { format: string }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
             <Lightbulb className="text-primary"/>
-            Today's Cricket Bite
+            Cricket Feed
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -73,7 +87,7 @@ export default function CricketFact({ format }: { format: string }) {
             ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Another One
+            Next Update
           </Button>
         </div>
       </CardContent>

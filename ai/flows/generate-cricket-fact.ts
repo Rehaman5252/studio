@@ -16,7 +16,7 @@ const GenerateFactInputSchema = z.object({
 type GenerateFactInput = z.infer<typeof GenerateFactInputSchema>;
 
 const GenerateFactOutputSchema = z.object({
-  fact: z.string().describe('A single, interesting, little-known, and engaging piece of information about the specified cricket format. This can be a fact, a recent update, a historical ancedote, or a funny moment.'),
+  fact: z.string().describe('A single, interesting, little-known, and engaging piece of information about the specified cricket format. This can be a surprising fact, a recent update from your knowledge cutoff, a historical ancedote, or a funny real-life moment.'),
 });
 type GenerateFactOutput = z.infer<typeof GenerateFactOutputSchema>;
 
