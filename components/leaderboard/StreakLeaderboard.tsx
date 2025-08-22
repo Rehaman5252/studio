@@ -101,11 +101,14 @@ const StreakLeaderboard = () => {
                             const higherStreakQuery = query(usersCollection, where('currentStreak', '>', data.currentStreak));
                             const higherSnapshot = await getCountFromServer(higherStreakQuery);
 
-                            // Count users with the same streak but alphabetically earlier name
+                            // For tie-breaking, use UID as a stable, unique fallback if name is missing
+                            const queryKey = data.name || user.uid;
+
+                            // Count users with the same streak but alphabetically earlier name (or UID)
                             const tieBreakerQuery = query(
                                 usersCollection,
                                 where('currentStreak', '==', data.currentStreak),
-                                where('name', '<', data.name || 'You')
+                                where('name', '<', queryKey)
                             );
                             const tieSnapshot = await getCountFromServer(tieBreakerQuery);
 
@@ -113,7 +116,7 @@ const StreakLeaderboard = () => {
                             
                             setCurrentUserData({
                                 uid: user.uid,
-                                name: data.name || 'You',
+                                name: data.name || 'You', // Display "You" in the UI for anonymity
                                 avatar: data.photoURL,
                                 currentStreak: data.currentStreak,
                                 rank: userRank,
