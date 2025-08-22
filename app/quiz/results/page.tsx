@@ -5,11 +5,12 @@ import { Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, Award, BarChart, Home, Sparkles } from 'lucide-react';
+import { CheckCircle, XCircle, Award, BarChart, Home, Sparkles, Cpu, BookOpen } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
 import PageWrapper from '@/components/PageWrapper';
 import AnalysisDialog from '@/components/history/AnalysisDialog';
+import { Badge } from '@/components/ui/badge';
 
 const ResultsContent = () => {
   const searchParams = useSearchParams();
@@ -62,6 +63,14 @@ const ResultsContent = () => {
           {!isDisqualified && (
             <p className="text-5xl font-bold">{attempt.score}<span className="text-3xl text-muted-foreground">/{attempt.totalQuestions}</span></p>
           )}
+           {attempt.source && (
+            <div className="flex justify-center pt-2">
+                <Badge variant="secondary" className="font-normal">
+                    {attempt.source === 'ai' ? <Cpu className="h-3 w-3 mr-1.5"/> : <BookOpen className="h-3 w-3 mr-1.5"/>}
+                    {attempt.source === 'ai' ? 'AI Generated Quiz' : 'Classic Quiz'}
+                </Badge>
+            </div>
+           )}
         </CardHeader>
         <CardContent className="flex justify-center gap-4 text-sm text-muted-foreground">
             <div><strong>Format:</strong> {attempt.format}</div>

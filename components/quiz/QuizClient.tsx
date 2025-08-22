@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData, QuizQuestion } from '@/ai/schemas';
+import { QuizData, QuizQuestion, QuizAttempt } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
@@ -103,7 +103,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         variant: "destructive"
     });
     
-    const attempt = {
+    const attempt: QuizAttempt = {
       userId: user.uid,
       slotId: getQuizSlotId(),
       brand,
@@ -134,7 +134,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
     });
 
-    const attempt = {
+    const attempt: QuizAttempt = {
       userId: user.uid,
       slotId: getQuizSlotId(),
       brand,
