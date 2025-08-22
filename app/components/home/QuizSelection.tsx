@@ -1,6 +1,8 @@
 
 'use client';
 
+import React, 'use client';
+
 import React, { useState, useCallback, memo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
@@ -104,7 +106,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
         <>
             <div className="text-center" id="tour-step-1">
                 <h2 className="text-2xl font-bold">Select Your Quiz Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face to select or wait for rotation</p>
+                <p className="text-sm text-foreground/60">Click a face to select or wait for rotation</p>
             </div>
             
             <div className="flex justify-center items-center mt-0 mb-4 h-[250px] w-full">
