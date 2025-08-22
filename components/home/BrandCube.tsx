@@ -40,8 +40,8 @@ const BrandCube = ({ onFaceClick, rotation }: BrandCubeProps) => {
             onClick={(e) => handleFaceClick(e, face.brand)}
             aria-label={`Play ${face.brand.format} Quiz`}
           >
-             <div className="flex flex-col items-center justify-center p-4 text-inherit w-full h-full text-center">
-                <div className="w-full h-20 relative mb-2">
+             <div className="flex flex-col items-center justify-center p-2 text-inherit w-full h-full text-center">
+                <div className="w-full h-16 relative mb-1">
                     <Image
                         src={face.brand.logoUrl}
                         alt={`${face.brand.brand} logo`}
@@ -52,7 +52,7 @@ const BrandCube = ({ onFaceClick, rotation }: BrandCubeProps) => {
                         priority
                     />
                 </div>
-                <p className="font-extrabold text-2xl tracking-tight text-inherit">{face.brand.format}</p>
+                <p className="font-extrabold text-xl tracking-tight text-inherit">{face.brand.format}</p>
             </div>
           </button>
         ))}
