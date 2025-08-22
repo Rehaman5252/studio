@@ -20,6 +20,12 @@ interface QuizClientProps {
   format: string;
 }
 
+// The API now returns the quiz data along with its source
+type QuizAPIResponse = QuizData & {
+  source: 'ai' | 'fallback';
+};
+
+
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,10 +65,18 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         if (!response.ok) {
           throw new Error('Failed to fetch quiz data.');
         }
-        const data: QuizData = await response.json();
+        const data: QuizAPIResponse = await response.json();
         if (data.questions.length < 5) {
             throw new Error('Invalid quiz data received from server.');
         }
+        
+        if (data.source === 'fallback') {
+            toast({
+                title: "Using Classic Quiz",
+                description: "AI is busy, but here's a great quiz for you!",
+            });
+        }
+        
         setQuizData(data);
       } catch (e: any) {
         console.error("Quiz fetch failed:", e);
