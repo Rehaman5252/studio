@@ -9,37 +9,44 @@ import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function CricketFact({ format }: { format: string }) {
-  const [currentFacts, setCurrentFacts] = useState<string[]>(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
-  const [currentFactIndex, setCurrentFactIndex] = useState(0);
+  const [facts, setFacts] = useState<string[]>(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const getFacts = async (currentFormat: string) => {
       setIsLoading(true);
       try {
-        // Pass the current fact list to avoid immediate repetition
-        const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: currentFacts });
-        if (newFacts && newFacts.length > 0) {
-          setCurrentFacts(newFacts);
-          setCurrentFactIndex(0);
+        const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
+        if (isMounted && newFacts && newFacts.length > 0) {
+          setFacts(newFacts);
+          setCurrentIndex(0);
         }
       } catch (error) {
         console.error('Failed to fetch cricket facts:', error);
+        // Keep the old facts on error
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
     getFacts(format);
+
+    return () => {
+      isMounted = false;
+    };
   }, [format]);
 
   const handleAnotherFact = () => {
-    if (currentFacts.length > 0) {
-      setCurrentFactIndex((prevIndex) => (prevIndex + 1) % currentFacts.length);
+    if (facts.length > 0) {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % facts.length);
     }
   };
   
-  const factToDisplay = currentFacts[currentFactIndex] || '';
+  const factToDisplay = facts[currentIndex] || '';
 
   return (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -65,7 +72,7 @@ export default function CricketFact({ format }: { format: string }) {
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={isLoading || currentFacts.length < 2}>
+          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={isLoading || facts.length < 2}>
             {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
