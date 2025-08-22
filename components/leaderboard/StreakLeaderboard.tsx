@@ -74,7 +74,7 @@ const StreakLeaderboard = () => {
             setError(null);
             try {
                 const usersCollection = collection(db, 'users');
-                const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
+                const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('sortKey', 'asc'), limit(50));
                 const querySnapshot = await getDocs(q);
 
                 const playersData = querySnapshot.docs.map((doc, index) => {
@@ -99,7 +99,7 @@ const StreakLeaderboard = () => {
                         const streak = data.currentStreak || 0;
 
                         if (streak > 0) {
-                            const queryKey = data.name || user.uid;
+                            const queryKey = data.sortKey || user.uid;
                             const userRank = await calculateUserRank({
                                 db,
                                 field: 'currentStreak',

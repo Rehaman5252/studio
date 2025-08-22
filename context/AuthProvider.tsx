@@ -109,6 +109,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
         currentStreak: 0,
         lastStreakTimestamp: null,
+        sortKey: name || user.uid, // Add sortKey for reliable querying
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       
@@ -122,8 +123,16 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
       return newUserProfile;
     } else {
-        if (user.photoURL && user.photoURL !== docSnap.data().photoURL) {
-            await updateDoc(userRef, { photoURL: user.photoURL });
+        const existingData = docSnap.data();
+        const updates: Record<string, any> = {};
+        if (user.photoURL && user.photoURL !== existingData.photoURL) {
+            updates.photoURL = user.photoURL;
+        }
+        if (!existingData.sortKey && existingData.name) {
+             updates.sortKey = existingData.name || user.uid;
+        }
+        if (Object.keys(updates).length > 0) {
+            await updateDoc(userRef, updates);
         }
       return docSnap.data();
     }
@@ -274,8 +283,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     if (!firebaseUser || !db) throw new Error("User not authenticated or DB not available.");
     const userDocRef = doc(db, "users", firebaseUser.uid);
     try {
-        const dataToUpdate = sanitizeUserProfile({...newData, updatedAt: serverTimestamp()});
-        await updateDoc(userDocRef, dataToUpdate);
+        const dataToUpdate: Record<string, any> = {...newData, updatedAt: serverTimestamp()};
+        if (newData.name) {
+            dataToUpdate.sortKey = newData.name;
+        }
+        const sanitizedData = sanitizeUserProfile(dataToUpdate);
+        await updateDoc(userDocRef, sanitizedData);
     } catch (error) {
         console.error("Update user data failed:", error);
         toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });

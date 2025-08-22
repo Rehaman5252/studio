@@ -27,7 +27,7 @@ export async function calculateUserRank({ db, collectionName = 'users', field, v
   const tieBreakerQuery = query(
     usersCollection,
     where(field, '==', value),
-    where('name', '<', nameKey)
+    where('sortKey', '<', nameKey)
   );
   const tieSnapshot = await getCountFromServer(tieBreakerQuery);
 
