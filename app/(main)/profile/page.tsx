@@ -13,7 +13,7 @@ import SupportCard from "@/components/profile/SupportCard";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/PageWrapper";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
-import CommentaryButton from "@/components/profile/CommentaryButton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
@@ -120,7 +120,27 @@ function ProfilePageContent() {
             </Button>
         </section>
         
-        {user && <CommentaryButton />}
+        {user && (
+            <Card className="bg-card shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-lg">Commentary Box</CardTitle>
+                    <CardDescription>
+                        Share your cricket knowledge with the community and earn rewards.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                        <Link href="/contribute">
+                            <div className="flex items-center">
+                                <Edit className="mr-4" />
+                                Contribute Now
+                            </div>
+                            <ChevronRight/>
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )}
 
         <SupportCard />
 
