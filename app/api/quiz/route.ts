@@ -20,25 +20,21 @@ export async function POST(req: NextRequest) {
     format = (body.format || 'mixed').toLowerCase();
     const { userId } = body;
 
-    if (!format || !userId) {
-      return NextResponse.json({ error: 'Format and userId are required.' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: 'userId is required.' }, { status: 400 });
     }
 
-    // Race the AI generation against a timeout
+    // Race the AI generation against a timeout that rejects on failure
     const quizData = await Promise.race([
         generateQuiz({ format, userId }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), GENERATION_TIMEOUT))
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), GENERATION_TIMEOUT))
     ]);
     
-    // Validate the output
+    // Validate the output from the successful generation
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
-      if (!quizData) {
-        console.warn(`[Fallback] AI generation timed out for format '${format}'. Using fallback.`);
-      } else {
         console.warn(`[Fallback] Generated quiz for format '${format}' was invalid or incomplete. Using fallback.`);
-      }
-      const fallback = fallbackQuizData[format] || fallbackQuizData.mixed;
-      return NextResponse.json(fallback);
+        const fallback = fallbackQuizData[format] || fallbackQuizData.mixed;
+        return NextResponse.json(fallback);
     }
     
     return NextResponse.json(quizData);
@@ -47,7 +43,11 @@ export async function POST(req: NextRequest) {
     if (process.env.NODE_ENV === "development") {
         console.error("Error in /api/quiz route, using fallback:", error);
     }
-    console.warn(`[Fallback] An error occurred during generation for format '${format}'. Using fallback.`);
+    const errorMessage = error instanceof Error && error.message === "Timeout"
+      ? `AI generation timed out for format '${format}'`
+      : `An error occurred during generation for format '${format}'`;
+
+    console.warn(`[Fallback] ${errorMessage}. Using fallback.`);
 
     // Fallback mechanism in case of any unexpected error during generation
     // Use the format variable that was captured and normalized at the beginning.
