@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback }
+from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFact } from '@/ai/flows/generate-cricket-fact';
@@ -12,11 +13,12 @@ export default function CricketFact({ format }: { format: string }) {
   const [fact, setFact] = useState('');
   const [seenFacts, setSeenFacts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [key, setKey] = useState(0); // Add a key to force re-render
 
-  const getFact = useCallback(async () => {
+  const getFact = useCallback(async (currentSeenFacts: string[]) => {
     setLoading(true);
     try {
-      const newFact = await generateCricketFact({ format, seenFacts });
+      const newFact = await generateCricketFact({ format, seenFacts: currentSeenFacts });
       setFact(newFact);
       setSeenFacts(prev => [...prev, newFact]);
     } catch (error) {
@@ -25,15 +27,19 @@ export default function CricketFact({ format }: { format: string }) {
     } finally {
       setLoading(false);
     }
-  }, [format, seenFacts]);
+  }, [format]);
 
   useEffect(() => {
-    getFact();
+    // Reset seen facts when format changes
+    const initialSeen: string[] = [];
+    setSeenFacts(initialSeen);
+    getFact(initialSeen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format]); // Fetch a new fact when the format changes
+  }, [format]); // Only run when format changes
 
   const handleAnotherFact = () => {
-    getFact();
+    // We pass the current list of seen facts directly
+    getFact(seenFacts);
   };
 
   return (
@@ -48,7 +54,7 @@ export default function CricketFact({ format }: { format: string }) {
         <div className="min-h-[60px] flex items-center justify-center text-center">
             <AnimatePresence mode="wait">
                 <motion.p
-                    key={fact}
+                    key={fact} // Use fact as key for animation
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
