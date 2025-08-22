@@ -65,7 +65,18 @@ const generateCricketFactsFlow = ai.defineFlow(
     const { output } = await prompt(input);
     if (!output || output.facts.length < 10) {
       // Provide a fallback list if the AI fails
-      return { facts: ["Cricket is the second most popular sport in the world.", "The first official international cricket match was played between Canada and the United States in 1844.", "A cricket ball has a circumference of 9 inches.", "The term 'duck' in cricket originated from the shape of the number '0', resembling a duck's egg.", "Sir Don Bradman has a test batting average of 99.94.", "The longest cricket match in history was 9 days long.", "The first-ever cricket World Cup was held in 1975.", "Jim Laker holds the record for taking 19 wickets in a single test match.", "Shahid Afridi holds the record for the fastest ODI century, in just 37 balls.", "Sachin Tendulkar is the only player to have scored 100 international centuries."] };
+      return { facts: [
+        "Shahid Afridi used Sachin Tendulkar’s bat to hit the fastest ODI century (then a record) in 1996, scoring 100 off just 37 balls.",
+        "MS Dhoni is so quick behind the stumps that in 2018, he broke his own record for the fastest stumping, dismissing a batsman in just 0.08 seconds!",
+        "Irfan Pathan took a hat-trick in the very first over of a Test match against Pakistan in 2006—still the only instance in history.",
+        "Sir Don Bradman needed just 4 runs in his last innings to average 100, but was bowled for a duck, ending his career with a 99.94 average.",
+        "Adam Gilchrist walked off in a World Cup semi-final (2003) even when the umpire didn’t give him out, a famous act of sportsmanship.",
+        "Lasith Malinga is the only bowler to take four wickets in four consecutive balls in international cricket.",
+        "In a 2019 Ranji Trophy match, a dog ran onto the field and stopped play for several minutes.",
+        "Virender Sehwag is the only player to reach a triple century (300 runs) with a six, and he did it twice!",
+        "The longest Test match in history (the “timeless Test” of 1939) lasted for 12 days before ending in a draw.",
+        "South Africa’s Herschelle Gibbs is the only player to hit six sixes in an over in a World Cup match (2007)."
+      ] };
     }
     return output;
   }
