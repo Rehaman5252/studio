@@ -13,28 +13,23 @@ export default function CricketFact({ format }: { format: string }) {
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const getFacts = useCallback(async (currentFormat: string) => {
-    setLoading(true);
-    try {
-      // Pass the current list of facts to avoid repetition if AI is called again.
-      const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: facts || [] });
-      setFacts(newFacts || []);
-      setCurrentFactIndex(0);
-    } catch (error) {
-      console.error('Failed to fetch cricket facts:', error);
-      // Set a default fact in case of an error, to prevent a blank state.
-      setFacts(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
-      setCurrentFactIndex(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [facts]); // Depend on 'facts' to pass them as seenFacts
-
   useEffect(() => {
+    const getFacts = async (currentFormat: string) => {
+      setLoading(true);
+      try {
+        const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
+        setFacts(newFacts && newFacts.length > 0 ? newFacts : ['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
+        setCurrentFactIndex(0);
+      } catch (error) {
+        console.error('Failed to fetch cricket facts:', error);
+        setFacts(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
+        setCurrentFactIndex(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     getFacts(format);
-    // The disabled eslint rule is to ensure this effect runs ONLY when the format changes.
-    // We do not want to re-run it when getFacts function reference changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [format]);
 
   const handleAnotherFact = () => {
@@ -43,7 +38,6 @@ export default function CricketFact({ format }: { format: string }) {
     }
   };
   
-  // This ensures that even if the index is somehow out of bounds, it doesn't crash.
   const currentFact = (facts && facts.length > 0) ? facts[currentFactIndex] : '';
 
   return (
@@ -70,7 +64,7 @@ export default function CricketFact({ format }: { format: string }) {
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={loading || !facts || facts.length === 0}>
+          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={loading || !facts || facts.length < 2}>
             {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
