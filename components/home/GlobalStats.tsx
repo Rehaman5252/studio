@@ -11,9 +11,9 @@ import TotalWinnersStat from '@/components/stats/TotalWinnersStat';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 
 const StatCard = memo(({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
-  <Card className="bg-card/80 shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 shadow-glow hover:shadow-primary/40">
+  <Card className="bg-card/80 shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-primary/40">
     <CardContent className="p-3 text-center flex flex-col items-center justify-center h-full">
-      <div className="text-primary">{icon}</div>
+      <div>{icon}</div>
       <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-1">{title}</p>
       <div className="mt-1 text-foreground">{children}</div>
     </CardContent>
