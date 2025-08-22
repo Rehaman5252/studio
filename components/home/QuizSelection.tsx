@@ -68,7 +68,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 4500); // Rotate every 4.5 seconds
+        }, 750); // Rotate every 0.75 seconds to complete the cycle in 4.5s
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);
