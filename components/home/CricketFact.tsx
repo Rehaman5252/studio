@@ -9,23 +9,24 @@ import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function CricketFact({ format }: { format: string }) {
-  const [facts, setFacts] = useState<string[]>([]);
+  const [currentFacts, setCurrentFacts] = useState<string[]>(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const getFacts = async (currentFormat: string) => {
-      setLoading(true);
+      setIsLoading(true);
       try {
         const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
-        setFacts(newFacts && newFacts.length > 0 ? newFacts : ['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
-        setCurrentFactIndex(0);
+        if (newFacts && newFacts.length > 0) {
+          setCurrentFacts(newFacts);
+          setCurrentFactIndex(0);
+        }
       } catch (error) {
         console.error('Failed to fetch cricket facts:', error);
-        setFacts(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
-        setCurrentFactIndex(0);
+        // If fetching fails, we just keep the existing facts, so no change is visible to the user.
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     
@@ -33,12 +34,12 @@ export default function CricketFact({ format }: { format: string }) {
   }, [format]);
 
   const handleAnotherFact = () => {
-    if (facts && facts.length > 0) {
-      setCurrentFactIndex((prevIndex) => (prevIndex + 1) % facts.length);
+    if (currentFacts && currentFacts.length > 0) {
+      setCurrentFactIndex((prevIndex) => (prevIndex + 1) % currentFacts.length);
     }
   };
   
-  const currentFact = (facts && facts.length > 0) ? facts[currentFactIndex] : '';
+  const factToDisplay = currentFacts[currentFactIndex] || '';
 
   return (
     <Card className="bg-card/80 border-primary/10 shadow-lg">
@@ -52,20 +53,20 @@ export default function CricketFact({ format }: { format: string }) {
         <div className="min-h-[60px] flex items-center justify-center text-center">
             <AnimatePresence mode="wait">
                 <motion.p
-                    key={currentFact}
+                    key={factToDisplay}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                     className="text-sm text-muted-foreground"
                 >
-                    {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : currentFact}
+                    {factToDisplay}
                 </motion.p>
             </AnimatePresence>
         </div>
         <div className="flex justify-center mt-4">
-          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={loading || !facts || facts.length < 2}>
-            {loading ? (
+          <Button variant="secondary" size="sm" onClick={handleAnotherFact} disabled={isLoading || !currentFacts || currentFacts.length < 2}>
+            {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
