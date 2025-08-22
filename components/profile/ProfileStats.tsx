@@ -17,10 +17,10 @@ const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string
 const ProfileStatsComponent = ({ userProfile }: { userProfile: any }) => {
   return (
     <div className="grid grid-cols-2 gap-3">
-        <StatItem icon={<Star size={24}/>} label="Perfect Scores" value={userProfile?.perfectScores || 0} />
-        <StatItem icon={<Award size={24}/>} label="Quizzes Played" value={userProfile?.quizzesPlayed || 0} />
-        <StatItem icon={<TrendingUp size={24}/>} label="Win Percentage" value={`${userProfile?.quizzesPlayed > 0 ? ((userProfile.perfectScores / userProfile.quizzesPlayed) * 100).toFixed(1) : 0}%`} />
-        <StatItem icon={<Trophy size={24}/>} label="Rewards Earned" value={`₹${userProfile?.totalRewards || 0}`} />
+        <StatItem icon={<Star size={24} className="text-primary"/>} label="Perfect Scores" value={userProfile?.perfectScores || 0} />
+        <StatItem icon={<Award size={24} className="text-primary"/>} label="Quizzes Played" value={userProfile?.quizzesPlayed || 0} />
+        <StatItem icon={<TrendingUp size={24} className="text-primary"/>} label="Win Percentage" value={`${userProfile?.quizzesPlayed > 0 ? ((userProfile.perfectScores / userProfile.quizzesPlayed) * 100).toFixed(1) : 0}%`} />
+        <StatItem icon={<Trophy size={24} className="text-primary"/>} label="Rewards Earned" value={`₹${userProfile?.totalRewards || 0}`} />
     </div>
   );
 };

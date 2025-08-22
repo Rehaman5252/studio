@@ -96,7 +96,7 @@ function ProfilePageContent() {
                  <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                     <Link href="/certificates">
                         <div className="flex items-center">
-                            <Award className="mr-4" /> View Certificates
+                            <Award className="mr-4 text-primary" /> View Certificates
                         </div>
                         <ChevronRight/>
                     </Link>
@@ -105,7 +105,7 @@ function ProfilePageContent() {
             <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                 <Link href="/settings">
                     <div className="flex items-center">
-                        <Settings className="mr-4" /> App Settings
+                        <Settings className="mr-4 text-primary" /> App Settings
                     </div>
                     <ChevronRight/>
                 </Link>
@@ -113,7 +113,7 @@ function ProfilePageContent() {
             <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                 <Link href="/policies">
                     <div className="flex items-center">
-                        <Scale className="mr-4" /> Legal & Policies
+                        <Scale className="mr-4 text-primary" /> Legal & Policies
                     </div>
                     <ChevronRight/>
                 </Link>
@@ -132,7 +132,7 @@ function ProfilePageContent() {
                     <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                         <Link href="/contribute">
                             <div className="flex items-center">
-                                <Edit className="mr-4" />
+                                <Edit className="mr-4 text-primary" />
                                 Contribute Now
                             </div>
                             <ChevronRight/>

@@ -101,7 +101,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
             <div className="flex items-start gap-4">
                 <div className="mt-1 flex-shrink-0">
                     {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
-                    : isPerfectScore ? <Award className="h-8 w-8 text-yellow-500" />
+                    : isPerfectScore ? <Award className="h-8 w-8 text-primary" />
                     : <CheckCircle className="h-8 w-8 text-green-600" />
                     }
                 </div>
@@ -133,7 +133,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
                 
                 <AnalysisDialog attempt={attempt}>
                     <Button variant="secondary" size="sm" disabled={isDisqualified}>
-                        <Sparkles className="mr-2 h-4 w-4" />
+                        <Sparkles className="mr-2 h-4 w-4 text-primary" />
                         Analysis
                     </Button>
                 </AnalysisDialog>

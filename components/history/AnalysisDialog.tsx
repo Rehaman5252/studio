@@ -90,7 +90,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                             <Card className="bg-card/50"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart /> Performance Summary</CardTitle></CardHeader><CardContent><p>{analysis.overallPerformance}</p></CardContent></Card>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Zap /> Key Strengths</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.keyStrengths.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
+                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Zap className="text-primary" /> Key Strengths</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.keyStrengths.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
                                 <Card><CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><Target /> Areas for Improvement</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
                             </div>
 
