@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,10 +9,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthProvider';
 import { submitContribution } from '@/ai/flows/submit-contribution';
+import { refineText } from '@/ai/flows/refine-text';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 const PostFormSchema = z.object({
@@ -25,12 +26,31 @@ type PostFormValues = z.infer<typeof PostFormSchema>;
 export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
     const { user } = useAuth();
     const { toast } = useToast();
+    const [isRefining, setIsRefining] = useState<'title' | 'content' | null>(null);
+
     const form = useForm<PostFormValues>({
         resolver: zodResolver(PostFormSchema),
         defaultValues: { title: '', content: '' },
     });
 
     const { isSubmitting } = form.formState;
+
+    const handleRefine = async (field: 'title' | 'content') => {
+        const value = form.getValues(field);
+        if (!value) {
+            toast({ title: "Nothing to refine", description: `Please write a ${field} first.`, variant: "destructive"});
+            return;
+        }
+        setIsRefining(field);
+        try {
+            const refinedContent = await refineText({ text: value });
+            form.setValue(field, refinedContent, { shouldValidate: true });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not refine the text.", variant: "destructive"});
+        } finally {
+            setIsRefining(null);
+        }
+    };
 
     const onSubmit = async (values: PostFormValues) => {
         if (!user) return;
@@ -66,7 +86,13 @@ export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
                             name="title"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Title</FormLabel>
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel>Title</FormLabel>
+                                        <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('title')} disabled={!!isRefining}>
+                                            {isRefining === 'title' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            <span className="ml-2">Refine</span>
+                                        </Button>
+                                    </div>
                                     <FormControl>
                                         <Input placeholder="e.g., The evolution of T20 batting" {...field} />
                                     </FormControl>
@@ -79,7 +105,13 @@ export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
                             name="content"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Content</FormLabel>
+                                     <div className="flex justify-between items-center">
+                                        <FormLabel>Content</FormLabel>
+                                         <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('content')} disabled={!!isRefining}>
+                                            {isRefining === 'content' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            <span className="ml-2">Refine</span>
+                                        </Button>
+                                    </div>
                                     <FormControl>
                                         <Textarea placeholder="Write your post here..." {...field} rows={6} />
                                     </FormControl>
@@ -87,7 +119,7 @@ export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
                                 </FormItem>
                             )}
                         />
-                        <Button type="submit" disabled={isSubmitting} className="w-full">
+                        <Button type="submit" disabled={isSubmitting || !!isRefining} className="w-full">
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Submit Post
                         </Button>

@@ -1,17 +1,18 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthProvider';
 import { submitContribution } from '@/ai/flows/submit-contribution';
+import { refineText } from '@/ai/flows/refine-text';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 const FactFormSchema = z.object({
@@ -23,12 +24,31 @@ type FactFormValues = z.infer<typeof FactFormSchema>;
 export default function FactForm({ onSubmitted }: { onSubmitted: () => void }) {
     const { user } = useAuth();
     const { toast } = useToast();
+    const [isRefining, setIsRefining] = useState(false);
+
     const form = useForm<FactFormValues>({
         resolver: zodResolver(FactFormSchema),
         defaultValues: { content: '' },
     });
 
     const { isSubmitting } = form.formState;
+
+    const handleRefine = async () => {
+        const content = form.getValues('content');
+        if (!content) {
+            toast({ title: "Nothing to refine", description: "Please write a fact first.", variant: "destructive"});
+            return;
+        }
+        setIsRefining(true);
+        try {
+            const refinedContent = await refineText({ text: content });
+            form.setValue('content', refinedContent, { shouldValidate: true });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not refine the text.", variant: "destructive"});
+        } finally {
+            setIsRefining(false);
+        }
+    };
 
     const onSubmit = async (values: FactFormValues) => {
         if (!user) return;
@@ -64,7 +84,13 @@ export default function FactForm({ onSubmitted }: { onSubmitted: () => void }) {
                             name="content"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Fact</FormLabel>
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel>Fact</FormLabel>
+                                        <Button type="button" variant="ghost" size="sm" onClick={handleRefine} disabled={isRefining}>
+                                            {isRefining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            <span className="ml-2">Refine with AI</span>
+                                        </Button>
+                                    </div>
                                     <FormControl>
                                         <Textarea placeholder="e.g., Sachin Tendulkar is the only player to have scored 100 international centuries." {...field} />
                                     </FormControl>
@@ -72,7 +98,7 @@ export default function FactForm({ onSubmitted }: { onSubmitted: () => void }) {
                                 </FormItem>
                             )}
                         />
-                        <Button type="submit" disabled={isSubmitting} className="w-full">
+                        <Button type="submit" disabled={isSubmitting || isRefining} className="w-full">
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Submit Fact
                         </Button>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthProvider';
 import { submitContribution } from '@/ai/flows/submit-contribution';
+import { refineText } from '@/ai/flows/refine-text';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 const QuestionFormSchema = z.object({
@@ -28,6 +29,8 @@ type QuestionFormValues = z.infer<typeof QuestionFormSchema>;
 export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void }) {
     const { user } = useAuth();
     const { toast } = useToast();
+    const [isRefining, setIsRefining] = useState<string | null>(null);
+
     const form = useForm<QuestionFormValues>({
         resolver: zodResolver(QuestionFormSchema),
         defaultValues: {
@@ -41,6 +44,24 @@ export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void 
     const { fields } = useFieldArray({ control: form.control, name: "options" });
     const { isSubmitting } = form.formState;
     const optionsWatch = form.watch('options');
+
+    const handleRefine = async (fieldName: 'question' | 'explanation' | `options.${number}.value`) => {
+        const value = form.getValues(fieldName as any);
+        if (!value) {
+            toast({ title: "Nothing to refine", description: `Please write some text in the field first.`, variant: "destructive"});
+            return;
+        }
+        setIsRefining(fieldName);
+        try {
+            const refinedContent = await refineText({ text: value });
+            form.setValue(fieldName as any, refinedContent, { shouldValidate: true });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not refine the text.", variant: "destructive"});
+        } finally {
+            setIsRefining(null);
+        }
+    };
+
 
     const onSubmit = async (values: QuestionFormValues) => {
         if (!user) return;
@@ -83,12 +104,32 @@ export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField name="question" control={form.control} render={({ field }) => (
-                            <FormItem><FormLabel>Question</FormLabel><FormControl><Textarea placeholder="e.g., Who won the Man of the Match in the 2011 World Cup Final?" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem>
+                                 <div className="flex justify-between items-center">
+                                    <FormLabel>Question</FormLabel>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('question')} disabled={!!isRefining}>
+                                        {isRefining === 'question' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                        <span className="ml-2">Refine</span>
+                                    </Button>
+                                </div>
+                                <FormControl><Textarea placeholder="e.g., Who won the Man of the Match in the 2011 World Cup Final?" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )} />
 
                         {fields.map((field, index) => (
                             <FormField key={field.id} name={`options.${index}.value`} control={form.control} render={({ field }) => (
-                                <FormItem><FormLabel>Option {index + 1}</FormLabel><FormControl><Input placeholder={`Enter option ${index + 1}`} {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel>Option {index + 1}</FormLabel>
+                                        <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine(`options.${index}.value`)} disabled={!!isRefining}>
+                                            {isRefining === `options.${index}.value` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                            <span className="ml-2">Refine</span>
+                                        </Button>
+                                    </div>
+                                    <FormControl><Input placeholder={`Enter option ${index + 1}`} {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                         ))}
                         
@@ -106,10 +147,18 @@ export default function QuestionForm({ onSubmitted }: { onSubmitted: () => void 
                         )} />
 
                         <FormField name="explanation" control={form.control} render={({ field }) => (
-                            <FormItem><FormLabel>Explanation (Optional)</FormLabel><FormControl><Textarea placeholder="Briefly explain why the answer is correct." {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem>
+                                <div className="flex justify-between items-center">
+                                    <FormLabel>Explanation (Optional)</FormLabel>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('explanation')} disabled={!!isRefining}>
+                                        {isRefining === 'explanation' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                        <span className="ml-2">Refine</span>
+                                    </Button>
+                                </div>
+                                <FormControl><Textarea placeholder="Briefly explain why the answer is correct." {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
 
-                        <Button type="submit" disabled={isSubmitting} className="w-full">
+                        <Button type="submit" disabled={isSubmitting || !!isRefining} className="w-full">
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Submit Question
                         </Button>
