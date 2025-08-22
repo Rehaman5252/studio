@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback }
-from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
@@ -17,13 +16,11 @@ export default function CricketFact({ format }: { format: string }) {
   const getFacts = useCallback(async (currentFormat: string) => {
     setLoading(true);
     try {
-      // Fetch a list of 10 facts
       const newFacts = await generateCricketFacts({ format: currentFormat, seenFacts: [] });
       setFacts(newFacts);
       setCurrentFactIndex(0);
     } catch (error) {
       console.error('Failed to fetch cricket facts:', error);
-      // Provide a default fact on error
       setFacts(['Did you know? The first official international cricket match was played between Canada and the United States in 1844.']);
       setCurrentFactIndex(0);
     } finally {
@@ -32,13 +29,13 @@ export default function CricketFact({ format }: { format: string }) {
   }, []);
 
   useEffect(() => {
-    // This effect runs only when the component mounts or the format changes.
     getFacts(format);
   }, [format, getFacts]);
 
   const handleAnotherFact = () => {
-    // Simply loop through the pre-fetched facts
-    setCurrentFactIndex(prevIndex => (prevIndex + 1) % facts.length);
+    if (facts.length > 0) {
+      setCurrentFactIndex((prevIndex) => (prevIndex + 1) % facts.length);
+    }
   };
   
   const currentFact = facts[currentFactIndex] || '';
@@ -55,7 +52,7 @@ export default function CricketFact({ format }: { format: string }) {
         <div className="min-h-[60px] flex items-center justify-center text-center">
             <AnimatePresence mode="wait">
                 <motion.p
-                    key={currentFact} // Use currentFact as key for animation to trigger on change
+                    key={currentFact}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
