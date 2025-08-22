@@ -27,7 +27,7 @@ type QuizAPIResponse = QuizData & {
 
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
-  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -115,6 +115,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timestamp: Date.now(),
       timePerQuestion,
       reason,
+      source: quizData.source,
     };
 
     await addQuizAttempt(attempt);
@@ -144,6 +145,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       totalQuestions: quizData.questions.length,
       timestamp: Date.now(),
       timePerQuestion,
+      source: quizData.source,
     };
     
     await addQuizAttempt(attempt);

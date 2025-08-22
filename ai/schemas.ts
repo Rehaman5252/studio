@@ -35,6 +35,7 @@ export const QuizAttempt = z.object({
   timestamp: z.number().describe("The Unix timestamp when the quiz was completed."),
   timePerQuestion: z.optional(z.array(z.number())).describe("Time taken in seconds for each question."),
   reason: z.optional(z.string()).describe("Reason for disqualification, if any (e.g., 'no-ball')."),
+  source: z.enum(['ai', 'fallback']).optional().describe("The source of the quiz data."),
 });
 
 // Infer TypeScript types from the Zod schemas
