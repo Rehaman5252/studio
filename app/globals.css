@@ -162,7 +162,6 @@
 
   .shadow-glow {
     box-shadow: 0 0 8px 0px hsla(var(--primary), 0.3);
-    border-color: hsl(var(--primary) / 0.5);
   }
 
   .animate-glow {
