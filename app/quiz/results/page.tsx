@@ -20,7 +20,7 @@ const ResultsContent = () => {
   const attempt: QuizAttempt | null = useMemo(() => {
     if (!attemptData) return null;
     try {
-      return JSON.parse(atob(attemptData));
+      return JSON.parse(atob(decodeURIComponent(attemptData)));
     } catch (e) {
       console.error("Failed to parse attempt data:", e);
       return null;
