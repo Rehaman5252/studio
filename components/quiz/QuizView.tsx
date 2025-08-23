@@ -85,7 +85,8 @@ export default function QuizView({
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    onAnswer(selectedOption || ""); 
+                    // Give a brief moment for UI to update before submitting
+                    setTimeout(() => onAnswer(selectedOption || ""), 100);
                     return 0;
                 }
                 if(prev <= 6 && !isMuted) {
@@ -161,8 +162,8 @@ export default function QuizView({
                             {question.options.map((option, index) => (
                                 <motion.div 
                                     key={option}
-                                    whileHover={selectedOption !== option ? { scale: 1.03 } : {}}
-                                    whileTap={selectedOption !== option ? { scale: 0.98 } : {}}
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.98 }}
                                 >
                                     <Label 
                                         htmlFor={`option-${index}`} 
@@ -205,7 +206,7 @@ export default function QuizView({
                         animate={!selectedOption ? { opacity: [1, 0.7, 1] } : { opacity: 1 }}
                         transition={!selectedOption ? { duration: 1.5, repeat: Infinity } : {}}
                     >
-                        <Button onClick={handleSubmit} disabled={!selectedOption} size="lg" className="w-full font-bold">
+                        <Button onClick={handleSubmit} disabled={!selectedOption || timeLeft === 0} size="lg" className="w-full font-bold">
                             Submit Answer
                         </Button>
                     </motion.div>

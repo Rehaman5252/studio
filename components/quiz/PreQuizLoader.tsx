@@ -72,7 +72,7 @@ export default function PreQuizLoader({ format, onFinish }: PreQuizLoaderProps) 
               animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}
             >
               <h2 className="text-2xl font-bold text-foreground mt-4">Getting the Pitch Ready...</h2>
-              <p className="text-muted-foreground mt-2 mb-6">Here's a quick powerplay of facts to warm you up!</p>
+              <p className="text-muted-foreground mt-2 mb-6">These facts may help you answer the quiz!</p>
             </motion.div>
             
             <Card className="w-full max-w-lg bg-card/50 shadow-lg border-primary/20">

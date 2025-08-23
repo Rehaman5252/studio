@@ -51,7 +51,7 @@ const ResultsContent = () => {
     <PageWrapper title={pageTitle} showBackButton>
       <Card className="text-center shadow-lg">
         <CardHeader>
-          {isPerfectScore ? (
+          {isPerfectScore && !isDisqualified ? (
             <>
               <Award className="h-16 w-16 mx-auto text-yellow-400 animate-pulse" />
               <CardTitle className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">Perfect Score!</CardTitle>
@@ -106,10 +106,12 @@ const ResultsContent = () => {
                   }
                   <span>Your Answer: {attempt.userAnswers[index] || "Not Answered"}</span>
                 </p>
-                <p className="flex items-center gap-2">
-                   <Award className="h-5 w-5 text-primary flex-shrink-0" />
-                   <span>Correct Answer: {question.correctAnswer}</span>
-                </p>
+                {attempt.userAnswers[index] !== question.correctAnswer && (
+                    <p className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Correct Answer: {question.correctAnswer}</span>
+                    </p>
+                )}
               </div>
               <Card className="bg-background/70 p-3">
                 <p className="text-xs text-muted-foreground font-semibold">EXPLANATION</p>

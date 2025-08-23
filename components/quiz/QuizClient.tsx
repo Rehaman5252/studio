@@ -195,7 +195,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   };
 
-  if (loading) {
+  if (loading && showPreQuizLoader) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <CricketLoading />
@@ -204,7 +204,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
   
-  if (showPreQuizLoader && !loading) {
+  if (showPreQuizLoader && !loading && !error) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
 
@@ -213,7 +213,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }
 
   if (!quizData) {
-    return <div className="flex items-center justify-center min-h-screen">Something went wrong.</div>;
+    return <div className="flex items-center justify-center min-h-screen">Something went wrong. Please try again.</div>;
   }
   
   if (showInterstitial && interstitialConfig) {
