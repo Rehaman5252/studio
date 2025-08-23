@@ -58,7 +58,6 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                     ...attempt,
                     userAnswers: attempt.userAnswers || [],
                     timePerQuestion: attempt.timePerQuestion || [],
-                    source: attempt.source || 'unknown',
                     unanswered: attempt.unanswered || 0,
                 });
                 const result = await generateQuizAnalysis(sanitizedAttempt as QuizAttempt);

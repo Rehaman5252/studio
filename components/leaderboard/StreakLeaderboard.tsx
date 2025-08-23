@@ -151,8 +151,8 @@ const StreakLeaderboard = () => {
                  <Card className="bg-card/80 text-center mt-4">
                     <CardContent className="p-6">
                         <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg text-foreground">No One's on a Run-Scoring Spell Yet 🔥</p>
-                        <p className="text-sm text-muted-foreground">Play daily to build your momentum and top the charts!</p>
+                        <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
+                        <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
                     </CardContent>
                 </Card>
             )
