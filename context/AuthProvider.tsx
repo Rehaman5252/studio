@@ -128,7 +128,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         if (user.photoURL && user.photoURL !== existingData.photoURL) {
             updates.photoURL = user.photoURL;
         }
-        if (!existingData.sortKey && existingData.name) {
+        if (!existingData.sortKey) {
              updates.sortKey = existingData.name || user.uid;
         }
         if (Object.keys(updates).length > 0) {
