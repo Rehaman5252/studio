@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
+import { Button } from '../ui/button';
 
 interface QuizClientProps {
   brand: string;
@@ -48,53 +49,59 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     return interstitialAds[currentQuestionIndex] || null;
   }, [currentQuestionIndex]);
 
-  useEffect(() => {
-    const fetchQuiz = async () => {
-      if (!user) {
-        setError("You must be logged in to play a quiz.");
-        setLoading(false);
-        setShowPreQuizLoader(false);
-        return;
+  const fetchQuiz = useCallback(async () => {
+    if (!user) {
+      setError("You must be logged in to play a quiz.");
+      setLoading(false);
+      setShowPreQuizLoader(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null); // Reset error state on retry
+      const response = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format, userId: user.uid }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch quiz data from the server.');
       }
-      try {
-        setLoading(true);
-        const response = await fetch('/api/quiz', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ format, userId: user.uid }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch quiz data.');
-        }
-        const data: QuizAPIResponse = await response.json();
-        if (data.questions.length < 5) {
-            throw new Error('Invalid quiz data received from server.');
-        }
+      const data: QuizAPIResponse = await response.json();
+      if (!data.questions || data.questions.length < 5) {
+          throw new Error('Invalid quiz data received from server.');
+      }
 
-        const dataWithSource = { ...data, source: data.source ?? 'fallback' };
-        setQuizData(dataWithSource);
-        
-        if (dataWithSource.source === 'fallback') {
-            toast({
-                title: "Classic Quiz Round!",
-                description: "This round is powered by our classic quiz engine while AI prepares more fresh challenges!",
-            });
-        }
-        
-      } catch (e: any) {
-        console.error("Quiz fetch failed:", e);
-        setError("Could not load the quiz. Please try again later.");
-        toast({
-          title: "Error",
-          description: "Failed to load quiz. Please check your connection and try again.",
-          variant: "destructive"
-        })
-      } finally {
-        setLoading(false);
+      const dataWithSource = { ...data, source: data.source ?? 'fallback' };
+      setQuizData(dataWithSource);
+      
+      if (dataWithSource.source === 'fallback') {
+          toast({
+              title: "Classic Quiz Round!",
+              description: "This round is powered by our classic quiz engine while AI prepares more fresh challenges!",
+          });
       }
-    };
-    fetchQuiz();
+      
+    } catch (e: any) {
+      console.error("Quiz fetch failed:", e);
+      let errorMessage = "Could not load the quiz. Please try again later.";
+      if(e.message.includes('Failed to fetch')){
+        errorMessage = "Network error. Please check your connection and try again."
+      }
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: "Failed to load quiz. Please check your connection and try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false);
+    }
   }, [format, user, toast]);
+
+  useEffect(() => {
+    fetchQuiz();
+  }, [fetchQuiz]);
 
   const handlePreQuizFinish = useCallback(() => {
     setShowPreQuizLoader(false);
@@ -209,11 +216,21 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }
 
   if (error) {
-    return <div className="flex items-center justify-center min-h-screen text-destructive p-4 text-center">{error}</div>;
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
+            <p className="mb-4">{error}</p>
+            <Button onClick={fetchQuiz}>Try Again</Button>
+        </div>
+    );
   }
 
   if (!quizData) {
-    return <div className="flex items-center justify-center min-h-screen">Something went wrong. Please try again.</div>;
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+            <p className="mb-4">Something went wrong. Please try again.</p>
+            <Button onClick={fetchQuiz}>Try Again</Button>
+        </div>
+    );
   }
   
   if (showInterstitial && interstitialConfig) {

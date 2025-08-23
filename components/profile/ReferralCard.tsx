@@ -31,15 +31,10 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
             </CardHeader>
             <CardContent className="space-y-3">
                  <div className="flex items-center space-x-2">
-                    <div className="flex-1 space-y-1">
-                        <p className="text-xs font-semibold text-muted-foreground">YOUR REFERRAL LINK</p>
-                        <div className="flex items-center space-x-2">
-                             <Input readOnly value={referralLink} className="text-sm font-mono" />
-                             <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0">
-                                {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                    </div>
+                    <Input readOnly value={referralLink} className="text-sm font-mono flex-1" />
+                    <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0">
+                        {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">
                     <span className="font-semibold text-muted-foreground text-sm">Total Referral Earnings:</span>

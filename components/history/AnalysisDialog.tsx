@@ -12,6 +12,7 @@ import { AlertTriangle, BarChart, Target, Zap, Lightbulb, CheckCircle2, XCircle 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 const AnalysisSkeleton = () => (
     <div className="space-y-4 animate-pulse">
@@ -55,7 +56,9 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
             setError(null);
             setAnalysis(null);
             try {
-                const result = await generateQuizAnalysis(attempt);
+                // Sanitize attempt object before sending to AI to remove undefined values
+                const sanitizedAttempt = sanitizeUserProfile(attempt);
+                const result = await generateQuizAnalysis(sanitizedAttempt);
                 setAnalysis(result);
             } catch (e) {
                 console.error("Error generating quiz analysis:", e);

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React from 'react';
 import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
 import PageWrapper from '@/components/PageWrapper';
 
@@ -13,4 +13,4 @@ function LeaderboardPage() {
   );
 }
 
-export default memo(LeaderboardPage);
+export default LeaderboardPage;
