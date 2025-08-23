@@ -33,7 +33,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                  <div className="flex items-center space-x-2">
                     <Input readOnly value={referralLink} className="text-sm font-mono flex-1 bg-secondary/50" />
                     <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0">
-                        {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                     </Button>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">
