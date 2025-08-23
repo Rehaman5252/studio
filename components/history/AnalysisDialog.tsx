@@ -10,27 +10,23 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart, Target, Zap, Lightbulb, CheckCircle2, XCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import { CricketLoading } from '../CricketLoading';
+import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 
 const AnalysisSkeleton = () => (
     <div className="space-y-4 animate-pulse">
         <CricketLoading />
         <div className="grid grid-cols-3 gap-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
+            <div className="h-24 w-full bg-muted rounded-lg" />
+            <div className="h-24 w-full bg-muted rounded-lg" />
+            <div className="h-24 w-full bg-muted rounded-lg" />
         </div>
-        <Card>
-            <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
-            <CardContent className="space-y-1"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></CardContent>
-        </Card>
+        <div className="h-24 w-full bg-muted rounded-lg" />
         <div className="grid md:grid-cols-2 gap-4">
-            <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></CardContent></Card>
-            <Card><CardHeader><Skeleton className="h-5 w-32" /></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></CardContent></Card>
+            <div className="h-32 w-full bg-muted rounded-lg" />
+            <div className="h-32 w-full bg-muted rounded-lg" />
         </div>
-        <Card><CardHeader><Skeleton className="h-5 w-28" /></CardHeader><CardContent><Skeleton className="h-4 w-full" /></CardContent></Card>
+        <div className="h-20 w-full bg-muted rounded-lg" />
     </div>
 )
 
@@ -58,7 +54,13 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
             setAnalysis(null);
             try {
                 // Sanitize attempt object before sending to AI to remove undefined values
-                const sanitizedAttempt = sanitizeUserProfile(attempt);
+                const sanitizedAttempt = sanitizeUserProfile({
+                    ...attempt,
+                    userAnswers: attempt.userAnswers || [],
+                    timePerQuestion: attempt.timePerQuestion || [],
+                    source: attempt.source || 'unknown',
+                    unanswered: attempt.unanswered || 0,
+                });
                 const result = await generateQuizAnalysis(sanitizedAttempt);
                 setAnalysis(result);
             } catch (e) {

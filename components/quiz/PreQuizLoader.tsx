@@ -28,6 +28,7 @@ export default function PreQuizLoader({ format, onFinish }: PreQuizLoaderProps) 
     const [facts, setFacts] = useState<string[]>([]);
     const [currentFactIndex, setCurrentFactIndex] = useState(0);
     const [progress, setProgress] = useState(0);
+    const [loadingFacts, setLoadingFacts] = useState(true);
 
     useEffect(() => {
         const fetchFacts = async () => {
@@ -37,16 +38,18 @@ export default function PreQuizLoader({ format, onFinish }: PreQuizLoaderProps) 
             } catch (error) {
                 console.error('Failed to fetch facts for pre-loader:', error);
                 setFacts(getFallbackFacts(format));
+            } finally {
+                setLoadingFacts(false);
             }
         };
         fetchFacts();
     }, [format]);
 
     useEffect(() => {
-        if (facts.length === 0) return;
+        if (loadingFacts) return;
 
         const factTimer = setInterval(() => {
-            setCurrentFactIndex(prev => (prev + 1) % facts.length);
+            setCurrentFactIndex(prev => (prev + 1) % (facts.length || 1));
         }, FACT_INTERVAL);
 
         const progressTimer = setInterval(() => {
@@ -62,7 +65,7 @@ export default function PreQuizLoader({ format, onFinish }: PreQuizLoaderProps) 
             clearInterval(progressTimer);
             clearTimeout(mainTimer);
         };
-    }, [facts, onFinish]);
+    }, [facts, onFinish, loadingFacts]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-background to-secondary/50 p-4 text-center">
@@ -83,7 +86,7 @@ export default function PreQuizLoader({ format, onFinish }: PreQuizLoaderProps) 
                 </div>
                 <div className="h-24 w-full flex items-center justify-center">
                     <AnimatePresence mode="wait">
-                        {facts.length > 0 && (
+                        {!loadingFacts && facts.length > 0 && (
                             <motion.p
                                 key={currentFactIndex}
                                 initial={{ opacity: 0, y: 20 }}

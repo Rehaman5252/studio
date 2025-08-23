@@ -4,6 +4,7 @@
 import type { QuizAttempt, QuizData } from '@/ai/schemas';
 import type { User } from 'firebase/auth';
 import { getQuizSlotId } from '@/lib/utils';
+import { sanitizeUserProfile } from './sanitizeUserProfile';
 
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
@@ -38,7 +39,7 @@ export const buildAttempt = ({
     
     const unansweredCount = Math.max(0, quizData.questions.length - userAnswers.length);
 
-    return {
+    const attemptObject: QuizAttempt = {
         userId: user.uid,
         slotId: getQuizSlotId(),
         brand,
@@ -53,4 +54,6 @@ export const buildAttempt = ({
         unanswered: unansweredCount,
         ...overrides,
     };
+
+    return sanitizeUserProfile(attemptObject) as QuizAttempt;
 };

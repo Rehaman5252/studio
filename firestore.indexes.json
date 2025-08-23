@@ -5,8 +5,8 @@
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "perfectScores", "order": "DESCENDING" },
         { "fieldPath": "totalScore", "order": "DESCENDING" },
+        { "fieldPath": "perfectScores", "order": "DESCENDING" },
         { "fieldPath": "quizzesPlayed", "order": "ASCENDING" }
       ]
     },

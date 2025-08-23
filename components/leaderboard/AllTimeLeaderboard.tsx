@@ -72,8 +72,8 @@ const AllTimeLeaderboard = () => {
         const usersCollection = collection(db, 'users');
         const q = query(
             usersCollection, 
-            orderBy('perfectScores', 'desc'), 
             orderBy('totalScore', 'desc'),
+            orderBy('perfectScores', 'desc'), 
             orderBy('quizzesPlayed', 'asc'),
             limit(50)
         );

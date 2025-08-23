@@ -204,12 +204,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   };
 
   if (loading && showPreQuizLoader) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <CricketLoading />
-        <p className="mt-4 text-muted-foreground animate-pulse">Loading Quiz...</p>
-      </div>
-    );
+    return <PreQuizLoader format={format} onFinish={() => {}} />;
   }
   
   if (showPreQuizLoader && !loading && !error) {
@@ -229,9 +224,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   if (!quizData) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
-             <AlertTriangle className="h-12 w-12 mb-4" />
-            <p className="mb-4">Something went wrong. Please try again.</p>
-            <Button onClick={fetchQuiz}>Try Again</Button>
+             <CricketLoading />
+            <p className="mb-4 mt-4">Loading Quiz...</p>
         </div>
     );
   }
