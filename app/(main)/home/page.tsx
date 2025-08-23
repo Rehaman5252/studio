@@ -2,7 +2,6 @@
 
 'use client';
 
-import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -18,11 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import PageWrapper from '@/components/PageWrapper';
 import CricketFact from '@/components/home/CricketFact';
-
-const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), {
-  loading: () => <HomeContentSkeleton />,
-  ssr: false,
-});
+import HomeClientContent from '@/components/home/HomeClientContent';
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse">
