@@ -43,7 +43,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                         aria-label="Referral Link"
                     />
                     <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0" aria-label="Copy referral link">
-                        {hasCopied ? <Check className="h-4 w-4 text-green-500 animate-pulse" /> : <Copy className="h-4 w-4" />}
+                        {hasCopied ? <Check className="h-4 w-4 text-green-500 animate-bounce" /> : <Copy className="h-4 w-4" />}
                     </Button>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">

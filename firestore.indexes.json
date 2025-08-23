@@ -37,7 +37,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "currentStreak", "order": "DESCENDING" },
-        { "fieldPath": "sortKey", "order": "ASCENDING" }
+        { "fieldPath": "name", "order": "ASCENDING" }
       ]
     },
     {

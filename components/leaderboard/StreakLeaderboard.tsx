@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -69,19 +69,24 @@ const StreakLeaderboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const calculateUserRank = async (streak: number, sortKey: string): Promise<number> => {
+    const calculateUserRank = useCallback(async (streak: number, name: string): Promise<number> => {
         if (!db) return 999;
         const usersCollection = collection(db, 'users');
-        const higherQuery = query(usersCollection, where('currentStreak', '>', streak));
-        const tieBreakerQuery = query(usersCollection, where('currentStreak', '==', streak), where('sortKey', '<', sortKey));
+        
+        const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
+        const tieBreakerQuery = query(
+            usersCollection, 
+            where('currentStreak', '==', streak), 
+            where('name', '<', name)
+        );
         
         const [higherSnapshot, tieSnapshot] = await Promise.all([
-            getCountFromServer(higherQuery),
+            getCountFromServer(higherStreakQuery),
             getCountFromServer(tieBreakerQuery)
         ]);
 
         return higherSnapshot.data().count + tieSnapshot.data().count + 1;
-    };
+    }, []);
 
     useEffect(() => {
         if (authLoading) return;
@@ -96,7 +101,7 @@ const StreakLeaderboard = () => {
             setError(null);
             try {
                 const usersCollection = collection(db, 'users');
-                const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('sortKey', 'asc'), limit(50));
+                const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
                 const querySnapshot = await getDocs(q);
 
                 const playersData = querySnapshot.docs
@@ -121,11 +126,10 @@ const StreakLeaderboard = () => {
                    if (userDoc.exists()) {
                         const data = userDoc.data();
                         const streak = data.currentStreak || 0;
+                        const name = data.name || 'Anonymous Player';
 
                         if (streak > 0) {
-                            const sortKey = data.sortKey || (data.name.toLowerCase() + user.uid.substring(0,5));
-                            const userRank = await calculateUserRank(streak, sortKey);
-                            
+                            const userRank = await calculateUserRank(streak, name);
                             setCurrentUserData({
                                 uid: user.uid,
                                 name: data.name || 'You',
@@ -156,7 +160,7 @@ const StreakLeaderboard = () => {
 
         fetchLeaderboard();
 
-    }, [authLoading, user]);
+    }, [authLoading, user, calculateUserRank]);
 
 
     const content = useMemo(() => {

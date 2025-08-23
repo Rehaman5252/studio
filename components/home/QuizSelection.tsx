@@ -50,6 +50,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     const [isRotating, setIsRotating] = useState(true);
 
     useEffect(() => {
+        // Prefetch immediately on component mount if user is available
         if (user?.uid) {
             fetch('/api/quiz', {
                 method: 'POST',
