@@ -88,20 +88,20 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
             "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
             isScratched
                 ? "bg-gradient-to-br from-amber-200 to-yellow-400 text-amber-900"
-                : "bg-gradient-to-br from-yellow-400 to-amber-600 text-amber-900"
+                : "bg-gradient-to-br from-yellow-400 to-amber-600 text-white"
         )}>
             {!isScratched ? (
                 <button 
-                    className="absolute inset-0 bg-gradient-to-br from-zinc-400 to-zinc-600 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-95 rounded-2xl p-2 text-center" 
+                    className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-95 rounded-2xl p-2 text-center" 
                     onClick={handleScratch} 
                     role="button" 
                     aria-label={`Scratch to reveal gift from ${brand}`}
                 >
                     <div className="w-16 h-16 relative mb-3">
-                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} />
+                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain invert brightness-0" data-ai-hint={`${brand} logo`} />
                     </div>
-                    <p className="font-bold text-zinc-800 text-lg">Scratch to reveal!</p>
-                    <p className="text-zinc-700 text-sm">From {brand}</p>
+                    <p className="font-bold text-lg">Scratch to reveal!</p>
+                    <p className="text-sm">From {brand}</p>
                 </button>
             ) : (
                 <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-fade-in-up">
