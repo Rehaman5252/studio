@@ -27,7 +27,7 @@ const SubmissionItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Submissions</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -81,11 +81,11 @@ export default function UserSubmissionsList() {
             } catch (e: any) {
                 console.error("Failed to fetch user submissions:", e);
                 if (e.code === 'unavailable') {
-                    setError("You appear to be offline.");
+                    setError("Bad connection has stopped play. Please check your network and try again.");
                 } else if (e.code === 'failed-precondition') {
                     setError("The required data is still being indexed. Please check back in a few moments.");
                 } else {
-                    setError("Could not load your submissions.");
+                    setError("A technical fault has interrupted play. We're working to get it fixed.");
                 }
             } finally {
                 setIsLoading(false);

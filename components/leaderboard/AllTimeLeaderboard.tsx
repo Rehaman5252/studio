@@ -73,7 +73,7 @@ const AllTimeLeaderboard = () => {
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("Firestore is not available.");
+            setError("A technical fault has interrupted play: Database not available.");
             setIsLoading(false);
             return;
         }
@@ -107,10 +107,12 @@ const AllTimeLeaderboard = () => {
             setPlayers(playersData);
             setIsLoading(false);
             setError(null);
-        }, (err) => {
+        }, (err: any) => {
             console.error("All-Time Leaderboard snapshot error: ", err);
             if (err.code === 'unavailable') {
                 setError("Bad connection has stopped play. Please check your network and try again.");
+            } else if (err.code === 'failed-precondition') {
+                setError("The leaderboard is being updated. Please check back in a moment.");
             } else {
                 setError("A technical fault has interrupted play. We're working to get it fixed.");
             }

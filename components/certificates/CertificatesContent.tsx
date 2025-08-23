@@ -35,7 +35,7 @@ const CertificateItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Certificates</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -218,5 +218,3 @@ export default function CertificatesContent() {
     </>
   );
 }
-
-    

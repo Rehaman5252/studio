@@ -91,7 +91,7 @@ const StreakLeaderboard = () => {
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("Firestore is not available.");
+            setError("A technical fault has interrupted play: Database not available.");
             setIsLoading(false);
             return;
         }
@@ -148,7 +148,7 @@ const StreakLeaderboard = () => {
 
             } catch (e: any) {
                 if (e.code === 'failed-precondition' || e.code === 'permission-denied') {
-                    setError("The covers are on! Our leaderboard is being prepared. Please check back in a moment.");
+                    setError("The leaderboard is being updated. Please check back in a moment.");
                 } else if (e.code === 'unavailable') {
                     setError("Bad connection has stopped play. Please check your network and try again.");
                 } else {

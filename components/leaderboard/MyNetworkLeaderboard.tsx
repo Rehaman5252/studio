@@ -70,7 +70,7 @@ const MyNetworkLeaderboard = () => {
             return;
         }
         if (!db) {
-            setError("Firestore is not available.");
+            setError("A technical fault has interrupted play: Database not available.");
             setIsLoading(false);
             return;
         }
@@ -112,9 +112,9 @@ const MyNetworkLeaderboard = () => {
 
             } catch (e: any) {
                 if (e.code === 'unavailable') {
-                    setError("You appear to be offline. Please check your connection.");
+                    setError("Bad connection has stopped play. Please check your network and try again.");
                 } else {
-                    setError("Could not load your network's leaderboard.");
+                    setError("A technical fault has interrupted play. We're working to get it fixed.");
                 }
                 console.error("Error fetching network leaderboard:", e);
             } finally {

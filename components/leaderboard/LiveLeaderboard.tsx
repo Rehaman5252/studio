@@ -84,7 +84,7 @@ const LiveLeaderboard = () => {
 
     useEffect(() => {
         if (!db) {
-            setError("A technical fault has interrupted play. We're working to get it fixed.");
+            setError("A technical fault has interrupted play: Database not available.");
             setStatus('error');
             return;
         }
@@ -114,10 +114,12 @@ const LiveLeaderboard = () => {
                 setPlayers(playersData);
                 setStatus(playersData.length > 0 ? 'active' : 'waiting');
                 setError(null);
-            }, (err) => {
+            }, (err: any) => {
                 console.error("Live Leaderboard snapshot error: ", err);
                 if (err.code === 'unavailable' || isOffline) {
                     setError("Bad connection has stopped play. Please check your network and try again.");
+                } else if (err.code === 'failed-precondition') {
+                    setError("The leaderboard is being updated. Please check back in a moment.");
                 } else {
                     setError("A technical fault has interrupted play. We're working to get it fixed.");
                 }
