@@ -115,8 +115,8 @@ const AllTimeLeaderboard = () => {
                  <Card className="bg-card/80 text-center mt-4">
                     <CardContent className="p-6">
                         <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg text-foreground">The Hall of Fame is Empty</p>
-                        <p className="text-sm text-muted-foreground">Be the first to get a perfect score and claim the top spot!</p>
+                        <p className="font-semibold text-lg text-foreground">The Honours Board is Awaiting Its First Legend 🏆</p>
+                        <p className="text-sm text-muted-foreground">Score a perfect 5/5 to etch your name in history!</p>
                     </CardContent>
                 </Card>
             )

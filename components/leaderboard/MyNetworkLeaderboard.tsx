@@ -135,8 +135,8 @@ const MyNetworkLeaderboard = () => {
                 <Card className="bg-card/80 text-center mt-4">
                      <CardContent className="p-6">
                         <Users className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg text-foreground">Build Your Network</p>
-                        <p className="text-sm text-muted-foreground">Refer friends to see their stats here!</p>
+                        <p className="font-semibold text-lg text-foreground">Build Your Squad 🤝</p>
+                        <p className="text-sm text-muted-foreground">Refer friends to see their stats here and form a winning partnership!</p>
                         <Button asChild size="sm" className="mt-4"><Link href="/profile">Get Referral Code</Link></Button>
                     </CardContent>
                 </Card>
