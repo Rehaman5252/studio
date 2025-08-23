@@ -16,6 +16,7 @@ import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
+import { AlertTriangle } from 'lucide-react';
 
 interface QuizClientProps {
   brand: string;
@@ -85,13 +86,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } catch (e: any) {
       console.error("Quiz fetch failed:", e);
       let errorMessage = "Could not load the quiz. Please try again later.";
-      if(e.message.includes('Failed to fetch')){
+      if(e.message.includes('fetch')){
         errorMessage = "Network error. Please check your connection and try again."
       }
       setError(errorMessage);
       toast({
-        title: "Error",
-        description: "Failed to load quiz. Please check your connection and try again.",
+        title: "Error Loading Quiz",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -218,7 +219,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   if (error) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
-            <p className="mb-4">{error}</p>
+            <AlertTriangle className="h-12 w-12 mb-4" />
+            <p className="font-semibold mb-4">{error}</p>
             <Button onClick={fetchQuiz}>Try Again</Button>
         </div>
     );
@@ -227,6 +229,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   if (!quizData) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+             <AlertTriangle className="h-12 w-12 mb-4" />
             <p className="mb-4">Something went wrong. Please try again.</p>
             <Button onClick={fetchQuiz}>Try Again</Button>
         </div>

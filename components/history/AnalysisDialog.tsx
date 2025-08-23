@@ -16,6 +16,7 @@ import { CricketLoading } from '../CricketLoading';
 
 const AnalysisSkeleton = () => (
     <div className="space-y-4 animate-pulse">
+        <CricketLoading />
         <div className="grid grid-cols-3 gap-4">
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />

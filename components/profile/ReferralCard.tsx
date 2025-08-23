@@ -29,7 +29,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                     Invite friends to indcric! You'll earn a bonus for every friend who signs up and scores their first perfect quiz.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
                  <div className="flex items-center space-x-2">
                     <Input readOnly value={referralLink} className="text-sm font-mono flex-1 bg-secondary/50" />
                     <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0">
@@ -41,7 +41,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                     <span className="font-bold text-primary text-lg">₹{referralEarnings || 0}</span>
                 </div>
                 <div>
-                   <p className="text-center text-xs text-muted-foreground mb-1">Share via</p>
+                   <p className="text-center text-xs text-muted-foreground mb-2">Share via</p>
                    <SocialShareButtons referralLink={referralLink} />
                 </div>
             </CardContent>

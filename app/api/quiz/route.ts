@@ -41,13 +41,13 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
-        console.error("Error in /api/quiz route, using fallback:", error);
+        console.error(`Error in /api/quiz route for format '${format}', using fallback:`, error);
     }
     const errorMessage = error instanceof Error && error.message === "Timeout"
-      ? `AI generation timed out for format '${format}'`
-      : `An error occurred during generation for format '${format}'`;
+      ? `AI generation timed out`
+      : `An error occurred during generation`;
 
-    console.warn(`[Fallback] ${errorMessage}. Using fallback.`);
+    console.warn(`[Fallback] ${errorMessage} for format '${format}'. Using fallback.`);
 
     // Fallback mechanism in case of any unexpected error during generation
     // Use the format variable that was captured and normalized at the beginning.
