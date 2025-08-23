@@ -152,8 +152,8 @@ export default function QuizView({
                             {question.options.map((option, index) => (
                                 <motion.div 
                                     key={option}
-                                    whileHover={{ scale: 1.03 }}
-                                    whileTap={{ scale: 0.98 }}
+                                    whileHover={selectedOption !== option ? { scale: 1.03 } : {}}
+                                    whileTap={selectedOption !== option ? { scale: 0.98 } : {}}
                                 >
                                     <Label 
                                         htmlFor={`option-${index}`} 
