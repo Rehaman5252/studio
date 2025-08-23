@@ -13,7 +13,7 @@ import StartQuizButton from '@/components/home/StartQuizButton';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { useMemo, useState } from 'react';
 import { getQuizSlotId } from '@/lib/utils';
-import { brandData } from '@/components/home/brandData';
+import { brandData, CubeBrand } from '@/components/home/brandData';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import PageWrapper from '@/components/PageWrapper';
@@ -84,7 +84,7 @@ function HomePage() {
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
-    const handleStartQuiz = () => {
+    const handleStartQuiz = (brandToPlay: CubeBrand) => {
         if (!user) {
             router.push(`/auth/login?from=/home`);
             return;
@@ -114,7 +114,7 @@ function HomePage() {
             return;
         }
         
-        router.push(`/quiz?brand=${encodeURIComponent(selectedBrand.brand)}&format=${encodeURIComponent(selectedBrand.format)}`);
+        router.push(`/quiz?brand=${encodeURIComponent(brandToPlay.brand)}&format=${encodeURIComponent(brandToPlay.format)}`);
     };
 
     const headerContent = (
@@ -154,7 +154,7 @@ function HomePage() {
              <div className="mt-6">
                 <StartQuizButton
                     brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
-                    onClick={handleStartQuiz}
+                    onClick={() => handleStartQuiz(selectedBrand)}
                     isDisabled={isQuizStatusLoading}
                     hasPlayed={hasPlayedInCurrentSlot}
                 />
