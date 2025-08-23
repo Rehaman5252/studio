@@ -65,14 +65,17 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
             setError(null);
             setAnalysis(null);
             try {
-                const sanitizedAttempt = sanitizeUserProfile({
+                // Ensure all required fields are present before sending to AI
+                const sanitizedAttempt: QuizAttempt = {
                     ...attempt,
                     userAnswers: attempt.userAnswers || [],
                     timePerQuestion: attempt.timePerQuestion || [],
                     unanswered: attempt.unanswered || 0,
-                    source: attempt.source || 'unknown',
-                });
-                const result = await generateQuizAnalysis(sanitizedAttempt as QuizAttempt);
+                    source: attempt.source || 'ai', // default to 'ai' if missing
+                    reason: attempt.reason || undefined,
+                };
+                
+                const result = await generateQuizAnalysis(sanitizeUserProfile(sanitizedAttempt) as QuizAttempt);
                 analysisCache.current[attemptId] = result;
                 setAnalysis(result);
             } catch (e) {

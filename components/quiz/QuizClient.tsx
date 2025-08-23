@@ -90,6 +90,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
           toast({
               title: "Classic Quiz Loaded!",
               description: data.fallbackReason || "Using a reliable fallback quiz for you.",
+              variant: "default"
           });
       }
       

@@ -76,7 +76,7 @@ const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: numb
 );
 
 const LiveLeaderboard = () => {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, isOffline } = useAuth();
     const { timeLeft } = useQuizStatus();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [status, setStatus] = useState<'loading' | 'active' | 'waiting' | 'error'>('loading');
@@ -88,16 +88,16 @@ const LiveLeaderboard = () => {
             setStatus('error');
             return;
         }
-        
+
         let unsubscribe: (() => void) | null = null;
         let lastSlotId = '';
 
         const setupListener = () => {
             const currentSlotId = getQuizSlotId();
-            if (currentSlotId === lastSlotId) return; // Only re-subscribe if the slot has changed
+            if (currentSlotId === lastSlotId) return;
             
             lastSlotId = currentSlotId;
-            if (unsubscribe) unsubscribe(); // Unsubscribe from the old listener
+            if (unsubscribe) unsubscribe();
 
             const entriesCollection = collection(db, 'leaderboard_live', currentSlotId, 'entries');
             const q = query(entriesCollection, orderBy('score', 'desc'), orderBy('time', 'asc'), limit(50));
@@ -116,7 +116,7 @@ const LiveLeaderboard = () => {
                 setError(null);
             }, (err) => {
                 console.error("Live Leaderboard snapshot error: ", err);
-                if (err.code === 'unavailable') {
+                if (err.code === 'unavailable' || isOffline) {
                     setError("Bad connection has stopped play. Please check your network and try again.");
                 } else {
                     setError("A technical fault has interrupted play. We're working to get it fixed.");
@@ -125,14 +125,14 @@ const LiveLeaderboard = () => {
             });
         };
 
-        const interval = setInterval(setupListener, 1000);
-        setupListener(); // Initial setup
+        const interval = setInterval(setupListener, 5000); // Check for new slot every 5 seconds
+        setupListener();
 
         return () => {
             clearInterval(interval);
             if (unsubscribe) unsubscribe();
         };
-    }, [user]);
+    }, [user, isOffline]);
 
     const content = useMemo(() => {
         if (status === 'loading' || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);

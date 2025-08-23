@@ -89,7 +89,8 @@ const AllTimeLeaderboard = () => {
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const playersData = querySnapshot.docs
-                .map(doc => {
+                .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
+                .map((doc, index) => {
                     const data = doc.data();
                     return {
                         uid: doc.id,
@@ -99,10 +100,9 @@ const AllTimeLeaderboard = () => {
                         totalScore: data.totalScore || 0,
                         quizzesPlayed: data.quizzesPlayed || 0,
                         isCurrentUser: user?.uid === doc.id,
+                        rank: index + 1
                     };
-                })
-                .filter(p => p.quizzesPlayed > 0)
-                .map((p, index) => ({ ...p, rank: index + 1 }));
+                });
 
             setPlayers(playersData);
             setIsLoading(false);

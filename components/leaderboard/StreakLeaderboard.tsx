@@ -7,12 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, getCountFromServer, where } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
-import { calculateUserRank } from '@/lib/calculateUserRank';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
     if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
@@ -70,6 +69,20 @@ const StreakLeaderboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const calculateUserRank = async (streak: number, sortKey: string): Promise<number> => {
+        if (!db) return 999;
+        const usersCollection = collection(db, 'users');
+        const higherQuery = query(usersCollection, where('currentStreak', '>', streak));
+        const tieBreakerQuery = query(usersCollection, where('currentStreak', '==', streak), where('sortKey', '<', sortKey));
+        
+        const [higherSnapshot, tieSnapshot] = await Promise.all([
+            getCountFromServer(higherQuery),
+            getCountFromServer(tieBreakerQuery)
+        ]);
+
+        return higherSnapshot.data().count + tieSnapshot.data().count + 1;
+    };
+
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
@@ -87,7 +100,8 @@ const StreakLeaderboard = () => {
                 const querySnapshot = await getDocs(q);
 
                 const playersData = querySnapshot.docs
-                    .map((doc) => {
+                    .filter(doc => (doc.data().currentStreak || 0) > 0)
+                    .map((doc, index) => {
                         const data = doc.data();
                         return {
                             uid: doc.id,
@@ -95,10 +109,9 @@ const StreakLeaderboard = () => {
                             avatar: data.photoURL,
                             currentStreak: data.currentStreak || 0,
                             isCurrentUser: user?.uid === doc.id,
+                            rank: index + 1
                         };
-                    })
-                    .filter(player => player.currentStreak > 0)
-                    .map((player, index) => ({ ...player, rank: index + 1 }));
+                    });
                 
                 setPlayers(playersData);
 
@@ -111,13 +124,7 @@ const StreakLeaderboard = () => {
 
                         if (streak > 0) {
                             const sortKey = data.sortKey || (data.name.toLowerCase() + user.uid.substring(0,5));
-                            const userRank = await calculateUserRank({
-                                db,
-                                collectionName: 'users',
-                                field: 'currentStreak',
-                                value: streak,
-                                sortKey: sortKey,
-                            });
+                            const userRank = await calculateUserRank(streak, sortKey);
                             
                             setCurrentUserData({
                                 uid: user.uid,

@@ -135,7 +135,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         if (user.photoURL && user.photoURL !== existingData.photoURL) {
             updates.photoURL = user.photoURL;
         }
-        if (!existingData.sortKey) {
+        if (!existingData.sortKey && existingData.name) {
              updates.sortKey = (existingData.name || '').toLowerCase() + user.uid.substring(0, 5);
         }
         if (Object.keys(updates).length > 0) {
@@ -171,7 +171,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
       } else {
-        handleUserDocument(user);
+        handleUserDocument(user).catch(console.error);
         setProfile(null);
       }
       setProfileLoading(false);
@@ -179,6 +179,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error fetching profile with onSnapshot:", error);
         setProfile(null);
         setProfileLoading(false);
+        setIsOffline(true);
     });
 
     const currentSlotId = getQuizSlotId();
@@ -202,6 +203,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     }, (error) => {
         console.error("Error fetching quiz history:", error);
         setQuizHistory({ data: [], loading: false, error: error.message });
+        setIsOffline(true);
     });
 
 
@@ -276,7 +278,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserData = useCallback(async (newData: Partial<UserProfile>) => {
     if (!user || !db) return;
-    const allowedFields = ['name', 'phone', 'photoURL', 'profileCompleted', 'guidedTourCompleted', 'dob', 'gender', 'occupation', 'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'];
+    const allowedFields = ['name', 'phone', 'photoURL', 'profileCompleted', 'guidedTourCompleted', 'dob', 'gender', 'occupation', 'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer', 'phoneVerified'];
     const filteredData: Partial<UserProfile> = Object.keys(newData).reduce((acc: any, key) => {
       if (allowedFields.includes(key)) acc[key] = (newData as any)[key];
       return acc;
@@ -287,9 +289,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, { ...sanitizeUserProfile(filteredData), updatedAt: serverTimestamp() });
+      setIsOffline(false);
     } catch (e) {
       console.error('updateUserData failed:', e);
       toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
+      setIsOffline(true);
       throw e;
     }
   }, [user, toast]);
@@ -297,6 +301,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
     if (!user || !profile || !db) return;
     
+    const sanitizedAttempt = { ...attempt, score: attempt.score || 0, totalQuestions: attempt.totalQuestions || 0, reason: attempt.reason || null };
+
     try {
       await runTransaction(db, async transaction => {
         const userDocRef = doc(db, 'users', user.uid);
@@ -306,9 +312,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const data = userDoc.data() as UserProfile;
         const statsUpdate: { [key:string]: any } = { 
             quizzesPlayed: increment(1),
-            totalScore: increment(attempt.score || 0),
+            totalScore: increment(sanitizedAttempt.score),
         };
-        const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
+        const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
         if (isPerfectScore) {
             statsUpdate.perfectScores = increment(1);
             statsUpdate.totalRewards = increment(100);
@@ -331,28 +337,30 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
         transaction.update(userDocRef, statsUpdate);
         
-        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attempt.slotId);
-        transaction.set(attemptRef, sanitizeUserProfile(attempt));
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
+        transaction.set(attemptRef, sanitizeUserProfile(sanitizedAttempt));
 
-        const liveEntryRef = doc(db, 'leaderboard_live', attempt.slotId, 'entries', user.uid);
-        const totalTime = attempt.timePerQuestion ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+        const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
+        const totalTime = sanitizedAttempt.timePerQuestion ? sanitizedAttempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
         transaction.set(liveEntryRef, {
             userId: user.uid,
             name: profile.name,
             avatar: profile.photoURL,
-            score: attempt.score,
+            score: sanitizedAttempt.score,
             time: totalTime,
-            disqualified: !!attempt.reason,
-            totalQuestions: attempt.totalQuestions,
-            format: attempt.format,
-            slotId: attempt.slotId,
-            source: attempt.source ?? null,
+            disqualified: !!sanitizedAttempt.reason,
+            totalQuestions: sanitizedAttempt.totalQuestions,
+            format: sanitizedAttempt.format,
+            slotId: sanitizedAttempt.slotId,
+            source: sanitizedAttempt.source ?? null,
             updatedAt: serverTimestamp(),
         }, { merge: true });
       });
+      setIsOffline(false);
     } catch (e) {
       console.error('addQuizAttempt failed:', e);
       toast({ title: "Sync Error", description: "Could not save your quiz result.", variant: 'destructive' });
+      setIsOffline(true);
     }
   }, [user, profile, toast]);
 
@@ -378,10 +386,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         noBallCount: newNoBallCount,
         lastNoBallTimestamp: serverTimestamp(),
       });
-
+      setIsOffline(false);
       return newNoBallCount;
     } catch (e) {
       console.error('handleMalpractice failed:', e);
+      setIsOffline(true);
       return newNoBallCount;
     }
   }, [user, profile]);
