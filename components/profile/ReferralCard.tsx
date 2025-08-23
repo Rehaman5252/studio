@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, Gift, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SocialShareButtons } from './SocialShareButtons';
+import { Input } from '../ui/input';
 
 const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCode: string, referralEarnings: number }) => {
     const { toast } = useToast();
@@ -30,13 +31,15 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
             </CardHeader>
             <CardContent className="space-y-3">
                  <div className="flex items-center space-x-2">
-                    <div className="grid flex-1 gap-1">
+                    <div className="flex-1 space-y-1">
                         <p className="text-xs font-semibold text-muted-foreground">YOUR REFERRAL LINK</p>
-                        <p className="text-sm font-mono p-2 border rounded-md bg-secondary truncate">{referralLink}</p>
+                        <div className="flex items-center space-x-2">
+                             <Input readOnly value={referralLink} className="text-sm font-mono" />
+                             <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0 bg-black border-primary text-primary hover:bg-primary/10 hover:text-primary">
+                                {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                        </div>
                     </div>
-                    <Button onClick={onCopy} size="sm" variant="outline" className="shrink-0 bg-black border-primary text-primary hover:bg-primary/10 hover:text-primary h-10 w-10">
-                        {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">
                     <span className="font-semibold text-muted-foreground text-sm">Total Referral Earnings:</span>
@@ -53,4 +56,5 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
 
 const ReferralCard = memo(ReferralCardComponent);
 export default ReferralCard;
+
 
