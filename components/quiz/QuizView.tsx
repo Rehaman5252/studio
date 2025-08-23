@@ -21,6 +21,7 @@ import {
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 
 const QUESTION_TIME_LIMIT = 15; // seconds
@@ -103,6 +104,8 @@ export default function QuizView({
             onAnswer(selectedOption);
         }
     };
+    
+    const progressValue = (questionNumber / totalQuestions) * 100;
 
     return (
         <div className="flex flex-col h-screen bg-background text-foreground p-4">
@@ -112,23 +115,29 @@ export default function QuizView({
                 </>
             )}
 
-            <header className="flex items-center justify-between mb-4">
-                <div>
+            <header className="flex flex-col gap-4 mb-4">
+                 <div className="flex items-center justify-between gap-4">
                     <p className="text-sm font-bold text-primary">{brand} - {format}</p>
-                    <h1 className="text-lg font-semibold">Question {questionNumber}/{totalQuestions}</h1>
+                    <div className="relative h-16 w-16">
+                         <CircularProgressbar
+                            value={timeLeft}
+                            maxValue={QUESTION_TIME_LIMIT}
+                            text={`${timeLeft}`}
+                            styles={buildStyles({
+                                textColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                                pathColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                                trailColor: 'hsl(var(--muted))',
+                                textSize: '28px',
+                            })}
+                         />
+                    </div>
                 </div>
-                <div className="relative h-16 w-16">
-                     <CircularProgressbar
-                        value={timeLeft}
-                        maxValue={QUESTION_TIME_LIMIT}
-                        text={`${timeLeft}`}
-                        styles={buildStyles({
-                            textColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-                            pathColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-                            trailColor: 'hsl(var(--muted))',
-                            textSize: '28px',
-                        })}
-                     />
+                 <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <h1 className="text-lg font-semibold">Question Progress</h1>
+                        <span className="text-sm font-semibold text-muted-foreground">{questionNumber}/{totalQuestions}</span>
+                    </div>
+                    <Progress value={progressValue} className="h-3 w-full" />
                 </div>
             </header>
 
