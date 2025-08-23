@@ -7,6 +7,8 @@ import { fallbackQuizData } from '@/lib/fallback-quiz';
 import { CricketLoading } from '../CricketLoading';
 import { Progress } from '../ui/progress';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Lightbulb } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 const DURATION = 5000; // 5 seconds
 const FACT_INTERVAL = DURATION / 5; // Show 5 facts in total
@@ -63,27 +65,40 @@ export default function PreQuizLoader({ format, onFinish }: PreQuizLoaderProps) 
     }, [facts, onFinish]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-8 text-center">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-background to-secondary/50 p-4 text-center">
             <CricketLoading />
-            <h2 className="text-2xl font-bold text-primary mt-4">Getting the Pitch Ready...</h2>
-            <p className="text-muted-foreground mt-2 mb-8">Here are some facts that might help you in the quiz!</p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}
+            >
+              <h2 className="text-2xl font-bold text-foreground mt-4">Getting the Pitch Ready...</h2>
+              <p className="text-muted-foreground mt-2 mb-6">Here's a quick powerplay of facts to warm you up!</p>
+            </motion.div>
             
-            <div className="h-20 w-full max-w-lg flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                    {facts.length > 0 && (
-                         <motion.p
-                            key={currentFactIndex}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.5 }}
-                            className="text-lg italic text-foreground"
-                        >
-                           "{facts[currentFactIndex]}"
-                        </motion.p>
-                    )}
-                </AnimatePresence>
-            </div>
+            <Card className="w-full max-w-lg bg-card/50 shadow-lg border-primary/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Lightbulb className="text-primary h-5 w-5"/>
+                  <h3 className="font-semibold text-primary">Pre-Quiz Tip</h3>
+                </div>
+                <div className="h-24 w-full flex items-center justify-center">
+                    <AnimatePresence mode="wait">
+                        {facts.length > 0 && (
+                            <motion.p
+                                key={currentFactIndex}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.5, ease: 'easeInOut' }}
+                                className="text-lg italic text-foreground"
+                            >
+                              "{facts[currentFactIndex]}"
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
+                </div>
+              </CardContent>
+            </Card>
             
             <Progress value={progress} className="w-full max-w-sm mt-8 h-2" />
         </div>
