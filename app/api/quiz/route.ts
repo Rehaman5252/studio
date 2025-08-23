@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     // Validate the output from the successful generation
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
         console.warn(`[Fallback] Generated quiz for format '${format}' was invalid or incomplete. Using fallback.`);
-        const fallback = fallbackQuizData[format] || fallbackQuizData.mixed;
+        const fallback = fallbackQuizData[format] || fallbackQuizData['mixed'];
         return NextResponse.json({ ...fallback, source: 'fallback' });
     }
     
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Fallback mechanism in case of any unexpected error during generation
     // Use the format variable that was captured and normalized at the beginning.
-    const fallback = fallbackQuizData[format] || fallbackQuizData.mixed;
+    const fallback = fallbackQuizData[format] || fallbackQuizData['mixed'];
     return NextResponse.json({ ...fallback, source: 'fallback' });
   }
 }
