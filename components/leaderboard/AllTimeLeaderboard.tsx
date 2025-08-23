@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -14,17 +14,17 @@ import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
-    if (rank === 1) return <span className="text-2xl">🥇</span>;
-    if (rank === 2) return <span className="text-2xl">🥈</span>;
-    if (rank === 3) return <span className="text-2xl">🥉</span>;
-    return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
+    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
+    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
+    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
+    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
 const LeaderboardItem = memo(({ player }: { player: AllTimePlayer }) => (
     <div className={cn("flex items-center p-2 rounded-lg transition-colors", player.isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
+        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || 'A'}</AvatarFallback></Avatar>
         <div className="flex-1">
             <p className="font-semibold text-foreground flex-1">{player.name}</p>
             <p className="text-xs text-muted-foreground">Played: {player.quizzesPlayed} | Total Score: {player.totalScore}</p>
@@ -37,7 +37,6 @@ const LeaderboardItem = memo(({ player }: { player: AllTimePlayer }) => (
 ));
 LeaderboardItem.displayName = 'LeaderboardItem';
 
-
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
         <Skeleton className="w-8 h-8 rounded-full" />
@@ -45,6 +44,16 @@ const LeaderboardItemSkeleton = () => (
         <Skeleton className="h-4 flex-1" />
         <Skeleton className="h-4 w-12" />
     </div>
+);
+
+const EmptyState = () => (
+    <Card className="bg-card/80 text-center mt-4">
+        <CardContent className="p-6">
+            <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+            <p className="font-semibold text-lg text-foreground">The Honours Board is Awaiting Its First Legend 🏆</p>
+            <p className="text-sm text-muted-foreground">Score a perfect 5/5 to etch your name in history!</p>
+        </CardContent>
+    </Card>
 );
 
 const ErrorState = ({ message }: { message: string }) => (
@@ -79,19 +88,22 @@ const AllTimeLeaderboard = () => {
         );
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const playersData = querySnapshot.docs.map((doc, index) => {
-                const data = doc.data();
-                return {
-                    uid: doc.id,
-                    name: data.name || 'Anonymous Player',
-                    avatar: data.photoURL,
-                    perfectScores: data.perfectScores || 0,
-                    totalScore: data.totalScore || 0,
-                    quizzesPlayed: data.quizzesPlayed || 0,
-                    rank: index + 1,
-                    isCurrentUser: user?.uid === doc.id,
-                };
-            }).filter(p => p.quizzesPlayed > 0);
+            const playersData = querySnapshot.docs
+                .map(doc => {
+                    const data = doc.data();
+                    return {
+                        uid: doc.id,
+                        name: data.name || 'Anonymous Player',
+                        avatar: data.photoURL,
+                        perfectScores: data.perfectScores || 0,
+                        totalScore: data.totalScore || 0,
+                        quizzesPlayed: data.quizzesPlayed || 0,
+                        isCurrentUser: user?.uid === doc.id,
+                    };
+                })
+                .filter(p => p.quizzesPlayed > 0)
+                .map((p, index) => ({ ...p, rank: index + 1 }));
+
             setPlayers(playersData);
             setIsLoading(false);
             setError(null);
@@ -108,27 +120,12 @@ const AllTimeLeaderboard = () => {
         return () => unsubscribe();
     }, [authLoading, user]);
 
-
-    const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+    const content = useMemo(() => {
+        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) {
-            return (
-                 <Card className="bg-card/80 text-center mt-4">
-                    <CardContent className="p-6">
-                        <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg text-foreground">The Honours Board is Awaiting Its First Legend 🏆</p>
-                        <p className="text-sm text-muted-foreground">Score a perfect 5/5 to etch your name in history!</p>
-                    </CardContent>
-                </Card>
-            )
-        }
-        
-        return players.map((player) => (
-            <LeaderboardItem key={player.uid} player={player} />
-        ));
-    };
-
+        if (players.length === 0) return <EmptyState />;
+        return players.map((player) => <LeaderboardItem key={player.uid} player={player} />);
+    }, [isLoading, authLoading, error, players]);
 
     return (
         <Card className="bg-card/80 shadow-lg mt-4">
@@ -136,8 +133,8 @@ const AllTimeLeaderboard = () => {
                 <CardTitle>All-Time Honours Board</CardTitle>
                 <CardDescription>Based on Perfect Scores and Total Runs</CardDescription>
             </CardHeader>
-            <CardContent className="p-2">
-                <div className="space-y-2">{renderContent()}</div>
+            <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-2">{content}</div>
             </CardContent>
         </Card>
     );

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import type { QuizAttempt } from '@/ai/schemas';
 import { generateQuizAnalysis, QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
@@ -12,9 +12,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { CricketLoading } from '../CricketLoading';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
+import { cn } from '@/lib/utils';
 
 const AnalysisSkeleton = () => (
     <div className="space-y-4 animate-pulse">
+        <div className='text-center text-sm text-muted-foreground'>
+            <p>Analyzing your performance...</p>
+        </div>
         <CricketLoading />
         <div className="grid grid-cols-3 gap-4">
             <div className="h-24 w-full bg-muted rounded-lg" />
@@ -44,23 +48,32 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
+    const analysisCache = useRef<Record<string, QuizAnalysisOutput>>({});
 
     useEffect(() => {
         if (!isOpen) return;
+        
+        const attemptId = attempt.slotId || attempt.timestamp.toString();
+        if (analysisCache.current[attemptId]) {
+            setAnalysis(analysisCache.current[attemptId]);
+            setLoading(false);
+            return;
+        }
 
         const getAnalysis = async () => {
             setLoading(true);
             setError(null);
             setAnalysis(null);
             try {
-                // Sanitize attempt object before sending to AI to remove undefined values
                 const sanitizedAttempt = sanitizeUserProfile({
                     ...attempt,
                     userAnswers: attempt.userAnswers || [],
                     timePerQuestion: attempt.timePerQuestion || [],
                     unanswered: attempt.unanswered || 0,
+                    source: attempt.source || 'unknown',
                 });
                 const result = await generateQuizAnalysis(sanitizedAttempt as QuizAttempt);
+                analysisCache.current[attemptId] = result;
                 setAnalysis(result);
             } catch (e) {
                 console.error("Error generating quiz analysis:", e);
@@ -104,26 +117,28 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                             <Card>
                                 <CardHeader><CardTitle>Question Breakdown</CardTitle><CardDescription>A detailed look at each question.</CardDescription></CardHeader>
                                 <CardContent>
-                                    <Table><TableHeader><TableRow><TableHead className="w-[10px]">Q#</TableHead><TableHead>Your Answer</TableHead><TableHead>Time</TableHead><TableHead>Category</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {analysis.analyzedQuestions.map((q, i) => (
-                                                <TableRow key={i}>
-                                                    <TableCell className="font-medium">{i+1}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            {q.isCorrect ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-destructive flex-shrink-0" />}
-                                                            <div className="flex flex-col text-xs">
-                                                                <span className={q.isCorrect ? '' : 'line-through text-muted-foreground'}>{q.userAnswer || "Skipped"}</span>
-                                                                {!q.isCorrect && <span className="">Correct: {q.correctAnswer}</span>}
+                                    <div className="overflow-x-auto">
+                                        <Table><TableHeader><TableRow><TableHead className="w-[10px]">Q#</TableHead><TableHead>Your Answer</TableHead><TableHead>Time</TableHead><TableHead>Category</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {analysis.analyzedQuestions.map((q, i) => (
+                                                    <TableRow key={i} className={cn(q.isCorrect ? 'bg-green-500/10' : 'bg-destructive/10')}>
+                                                        <TableCell className="font-medium">{i+1}</TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-2">
+                                                                {q.isCorrect ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-destructive flex-shrink-0" />}
+                                                                <div className="flex flex-col text-xs">
+                                                                    <span className={q.isCorrect ? '' : 'line-through text-muted-foreground'}>{q.userAnswer || "Skipped"}</span>
+                                                                    {!q.isCorrect && <span className="">Correct: {q.correctAnswer}</span>}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{q.timeTaken.toFixed(1)}s</TableCell>
-                                                    <TableCell><Badge variant="secondary">{q.category}</Badge></TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                                        </TableCell>
+                                                        <TableCell>{q.timeTaken.toFixed(1)}s</TableCell>
+                                                        <TableCell><Badge variant="secondary">{q.category}</Badge></TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>

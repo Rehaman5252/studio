@@ -1,13 +1,13 @@
 
 'use client';
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, where, getCountFromServer } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,11 +15,11 @@ import type { StreakPlayer } from './leaderboardTypes';
 import { calculateUserRank } from '@/lib/calculateUserRank';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
-    if (rank === 1) return <span className="text-2xl">🥇</span>;
-    if (rank === 2) return <span className="text-2xl">🥈</span>;
-    if (rank === 3) return <span className="text-2xl">🥉</span>;
-    if (!rank) return <span className="text-lg font-bold text-muted-foreground">--</span>;
-    return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
+    if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
+    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
+    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
+    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
+    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
@@ -36,7 +36,6 @@ const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: Strea
 ));
 LeaderboardItem.displayName = 'LeaderboardItem';
 
-
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
         <Skeleton className="w-8 h-8 rounded-full" />
@@ -52,6 +51,16 @@ const ErrorState = ({ message }: { message: string }) => (
         <AlertTitle>Rain Delay!</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
+);
+
+const EmptyState = () => (
+    <Card className="bg-card/80 text-center mt-4">
+        <CardContent className="p-6">
+            <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+            <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
+            <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
+        </CardContent>
+    </Card>
 );
 
 const StreakLeaderboard = () => {
@@ -77,17 +86,19 @@ const StreakLeaderboard = () => {
                 const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('sortKey', 'asc'), limit(50));
                 const querySnapshot = await getDocs(q);
 
-                const playersData = querySnapshot.docs.map((doc, index) => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        name: data.name || 'Anonymous Player',
-                        avatar: data.photoURL,
-                        currentStreak: data.currentStreak || 0,
-                        rank: index + 1,
-                        isCurrentUser: user?.uid === doc.id,
-                    };
-                }).filter(player => player.currentStreak > 0);
+                const playersData = querySnapshot.docs
+                    .map((doc) => {
+                        const data = doc.data();
+                        return {
+                            uid: doc.id,
+                            name: data.name || 'Anonymous Player',
+                            avatar: data.photoURL,
+                            currentStreak: data.currentStreak || 0,
+                            isCurrentUser: user?.uid === doc.id,
+                        };
+                    })
+                    .filter(player => player.currentStreak > 0)
+                    .map((player, index) => ({ ...player, rank: index + 1 }));
                 
                 setPlayers(playersData);
 
@@ -99,7 +110,7 @@ const StreakLeaderboard = () => {
                         const streak = data.currentStreak || 0;
 
                         if (streak > 0) {
-                            const sortKey = data.sortKey || user.uid;
+                            const sortKey = data.sortKey || (data.name.toLowerCase() + user.uid.substring(0,5));
                             const userRank = await calculateUserRank({
                                 db,
                                 collectionName: 'users',
@@ -116,8 +127,6 @@ const StreakLeaderboard = () => {
                                 rank: userRank,
                                 isCurrentUser: true,
                             });
-                        } else {
-                            setCurrentUserData(null);
                         }
                    }
                 } else {
@@ -125,7 +134,7 @@ const StreakLeaderboard = () => {
                 }
 
             } catch (e: any) {
-                if (e.code === 'failed-precondition') {
+                if (e.code === 'failed-precondition' || e.code === 'permission-denied') {
                     setError("The covers are on! Our leaderboard is being prepared. Please check back in a moment.");
                 } else if (e.code === 'unavailable') {
                     setError("Bad connection has stopped play. Please check your network and try again.");
@@ -143,20 +152,10 @@ const StreakLeaderboard = () => {
     }, [authLoading, user]);
 
 
-    const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+    const content = useMemo(() => {
+        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState message={error} />;
-        if (players.length === 0) {
-            return (
-                 <Card className="bg-card/80 text-center mt-4">
-                    <CardContent className="p-6">
-                        <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
-                        <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
-                    </CardContent>
-                </Card>
-            )
-        }
+        if (players.length === 0) return <EmptyState />;
         
         return (
             <>
@@ -165,13 +164,13 @@ const StreakLeaderboard = () => {
                 ))}
                 {currentUserData && (
                     <>
-                        <div className="text-center text-muted-foreground text-sm py-2">...</div>
+                        <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
                         <LeaderboardItem player={currentUserData} isCurrentUser={true} />
                     </>
                 )}
             </>
         );
-    };
+    }, [isLoading, authLoading, error, players, currentUserData]);
 
 
     return (
@@ -180,8 +179,8 @@ const StreakLeaderboard = () => {
                 <CardTitle>Daily Streak Champions</CardTitle>
                 <CardDescription>The most consistent players on the pitch.</CardDescription>
             </CardHeader>
-            <CardContent className="p-2">
-                <div className="space-y-2">{renderContent()}</div>
+            <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-2">{content}</div>
             </CardContent>
         </Card>
     );

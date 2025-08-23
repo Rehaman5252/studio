@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData, QuizAttempt } from '@/ai/schemas';
+import { QuizData } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
@@ -25,6 +25,7 @@ interface QuizClientProps {
 
 type QuizAPIResponse = QuizData & {
   source?: 'ai' | 'fallback';
+  fallbackReason?: string;
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
@@ -38,19 +39,26 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [showInterstitial, setShowInterstitial] = useState(false);
   const [showAdDialog, setShowAdDialog] = useState(false);
-  const [adForHint, setAdForHint] = useState<any>(null);
+  const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
   const { user, addQuizAttempt, handleMalpractice } = useAuth();
   const { toast } = useToast();
   const { settings } = useSettings();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
     return interstitialAds[currentQuestionIndex] || null;
   }, [currentQuestionIndex]);
 
   const fetchQuiz = useCallback(async () => {
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     if (!user) {
       setError("You must be logged in to play a quiz.");
       setLoading(false);
@@ -59,34 +67,37 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
     try {
       setLoading(true);
-      setError(null); // Reset error state on retry
+      setError(null);
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ format, userId: user.uid }),
+        signal: controller.signal,
       });
+
       if (!response.ok) {
-        throw new Error('Failed to fetch quiz data from the server.');
+        throw new Error(`Server responded with ${response.status}`);
       }
+      
       const data: QuizAPIResponse = await response.json();
       if (!data.questions || data.questions.length < 5) {
           throw new Error('Invalid quiz data received from server.');
       }
 
-      const dataWithSource = { ...data, source: data.source ?? 'fallback' };
-      setQuizData(dataWithSource);
+      setQuizData(data);
       
-      if (dataWithSource.source === 'fallback') {
+      if (data.source === 'fallback') {
           toast({
-              title: "Classic Quiz Round!",
-              description: "This round is powered by our classic quiz engine while AI prepares more fresh challenges!",
+              title: "Classic Quiz Loaded!",
+              description: data.fallbackReason || "Using a reliable fallback quiz for you.",
           });
       }
       
     } catch (e: any) {
+      if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
       let errorMessage = "Could not load the quiz. Please try again later.";
-      if(e.message.includes('fetch')){
+      if(e.message.includes('fetch') || e.message.includes('network')) {
         errorMessage = "Network error. Please check your connection and try again."
       }
       setError(errorMessage);
@@ -96,12 +107,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         variant: "destructive"
       })
     } finally {
-      setLoading(false);
+        if (!controller.signal.aborted) {
+            setLoading(false);
+        }
     }
   }, [format, user, toast]);
 
   useEffect(() => {
     fetchQuiz();
+    return () => {
+        abortControllerRef.current?.abort();
+    }
   }, [fetchQuiz]);
 
   const handlePreQuizFinish = useCallback(() => {
@@ -150,7 +166,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
-    const timeTaken = (endTime - startTime) / 1000; // in seconds
+    const timeTaken = (endTime - startTime) / 1000;
     setTimePerQuestion(prev => [...prev, parseFloat(timeTaken.toFixed(2))]);
     setUserAnswers(prev => [...prev, answer]);
     
@@ -176,7 +192,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     if (!quizData) return;
     const adConfig = adLibrary.hintAds[currentQuestionIndex];
     if (adConfig) {
-      setAdForHint(adConfig);
+      setAdForHint(adConfig as any);
       setShowAdDialog(true);
     }
   };
@@ -202,12 +218,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
     setAdForHint(null);
   };
-
-  if (loading && showPreQuizLoader) {
-    return <PreQuizLoader format={format} onFinish={() => {}} />;
-  }
   
-  if (showPreQuizLoader && !loading && !error) {
+  if (showPreQuizLoader && !error) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
 
@@ -221,7 +233,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
 
-  if (!quizData) {
+  if (loading || !quizData) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />

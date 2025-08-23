@@ -17,13 +17,12 @@ interface UserProfile {
   name: string;
   photoURL?: string;
   currentStreak: number;
-  lastStreakTimestamp?: Date;
+  lastStreakTimestamp?: Timestamp;
   referredBy?: string;
-  noBalls: number;
-  lastNoBallTimestamp?: Date;
+  noBallCount: number;
+  lastNoBallTimestamp?: Timestamp;
   [key: string]: any;
 }
-
 
 interface UserDataContextType {
   user: User | null;
@@ -58,15 +57,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [quizHistory, setQuizHistory] = useState<{data: QuizAttempt[], loading: boolean, error: string | null}>({ data: [], loading: true, error: null });
 
-  // Unified offline detection
   useEffect(() => {
     const setOfflineTrue = () => setIsOffline(true);
     const setOfflineFalse = () => setIsOffline(false);
-
     window.addEventListener('online', setOfflineFalse);
     window.addEventListener('offline', setOfflineTrue);
     if (typeof navigator.onLine === 'boolean') setIsOffline(!navigator.onLine);
-
     return () => {
       window.removeEventListener('online', setOfflineFalse);
       window.removeEventListener('offline', setOfflineTrue);
@@ -96,6 +92,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     if (!docSnap.exists()) {
       const name = additionalData.name || user.displayName || 'New User';
+      const sortKey = name.toLowerCase() + user.uid.substring(0, 5);
       const newUserProfile = {
         uid: user.uid,
         name: name,
@@ -120,7 +117,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
         currentStreak: 0,
         lastStreakTimestamp: null,
-        sortKey: name.toLowerCase() || user.uid,
+        sortKey: sortKey,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       
@@ -139,7 +136,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             updates.photoURL = user.photoURL;
         }
         if (!existingData.sortKey) {
-             updates.sortKey = existingData.name.toLowerCase() || user.uid;
+             updates.sortKey = (existingData.name || '').toLowerCase() + user.uid.substring(0, 5);
         }
         if (Object.keys(updates).length > 0) {
             await updateDoc(userRef, updates);
@@ -178,12 +175,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfile(null);
       }
       setProfileLoading(false);
-      setIsOffline(false);
     }, (error) => {
         console.error("Error fetching profile with onSnapshot:", error);
-        if (error.code === 'unavailable') {
-            setIsOffline(true);
-        }
         setProfile(null);
         setProfileLoading(false);
     });
@@ -208,11 +201,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setQuizHistory({ data: historyData, loading: false, error: null });
     }, (error) => {
         console.error("Error fetching quiz history:", error);
-        let errorMessage = "Could not load your history. Please try again later.";
-        if (error.code === 'unavailable') {
-            errorMessage = "You appear to be offline. Please check your connection.";
-        }
-        setQuizHistory({ data: [], loading: false, error: errorMessage });
+        setQuizHistory({ data: [], loading: false, error: error.message });
     });
 
 
@@ -285,9 +274,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Signed Out", description: "You have been logged out successfully." });
   }, [toast]);
 
-  // Update user data safely
   const updateUserData = useCallback(async (newData: Partial<UserProfile>) => {
-    if (!user) return;
+    if (!user || !db) return;
     const allowedFields = ['name', 'phone', 'photoURL', 'profileCompleted', 'guidedTourCompleted', 'dob', 'gender', 'occupation', 'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'];
     const filteredData: Partial<UserProfile> = Object.keys(newData).reduce((acc: any, key) => {
       if (allowedFields.includes(key)) acc[key] = (newData as any)[key];
@@ -299,31 +287,19 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, { ...sanitizeUserProfile(filteredData), updatedAt: serverTimestamp() });
-      setProfile(prev => ({ ...prev, ...filteredData } as UserProfile));
-      setIsOffline(false);
     } catch (e) {
       console.error('updateUserData failed:', e);
-      setIsOffline(true);
       toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
       throw e;
     }
   }, [user, toast]);
 
-  // Sanitize quiz attempt
-  const sanitizeAttempt = (attempt: QuizAttempt) => ({
-    ...attempt,
-    score: attempt.score || 0,
-    totalQuestions: attempt.totalQuestions || 0,
-    reason: attempt.reason || null,
-  });
-
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !profile) return;
-    const attemptSanitized = sanitizeAttempt(attempt);
-
+    if (!user || !profile || !db) return;
+    
     try {
-      const userDocRef = doc(db, 'users', user.uid);
       await runTransaction(db, async transaction => {
+        const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await transaction.get(userDocRef);
         if (!userDoc.exists()) throw new Error('User not found');
         
@@ -338,10 +314,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             statsUpdate.totalRewards = increment(100);
         }
 
-        // UTC date for streak calculation
         const todayUTC = new Date();
         todayUTC.setUTCHours(0, 0, 0, 0);
-
         const lastStreakTimestamp = data.lastStreakTimestamp ? (data.lastStreakTimestamp as Timestamp).toDate() : null;
         const lastStreakUTC = lastStreakTimestamp ? new Date(lastStreakTimestamp.getTime()) : null;
         if (lastStreakUTC) lastStreakUTC.setUTCHours(0, 0, 0, 0);
@@ -349,8 +323,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const isSameDay = lastStreakUTC ? todayUTC.getTime() === lastStreakUTC.getTime() : false;
         
         if(!isSameDay) {
-            const yesterdayUTC = new Date(todayUTC);
-            yesterdayUTC.setUTCDate(todayUTC.getUTCDate() - 1);
+            const yesterdayUTC = new Date(todayUTC.getTime() - 86400000);
             const isYesterday = lastStreakUTC ? lastStreakUTC.getTime() === yesterdayUTC.getTime() : false;
             statsUpdate.currentStreak = isYesterday ? increment(1) : 1;
             statsUpdate.lastStreakTimestamp = serverTimestamp();
@@ -358,11 +331,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
         transaction.update(userDocRef, statsUpdate);
         
-        // Persist the quiz attempt
         const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attempt.slotId);
-        transaction.set(attemptRef, attemptSanitized);
+        transaction.set(attemptRef, sanitizeUserProfile(attempt));
 
-        // Update live leaderboard
         const liveEntryRef = doc(db, 'leaderboard_live', attempt.slotId, 'entries', user.uid);
         const totalTime = attempt.timePerQuestion ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
         transaction.set(liveEntryRef, {
@@ -378,28 +349,26 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             source: attempt.source ?? null,
             updatedAt: serverTimestamp(),
         }, { merge: true });
-
       });
-
-      setIsOffline(false);
     } catch (e) {
       console.error('addQuizAttempt failed:', e);
-      setIsOffline(true);
-       toast({ title: "Sync Error", description: "Could not save your quiz result.", variant: 'destructive' });
+      toast({ title: "Sync Error", description: "Could not save your quiz result.", variant: 'destructive' });
     }
   }, [user, profile, toast]);
 
   const handleMalpractice = useCallback(async (): Promise<number> => {
-    if (!user || !profile) return 0;
+    if (!user || !profile || !db) return 0;
     
     let newNoBallCount = profile.noBallCount || 0;
     
     try {
       const userDocRef = doc(db, 'users', user.uid);
-      const today = new Date().setHours(0, 0, 0, 0);
-      const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp).setHours(0, 0, 0, 0) : null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.toMillis()) : null;
+      if (lastNoBallDay) lastNoBallDay.setHours(0,0,0,0);
       
-      if (lastNoBallDay !== today) {
+      if (!lastNoBallDay || lastNoBallDay.getTime() !== today.getTime()) {
         newNoBallCount = 1;
       } else {
         newNoBallCount++;
@@ -409,18 +378,16 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         noBallCount: newNoBallCount,
         lastNoBallTimestamp: serverTimestamp(),
       });
-      setProfile(prev => ({ ...prev, noBallCount: newNoBallCount, lastNoBallTimestamp: new Date() } as UserProfile));
-      setIsOffline(false);
+
       return newNoBallCount;
     } catch (e) {
       console.error('handleMalpractice failed:', e);
-      setIsOffline(true);
       return newNoBallCount;
     }
   }, [user, profile]);
 
   const value: UserDataContextType = { 
-    user: user,
+    user,
     loading: firebaseLoading || profileLoading,
     profile, 
     isProfileComplete: profile?.profileCompleted || false,
@@ -450,5 +417,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    

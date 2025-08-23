@@ -14,11 +14,15 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
     const [hasCopied, setHasCopied] = React.useState(false);
     const referralLink = `https://indcric.app/auth/signup?ref=${referralCode}`;
 
-    const onCopy = () => {
-        navigator.clipboard.writeText(referralLink);
-        setHasCopied(true);
-        toast({ title: 'Copied!', description: 'Referral link copied to clipboard.' });
-        setTimeout(() => setHasCopied(false), 2000);
+    const onCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(referralLink);
+            setHasCopied(true);
+            toast({ title: 'Copied!', description: 'Referral link copied to clipboard.' });
+            setTimeout(() => setHasCopied(false), 2000);
+        } catch (err) {
+            toast({ title: 'Failed to copy', description: 'Could not copy link to clipboard.', variant: "destructive" });
+        }
     };
 
     return (
@@ -31,9 +35,15 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="flex items-center space-x-2">
-                    <Input readOnly value={referralLink} className="text-sm font-mono flex-1 bg-secondary/50" />
-                    <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0">
-                        {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    <Input 
+                        readOnly 
+                        value={referralLink} 
+                        className="text-sm font-mono flex-1 bg-secondary/50 cursor-text" 
+                        onFocus={(e) => e.target.select()}
+                        aria-label="Referral Link"
+                    />
+                    <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0" aria-label="Copy referral link">
+                        {hasCopied ? <Check className="h-4 w-4 text-green-500 animate-pulse" /> : <Copy className="h-4 w-4" />}
                     </Button>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">

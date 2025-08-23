@@ -50,12 +50,11 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     const [isRotating, setIsRotating] = useState(true);
 
     useEffect(() => {
-        // Prefetch immediately on component mount if user is available
         if (user?.uid) {
             fetch('/api/quiz', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ format: 'Mixed', userId: user.uid }),
+                body: JSON.stringify({ format: 'mixed', userId: user.uid }),
             }).catch(e => console.warn("Quiz prefetching failed in background:", e));
         }
     }, [user]);
@@ -70,7 +69,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 3000); // Rotate every 3 seconds
+        }, 3000);
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);
@@ -84,7 +83,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     }, [isProfileComplete, handleStartQuiz]);
     
     const handleFaceClick = (brand: CubeBrand) => {
-        setIsRotating(false); // Stop auto-rotation on user interaction
+        setIsRotating(false); 
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex);
