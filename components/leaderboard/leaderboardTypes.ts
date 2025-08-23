@@ -1,6 +1,6 @@
 
 export interface LivePlayer {
-    uid: string;
+    userId: string;
     name: string;
     avatar: string;
     score: number;
@@ -8,6 +8,11 @@ export interface LivePlayer {
     disqualified: boolean;
     rank?: number;
     isCurrentUser?: boolean;
+    totalQuestions: number;
+    format: string;
+    slotId: string;
+    source?: 'ai' | 'fallback' | null;
+    updatedAt?: any;
 }
 
 export interface AllTimePlayer {
@@ -15,6 +20,8 @@ export interface AllTimePlayer {
     name: string;
     avatar: string;
     perfectScores: number;
+    totalScore: number;
+    quizzesPlayed: number;
     rank?: number;
     isCurrentUser?: boolean;
 }

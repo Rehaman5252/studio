@@ -100,6 +100,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         quizzesPlayed: 0,
         perfectScores: 0,
         totalRewards: 0,
+        totalScore: 0,
         profileCompleted: false,
         guidedTourCompleted: false,
         phoneVerified: false,
@@ -301,7 +302,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     const userRef = doc(db, 'users', firebaseUser.uid);
     const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
-    const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -309,11 +309,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             if (!userDoc.exists()) throw new Error("User profile does not exist.");
             const userProfile = userDoc.data();
 
+            // 1. Update user aggregate stats
             const statsUpdate: {[key:string]: any} = { 
                 quizzesPlayed: increment(1),
+                totalScore: increment(attempt.score || 0),
             };
             
             const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
+            
+            if (isPerfectScore) {
+                statsUpdate.perfectScores = increment(1);
+                statsUpdate.totalRewards = increment(100);
+            }
             
             // Referral Bonus Logic
             if (isPerfectScore && userProfile.referredBy && !userProfile.referralBonusPaid) {
@@ -330,12 +337,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             
             // Daily Streak Logic
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Start of today
+            today.setHours(0, 0, 0, 0);
             const lastStreakDate = userProfile.lastStreakTimestamp ? (userProfile.lastStreakTimestamp as Timestamp).toDate() : null;
             if (lastStreakDate) {
-                lastStreakDate.setHours(0, 0, 0, 0); // Start of last streak day
+                lastStreakDate.setHours(0, 0, 0, 0);
             }
-            
             const isSameDay = lastStreakDate ? today.getTime() === lastStreakDate.getTime() : false;
 
             if (!isSameDay) {
@@ -343,49 +349,34 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 yesterday.setDate(today.getDate() - 1);
 
                 if (lastStreakDate && lastStreakDate.getTime() === yesterday.getTime()) {
-                    // It's a consecutive day
                     statsUpdate.currentStreak = increment(1);
                 } else {
-                    // Not consecutive, so reset streak
                     statsUpdate.currentStreak = 1;
                 }
                 statsUpdate.lastStreakTimestamp = serverTimestamp();
             }
-
-
-            const leaderboardDoc = await transaction.get(leaderboardRef);
-            let leaderboardPlayers: LivePlayer[] = [];
-
-            if (leaderboardDoc.exists() && leaderboardDoc.data().quizId === attempt.slotId) {
-                leaderboardPlayers = leaderboardDoc.data().players || [];
-            }
             
-            leaderboardPlayers = leaderboardPlayers.filter(p => p.uid !== firebaseUser.uid);
+            transaction.update(userRef, statsUpdate);
             
+            // 2. Persist the quiz attempt
+            transaction.set(attemptRef, sanitizeUserProfile(attempt));
+
+            // 3. Update the live leaderboard for the current slot
+            const liveEntryRef = doc(db, 'leaderboard_live', attempt.slotId, 'entries', firebaseUser.uid);
             const totalTime = attempt.timePerQuestion ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
-            const isDisqualified = !!attempt.reason;
 
-            leaderboardPlayers.push({
-                uid: firebaseUser.uid,
-                name: profile.name,
-                avatar: profile.photoURL,
+            transaction.set(liveEntryRef, {
+                userId: firebaseUser.uid,
+                displayName: profile.name,
+                photoURL: profile.photoURL,
                 score: attempt.score,
                 time: totalTime,
-                disqualified: isDisqualified,
-            });
-            
-            if (isPerfectScore) {
-                statsUpdate.perfectScores = increment(1);
-                statsUpdate.totalRewards = increment(100);
-            }
-            
-            transaction.set(attemptRef, sanitizeUserProfile(attempt));
-            transaction.update(userRef, statsUpdate);
-            transaction.set(leaderboardRef, { 
-                players: leaderboardPlayers, 
-                lastUpdated: serverTimestamp(),
-                quizId: attempt.slotId,
-                status: 'in-progress',
+                disqualified: !!attempt.reason,
+                totalQuestions: attempt.totalQuestions,
+                format: attempt.format,
+                slotId: attempt.slotId,
+                source: attempt.source ?? null,
+                updatedAt: serverTimestamp(),
             }, { merge: true });
         });
 

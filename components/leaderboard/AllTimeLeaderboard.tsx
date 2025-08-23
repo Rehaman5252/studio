@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -66,44 +66,43 @@ const AllTimeLeaderboard = () => {
             return;
         }
 
-        const fetchLeaderboard = async () => {
-            setIsLoading(true);
+        const usersCollection = collection(db, 'users');
+        const q = query(
+            usersCollection, 
+            orderBy('perfectScores', 'desc'), 
+            orderBy('totalScore', 'desc'),
+            orderBy('quizzesPlayed', 'asc'),
+            limit(50)
+        );
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const playersData = querySnapshot.docs.map((doc, index) => {
+                const data = doc.data();
+                return {
+                    uid: doc.id,
+                    name: data.name || 'Anonymous Player',
+                    avatar: data.photoURL,
+                    perfectScores: data.perfectScores || 0,
+                    totalScore: data.totalScore || 0,
+                    quizzesPlayed: data.quizzesPlayed || 0,
+                    rank: index + 1,
+                    isCurrentUser: user?.uid === doc.id,
+                };
+            });
+            setPlayers(playersData);
+            setIsLoading(false);
             setError(null);
-            try {
-                const usersCollection = collection(db, 'users');
-                const q = query(usersCollection, orderBy('perfectScores', 'desc'), limit(50));
-                const querySnapshot = await getDocs(q);
-
-                const playersData = querySnapshot.docs.map((doc, index) => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        name: data.name || 'Anonymous Player',
-                        avatar: data.photoURL,
-                        perfectScores: data.perfectScores || 0,
-                        rank: index + 1,
-                        isCurrentUser: user?.uid === doc.id,
-                    };
-                });
-                
-                setPlayers(playersData);
-
-            } catch (e: any) {
-                if (e.code === 'failed-precondition') {
-                    setError("The covers are on! Our leaderboard is being prepared. Please check back in a moment.");
-                } else if (e.code === 'unavailable') {
-                    setError("Bad connection has stopped play. Please check your network and try again.");
-                } else {
-                     setError("A technical fault has interrupted play. We're working to get it fixed.");
-                }
-                console.error("Error fetching all-time leaderboard:", e);
-            } finally {
-                setIsLoading(false);
+        }, (err) => {
+            console.error("All-Time Leaderboard snapshot error: ", err);
+            if (err.code === 'unavailable') {
+                setError("Bad connection has stopped play. Please check your network and try again.");
+            } else {
+                setError("A technical fault has interrupted play. We're working to get it fixed.");
             }
-        };
+            setIsLoading(false);
+        });
 
-        fetchLeaderboard();
-
+        return () => unsubscribe();
     }, [authLoading, user]);
 
 

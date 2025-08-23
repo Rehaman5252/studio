@@ -8,11 +8,12 @@ import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { WifiOff, ServerCrash, Clock, Ban, Users } from 'lucide-react';
+import { WifiOff, ServerCrash, Clock, Ban, Users, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
+import { getQuizSlotId } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -64,6 +65,14 @@ const LiveLeaderboard = () => {
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [status, setStatus] = useState<'loading' | 'active' | 'waiting' | 'error'>('loading');
     const [error, setError] = useState<string | null>(null);
+    const [slotId, setSlotId] = useState(getQuizSlotId());
+
+     useEffect(() => {
+        const interval = setInterval(() => {
+            setSlotId(getQuizSlotId());
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         if (!db) {
@@ -72,31 +81,21 @@ const LiveLeaderboard = () => {
             return;
         }
         
-        const leaderboardRef = doc(db, 'leaderboard', 'currentQuiz');
-        const unsubscribe = onSnapshot(leaderboardRef, (doc) => {
-            if (doc.exists()) {
-                const data = doc.data();
-                const playersData = data.players || [];
-                
-                // Sort players: score descending, then time ascending
-                const sortedPlayers = playersData.sort((a: LivePlayer, b: LivePlayer) => {
-                    if (b.score !== a.score) return b.score - a.score;
-                    return a.time - b.time;
-                });
-                
-                const rankedPlayers = sortedPlayers.map((player: LivePlayer, index: number) => ({
-                    ...player,
-                    rank: index + 1,
-                    isCurrentUser: user?.uid === player.uid,
-                }));
+        const entriesCollection = collection(db, 'leaderboard_live', slotId, 'entries');
+        const q = query(entriesCollection, orderBy('score', 'desc'), orderBy('time', 'asc'), limit(50));
 
-                setPlayers(rankedPlayers);
-                setStatus(rankedPlayers.length > 0 ? 'active' : 'waiting');
-                setError(null);
-            } else {
-                setPlayers([]);
-                setStatus('waiting');
-            }
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const playersData: LivePlayer[] = snapshot.docs.map((doc, index) => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    rank: index + 1,
+                    isCurrentUser: user?.uid === data.userId,
+                } as LivePlayer;
+            });
+            setPlayers(playersData);
+            setStatus(playersData.length > 0 ? 'active' : 'waiting');
+            setError(null);
         }, (err) => {
             console.error("Live Leaderboard snapshot error: ", err);
             if (err.code === 'unavailable') {
@@ -108,7 +107,7 @@ const LiveLeaderboard = () => {
         });
 
         return () => unsubscribe();
-    }, [user]);
+    }, [user, slotId]);
 
     const renderContent = () => {
         if (status === 'loading' || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
@@ -132,7 +131,7 @@ const LiveLeaderboard = () => {
         }
         
         return players.map((player) => (
-            <LeaderboardItem key={player.uid} player={player} />
+            <LeaderboardItem key={player.userId} player={player} />
         ));
     };
 

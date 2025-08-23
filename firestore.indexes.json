@@ -76,13 +76,6 @@
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "currentStreak", "order": "DESCENDING" }
-      ]
-    },
-     {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "currentStreak", "order": "DESCENDING" },
         { "fieldPath": "sortKey", "order": "ASCENDING" }
       ]
@@ -93,6 +86,24 @@
       "fields": [
         { "fieldPath": "currentStreak", "order": "ASCENDING" },
         { "fieldPath": "sortKey", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "score", "order": "DESCENDING" },
+        { "fieldPath": "time", "order": "ASCENDING" },
+        { "fieldPath": "displayName", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "perfectScores", "order": "DESCENDING" },
+        { "fieldPath": "totalScore", "order": "DESCENDING" },
+        { "fieldPath": "quizzesPlayed", "order": "DESCENDING" }
       ]
     }
   ],
