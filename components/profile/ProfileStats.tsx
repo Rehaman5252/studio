@@ -5,7 +5,7 @@ import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
 import React, { memo } from 'react';
 
 const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
-  <Card className="bg-secondary/50 p-3 rounded-lg transform transition-transform hover:scale-105 shadow-md">
+  <Card className="bg-secondary/50 p-3 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-primary/40">
     <div className='flex flex-col items-center text-center'>
       <div className="text-primary mb-1">{icon}</div>
       <p className="text-xl font-bold text-foreground leading-tight">{value}</p>
