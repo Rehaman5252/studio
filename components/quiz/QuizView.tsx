@@ -105,7 +105,7 @@ export default function QuizView({
     };
 
     return (
-        <div className="flex flex-col h-screen bg-background text-foreground p-4 relative">
+        <div className="flex flex-col h-screen bg-background text-foreground p-4">
             {typeof window !== 'undefined' && (
                 <>
                     <audio ref={el => audioRefs.current.tick = el} src="/sounds/tick.mp3" preload="auto" />
@@ -186,7 +186,7 @@ export default function QuizView({
 
             </main>
 
-            <footer className="mt-auto pt-4 relative">
+            <footer className="mt-auto pt-4 pb-12">
                 <div className="grid grid-cols-2 gap-4">
                     <Button variant="outline" size="lg" onClick={onHintRequest} disabled={isHintLoading || !!hint}>
                         {isHintLoading ? <Loader2 className="animate-spin text-primary" /> : <Lightbulb className="text-primary" />}
@@ -201,12 +201,18 @@ export default function QuizView({
                         </Button>
                     </motion.div>
                 </div>
-                <div className="absolute -bottom-2 right-0">
-                    <Button variant="ghost" className="rounded-full h-12 w-12 bg-card/50 hover:bg-card/90" size="icon" onClick={() => setIsMuted(prev => !prev)}>
-                        {isMuted ? <VolumeX className="text-primary"/> : <Volume2 className="text-primary"/>}
-                    </Button>
-                </div>
             </footer>
+            
+            <div className="fixed bottom-4 right-4 z-50">
+                <Button 
+                    variant="ghost" 
+                    className="rounded-full h-12 w-12 bg-card/50 hover:bg-card/90 shadow-md" 
+                    size="icon" 
+                    onClick={() => setIsMuted(prev => !prev)}
+                >
+                    {isMuted ? <VolumeX className="text-primary"/> : <Volume2 className="text-primary"/>}
+                </Button>
+            </div>
 
             <AlertDialog open={showNoBallAlert}>
                 <AlertDialogContent>
