@@ -19,9 +19,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'userId is required.' }, { status: 400 });
     }
     
+    // Normalize format to lowercase for reliable key access
     format = reqFormat.toLowerCase();
+
+    // Validate format against the allowed list
     if (!VALID_FORMATS.includes(format)) {
-      fallbackReason = `Invalid format '${format}'`;
+      fallbackReason = `Invalid format '${format}' provided.`;
       console.warn(`[Fallback] ${fallbackReason}. Defaulting to 'mixed'.`);
       format = 'mixed';
     }
