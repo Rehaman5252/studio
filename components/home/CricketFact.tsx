@@ -60,7 +60,7 @@ export default function CricketFact({ format }: { format: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="min-h-[60px] flex items-center justify-center text-center">
+        <div className="min-h-[40px] flex items-center justify-center text-center">
             <AnimatePresence mode="wait">
                 <motion.p
                     key={factToDisplay}
