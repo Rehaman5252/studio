@@ -79,7 +79,8 @@ function HomePage() {
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
-    const handleStartQuiz = (brandToPlay: CubeBrand) => {
+    const handleStartQuiz = (brandToPlay?: CubeBrand) => {
+        const brand = brandToPlay || selectedBrand;
         if (!user) {
             router.push(`/auth/login?from=/home`);
             return;
@@ -104,12 +105,13 @@ function HomePage() {
             return;
         }
         if (!isProfileComplete) {
-            // This case is handled by the HomeClientContent component's alert dialog
-             // This is a prop drill down, but keeps logic centralized.
+            // The HomeClientContent component will show an alert dialog in this case.
+            // This check is important here so the quiz doesn't start.
+            // A more direct way to trigger the dialog would be ideal.
             return;
         }
         
-        router.push(`/quiz?brand=${encodeURIComponent(brandToPlay.brand)}&format=${encodeURIComponent(brandToPlay.format)}`);
+        router.push(`/quiz?brand=${encodeURIComponent(brand.brand)}&format=${encodeURIComponent(brand.format)}`);
     };
 
     const headerContent = (
@@ -149,7 +151,7 @@ function HomePage() {
              <div className="mt-6">
                 <StartQuizButton
                     brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
-                    onClick={() => handleStartQuiz(selectedBrand)}
+                    onClick={() => handleStartQuiz()}
                     isDisabled={isQuizStatusLoading}
                     hasPlayed={hasPlayedInCurrentSlot}
                 />

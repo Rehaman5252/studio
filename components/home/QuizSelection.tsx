@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
@@ -37,7 +38,7 @@ const faceRotations = [
 interface QuizSelectionProps {
     selectedBrand: CubeBrand;
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
-    handleStartQuiz: () => void;
+    handleStartQuiz: (brand: CubeBrand) => void;
 }
 
 const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQuiz }: QuizSelectionProps) => {
@@ -68,16 +69,16 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 750); // Rotate every 0.75 seconds to complete the cycle in 4.5s
+        }, 3000); // Rotate every 3 seconds
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);
     
-    const initiateQuiz = useCallback(() => {
+    const initiateQuiz = useCallback((brand: CubeBrand) => {
         if (!isProfileComplete) {
             setShowProfileAlert(true);
         } else {
-            handleStartQuiz();
+             handleStartQuiz(brand);
         }
     }, [isProfileComplete, handleStartQuiz]);
     
@@ -87,10 +88,10 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex);
             setRotation(faceRotations[clickedIndex]);
-            setSelectedBrand(brandData[clickedIndex]);
+            setSelectedBrand(brand);
             // Use a short delay to allow the cube to rotate before initiating the quiz start logic
             setTimeout(() => {
-               initiateQuiz();
+               initiateQuiz(brand);
             }, 300);
         }
     };
@@ -104,7 +105,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
         <>
             <div className="text-center" id="tour-step-1">
                 <h2 className="text-2xl font-bold">Select Your Quiz Format</h2>
-                <p className="text-sm text-muted-foreground">Click a face to select or wait for rotation</p>
+                <p className="text-sm text-muted-foreground">Click a face to play instantly</p>
             </div>
             
             <div className="flex justify-center items-center mt-0 h-[200px] w-full">
@@ -113,7 +114,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
 
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
-                onClick={initiateQuiz} 
+                onClick={() => initiateQuiz(selectedBrand)} 
             />
 
             <div className="mt-6 space-y-8" id="tour-step-2">

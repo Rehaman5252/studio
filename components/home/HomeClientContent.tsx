@@ -10,7 +10,7 @@ import type { CubeBrand } from './brandData';
 interface HomeClientContentProps {
     selectedBrand: CubeBrand;
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
-    handleStartQuiz: () => void;
+    handleStartQuiz: (brand: CubeBrand) => void;
 }
 
 const HomeClientContentComponent = ({ selectedBrand, setSelectedBrand, handleStartQuiz }: HomeClientContentProps) => {
