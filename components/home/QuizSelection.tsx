@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
@@ -42,7 +41,7 @@ interface QuizSelectionProps {
 }
 
 const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQuiz }: QuizSelectionProps) => {
-    const { isProfileComplete } = useAuth();
+    const { isProfileComplete, user } = useAuth();
     const router = useRouter();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
@@ -51,13 +50,15 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     const [isRotating, setIsRotating] = useState(true);
 
     useEffect(() => {
-        // Prefetch immediately on component mount
-        fetch('/api/quiz', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ format: 'Mixed', userId: 'prefetch-user' }),
-        }).catch(e => console.warn("Quiz prefetching failed in background:", e));
-    }, []);
+        // Prefetch immediately on component mount if user is available
+        if (user?.uid) {
+            fetch('/api/quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ format: 'Mixed', userId: user.uid }),
+            }).catch(e => console.warn("Quiz prefetching failed in background:", e));
+        }
+    }, [user]);
     
     useEffect(() => {
         if (!isRotating) return;
@@ -89,11 +90,8 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
             setCurrentFaceIndex(clickedIndex);
             setRotation(faceRotations[clickedIndex]);
             setSelectedBrand(brand);
-            // Use a short delay to allow the cube to rotate before initiating the quiz start logic
-            setTimeout(() => {
-               initiateQuiz(brand);
-            }, 300);
         }
+        initiateQuiz(brand);
     };
   
     const handleAuthAlertAction = () => {

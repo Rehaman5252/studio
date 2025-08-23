@@ -14,6 +14,7 @@ import { adLibrary, interstitialAds, InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
+import PreQuizLoader from './PreQuizLoader';
 
 interface QuizClientProps {
   brand: string;
@@ -27,6 +28,7 @@ type QuizAPIResponse = QuizData & {
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPreQuizLoader, setShowPreQuizLoader] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
@@ -51,6 +53,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       if (!user) {
         setError("You must be logged in to play a quiz.");
         setLoading(false);
+        setShowPreQuizLoader(false);
         return;
       }
       try {
@@ -88,11 +91,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         })
       } finally {
         setLoading(false);
-        setStartTime(Date.now());
       }
     };
     fetchQuiz();
   }, [format, user, toast]);
+
+  const handlePreQuizFinish = useCallback(() => {
+    setShowPreQuizLoader(false);
+    setStartTime(Date.now());
+  }, []);
 
   const finishQuiz = useCallback(async () => {
     if (!quizData || !user) return;
@@ -195,6 +202,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         <p className="mt-4 text-muted-foreground animate-pulse">Loading Quiz...</p>
       </div>
     );
+  }
+  
+  if (showPreQuizLoader && !loading) {
+      return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
 
   if (error) {
