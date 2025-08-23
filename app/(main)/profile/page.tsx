@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import SupportCard from "@/components/profile/SupportCard";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/PageWrapper";
-import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
@@ -77,16 +76,8 @@ function ProfilePageContent() {
     return <ProfileContent userProfile={profile} />;
   }
 
-  const actions = user && profile ? (
-    <EditProfileDialog userProfile={profile}>
-      <Button variant="ghost" size="icon">
-        <Edit className="h-5 w-5" />
-      </Button>
-    </EditProfileDialog>
-  ) : null;
-
   return (
-    <PageWrapper title="Player's Pavilion" actions={actions}>
+    <PageWrapper title="Player's Pavilion">
         <Suspense fallback={<ProfileSkeleton />}>
           {renderPrivateContent()}
         </Suspense>

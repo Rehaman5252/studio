@@ -6,12 +6,13 @@ import { useAuth } from '@/context/AuthProvider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Edit } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
+import { EditProfileDialog } from './EditProfileDialog';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user, profile } = useAuth(); // Get the auth user object
@@ -41,6 +42,15 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
 
     return (
         <Card className="bg-card shadow-lg relative">
+             {user && profile && (
+                <div className="absolute top-2 right-2 z-10">
+                    <EditProfileDialog userProfile={profile}>
+                        <Button variant="ghost" size="icon">
+                            <Edit className="h-5 w-5" />
+                        </Button>
+                    </EditProfileDialog>
+                </div>
+            )}
             <CardContent className="p-4 flex flex-col sm:flex-row items-center text-center sm:text-left gap-4">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                     <AvatarImage src={userProfile?.photoURL || `https://placehold.co/100x100.png`} alt="User Avatar" data-ai-hint="avatar person" />
