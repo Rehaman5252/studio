@@ -88,10 +88,10 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
     }, [attempt]);
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !analysis) {
             getAnalysis();
         }
-    }, [isOpen, getAnalysis]);
+    }, [isOpen, analysis, getAnalysis]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

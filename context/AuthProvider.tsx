@@ -147,6 +147,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
   
   useEffect(() => {
+    let unsubs: (()=>void)[] = [];
     if (firebaseLoading) {
         setProfileLoading(true);
         return;
@@ -183,6 +184,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfileLoading(false);
         setIsOffline(true);
     });
+    unsubs.push(unsubscribeProfile);
 
     const currentSlotId = getQuizSlotId();
     const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
@@ -193,6 +195,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setLastAttemptInSlot(null);
         setIsOffline(true);
     });
+    unsubs.push(unsubscribeAttempt);
     
     setQuizHistory(prev => ({ ...prev, loading: true }));
     const historyQuery = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
@@ -205,12 +208,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setQuizHistory({ data: [], loading: false, error: "Failed to load quiz history. You may be offline." });
         setIsOffline(true);
     });
+    unsubs.push(unsubscribeHistory);
 
 
     return () => {
-        unsubscribeProfile();
-        unsubscribeAttempt();
-        unsubscribeHistory();
+        unsubs.forEach(unsub => unsub());
     };
   }, [user, firebaseLoading, handleUserDocument]);
 
