@@ -98,7 +98,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
                     aria-label={`Scratch to reveal gift from ${brand}`}
                 >
                     <div className="w-16 h-16 relative mb-3">
-                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain invert brightness-0" data-ai-hint={`${brand} logo`} />
+                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} />
                     </div>
                     <p className="font-bold text-lg">Scratch to reveal!</p>
                     <p className="text-sm">From {brand}</p>
