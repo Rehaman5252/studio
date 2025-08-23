@@ -87,7 +87,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
         <Card className={cn(
             "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
             isScratched
-                ? "bg-gradient-to-br from-slate-300 to-gray-400 text-slate-800"
+                ? "bg-gradient-to-br from-amber-200 to-yellow-400 text-amber-900"
                 : "bg-gradient-to-br from-yellow-400 to-amber-600 text-amber-900"
         )}>
             {!isScratched ? (
