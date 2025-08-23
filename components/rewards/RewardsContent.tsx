@@ -13,6 +13,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
+import { cn } from '@/lib/utils';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -83,7 +84,12 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
 
   return (
     <div className="w-full aspect-[4/5] p-1">
-        <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl">
+        <Card className={cn(
+            "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
+            isScratched
+                ? "bg-gradient-to-br from-slate-300 to-gray-400 text-slate-800"
+                : "bg-gradient-to-br from-yellow-400 to-amber-600 text-amber-900"
+        )}>
             {!isScratched ? (
                 <button 
                     className="absolute inset-0 bg-gradient-to-br from-zinc-400 to-zinc-600 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-95 rounded-2xl p-2 text-center" 
@@ -99,10 +105,10 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
                 </button>
             ) : (
                 <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-fade-in-up">
-                    <Trophy className="h-10 w-10 mb-2 text-white" />
-                    <h3 className="text-lg font-bold text-white">{reward.gift}</h3>
-                    <p className="text-xs text-white/80 mt-1">{reward.description}</p>
-                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-white text-primary-foreground hover:bg-white/90" size="sm">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
+                    <Trophy className="h-10 w-10 mb-2 text-current" />
+                    <h3 className="text-lg font-bold text-current">{reward.gift}</h3>
+                    <p className="text-xs text-current/80 mt-1">{reward.description}</p>
+                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-white/20 text-white hover:bg-white/30" size="sm">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
                 </div>
             )}
         </Card>
