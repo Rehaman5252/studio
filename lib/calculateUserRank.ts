@@ -8,7 +8,7 @@ interface RankOptions {
   collectionName?: string;
   field: string;
   value: number;
-  nameKey: string;
+  sortKey: string;
 }
 
 /**
@@ -16,7 +16,7 @@ interface RankOptions {
  * @param {RankOptions} options - The options for calculating the rank.
  * @returns {Promise<number>} The user's calculated rank.
  */
-export async function calculateUserRank({ db, collectionName = 'users', field, value, nameKey }: RankOptions): Promise<number> {
+export async function calculateUserRank({ db, collectionName = 'users', field, value, sortKey }: RankOptions): Promise<number> {
   const usersCollection = collection(db, collectionName);
 
   // 1. Count all users with a strictly higher value in the given field.
@@ -27,7 +27,7 @@ export async function calculateUserRank({ db, collectionName = 'users', field, v
   const tieBreakerQuery = query(
     usersCollection,
     where(field, '==', value),
-    where('sortKey', '<', nameKey)
+    where('sortKey', '<', sortKey)
   );
   const tieSnapshot = await getCountFromServer(tieBreakerQuery);
 

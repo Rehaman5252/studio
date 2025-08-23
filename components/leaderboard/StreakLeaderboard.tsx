@@ -99,12 +99,12 @@ const StreakLeaderboard = () => {
                         const streak = data.currentStreak || 0;
 
                         if (streak > 0) {
-                            const queryKey = data.sortKey || user.uid;
+                            const sortKey = data.sortKey || user.uid;
                             const userRank = await calculateUserRank({
                                 db,
                                 field: 'currentStreak',
                                 value: streak,
-                                sortKey: queryKey,
+                                sortKey: sortKey,
                             });
                             
                             setCurrentUserData({
