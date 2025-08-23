@@ -46,6 +46,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const { user, addQuizAttempt, handleMalpractice } = useAuth();
   const { toast } = useToast();
   const { settings } = useSettings();
+  
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
@@ -53,18 +54,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [currentQuestionIndex]);
 
   const fetchQuiz = useCallback(async () => {
+    // Cancel any previous, ongoing fetch request
     if (abortControllerRef.current) {
         abortControllerRef.current.abort();
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    
+
     if (!user) {
       setError("You must be logged in to play a quiz.");
       setLoading(false);
       setShowPreQuizLoader(false);
       return;
     }
+    
     try {
       setLoading(true);
       setError(null);
@@ -80,6 +83,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
       
       const data: QuizAPIResponse = await response.json();
+      if (controller.signal.aborted) return; // Don't update state if component has unmounted
+
       if (!data.questions || data.questions.length < 5) {
           throw new Error('Invalid quiz data received from server.');
       }
@@ -90,23 +95,29 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
           toast({
               title: "Classic Quiz Loaded!",
               description: data.fallbackReason || "Using a reliable fallback quiz for you.",
-              variant: "default"
           });
       }
       
     } catch (e: any) {
-      if (e.name === 'AbortError') return;
+      if (e.name === 'AbortError') {
+        console.log('Quiz fetch aborted.');
+        return;
+      }
+
       console.error("Quiz fetch failed:", e);
       let errorMessage = "Could not load the quiz. Please try again later.";
-      if(e.message.includes('fetch') || e.message.includes('network')) {
+      if(e.message.includes('fetch') || e.message.includes('network') || e.message.includes('Server')) {
         errorMessage = "Network error. Please check your connection and try again."
       }
-      setError(errorMessage);
-      toast({
-        title: "Error Loading Quiz",
-        description: errorMessage,
-        variant: "destructive"
-      })
+      
+      if (!controller.signal.aborted) {
+        setError(errorMessage);
+        toast({
+            title: "Error Loading Quiz",
+            description: errorMessage,
+            variant: "destructive"
+        });
+      }
     } finally {
         if (!controller.signal.aborted) {
             setLoading(false);
@@ -116,9 +127,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   useEffect(() => {
     fetchQuiz();
+    // Cleanup function to abort the fetch request if the component unmounts
     return () => {
         abortControllerRef.current?.abort();
-    }
+    };
   }, [fetchQuiz]);
 
   const handlePreQuizFinish = useCallback(() => {

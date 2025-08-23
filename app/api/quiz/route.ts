@@ -7,13 +7,11 @@ const GENERATION_TIMEOUT = 8000; // 8 seconds
 const VALID_FORMATS = ['ipl', 'test', 'odi', 't20', 'mixed', 'wpl'];
 
 export async function POST(req: NextRequest) {
-  let format = 'mixed';
+  let requestedFormat = 'mixed';
   let fallbackReason: string | null = null;
-  let originalFormat = 'mixed';
-
+  
   try {
     const body = await req.json();
-    const reqFormat = body.format || 'mixed';
     const { userId } = body;
 
     if (!userId) {
@@ -21,25 +19,28 @@ export async function POST(req: NextRequest) {
     }
     
     // Normalize format to lowercase for reliable key access
-    format = reqFormat.toLowerCase();
-    originalFormat = format;
-
+    const formatFromRequest = (body.format || 'mixed').toLowerCase();
+    
     // Validate format against the allowed list
-    if (!VALID_FORMATS.includes(format)) {
-      fallbackReason = `Invalid format '${reqFormat}' provided.`;
-      console.warn(`[Fallback] ${fallbackReason}. Defaulting to 'mixed'.`);
-      format = 'mixed';
+    if (!VALID_FORMATS.includes(formatFromRequest)) {
+      fallbackReason = `Invalid format '${body.format}' provided. Defaulting to 'mixed'.`;
+      console.warn(`[Fallback] ${fallbackReason}`);
+      requestedFormat = 'mixed';
+    } else {
+      requestedFormat = formatFromRequest;
     }
 
+    const quizPromise = generateQuiz({ format: requestedFormat, userId });
+    
     const quizData = await Promise.race([
-        generateQuiz({ format, userId }),
+        quizPromise,
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), GENERATION_TIMEOUT))
     ]);
     
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
         fallbackReason = fallbackReason || 'AI returned incomplete or invalid quiz data.';
-        console.warn(`[Fallback] ${fallbackReason} for format '${originalFormat}'. Using fallback.`);
-        const fallback = fallbackQuizData[originalFormat] || fallbackQuizData['mixed'];
+        console.warn(`[Fallback] ${fallbackReason} for format '${requestedFormat}'. Using fallback.`);
+        const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
         return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
     }
     
@@ -47,14 +48,14 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     const errorMessage = error.message === "Timeout"
-      ? `AI generation timed out for format '${originalFormat}'`
+      ? `AI generation timed out for format '${requestedFormat}'`
       : `An error occurred during generation: ${error.message}`;
 
     fallbackReason = errorMessage;
 
-    console.warn(`[Fallback] ${fallbackReason}. Using fallback for '${originalFormat}'.`);
+    console.warn(`[Fallback] ${fallbackReason}. Using fallback for '${requestedFormat}'.`);
 
-    const fallback = fallbackQuizData[originalFormat] || fallbackQuizData['mixed'];
+    const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
     return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
   }
 }

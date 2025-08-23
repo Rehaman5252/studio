@@ -46,7 +46,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("network") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Rain Delay!</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -73,19 +73,25 @@ const StreakLeaderboard = () => {
         if (!db) return 999;
         const usersCollection = collection(db, 'users');
         
-        const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
-        const tieBreakerQuery = query(
-            usersCollection, 
-            where('currentStreak', '==', streak), 
-            where('name', '<', name)
-        );
-        
-        const [higherSnapshot, tieSnapshot] = await Promise.all([
-            getCountFromServer(higherStreakQuery),
-            getCountFromServer(tieBreakerQuery)
-        ]);
+        try {
+            const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
+            const tieBreakerQuery = query(
+                usersCollection, 
+                where('currentStreak', '==', streak), 
+                where('name', '<', name)
+            );
+            
+            const [higherSnapshot, tieSnapshot] = await Promise.all([
+                getCountFromServer(higherStreakQuery),
+                getCountFromServer(tieBreakerQuery)
+            ]);
 
-        return higherSnapshot.data().count + tieSnapshot.data().count + 1;
+            return higherSnapshot.data().count + tieSnapshot.data().count + 1;
+        } catch (e: any) {
+            console.error("Rank calculation failed:", e);
+            // In case of index error etc., return a non-breaking value
+            return 999; 
+        }
     }, []);
 
     useEffect(() => {

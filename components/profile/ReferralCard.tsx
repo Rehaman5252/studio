@@ -15,6 +15,10 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
     const referralLink = `https://indcric.app/auth/signup?ref=${referralCode}`;
 
     const onCopy = async () => {
+        if (!navigator.clipboard) {
+            toast({ title: 'Failed to copy', description: 'Clipboard API not available in this browser.', variant: "destructive" });
+            return;
+        }
         try {
             await navigator.clipboard.writeText(referralLink);
             setHasCopied(true);
@@ -42,7 +46,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                         onFocus={(e) => e.target.select()}
                         aria-label="Referral Link"
                     />
-                    <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0" aria-label="Copy referral link">
+                    <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0" aria-label="Copy referral link" type="button">
                         {hasCopied ? <Check className="h-4 w-4 text-green-500 animate-bounce" /> : <Copy className="h-4 w-4" />}
                     </Button>
                 </div>

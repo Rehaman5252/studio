@@ -48,27 +48,34 @@ const RewardsSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("network") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Rewards</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
 );
 
-const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId: string, timestamp: number }) => {
+const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) => {
   const [isScratched, setIsScratched] = useState(false);
   const storageKey = useMemo(() => `indcric-scratch-card-${slotId}`, [slotId]);
   
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const savedState = window.localStorage.getItem(storageKey);
-    if (savedState === 'true') setIsScratched(true);
+    // Ensure this code runs only on the client
+    if (typeof window !== 'undefined') {
+        const savedState = window.localStorage.getItem(storageKey);
+        if (savedState === 'true') {
+            setIsScratched(true);
+        }
+    }
   }, [storageKey]);
 
   const handleScratch = () => {
     setIsScratched(true);
-    window.localStorage.setItem(storageKey, 'true');
+     // Ensure this code runs only on the client
+    if (typeof window !== 'undefined') {
+        window.localStorage.setItem(storageKey, 'true');
+    }
   };
 
   const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
@@ -92,6 +99,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
         )}>
             {!isScratched ? (
                 <button 
+                    type="button"
                     className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-95 rounded-2xl p-2 text-center" 
                     onClick={handleScratch} 
                     role="button" 
@@ -108,7 +116,7 @@ const ScratchCard = memo(({ brand, slotId, timestamp }: { brand: string, slotId:
                     <Trophy className="h-10 w-10 mb-2 text-current" />
                     <h3 className="text-lg font-bold text-current">{reward.gift}</h3>
                     <p className="text-xs text-current/80 mt-1">{reward.description}</p>
-                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-white/20 text-white hover:bg-white/30" size="sm">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
+                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-white/20 text-white hover:bg-white/30" size="sm" type="button">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
                 </div>
             )}
         </Card>
@@ -128,7 +136,7 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
                     <h4 className="font-bold text-foreground">{title}</h4>
                     <p className="text-sm text-muted-foreground">{description}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink className="h-4 w-4 text-primary" /></Button>
+                <Button type="button" variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink className="h-4 w-4 text-primary" /></Button>
             </CardContent>
         </Card>
     </a>
@@ -141,21 +149,23 @@ function RewardsContentComponent() {
   
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
+    // Iterate backwards to get the most recent attempt for each slot
     for (let i = quizHistory.data.length - 1; i >= 0; i--) {
         const attempt = quizHistory.data[i];
-        if (attempt.slotId) {
+        if (attempt.slotId && !uniqueAttempts.has(attempt.slotId)) {
             uniqueAttempts.set(attempt.slotId, attempt);
         }
     }
+    // Return attempts sorted from most to least recent
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory.data]);
 
   const BrandGifts = () => {
-    if (loading) return <RewardsSkeleton />;
+    if (loading || quizHistory.loading) return <RewardsSkeleton />;
     if (quizHistory.error) return <ErrorState message={quizHistory.error} />;
     if (!user) {
       return (
-        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
+        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4" type="button"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
       );
     }
     if (rewardableAttempts.length === 0) {
@@ -170,8 +180,7 @@ function RewardsContentComponent() {
             <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
               <ScratchCard 
                 brand={attempt.brand} 
-                slotId={attempt.slotId} 
-                timestamp={attempt.timestamp}
+                slotId={attempt.slotId}
               />
             </CarouselItem>
           ))}

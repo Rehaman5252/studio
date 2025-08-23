@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, ReactNode, useRef } from 'react';
+import { useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import type { QuizAttempt } from '@/ai/schemas';
 import { generateQuizAnalysis, QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
@@ -43,52 +43,55 @@ interface AnalysisDialogProps {
     children: ReactNode;
 }
 
+// Simple in-memory cache for the session
+const analysisCache = new Map<string, QuizAnalysisOutput>();
+
 export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
     const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
-    const analysisCache = useRef<Record<string, QuizAnalysisOutput>>({});
-
-    useEffect(() => {
-        if (!isOpen) return;
-        
+    
+    const getAnalysis = useCallback(async () => {
         const attemptId = attempt.slotId || attempt.timestamp.toString();
         // Use cached analysis if available to prevent re-fetching
-        if (analysisCache.current[attemptId]) {
-            setAnalysis(analysisCache.current[attemptId]);
+        if (analysisCache.has(attemptId)) {
+            setAnalysis(analysisCache.get(attemptId)!);
             setLoading(false);
+            setError(null);
             return;
         }
 
-        const getAnalysis = async () => {
-            setLoading(true);
-            setError(null);
-            setAnalysis(null);
-            try {
-                // Ensure all required fields are present before sending to AI
-                const sanitizedAttempt: QuizAttempt = {
-                    ...attempt,
-                    userAnswers: attempt.userAnswers || [],
-                    timePerQuestion: attempt.timePerQuestion || [],
-                    unanswered: attempt.unanswered || 0,
-                    source: attempt.source || 'ai',
-                    reason: attempt.reason || undefined,
-                };
-                
-                const result = await generateQuizAnalysis(sanitizeUserProfile(sanitizedAttempt) as QuizAttempt);
-                analysisCache.current[attemptId] = result; // Cache the result
-                setAnalysis(result);
-            } catch (e) {
-                console.error("Error generating quiz analysis:", e);
-                setError("Could not generate AI analysis at this time. Please try again later.");
-            } finally {
-                setLoading(false);
-            }
-        };
+        setLoading(true);
+        setError(null);
+        setAnalysis(null);
+        try {
+            // Ensure all required fields are present before sending to AI
+            const sanitizedAttempt: QuizAttempt = {
+                ...attempt,
+                userAnswers: attempt.userAnswers || [],
+                timePerQuestion: attempt.timePerQuestion || [],
+                unanswered: attempt.unanswered || 0,
+                source: attempt.source || 'ai',
+                reason: attempt.reason || undefined,
+            };
+            
+            const result = await generateQuizAnalysis(sanitizeUserProfile(sanitizedAttempt) as QuizAttempt);
+            analysisCache.set(attemptId, result); // Cache the result
+            setAnalysis(result);
+        } catch (e) {
+            console.error("Error generating quiz analysis:", e);
+            setError("Could not generate AI analysis at this time. Please try again later.");
+        } finally {
+            setLoading(false);
+        }
+    }, [attempt]);
 
-        getAnalysis();
-    }, [isOpen, attempt]);
+    useEffect(() => {
+        if (isOpen) {
+            getAnalysis();
+        }
+    }, [isOpen, getAnalysis]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

@@ -91,6 +91,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
             setRotation(faceRotations[clickedIndex]);
             setSelectedBrand(brand);
         }
+        // No need for a timeout here, let initiateQuiz handle the logic
         initiateQuiz(brand);
     };
   
@@ -128,8 +129,8 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleAuthAlertAction}>
+                    <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+                    <AlertDialogAction type="button" onClick={handleAuthAlertAction}>
                         Complete Profile
                     </AlertDialogAction>
                 </AlertDialogFooter>

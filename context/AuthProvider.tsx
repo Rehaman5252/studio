@@ -58,14 +58,20 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [quizHistory, setQuizHistory] = useState<{data: QuizAttempt[], loading: boolean, error: string | null}>({ data: [], loading: true, error: null });
 
   useEffect(() => {
-    const setOfflineTrue = () => setIsOffline(true);
-    const setOfflineFalse = () => setIsOffline(false);
-    window.addEventListener('online', setOfflineFalse);
-    window.addEventListener('offline', setOfflineTrue);
-    if (typeof navigator.onLine === 'boolean') setIsOffline(!navigator.onLine);
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Set initial state
+    if (typeof navigator.onLine === 'boolean') {
+      setIsOffline(!navigator.onLine);
+    }
+    
     return () => {
-      window.removeEventListener('online', setOfflineFalse);
-      window.removeEventListener('offline', setOfflineTrue);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -170,6 +176,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfile(null);
       }
       setProfileLoading(false);
+      setIsOffline(false);
     }, (error) => {
         console.error("Error fetching profile with onSnapshot:", error);
         setProfile(null);
@@ -180,14 +187,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const currentSlotId = getQuizSlotId();
     const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
     const unsubscribeAttempt = onSnapshot(attemptDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            setLastAttemptInSlot(docSnap.data() as QuizAttempt);
-        } else {
-            setLastAttemptInSlot(null);
-        }
+        setLastAttemptInSlot(docSnap.exists() ? (docSnap.data() as QuizAttempt) : null);
     }, (error) => {
         console.warn("Could not listen to slot attempt:", error.message);
         setLastAttemptInSlot(null);
+        setIsOffline(true);
     });
     
     setQuizHistory(prev => ({ ...prev, loading: true }));
@@ -195,9 +199,10 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeHistory = onSnapshot(historyQuery, (querySnapshot) => {
         const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
         setQuizHistory({ data: historyData, loading: false, error: null });
+        setIsOffline(false);
     }, (error) => {
         console.error("Error fetching quiz history:", error);
-        setQuizHistory({ data: [], loading: false, error: error.message });
+        setQuizHistory({ data: [], loading: false, error: "Failed to load quiz history. You may be offline." });
         setIsOffline(true);
     });
 
