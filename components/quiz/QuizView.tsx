@@ -186,17 +186,26 @@ export default function QuizView({
 
             </main>
 
-            <footer className="mt-auto grid grid-cols-2 gap-4">
-                <Button variant="outline" onClick={onHintRequest} disabled={isHintLoading || !!hint}>
-                    {isHintLoading ? <Loader2 className="animate-spin text-primary" /> : <Lightbulb className="text-primary" />}
-                    Get a Hint
-                </Button>
-                <Button onClick={handleSubmit} disabled={!selectedOption}>
-                    Submit Answer
-                </Button>
-                 <Button variant="ghost" className="absolute bottom-4 right-4" size="icon" onClick={() => setIsMuted(prev => !prev)}>
-                    {isMuted ? <VolumeX className="text-primary"/> : <Volume2 className="text-primary"/>}
-                </Button>
+            <footer className="mt-auto pt-4 relative">
+                <div className="grid grid-cols-2 gap-4">
+                    <Button variant="outline" size="lg" onClick={onHintRequest} disabled={isHintLoading || !!hint}>
+                        {isHintLoading ? <Loader2 className="animate-spin text-primary" /> : <Lightbulb className="text-primary" />}
+                        <span className="ml-2">Get a Hint</span>
+                    </Button>
+                    <motion.div
+                        animate={!selectedOption ? { opacity: [1, 0.7, 1] } : { opacity: 1 }}
+                        transition={!selectedOption ? { duration: 1.5, repeat: Infinity } : {}}
+                    >
+                        <Button onClick={handleSubmit} disabled={!selectedOption} size="lg" className="w-full font-bold">
+                            Submit Answer
+                        </Button>
+                    </motion.div>
+                </div>
+                <div className="absolute -bottom-2 right-0">
+                    <Button variant="ghost" className="rounded-full h-12 w-12 bg-card/50 hover:bg-card/90" size="icon" onClick={() => setIsMuted(prev => !prev)}>
+                        {isMuted ? <VolumeX className="text-primary"/> : <Volume2 className="text-primary"/>}
+                    </Button>
+                </div>
             </footer>
 
             <AlertDialog open={showNoBallAlert}>
