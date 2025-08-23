@@ -12,11 +12,24 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
 
+interface UserProfile {
+  uid: string;
+  name: string;
+  photoURL?: string;
+  currentStreak: number;
+  lastStreakTimestamp?: Date;
+  referredBy?: string;
+  noBalls: number;
+  lastNoBallTimestamp?: Date;
+  [key: string]: any;
+}
+
+
 interface UserDataContextType {
-  user: User | null; // This is the firebase auth user from the parent provider
-  profile: any | null; 
+  user: User | null;
+  profile: UserProfile | null; 
   isProfileComplete: boolean;
-  loading: boolean; // This now represents profile loading status
+  loading: boolean;
   lastAttemptInSlot: QuizAttempt | null;
   quizHistory: {
     data: QuizAttempt[];
@@ -28,35 +41,35 @@ interface UserDataContextType {
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
   addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
-  updateUserData: (data: Partial<Record<string, any>>) => Promise<void>;
+  updateUserData: (data: Partial<UserProfile>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
   isOffline: boolean;
 }
 
-const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
+const AuthContext = createContext<UserDataContextType | undefined>(undefined);
 
 export const UserDataProvider = ({ children }: { children: ReactNode }) => {
-  const { user: firebaseUser, loading: firebaseLoading } = useFirebase();
+  const { user, loading: firebaseLoading } = useFirebase();
   const { toast } = useToast();
   
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [quizHistory, setQuizHistory] = useState<{data: QuizAttempt[], loading: boolean, error: string | null}>({ data: [], loading: true, error: null });
 
+  // Unified offline detection
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    if (typeof navigator.onLine === 'boolean') {
-      setIsOffline(!navigator.onLine);
-    }
-    
+    const setOfflineTrue = () => setIsOffline(true);
+    const setOfflineFalse = () => setIsOffline(false);
+
+    window.addEventListener('online', setOfflineFalse);
+    window.addEventListener('offline', setOfflineTrue);
+    if (typeof navigator.onLine === 'boolean') setIsOffline(!navigator.onLine);
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', setOfflineFalse);
+      window.removeEventListener('offline', setOfflineTrue);
     };
   }, []);
 
@@ -68,7 +81,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const userRef = doc(db, 'users', user.uid);
     let referredBy = '';
     
-    // If a referral code was provided, find the referrer's UID
     if (additionalData.referralCode) {
         const usersCol = collection(db, 'users');
         const q = query(usersCol, where('referralCode', '==', additionalData.referralCode), limit(1));
@@ -79,7 +91,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             console.warn(`Referral code "${additionalData.referralCode}" not found.`);
         }
     }
-
 
     const docSnap = await getDoc(userRef);
 
@@ -109,11 +120,10 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
         currentStreak: 0,
         lastStreakTimestamp: null,
-        sortKey: name.toLowerCase() || user.uid, // Add sortKey for reliable querying
+        sortKey: name.toLowerCase() || user.uid,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       
-      // If a referrer was found, update their list of referrals
       if (referredBy) {
           const referrerRef = doc(db, 'users', referredBy);
           await updateDoc(referrerRef, {
@@ -144,7 +154,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    if (!firebaseUser) {
+    if (!user) {
         setProfile(null);
         setProfileLoading(false);
         setLastAttemptInSlot(null);
@@ -159,16 +169,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setProfileLoading(true);
-    const userRef = doc(db, 'users', firebaseUser.uid);
+    const userRef = doc(db, 'users', user.uid);
     const unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
-        const data = docSnap.data();
-        setProfile({
-            ...data,
-            phoneVerified: data.phoneVerified || false
-        });
+        setProfile(docSnap.data() as UserProfile);
       } else {
-        handleUserDocument(firebaseUser);
+        handleUserDocument(user);
         setProfile(null);
       }
       setProfileLoading(false);
@@ -183,7 +189,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const currentSlotId = getQuizSlotId();
-    const attemptDocRef = doc(collection(db, 'users', firebaseUser.uid, 'quizAttempts'), currentSlotId);
+    const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
     const unsubscribeAttempt = onSnapshot(attemptDocRef, (docSnap) => {
         if (docSnap.exists()) {
             setLastAttemptInSlot(docSnap.data() as QuizAttempt);
@@ -196,7 +202,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
     
     setQuizHistory(prev => ({ ...prev, loading: true }));
-    const historyQuery = query(collection(db, "users", firebaseUser.uid, "quizAttempts"), orderBy("timestamp", "desc"));
+    const historyQuery = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
     const unsubscribeHistory = onSnapshot(historyQuery, (querySnapshot) => {
         const historyData = querySnapshot.docs.map(doc => doc.data() as QuizAttempt);
         setQuizHistory({ data: historyData, loading: false, error: null });
@@ -215,7 +221,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeAttempt();
         unsubscribeHistory();
     };
-  }, [firebaseUser, firebaseLoading, handleUserDocument]);
+  }, [user, firebaseLoading, handleUserDocument]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     if(!auth) return null;
@@ -279,148 +285,142 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Signed Out", description: "You have been logged out successfully." });
   }, [toast]);
 
-  const updateUserData = useCallback(async (newData: Partial<Record<string, any>>) => {
-    if (!firebaseUser || !db) throw new Error("User not authenticated or DB not available.");
-    const userDocRef = doc(db, "users", firebaseUser.uid);
+  // Update user data safely
+  const updateUserData = useCallback(async (newData: Partial<UserProfile>) => {
+    if (!user) return;
+    const allowedFields = ['name', 'phone', 'photoURL', 'profileCompleted', 'guidedTourCompleted', 'dob', 'gender', 'occupation', 'upi', 'favoriteFormat', 'favoriteTeam', 'favoriteCricketer'];
+    const filteredData: Partial<UserProfile> = Object.keys(newData).reduce((acc: any, key) => {
+      if (allowedFields.includes(key)) acc[key] = (newData as any)[key];
+      return acc;
+    }, {});
+    
+    if (Object.keys(filteredData).length === 0) return;
+
     try {
-        const dataToUpdate: Record<string, any> = {...newData, updatedAt: serverTimestamp()};
-        if (newData.name) {
-            dataToUpdate.sortKey = newData.name.toLowerCase();
-        }
-        const sanitizedData = sanitizeUserProfile(dataToUpdate);
-        await updateDoc(userDocRef, sanitizedData);
-    } catch (error) {
-        console.error("Update user data failed:", error);
-        toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
-        throw error;
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, { ...sanitizeUserProfile(filteredData), updatedAt: serverTimestamp() });
+      setProfile(prev => ({ ...prev, ...filteredData } as UserProfile));
+      setIsOffline(false);
+    } catch (e) {
+      console.error('updateUserData failed:', e);
+      setIsOffline(true);
+      toast({ title: "Update Failed", description: "Your changes could not be saved. You might be offline.", variant: 'destructive' });
+      throw e;
     }
-  }, [firebaseUser, toast]);
+  }, [user, toast]);
+
+  // Sanitize quiz attempt
+  const sanitizeAttempt = (attempt: QuizAttempt) => ({
+    ...attempt,
+    score: attempt.score || 0,
+    totalQuestions: attempt.totalQuestions || 0,
+    reason: attempt.reason || null,
+  });
 
   const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!firebaseUser || !profile || !db) throw new Error("User not authenticated, profile not loaded, or DB not available.");
-
-    const userRef = doc(db, 'users', firebaseUser.uid);
-    const attemptRef = doc(db, 'users', firebaseUser.uid, 'quizAttempts', attempt.slotId);
+    if (!user || !profile) return;
+    const attemptSanitized = sanitizeAttempt(attempt);
 
     try {
-        await runTransaction(db, async (transaction) => {
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) throw new Error("User profile does not exist.");
-            const userProfile = userDoc.data();
+      const userDocRef = doc(db, 'users', user.uid);
+      await runTransaction(db, async transaction => {
+        const userDoc = await transaction.get(userDocRef);
+        if (!userDoc.exists()) throw new Error('User not found');
+        
+        const data = userDoc.data() as UserProfile;
+        const statsUpdate: { [key:string]: any } = { 
+            quizzesPlayed: increment(1),
+            totalScore: increment(attempt.score || 0),
+        };
+        const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
+        if (isPerfectScore) {
+            statsUpdate.perfectScores = increment(1);
+            statsUpdate.totalRewards = increment(100);
+        }
 
-            // 1. Update user aggregate stats
-            const statsUpdate: {[key:string]: any} = { 
-                quizzesPlayed: increment(1),
-                totalScore: increment(attempt.score || 0),
-            };
-            
-            const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
-            
-            if (isPerfectScore) {
-                statsUpdate.perfectScores = increment(1);
-                statsUpdate.totalRewards = increment(100);
-            }
-            
-            // Referral Bonus Logic
-            if (isPerfectScore && userProfile.referredBy && !userProfile.referralBonusPaid) {
-                const accountCreationTime = (userProfile.createdAt as Timestamp).toDate();
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // UTC date for streak calculation
+        const todayUTC = new Date();
+        todayUTC.setUTCHours(0, 0, 0, 0);
 
-                if (accountCreationTime > sevenDaysAgo) {
-                    const referrerRef = doc(db, 'users', userProfile.referredBy);
-                    transaction.update(referrerRef, { referralEarnings: increment(50) });
-                    statsUpdate.referralBonusPaid = true;
-                }
-            }
-            
-            // Daily Streak Logic
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const lastStreakDate = userProfile.lastStreakTimestamp ? (userProfile.lastStreakTimestamp as Timestamp).toDate() : null;
-            if (lastStreakDate) {
-                lastStreakDate.setHours(0, 0, 0, 0);
-            }
-            const isSameDay = lastStreakDate ? today.getTime() === lastStreakDate.getTime() : false;
+        const lastStreakTimestamp = data.lastStreakTimestamp ? (data.lastStreakTimestamp as Timestamp).toDate() : null;
+        const lastStreakUTC = lastStreakTimestamp ? new Date(lastStreakTimestamp.getTime()) : null;
+        if (lastStreakUTC) lastStreakUTC.setUTCHours(0, 0, 0, 0);
 
-            if (!isSameDay) {
-                const yesterday = new Date(today);
-                yesterday.setDate(today.getDate() - 1);
+        const isSameDay = lastStreakUTC ? todayUTC.getTime() === lastStreakUTC.getTime() : false;
+        
+        if(!isSameDay) {
+            const yesterdayUTC = new Date(todayUTC);
+            yesterdayUTC.setUTCDate(todayUTC.getUTCDate() - 1);
+            const isYesterday = lastStreakUTC ? lastStreakUTC.getTime() === yesterdayUTC.getTime() : false;
+            statsUpdate.currentStreak = isYesterday ? increment(1) : 1;
+            statsUpdate.lastStreakTimestamp = serverTimestamp();
+        }
 
-                if (lastStreakDate && lastStreakDate.getTime() === yesterday.getTime()) {
-                    statsUpdate.currentStreak = increment(1);
-                } else {
-                    statsUpdate.currentStreak = 1;
-                }
-                statsUpdate.lastStreakTimestamp = serverTimestamp();
-            }
-            
-            transaction.update(userRef, statsUpdate);
-            
-            // 2. Persist the quiz attempt
-            transaction.set(attemptRef, sanitizeUserProfile(attempt));
+        transaction.update(userDocRef, statsUpdate);
+        
+        // Persist the quiz attempt
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attempt.slotId);
+        transaction.set(attemptRef, attemptSanitized);
 
-            // 3. Update the live leaderboard for the current slot
-            const liveEntryRef = doc(db, 'leaderboard_live', attempt.slotId, 'entries', firebaseUser.uid);
-            const totalTime = attempt.timePerQuestion ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+        // Update live leaderboard
+        const liveEntryRef = doc(db, 'leaderboard_live', attempt.slotId, 'entries', user.uid);
+        const totalTime = attempt.timePerQuestion ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+        transaction.set(liveEntryRef, {
+            userId: user.uid,
+            name: profile.name,
+            avatar: profile.photoURL,
+            score: attempt.score,
+            time: totalTime,
+            disqualified: !!attempt.reason,
+            totalQuestions: attempt.totalQuestions,
+            format: attempt.format,
+            slotId: attempt.slotId,
+            source: attempt.source ?? null,
+            updatedAt: serverTimestamp(),
+        }, { merge: true });
 
-            transaction.set(liveEntryRef, {
-                userId: firebaseUser.uid,
-                name: profile.name,
-                avatar: profile.photoURL,
-                score: attempt.score,
-                time: totalTime,
-                disqualified: !!attempt.reason,
-                totalQuestions: attempt.totalQuestions,
-                format: attempt.format,
-                slotId: attempt.slotId,
-                source: attempt.source ?? null,
-                updatedAt: serverTimestamp(),
-            }, { merge: true });
-        });
+      });
 
-        setLastAttemptInSlot(attempt);
-
-    } catch (error) {
-        console.error("Add quiz attempt transaction failed:", error);
-        toast({
-            title: "Sync Error",
-            description: "Could not save your quiz result. Please check your connection.",
-            variant: 'destructive',
-        });
+      setIsOffline(false);
+    } catch (e) {
+      console.error('addQuizAttempt failed:', e);
+      setIsOffline(true);
+       toast({ title: "Sync Error", description: "Could not save your quiz result.", variant: 'destructive' });
     }
-  }, [firebaseUser, profile, toast]);
-  
+  }, [user, profile, toast]);
+
   const handleMalpractice = useCallback(async (): Promise<number> => {
-    if (!firebaseUser || !profile || !db) return 0;
-    
-    const userRef = doc(db, 'users', firebaseUser.uid);
-    const today = new Date().setHours(0, 0, 0, 0);
-    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
+    if (!user || !profile) return 0;
     
     let newNoBallCount = profile.noBallCount || 0;
-
-    if (lastNoBallDay !== today) {
-      newNoBallCount = 1;
-    } else {
-      newNoBallCount++;
-    }
     
-    const updatedProfileData = {
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const today = new Date().setHours(0, 0, 0, 0);
+      const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp).setHours(0, 0, 0, 0) : null;
+      
+      if (lastNoBallDay !== today) {
+        newNoBallCount = 1;
+      } else {
+        newNoBallCount++;
+      }
+
+      await updateDoc(userDocRef, {
         noBallCount: newNoBallCount,
-        lastNoBallTimestamp: serverTimestamp()
-    };
-    
-    const sanitizedData = sanitizeUserProfile(updatedProfileData);
-    await updateDoc(userRef, sanitizedData);
-    
-    setProfile((prev: any) => ({ ...prev, ...sanitizedData, lastNoBallTimestamp: new Date() }));
+        lastNoBallTimestamp: serverTimestamp(),
+      });
+      setProfile(prev => ({ ...prev, noBallCount: newNoBallCount, lastNoBallTimestamp: new Date() } as UserProfile));
+      setIsOffline(false);
+      return newNoBallCount;
+    } catch (e) {
+      console.error('handleMalpractice failed:', e);
+      setIsOffline(true);
+      return newNoBallCount;
+    }
+  }, [user, profile]);
 
-    return newNoBallCount;
-  }, [firebaseUser, profile]);
-
-  const value = { 
-    user: firebaseUser,
+  const value: UserDataContextType = { 
+    user: user,
     loading: firebaseLoading || profileLoading,
     profile, 
     isProfileComplete: profile?.profileCompleted || false,
@@ -437,16 +437,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <UserDataContext.Provider value={value}>
+    <AuthContext.Provider value={value}>
       {children}
-    </UserDataContext.Provider>
+    </AuthContext.Provider>
   );
 };
 
 export function useAuth() {
-  const context = useContext(UserDataContext);
+  const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within a UserDataProvider");
   }
   return context;
 }
+
+    
