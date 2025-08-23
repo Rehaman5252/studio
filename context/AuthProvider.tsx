@@ -92,7 +92,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     if (!docSnap.exists()) {
       const name = additionalData.name || user.displayName || 'New User';
-      const sortKey = name.toLowerCase() + user.uid.substring(0, 5);
       const newUserProfile = {
         uid: user.uid,
         name: name,
@@ -117,7 +116,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
         currentStreak: 0,
         lastStreakTimestamp: null,
-        sortKey: sortKey,
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       
@@ -134,9 +132,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const updates: Record<string, any> = {};
         if (user.photoURL && user.photoURL !== existingData.photoURL) {
             updates.photoURL = user.photoURL;
-        }
-        if (!existingData.sortKey && existingData.name) {
-             updates.sortKey = (existingData.name || '').toLowerCase() + user.uid.substring(0, 5);
         }
         if (Object.keys(updates).length > 0) {
             await updateDoc(userRef, updates);

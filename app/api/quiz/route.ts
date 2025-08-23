@@ -9,6 +9,7 @@ const VALID_FORMATS = ['ipl', 'test', 'odi', 't20', 'mixed', 'wpl'];
 export async function POST(req: NextRequest) {
   let format = 'mixed';
   let fallbackReason: string | null = null;
+  let originalFormat = 'mixed';
 
   try {
     const body = await req.json();
@@ -21,10 +22,11 @@ export async function POST(req: NextRequest) {
     
     // Normalize format to lowercase for reliable key access
     format = reqFormat.toLowerCase();
+    originalFormat = format;
 
     // Validate format against the allowed list
     if (!VALID_FORMATS.includes(format)) {
-      fallbackReason = `Invalid format '${format}' provided.`;
+      fallbackReason = `Invalid format '${reqFormat}' provided.`;
       console.warn(`[Fallback] ${fallbackReason}. Defaulting to 'mixed'.`);
       format = 'mixed';
     }
@@ -36,8 +38,8 @@ export async function POST(req: NextRequest) {
     
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
         fallbackReason = fallbackReason || 'AI returned incomplete or invalid quiz data.';
-        console.warn(`[Fallback] ${fallbackReason} for format '${format}'. Using fallback.`);
-        const fallback = fallbackQuizData[format] || fallbackQuizData['mixed'];
+        console.warn(`[Fallback] ${fallbackReason} for format '${originalFormat}'. Using fallback.`);
+        const fallback = fallbackQuizData[originalFormat] || fallbackQuizData['mixed'];
         return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
     }
     
@@ -50,9 +52,9 @@ export async function POST(req: NextRequest) {
 
     fallbackReason = errorMessage;
 
-    console.warn(`[Fallback] ${fallbackReason} for format '${format}'. Using fallback.`);
+    console.warn(`[Fallback] ${fallbackReason} for format '${originalFormat}'. Using fallback.`);
 
-    const fallback = fallbackQuizData[format] || fallbackQuizData['mixed'];
+    const fallback = fallbackQuizData[originalFormat] || fallbackQuizData['mixed'];
     return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
   }
 }
