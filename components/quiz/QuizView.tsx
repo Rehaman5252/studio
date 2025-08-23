@@ -140,30 +140,37 @@ export default function QuizView({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.3 }}
+                        className="space-y-6"
                     >
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="text-xl md:text-2xl">{question.question}</CardTitle>
+                        <Card className="shadow-lg bg-transparent border-0">
+                            <CardHeader className="p-0">
+                                <CardTitle className="text-2xl md:text-3xl font-bold text-center">{question.question}</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <RadioGroup value={selectedOption || ""} onValueChange={setSelectedOption} className="space-y-3">
-                                    {question.options.map((option, index) => (
-                                        <div key={option}>
-                                            <Label 
-                                                htmlFor={`option-${index}`} 
-                                                className={cn(
-                                                    "flex items-center p-4 rounded-lg cursor-pointer transition-all",
-                                                    selectedOption === option ? 'shadow-glow animate-glow' : 'bg-card'
-                                                )}
-                                            >
-                                                <RadioGroupItem value={option} id={`option-${index}`} className="mr-4" />
-                                                <span className="flex-1 text-base">{option}</span>
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                            </CardContent>
                         </Card>
+
+                        <RadioGroup value={selectedOption || ""} onValueChange={setSelectedOption} className="space-y-4">
+                            {question.options.map((option, index) => (
+                                <motion.div 
+                                    key={option}
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    <Label 
+                                        htmlFor={`option-${index}`} 
+                                        className={cn(
+                                            "flex items-center p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2",
+                                            "bg-card shadow-md",
+                                            selectedOption === option 
+                                                ? 'border-primary shadow-lg shadow-primary/30' 
+                                                : 'border-transparent hover:border-primary/50'
+                                        )}
+                                    >
+                                        <RadioGroupItem value={option} id={`option-${index}`} className="mr-4 h-5 w-5" />
+                                        <span className="flex-1 text-base font-medium">{option}</span>
+                                    </Label>
+                                </motion.div>
+                            ))}
+                        </RadioGroup>
                     </motion.div>
                 </AnimatePresence>
 
