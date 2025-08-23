@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'userId is required.' }, { status: 400 });
     }
 
-    // Race the AI generation against a timeout that rejects on failure
+    // Race the AI generation against a timeout
     const quizData = await Promise.race([
         generateQuiz({ format, userId }),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), GENERATION_TIMEOUT))

@@ -4,7 +4,6 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import type { QuizAttempt } from '@/ai/schemas';
-import { CricketLoading } from '@/components/CricketLoading';
 import { generateQuizAnalysis, QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -13,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
+import { CricketLoading } from '../CricketLoading';
 
 const AnalysisSkeleton = () => (
     <div className="space-y-4 animate-pulse">

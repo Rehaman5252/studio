@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
-  title: 'indcric',
+  title: 'CricBlitz',
   description: 'The Ultimate Cricket Quiz',
 };
 
@@ -17,10 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="antialiased">
         <Providers>
-          <main>{children}</main>
-          <BottomNav />
+          <div className="relative flex flex-col min-h-screen">
+            <main className="flex-1 pb-20">{children}</main>
+            <BottomNav />
+          </div>
           <Toaster />
         </Providers>
       </body>

@@ -11,7 +11,6 @@ import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
-import type { LivePlayer } from '@/components/leaderboard/leaderboardTypes';
 
 interface UserDataContextType {
   user: User | null; // This is the firebase auth user from the parent provider
