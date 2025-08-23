@@ -43,10 +43,10 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ ...quizData, source: 'ai' });
 
-  } catch (error) {
-    const errorMessage = error instanceof Error && error.message === "Timeout"
+  } catch (error: any) {
+    const errorMessage = error.message === "Timeout"
       ? `AI generation timed out`
-      : `An error occurred during generation`;
+      : `An error occurred during generation: ${error.message}`;
 
     fallbackReason = errorMessage;
 

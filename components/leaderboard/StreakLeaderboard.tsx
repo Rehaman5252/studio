@@ -138,6 +138,8 @@ const StreakLeaderboard = () => {
                                 rank: userRank,
                                 isCurrentUser: true,
                             });
+                        } else {
+                            setCurrentUserData(null);
                         }
                    }
                 } else {
