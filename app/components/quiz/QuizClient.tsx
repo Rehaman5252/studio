@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData, QuizQuestion, QuizAttempt } from '@/ai/schemas';
+import { QuizData, QuizAttempt } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
@@ -12,8 +12,11 @@ import { AdDialog } from '@/components/AdDialog';
 import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
-import { getQuizSlotId } from '@/lib/utils';
 import { useSettings } from '@/hooks/use-settings';
+import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
+import PreQuizLoader from './PreQuizLoader';
+import { Button } from '../ui/button';
+import { AlertTriangle } from 'lucide-react';
 
 interface QuizClientProps {
   brand: string;
@@ -24,12 +27,10 @@ type QuizAPIResponse = QuizData & {
   source?: 'ai' | 'fallback';
 };
 
-const encodeAttempt = (attempt: QuizAttempt) => 
-     encodeURIComponent(btoa(JSON.stringify(attempt)));
-
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPreQuizLoader, setShowPreQuizLoader] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
@@ -37,7 +38,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [showInterstitial, setShowInterstitial] = useState(false);
   const [showAdDialog, setShowAdDialog] = useState(false);
-  const [adForHint, setAdForHint] = useState<any>(null);
+  const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
@@ -49,79 +50,91 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     return interstitialAds[currentQuestionIndex] || null;
   }, [currentQuestionIndex]);
 
-  useEffect(() => {
-    const fetchQuiz = async () => {
-      if (!user) {
-        setError("You must be logged in to play a quiz.");
-        setLoading(false);
+  const fetchQuiz = useCallback(async (signal: AbortSignal) => {
+    if (!user) {
+      setError("You must be logged in to play a quiz.");
+      setLoading(false);
+      setShowPreQuizLoader(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null); // Reset error state on retry
+      const response = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format, userId: user.uid }),
+        signal,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch quiz data from the server.');
+      }
+      const data: QuizAPIResponse = await response.json();
+      if (!data.questions || data.questions.length < 5) {
+          throw new Error('Invalid quiz data received from server.');
+      }
+
+      const dataWithSource = { ...data, source: data.source ?? 'fallback' };
+      setQuizData(dataWithSource);
+      
+      if (dataWithSource.source === 'fallback') {
+          toast({
+              title: "Classic Quiz Round!",
+              description: "This round is powered by our classic quiz engine while AI prepares more fresh challenges!",
+          });
+      }
+      
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        console.log('Quiz fetch aborted.');
         return;
       }
-      try {
-        setLoading(true);
-        const response = await fetch('/api/quiz', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ format, userId: user.uid }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch quiz data.');
-        }
-        const data: QuizAPIResponse = await response.json();
-        if (data.questions.length < 5) {
-            throw new Error('Invalid quiz data received from server.');
-        }
-
-        const dataWithSource = { ...data, source: data.source ?? 'fallback' };
-        setQuizData(dataWithSource);
-        
-        if (dataWithSource.source === 'fallback') {
-            toast({
-                title: "Classic Quiz Round!",
-                description: "This round is powered by our classic quiz engine while AI prepares more fresh challenges!",
-            });
-        }
-        
-      } catch (e: any) {
-        console.error("Quiz fetch failed:", e);
-        setError("Could not load the quiz. Please try again later.");
-        toast({
-          title: "Error",
-          description: "Failed to load quiz. Please check your connection and try again.",
-          variant: "destructive"
-        })
-      } finally {
-        setLoading(false);
-        setStartTime(Date.now());
+      console.error("Quiz fetch failed:", e);
+      let errorMessage = "Could not load the quiz. Please try again later.";
+      if(e.message.includes('fetch')){
+        errorMessage = "Network error. Please check your connection and try again."
       }
-    };
-    fetchQuiz();
+      setError(errorMessage);
+      toast({
+        title: "Error Loading Quiz",
+        description: errorMessage,
+        variant: "destructive"
+      })
+    } finally {
+      if (!signal.aborted) {
+        setLoading(false);
+      }
+    }
   }, [format, user, toast]);
 
-  const buildAttempt = useCallback((overrides: Partial<QuizAttempt> = {}): QuizAttempt => {
-    if (!quizData || !user) throw new Error("Quiz data or user not available for building attempt.");
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchQuiz(controller.signal);
+    return () => controller.abort();
+  }, [fetchQuiz]);
 
-    const score = overrides.score ?? quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
+  const handlePreQuizFinish = useCallback(() => {
+    setShowPreQuizLoader(false);
+    setStartTime(Date.now());
+  }, []);
+
+  const finishQuiz = useCallback(async () => {
+    if (!quizData || !user) return;
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers,
+      timePerQuestion,
+    });
     
-    const unansweredCount = Math.max(0, quizData.questions.length - userAnswers.length);
-
-    return {
-        userId: user.uid,
-        slotId: getQuizSlotId(),
-        brand,
-        format,
-        questions: quizData.questions,
-        userAnswers,
-        score,
-        totalQuestions: quizData.questions.length,
-        timestamp: Date.now(),
-        timePerQuestion,
-        source: quizData.source,
-        unanswered: unansweredCount,
-        ...overrides,
-    };
-  }, [quizData, user, brand, format, userAnswers, timePerQuestion]);
+    await addQuizAttempt(attempt);
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+  }, [quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
+    if (!quizData || !user) return;
     const noBallCount = await handleMalpractice();
     toast({
         title: "No Ball!",
@@ -129,21 +142,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         variant: "destructive"
     });
     
-    const attempt = buildAttempt({ reason, score: 0 });
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers,
+      timePerQuestion,
+      overrides: { reason, score: 0 },
+    });
 
     await addQuizAttempt(attempt);
-    
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [handleMalpractice, toast, buildAttempt, addQuizAttempt, router]);
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
 
-  const finishQuiz = useCallback(async () => {
-    const attempt = buildAttempt();
-    
-    await addQuizAttempt(attempt);
-
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-
-  }, [buildAttempt, addQuizAttempt, router]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
@@ -199,22 +211,28 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
     setAdForHint(null);
   };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <CricketLoading />
-        <p className="mt-4 text-muted-foreground animate-pulse">Loading Quiz...</p>
-      </div>
-    );
+  
+  if (showPreQuizLoader && !error) {
+      return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
 
   if (error) {
-    return <div className="flex items-center justify-center min-h-screen text-destructive p-4 text-center">{error}</div>;
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
+            <AlertTriangle className="h-12 w-12 mb-4" />
+            <p className="font-semibold mb-4">{error}</p>
+            <Button onClick={() => fetchQuiz(new AbortController().signal)}>Try Again</Button>
+        </div>
+    );
   }
 
-  if (!quizData) {
-    return <div className="flex items-center justify-center min-h-screen">Something went wrong.</div>;
+  if (loading || !quizData) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+             <CricketLoading />
+            <p className="mb-4 mt-4">Loading Quiz...</p>
+        </div>
+    );
   }
   
   if (showInterstitial && interstitialConfig) {
