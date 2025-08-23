@@ -313,6 +313,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const statsUpdate: { [key:string]: any } = { 
             quizzesPlayed: increment(1),
             totalScore: increment(sanitizedAttempt.score),
+            updatedAt: serverTimestamp(),
         };
         const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
         if (isPerfectScore) {
@@ -323,15 +324,21 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         const todayUTC = new Date();
         todayUTC.setUTCHours(0, 0, 0, 0);
         const lastStreakTimestamp = data.lastStreakTimestamp ? (data.lastStreakTimestamp as Timestamp).toDate() : null;
-        const lastStreakUTC = lastStreakTimestamp ? new Date(lastStreakTimestamp.getTime()) : null;
-        if (lastStreakUTC) lastStreakUTC.setUTCHours(0, 0, 0, 0);
-
-        const isSameDay = lastStreakUTC ? todayUTC.getTime() === lastStreakUTC.getTime() : false;
         
-        if(!isSameDay) {
-            const yesterdayUTC = new Date(todayUTC.getTime() - 86400000);
-            const isYesterday = lastStreakUTC ? lastStreakUTC.getTime() === yesterdayUTC.getTime() : false;
-            statsUpdate.currentStreak = isYesterday ? increment(1) : 1;
+        if (lastStreakTimestamp) {
+            const lastStreakUTC = new Date(lastStreakTimestamp.getTime());
+            lastStreakUTC.setUTCHours(0, 0, 0, 0);
+            const isSameDay = todayUTC.getTime() === lastStreakUTC.getTime();
+
+            if (!isSameDay) {
+                const yesterdayUTC = new Date(todayUTC.getTime() - 86400000);
+                const isYesterday = lastStreakUTC.getTime() === yesterdayUTC.getTime();
+                statsUpdate.currentStreak = isYesterday ? increment(1) : 1;
+                statsUpdate.lastStreakTimestamp = serverTimestamp();
+            }
+        } else {
+            // First time playing
+            statsUpdate.currentStreak = 1;
             statsUpdate.lastStreakTimestamp = serverTimestamp();
         }
 
@@ -426,3 +433,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
