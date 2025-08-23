@@ -107,7 +107,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 <p className="text-sm text-muted-foreground">Click a face to select or wait for rotation</p>
             </div>
             
-            <div className="flex justify-center items-center mt-4 mb-4 h-[250px] w-full">
+            <div className="flex justify-center items-center mt-0 h-[200px] w-full">
                 <BrandCube onFaceClick={handleFaceClick} rotation={rotation} />
             </div>
 

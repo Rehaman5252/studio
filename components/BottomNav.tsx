@@ -15,19 +15,6 @@ const navItems = [
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 
-const iconVariants = {
-  initial: { y: 0, scale: 1 },
-  hover: {
-    y: -4,
-    scale: 1.1,
-    transition: { type: "spring", stiffness: 300, damping: 15 }
-  },
-  tap: {
-    scale: 0.9,
-    y: 0,
-  }
-};
-
 export default function BottomNav() {
   const pathname = usePathname();
 
@@ -53,20 +40,12 @@ export default function BottomNav() {
               {isActive && (
                 <motion.div
                   layoutId="active-nav-indicator"
-                  className="absolute inset-0 rounded-lg bg-primary/10 shadow-glow"
+                  className="absolute inset-0 rounded-lg bg-primary/10"
                   initial={false}
-                  animate={{ opacity: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
-              <motion.div
-                variants={iconVariants}
-                whileHover="hover"
-                whileTap="tap"
-                className="relative"
-              >
-                 <item.icon className="h-6 w-6 mb-0.5" />
-              </motion.div>
+               <item.icon className="h-6 w-6 mb-0.5" />
               <span className="text-xs relative">{item.label}</span>
             </Link>
           );

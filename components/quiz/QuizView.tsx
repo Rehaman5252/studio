@@ -148,12 +148,7 @@ export default function QuizView({
                             <CardContent>
                                 <RadioGroup value={selectedOption || ""} onValueChange={setSelectedOption} className="space-y-3">
                                     {question.options.map((option, index) => (
-                                        <motion.div
-                                            key={option}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ duration: 0.3, delay: index * 0.1 }}
-                                        >
+                                        <div key={option}>
                                             <Label 
                                                 htmlFor={`option-${index}`} 
                                                 className={cn(
@@ -164,7 +159,7 @@ export default function QuizView({
                                                 <RadioGroupItem value={option} id={`option-${index}`} className="mr-4" />
                                                 <span className="flex-1 text-base">{option}</span>
                                             </Label>
-                                        </motion.div>
+                                        </div>
                                     ))}
                                 </RadioGroup>
                             </CardContent>
