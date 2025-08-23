@@ -10,7 +10,7 @@ import { sanitizeUserProfile } from './sanitizeUserProfile';
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => 
-     encodeURIComponent(btoa(JSON.stringify(attempt)));
+     encodeURIComponent(btoa(JSON.stringify(sanitizeUserProfile(attempt))));
 
 
 interface BuildAttemptArgs {

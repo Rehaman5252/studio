@@ -61,7 +61,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                     source: attempt.source || 'unknown',
                     unanswered: attempt.unanswered || 0,
                 });
-                const result = await generateQuizAnalysis(sanitizedAttempt);
+                const result = await generateQuizAnalysis(sanitizedAttempt as QuizAttempt);
                 setAnalysis(result);
             } catch (e) {
                 console.error("Error generating quiz analysis:", e);
