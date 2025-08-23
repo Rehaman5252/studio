@@ -7,7 +7,7 @@ import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPas
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
-import type { QuizAttempt } from '@/lib/mockData';
+import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
@@ -367,8 +367,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
             transaction.set(liveEntryRef, {
                 userId: firebaseUser.uid,
-                displayName: profile.name,
-                photoURL: profile.photoURL,
+                name: profile.name,
+                avatar: profile.photoURL,
                 score: attempt.score,
                 time: totalTime,
                 disqualified: !!attempt.reason,

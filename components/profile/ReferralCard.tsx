@@ -35,7 +35,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                         <p className="text-xs font-semibold text-muted-foreground">YOUR REFERRAL LINK</p>
                         <div className="flex items-center space-x-2">
                              <Input readOnly value={referralLink} className="text-sm font-mono" />
-                             <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0 bg-black border-primary text-primary hover:bg-primary/10 hover:text-primary">
+                             <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0">
                                 {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                             </Button>
                         </div>
@@ -56,5 +56,3 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
 
 const ReferralCard = memo(ReferralCardComponent);
 export default ReferralCard;
-
-

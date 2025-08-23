@@ -30,12 +30,12 @@ const LeaderboardItem = memo(({ player }: { player: LivePlayer }) => (
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         {player.disqualified ? (
             <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
-                <Ban className="h-4 w-4 text-primary"/> Disqualified
+                <Ban className="h-4 w-4"/> Disqualified
             </div>
         ) : (
             <div className="text-right">
                 <p className="font-bold text-primary">{player.score}</p>
-                <p className="text-xs text-muted-foreground">{player.time}s</p>
+                <p className="text-xs text-muted-foreground">{player.time.toFixed(2)}s</p>
             </div>
         )}
     </div>
@@ -53,7 +53,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Rain Delay!</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -138,6 +138,10 @@ const LiveLeaderboard = () => {
 
     return (
         <Card className="bg-card/80 shadow-lg mt-4">
+            <CardHeader className="text-center">
+                <CardTitle>Current Match</CardTitle>
+                <CardDescription>Live standings for this 10-minute slot</CardDescription>
+            </CardHeader>
             <CardContent className="p-2">
                 <div className="space-y-2">{renderContent()}</div>
             </CardContent>

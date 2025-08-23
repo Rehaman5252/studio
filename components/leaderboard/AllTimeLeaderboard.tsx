@@ -2,12 +2,12 @@
 'use client';
 
 import React, { memo, useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,10 @@ const LeaderboardItem = memo(({ player }: { player: AllTimePlayer }) => (
     <div className={cn("flex items-center p-2 rounded-lg transition-colors", player.isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-        <p className="font-semibold text-foreground flex-1">{player.name}</p>
+        <div className="flex-1">
+            <p className="font-semibold text-foreground flex-1">{player.name}</p>
+            <p className="text-xs text-muted-foreground">Played: {player.quizzesPlayed} | Total Score: {player.totalScore}</p>
+        </div>
         <div className="text-right flex items-center gap-1">
             <p className="font-bold text-primary">{player.perfectScores}</p>
             <Star className="h-4 w-4 text-primary" />
@@ -46,7 +49,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4 text-primary" /> : <ServerCrash className="h-4 w-4 text-primary" />}
+        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Rain Delay!</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
@@ -88,7 +91,7 @@ const AllTimeLeaderboard = () => {
                     rank: index + 1,
                     isCurrentUser: user?.uid === doc.id,
                 };
-            });
+            }).filter(p => p.quizzesPlayed > 0);
             setPlayers(playersData);
             setIsLoading(false);
             setError(null);
@@ -129,6 +132,10 @@ const AllTimeLeaderboard = () => {
 
     return (
         <Card className="bg-card/80 shadow-lg mt-4">
+            <CardHeader className="text-center">
+                <CardTitle>All-Time Honours Board</CardTitle>
+                <CardDescription>Based on Perfect Scores and Total Runs</CardDescription>
+            </CardHeader>
             <CardContent className="p-2">
                 <div className="space-y-2">{renderContent()}</div>
             </CardContent>
