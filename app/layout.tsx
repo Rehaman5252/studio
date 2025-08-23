@@ -1,7 +1,9 @@
+
 import './globals.css';
 import type { Metadata } from 'next';
 import Providers from '@/context/Providers';
 import { Toaster } from '@/components/ui/toaster';
+import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
   title: 'indcric',
@@ -17,7 +19,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
-          {children}
+          <main>{children}</main>
+          <BottomNav />
           <Toaster />
         </Providers>
       </body>

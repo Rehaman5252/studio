@@ -45,7 +45,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
              {user && profile && (
                 <div className="absolute top-2 right-2 z-10">
                     <EditProfileDialog userProfile={profile}>
-                        <Button variant="outline" size="icon" className="bg-black border-primary text-primary hover:bg-primary/10 hover:text-primary h-8 w-8">
+                        <Button variant="outline" size="icon" className="bg-card border-primary text-primary hover:bg-primary/10 hover:text-primary h-8 w-8">
                             <Edit className="h-4 w-4" />
                         </Button>
                     </EditProfileDialog>

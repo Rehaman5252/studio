@@ -110,7 +110,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastNoBallTimestamp: null,
         currentStreak: 0,
         lastStreakTimestamp: null,
-        sortKey: name || user.uid, // Add sortKey for reliable querying
+        sortKey: name.toLowerCase() || user.uid, // Add sortKey for reliable querying
       };
       await setDoc(userRef, sanitizeUserProfile(newUserProfile));
       
@@ -130,7 +130,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             updates.photoURL = user.photoURL;
         }
         if (!existingData.sortKey) {
-             updates.sortKey = existingData.name || user.uid;
+             updates.sortKey = existingData.name.toLowerCase() || user.uid;
         }
         if (Object.keys(updates).length > 0) {
             await updateDoc(userRef, updates);
@@ -286,7 +286,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     try {
         const dataToUpdate: Record<string, any> = {...newData, updatedAt: serverTimestamp()};
         if (newData.name) {
-            dataToUpdate.sortKey = newData.name;
+            dataToUpdate.sortKey = newData.name.toLowerCase();
         }
         const sanitizedData = sanitizeUserProfile(dataToUpdate);
         await updateDoc(userDocRef, sanitizedData);
