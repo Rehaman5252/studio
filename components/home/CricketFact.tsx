@@ -22,59 +22,56 @@ export default function CricketFact({ format }: { format: string }) {
     const [isFetching, setIsFetching] = useState(false);
     const [currentFormat, setCurrentFormat] = useState(format);
 
-    const fetchFacts = useCallback(async (fetchFormat: string) => {
+    const fetchFacts = useCallback(async (fetchFormat: string, isInitial = false) => {
         if (isFetching) return;
         setIsFetching(true);
+        if (isInitial) {
+             setIsLoading(true);
+        }
         try {
-            const newFacts = await generateCricketFacts({ format: fetchFormat, seenFacts: facts });
-            setFacts(prev => [...prev, ...newFacts]);
+            const seen = isInitial ? [] : facts;
+            const newFacts = await generateCricketFacts({ format: fetchFormat, seenFacts: seen });
+            
+            if (newFacts && newFacts.length > 0) {
+                setFacts(prev => isInitial ? newFacts : [...prev, ...newFacts]);
+            } else {
+                 setFacts(prev => isInitial ? getFallbackFacts(fetchFormat) : [...prev, ...getFallbackFacts(fetchFormat)]);
+            }
+
         } catch (error) {
             console.error('Failed to fetch cricket facts:', error);
-            // Add fallback facts if AI fails to prevent running out
-            setFacts(prev => [...prev, ...getFallbackFacts(fetchFormat)]);
+            // Add fallback facts if AI fails
+            setFacts(prev => isInitial ? getFallbackFacts(fetchFormat) : [...prev, ...getFallbackFacts(fetchFormat)]);
         } finally {
             setIsFetching(false);
-        }
-    }, [facts, isFetching]);
-
-    // Initial load and format change effect
-    useEffect(() => {
-        const loadInitialFacts = async () => {
-            setIsLoading(true);
-            setCurrentFormat(format);
-            try {
-                const initialFacts = await generateCricketFacts({ format, seenFacts: [] });
-                setFacts(initialFacts);
-            } catch (e) {
-                console.error("Initial fact fetch failed, using fallback", e);
-                setFacts(getFallbackFacts(format));
-            } finally {
+            if (isInitial) {
                 setIsLoading(false);
                 setCurrentIndex(0);
             }
-        };
-        loadInitialFacts();
+        }
+    }, [facts, isFetching]);
+
+    // Initial load effect
+    useEffect(() => {
+        fetchFacts(format, true);
     }, [format]);
+
 
     const handleAnotherFact = () => {
         const nextIndex = currentIndex + 1;
         
         // If we are about to run out of facts, fetch more in the background
-        if (facts.length > 0 && nextIndex >= facts.length - 3) {
-            fetchFacts(currentFormat);
+        if (facts && nextIndex >= facts.length - 3) {
+            if (!isFetching) {
+                fetchFacts(currentFormat);
+            }
         }
 
-        if (nextIndex < facts.length) {
+        if (facts && nextIndex < facts.length) {
             setCurrentIndex(nextIndex);
-        } else {
+        } else if (!isFetching) {
             // If we are completely out, show loader and wait for fetch
-            setIsLoading(true);
-            fetchFacts(currentFormat).then(() => {
-                // After fetching, if we have new facts, update index.
-                // This logic might need adjustment if fetchFacts updates state async.
-                // For now, we assume the facts state will be updated.
-                // The useEffect watching `facts` will handle the index reset.
-            });
+            setCurrentIndex(prev => (prev + 1) % (facts?.length || 1));
         }
     };
     
@@ -83,12 +80,13 @@ export default function CricketFact({ format }: { format: string }) {
         if (facts.length > 0 && isLoading) {
             setIsLoading(false);
         }
+        // This prevents going out of bounds if facts list shrinks, though it shouldn't in this logic
         if (facts.length > 0 && currentIndex >= facts.length) {
              setCurrentIndex(0);
         }
     }, [facts, currentIndex, isLoading]);
 
-    const factToDisplay = !isLoading && facts.length > 0 ? facts[currentIndex] : '';
+    const factToDisplay = !isLoading && facts?.length > 0 ? facts[currentIndex] : '';
 
     return (
         <Card className="bg-card/80 shadow-lg border border-primary">
@@ -118,8 +116,8 @@ export default function CricketFact({ format }: { format: string }) {
                     </AnimatePresence>
                 </div>
                 <div className="flex justify-center mt-4">
-                    <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading}>
-                        {isLoading ? (
+                    <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || (isFetching && currentIndex >= facts.length -1) }>
+                        {(isLoading || (isFetching && currentIndex >= facts.length -1)) ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
