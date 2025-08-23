@@ -23,7 +23,7 @@ const StartQuizButtonComponent = ({ brandFormat, onClick, isDisabled, hasPlayed 
              <Button 
                 size="lg" 
                 variant="default"
-                className="w-full h-14 rounded-full text-xl font-bold shadow-lg transition-all duration-300 ease-in-out"
+                className="w-full h-12 rounded-full text-xl font-bold shadow-lg transition-all duration-300 ease-in-out"
                 onClick={onClick}
                 disabled={isDisabled}
              >
