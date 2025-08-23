@@ -47,12 +47,12 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     const errorMessage = error.message === "Timeout"
-      ? `AI generation timed out`
+      ? `AI generation timed out for format '${originalFormat}'`
       : `An error occurred during generation: ${error.message}`;
 
     fallbackReason = errorMessage;
 
-    console.warn(`[Fallback] ${fallbackReason} for format '${originalFormat}'. Using fallback.`);
+    console.warn(`[Fallback] ${fallbackReason}. Using fallback for '${originalFormat}'.`);
 
     const fallback = fallbackQuizData[originalFormat] || fallbackQuizData['mixed'];
     return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
