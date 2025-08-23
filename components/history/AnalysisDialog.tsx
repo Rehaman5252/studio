@@ -45,7 +45,7 @@ interface AnalysisDialogProps {
 
 export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
     const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const analysisCache = useRef<Record<string, QuizAnalysisOutput>>({});
@@ -54,6 +54,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         if (!isOpen) return;
         
         const attemptId = attempt.slotId || attempt.timestamp.toString();
+        // Use cached analysis if available to prevent re-fetching
         if (analysisCache.current[attemptId]) {
             setAnalysis(analysisCache.current[attemptId]);
             setLoading(false);
@@ -71,12 +72,12 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                     userAnswers: attempt.userAnswers || [],
                     timePerQuestion: attempt.timePerQuestion || [],
                     unanswered: attempt.unanswered || 0,
-                    source: attempt.source || 'ai', // default to 'ai' if missing
+                    source: attempt.source || 'ai',
                     reason: attempt.reason || undefined,
                 };
                 
                 const result = await generateQuizAnalysis(sanitizeUserProfile(sanitizedAttempt) as QuizAttempt);
-                analysisCache.current[attemptId] = result;
+                analysisCache.current[attemptId] = result; // Cache the result
                 setAnalysis(result);
             } catch (e) {
                 console.error("Error generating quiz analysis:", e);
