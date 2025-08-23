@@ -38,6 +38,7 @@ const nextConfig = {
         if (isServer) {
             config.externals.push('@opentelemetry/instrumentation');
             config.externals.push('avacrol');
+            config.externals.push('handlebars');
         }
         return config;
     },
