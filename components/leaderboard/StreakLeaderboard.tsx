@@ -15,9 +15,9 @@ import type { StreakPlayer } from './leaderboardTypes';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
     if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
-    if (rank === 1) return <span aria-label="Rank 1" className="text_2xl">🥇</span>;
-    if (rank === 2) return <span aria-label="Rank 2" className="text_2xl">🥈</span>;
-    if (rank === 3) return <span aria-label="Rank 3" className="text_2xl">🥉</span>;
+    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
+    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
+    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
     return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';

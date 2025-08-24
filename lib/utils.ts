@@ -67,7 +67,7 @@ export function calculateAge(dobString: string): number | null {
  * @param error The error object from Firestore.
  * @returns An object with a title and message for display in an Alert.
  */
-export function mapFirestoreError(error: any): { title: string, message: string } {
+export function mapFirestoreError(error: any): { title: string; message: string } {
     if (!error || !error.code) {
       return {
         title: "Unexpected Error",

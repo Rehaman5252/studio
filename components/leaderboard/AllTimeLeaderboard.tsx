@@ -69,7 +69,7 @@ const AllTimeLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<{ title: string, message: string } | null>(null);
+    const [error, setError] = useState<{ title: string; message: string } | null>(null);
 
     useEffect(() => {
         if (authLoading) return;

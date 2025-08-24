@@ -63,7 +63,7 @@ const MyNetworkLeaderboard = () => {
     const { user, profile, loading: authLoading } = useAuth();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<{ title: string, message: string } | null>(null);
+    const [error, setError] = useState<{ title: string; message: string } | null>(null);
 
     useEffect(() => {
         if (authLoading || !user || !profile) {
