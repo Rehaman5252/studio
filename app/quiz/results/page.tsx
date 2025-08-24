@@ -33,7 +33,7 @@ const ResultsContent = () => {
             <div className="flex flex-col items-center justify-center text-center p-4">
                 <h2 className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</h2>
                 <p className="text-muted-foreground">There was an error retrieving your scorecard.</p>
-                <Button onClick={() => router.push('/home')} className="mt-4">
+                <Button onClick={() => router.push('/')} className="mt-4">
                 Return to Home
                 </Button>
             </div>
@@ -129,7 +129,7 @@ const ResultsContent = () => {
         <Button size="lg" onClick={() => router.push('/leaderboard')}>
             <BarChart className="mr-2" /> View Leaderboard
         </Button>
-        <Button size="lg" variant="outline" onClick={() => router.push('/home')}>
+        <Button size="lg" variant="outline" onClick={() => router.push('/')}>
            <Home className="mr-2" /> Play Again
         </Button>
       </div>

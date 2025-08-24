@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 const navItems = [
-  { href: '/home', icon: Home, label: 'Home' },
+  { href: '/', icon: Home, label: 'Home' },
   { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
   { href: '/history', icon: History, label: 'History' },
   { href: '/rewards', icon: Gift, label: 'Rewards' },

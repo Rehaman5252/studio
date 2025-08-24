@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { Suspense } from 'react';
@@ -57,7 +58,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
   const { isSubmitting } = form.formState;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const from = searchParams.get('from') || '/home';
+    const from = searchParams.get('from') || '/';
     let result = null;
 
     if (type === 'signup') {
@@ -80,7 +81,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
   };
   
   const handleGoogleSignIn = async () => {
-    const from = searchParams.get('from') || '/home';
+    const from = searchParams.get('from') || '/';
     const result = await signInWithGoogle();
      if (result) {
         router.replace(from);
@@ -88,7 +89,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
   }
 
   if (user) {
-    const from = searchParams.get('from') || '/home';
+    const from = searchParams.get('from') || '/';
     router.replace(from);
     return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }

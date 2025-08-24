@@ -12,13 +12,13 @@ export default function WalkthroughPage() {
     if (profile) {
       try {
         await updateUserData({ guidedTourCompleted: true });
-        router.replace('/home');
+        router.replace('/');
       } catch (error) {
         console.error("Failed to update tour status:", error);
-        router.replace('/home');
+        router.replace('/');
       }
     } else {
-        router.replace('/home');
+        router.replace('/');
     }
   };
 
