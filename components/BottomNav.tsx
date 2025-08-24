@@ -23,10 +23,8 @@ export default function BottomNav() {
   }
 
   return (
-    <motion.div 
+    <div 
       className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50"
-      whileHover={{ y: -5, scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
       <nav id="tour-step-3" className="flex h-full items-center justify-around max-w-md mx-auto">
         {navItems.map((item) => {
@@ -48,12 +46,17 @@ export default function BottomNav() {
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
-               <item.icon className="h-6 w-6 mb-0.5" />
+               <motion.div
+                whileHover={{ y: -5, scale: 1.1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+               >
+                <item.icon className="h-6 w-6 mb-0.5" />
+               </motion.div>
               <span className="text-xs relative">{item.label}</span>
             </Link>
           );
         })}
       </nav>
-    </motion.div>
+    </div>
   );
 }
