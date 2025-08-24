@@ -4,7 +4,7 @@
 import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Gift, Check } from 'lucide-react';
+import { Copy, Gift, Check, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SocialShareButtons } from './SocialShareButtons';
 import { Input } from '../ui/input';
@@ -32,9 +32,9 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
     return (
         <Card className="bg-card shadow-lg">
             <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2"><Gift className="text-primary"/> Refer & Earn</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2"><Users className="text-primary"/> Build Your Squad</CardTitle>
                 <CardDescription>
-                    Invite friends to CricBlitz! You'll earn a bonus for every friend who signs up and scores their first perfect quiz.
+                    Invite friends to form a partnership. You'll earn a bonus for every teammate who signs up and scores their first perfect quiz.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -51,7 +51,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
                     </Button>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">
-                    <span className="font-semibold text-muted-foreground text-sm">Total Referral Earnings:</span>
+                    <span className="font-semibold text-muted-foreground text-sm">Total Partnership Earnings:</span>
                     <span className="font-bold text-primary text-lg">₹{referralEarnings || 0}</span>
                 </div>
                 <div>
