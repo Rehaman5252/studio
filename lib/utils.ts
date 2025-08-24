@@ -83,8 +83,8 @@ export function mapFirestoreError(error: any): { title: string, message: string 
             };
         case 'unavailable':
             return {
-                title: "Service Unavailable",
-                message: "The leaderboard service is temporarily unavailable. Please try again later.",
+                title: "Connection Error",
+                message: "Bad connection has stopped play. Please check your network and try again.",
             };
         case 'not-found':
             return {
@@ -104,12 +104,12 @@ export function mapFirestoreError(error: any): { title: string, message: string 
         case 'failed-precondition':
              return {
                 title: "Leaderboard Unavailable",
-                message: "The leaderboard is being prepared, likely because the required indexes are being built. Please check back in a moment."
+                message: "The leaderboard is being prepared. Please check back in a moment."
             };
         default:
             return {
-                title: "Unexpected Error",
-                message: error.message || "Something went wrong. Please try again.",
+                title: "Technical Fault",
+                message: error.message || "A technical fault has interrupted play. We're working to get it fixed.",
             };
     }
 }

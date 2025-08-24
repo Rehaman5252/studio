@@ -52,7 +52,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message, title }: { message: string, title: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("network") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {message.includes("offline") || message.includes("Connection") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
