@@ -30,7 +30,7 @@ export default function ReviewDialog({ open, onOpenChange, attempt }: ReviewDial
                     {attempt.questions.map((question, index) => (
                         <Card key={question.id} className="bg-card/50">
                             <CardHeader>
-                                <CardTitle className="text-base font-semibold">{index + 1}. {question.question}</CardTitle>
+                                <CardTitle className="text-base font-bold text-foreground">{index + 1}. {question.question}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div className="text-sm space-y-2">
