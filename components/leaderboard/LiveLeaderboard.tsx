@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
@@ -82,7 +83,7 @@ const LiveLeaderboard = () => {
 
     useEffect(() => {
         if (!db) {
-            setError({ title: "Database Error", message: "A technical fault has interrupted play: Database not available."});
+            setError({ title: "Technical Fault", message: "Database not available."});
             setStatus('error');
             return;
         }

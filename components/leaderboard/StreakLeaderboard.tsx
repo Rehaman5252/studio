@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useEffect, useCallback, useMemo } from 'react';
@@ -96,7 +97,7 @@ const StreakLeaderboard = () => {
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError({ title: "Database Error", message: "A technical fault has interrupted play: Database not available."});
+            setError({ title: "Technical Fault", message: "Database not available."});
             setIsLoading(false);
             return;
         }

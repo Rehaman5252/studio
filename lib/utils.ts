@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -67,54 +68,20 @@ export function calculateAge(dobString: string): number | null {
  * @returns An object with a title and message for display in an Alert.
  */
 export function mapFirestoreError(error: any): { title: string; message: string } {
-    const code = (error as any)?.code ?? "unknown";
-    const message = (error as any)?.message;
-  
-    switch (code) {
-      case "unavailable":
-        return {
-          title: "Connection Error",
-          message: "Bad connection has stopped play. Please check your network and try again.",
-        };
-      case "failed-precondition":
-        return {
-          title: "Leaderboard Unavailable",
-          message: "The leaderboard is being prepared. Please check back in a moment.",
-        };
-      case "permission-denied":
-        return {
-          title: "Permission Denied",
-          message: "You don’t have the required permissions to view this leaderboard.",
-        };
-      case "unauthenticated":
-        return {
-          title: "Authentication Required",
-          message: "You need to be logged in to view this leaderboard. Please sign in.",
-        };
-      case "deadline-exceeded":
-        return {
-          title: "Request Timeout",
-          message: "The leaderboard request took too long. Please retry.",
-        };
-      case "resource-exhausted":
-        return {
-          title: "Rate Limited",
-          message: "Too many requests at once. Please wait a moment and try again.",
-        };
-      case "cancelled":
-        return {
-          title: "Request Cancelled",
-          message: "The request was cancelled. Please try again.",
-        };
-      case "not-found":
-        return {
-          title: "Data Not Found",
-          message: "Leaderboard data could not be found. It may not exist yet or was removed.",
-        };
-      default:
-        return {
-          title: "Error Loading Data",
-          message: message || "A technical fault has interrupted play. We're working to get it fixed.",
-        };
+    if (!error || typeof error !== 'object') {
+        return { title: 'Unknown Error', message: 'An unexpected error occurred.' };
     }
-  }
+    switch (error.code) {
+        case 'unavailable':
+            return { title: 'Network Issue', message: 'Bad connection has stopped play. Please check your network and try again.' };
+        case 'failed-precondition':
+            return { title: 'Leaderboard Updating', message: 'The leaderboard is being updated. Please check back in a moment.' };
+        case 'permission-denied':
+            return { title: 'Access Denied', message: 'You do not have permission to view this leaderboard.' };
+        case 'deadline-exceeded':
+        case 'timeout':
+            return { title: 'Timeout', message: 'The leaderboard took too long to load. Please try again.' };
+        default:
+            return { title: 'Technical Fault', message: "A technical fault has interrupted play. We're working to get it fixed." };
+    }
+}
