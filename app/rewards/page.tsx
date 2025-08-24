@@ -49,7 +49,7 @@ function RewardsPage() {
             </div>
          )}
          <section className="pt-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Sponsor's Pavilion</h2>
             <div className="space-y-4">
                 <GenericOffer title="20% off on Puma Shoes" description="Use code: INDCRIC20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
                 <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://cdn.icon-icons.com/icons2/2803/PNG/512/swiggy_logo_icon_178723.png" hint="food delivery" link="https://www.swiggy.com/" />
