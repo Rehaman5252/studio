@@ -24,8 +24,8 @@ const ScratchCardSkeleton = () => (
 const RewardsSkeleton = () => (
   <div className="space-y-8">
       <section>
-        <h2 className="text-xl font-semibold text-foreground">Your Kit Bag</h2>
-        <p className="text-sm text-muted-foreground mb-4">A special reward for every match you play. Unpack to reveal your prize!</p>
+        <h2 className="text-xl font-semibold text-foreground">Man of the Match Awards</h2>
+        <p className="text-sm text-muted-foreground mb-4">A special award for every match you play. Claim your prize!</p>
         <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
             <CarouselContent className="-ml-4">
                 {[...Array(3)].map((_, index) => (
@@ -194,8 +194,8 @@ function RewardsContentComponent() {
   return (
     <>
       <section>
-        <h2 className="text-xl font-semibold text-foreground">Your Kit Bag</h2>
-        <p className="text-sm text-muted-foreground mb-4">A special reward for every match you play. Unpack to reveal your prize!</p>
+        <h2 className="text-xl font-semibold text-foreground">Man of the Match Awards</h2>
+        <p className="text-sm text-muted-foreground mb-4">A special award for every match you play. Claim your prize!</p>
         <BrandGifts />
       </section>
     </>
