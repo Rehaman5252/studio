@@ -110,7 +110,7 @@
     background: hsla(var(--primary), 0.9);
     color: hsl(var(--primary-foreground));
     border-color: hsl(var(--primary));
-    box-shadow: 0 0 15px 5px hsla(var(--primary), 0.4);
+    box-shadow: 0 0 15px 5px hsla(var(--primary), 0.5);
 }
 
 .cube-face-front { transform: rotateY(0deg) translateZ(80px); }
