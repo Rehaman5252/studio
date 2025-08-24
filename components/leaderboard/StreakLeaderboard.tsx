@@ -153,7 +153,6 @@ const StreakLeaderboard = () => {
                 }
 
             } catch (e: any) {
-                console.error("Error fetching streak leaderboard:", e);
                 setError(mapFirestoreError(e));
             } finally {
                 setIsLoading(false);

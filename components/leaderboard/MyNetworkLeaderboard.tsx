@@ -112,7 +112,6 @@ const MyNetworkLeaderboard = () => {
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
 
             } catch (e: any) {
-                console.error("Error fetching network leaderboard:", e);
                 setError(mapFirestoreError(e));
             } finally {
                 setIsLoading(false);

@@ -115,7 +115,6 @@ const LiveLeaderboard = () => {
                 setStatus(playersData.length > 0 ? 'active' : 'waiting');
                 setError(null);
             }, (err: any) => {
-                console.error("Live Leaderboard snapshot error: ", err);
                 setError(mapFirestoreError(err));
                 setStatus('error');
             });
