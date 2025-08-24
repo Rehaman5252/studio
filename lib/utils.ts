@@ -68,48 +68,54 @@ export function calculateAge(dobString: string): number | null {
  * @returns An object with a title and message for display in an Alert.
  */
 export function mapFirestoreError(error: any): { title: string; message: string } {
-    if (!error || !error.code) {
-      return {
-        title: "Unexpected Error",
-        message: "Something went wrong. Please try again.",
-      };
+    const code = (error as any)?.code ?? "unknown";
+    const message = (error as any)?.message;
+  
+    switch (code) {
+      case "unavailable":
+        return {
+          title: "Connection Error",
+          message: "Bad connection has stopped play. Please check your network and try again.",
+        };
+      case "failed-precondition":
+        return {
+          title: "Leaderboard Unavailable",
+          message: "The leaderboard is being prepared. Please check back in a moment.",
+        };
+      case "permission-denied":
+        return {
+          title: "Permission Denied",
+          message: "You don’t have the required permissions to view this leaderboard.",
+        };
+      case "unauthenticated":
+        return {
+          title: "Authentication Required",
+          message: "You need to be logged in to view this leaderboard. Please sign in.",
+        };
+      case "deadline-exceeded":
+        return {
+          title: "Request Timeout",
+          message: "The leaderboard request took too long. Please retry.",
+        };
+      case "resource-exhausted":
+        return {
+          title: "Rate Limited",
+          message: "Too many requests at once. Please wait a moment and try again.",
+        };
+      case "cancelled":
+        return {
+          title: "Request Cancelled",
+          message: "The request was cancelled. Please try again.",
+        };
+      case "not-found":
+        return {
+          title: "Data Not Found",
+          message: "Leaderboard data could not be found. It may not exist yet or was removed.",
+        };
+      default:
+        return {
+          title: "Error Loading Data",
+          message: message || "A technical fault has interrupted play. We're working to get it fixed.",
+        };
     }
-
-    switch (error.code) {
-        case 'permission-denied':
-            return {
-                title: "Permission Denied",
-                message: "You don’t have permission to view this data.",
-            };
-        case 'unavailable':
-            return {
-                title: "Connection Error",
-                message: "Bad connection has stopped play. Please check your network and try again.",
-            };
-        case 'not-found':
-            return {
-                title: "Data Not Found",
-                message: "No leaderboard data was found.",
-            };
-        case 'deadline-exceeded':
-            return {
-                title: "Request Timeout",
-                message: "The request took too long. Please refresh and try again.",
-            };
-        case 'unauthenticated':
-            return {
-                title: "Authentication Required",
-                message: "Please log in to access the leaderboard.",
-            };
-        case 'failed-precondition':
-             return {
-                title: "Leaderboard Unavailable",
-                message: "The leaderboard is being prepared. Please check back in a moment."
-            };
-        default:
-            return {
-                title: "Technical Fault",
-                message: error.message || "A technical fault has interrupted play. We're working to get it fixed.",
-            };
-    }
-}
+  }
