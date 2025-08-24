@@ -56,10 +56,10 @@ const EmptyState = () => (
     </Card>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
+const ErrorState = ({ message, title }: { message: string, title: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("network") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Rain Delay!</AlertTitle>
+        <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
 );
@@ -68,12 +68,12 @@ const AllTimeLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<{ title: string, message: string } | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("A technical fault has interrupted play: Database not available.");
+            setError({ title: "Database Error", message: "A technical fault has interrupted play: Database not available." });
             setIsLoading(false);
             return;
         }
@@ -110,11 +110,11 @@ const AllTimeLeaderboard = () => {
         }, (err: any) => {
             console.error("All-Time Leaderboard snapshot error: ", err);
             if (err.code === 'unavailable') {
-                setError("Bad connection has stopped play. Please check your network and try again.");
+                setError({ title: "Connection Error", message: "Bad connection has stopped play. Please check your network and try again."});
             } else if (err.code === 'failed-precondition') {
-                setError("The leaderboard is being updated. Please check back in a moment.");
+                 setError({ title: "Leaderboard Unavailable", message: "The leaderboard is being prepared. Please check back in a moment."});
             } else {
-                setError("A technical fault has interrupted play. We're working to get it fixed.");
+                 setError({ title: "Error Loading Data", message: "A technical fault has interrupted play. We're working to get it fixed."});
             }
             setIsLoading(false);
         });
@@ -124,7 +124,7 @@ const AllTimeLeaderboard = () => {
 
     const content = useMemo(() => {
         if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState message={error} />;
+        if (error) return <ErrorState title={error.title} message={error.message} />;
         if (players.length === 0) return <EmptyState />;
         return players.map((player) => <LeaderboardItem key={player.uid} player={player} />);
     }, [isLoading, authLoading, error, players]);

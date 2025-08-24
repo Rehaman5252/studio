@@ -12,7 +12,7 @@ import { Input } from '../ui/input';
 const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCode: string, referralEarnings: number }) => {
     const { toast } = useToast();
     const [hasCopied, setHasCopied] = React.useState(false);
-    const referralLink = `https://indcric.app/auth/signup?ref=${referralCode}`;
+    const referralLink = `https://cricblitz.app/auth/signup?ref=${referralCode}`;
 
     const onCopy = async () => {
         if (!navigator.clipboard) {
@@ -34,7 +34,7 @@ const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCod
             <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2"><Gift className="text-primary"/> Refer & Earn</CardTitle>
                 <CardDescription>
-                    Invite friends to indcric! You'll earn a bonus for every friend who signs up and scores their first perfect quiz.
+                    Invite friends to CricBlitz! You'll earn a bonus for every friend who signs up and scores their first perfect quiz.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

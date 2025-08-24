@@ -50,10 +50,10 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
+const ErrorState = ({ message, title }: { message: string, title: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Error Loading Network</AlertTitle>
+        <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
     </Alert>
 );
@@ -62,7 +62,7 @@ const MyNetworkLeaderboard = () => {
     const { user, profile, loading: authLoading } = useAuth();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<{ title: string, message: string } | null>(null);
 
     useEffect(() => {
         if (authLoading || !user || !profile) {
@@ -70,7 +70,7 @@ const MyNetworkLeaderboard = () => {
             return;
         }
         if (!db) {
-            setError("A technical fault has interrupted play: Database not available.");
+            setError({ title: "Database Error", message: "A technical fault has interrupted play: Database not available."});
             setIsLoading(false);
             return;
         }
@@ -111,10 +111,10 @@ const MyNetworkLeaderboard = () => {
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
 
             } catch (e: any) {
-                if (e.code === 'unavailable') {
-                    setError("Bad connection has stopped play. Please check your network and try again.");
+                 if (e.code === 'unavailable') {
+                    setError({ title: "Connection Error", message: "Bad connection has stopped play. Please check your network and try again."});
                 } else {
-                    setError("A technical fault has interrupted play. We're working to get it fixed.");
+                     setError({ title: "Error Loading Data", message: "A technical fault has interrupted play. We're working to get it fixed."});
                 }
                 console.error("Error fetching network leaderboard:", e);
             } finally {
@@ -129,7 +129,7 @@ const MyNetworkLeaderboard = () => {
 
     const renderContent = () => {
         if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState message={error} />;
+        if (error) return <ErrorState title={error.title} message={error.message} />;
         if (networkPlayers.length === 0) {
             return (
                 <Card className="bg-card/80 text-center mt-4">

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
-import type { QuizAttempt } from '@/lib/mockData';
+import type { QuizAttempt } from '@/ai/schemas';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { AdDialog } from '../AdDialog';
@@ -63,6 +63,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
   const reviewedStorageKey = 'indcric-reviewed-attempts';
 
   useEffect(() => {
+    if(typeof window === 'undefined') return;
     const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
     if (reviewedItems.includes(attempt.slotId)) {
         setIsReviewed(true);
@@ -80,6 +81,7 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
 
   const handleAdFinished = () => {
     setShowAdDialog(false);
+    if(typeof window === 'undefined') return;
     const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
     if (!reviewedItems.includes(attempt.slotId)) {
         reviewedItems.push(attempt.slotId);
