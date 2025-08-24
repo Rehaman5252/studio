@@ -22,7 +22,7 @@ const SelectedBrandCardComponent = ({ selectedBrand, onClick }: SelectedBrandCar
     >
         <CardContent className="px-4 py-4 sm:px-6 flex items-center justify-between gap-4 overflow-hidden h-[124px]">
             <div className="flex-1 text-left space-y-1">
-                <h3 className="font-bold text-lg text-foreground">{selectedBrand.format} Quiz</h3>
+                <h3 className="font-bold text-lg text-primary">{selectedBrand.format} Quiz</h3>
                 <p className="text-sm text-muted-foreground">{selectedBrand.description}</p>
                 <p className="text-xs text-muted-foreground">Sponsored by <span className="font-semibold text-primary">{selectedBrand.brand}</span></p>
                 <p className="font-bold text-accent">Win Rewards!</p>
