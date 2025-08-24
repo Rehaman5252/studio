@@ -37,11 +37,11 @@ const faceRotations = [
 interface QuizSelectionProps {
     selectedBrand: CubeBrand;
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
-    handleStartQuiz: () => void;
+    handleStartQuiz: (brand: CubeBrand) => void;
 }
 
 const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQuiz }: QuizSelectionProps) => {
-    const { isProfileComplete } = useAuth();
+    const { isProfileComplete, user } = useAuth();
     const router = useRouter();
     
     const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
@@ -50,13 +50,15 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     const [isRotating, setIsRotating] = useState(true);
 
     useEffect(() => {
-        // Prefetch immediately on component mount
-        fetch('/api/quiz', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ format: 'Mixed', userId: 'prefetch-user' }),
-        }).catch(e => console.warn("Quiz prefetching failed in background:", e));
-    }, []);
+        // Prefetch immediately on component mount if user is available
+        if (user?.uid) {
+            fetch('/api/quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ format: 'mixed', userId: user.uid }),
+            }).catch(e => console.warn("Quiz prefetching failed in background:", e));
+        }
+    }, [user]);
     
     useEffect(() => {
         if (!isRotating) return;
@@ -68,7 +70,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 3000); // Rotate every 3 seconds
+        }, 750);
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);
@@ -82,17 +84,15 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     }, [isProfileComplete, handleStartQuiz]);
     
     const handleFaceClick = (brand: CubeBrand) => {
-        setIsRotating(false); // Stop auto-rotation on user interaction
+        setIsRotating(false); 
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex);
             setRotation(faceRotations[clickedIndex]);
             setSelectedBrand(brand);
-            // Use a short delay to allow the cube to rotate before initiating the quiz start logic
-            setTimeout(() => {
-               initiateQuiz(brand);
-            }, 300);
         }
+        // No need for a timeout here, let initiateQuiz handle the logic
+        initiateQuiz(brand);
     };
   
     const handleAuthAlertAction = () => {
@@ -129,8 +129,8 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleAuthAlertAction}>
+                    <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+                    <AlertDialogAction type="button" onClick={handleAuthAlertAction}>
                         Complete Profile
                     </AlertDialogAction>
                 </AlertDialogFooter>
