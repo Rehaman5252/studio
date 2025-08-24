@@ -23,8 +23,8 @@ const SupportCardComponent = () => {
     return (
         <Card className="bg-card shadow-lg">
             <CardHeader>
-                <CardTitle className="text-lg">Help & Support</CardTitle>
-                <CardDescription>Have a question or need help?</CardDescription>
+                <CardTitle className="text-lg">Third Umpire Review</CardTitle>
+                <CardDescription>Need assistance? Go upstairs to the third umpire for help.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Dialog>
