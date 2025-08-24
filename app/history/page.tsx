@@ -82,7 +82,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <PageWrapper title={<span className="text-white">My Innings</span>}>
+    <PageWrapper title={<span className="text-white font-bold text-2xl">My Innings</span>}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="recent">Recent</TabsTrigger>
