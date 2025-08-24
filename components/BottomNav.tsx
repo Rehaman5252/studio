@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -23,8 +24,9 @@ export default function BottomNav() {
   }
 
   return (
-    <div 
+    <motion.div 
       className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50"
+      whileHover={{ y: -5, transition: { type: 'spring', stiffness: 300 } }}
     >
       <nav id="tour-step-3" className="flex h-full items-center justify-around max-w-md mx-auto">
         {navItems.map((item) => {
@@ -57,6 +59,6 @@ export default function BottomNav() {
           );
         })}
       </nav>
-    </div>
+    </motion.div>
   );
 }

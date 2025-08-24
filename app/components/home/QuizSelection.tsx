@@ -112,7 +112,6 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
                 onClick={() => {
-                    setIsRotating(false); 
                     initiateQuiz(selectedBrand)}
                 } 
             />
