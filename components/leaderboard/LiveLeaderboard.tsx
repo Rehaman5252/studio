@@ -11,9 +11,8 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Clock, Ban, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
-import { getQuizSlotId } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -117,13 +116,7 @@ const LiveLeaderboard = () => {
                 setError(null);
             }, (err: any) => {
                 console.error("Live Leaderboard snapshot error: ", err);
-                if (err.code === 'unavailable' || isOffline) {
-                    setError({ title: "Connection Error", message: "Bad connection has stopped play. Please check your network and try again."});
-                } else if (err.code === 'failed-precondition') {
-                    setError({ title: "Leaderboard Unavailable", message: "The leaderboard is being prepared. Please check back in a moment."});
-                } else {
-                    setError({ title: "Error Loading Data", message: "A technical fault has interrupted play. We're working to get it fixed."});
-                }
+                setError(mapFirestoreError(err));
                 setStatus('error');
             });
         };

@@ -13,6 +13,7 @@ import { WifiOff, ServerCrash, Star, Users } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;
@@ -111,12 +112,8 @@ const MyNetworkLeaderboard = () => {
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
 
             } catch (e: any) {
-                 if (e.code === 'unavailable') {
-                    setError({ title: "Connection Error", message: "Bad connection has stopped play. Please check your network and try again."});
-                } else {
-                     setError({ title: "Error Loading Data", message: "A technical fault has interrupted play. We're working to get it fixed."});
-                }
                 console.error("Error fetching network leaderboard:", e);
+                setError(mapFirestoreError(e));
             } finally {
                 setIsLoading(false);
             }

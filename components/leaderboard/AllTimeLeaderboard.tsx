@@ -12,6 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
+import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -109,13 +110,7 @@ const AllTimeLeaderboard = () => {
             setError(null);
         }, (err: any) => {
             console.error("All-Time Leaderboard snapshot error: ", err);
-            if (err.code === 'unavailable') {
-                setError({ title: "Connection Error", message: "Bad connection has stopped play. Please check your network and try again."});
-            } else if (err.code === 'failed-precondition') {
-                 setError({ title: "Leaderboard Unavailable", message: "The leaderboard is being prepared. Please check back in a moment."});
-            } else {
-                 setError({ title: "Error Loading Data", message: "A technical fault has interrupted play. We're working to get it fixed."});
-            }
+            setError(mapFirestoreError(err));
             setIsLoading(false);
         });
 

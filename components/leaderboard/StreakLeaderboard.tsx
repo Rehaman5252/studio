@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, getCountFromServer, where } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, mapFirestoreError } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
@@ -153,14 +153,8 @@ const StreakLeaderboard = () => {
                 }
 
             } catch (e: any) {
-                if (e.code === 'failed-precondition' || e.code === 'permission-denied') {
-                    setError({ title: "Leaderboard Unavailable", message: "The leaderboard is being prepared. Please check back in a moment."});
-                } else if (e.code === 'unavailable') {
-                    setError({ title: "Connection Error", message: "Bad connection has stopped play. Please check your network and try again."});
-                } else {
-                     setError({ title: "Error Loading Data", message: "A technical fault has interrupted play. We're working to get it fixed."});
-                }
                 console.error("Error fetching streak leaderboard:", e);
+                setError(mapFirestoreError(e));
             } finally {
                 setIsLoading(false);
             }

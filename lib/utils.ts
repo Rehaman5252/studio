@@ -61,3 +61,34 @@ export function calculateAge(dobString: string): number | null {
   
   return age;
 }
+
+/**
+ * Maps Firestore error codes to user-friendly messages.
+ * @param error The error object from Firestore.
+ * @returns An object with a title and message for display in an Alert.
+ */
+export function mapFirestoreError(error: any): { title: string, message: string } {
+    console.error("Firestore Error:", error.code, error.message);
+    switch (error.code) {
+        case 'unavailable':
+            return {
+                title: "Connection Error",
+                message: "Bad connection has stopped play. Please check your network and try again."
+            };
+        case 'failed-precondition':
+             return {
+                title: "Leaderboard Unavailable",
+                message: "The leaderboard is being prepared, likely because the required indexes are being built. Please check back in a moment."
+            };
+        case 'permission-denied':
+            return {
+                title: "Permission Error",
+                message: "You do not have permission to access this data. Please contact support if you believe this is an error."
+            };
+        default:
+            return {
+                title: "Error Loading Data",
+                message: "A technical fault has interrupted play. We're working to get it fixed."
+            };
+    }
+}
