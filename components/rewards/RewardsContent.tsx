@@ -24,8 +24,8 @@ const ScratchCardSkeleton = () => (
 const RewardsSkeleton = () => (
   <div className="space-y-8">
       <section>
-        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
+        <h2 className="text-xl font-semibold text-foreground">Your Kit Bag</h2>
+        <p className="text-sm text-muted-foreground mb-4">A special reward for every match you play. Unpack to reveal your prize!</p>
         <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
             <CarouselContent className="-ml-4">
                 {[...Array(3)].map((_, index) => (
@@ -108,7 +108,7 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
                     <div className="w-16 h-16 relative mb-3">
                          <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} />
                     </div>
-                    <p className="font-bold text-lg">Scratch to reveal!</p>
+                    <p className="font-bold text-lg">Unpack Your Reward</p>
                     <p className="text-sm">From {brand}</p>
                 </button>
             ) : (
@@ -170,7 +170,7 @@ function RewardsContentComponent() {
     }
     if (rewardableAttempts.length === 0) {
       return (
-        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">No Brand Gifts Yet</p><p className="text-sm">Play any quiz to unlock a special brand gift!</p></CardContent></Card>
+        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">Your Kit Bag is Empty</p><p className="text-sm">Play a match to earn your first reward!</p></CardContent></Card>
       );
     }
     return (
@@ -194,8 +194,8 @@ function RewardsContentComponent() {
   return (
     <>
       <section>
-        <h2 className="text-xl font-semibold text-foreground">Your Brand Gifts</h2>
-        <p className="text-sm text-muted-foreground mb-4">You get a scratch card for each quiz attempt. Scratch to reveal!</p>
+        <h2 className="text-xl font-semibold text-foreground">Your Kit Bag</h2>
+        <p className="text-sm text-muted-foreground mb-4">A special reward for every match you play. Unpack to reveal your prize!</p>
         <BrandGifts />
       </section>
     </>
