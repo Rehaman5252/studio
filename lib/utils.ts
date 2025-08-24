@@ -68,27 +68,48 @@ export function calculateAge(dobString: string): number | null {
  * @returns An object with a title and message for display in an Alert.
  */
 export function mapFirestoreError(error: any): { title: string, message: string } {
-    console.error("Firestore Error:", error.code, error.message);
+    if (!error || !error.code) {
+      return {
+        title: "Unexpected Error",
+        message: "Something went wrong. Please try again.",
+      };
+    }
+
     switch (error.code) {
+        case 'permission-denied':
+            return {
+                title: "Permission Denied",
+                message: "You don’t have permission to view this data.",
+            };
         case 'unavailable':
             return {
-                title: "Connection Error",
-                message: "Bad connection has stopped play. Please check your network and try again."
+                title: "Service Unavailable",
+                message: "The leaderboard service is temporarily unavailable. Please try again later.",
+            };
+        case 'not-found':
+            return {
+                title: "Data Not Found",
+                message: "No leaderboard data was found.",
+            };
+        case 'deadline-exceeded':
+            return {
+                title: "Request Timeout",
+                message: "The request took too long. Please refresh and try again.",
+            };
+        case 'unauthenticated':
+            return {
+                title: "Authentication Required",
+                message: "Please log in to access the leaderboard.",
             };
         case 'failed-precondition':
              return {
                 title: "Leaderboard Unavailable",
                 message: "The leaderboard is being prepared, likely because the required indexes are being built. Please check back in a moment."
             };
-        case 'permission-denied':
-            return {
-                title: "Permission Error",
-                message: "You do not have permission to access this data. Please contact support if you believe this is an error."
-            };
         default:
             return {
-                title: "Error Loading Data",
-                message: "A technical fault has interrupted play. We're working to get it fixed."
+                title: "Unexpected Error",
+                message: error.message || "Something went wrong. Please try again.",
             };
     }
 }
