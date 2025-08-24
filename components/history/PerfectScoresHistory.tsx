@@ -31,8 +31,8 @@ export default function PerfectScoresHistory() {
         <Card className="bg-card/80">
             <CardContent className="p-8 text-center text-muted-foreground">
               <Award className="h-12 w-12 mx-auto mb-4 text-primary/50" />
-              <p className="font-semibold text-lg text-foreground">No Perfect Scores Yet!</p>
-              <p>Keep playing! A perfect 5/5 score will land you here and earn you a certificate.</p>
+              <p className="font-semibold text-lg text-foreground">The Honours Board is Empty</p>
+              <p>No centuries on the board yet! Score a perfect 5/5 to etch your name in history and earn a certificate.</p>
             </CardContent>
         </Card>
     );
