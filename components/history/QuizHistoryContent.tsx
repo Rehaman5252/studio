@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
@@ -54,7 +54,7 @@ const getSlotTimings = (timestamp: number) => {
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
   };
 
-export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
+const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const router = useRouter();
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -167,3 +167,4 @@ export const HistoryItem = ({ attempt }: { attempt: QuizAttempt }) => {
     </>
   );
 };
+export const HistoryItem = memo(HistoryItemComponent);

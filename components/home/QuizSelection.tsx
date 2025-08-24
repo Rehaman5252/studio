@@ -70,7 +70,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 3000);
+        }, 750);
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);
@@ -84,14 +84,12 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     }, [isProfileComplete, handleStartQuiz]);
     
     const handleFaceClick = (brand: CubeBrand) => {
-        setIsRotating(false); 
         const clickedIndex = brandData.findIndex(b => b.id === brand.id);
         if (clickedIndex !== -1) {
             setCurrentFaceIndex(clickedIndex);
             setRotation(faceRotations[clickedIndex]);
             setSelectedBrand(brand);
         }
-        // No need for a timeout here, let initiateQuiz handle the logic
         initiateQuiz(brand);
     };
   
@@ -113,7 +111,9 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
 
             <SelectedBrandCard 
                 selectedBrand={selectedBrand} 
-                onClick={() => initiateQuiz(selectedBrand)} 
+                onClick={() => {
+                    initiateQuiz(selectedBrand)}
+                } 
             />
 
             <div className="mt-6 space-y-8" id="tour-step-2">

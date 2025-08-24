@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Star, Users } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
@@ -124,7 +124,7 @@ const MyNetworkLeaderboard = () => {
     }, [user, profile, authLoading]);
 
 
-    const renderContent = () => {
+    const content = useMemo(() => {
         if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
         if (error) return <ErrorState title={error.title} message={error.message} />;
         if (networkPlayers.length === 0) {
@@ -143,7 +143,7 @@ const MyNetworkLeaderboard = () => {
         return networkPlayers.map((player) => (
             <LeaderboardItem key={player.uid} player={player} />
         ));
-    };
+    }, [isLoading, authLoading, error, networkPlayers]);
 
 
     return (
@@ -153,7 +153,7 @@ const MyNetworkLeaderboard = () => {
                 <CardDescription>Track your friends' perfect scores</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2">{renderContent()}</div>
+                <div className="space-y-2">{content}</div>
             </CardContent>
         </Card>
     );
