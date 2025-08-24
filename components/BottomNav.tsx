@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -24,7 +23,11 @@ export default function BottomNav() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50">
+    <motion.div 
+      className="fixed bottom-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-lg border-t z-50"
+      whileHover={{ y: -5, scale: 1.02 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+    >
       <nav id="tour-step-3" className="flex h-full items-center justify-around max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -51,6 +54,6 @@ export default function BottomNav() {
           );
         })}
       </nav>
-    </div>
+    </motion.div>
   );
 }
