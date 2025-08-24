@@ -109,6 +109,7 @@ const AllTimeLeaderboard = () => {
             setIsLoading(false);
             setError(null);
         }, (err: any) => {
+            console.error("All-Time Leaderboard snapshot error: ", err);
             setError(mapFirestoreError(err));
             setIsLoading(false);
         });
