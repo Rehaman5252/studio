@@ -98,34 +98,34 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle className="text-center text-2xl font-bold">AI Performance Analysis</DialogTitle>
-                    <DialogDescription className="text-center">A detailed debrief of your {attempt.format} quiz performance.</DialogDescription>
+                    <DialogTitle className="text-center text-2xl font-bold">Third Umpire Review</DialogTitle>
+                    <DialogDescription className="text-center">A detailed debrief of your {attempt.format} innings.</DialogDescription>
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6 py-4">
                     {loading ? <AnalysisSkeleton /> : error ? (
-                        <Alert variant="destructive" className="my-4"><AlertTriangle className="h-4 w-4" /><AlertTitle>Analysis Failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
+                        <Alert variant="destructive" className="my-4"><AlertTriangle className="h-4 w-4" /><AlertTitle>Review Unavailable</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
                     ) : analysis && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-3 gap-4">
                                 <StatCard title="Final Score" value={`${attempt.score}/${attempt.totalQuestions}`} />
                                 <StatCard title="Accuracy" value={analysis.accuracy} unit="%" />
-                                <StatCard title="Avg. Time" value={analysis.averageTimePerQuestion} unit="s" />
+                                <StatCard title="Strike Rate" value={analysis.averageTimePerQuestion} unit="s/q" />
                             </div>
 
-                            <Card className="bg-card/50"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart className="text-primary"/> Performance Summary</CardTitle></CardHeader><CardContent><p>{analysis.overallPerformance}</p></CardContent></Card>
+                            <Card className="bg-card/50"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart className="text-primary"/> Match Report</CardTitle></CardHeader><CardContent><p>{analysis.overallPerformance}</p></CardContent></Card>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-green-500"><Zap /> Key Strengths</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.keyStrengths.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
-                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><Target /> Areas for Improvement</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
+                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-green-500"><Zap /> Power Plays</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.keyStrengths.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
+                                <Card><CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><Target /> Net Practice</CardTitle></CardHeader><CardContent><ul className="list-disc pl-5 space-y-1 text-sm">{analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}</ul></CardContent></Card>
                             </div>
 
-                            <Card className="bg-primary/10"><CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Lightbulb /> Coach's Tip</CardTitle></CardHeader><CardContent><p className="text-sm">{analysis.coachTip}</p></CardContent></Card>
+                            <Card className="bg-primary/10"><CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Lightbulb /> Coach's Corner</CardTitle></CardHeader><CardContent><p className="text-sm">{analysis.coachTip}</p></CardContent></Card>
 
                             <Card>
-                                <CardHeader><CardTitle>Question Breakdown</CardTitle><CardDescription>A detailed look at each question.</CardDescription></CardHeader>
+                                <CardHeader><CardTitle>Ball-by-Ball</CardTitle><CardDescription>A detailed look at each delivery.</CardDescription></CardHeader>
                                 <CardContent>
                                     <div className="overflow-x-auto">
-                                        <Table><TableHeader><TableRow><TableHead className="w-[10px]">Q#</TableHead><TableHead>Your Answer</TableHead><TableHead>Time</TableHead><TableHead>Category</TableHead></TableRow></TableHeader>
+                                        <Table><TableHeader><TableRow><TableHead className="w-[10px]">Ball</TableHead><TableHead>Your Shot</TableHead><TableHead>Time</TableHead><TableHead>Line & Length</TableHead></TableRow></TableHeader>
                                             <TableBody>
                                                 {analysis.analyzedQuestions.map((q, i) => (
                                                     <TableRow key={i} className={cn(q.isCorrect ? 'bg-green-500/10' : 'bg-destructive/10')}>
