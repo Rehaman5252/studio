@@ -34,7 +34,7 @@ const faceRotations = [
     { x: 90, y: 0 }    // Bottom (Test)
 ];
 
-const ROTATION_INTERVAL_MS = 3000; // Increased interval for better UX
+const ROTATION_INTERVAL_MS = 3000;
 
 interface QuizSelectionProps {
     selectedBrand: CubeBrand;
