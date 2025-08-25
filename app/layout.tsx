@@ -4,6 +4,13 @@ import type { Metadata } from 'next';
 import Providers from '@/context/Providers';
 import { Toaster } from '@/components/ui/toaster';
 import BottomNav from '@/components/BottomNav';
+import { Poppins } from 'next/font/google';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-poppins',
+});
 
 export const metadata: Metadata = {
   title: 'CricBlitz',
@@ -17,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased">
+      <body className={`${poppins.variable} antialiased`}>
         <Providers>
           <div className="relative flex flex-col min-h-screen">
             <main className="flex-1 pb-20">{children}</main>

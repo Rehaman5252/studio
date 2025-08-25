@@ -31,6 +31,7 @@
     --ring: 45 100% 51%;
 
     --radius: 0.5rem;
+    --font-poppins: 'Poppins', sans-serif;
   }
 
   .dark {
@@ -68,7 +69,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-poppins), sans-serif;
   }
 }
 
