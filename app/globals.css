@@ -6,32 +6,32 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 0 0% 7%; /* Black */
-    --foreground: 0 0% 98%;
+    --background: 120 60% 97%; /* Pale Green */
+    --foreground: 0 0% 7%; /* Black */
 
-    --card: 0 0% 11%;
-    --card-foreground: 0 0% 98%;
+    --card: 120 60% 100%;
+    --card-foreground: 0 0% 7%;
 
-    --primary: 45 100% 51%; /* Gold */
-    --primary-foreground: 0 0% 7%; /* Black */
+    --primary: 120 61% 34%; /* Forest Green */
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 0% 7%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     
-    --accent: 0 0% 75%; /* Silver */
-    --accent-foreground: 0 0% 7%;
+    --accent: 16 100% 50%; /* Sunset Orange */
+    --accent-foreground: 0 0% 98%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 63%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
     
-    --input: 0 0% 15%;
-    --ring: 45 100% 51%;
+    --input: 0 0% 85%;
+    --ring: 120 61% 34%;
 
     --radius: 0.5rem;
-    --font-poppins: 'Poppins', sans-serif;
+    --font-inter: 'Inter', sans-serif;
   }
 
   .dark {
@@ -41,8 +41,8 @@
     --card: 0 0% 11%;
     --card-foreground: 0 0% 98%;
 
-    --primary: 45 100% 51%; /* Gold */
-    --primary-foreground: 0 0% 7%; /* Black */
+    --primary: 120 61% 34%; /* Forest Green */
+    --primary-foreground: 0 0% 98%;
 
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 98%;
@@ -50,14 +50,14 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --accent: 0 0% 75%; /* Silver */
+    --accent: 16 100% 50%; /* Sunset Orange */
     --accent-foreground: 0 0% 7%;
 
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 63%;
 
     --input: 0 0% 15%;
-    --ring: 45 100% 51%;
+    --ring: 120 61% 34%;
     
     --border: 0 0% 15%;
   }
@@ -69,7 +69,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-poppins), sans-serif;
+    font-family: var(--font-inter), sans-serif;
   }
 }
 
@@ -95,7 +95,7 @@
   border: 1px solid hsl(var(--border));
   font-size: 1.5rem;
   font-weight: bold;
-  color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   background: hsla(var(--card), 0.8);
   backdrop-filter: blur(5px);
   display: flex;
@@ -111,7 +111,7 @@
     background: hsla(var(--primary), 0.9);
     color: hsl(var(--primary-foreground));
     border-color: hsl(var(--primary));
-    box-shadow: 0 0 15px 5px hsla(var(--primary), 0.5);
+    box-shadow: 0 0 20px 7px hsla(var(--primary), 0.6);
 }
 
 .cube-face-front { transform: rotateY(0deg) translateZ(80px); }
@@ -142,7 +142,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(to right, hsl(var(--foreground)) 20%, hsl(var(--primary)) 40%, hsl(var(--primary)) 60%, hsl(var(--foreground)) 80%);
+    background: linear-gradient(to right, hsl(var(--primary)) 20%, hsl(var(--accent)) 40%, hsl(var(--accent)) 60%, hsl(var(--primary)) 80%);
     background-size: 200% auto;
     color: transparent;
     background-clip: text;

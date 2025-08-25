@@ -43,12 +43,12 @@ LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
-        <Skeleton key="skel-avatar" className="w-8 h-8 rounded-full" />
-        <Skeleton key="skel-icon" className="h-10 w-10 mx-4 rounded-full" />
+        <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
+        <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <Skeleton key="skel-name" className="h-4 flex-1" />
         <div key="skel-score-container" className="text-right space-y-2">
-            <Skeleton className="h-4 w-8" />
-            <Skeleton className="h-3 w-12" />
+            <Skeleton key="skel-score" className="h-4 w-8" />
+            <Skeleton key="skel-time" className="h-3 w-12" />
         </div>
     </div>
 );

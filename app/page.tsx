@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +16,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import PageWrapper from '@/components/PageWrapper';
 import CricketFact from '@/components/home/CricketFact';
-import HomeClientContent from '@/components/home/HomeClientContent';
+import QuizSelection from '@/components/home/QuizSelection';
+import GuidedTour from '@/components/home/GuidedTour';
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse">
@@ -67,7 +67,7 @@ MalpracticeWarning.displayName = 'MalpracticeWarning';
 
 
 function HomePage() {
-    const { user, isProfileComplete, lastAttemptInSlot, loading: authLoading } = useAuth();
+    const { user, profile, updateUserData, isProfileComplete, lastAttemptInSlot, loading: authLoading } = useAuth();
     const { isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     const { toast } = useToast();
@@ -105,9 +105,7 @@ function HomePage() {
             return;
         }
         if (!isProfileComplete) {
-            // The HomeClientContent component will show an alert dialog in this case.
-            // This check is important here so the quiz doesn't start.
-            // A more direct way to trigger the dialog would be ideal.
+            // The QuizSelection component will show an alert dialog in this case.
             return;
         }
         
@@ -117,24 +115,37 @@ function HomePage() {
     const headerContent = (
       <div className="text-center">
         <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
-          indcric
+          CricBlitz
         </h1>
         <p className="mt-1 text-base font-normal text-foreground/80">
-          Win ₹100 for every 100 seconds!
+          The Ultimate Cricket Quiz
         </p>
       </div>
     );
 
     if (authLoading) {
       return (
-        <PageWrapper title={headerContent as unknown as string} hideBorder>
+        <PageWrapper title={headerContent} hideBorder>
             <HomeContentSkeleton />
         </PageWrapper>
       )
     }
+    
+    const needsTour = profile && !profile.guidedTourCompleted;
+
+    const handleTourFinish = async () => {
+        if (profile) {
+            try {
+                await updateUserData({ guidedTourCompleted: true });
+            } catch (error) {
+                console.error("Failed to update tour status:", error);
+            }
+        }
+    };
+
 
     return (
-      <PageWrapper title={headerContent as unknown as string} hideBorder>
+      <PageWrapper title={headerContent} hideBorder>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -142,11 +153,13 @@ function HomePage() {
             className="space-y-6"
           >
             <MalpracticeWarning />
-            <HomeClientContent 
+            
+            <QuizSelection
                 selectedBrand={selectedBrand}
                 setSelectedBrand={setSelectedBrand} 
                 handleStartQuiz={handleStartQuiz} 
             />
+            {profile && <GuidedTour run={needsTour} onFinish={handleTourFinish} />}
 
              <div className="mt-6">
                 <StartQuizButton

@@ -34,6 +34,8 @@ const faceRotations = [
     { x: 90, y: 0 }    // Bottom (Test)
 ];
 
+const ROTATION_INTERVAL_MS = 3000; // Increased interval for better UX
+
 interface QuizSelectionProps {
     selectedBrand: CubeBrand;
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
@@ -70,7 +72,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 3000); // Increased from 750ms to 3s for better UX
+        }, ROTATION_INTERVAL_MS);
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);

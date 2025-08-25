@@ -28,8 +28,8 @@ const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: Strea
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         <div className="text-right flex items-center gap-1">
-            <p className="font-bold text-primary">{player.currentStreak}</p>
-            <Flame className="h-4 w-4 text-primary" />
+            <p className="font-bold text-accent">{player.currentStreak}</p>
+            <Flame className="h-4 w-4 text-accent" />
         </div>
     </div>
 ));
@@ -37,10 +37,10 @@ LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
-        <Skeleton className="w-8 h-8 rounded-full" />
-        <Skeleton className="h-10 w-10 mx-4 rounded-full" />
-        <Skeleton className="h-4 flex-1" />
-        <Skeleton className="h-4 w-12" />
+        <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
+        <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
+        <Skeleton key="skel-name" className="h-4 flex-1" />
+        <Skeleton key="skel-streak" className="h-4 w-12" />
     </div>
 );
 
@@ -55,7 +55,7 @@ const ErrorState = ({ message, title }: { message: string, title: string }) => (
 const EmptyState = () => (
     <Card className="bg-card/80 text-center mt-4">
         <CardContent className="p-6">
-            <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
+            <Trophy className="h-10 w-10 mx-auto text-accent/50 mb-4" />
             <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
             <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
         </CardContent>
