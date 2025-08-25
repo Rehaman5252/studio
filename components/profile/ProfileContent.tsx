@@ -6,16 +6,19 @@ import ProfileCompletion from '@/components/profile/ProfileCompletion';
 import ProfileStats from '@/components/profile/ProfileStats';
 import ReferralCard from '@/components/profile/ReferralCard';
 import DailyStreakCard from '@/components/profile/DailyStreakCard';
+import { useAuth } from '@/context/AuthProvider';
 
-function ProfileContentComponent({ userProfile }: { userProfile: any }) {
+function ProfileContentComponent() {
+  const { profile } = useAuth();
+  if (!profile) return null;
 
   return (
     <div className="space-y-6">
-      <ProfileHeader userProfile={userProfile} />
-      <ProfileCompletion userProfile={userProfile} />
-      <DailyStreakCard userProfile={userProfile} />
-      <ProfileStats userProfile={userProfile} />
-      <ReferralCard referralCode={userProfile.referralCode} referralEarnings={userProfile.referralEarnings} />
+      <ProfileHeader userProfile={profile} />
+      <ProfileCompletion />
+      <DailyStreakCard userProfile={profile} />
+      <ProfileStats userProfile={profile} />
+      <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
     </div>
   );
 }

@@ -4,9 +4,11 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PercentCircle, CheckCircle } from 'lucide-react';
+import { PercentCircle } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
+import { EditProfileDialog } from './EditProfileDialog';
 import { Button } from '../ui/button';
+import { useAuth } from '@/context/AuthProvider';
 
 const MANDATORY_PROFILE_FIELDS = [
     'name', 'email', 'phone', 'dob', 'gender', 'occupation', 'upi', 
@@ -40,36 +42,44 @@ const isFieldComplete = (fieldName: ProfileField, value: any): boolean => {
     }
 }
 
-export default function ProfileCompletion({ userProfile }: { userProfile: any }) {
+export default function ProfileCompletion() {
+    const { profile } = useAuth();
+
     const { completionPercentage, completedCount } = useMemo(() => {
-        if (!userProfile) return { completionPercentage: 0, completedCount: 0 };
+        if (!profile) return { completionPercentage: 0, completedCount: 0 };
         
-        const completed = MANDATORY_PROFILE_FIELDS.filter(field => isFieldComplete(field, userProfile?.[field]));
+        const completed = MANDATORY_PROFILE_FIELDS.filter(field => isFieldComplete(field, profile?.[field]));
         const percentage = Math.round((completed.length / MANDATORY_PROFILE_FIELDS.length) * 100);
         
         return { completionPercentage: percentage, completedCount: completed.length };
-    }, [userProfile]);
+    }, [profile]);
 
-    // Hide component when profile is 100% complete
-    if (completionPercentage === 100) {
+    if (!profile || completionPercentage === 100) {
         return null;
     }
 
     return (
-        <Card className="bg-card shadow-lg">
-            <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <PercentCircle className="text-accent"/> Profile Completion
+        <Card className="bg-amber-500/10 border-amber-500/30">
+            <CardHeader className='pb-2'>
+                <CardTitle className="text-base flex items-center gap-2 text-amber-500">
+                    <PercentCircle/> Complete Your Profile
                 </CardTitle>
-                <CardDescription>
-                    Complete your profile to unlock all features and rewards.
+                <CardDescription className='text-amber-500/80'>
+                    You're almost there! Finish your profile to start playing.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-                <Progress value={completionPercentage} className="h-3" />
-                <p className="text-sm text-center text-muted-foreground">
-                    {completionPercentage}% complete ({completedCount}/{MANDATORY_PROFILE_FIELDS.length} fields)
-                </p>
+                <div className='flex items-center gap-4'>
+                    <Progress value={completionPercentage} className="h-2 flex-1" />
+                    <span className="text-sm font-semibold text-amber-500">{completionPercentage}%</span>
+                </div>
+                 <div className="pt-2">
+                    <EditProfileDialog userProfile={profile}>
+                        <Button variant="default" size="sm">
+                            Update Profile
+                        </Button>
+                    </EditProfileDialog>
+                </div>
             </CardContent>
         </Card>
     );

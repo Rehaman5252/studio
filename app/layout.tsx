@@ -4,12 +4,12 @@ import type { Metadata } from 'next';
 import Providers from '@/context/Providers';
 import { Toaster } from '@/components/ui/toaster';
 import BottomNav from '@/components/BottomNav';
-import { Inter } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '700', '800'], // Optimized font weights
-  variable: '--font-inter',
+  variable: '--font-poppins',
 });
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${poppins.variable} antialiased`}>
         <Providers>
           <div className="relative flex flex-col min-h-screen">
             <main className="flex-1 pb-20">{children}</main>
