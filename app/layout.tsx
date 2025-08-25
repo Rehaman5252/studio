@@ -13,8 +13,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'CricBlitz',
-  description: 'The Ultimate Cricket Quiz',
+  title: 'indcric',
+  description: 'Win ₹100 for every 100 seconds!',
 };
 
 export default function RootLayout({

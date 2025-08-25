@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -52,10 +53,10 @@ export default function GuidedTour({ run, onFinish }: GuidedTourProps) {
       callback={handleJoyrideCallback}
       styles={{
         options: {
-          arrowColor: theme === 'dark' ? '#1E293B' : '#FFFFFF',
-          backgroundColor: theme === 'dark' ? '#1E293B' : '#FFFFFF',
-          primaryColor: '#228B22', // Forest Green
-          textColor: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+          arrowColor: theme === 'dark' ? '#393E46' : '#FFFFFF',
+          backgroundColor: theme === 'dark' ? '#393E46' : '#FFFFFF',
+          primaryColor: '#D4AF37', // Gold
+          textColor: theme === 'dark' ? '#FFFFFF' : '#222831',
           zIndex: 1000,
         },
       }}

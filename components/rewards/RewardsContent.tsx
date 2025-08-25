@@ -56,7 +56,7 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) => {
   const [isScratched, setIsScratched] = useState(false);
-  const storageKey = useMemo(() => `cricblitz-scratch-card-${slotId}`, [slotId]);
+  const storageKey = useMemo(() => `indcric-scratch-card-${slotId}`, [slotId]);
   
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
 
@@ -85,7 +85,7 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
