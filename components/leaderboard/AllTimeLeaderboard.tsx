@@ -121,7 +121,9 @@ const AllTimeLeaderboard = () => {
     }, [authLoading, user]);
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
+        if (isLoading || authLoading) {
+          return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
+        }
         if (error) return <ErrorState title={error.title} message={error.message} />;
         if (players.length === 0) return <EmptyState />;
         return players.map((player) => <LeaderboardItem key={player.uid} player={player} />);

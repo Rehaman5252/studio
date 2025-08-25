@@ -170,7 +170,9 @@ const StreakLeaderboard = () => {
 
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
+        if (isLoading || authLoading) {
+            return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
+        }
         if (error) return <ErrorState title={error.title} message={error.message} />;
         if (players.length === 0) return <EmptyState />;
         

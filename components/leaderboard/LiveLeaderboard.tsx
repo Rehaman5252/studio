@@ -135,7 +135,9 @@ const LiveLeaderboard = () => {
     }, [user, isOffline]);
 
     const content = useMemo(() => {
-        if (status === 'loading' || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
+        if (status === 'loading' || authLoading) {
+            return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
+        }
         if (status === 'error' && error) return <ErrorState title={error.title} message={error.message} />;
         if (status === 'waiting' || players.length === 0) return <WaitingState timeLeft={timeLeft} />;
         return players.map((player) => <LeaderboardItem key={player.userId} player={player} />);
