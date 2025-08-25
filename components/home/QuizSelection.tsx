@@ -70,12 +70,13 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 750);
+        }, 3000); // Increased from 750ms to 3s for better UX
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);
     
     const initiateQuiz = useCallback((brand: CubeBrand) => {
+        setIsRotating(false); // Stop rotation on user interaction
         if (!isProfileComplete) {
             setShowProfileAlert(true);
         } else {

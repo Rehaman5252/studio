@@ -74,7 +74,10 @@ const StreakLeaderboard = () => {
         const usersCollection = collection(db, 'users');
         
         try {
+            // Count users with a strictly higher streak
             const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
+            
+            // Count users with the same streak but alphabetically earlier name for tie-breaking
             const tieBreakerQuery = query(
                 usersCollection, 
                 where('currentStreak', '==', streak), 
@@ -126,6 +129,7 @@ const StreakLeaderboard = () => {
                 
                 setPlayers(playersData);
 
+                // Only calculate rank if user exists and is not already in the top 50 list
                 if (user && !playersData.some(p => p.uid === user.uid)) {
                    const userDocRef = doc(db, 'users', user.uid);
                    const userDoc = await getDoc(userDocRef);
@@ -149,6 +153,7 @@ const StreakLeaderboard = () => {
                         }
                    }
                 } else {
+                    // If user is in the top list, no need to show them separately at the bottom
                     setCurrentUserData(null);
                 }
 
@@ -165,7 +170,7 @@ const StreakLeaderboard = () => {
 
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         if (error) return <ErrorState title={error.title} message={error.message} />;
         if (players.length === 0) return <EmptyState />;
         

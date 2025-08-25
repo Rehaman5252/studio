@@ -42,7 +42,10 @@ const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
         <Skeleton className="w-8 h-8 rounded-full" />
         <Skeleton className="h-10 w-10 mx-4 rounded-full" />
-        <Skeleton className="h-4 flex-1" />
+        <div className='flex-1 space-y-2'>
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+        </div>
         <Skeleton className="h-4 w-12" />
     </div>
 );
@@ -118,7 +121,7 @@ const AllTimeLeaderboard = () => {
     }, [authLoading, user]);
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (isLoading || authLoading) return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         if (error) return <ErrorState title={error.title} message={error.message} />;
         if (players.length === 0) return <EmptyState />;
         return players.map((player) => <LeaderboardItem key={player.uid} player={player} />);
