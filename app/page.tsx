@@ -105,6 +105,13 @@ function HomePage() {
         }
         if (!isProfileComplete) {
             // The QuizSelection component will show an alert dialog in this case.
+            // We just need to trigger its logic, which is done via its own click handlers.
+            // For this main button, we can show a toast as a fallback.
+            toast({
+                title: "Profile Incomplete",
+                description: "Please complete your profile to start playing quizzes.",
+                variant: "destructive"
+            });
             return;
         }
         
