@@ -36,7 +36,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
-  const [startTime, setStartTime] = useState<number>(Date.now());
+  const [startTime, setStartTime] = useState<number>(0);
   const [showInterstitial, setShowInterstitial] = useState(false);
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
@@ -54,7 +54,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [currentQuestionIndex]);
 
   const fetchQuiz = useCallback(async () => {
-    // Cancel any previous, ongoing fetch request
     if (abortControllerRef.current) {
         abortControllerRef.current.abort();
     }
@@ -78,56 +77,37 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         signal: controller.signal,
       });
 
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+      if (controller.signal.aborted) return;
       
       const data: QuizAPIResponse = await response.json();
-      if (controller.signal.aborted) return; // Don't update state if component has unmounted
-
-      if (!data.questions || data.questions.length < 5) {
-          throw new Error('Invalid quiz data received from server.');
-      }
+      if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received.');
 
       setQuizData(data);
-      
       if (data.source === 'fallback') {
           toast({
               title: "Classic Quiz Loaded!",
               description: data.fallbackReason || "Using a reliable fallback quiz for you.",
           });
       }
-      
     } catch (e: any) {
-      if (e.name === 'AbortError') {
-        console.log('Quiz fetch aborted.');
-        return;
-      }
-
+      if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
       let errorMessage = "Could not load the quiz. Please try again later.";
       if(e.message.includes('fetch') || e.message.includes('network') || e.message.includes('Server')) {
         errorMessage = "Network error. Please check your connection and try again."
       }
-      
       if (!controller.signal.aborted) {
         setError(errorMessage);
-        toast({
-            title: "Error Loading Quiz",
-            description: errorMessage,
-            variant: "destructive"
-        });
+        toast({ title: "Error Loading Quiz", description: errorMessage, variant: "destructive" });
       }
     } finally {
-        if (!controller.signal.aborted) {
-            setLoading(false);
-        }
+        if (!controller.signal.aborted) setLoading(false);
     }
   }, [format, user, toast]);
 
   useEffect(() => {
     fetchQuiz();
-    // Cleanup function to abort the fetch request if the component unmounts
     return () => {
         abortControllerRef.current?.abort();
     };
@@ -138,27 +118,26 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
-  const finishQuiz = useCallback(async () => {
+  const finishQuiz = useCallback(async (currentAnswers: string[], currentTimePerQuestion: number[]) => {
     if (!quizData || !user) return;
     const attempt = buildAttempt({
       user,
       quizData,
       brand,
       format,
-      userAnswers,
-      timePerQuestion,
+      userAnswers: currentAnswers,
+      timePerQuestion: currentTimePerQuestion,
     });
-    
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
+  }, [quizData, user, brand, format, addQuizAttempt, router]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (!quizData || !user) return;
     const noBallCount = await handleMalpractice();
     toast({
         title: "No Ball!",
-        description: `Malpractice detected. You have ${noBallCount} no-ball(s). 3 no-balls and you're out for the day!`,
+        description: `Malpractice detected. You have ${noBallCount} no-ball(s). 3 no-balls and you're out!`,
         variant: "destructive"
     });
     
@@ -171,17 +150,19 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timePerQuestion,
       overrides: { reason, score: 0 },
     });
-
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
 
-
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
     const timeTaken = (endTime - startTime) / 1000;
-    setTimePerQuestion(prev => [...prev, parseFloat(timeTaken.toFixed(2))]);
-    setUserAnswers(prev => [...prev, answer]);
+    
+    const updatedAnswers = [...userAnswers, answer];
+    const updatedTime = [...timePerQuestion, parseFloat(timeTaken.toFixed(2))];
+    
+    setUserAnswers(updatedAnswers);
+    setTimePerQuestion(updatedTime);
     
     if (currentQuestionIndex < quizData!.questions.length - 1) {
         if (interstitialConfig) {
@@ -191,9 +172,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setStartTime(Date.now());
         }
     } else {
-      finishQuiz();
+      finishQuiz(updatedAnswers, updatedTime);
     }
-  }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig]);
+  }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);
 
   const onInterstitialComplete = useCallback(() => {
     setShowInterstitial(false);
@@ -201,36 +182,36 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
-  const handleHintRequest = () => {
+  const handleHintRequest = useCallback(() => {
     if (!quizData) return;
     const adConfig = adLibrary.hintAds[currentQuestionIndex];
     if (adConfig) {
       setAdForHint(adConfig as any);
       setShowAdDialog(true);
     }
-  };
+  }, [quizData, currentQuestionIndex]);
 
-  const handleAdFinished = async () => {
+  const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
-    if (adForHint && quizData) {
-      setIsHintLoading(true);
-      try {
-        const currentQ = quizData.questions[currentQuestionIndex];
-        const hintText = await getAIPoweredHint({
-            question: currentQ.question,
-            options: currentQ.options,
-            correctAnswer: currentQ.correctAnswer
-        });
-        setHint(hintText);
-      } catch (e) {
-        console.error("Failed to get AI hint:", e);
-        setHint("Couldn't get a hint this time. Maybe think about the player's most famous matches?");
-      } finally {
-        setIsHintLoading(false);
-      }
+    if (!adForHint || !quizData) return;
+    
+    setIsHintLoading(true);
+    try {
+      const currentQ = quizData.questions[currentQuestionIndex];
+      const hintText = await getAIPoweredHint({
+          question: currentQ.question,
+          options: currentQ.options,
+          correctAnswer: currentQ.correctAnswer
+      });
+      setHint(hintText);
+    } catch (e) {
+      console.error("Failed to get AI hint:", e);
+      setHint("Couldn't get a hint this time. Maybe think about the player's most famous matches?");
+    } finally {
+      setIsHintLoading(false);
     }
     setAdForHint(null);
-  };
+  }, [adForHint, quizData, currentQuestionIndex]);
   
   if (showPreQuizLoader && !error) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;

@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
 import StartQuizButton from '@/components/home/StartQuizButton';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { getQuizSlotId } from '@/lib/utils';
@@ -14,9 +14,15 @@ import { brandData, CubeBrand } from '@/components/home/brandData';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import PageWrapper from '@/components/PageWrapper';
-import CricketFact from '@/components/home/CricketFact';
-import QuizSelection from '@/components/home/QuizSelection';
-import GuidedTour from '@/components/home/GuidedTour';
+import dynamic from 'next/dynamic';
+
+const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
+    loading: () => <Skeleton className="h-40 w-full" />,
+});
+const QuizSelection = dynamic(() => import('@/components/home/QuizSelection'), {
+    loading: () => <HomeContentSkeleton />,
+});
+const GuidedTour = dynamic(() => import('@/components/home/GuidedTour'), { ssr: false });
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse">
@@ -74,11 +80,10 @@ function HomePage() {
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
-        // Check if the last attempt's slot ID matches the current one.
         return lastAttemptInSlot.slotId === getQuizSlotId();
     }, [user, lastAttemptInSlot]);
 
-    const handleStartQuiz = (brandToPlay?: CubeBrand) => {
+    const handleStartQuiz = useCallback((brandToPlay?: CubeBrand) => {
         const brand = brandToPlay || selectedBrand;
         if (!user) {
             router.push(`/auth/login?from=/`);
@@ -104,18 +109,17 @@ function HomePage() {
             return;
         }
         if (!isProfileComplete) {
-            // The QuizSelection component will show an alert dialog in this case.
-            // For this main button, we can show a toast as a fallback.
             toast({
                 title: "Profile Incomplete",
                 description: "Please complete your profile to start playing quizzes.",
                 variant: "destructive"
             });
+             router.push('/profile');
             return;
         }
         
         router.push(`/quiz?brand=${encodeURIComponent(brand.brand)}&format=${encodeURIComponent(brand.format)}`);
-    };
+    }, [user, hasPlayedInCurrentSlot, lastAttemptInSlot, isProfileComplete, selectedBrand, router, toast]);
 
     const headerContent = (
       <div className="text-center">
@@ -148,7 +152,6 @@ function HomePage() {
         }
     };
 
-
     return (
       <PageWrapper title={headerContent} hideBorder>
           <motion.div 
@@ -164,6 +167,7 @@ function HomePage() {
                 setSelectedBrand={setSelectedBrand} 
                 handleStartQuiz={handleStartQuiz} 
             />
+            
             {profile && <GuidedTour run={needsTour} onFinish={handleTourFinish} />}
 
              <div className="mt-6">

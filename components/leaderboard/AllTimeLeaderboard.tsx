@@ -130,7 +130,7 @@ const AllTimeLeaderboard = () => {
     }, [isLoading, authLoading, error, players]);
 
     return (
-        <Card className="bg-card/80 shadow-lg mt-4">
+        <Card className="bg-card/80 shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle>All-Time Honours Board</CardTitle>
                 <CardDescription>Based on Perfect Scores and Total Runs</CardDescription>

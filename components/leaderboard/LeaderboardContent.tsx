@@ -7,41 +7,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users } from 'lucide-react';
-import LoginPrompt from '@/components/auth/LoginPrompt';
 import { motion } from 'framer-motion';
 
-
 const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
-    loading: () => <LeaderboardItemSkeleton count={5} />,
+    loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
 const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard'), {
-    loading: () => <LeaderboardItemSkeleton count={5} />,
+    loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
 const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard'), {
-    loading: () => <LeaderboardItemSkeleton count={3} />,
+    loading: () => <LeaderboardSkeleton count={3} />,
     ssr: false,
 });
 const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakLeaderboard'), {
-    loading: () => <LeaderboardItemSkeleton count={5} />,
+    loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
 
-
-const LeaderboardItemSkeleton = ({ count = 5 }: { count?: number }) => (
-    <div className="pt-2 space-y-2">
+const LeaderboardSkeleton = ({ count = 5 }: { count?: number }) => (
+    <div className="pt-4 space-y-2">
         {Array.from({ length: count }).map((_, i) => (
-            <Skeleton key={i} className="h-[60px] w-full" />
+            <Skeleton key={`leaderboard-skel-${i}`} className="h-[60px] w-full" />
         ))}
     </div>
 );
 
-const LeaderboardSkeleton = () => (
-    <div className="space-y-2">
+const FullPageSkeleton = () => (
+    <div className="space-y-4">
       <Skeleton className="h-10 w-full" />
-      <LeaderboardItemSkeleton />
+      <LeaderboardSkeleton />
     </div>
 );
 
@@ -50,7 +46,7 @@ function LeaderboardContentComponent() {
   const [activeTab, setActiveTab] = useState('live');
 
   if (loading) {
-    return <LeaderboardSkeleton />;
+    return <FullPageSkeleton />;
   }
   
   const tabContentVariants = {
@@ -72,28 +68,29 @@ function LeaderboardContentComponent() {
            variants={tabContentVariants}
            initial="hidden"
            animate="visible"
+           className="mt-4"
         >
-            <TabsContent value="live" forceMount={activeTab === 'live'}>
-                <Suspense fallback={<LeaderboardItemSkeleton />}>
+            <TabsContent value="live" forceMount={true} hidden={activeTab !== 'live'}>
+                <Suspense fallback={<LeaderboardSkeleton />}>
                     <LiveLeaderboard />
                 </Suspense>
             </TabsContent>
 
-            <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
-                 <Suspense fallback={<LeaderboardItemSkeleton />}>
+            <TabsContent value="all-time" forceMount={true} hidden={activeTab !== 'all-time'}>
+                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>
 
-             <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
-                 <Suspense fallback={<LeaderboardItemSkeleton />}>
+             <TabsContent value="streaks" forceMount={true} hidden={activeTab !== 'streaks'}>
+                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <StreakLeaderboard />
                 </Suspense>
             </TabsContent>
             
             {user && (
-              <TabsContent value="network" forceMount={activeTab === 'network'}>
-                 <Suspense fallback={<LeaderboardItemSkeleton count={3} />}>
+              <TabsContent value="network" forceMount={true} hidden={activeTab !== 'network'}>
+                 <Suspense fallback={<LeaderboardSkeleton count={3} />}>
                     <MyNetworkLeaderboard />
                 </Suspense>
               </TabsContent>

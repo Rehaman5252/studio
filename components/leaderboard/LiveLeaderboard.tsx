@@ -47,8 +47,8 @@ const LeaderboardItemSkeleton = () => (
         <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <Skeleton key="skel-name" className="h-4 flex-1" />
         <div key="skel-score-container" className="text-right space-y-2">
-            <Skeleton key="skel-score" className="h-4 w-8" />
-            <Skeleton key="skel-time" className="h-3 w-12" />
+            <Skeleton key="skel-score" className="h-4 w-8 ml-auto" />
+            <Skeleton key="skel-time" className="h-3 w-12 ml-auto" />
         </div>
     </div>
 );
@@ -124,7 +124,6 @@ const LiveLeaderboard = () => {
             });
         };
 
-        // Set up listener immediately and then poll for new slots.
         setupListener(); 
         const interval = setInterval(setupListener, 5000); 
 
@@ -144,7 +143,7 @@ const LiveLeaderboard = () => {
     }, [status, authLoading, error, players, timeLeft]);
 
     return (
-        <Card className="bg-card/80 shadow-lg mt-4">
+        <Card className="bg-card/80 shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle>Current Match</CardTitle>
                 <CardDescription>Live standings for this 10-minute slot</CardDescription>

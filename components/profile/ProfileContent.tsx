@@ -1,4 +1,3 @@
-
 'use client';
 import React, { memo } from 'react';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -13,7 +12,7 @@ function ProfileContentComponent() {
   if (!profile) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ProfileHeader userProfile={profile} />
       <ProfileCompletion />
       <DailyStreakCard userProfile={profile} />

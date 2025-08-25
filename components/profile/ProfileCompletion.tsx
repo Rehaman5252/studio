@@ -38,9 +38,12 @@ const isFieldComplete = (fieldName: ProfileField, value: any): boolean => {
         case 'favoriteTeam':
              return typeof value === 'string' && value.trim().length > 0;
         default:
+            // This is a safe fallback for any fields that might be added without specific validation logic.
+            // It considers any non-null, non-undefined value as 'complete'.
             return !!value;
     }
 }
+
 
 export default function ProfileCompletion() {
     const { profile } = useAuth();
