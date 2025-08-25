@@ -43,10 +43,13 @@ LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
-        <Skeleton className="w-8 h-8 rounded-full" />
-        <Skeleton className="h-10 w-10 mx-4 rounded-full" />
-        <Skeleton className="h-4 flex-1" />
-        <div className="text-right space-y-2"><Skeleton className="h-4 w-8" /><Skeleton className="h-3 w-12" /></div>
+        <Skeleton key="skel-avatar" className="w-8 h-8 rounded-full" />
+        <Skeleton key="skel-icon" className="h-10 w-10 mx-4 rounded-full" />
+        <Skeleton key="skel-name" className="h-4 flex-1" />
+        <div key="skel-score-container" className="text-right space-y-2">
+            <Skeleton className="h-4 w-8" />
+            <Skeleton className="h-3 w-12" />
+        </div>
     </div>
 );
 
@@ -132,7 +135,7 @@ const LiveLeaderboard = () => {
     }, [user, isOffline]);
 
     const content = useMemo(() => {
-        if (status === 'loading' || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+        if (status === 'loading' || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
         if (status === 'error' && error) return <ErrorState title={error.title} message={error.message} />;
         if (status === 'waiting' || players.length === 0) return <WaitingState timeLeft={timeLeft} />;
         return players.map((player) => <LeaderboardItem key={player.userId} player={player} />);

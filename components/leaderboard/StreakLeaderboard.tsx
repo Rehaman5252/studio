@@ -62,40 +62,40 @@ const EmptyState = () => (
     </Card>
 );
 
+const calculateUserRank = async (streak: number, name: string): Promise<number> => {
+    if (!db) return 999;
+    const usersCollection = collection(db, 'users');
+    
+    try {
+        // Count users with a strictly higher streak
+        const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
+        
+        // Count users with the same streak but alphabetically earlier name for tie-breaking
+        const tieBreakerQuery = query(
+            usersCollection, 
+            where('currentStreak', '==', streak), 
+            where('name', '<', name || '')
+        );
+        
+        const [higherSnapshot, tieSnapshot] = await Promise.all([
+            getCountFromServer(higherStreakQuery),
+            getCountFromServer(tieBreakerQuery)
+        ]);
+
+        return higherSnapshot.data().count + tieSnapshot.data().count + 1;
+    } catch (e: any) {
+        console.error("Rank calculation failed:", e);
+        // In case of index error etc., return a non-breaking value
+        return 999; 
+    }
+};
+
 const StreakLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<StreakPlayer[]>([]);
     const [currentUserData, setCurrentUserData] = useState<StreakPlayer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{title: string, message: string} | null>(null);
-
-    const calculateUserRank = useCallback(async (streak: number, name: string): Promise<number> => {
-        if (!db) return 999;
-        const usersCollection = collection(db, 'users');
-        
-        try {
-            // Count users with a strictly higher streak
-            const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
-            
-            // Count users with the same streak but alphabetically earlier name for tie-breaking
-            const tieBreakerQuery = query(
-                usersCollection, 
-                where('currentStreak', '==', streak), 
-                where('name', '<', name)
-            );
-            
-            const [higherSnapshot, tieSnapshot] = await Promise.all([
-                getCountFromServer(higherStreakQuery),
-                getCountFromServer(tieBreakerQuery)
-            ]);
-
-            return higherSnapshot.data().count + tieSnapshot.data().count + 1;
-        } catch (e: any) {
-            console.error("Rank calculation failed:", e);
-            // In case of index error etc., return a non-breaking value
-            return 999; 
-        }
-    }, []);
 
     useEffect(() => {
         if (authLoading) return;
@@ -166,7 +166,7 @@ const StreakLeaderboard = () => {
 
         fetchLeaderboard();
 
-    }, [authLoading, user, calculateUserRank]);
+    }, [authLoading, user]);
 
 
     const content = useMemo(() => {
