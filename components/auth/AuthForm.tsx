@@ -164,7 +164,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>
-                          I understand that this application is for knowledge testing only, not for entertainment and money earning. I accept the 
+                          I acknowledge this is a skill-based platform for knowledge testing, not for entertainment or financial gain, and I accept the 
                           <Button variant="link" asChild className="p-1 h-auto"><Link href="/policies" target="_blank">Terms & Conditions</Link></Button>.
                         </FormLabel>
                         <FormMessage />
