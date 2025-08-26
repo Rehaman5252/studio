@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { Suspense } from 'react';
@@ -164,7 +163,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>
-                          I acknowledge this is a skill-based platform for knowledge testing, not for entertainment or financial gain, and I accept the 
+                          I acknowledge this platform is for testing cricket knowledge only, and not for entertainment, financial gain, or gambling. I accept the 
                           <Button variant="link" asChild className="p-1 h-auto"><Link href="/policies" target="_blank">Terms & Conditions</Link></Button>.
                         </FormLabel>
                         <FormMessage />
