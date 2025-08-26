@@ -45,7 +45,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [hint, setHint] = useState<string | null>(null);
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
-  const { user, addQuizAttempt, handleMalpractice, loading: authLoading } = useAuth();
+  const { user, addQuizAttempt, handleMalpractice, loading: authLoading, firebaseAppReady } = useAuth();
   const { toast } = useToast();
   const { settings } = useSettings();
   
@@ -66,6 +66,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     if (authLoading) {
       setError("⏳ Checking authentication… Please wait.");
       return;
+    }
+    if (!firebaseAppReady) {
+        setError("⏳ Connecting to the server... Please wait a moment.");
+        return;
     }
     if (!user) {
       setError("Please sign in to play a quiz.");
@@ -121,13 +125,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } finally {
         if (!controller.signal.aborted) setLoading(false);
     }
-  }, [format, user, toast, authLoading]);
+  }, [format, user, toast, authLoading, firebaseAppReady]);
 
   useEffect(() => {
     // Add a small delay to prevent race conditions on component mount
     const timer = setTimeout(() => {
         fetchQuiz();
-    }, 80);
+    }, 300);
     
     return () => {
         clearTimeout(timer);
@@ -235,15 +239,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
   
-  if (showPreQuizLoader && !error && !authLoading) {
+  if (showPreQuizLoader && !error && !authLoading && firebaseAppReady) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
   
-  if (authLoading) {
+  if (authLoading || !firebaseAppReady) {
      return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />
-            <p className="mb-4 mt-4">Authenticating...</p>
+            <p className="mb-4 mt-4">Connecting to server...</p>
         </div>
     );
   }

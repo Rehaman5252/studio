@@ -12,20 +12,20 @@ export async function POST(req: NextRequest) {
   
   try {
     const body = await req.json();
-    const { userId } = body;
+    const { userId, format } = body;
 
     if (!userId) {
-      console.error("[API /quiz] Error: userId is required.");
-      return NextResponse.json({ error: 'userId is required.' }, { status: 400 });
+      console.error("[API /quiz] Critical Error: userId is required in the request body.");
+      return NextResponse.json({ error: 'User identification is missing. Please sign in again.' }, { status: 400 });
     }
     
     // Normalize format to lowercase for reliable key access
-    const formatFromRequest = (body.format || 'mixed').toLowerCase();
+    const formatFromRequest = (format || 'mixed').toLowerCase();
     
     // Validate format against the allowed list
     if (!VALID_FORMATS.includes(formatFromRequest)) {
-      fallbackReason = `Invalid format '${body.format}' provided. Defaulting to 'mixed'.`;
-      console.warn(`[API /quiz] Fallback Triggered: ${fallbackReason}`);
+      fallbackReason = `Invalid format '${format}' provided. Defaulting to 'mixed'.`;
+      console.warn(`[API /quiz] Fallback Triggered for userId: ${userId}. Reason: ${fallbackReason}`);
       requestedFormat = 'mixed';
     } else {
       requestedFormat = formatFromRequest;
@@ -41,11 +41,12 @@ export async function POST(req: NextRequest) {
     
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
         fallbackReason = fallbackReason || 'AI returned incomplete or invalid quiz data.';
-        console.warn(`[API /quiz] Fallback Triggered: ${fallbackReason} for format '${requestedFormat}'. Using fallback.`);
+        console.warn(`[API /quiz] Fallback Triggered for userId: ${userId}. Reason: ${fallbackReason} for format '${requestedFormat}'. Using fallback quiz.`);
         const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
         return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
     }
     
+    console.log(`[API /quiz] Successfully generated AI quiz for userId: ${userId}, format: ${requestedFormat}`);
     return NextResponse.json({ ...quizData, source: 'ai' });
 
   } catch (error: any) {
