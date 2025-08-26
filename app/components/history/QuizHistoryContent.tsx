@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
-import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { AdDialog } from '../AdDialog';
 import { adLibrary } from '@/lib/ads';
@@ -65,7 +64,6 @@ const getSlotTimings = (timestamp: number) => {
   };
 
 const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
-  const router = useRouter();
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
@@ -180,7 +178,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 export const HistoryItem = memo(HistoryItemComponent);
 
 
-export function QuizHistoryWrapper({ children }: { children: React.ReactNode }) {
+function QuizHistoryWrapper({ children }: { children: React.ReactNode }) {
     const { loading } = useAuth();
 
     if (loading) {
@@ -189,3 +187,5 @@ export function QuizHistoryWrapper({ children }: { children: React.ReactNode }) 
 
     return <>{children}</>;
 }
+
+export default QuizHistoryWrapper;
