@@ -12,7 +12,6 @@ import { AdDialog } from '../AdDialog';
 import { adLibrary } from '@/lib/ads';
 import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
-import { CricketLoading } from '../CricketLoading';
 import { useAuth } from '@/context/AuthProvider';
 
 export const HistoryItemSkeleton = () => (
@@ -180,10 +179,11 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 };
 export const HistoryItem = memo(HistoryItemComponent);
 
-export function QuizHistoryWrapper({ children }: { children: React.ReactNode }) {
-    const { loading, firebaseAppReady } = useAuth();
 
-    if (loading || !firebaseAppReady) {
+export function QuizHistoryWrapper({ children }: { children: React.ReactNode }) {
+    const { loading } = useAuth();
+
+    if (loading) {
         return <FullHistorySkeleton />;
     }
 

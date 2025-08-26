@@ -145,7 +145,7 @@ GenericOffer.displayName = 'GenericOffer';
 
 
 function RewardsContentComponent() {
-  const { user, quizHistory, loading, firebaseAppReady } = useAuth();
+  const { user, quizHistory, loading } = useAuth();
   
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
@@ -161,7 +161,7 @@ function RewardsContentComponent() {
   }, [quizHistory.data]);
 
   const BrandGifts = () => {
-    if (loading || quizHistory.loading || !firebaseAppReady) return <RewardsSkeleton />;
+    if (loading || quizHistory.loading) return <RewardsSkeleton />;
     if (quizHistory.error) return <ErrorState message={quizHistory.error} />;
     if (!user) {
       return (

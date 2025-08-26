@@ -73,7 +73,7 @@ function ProfilePageContent() {
     }
     
     // Render the user-specific components
-    return <ProfileContent userProfile={profile} />;
+    return <ProfileContent />;
   }
 
   return (

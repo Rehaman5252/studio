@@ -2,8 +2,9 @@
 'use client';
 
 import React, { memo } from 'react';
-import QuizSelection from '@/components/home/QuizSelection';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
+import QuizSelection from '@/components/home/QuizSelection';
 import GuidedTour from '@/components/home/GuidedTour';
 import type { CubeBrand } from './brandData';
 
@@ -15,7 +16,7 @@ interface HomeClientContentProps {
 
 const HomeClientContentComponent = ({ selectedBrand, setSelectedBrand, handleStartQuiz }: HomeClientContentProps) => {
     const { profile, updateUserData } = useAuth();
-    
+
     const needsTour = profile && !profile.guidedTourCompleted;
 
     const handleTourFinish = async () => {
@@ -40,5 +41,4 @@ const HomeClientContentComponent = ({ selectedBrand, setSelectedBrand, handleSta
     );
 };
 
-const HomeClientContent = memo(HomeClientContentComponent);
-export default HomeClientContent;
+export default memo(HomeClientContentComponent);

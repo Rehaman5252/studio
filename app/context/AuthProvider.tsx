@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
-import { auth, db, app as firebaseApp, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +29,6 @@ interface UserDataContextType {
   profile: UserProfile | null; 
   isProfileComplete: boolean;
   loading: boolean;
-  firebaseAppReady: boolean;
   lastAttemptInSlot: QuizAttempt | null;
   quizHistory: {
     data: QuizAttempt[];
@@ -54,17 +53,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [firebaseAppReady, setFirebaseAppReady] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
   const [quizHistory, setQuizHistory] = useState<{data: QuizAttempt[], loading: boolean, error: string | null}>({ data: [], loading: true, error: null });
 
   useEffect(() => {
-    // Firebase app init check
-    if (firebaseApp && isFirebaseConfigured) {
-      setFirebaseAppReady(true);
-    }
-  
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     
@@ -168,8 +161,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    if (!db || !firebaseAppReady) {
-        console.error("Firestore (db) is not available or Firebase app is not ready.");
+    if (!db) {
+        console.error("Firestore (db) is not available, possibly due to SSR.");
         setProfileLoading(false);
         return;
     }
@@ -221,7 +214,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         unsubs.forEach(unsub => unsub());
     };
-  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
+  }, [user, firebaseLoading, handleUserDocument]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     if(!auth) return null;
@@ -414,8 +407,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const value: UserDataContextType = { 
     user,
     loading: firebaseLoading || profileLoading,
-    profile,
-    firebaseAppReady,
+    profile, 
     isProfileComplete: profile?.profileCompleted || false,
     quizHistory,
     logout, 

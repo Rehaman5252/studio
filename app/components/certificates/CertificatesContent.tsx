@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
@@ -42,7 +42,7 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { profile, quizHistory, loading, firebaseAppReady } = useAuth();
+  const { profile, quizHistory } = useAuth();
   const { toast } = useToast();
   
   const getSlotTimings = (timestamp: number) => {
@@ -151,7 +151,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (quizHistory.loading || loading || !firebaseAppReady) {
+  if (quizHistory.loading) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />

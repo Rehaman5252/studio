@@ -19,10 +19,11 @@ import dynamic from 'next/dynamic';
 const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
     loading: () => <Skeleton className="h-40 w-full" />,
 });
-const QuizSelection = dynamic(() => import('@/components/home/QuizSelection'), {
+
+const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), { 
     loading: () => <HomeContentSkeleton />,
+    ssr: false 
 });
-const GuidedTour = dynamic(() => import('@/components/home/GuidedTour'), { ssr: false });
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse">
@@ -72,7 +73,7 @@ MalpracticeWarning.displayName = 'MalpracticeWarning';
 
 
 function HomePage() {
-    const { user, profile, updateUserData, isProfileComplete, lastAttemptInSlot, loading: authLoading } = useAuth();
+    const { user, isProfileComplete, lastAttemptInSlot, loading: authLoading } = useAuth();
     const { isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
     const { toast } = useToast();
@@ -140,18 +141,6 @@ function HomePage() {
       )
     }
     
-    const needsTour = profile && !profile.guidedTourCompleted;
-
-    const handleTourFinish = async () => {
-        if (profile) {
-            try {
-                await updateUserData({ guidedTourCompleted: true });
-            } catch (error) {
-                console.error("Failed to update tour status:", error);
-            }
-        }
-    };
-
     return (
       <PageWrapper title={headerContent} hideBorder>
           <motion.div 
@@ -162,14 +151,12 @@ function HomePage() {
           >
             <MalpracticeWarning />
             
-            <QuizSelection
+            <HomeClientContent 
                 selectedBrand={selectedBrand}
-                setSelectedBrand={setSelectedBrand} 
-                handleStartQuiz={handleStartQuiz} 
+                setSelectedBrand={setSelectedBrand}
+                handleStartQuiz={handleStartQuiz}
             />
             
-            {profile && <GuidedTour run={needsTour} onFinish={handleTourFinish} />}
-
              <div className="mt-6">
                 <StartQuizButton
                     brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}

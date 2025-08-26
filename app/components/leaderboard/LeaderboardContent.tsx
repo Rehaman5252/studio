@@ -42,10 +42,10 @@ const FullPageSkeleton = () => (
 );
 
 function LeaderboardContentComponent() {
-  const { user, loading, firebaseAppReady } = useAuth();
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('live');
 
-  if (loading || !firebaseAppReady) {
+  if (loading) {
     return <FullPageSkeleton />;
   }
   

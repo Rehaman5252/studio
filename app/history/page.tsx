@@ -13,6 +13,7 @@ import RecentHistory from '@/components/history/RecentHistory';
 import AllHistory from '@/components/history/AllHistory';
 import PerfectScoresHistory from '@/components/history/PerfectScoresHistory';
 import PageWrapper from '@/components/PageWrapper';
+import { QuizHistoryWrapper } from '@/components/history/QuizHistoryContent';
 
 const HistorySkeleton = () => (
     <div className="space-y-4 pt-4">
@@ -45,37 +46,43 @@ export default function HistoryPage() {
             transition={{ duration: 0.3 }}
         >
             <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                {user ? <RecentHistory /> : (
-                    <div className="pt-8">
-                        <LoginPrompt 
-                            icon={History}
-                            title="Check Your Recent Form"
-                            description="Just finished a match? Sign in to see how you performed in your last few innings."
-                        />
-                    </div>
-                )}
+                <QuizHistoryWrapper>
+                    {user ? <RecentHistory /> : (
+                        <div className="pt-8">
+                            <LoginPrompt 
+                                icon={History}
+                                title="Check Your Recent Form"
+                                description="Just finished a match? Sign in to see how you performed in your last few innings."
+                            />
+                        </div>
+                    )}
+                </QuizHistoryWrapper>
             </TabsContent>
             <TabsContent value="all" forceMount={activeTab === 'all'}>
-                 {user ? <AllHistory /> : (
-                    <div className="pt-8">
-                        <LoginPrompt 
-                            icon={Trophy}
-                            title="View Your Career Stats"
-                            description="Sign in to access your complete match history and track your progress over time."
-                        />
-                    </div>
-                )}
+                <QuizHistoryWrapper>
+                    {user ? <AllHistory /> : (
+                        <div className="pt-8">
+                            <LoginPrompt 
+                                icon={Trophy}
+                                title="View Your Career Stats"
+                                description="Sign in to access your complete match history and track your progress over time."
+                            />
+                        </div>
+                    )}
+                 </QuizHistoryWrapper>
             </TabsContent>
             <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                {user ? <PerfectScoresHistory /> : (
-                    <div className="pt-8">
-                        <LoginPrompt 
-                            icon={Award}
-                            title="Your Hall of Fame"
-                            description="Sign in to see all your perfect scores and celebrate your moments of glory!"
-                        />
-                    </div>
-                )}
+                <QuizHistoryWrapper>
+                    {user ? <PerfectScoresHistory /> : (
+                        <div className="pt-8">
+                            <LoginPrompt 
+                                icon={Award}
+                                title="Your Hall of Fame"
+                                description="Sign in to see all your perfect scores and celebrate your moments of glory!"
+                            />
+                        </div>
+                    )}
+                </QuizHistoryWrapper>
             </TabsContent>
         </motion.div>
     )
