@@ -6,60 +6,60 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 120 60% 94%; /* Pale Green */
-    --foreground: 240 10% 3.9%; /* Dark Text */
+    --background: 0 0% 8%; /* Near Black */
+    --foreground: 45 50% 95%; /* Light Gold Text */
 
-    --card: 120 60% 98%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 0 0% 12%;
+    --card-foreground: 45 50% 95%;
 
-    --primary: 120 61% 34%; /* Forest Green */
-    --primary-foreground: 210 40% 98%;
+    --primary: 45 100% 50%; /* Gold */
+    --primary-foreground: 45 100% 10%; /* Dark text for gold buttons */
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 45 50% 95%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     
-    --accent: 16 100% 50%; /* Sunset Orange */
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 100% 50%; /* Gold */
+    --accent-foreground: 45 100% 10%;
 
-    --muted: 120 60% 90%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
     
-    --input: 120 60% 90%;
-    --ring: 120 61% 34%;
+    --input: 0 0% 15%;
+    --ring: 45 100% 50%;
 
     --radius: 0.5rem;
     --font-inter: 'Inter', sans-serif;
   }
 
   .dark {
-    --background: 220 13% 18%; /* Dark Gray */
-    --foreground: 210 40% 98%; /* White */
+    --background: 0 0% 8%; /* Near Black */
+    --foreground: 45 50% 95%; /* Light Gold Text */
 
-    --card: 220 13% 22%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 12%;
+    --card-foreground: 45 50% 95%;
 
-    --primary: 120 61% 44%; /* Brighter Forest Green for dark mode */
-    --primary-foreground: 210 40% 98%;
+    --primary: 45 100% 50%; /* Gold */
+    --primary-foreground: 45 100% 10%; /* Dark text for gold buttons */
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 45 50% 95%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --accent: 16 100% 50%; /* Sunset Orange */
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 100% 50%; /* Gold */
+    --accent-foreground: 45 100% 10%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --input: 217 33% 17%;
-    --ring: 120 61% 44%;
+    --input: 0 0% 15%;
+    --ring: 45 100% 50%;
     
-    --border: 217 33% 27%;
+    --border: 0 0% 15%;
   }
 }
 
