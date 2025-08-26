@@ -62,22 +62,26 @@ const EmptyState = () => (
 
 const ErrorState = ({ message, title }: { message: string, title: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("Connection") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
+        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
 );
 
 const AllTimeLeaderboard = () => {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, firebaseAppReady } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<{ title: string; message: string } | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!firebaseAppReady) {
+            setIsLoading(false);
+            return;
+        }
         if (authLoading) return;
         if (!db) {
-            setError({ title: "Technical Fault", message: "Database not available." });
+            setError("Database not available.");
             setIsLoading(false);
             return;
         }
@@ -118,13 +122,13 @@ const AllTimeLeaderboard = () => {
         });
 
         return () => unsubscribe();
-    }, [authLoading, user]);
+    }, [authLoading, user, firebaseAppReady]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
-        if (error) return <ErrorState title={error.title} message={error.message} />;
+        if (error) return <ErrorState title="Error" message={error} />;
         if (players.length === 0) return <EmptyState />;
         return players.map((player) => <LeaderboardItem key={player.uid} player={player} />);
     }, [isLoading, authLoading, error, players]);

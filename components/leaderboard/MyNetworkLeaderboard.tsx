@@ -53,25 +53,29 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message, title }: { message: string, title: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("Connection") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
+        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
 );
 
 const MyNetworkLeaderboard = () => {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<{ title: string; message: string } | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!firebaseAppReady) {
+            setIsLoading(false);
+            return;
+        }
         if (authLoading || !user || !profile) {
             if (!authLoading) setIsLoading(false);
             return;
         }
         if (!db) {
-            setError({ title: "Technical Fault", message: "Database not available."});
+            setError("Database not available.");
             setIsLoading(false);
             return;
         }
@@ -121,12 +125,12 @@ const MyNetworkLeaderboard = () => {
 
         fetchNetworkData();
 
-    }, [user, profile, authLoading]);
+    }, [user, profile, authLoading, firebaseAppReady]);
 
 
     const content = useMemo(() => {
         if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState title={error.title} message={error.message} />;
+        if (error) return <ErrorState title="Error" message={error} />;
         if (networkPlayers.length === 0) {
             return (
                 <Card className="bg-card/80 text-center mt-4">

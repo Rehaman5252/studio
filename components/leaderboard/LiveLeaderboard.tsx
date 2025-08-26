@@ -55,9 +55,9 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message, title }: { message: string, title: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("Connection") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
+        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
 );
 
@@ -78,15 +78,19 @@ const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: numb
 );
 
 const LiveLeaderboard = () => {
-    const { user, loading: authLoading, isOffline } = useAuth();
+    const { user, loading: authLoading, isOffline, firebaseAppReady } = useAuth();
     const { timeLeft } = useQuizStatus();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [status, setStatus] = useState<'loading' | 'active' | 'waiting' | 'error'>('loading');
-    const [error, setError] = useState<{title: string, message: string} | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!firebaseAppReady) {
+            setStatus('waiting');
+            return;
+        }
         if (!db) {
-            setError({ title: "Technical Fault", message: "Database not available."});
+            setError("Database not available.");
             setStatus('error');
             return;
         }
@@ -131,13 +135,13 @@ const LiveLeaderboard = () => {
             clearInterval(interval);
             if (unsubscribe) unsubscribe();
         };
-    }, [user, isOffline]);
+    }, [user, isOffline, firebaseAppReady]);
 
     const content = useMemo(() => {
         if (status === 'loading' || authLoading) {
             return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
         }
-        if (status === 'error' && error) return <ErrorState title={error.title} message={error.message} />;
+        if (status === 'error' && error) return <ErrorState title="Error" message={error} />;
         if (status === 'waiting' || players.length === 0) return <WaitingState timeLeft={timeLeft} />;
         return players.map((player) => <LeaderboardItem key={player.userId} player={player} />);
     }, [status, authLoading, error, players, timeLeft]);

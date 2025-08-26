@@ -65,40 +65,49 @@ export function calculateAge(dobString: string): number | null {
 }
 
 /**
- * Maps Firestore error codes to user-friendly messages.
- * @param error The error object from Firestore.
- * @returns An object with a title and message for display in an Alert.
+ * Maps Firestore and other errors to user-friendly messages.
+ * @param error The error object.
+ * @returns A user-friendly error message string.
  */
-export function mapFirestoreError(e: unknown): string {
-    // Handle browser network errors
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        return "You appear to be offline. Please check your internet connection.";
-    }
+export function mapFirestoreError(error: any): string {
+  if (!error) return "An unknown error occurred.";
 
-    if (e instanceof FirebaseError) {
-        switch (e.code) {
-        case 'unavailable':
-            return '⚠️ The server is temporarily unavailable. Please try again in a moment.';
-        case 'permission-denied':
-            return '🚫 You do not have permission to access this resource.';
-        case 'not-found':
-            return '❌ The requested resource was not found.';
-        case 'deadline-exceeded':
-            return 'The request timed out. Please check your connection and try again.';
-        case 'cancelled':
-            return 'The request was cancelled. Please try again.';
-        default:
-            return `A server error occurred (${e.code}). Please try again later.`;
-        }
-    }
-    
-    if (e instanceof Error) {
-        // Handle generic fetch/network errors
-        if (e.message.includes('Failed to fetch') || e.message.includes('network request failed')) {
-            return "A network error occurred. Please check your connection and try again.";
-        }
-        return e.message;
-    }
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return "You appear to be offline. Please check your internet connection.";
+  }
 
-    return 'An unknown error occurred. Please try again.';
+  const code = error.code || (typeof error.message === 'string' ? error.message.toLowerCase() : "");
+
+  if (error instanceof FirebaseError) {
+      switch (error.code) {
+          case 'unavailable':
+              return 'The server is temporarily unavailable. Please try again in a moment.';
+          case 'permission-denied':
+              return 'You do not have permission to access this resource.';
+          case 'not-found':
+              return 'The requested resource was not found.';
+          case 'deadline-exceeded':
+              return 'The request timed out. Please check your connection and try again.';
+          case 'cancelled':
+              return 'The request was cancelled. Please try again.';
+          case 'failed-precondition':
+              return 'The server is not ready. Please try again in a moment.';
+           case "unauthenticated":
+              return "Your session may have expired. Please log in again.";
+          case "resource-exhausted":
+              return "The request limit was reached. Please wait before trying again.";
+          default:
+              return `An unexpected server error occurred (${error.code}). Please try again.`;
+      }
+  }
+
+  if (typeof code === 'string' && (code.includes('network') || code.includes('failed to fetch'))) {
+    return "A network error occurred. Please check your connection and try again.";
+  }
+  
+  if (typeof error.message === 'string') {
+    return error.message;
+  }
+
+  return 'An unknown error occurred. Please try again.';
 }
