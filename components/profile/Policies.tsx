@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 import {
     Accordion,
     AccordionContent,
@@ -14,15 +13,15 @@ export default function Policies() {
           <AccordionTrigger>Platform Mission & Responsible Participation</AccordionTrigger>
           <AccordionContent className="prose dark:prose-invert max-w-none">
             <h4>Our Mission</h4>
-            <p>indcric is dedicated to providing a premier skill-based cricket trivia platform that is engaging, rewarding, and operates with the utmost integrity. Our mission is to celebrate the passion for cricket by offering a fair, transparent, and secure environment for our users to test their knowledge and win rewards.</p>
+            <p>indcric is dedicated to providing a premier knowledge-based cricket trivia platform that is engaging, rewarding, and operates with the utmost integrity. Our mission is to celebrate the passion for cricket by offering a fair, transparent, and secure environment for our users to test their knowledge and win rewards.</p>
             <h4>Responsible Participation</h4>
-            <p>We are committed to promoting responsible participation. Users must be 18 years of age or older. We encourage users to participate for entertainment and skill enhancement. Please play responsibly and within your means. This is a game of skill and should not be considered a source of regular income.</p>
+            <p>We are committed to promoting responsible participation. Users must be 18 years of age or older. We encourage users to participate for entertainment and knowledge enhancement. Please play responsibly and within your means. This is a game of knowledge and should not be considered a source of regular income.</p>
           </AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-2">
           <AccordionTrigger>Fair Play & Anti-Malpractice Policy</AccordionTrigger>
           <AccordionContent className="prose dark:prose-invert max-w-none">
-            <p>indcric maintains a strict zero-tolerance policy against any form of malpractice. This is a platform for individual skill, and any attempt to undermine the integrity of the game is a material breach of these terms.</p>
+            <p>indcric maintains a strict zero-tolerance policy against any form of malpractice. This is a platform for individual knowledge, and any attempt to undermine the integrity of the game is a material breach of these terms.</p>
             <ul>
                 <li><strong>Prohibited Actions:</strong> Malpractice includes, but is not limited to, the use of multiple accounts, bots, automated scripts, screen sharing, minimizing the app or switching tabs during a live quiz, colluding with other players, or exploiting any bugs or loopholes.</li>
                 <li><strong>"No-Ball" System:</strong> We employ automated and manual systems to detect malpractice. Actions like switching tabs during a quiz will result in a "No-Ball" warning. Accumulating three (3) "No-Balls" within a 24-hour period will lead to a temporary suspension from gameplay for that day.</li>
