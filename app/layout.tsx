@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CricBlitz',
+  title: 'indcric',
   description: 'The ultimate cricket quiz challenge.',
 };
 

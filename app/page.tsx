@@ -124,7 +124,7 @@ function HomePage() {
     const headerContent = (
       <div className="text-center">
         <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
-          CricBlitz
+          indcric
         </h1>
         <p className="mt-1 text-base font-normal text-foreground/80">
           The ultimate cricket quiz challenge.
