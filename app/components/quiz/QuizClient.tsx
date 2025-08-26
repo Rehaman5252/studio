@@ -28,6 +28,7 @@ interface QuizClientProps {
 type QuizAPIResponse = QuizData & {
   source?: 'ai' | 'fallback';
   fallbackReason?: string;
+  error?: string;
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
@@ -45,7 +46,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [hint, setHint] = useState<string | null>(null);
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
-  const { user, addQuizAttempt, handleMalpractice, loading: authLoading, firebaseAppReady } = useAuth();
+  const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
   const { toast } = useToast();
   const { settings } = useSettings();
   
@@ -63,10 +64,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     abortControllerRef.current = controller;
 
     // --- Start: Readiness Checks ---
-    if (authLoading || !firebaseAppReady) {
-      // Don't set error here, just wait for auth to be ready.
-      // The parent component will show a loader.
+    if (authLoading) {
       return;
+    }
+
+    if (isOffline) {
+        setError("You appear to be offline. Please check your connection.");
+        setLoading(false);
+        setShowPreQuizLoader(false);
+        return;
     }
 
     if (!user) {
@@ -86,8 +92,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     try {
       setLoading(true);
       setError(null);
-      // Small buffer to avoid race conditions
-      await new Promise(res => setTimeout(res, 200));
+      await new Promise(res => setTimeout(res, 100));
       if (controller.signal.aborted) return;
 
       const response = await fetch('/api/quiz', {
@@ -99,22 +104,36 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
-      const data: QuizAPIResponse = await response.json();
+      let data: QuizAPIResponse;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // This catches the "<!DOCTYPE html>" error.
+        throw new Error("Server returned an invalid response. Please try again.");
+      }
       
       if (!response.ok) {
-        const errorMsg = (data as any).error || `The server returned an error (${response.status}).`;
-        throw new Error(errorMsg);
+        // Even if the response is not "ok" (e.g. 500), it should contain a fallback quiz.
+        if (data.source === 'fallback' && data.questions) {
+             const reason = data.error || data.fallbackReason || 'An unknown issue occurred';
+             const userMessage = reason.includes('timeout')
+                ? "The AI umpire is thinking! Playing a classic quiz instead."
+                : "Heads up! We're using a classic quiz set for now.";
+             toast({
+              title: "Fallback Quiz Loaded",
+              description: userMessage,
+              duration: 5000,
+            });
+        } else {
+            const errorMsg = data.error || `The server returned an error (${response.status}). Please try again.`;
+            throw new Error(errorMsg);
+        }
       }
       
       if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received from the server.');
 
       setQuizData(data);
-      if (data.source === 'fallback' && data.fallbackReason) {
-          toast({
-              title: "Classic Quiz Loaded!",
-              description: data.fallbackReason,
-          });
-      }
+      
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
@@ -127,12 +146,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } finally {
         if (!controller.signal.aborted) setLoading(false);
     }
-  }, [format, user, toast, authLoading, firebaseAppReady]);
+  }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    // Add a small delay to prevent race conditions on component mount
     fetchQuiz();
-    
     return () => {
         abortControllerRef.current?.abort();
     };
@@ -238,11 +255,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
   
-  if (showPreQuizLoader && !error && !authLoading && firebaseAppReady) {
+  if (showPreQuizLoader && !error && !authLoading) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
   
-  if (authLoading || !firebaseAppReady) {
+  if (authLoading) {
      return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />

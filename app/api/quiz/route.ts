@@ -6,7 +6,7 @@ import { mapFirestoreError } from '@/lib/utils';
 import { isFirebaseConfigured } from '@/lib/firebase';
 
 const GENERATION_TIMEOUT = 15000; // 15 seconds
-const VALID_FORMATS = ['ipl', 'test', 'odi', 't20', 'mixed', 'wpl'];
+const VALID_FORMATS = ['mixed', 'ipl', 't20', 'odi', 'wpl', 'test'];
 
 export async function POST(req: NextRequest) {
   let requestedFormat = 'mixed';
@@ -16,7 +16,14 @@ export async function POST(req: NextRequest) {
     // Critical Pre-check: Ensure Firebase is configured on the server.
     if (!isFirebaseConfigured) {
         console.error("[API /quiz] Critical Error: Firebase server environment variables are not configured.");
-        return NextResponse.json({ error: 'Server is not configured correctly. Please contact support.' }, { status: 503 }); // 503 Service Unavailable
+        // Return a 200 with fallback data, but with a specific error message.
+        const fallback = fallbackQuizData['mixed'];
+        return NextResponse.json({ 
+            ...fallback, 
+            source: 'fallback', 
+            error: 'server_not_configured',
+            fallbackReason: 'The server is not properly configured. Using a classic quiz.' 
+        }, { status: 200 });
     }
 
     const body = await req.json();
