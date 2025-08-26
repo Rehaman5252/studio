@@ -2,6 +2,7 @@
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import { NextRequest, NextResponse } from 'next/server';
 import { fallbackQuizData } from '@/lib/fallback-quiz';
+import { mapFirestoreError } from '@/lib/utils';
 
 const GENERATION_TIMEOUT = 8000; // 8 seconds
 const VALID_FORMATS = ['ipl', 'test', 'odi', 't20', 'mixed', 'wpl'];
@@ -19,10 +20,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User identification is missing. Please sign in again.' }, { status: 400 });
     }
     
-    // Normalize format to lowercase for reliable key access
     const formatFromRequest = (format || 'mixed').toLowerCase();
     
-    // Validate format against the allowed list
     if (!VALID_FORMATS.includes(formatFromRequest)) {
       fallbackReason = `Invalid format '${format}' provided. Defaulting to 'mixed'.`;
       console.warn(`[API /quiz] Fallback Triggered for userId: ${userId}. Reason: ${fallbackReason}`);
@@ -54,13 +53,14 @@ export async function POST(req: NextRequest) {
       ? `AI generation timed out after ${GENERATION_TIMEOUT}ms for format '${requestedFormat}'`
       : `An error occurred during quiz generation: ${error.message}`;
 
-    fallbackReason = errorMessage;
-
-    console.error(`[API /quiz] Critical Error: ${errorMessage}. Full error:`, error);
-    console.warn(`[API /quiz] Fallback Triggered due to critical error. Using fallback for '${requestedFormat}'.`);
+    console.error(`[Quiz API Error] for format ${requestedFormat}:`, error);
 
     const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
-    // Return a more user-friendly error reason
-    return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason: "A server error occurred while generating the quiz. Please try again." });
+    
+    return NextResponse.json({ 
+        ...fallback, 
+        source: 'fallback', 
+        fallbackReason: mapFirestoreError(error) 
+    }, { status: 500 });
   }
 }

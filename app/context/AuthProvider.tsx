@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
-import { auth, db, app as firebaseApp } from '@/lib/firebase';
+import { auth, db, app as firebaseApp, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
@@ -61,7 +61,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Firebase app init check
-    if (firebaseApp) {
+    if (firebaseApp && isFirebaseConfigured) {
       setFirebaseAppReady(true);
     }
   
