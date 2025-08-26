@@ -1,14 +1,14 @@
+
 const functions = require("firebase-functions");
 const { default: next } = require("next");
 const path = require('path');
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+// The Next.js server is initialized without a custom distDir,
+// allowing it to correctly locate the .next folder in a deployed environment.
 const server = next({
   dev: isDev,
-  conf: {
-    distDir: path.join(__dirname, '../.next'),
-  },
 });
 
 const nextHandle = server.getRequestHandler();
