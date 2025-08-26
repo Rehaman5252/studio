@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       requestedFormat = formatFromRequest;
     }
 
+    console.log(`[API /quiz] Generating quiz for format: ${requestedFormat}, userId: ${userId}`);
     const quizPromise = generateQuiz({ format: requestedFormat, userId });
     
     const quizData = await Promise.race([
@@ -49,15 +50,16 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     const errorMessage = error.message === "Timeout"
-      ? `AI generation timed out for format '${requestedFormat}'`
-      : `An error occurred during generation: ${error.message}`;
+      ? `AI generation timed out after ${GENERATION_TIMEOUT}ms for format '${requestedFormat}'`
+      : `An error occurred during quiz generation: ${error.message}`;
 
     fallbackReason = errorMessage;
 
     console.error(`[API /quiz] Critical Error: ${errorMessage}. Full error:`, error);
-    console.warn(`[API /quiz] Fallback Triggered: ${fallbackReason}. Using fallback for '${requestedFormat}'.`);
+    console.warn(`[API /quiz] Fallback Triggered due to critical error. Using fallback for '${requestedFormat}'.`);
 
     const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
-    return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason: "A server error occurred while generating the quiz." });
+    // Return a more user-friendly error reason
+    return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason: "A server error occurred while generating the quiz. Please try again." });
   }
 }

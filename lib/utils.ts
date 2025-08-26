@@ -1,6 +1,8 @@
 
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { FirebaseError } from 'firebase/app';
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -67,21 +69,36 @@ export function calculateAge(dobString: string): number | null {
  * @param error The error object from Firestore.
  * @returns An object with a title and message for display in an Alert.
  */
-export function mapFirestoreError(error: any): { title: string; message: string } {
-    if (!error || typeof error !== 'object') {
-        return { title: 'Unknown Error', message: 'An unexpected error occurred.' };
+export function mapFirestoreError(e: unknown): string {
+    // Handle browser network errors
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return "You appear to be offline. Please check your internet connection.";
     }
-    switch (error.code) {
+
+    if (e instanceof FirebaseError) {
+        switch (e.code) {
         case 'unavailable':
-            return { title: 'Network Issue', message: 'Bad connection has stopped play. Please check your network and try again.' };
-        case 'failed-precondition':
-            return { title: 'Leaderboard Updating', message: 'The leaderboard is being updated. Please check back in a moment.' };
+            return '⚠️ The server is temporarily unavailable. Please try again in a moment.';
         case 'permission-denied':
-            return { title: 'Access Denied', message: 'You do not have permission to view this leaderboard.' };
+            return '🚫 You do not have permission to access this resource.';
+        case 'not-found':
+            return '❌ The requested resource was not found.';
         case 'deadline-exceeded':
-        case 'timeout':
-            return { title: 'Timeout', message: 'The leaderboard took too long to load. Please try again.' };
+            return 'The request timed out. Please check your connection and try again.';
+        case 'cancelled':
+            return 'The request was cancelled. Please try again.';
         default:
-            return { title: 'Technical Fault', message: "A technical fault has interrupted play. We're working to get it fixed." };
+            return `A server error occurred (${e.code}). Please try again later.`;
+        }
     }
+    
+    if (e instanceof Error) {
+        // Handle generic fetch/network errors
+        if (e.message.includes('Failed to fetch') || e.message.includes('network request failed')) {
+            return "A network error occurred. Please check your connection and try again.";
+        }
+        return e.message;
+    }
+
+    return 'An unknown error occurred. Please try again.';
 }
