@@ -42,7 +42,7 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function CertificatesContent() {
-  const { profile, quizHistory, firebaseAppReady } = useAuth();
+  const { profile, quizHistory, loading, firebaseAppReady } = useAuth();
   const { toast } = useToast();
   
   const getSlotTimings = (timestamp: number) => {
@@ -151,7 +151,7 @@ export default function CertificatesContent() {
   };
 
 
-  if (quizHistory.loading || !firebaseAppReady) {
+  if (quizHistory.loading || loading || !firebaseAppReady) {
     return (
         <div className="space-y-4">
             <CertificateItemSkeleton />

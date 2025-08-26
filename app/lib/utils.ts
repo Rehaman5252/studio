@@ -65,50 +65,49 @@ export function calculateAge(dobString: string): number | null {
 }
 
 /**
- * Maps Firestore error codes to user-friendly messages.
- * @param error The error object from Firestore or other sources.
+ * Maps Firestore and other errors to user-friendly messages.
+ * @param error The error object.
  * @returns A user-friendly error message string.
  */
-export function mapFirestoreError(e: unknown): string {
-    // Handle browser network errors first
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        return "You appear to be offline. Please check your internet connection.";
-    }
+export function mapFirestoreError(error: any): string {
+  if (!error) return "An unknown error occurred.";
 
-    // Handle FirebaseError
-    if (e instanceof FirebaseError) {
-        switch (e.code) {
-            case 'unavailable':
-                return 'The server is temporarily unavailable. Please try again in a moment.';
-            case 'permission-denied':
-                return 'You do not have permission to access this resource.';
-            case 'not-found':
-                return 'The requested resource was not found.';
-            case 'deadline-exceeded':
-                return 'The request timed out. Please check your connection and try again.';
-            case 'cancelled':
-                return 'The request was cancelled. Please try again.';
-            case 'failed-precondition':
-                return 'The server is not ready. Please try again in a moment.';
-             case "unauthenticated":
-                return "Your session may have expired. Please log in again.";
-            case "resource-exhausted":
-                return "The request limit was reached. Please wait before trying again.";
-            default:
-                return `An unexpected server error occurred (${e.code}). Please try again.`;
-        }
-    }
-    
-    // Handle generic JS Error objects
-    if (e instanceof Error) {
-        // Look for common network-related messages in generic errors
-        if (e.message.toLowerCase().includes('failed to fetch') || e.message.toLowerCase().includes('network request failed')) {
-            return "A network error occurred. Please check your connection and try again.";
-        }
-        // Return the specific error message if it's not a generic network one
-        return e.message;
-    }
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return "You appear to be offline. Please check your internet connection.";
+  }
 
-    // Fallback for any other type of error
-    return 'An unknown error occurred. Please try again.';
+  const code = error.code || (typeof error.message === 'string' ? error.message.toLowerCase() : "");
+
+  if (error instanceof FirebaseError) {
+      switch (error.code) {
+          case 'unavailable':
+              return 'The server is temporarily unavailable. Please try again in a moment.';
+          case 'permission-denied':
+              return 'You do not have permission to access this resource.';
+          case 'not-found':
+              return 'The requested resource was not found.';
+          case 'deadline-exceeded':
+              return 'The request timed out. Please check your connection and try again.';
+          case 'cancelled':
+              return 'The request was cancelled. Please try again.';
+          case 'failed-precondition':
+              return 'The server is not ready. Please try again in a moment.';
+           case "unauthenticated":
+              return "Your session may have expired. Please log in again.";
+          case "resource-exhausted":
+              return "The request limit was reached. Please wait before trying again.";
+          default:
+              return `An unexpected server error occurred (${error.code}). Please try again.`;
+      }
+  }
+
+  if (code.includes('network') || code.includes('failed to fetch')) {
+    return "A network error occurred. Please check your connection and try again.";
+  }
+  
+  if (typeof error.message === 'string') {
+    return error.message;
+  }
+
+  return 'An unknown error occurred. Please try again.';
 }

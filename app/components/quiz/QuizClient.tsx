@@ -63,14 +63,12 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     abortControllerRef.current = controller;
 
     // --- Start: Readiness Checks ---
-    if (authLoading) {
-      setError("⏳ Checking authentication… Please wait.");
+    if (authLoading || !firebaseAppReady) {
+      // Don't set error here, just wait for auth to be ready.
+      // The parent component will show a loader.
       return;
     }
-    if (!firebaseAppReady) {
-        setError("⏳ Connecting to the server... Please wait a moment.");
-        return;
-    }
+
     if (!user) {
       setError("Please sign in to play a quiz.");
       setLoading(false);
@@ -88,6 +86,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     try {
       setLoading(true);
       setError(null);
+      // Small buffer to avoid race conditions
+      await new Promise(res => setTimeout(res, 200));
+      if (controller.signal.aborted) return;
+
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,12 +131,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   useEffect(() => {
     // Add a small delay to prevent race conditions on component mount
-    const timer = setTimeout(() => {
-        fetchQuiz();
-    }, 300);
+    fetchQuiz();
     
     return () => {
-        clearTimeout(timer);
         abortControllerRef.current?.abort();
     };
   }, [fetchQuiz]);

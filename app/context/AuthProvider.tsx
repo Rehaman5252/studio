@@ -168,8 +168,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    if (!db) {
-        console.error("Firestore (db) is not available, possibly due to SSR.");
+    if (!db || !firebaseAppReady) {
+        console.error("Firestore (db) is not available or Firebase app is not ready.");
         setProfileLoading(false);
         return;
     }
@@ -221,7 +221,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         unsubs.forEach(unsub => unsub());
     };
-  }, [user, firebaseLoading, handleUserDocument]);
+  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     if(!auth) return null;

@@ -12,8 +12,8 @@ import { AdDialog } from '../AdDialog';
 import { adLibrary } from '@/lib/ads';
 import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
-import { useAuth } from '@/context/AuthProvider';
 import { CricketLoading } from '../CricketLoading';
+import { useAuth } from '@/context/AuthProvider';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
