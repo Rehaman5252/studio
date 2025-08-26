@@ -4,17 +4,16 @@ import type { Metadata } from 'next';
 import Providers from '@/context/Providers';
 import { Toaster } from '@/components/ui/toaster';
 import BottomNav from '@/components/BottomNav';
-import { Poppins } from 'next/font/google';
+import { Inter } from 'next/font/google';
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '700', '800'],
-  variable: '--font-poppins',
+  variable: '--font-inter',
 });
 
 export const metadata: Metadata = {
-  title: 'indcric',
-  description: 'Win ₹100 for every 100 seconds!',
+  title: 'CricBlitz',
+  description: 'The ultimate cricket quiz challenge.',
 };
 
 export default function RootLayout({
@@ -24,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${poppins.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         <Providers>
           <div className="relative flex flex-col min-h-screen">
             <main className="flex-1 pb-20">{children}</main>

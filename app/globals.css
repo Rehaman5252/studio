@@ -6,32 +6,32 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 220 13% 18%; /* Dark Gray */
-    --foreground: 210 40% 98%; /* White */
+    --background: 120 60% 94%; /* Pale Green */
+    --foreground: 240 10% 3.9%; /* Dark Text */
 
-    --card: 220 13% 22%;
-    --card-foreground: 210 40% 98%;
+    --card: 120 60% 98%;
+    --card-foreground: 240 10% 3.9%;
 
-    --primary: 45 93% 47%; /* Gold */
-    --primary-foreground: 220 13% 18%;
+    --primary: 120 61% 34%; /* Forest Green */
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --destructive: 0 63% 31%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     
-    --accent: 45 93% 55%; /* Lighter Gold for accents */
-    --accent-foreground: 220 13% 18%;
+    --accent: 16 100% 50%; /* Sunset Orange */
+    --accent-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 120 60% 90%;
     --muted-foreground: 215 20% 65%;
     
-    --input: 217 33% 17%;
-    --ring: 45 93% 47%;
+    --input: 120 60% 90%;
+    --ring: 120 61% 34%;
 
     --radius: 0.5rem;
-    --font-poppins: 'Poppins', sans-serif;
+    --font-inter: 'Inter', sans-serif;
   }
 
   .dark {
@@ -41,8 +41,8 @@
     --card: 220 13% 22%;
     --card-foreground: 210 40% 98%;
 
-    --primary: 45 93% 47%; /* Gold */
-    --primary-foreground: 220 13% 18%;
+    --primary: 120 61% 44%; /* Brighter Forest Green for dark mode */
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -50,14 +50,14 @@
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --accent: 45 93% 55%; /* Lighter Gold for accents */
-    --accent-foreground: 220 13% 18%;
+    --accent: 16 100% 50%; /* Sunset Orange */
+    --accent-foreground: 210 40% 98%;
 
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
     --input: 217 33% 17%;
-    --ring: 45 93% 47%;
+    --ring: 120 61% 44%;
     
     --border: 217 33% 27%;
   }
@@ -69,7 +69,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-poppins), sans-serif;
+    font-family: var(--font-inter), sans-serif;
   }
 }
 
