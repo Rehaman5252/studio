@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fallbackQuizData } from '@/lib/fallback-quiz';
 import { mapFirestoreError } from '@/lib/utils';
 
-const GENERATION_TIMEOUT = 8000; // 8 seconds
+const GENERATION_TIMEOUT = 15000; // 15 seconds
 const VALID_FORMATS = ['ipl', 'test', 'odi', 't20', 'mixed', 'wpl'];
 
 export async function POST(req: NextRequest) {
