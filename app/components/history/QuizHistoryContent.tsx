@@ -11,7 +11,6 @@ import { AdDialog } from '../AdDialog';
 import { adLibrary } from '@/lib/ads';
 import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
-import { useAuth } from '@/context/AuthProvider';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -30,15 +29,6 @@ export const HistoryItemSkeleton = () => (
         </CardContent>
     </Card>
 );
-
-export const FullHistorySkeleton = () => (
-    <div className="space-y-4 pt-4">
-        <HistoryItemSkeleton />
-        <HistoryItemSkeleton />
-        <HistoryItemSkeleton />
-    </div>
-);
-
 
 export const ErrorState = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
@@ -66,7 +56,6 @@ const getSlotTimings = (timestamp: number) => {
 const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [isReviewed, setIsReviewed] = useState(false);
   const reviewedStorageKey = 'indcric-reviewed-attempts';
 
@@ -176,16 +165,3 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
-
-
-function QuizHistoryWrapper({ children }: { children: React.ReactNode }) {
-    const { loading } = useAuth();
-
-    if (loading) {
-        return <FullHistorySkeleton />;
-    }
-
-    return <>{children}</>;
-}
-
-export default QuizHistoryWrapper;

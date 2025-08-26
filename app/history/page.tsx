@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import { History, ServerCrash, WifiOff, Award, Trophy, Star } from 'lucide-react';
+import { History, ServerCrash, WifiOff, Award, Trophy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -13,7 +13,6 @@ import RecentHistory from '@/components/history/RecentHistory';
 import AllHistory from '@/components/history/AllHistory';
 import PerfectScoresHistory from '@/components/history/PerfectScoresHistory';
 import PageWrapper from '@/components/PageWrapper';
-import QuizHistoryWrapper from '@/components/history/QuizHistoryContent';
 
 const HistorySkeleton = () => (
     <div className="space-y-4 pt-4">
@@ -38,6 +37,38 @@ export default function HistoryPage() {
   const renderContent = () => {
     if (loading) return <HistorySkeleton />;
 
+    if (!user) {
+        let promptProps;
+        switch (activeTab) {
+            case 'all':
+                promptProps = { 
+                    icon: Trophy, 
+                    title: "View Your Career Stats", 
+                    description: "Sign in to access your complete match history and track your progress over time." 
+                };
+                break;
+            case 'perfect':
+                promptProps = { 
+                    icon: Award, 
+                    title: "Your Hall of Fame", 
+                    description: "Sign in to see all your perfect scores and celebrate your moments of glory!" 
+                };
+                break;
+            default:
+                promptProps = { 
+                    icon: History, 
+                    title: "Check Your Recent Form", 
+                    description: "Just finished a match? Sign in to see how you performed in your last few innings." 
+                };
+        }
+        return (
+            <div className="pt-8">
+                <LoginPrompt {...promptProps} />
+            </div>
+        );
+    }
+    
+
     return (
         <motion.div
             key={activeTab}
@@ -46,50 +77,20 @@ export default function HistoryPage() {
             transition={{ duration: 0.3 }}
         >
             <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                <QuizHistoryWrapper>
-                    {user ? <RecentHistory /> : (
-                        <div className="pt-8">
-                            <LoginPrompt 
-                                icon={History}
-                                title="Check Your Recent Form"
-                                description="Just finished a match? Sign in to see how you performed in your last few innings."
-                            />
-                        </div>
-                    )}
-                </QuizHistoryWrapper>
+                <RecentHistory />
             </TabsContent>
             <TabsContent value="all" forceMount={activeTab === 'all'}>
-                <QuizHistoryWrapper>
-                    {user ? <AllHistory /> : (
-                        <div className="pt-8">
-                            <LoginPrompt 
-                                icon={Trophy}
-                                title="View Your Career Stats"
-                                description="Sign in to access your complete match history and track your progress over time."
-                            />
-                        </div>
-                    )}
-                 </QuizHistoryWrapper>
+                <AllHistory />
             </TabsContent>
             <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                <QuizHistoryWrapper>
-                    {user ? <PerfectScoresHistory /> : (
-                        <div className="pt-8">
-                            <LoginPrompt 
-                                icon={Award}
-                                title="Your Hall of Fame"
-                                description="Sign in to see all your perfect scores and celebrate your moments of glory!"
-                            />
-                        </div>
-                    )}
-                </QuizHistoryWrapper>
+                <PerfectScoresHistory />
             </TabsContent>
         </motion.div>
     )
   }
 
   return (
-    <PageWrapper title={<span className="text-white font-bold text-2xl">My Innings</span>}>
+    <PageWrapper title="My Innings">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="recent">Recent</TabsTrigger>
