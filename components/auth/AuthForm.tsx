@@ -15,6 +15,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const signupSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters.' }),
@@ -22,6 +23,9 @@ const signupSchema = z.object({
   phone: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.' }),
   password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
   referralCode: z.string().optional(),
+  terms: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the terms and conditions to continue.',
+  }),
 });
 
 const loginSchema = z.object({
@@ -52,6 +56,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
       phone: '',
       password: '',
       referralCode: searchParams.get('ref') || '',
+      terms: false,
     },
   });
 
@@ -138,6 +143,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
               </FormItem>
             )} />
             {type === 'signup' && (
+              <>
                 <FormField control={form.control} name="referralCode" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Referral Code (Optional)</FormLabel>
@@ -145,6 +151,28 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
                     <FormMessage />
                   </FormItem>
                 )} />
+                <FormField
+                  control={form.control}
+                  name="terms"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          I understand that this application is for knowledge testing only, not for entertainment and money earning. I accept the 
+                          <Button variant="link" asChild className="p-1 h-auto"><Link href="/policies" target="_blank">Terms & Conditions</Link></Button>.
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </>
             )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
