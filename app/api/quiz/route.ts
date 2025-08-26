@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
     
     // We only send a 500 error if it's a genuine server-side issue, not just a timeout.
-    // For timeouts, we still return a fallback quiz but with a 200 OK status.
+    // For timeouts, we still return a fallback quiz but with a 200 OK status to avoid scary errors on client.
     const status = isTimeout ? 200 : 500;
 
     return NextResponse.json({ 

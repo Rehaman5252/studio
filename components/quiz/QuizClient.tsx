@@ -109,14 +109,23 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       const data: QuizAPIResponse = await response.json();
       
       if (!response.ok) {
-        const errorMsg = (data as any).error || `The server returned an error (${response.status}). Please try again.`;
-        throw new Error(errorMsg);
+        // Even if the response is not "ok" (e.g. 500 error), it might contain a usable fallback quiz.
+        if (data.source === 'fallback' && data.questions) {
+             toast({
+              title: "Heads up!",
+              description: "The AI Umpire is taking a moment. Playing a classic quiz instead.",
+              duration: 5000,
+            });
+        } else {
+            const errorMsg = (data as any).error || `The server returned an error (${response.status}). Please try again.`;
+            throw new Error(errorMsg);
+        }
       }
       
       if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received from the server.');
 
       setQuizData(data);
-      if (data.source === 'fallback' && data.fallbackReason) {
+      if (response.ok && data.source === 'fallback' && data.fallbackReason) {
           toast({
               title: "Heads up!",
               description: data.fallbackReason.includes('Timeout') ? "The AI umpire is thinking! Playing a classic quiz instead." : data.fallbackReason,
