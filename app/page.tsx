@@ -127,7 +127,7 @@ function HomePage() {
           indcric
         </h1>
         <p className="mt-1 text-base font-normal text-foreground/80">
-          The ultimate cricket quiz challenge.
+          Win ₹100 for every 100 seconds!
         </p>
       </div>
     );

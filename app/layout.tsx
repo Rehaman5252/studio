@@ -13,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'indcric',
-  description: 'The ultimate cricket quiz challenge.',
+  description: 'Win ₹100 for every 100 seconds!',
 };
 
 export default function RootLayout({
