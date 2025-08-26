@@ -30,6 +30,18 @@ const LinkedInIcon = () => (
     </svg>
 );
 
+const InstagramIcon = () => (
+    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.644-.069 4.85-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98C23.986 15.667 24 15.259 24 12s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98C15.667.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.88 1.44 1.44 0 000-2.88z"/>
+    </svg>
+);
+
+const SnapchatIcon = () => (
+    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm7.17 14.33c-.22 0-.44-.05-.65-.16-1.12-.55-2.01-1.39-2.58-2.43-.22-.4-.1-.89.3-1.11.4-.22.89-.1 1.11.3.43.8 1.12 1.47 2.02 1.92.4.19.53.69.33 1.09-.16.32-.5.5-.83.5zm-3.23-2.91c-.34-.61-1.25-.91-1.9-.68-.89.31-1.57.99-1.95 1.84-.2.45-.69.64-1.14.45-.45-.2-.64-.69-.45-1.14.59-1.33 1.73-2.38 3.12-2.8.63-.19 1.29.12 1.48.75.19.63-.12 1.29-.75 1.48h-.01zm-7.6-1.4c-.26 0-.52-.1-.71-.29-.4-.4-.35-.98.02-1.42l4-4.5c.34-.38.9-.42 1.28-.08s.42.9.08 1.28l-4 4.5c-.17.19-.4.29-.67.29zm.01-6c-.55 0-1-.45-1-1s.45-1 1-1h6c.55 0 1 .45 1 1s-.45 1-1 1h-6z"/>
+    </svg>
+);
+
 const SocialShareButtonsComponent = ({ referralLink }: { referralLink: string }) => {
   const text = "Join me on indcric! It's the ultimate cricket quiz challenge. Use my link to sign up and we both get rewarded when you play!";
   const title = "indcric: Win ₹100 for every 100 seconds!";
@@ -38,6 +50,8 @@ const SocialShareButtonsComponent = ({ referralLink }: { referralLink: string })
     { name: 'WhatsApp', icon: <WhatsAppIcon />, url: `https://wa.me/?text=${encodeURIComponent(text + ' ' + referralLink)}` },
     { name: 'Facebook', icon: <FacebookIcon />, url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}` },
     { name: 'Telegram', icon: <TelegramIcon />, url: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}` },
+    { name: 'Instagram', icon: <InstagramIcon />, url: 'https://www.instagram.com', tooltip: 'Instagram doesn\'t allow link sharing in posts. Copy the link above and share it in your story or bio!' },
+    { name: 'Snapchat', icon: <SnapchatIcon />, url: 'https://www.snapchat.com', tooltip: 'Snapchat doesn\'t allow direct link sharing. Copy the link above and share it in a snap!' },
     { name: 'LinkedIn', icon: <LinkedInIcon />, url: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(referralLink)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(text)}` },
   ];
 
@@ -45,7 +59,7 @@ const SocialShareButtonsComponent = ({ referralLink }: { referralLink: string })
     <TooltipProvider>
       <div className="flex items-center justify-around gap-2">
         {platforms.map((platform) => (
-          <Tooltip key={platform.name}>
+          <Tooltip key={platform.name} delayDuration={100}>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
@@ -58,7 +72,7 @@ const SocialShareButtonsComponent = ({ referralLink }: { referralLink: string })
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{`Share on ${platform.name}`}</p>
+              <p>{platform.tooltip || `Share on ${platform.name}`}</p>
             </TooltipContent>
           </Tooltip>
         ))}
