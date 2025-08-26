@@ -61,17 +61,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Set initial state
-    if (typeof navigator.onLine === 'boolean') {
-      setIsOffline(!navigator.onLine);
+    if (typeof window !== 'undefined') {
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        // Set initial state
+        setIsOffline(!navigator.onLine);
     }
     
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      if(typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
     };
   }, []);
 

@@ -17,6 +17,8 @@ import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle } from 'lucide-react';
+import { mapFirestoreError } from '@/lib/utils';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 interface QuizClientProps {
   brand: string;
@@ -43,7 +45,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [hint, setHint] = useState<string | null>(null);
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
-  const { user, addQuizAttempt, handleMalpractice, loading: authLoading } = useAuth();
+  const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
   const { toast } = useToast();
   const { settings } = useSettings();
   
@@ -60,16 +62,41 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // --- Start: Readiness Checks ---
+    if (authLoading) {
+      // Don't set error here, just wait for auth to be ready.
+      // The parent component will show a loader.
+      return;
+    }
+
+    if (isOffline) {
+        setError("You appear to be offline. Please check your connection.");
+        setLoading(false);
+        setShowPreQuizLoader(false);
+        return;
+    }
+
     if (!user) {
-      setError("You must be logged in to play a quiz.");
+      setError("Please sign in to play a quiz.");
       setLoading(false);
       setShowPreQuizLoader(false);
       return;
     }
+    if (!isFirebaseConfigured) {
+        setError("🔥 The app is not connected to the server. Please try again later.");
+        setLoading(false);
+        setShowPreQuizLoader(false);
+        return;
+    }
+    // --- End: Readiness Checks ---
     
     try {
       setLoading(true);
       setError(null);
+      // Small buffer to avoid race conditions
+      await new Promise(res => setTimeout(res, 100));
+      if (controller.signal.aborted) return;
+
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,32 +104,30 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         signal: controller.signal,
       });
 
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        console.error("Quiz API Error:", response.status, errorBody);
-        throw new Error(errorBody.error || `The server returned an error (${response.status}).`);
-      }
       if (controller.signal.aborted) return;
       
       const data: QuizAPIResponse = await response.json();
+      
+      if (!response.ok) {
+        const errorMsg = (data as any).error || `The server returned an error (${response.status}). Please try again.`;
+        throw new Error(errorMsg);
+      }
+      
       if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received from the server.');
 
       setQuizData(data);
       if (data.source === 'fallback' && data.fallbackReason) {
           toast({
-              title: "Classic Quiz Loaded!",
-              description: data.fallbackReason,
+              title: "Heads up!",
+              description: data.fallbackReason.includes('Timeout') ? "The AI umpire is thinking! Playing a classic quiz instead." : data.fallbackReason,
+              duration: 5000,
           });
       }
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
-      let errorMessage = "Could not load the quiz. Please try again later.";
-      if(e.message.includes('fetch') || e.message.includes('network') || e.message.includes('Failed to fetch')) {
-        errorMessage = "Network error. Please check your connection and try again."
-      } else if (e.message) {
-        errorMessage = e.message;
-      }
+      const errorMessage = mapFirestoreError(e);
+
       if (!controller.signal.aborted) {
         setError(errorMessage);
         toast({ title: "Error Loading Quiz", description: errorMessage, variant: "destructive" });
@@ -110,15 +135,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } finally {
         if (!controller.signal.aborted) setLoading(false);
     }
-  }, [format, user, toast]);
+  }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    if (authLoading) return; // Wait until auth state is confirmed
     fetchQuiz();
     return () => {
         abortControllerRef.current?.abort();
     };
-  }, [fetchQuiz, authLoading]);
+  }, [fetchQuiz]);
 
   const handlePreQuizFinish = useCallback(() => {
     setShowPreQuizLoader(false);
@@ -228,7 +252,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
      return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />
-            <p className="mb-4 mt-4">Authenticating...</p>
+            <p className="mb-4 mt-4">Connecting to server...</p>
         </div>
     );
   }

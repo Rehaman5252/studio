@@ -76,7 +76,7 @@ export function mapFirestoreError(error: any): string {
       return "You appear to be offline. Please check your internet connection.";
   }
 
-  const code = error.code || (typeof error.message === 'string' ? error.message.toLowerCase() : "");
+  const code = error.code || (typeof error.message === 'string' ? error.message : "");
 
   if (error instanceof FirebaseError) {
       switch (error.code) {
@@ -91,7 +91,7 @@ export function mapFirestoreError(error: any): string {
           case 'cancelled':
               return 'The request was cancelled. Please try again.';
           case 'failed-precondition':
-              return 'The server is not ready. Please try again in a moment.';
+              return 'The server is not ready to handle requests. This might be due to a missing database index. Please try again in a moment.';
            case "unauthenticated":
               return "Your session may have expired. Please log in again.";
           case "resource-exhausted":
@@ -100,8 +100,8 @@ export function mapFirestoreError(error: any): string {
               return `An unexpected server error occurred (${error.code}). Please try again.`;
       }
   }
-
-  if (typeof code === 'string' && (code.includes('network') || code.includes('failed to fetch'))) {
+  
+  if (typeof code === 'string' && (code.toLowerCase().includes('network') || code.toLowerCase().includes('failed to fetch'))) {
     return "A network error occurred. Please check your connection and try again.";
   }
   

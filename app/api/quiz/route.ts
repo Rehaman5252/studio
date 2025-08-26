@@ -3,6 +3,7 @@ import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import { NextRequest, NextResponse } from 'next/server';
 import { fallbackQuizData } from '@/lib/fallback-quiz';
 import { mapFirestoreError } from '@/lib/utils';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 const GENERATION_TIMEOUT = 15000; // 15 seconds
 const VALID_FORMATS = ['ipl', 'test', 'odi', 't20', 'mixed', 'wpl'];
@@ -12,6 +13,12 @@ export async function POST(req: NextRequest) {
   let fallbackReason: string | null = null;
   
   try {
+    // Critical Pre-check: Ensure Firebase is configured on the server.
+    if (!isFirebaseConfigured) {
+        console.error("[API /quiz] Critical Error: Firebase server environment variables are not configured.");
+        return NextResponse.json({ error: 'Server is not configured correctly. Please contact support.' }, { status: 503 }); // 503 Service Unavailable
+    }
+
     const body = await req.json();
     const { userId, format } = body;
 
@@ -49,18 +56,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...quizData, source: 'ai' });
 
   } catch (error: any) {
-    const errorMessage = error.message === "Timeout"
+    const isTimeout = error.message === "Timeout";
+    const errorMessage = isTimeout
       ? `AI generation timed out after ${GENERATION_TIMEOUT}ms for format '${requestedFormat}'`
-      : `An error occurred during quiz generation: ${error.message}`;
+      : mapFirestoreError(error);
 
     console.error(`[Quiz API Error] for format ${requestedFormat}:`, error);
 
     const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
     
+    // We only send a 500 error if it's a genuine server-side issue, not just a timeout.
+    // For timeouts, we still return a fallback quiz but with a 200 OK status.
+    const status = isTimeout ? 200 : 500;
+
     return NextResponse.json({ 
         ...fallback, 
         source: 'fallback', 
-        fallbackReason: mapFirestoreError(error) 
-    }, { status: 500 });
+        fallbackReason: errorMessage 
+    }, { status });
   }
 }
