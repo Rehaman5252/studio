@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     const { userId } = body;
 
     if (!userId) {
+      console.error("[API /quiz] Error: userId is required.");
       return NextResponse.json({ error: 'userId is required.' }, { status: 400 });
     }
     
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     // Validate format against the allowed list
     if (!VALID_FORMATS.includes(formatFromRequest)) {
       fallbackReason = `Invalid format '${body.format}' provided. Defaulting to 'mixed'.`;
-      console.warn(`[Fallback] ${fallbackReason}`);
+      console.warn(`[API /quiz] Fallback Triggered: ${fallbackReason}`);
       requestedFormat = 'mixed';
     } else {
       requestedFormat = formatFromRequest;
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
         fallbackReason = fallbackReason || 'AI returned incomplete or invalid quiz data.';
-        console.warn(`[Fallback] ${fallbackReason} for format '${requestedFormat}'. Using fallback.`);
+        console.warn(`[API /quiz] Fallback Triggered: ${fallbackReason} for format '${requestedFormat}'. Using fallback.`);
         const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
         return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
     }
@@ -53,9 +54,10 @@ export async function POST(req: NextRequest) {
 
     fallbackReason = errorMessage;
 
-    console.warn(`[Fallback] ${fallbackReason}. Using fallback for '${requestedFormat}'.`);
+    console.error(`[API /quiz] Critical Error: ${errorMessage}. Full error:`, error);
+    console.warn(`[API /quiz] Fallback Triggered: ${fallbackReason}. Using fallback for '${requestedFormat}'.`);
 
     const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
-    return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
+    return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason: "A server error occurred while generating the quiz." });
   }
 }

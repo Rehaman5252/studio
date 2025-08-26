@@ -43,7 +43,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [hint, setHint] = useState<string | null>(null);
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
-  const { user, addQuizAttempt, handleMalpractice } = useAuth();
+  const { user, addQuizAttempt, handleMalpractice, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { settings } = useSettings();
   
@@ -77,25 +77,31 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         signal: controller.signal,
       });
 
-      if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        console.error("Quiz API Error:", response.status, errorBody);
+        throw new Error(errorBody.error || `The server returned an error (${response.status}).`);
+      }
       if (controller.signal.aborted) return;
       
       const data: QuizAPIResponse = await response.json();
-      if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received.');
+      if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received from the server.');
 
       setQuizData(data);
-      if (data.source === 'fallback') {
+      if (data.source === 'fallback' && data.fallbackReason) {
           toast({
               title: "Classic Quiz Loaded!",
-              description: data.fallbackReason || "Using a reliable fallback quiz for you.",
+              description: data.fallbackReason,
           });
       }
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
       let errorMessage = "Could not load the quiz. Please try again later.";
-      if(e.message.includes('fetch') || e.message.includes('network') || e.message.includes('Server')) {
+      if(e.message.includes('fetch') || e.message.includes('network') || e.message.includes('Failed to fetch')) {
         errorMessage = "Network error. Please check your connection and try again."
+      } else if (e.message) {
+        errorMessage = e.message;
       }
       if (!controller.signal.aborted) {
         setError(errorMessage);
@@ -107,11 +113,12 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [format, user, toast]);
 
   useEffect(() => {
+    if (authLoading) return; // Wait until auth state is confirmed
     fetchQuiz();
     return () => {
         abortControllerRef.current?.abort();
     };
-  }, [fetchQuiz]);
+  }, [fetchQuiz, authLoading]);
 
   const handlePreQuizFinish = useCallback(() => {
     setShowPreQuizLoader(false);
@@ -213,8 +220,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
   
-  if (showPreQuizLoader && !error) {
+  if (showPreQuizLoader && !error && !authLoading) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
+  }
+  
+  if (authLoading) {
+     return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+             <CricketLoading />
+            <p className="mb-4 mt-4">Authenticating...</p>
+        </div>
+    );
   }
 
   if (error) {
