@@ -142,12 +142,12 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(to right, hsl(var(--primary)) 20%, hsl(var(--accent)) 40%, hsl(var(--accent)) 60%, hsl(var(--primary)) 80%);
+    background: linear-gradient(to right, hsl(var(--primary)) 30%, hsl(var(--foreground)) 50%, hsl(var(--primary)) 70%);
     background-size: 200% auto;
     color: transparent;
     background-clip: text;
     -webkit-background-clip: text;
-    animation: shimmer 5s linear infinite;
+    animation: shimmer 3s linear infinite;
   }
 
   @keyframes subtle-glow {
