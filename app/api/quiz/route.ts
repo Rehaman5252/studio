@@ -49,14 +49,14 @@ export async function POST(req: NextRequest) {
         fallbackReason = fallbackReason || 'AI returned incomplete or invalid quiz data.';
         console.warn(`[API /quiz] Fallback Triggered for userId: ${userId}. Reason: ${fallbackReason} for format '${requestedFormat}'. Using fallback quiz.`);
         const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
-        return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason });
+        return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason }, { status: 200 });
     }
     
     console.log(`[API /quiz] Successfully generated AI quiz for userId: ${userId}, format: ${requestedFormat}`);
     return NextResponse.json({ ...quizData, source: 'ai' });
 
   } catch (error: any) {
-    const isTimeout = error.message === "Timeout";
+    const isTimeout = error.message.toLowerCase().includes("timeout");
     const errorMessage = isTimeout
       ? `AI generation timed out after ${GENERATION_TIMEOUT}ms for format '${requestedFormat}'`
       : mapFirestoreError(error);
@@ -65,14 +65,12 @@ export async function POST(req: NextRequest) {
 
     const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
     
-    // We only send a 500 error if it's a genuine server-side issue, not just a timeout.
-    // For timeouts, we still return a fallback quiz but with a 200 OK status to avoid scary errors on client.
-    const status = isTimeout ? 200 : 500;
-
+    // Always return a 200 with fallback data. The client can decide what to do with the error message.
     return NextResponse.json({ 
         ...fallback, 
         source: 'fallback', 
+        error: 'generation_failed',
         fallbackReason: errorMessage 
-    }, { status });
+    }, { status: 200 });
   }
 }

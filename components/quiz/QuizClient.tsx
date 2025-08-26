@@ -28,6 +28,7 @@ interface QuizClientProps {
 type QuizAPIResponse = QuizData & {
   source?: 'ai' | 'fallback';
   fallbackReason?: string;
+  error?: string;
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
@@ -64,8 +65,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
     // --- Start: Readiness Checks ---
     if (authLoading) {
-      // Don't set error here, just wait for auth to be ready.
-      // The parent component will show a loader.
       return;
     }
 
@@ -93,7 +92,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     try {
       setLoading(true);
       setError(null);
-      // Small buffer to avoid race conditions
       await new Promise(res => setTimeout(res, 100));
       if (controller.signal.aborted) return;
 
@@ -106,18 +104,28 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
-      const data: QuizAPIResponse = await response.json();
+      let data: QuizAPIResponse;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // This catches the "<!DOCTYPE html>" error.
+        throw new Error("Server returned an invalid response. Please try again.");
+      }
       
       if (!response.ok) {
-        // Even if the response is not "ok" (e.g. 500 error), it might contain a usable fallback quiz.
+        // Even if the response is not "ok" (e.g. 500), it should contain a fallback quiz.
         if (data.source === 'fallback' && data.questions) {
+             const reason = data.error || data.fallbackReason || 'An unknown issue occurred';
+             const userMessage = reason.includes('timeout')
+                ? "The AI umpire is thinking! Playing a classic quiz instead."
+                : "Heads up! We're using a classic quiz set for now.";
              toast({
-              title: "Heads up!",
-              description: "The AI Umpire is taking a moment. Playing a classic quiz instead.",
+              title: "Fallback Quiz Loaded",
+              description: userMessage,
               duration: 5000,
             });
         } else {
-            const errorMsg = (data as any).error || `The server returned an error (${response.status}). Please try again.`;
+            const errorMsg = data.error || `The server returned an error (${response.status}). Please try again.`;
             throw new Error(errorMsg);
         }
       }
@@ -125,13 +133,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received from the server.');
 
       setQuizData(data);
-      if (response.ok && data.source === 'fallback' && data.fallbackReason) {
-          toast({
-              title: "Heads up!",
-              description: data.fallbackReason.includes('Timeout') ? "The AI umpire is thinking! Playing a classic quiz instead." : data.fallbackReason,
-              duration: 5000,
-          });
-      }
+      
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
