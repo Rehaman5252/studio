@@ -13,7 +13,7 @@ import RecentHistory from '@/components/history/RecentHistory';
 import AllHistory from '@/components/history/AllHistory';
 import PerfectScoresHistory from '@/components/history/PerfectScoresHistory';
 import PageWrapper from '@/components/PageWrapper';
-import { QuizHistoryWrapper } from '@/components/history/QuizHistoryContent';
+import QuizHistoryWrapper from '@/components/history/QuizHistoryContent';
 
 const HistorySkeleton = () => (
     <div className="space-y-4 pt-4">
