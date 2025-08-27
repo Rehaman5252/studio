@@ -1,21 +1,41 @@
 
 'use client';
 
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useState, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, Award, BarChart, Home, Sparkles, Cpu, BookOpen } from 'lucide-react';
+import { Award, BarChart, Home, Sparkles, Cpu, BookOpen, Clock, Eye } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
-import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
 import PageWrapper from '@/components/PageWrapper';
 import AnalysisDialog from '@/components/history/AnalysisDialog';
 import { Badge } from '@/components/ui/badge';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { AdDialog } from '@/components/AdDialog';
+import ReviewDialog from '@/components/history/ReviewDialog';
+import { adLibrary } from '@/lib/ads';
+
+const CountdownTimer = memo(() => {
+    const { timeLeft } = useQuizStatus();
+    return (
+        <Card className="mt-4 bg-secondary">
+            <CardContent className="p-3 text-center">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>Next quiz slot opens in:</span>
+                    <span className="font-bold text-foreground">{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
+                </div>
+            </CardContent>
+        </Card>
+    );
+});
+CountdownTimer.displayName = 'CountdownTimer';
 
 const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const attemptData = searchParams.get('attempt');
+  const [showAnswersAd, setShowAnswersAd] = useState(false);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
 
   const attempt: QuizAttempt | null = useMemo(() => {
     if (!attemptData) return null;
@@ -26,6 +46,17 @@ const ResultsContent = () => {
       return null;
     }
   }, [attemptData]);
+
+  const attemptData = searchParams.get('attempt');
+
+  const handleViewAnswers = () => {
+    setShowAnswersAd(true);
+  };
+
+  const onAdFinished = () => {
+    setShowAnswersAd(false);
+    setShowReviewDialog(true);
+  };
 
   if (!attempt) {
     return (
@@ -78,61 +109,43 @@ const ResultsContent = () => {
         </CardContent>
       </Card>
       
-       {!isDisqualified && (
-         <div className="space-y-4">
+      <CountdownTimer />
+
+      <div className="space-y-3 pt-4">
+        {!isDisqualified && (
+          <>
+            <Button size="lg" className="w-full" onClick={handleViewAnswers}>
+              <Eye className="mr-2 h-5 w-5" /> View Answers
+            </Button>
             <AnalysisDialog attempt={attempt}>
                 <Button variant="secondary" size="lg" className="w-full">
                     <Sparkles className="mr-2 h-5 w-5" />
                     View AI Performance Analysis
                 </Button>
             </AnalysisDialog>
-        </div>
-       )}
-
-
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold text-center">Answer Review</h3>
-        {attempt.questions.map((question, index) => (
-          <Card key={question.id} className="bg-card/50">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">{index + 1}. {question.question}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-sm space-y-2">
-                <p className="flex items-center gap-2">
-                  {attempt.userAnswers[index] === question.correctAnswer ? 
-                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" /> : 
-                    <XCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-                  }
-                  <span>Your Answer: {attempt.userAnswers[index] || "Not Answered"}</span>
-                </p>
-                {attempt.userAnswers[index] !== question.correctAnswer && (
-                    <p className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span>Correct Answer: {question.correctAnswer}</span>
-                    </p>
-                )}
-              </div>
-              <Card className="bg-background/70 p-3">
-                <p className="text-xs text-muted-foreground font-semibold">EXPLANATION</p>
-                <p className="text-sm">{question.explanation}</p>
-              </Card>
-               <div className="pt-2 flex justify-center">
-                <ReportQuestionDialog questionId={question.id} questionText={question.question} />
-               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-2 justify-center pt-4">
-        <Button size="lg" onClick={() => router.push('/leaderboard')}>
-            <BarChart className="mr-2" /> View Leaderboard
-        </Button>
-        <Button size="lg" variant="outline" onClick={() => router.push('/')}>
-           <Home className="mr-2" /> Play Again
+          </>
+        )}
+        <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/')}>
+           <Home className="mr-2 h-5 w-5" /> Return to Home
         </Button>
       </div>
+
+      {showAnswersAd && (
+          <AdDialog
+              open={showAnswersAd}
+              onAdFinished={onAdFinished}
+              duration={adLibrary.resultsAd.duration}
+              skippableAfter={adLibrary.resultsAd.skippableAfter}
+              adTitle={adLibrary.resultsAd.title}
+              adType={adLibrary.resultsAd.type}
+              adUrl={adLibrary.resultsAd.url}
+          />
+      )}
+      <ReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        attempt={attempt}
+      />
     </PageWrapper>
   );
 };

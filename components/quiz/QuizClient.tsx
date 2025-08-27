@@ -17,8 +17,6 @@ import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle } from 'lucide-react';
-import { mapFirestoreError } from '@/lib/utils';
-import { isFirebaseConfigured } from '@/lib/firebase';
 import { fallbackQuizData } from '@/lib/fallback-quiz';
 
 interface QuizClientProps {
@@ -54,7 +52,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
-    return interstitialAds[currentQuestionIndex] || null;
+    // Show interstitial after Q3 (index 2)
+    return currentQuestionIndex === 2 ? interstitialAds[2] : null;
   }, [currentQuestionIndex]);
 
   const fetchQuiz = useCallback(async () => {
@@ -135,7 +134,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
       
-      // Use the local fallback quiz data
       const localFallback = fallbackQuizData[format.toLowerCase()] || fallbackQuizData.mixed;
       setQuizData({ ...localFallback, source: 'fallback', fallbackReason: 'API failure' });
       
@@ -218,7 +216,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const onInterstitialComplete = useCallback(() => {
     setShowInterstitial(false);
-    setCurrentQuestionIndex(prev => prev + 1);
+    // After interstitial (from Q3), skip to Q5 (index 4)
+    setCurrentQuestionIndex(4);
     setStartTime(Date.now());
   }, []);
 
@@ -286,16 +285,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }
   
   if (showInterstitial && interstitialConfig) {
-    if (interstitialConfig.type === 'static' && interstitialConfig.logoUrl) {
-      return (
-        <InterstitialLoader
-          logoUrl={interstitialConfig.logoUrl}
-          logoHint={interstitialConfig.logoHint || 'brand logo'}
-          duration={interstitialConfig.durationMs}
-          onComplete={onInterstitialComplete}
-        />
-      );
-    }
     if (interstitialConfig.type === 'video' && interstitialConfig.videoUrl) {
       return (
         <AdDialog 
@@ -341,5 +330,3 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     </>
   );
 }
-
-    

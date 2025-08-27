@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 
 
-const QUESTION_TIME_LIMIT = 15; // seconds
+const QUESTION_TIME_LIMIT = 20; // seconds
 
 interface QuizViewProps {
     question: QuizQuestion;
