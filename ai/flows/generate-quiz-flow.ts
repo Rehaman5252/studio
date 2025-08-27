@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -12,6 +13,7 @@ import { z } from 'zod';
 import { QuizQuestion, QuizData } from '@/ai/schemas';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { getFallbackQuiz } from '@/lib/fallback-quiz';
 
 
 const GenerateQuizInputSchema = z.object({
@@ -19,12 +21,6 @@ const GenerateQuizInputSchema = z.object({
     userId: z.string().describe('The ID of the user requesting the quiz to avoid repeating questions.'),
 });
 type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
-
-
-export async function generateQuiz(input: GenerateQuizInput): Promise<QuizData> {
-    const quiz = await generateQuizFlow(input);
-    return quiz;
-}
 
 
 const getRecentQuestions = async (userId: string): Promise<string[]> => {
@@ -92,24 +88,29 @@ const prompt = ai.definePrompt({
 });
 
 
-const generateQuizFlow = ai.defineFlow(
+export const generateQuizFlow = ai.defineFlow(
     {
         name: 'generateQuizFlow',
         inputSchema: GenerateQuizInputSchema,
         outputSchema: QuizData,
     },
     async (input) => {
-        const seenQuestions = await getRecentQuestions(input.userId);
+        try {
+            const seenQuestions = await getRecentQuestions(input.userId);
 
-        const { output } = await prompt({ format: input.format, seenQuestions });
-
-        if (!output || output.questions.length < 5) {
-             console.error("AI failed to generate a valid quiz. Using fallback.");
-            // Fallback logic in case the AI fails
-             const fallback = (await import('@/lib/fallback-quiz')).fallbackQuizData[input.format] || (await import('@/lib/fallback-quiz')).fallbackQuizData.Mixed;
-             return fallback;
+            const { output } = await prompt({ format: input.format, seenQuestions });
+            
+            // Basic validation to ensure the AI returns something valid
+            if (!output || !Array.isArray(output.questions) || output.questions.length < 5) {
+                 console.error("AI failed to generate a valid quiz. Using fallback.");
+                 throw new Error("AI returned incomplete or invalid quiz data.");
+            }
+    
+            return output;
+        } catch (error) {
+            console.error("Error in generateQuizFlow, throwing to be handled by API route:", error);
+            // Re-throw the error so the robust API route can catch it and serve its own fallback.
+            throw error;
         }
-
-        return output;
     }
 );

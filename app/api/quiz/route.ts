@@ -1,71 +1,113 @@
 
-import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
-import { NextRequest, NextResponse } from 'next/server';
-import { fallbackQuizData } from '@/lib/fallback-quiz';
-import { mapFirestoreError } from '@/lib/utils';
-import { isFirebaseConfigured } from '@/lib/firebase';
+import { NextResponse } from "next/server";
 
-const GENERATION_TIMEOUT = 15000; // 15 seconds
-const VALID_FORMATS = ['mixed', 'ipl', 't20', 'odi', 'wpl', 'test'];
+/**
+ * Defensive quiz generation API route
+ *
+ * Behavior:
+ * - Calls the AI generation flow (generateQuizFlow)
+ * - Uses timeout + retry
+ * - Validates AI response shape quickly
+ * - On any error or invalid shape, returns a fallback quiz (source: "fallback")
+ * - Always returns JSON with { quiz, source, reqId, error? }
+ */
 
-export async function POST(req: NextRequest) {
-  let requestedFormat = 'mixed';
-  
-  try {
-    if (!isFirebaseConfigured) {
-        throw new Error('server_not_configured');
-    }
+import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow"; 
+import { getFallbackQuiz } from "@/lib/fallback-quiz"; 
 
-    const body = await req.json();
-    const { userId, format } = body;
+// Configuration
+const GENERATION_TIMEOUT = Number(process.env.GENERATION_TIMEOUT_MS ?? 15000); // ms
+const MAX_RETRIES = Number(process.env.GENERATION_MAX_RETRIES ?? 1); // retries on transient AI errors
+const IS_DEV = process.env.NODE_ENV !== "production";
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User identification is missing.' }, { status: 400 });
-    }
-    
-    requestedFormat = (format || 'mixed').toLowerCase();
-    if (!VALID_FORMATS.includes(requestedFormat)) {
-       console.warn(`[API /quiz] Invalid format '${format}' provided. Defaulting to 'mixed'.`);
-       requestedFormat = 'mixed';
-    }
-
-    console.log(`[API /quiz] Generating quiz for format: ${requestedFormat}, userId: ${userId}`);
-    const quizPromise = generateQuiz({ format: requestedFormat, userId });
-    
-    const quizData = await Promise.race([
-        quizPromise,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), GENERATION_TIMEOUT))
-    ]);
-    
-    if (!quizData || !quizData.questions || quizData.questions.length < 5) {
-        throw new Error('AI returned incomplete or invalid quiz data.');
-    }
-    
-    console.log(`[API /quiz] Successfully generated AI quiz for userId: ${userId}, format: ${requestedFormat}`);
-    return NextResponse.json({ ...quizData, source: 'ai' });
-
-  } catch (error: any) {
-    const isTimeout = error.message.toLowerCase().includes("timeout");
-    let errorMessage = mapFirestoreError(error);
-
-     if(error.message === 'server_not_configured') {
-         errorMessage = 'The server is not properly configured. Using a classic quiz.';
-         console.error("[API /quiz] Critical Error: Firebase server environment variables are not configured.");
-    } else if (isTimeout) {
-         errorMessage = `AI generation timed out after ${GENERATION_TIMEOUT}ms for format '${requestedFormat}'`;
-    }
-
-    console.error(`[Quiz API Error] for format ${requestedFormat}:`, errorMessage);
-
-    const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
-    
-    return NextResponse.json({ 
-        ...fallback, 
-        source: 'fallback', 
-        error: isTimeout ? 'timeout' : 'generation_failed',
-        fallbackReason: errorMessage 
-    }, { status: 200 }); // Return 200 with fallback data so client can handle it gracefully
-  }
+// Quick structural validator for AI output — adjust to your expected shape
+function isValidQuizShape(candidate: any): boolean {
+  if (!candidate || typeof candidate !== "object") return false;
+  if (!Array.isArray(candidate.questions)) return false;
+  if (candidate.questions.length === 0) return false;
+  // each question should have a question text and options array
+  return candidate.questions.every((q: any) => {
+    return typeof q?.question === "string" && Array.isArray(q?.options);
+  });
 }
 
-    
+function timeoutPromise<T>(ms: number, reason = "timeout") {
+  return new Promise<never>((_, reject) => setTimeout(() => reject(new Error(reason)), ms));
+}
+
+async function callWithRetry(fn: () => Promise<any>, retries = 1) {
+  let attempt = 0;
+  let lastErr: any = null;
+  while (attempt <= retries) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      attempt++;
+      if (attempt > retries) break;
+      // small backoff
+      await new Promise((res) => setTimeout(res, 300 * attempt));
+    }
+  }
+  throw lastErr;
+}
+
+export async function POST(req: Request) {
+  const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch (err) {
+    console.error(`[quiz][${reqId}] invalid json body`, err);
+    return NextResponse.json({ error: "Invalid JSON body", reqId }, { status: 400 });
+  }
+
+  const { format, userId, ...rest } = body ?? {};
+
+  // simple input guard
+  if (!format) {
+    return NextResponse.json({ error: "Missing format", reqId }, { status: 400 });
+  }
+
+  // Wrapper that calls your generate flow with timeout
+  const generate = async () => {
+    // Run the AI generation with an enforced timeout
+    const aiPromise = generateQuizFlow({ format, userId, ...rest });
+    return await Promise.race([aiPromise, timeoutPromise(GENERATION_TIMEOUT, "ai_generation_timeout")]);
+  };
+
+  try {
+    console.info(`[quiz][${reqId}] starting generation format=${format} user=${userId ?? "unknown"}`);
+
+    const aiResult = await callWithRetry(generate, MAX_RETRIES);
+
+    // Validate shape quickly
+    if (!isValidQuizShape(aiResult)) {
+      console.warn(`[quiz][${reqId}] AI returned invalid shape — falling back`, {
+        aiSample: Array.isArray(aiResult?.questions) ? aiResult.questions.slice(0, 3) : undefined,
+      });
+      const fallback = getFallbackQuiz(format);
+      return NextResponse.json({ quiz: fallback, source: "fallback", reqId, error: "ai_invalid_shape" }, { status: 200 });
+    }
+
+    console.info(`[quiz][${reqId}] AI generation succeeded`);
+    return NextResponse.json({ quiz: aiResult, source: "ai", reqId }, { status: 200 });
+  } catch (err: any) {
+    // Any error -> fallback (log details)
+    console.error(`[quiz][${reqId}] generation error:`, err?.message ?? err, {
+      format,
+      userId,
+      timeoutMs: GENERATION_TIMEOUT,
+    });
+
+    // Provide the fallback quiz so client always receives valid JSON
+    const fallback = getFallbackQuiz(format);
+    const payload: any = { quiz: fallback, source: "fallback", reqId };
+
+    // expose a short error string in DEV only to help triage quickly
+    if (IS_DEV) payload.error = String(err?.message ?? err);
+
+    return NextResponse.json(payload, { status: 200 });
+  }
+}

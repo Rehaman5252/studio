@@ -17,23 +17,23 @@ import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle } from 'lucide-react';
-import { mapFirestoreError } from '@/lib/utils';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import { fallbackQuizData } from '@/lib/fallback-quiz';
+import { getFallbackQuiz } from '@/lib/fallback-quiz';
 
 interface QuizClientProps {
   brand: string;
   format: string;
 }
 
-type QuizAPIResponse = QuizData & {
+type QuizAPIResponse = {
+  quiz: QuizData;
   source?: 'ai' | 'fallback';
-  fallbackReason?: string;
+  reqId?: string;
   error?: string;
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
-  const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPreQuizLoader, setShowPreQuizLoader] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +42,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
   const [startTime, setStartTime] = useState<number>(0);
   const [showInterstitial, setShowInterstitial] = useState(false);
+  const [quizSource, setQuizSource] = useState<'ai' | 'fallback'>('ai');
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -54,7 +55,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
-    // Show interstitial after Q3 (index 2) or Q4 (index 3)
     return interstitialAds[currentQuestionIndex] || null;
   }, [currentQuestionIndex]);
 
@@ -65,10 +65,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // --- Start: Readiness Checks ---
-    if (authLoading) {
-      return;
-    }
+    if (authLoading || !user) return;
 
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
@@ -76,20 +73,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         setShowPreQuizLoader(false);
         return;
     }
-
-    if (!user) {
-      setError("Please sign in to play a quiz.");
-      setLoading(false);
-      setShowPreQuizLoader(false);
-      return;
-    }
+    
     if (!isFirebaseConfigured) {
         setError("🔥 The app is not connected to the server. Please try again later.");
         setLoading(false);
         setShowPreQuizLoader(false);
         return;
     }
-    // --- End: Readiness Checks ---
     
     try {
       setLoading(true);
@@ -106,35 +96,27 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
-      const contentType = response.headers.get("content-type") || "";
-      if (!contentType.includes("application/json")) {
-        throw new Error("Invalid response: Expected JSON but got HTML.");
-      }
-
       const data: QuizAPIResponse = await response.json();
       
-      if (!response.ok) {
-        // Even if the response is not "ok" (e.g. 500), it might contain a fallback quiz.
-        if (data.source === 'fallback' && data.questions) {
-             const reason = data.error || data.fallbackReason || 'An unknown issue occurred';
-             const userMessage = reason.includes('timeout')
-                ? "The AI umpire is thinking! Playing a classic quiz instead."
-                : "Heads up! We're using a classic quiz set for now.";
-             toast({
-              title: "Fallback Quiz Loaded",
-              description: userMessage,
-              duration: 5000,
-            });
-            setQuizData(data);
-        } else {
-            const errorMsg = data.error || `The server returned an error (${response.status}). Please try again.`;
-            throw new Error(errorMsg);
-        }
+      if (!response.ok || !data.quiz) {
+         throw new Error(data.error || "The server returned an unexpected response.");
+      }
+
+      setQuizData(data.quiz);
+      setQuizSource(data.source || 'fallback');
+
+      if (data.source === 'ai') {
+        toast({ title: "✅ Fresh AI-powered quiz loaded!" });
       } else {
-        if (data.source === 'ai') {
-           toast({ title: "✅ Fresh AI-powered quiz loaded!" });
-        }
-        setQuizData(data);
+        const reason = data.error || 'An unknown issue occurred';
+        const userMessage = reason.includes('timeout')
+            ? "The AI umpire is thinking! Playing a classic quiz instead."
+            : "Heads up! We're using a classic quiz set for now.";
+        toast({
+            title: "Fallback Quiz Loaded",
+            description: userMessage,
+            duration: 5000,
+        });
       }
       
     } catch (e: any) {
@@ -142,16 +124,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. Playing a classic set instead.";
       
-      if (e.message.includes("Invalid response")) {
-        userMessage = "❌ Server returned invalid data. Falling back to classics.";
-      } else if (e.message.includes("Failed to fetch")) {
+      if (e.message.includes("Failed to fetch")) {
         userMessage = "📴 You appear to be offline. Please check your connection.";
       }
       
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
       
-      const localFallback = fallbackQuizData[format.toLowerCase() as keyof typeof fallbackQuizData] || fallbackQuizData.mixed;
-      setQuizData({ ...localFallback, source: 'fallback', fallbackReason: 'API failure' });
+      const localFallback = getFallbackQuiz(format.toLowerCase());
+      setQuizData(localFallback);
+      setQuizSource('fallback');
 
     } finally {
         if (!controller.signal.aborted) {
@@ -161,11 +142,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    fetchQuiz();
+    if (user) {
+        fetchQuiz();
+    } else if (!authLoading) {
+        setError("Please sign in to play a quiz.");
+        setLoading(false);
+        setShowPreQuizLoader(false);
+    }
     return () => {
         abortControllerRef.current?.abort();
     };
-  }, [fetchQuiz]);
+  }, [fetchQuiz, user, authLoading]);
 
   const handlePreQuizFinish = useCallback(() => {
     setShowPreQuizLoader(false);
@@ -176,7 +163,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     if (!quizData || !user) return;
     const attempt = buildAttempt({
       user,
-      quizData,
+      quizData: { ...quizData, source: quizSource },
       brand,
       format,
       userAnswers: currentAnswers,
@@ -184,7 +171,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [quizData, user, brand, format, addQuizAttempt, router]);
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (!quizData || !user) return;
@@ -197,7 +184,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     
     const attempt = buildAttempt({
       user,
-      quizData,
+      quizData: { ...quizData, source: quizSource },
       brand,
       format,
       userAnswers,
@@ -206,7 +193,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
