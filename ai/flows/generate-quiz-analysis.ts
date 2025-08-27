@@ -10,6 +10,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { QuizAttempt } from '@/ai/schemas';
+import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 
 const QuestionAnalysisSchema = z.object({
     question: z.string().describe("The original question text."),
@@ -32,9 +33,67 @@ const QuizAnalysisOutputSchema = z.object({
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
 
 
-export async function generateQuizAnalysis(input: QuizAttempt): Promise<QuizAnalysisOutput> {
-    const analysis = await generateQuizAnalysisFlow(input);
-    return analysis;
+/**
+ * Generates a deterministic, rules-based fallback analysis if the AI fails.
+ * @param attempt - The sanitized quiz attempt data.
+ * @returns A complete QuizAnalysisOutput object.
+ */
+const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
+    const accuracy = (attempt.score / attempt.totalQuestions) * 100;
+    const averageTime = (attempt.timePerQuestion?.reduce((a,b) => a+b, 0) || 0) / attempt.totalQuestions;
+
+    const correctQuestions = attempt.questions.filter((q, i) => q.correctAnswer === attempt.userAnswers[i]);
+    const incorrectQuestions = attempt.questions.filter((q, i) => q.correctAnswer !== attempt.userAnswers[i]);
+
+    let strengths = ["Good pace on questions you knew.", "Strong foundational knowledge."];
+    if (accuracy > 80) strengths.unshift("Excellent accuracy under pressure!");
+    
+    let improvements = ["Double-check questions with tricky wording."];
+    if (incorrectQuestions.length > 0) {
+        improvements.push(`Review topics related to: "${incorrectQuestions[0].question.slice(0, 30)}..."`);
+    } else {
+        improvements.push("Time management on tougher questions could be improved.");
+    }
+    
+    return {
+        overallPerformance: `A solid effort on the ${attempt.format} quiz! You've got a great foundation to build upon.`,
+        accuracy: parseFloat(accuracy.toFixed(1)),
+        averageTimePerQuestion: parseFloat(averageTime.toFixed(1)),
+        keyStrengths: strengths.slice(0,2),
+        areasForImprovement: improvements.slice(0,2),
+        coachTip: "Before your next quiz, try focusing on one specific era or tournament. This can help you build deeper knowledge in one go!",
+        analyzedQuestions: attempt.questions.map((q, i) => ({
+            question: q.question,
+            userAnswer: attempt.userAnswers[i] || 'Not Answered',
+            correctAnswer: q.correctAnswer,
+            isCorrect: attempt.userAnswers[i] === q.correctAnswer,
+            timeTaken: attempt.timePerQuestion?.[i] || 0,
+            category: "General" // Fallback category
+        }))
+    };
+};
+
+
+export async function generateQuizAnalysis(rawAttempt: QuizAttempt): Promise<QuizAnalysisOutput> {
+    try {
+        // 1. Sanitize the raw input from Firestore/client to handle inconsistencies.
+        const sanitized = sanitizeQuizAttempt(rawAttempt);
+        
+        // 2. Validate the sanitized data against the strict Zod schema.
+        // This will throw an error if the data is still malformed, which we catch below.
+        const validatedAttempt = QuizAttempt.parse(sanitized);
+
+        // 3. If validation passes, call the AI flow.
+        const analysis = await generateQuizAnalysisFlow(validatedAttempt);
+        return analysis;
+    } catch (error) {
+        console.error("Error during analysis generation pipeline:", error);
+        
+        // If any step fails (sanitization, validation, or AI), return the deterministic fallback.
+        // We re-sanitize the raw attempt to ensure the fallback function gets a clean object.
+        const sanitizedForFallback = QuizAttempt.parse(sanitizeQuizAttempt(rawAttempt));
+        return getFallbackAnalysis(sanitizedForFallback);
+    }
 }
 
 const prompt = ai.definePrompt({
@@ -75,29 +134,12 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     async (input) => {
         const { output } = await prompt(input);
 
+        // If the AI model fails to return a valid output, generate the fallback analysis.
         if (!output) {
-            const accuracy = (input.score / input.totalQuestions) * 100;
-            const averageTime = (input.timePerQuestion?.reduce((a,b) => a+b, 0) || 0) / input.totalQuestions;
-            // Fallback logic in case the AI fails
-            return {
-                overallPerformance: "A solid effort! You've got a great foundation to build upon. Review your answers below.",
-                accuracy: parseFloat(accuracy.toFixed(1)),
-                averageTimePerQuestion: parseFloat(averageTime.toFixed(1)),
-                keyStrengths: ["Good pace on questions you knew.", "Strong foundational knowledge."],
-                areasForImprovement: ["Double-check questions with tricky wording.", "Time management on tougher questions could be improved."],
-                coachTip: "Before your next quiz, try focusing on one specific era or tournament. This can help you build deeper knowledge in one go!",
-                analyzedQuestions: input.questions.map((q, i) => ({
-                    question: q.question,
-                    userAnswer: input.userAnswers[i],
-                    correctAnswer: q.correctAnswer,
-                    isCorrect: input.userAnswers[i] === q.correctAnswer,
-                    timeTaken: input.timePerQuestion?.[i] || 0,
-                    category: "General"
-                }))
-            };
+            console.warn("AI analysis returned null, generating fallback.");
+            return getFallbackAnalysis(input);
         }
 
         return output;
     }
 );
-

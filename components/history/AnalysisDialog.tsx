@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, ReactNode, useRef, useCallback } from 'react';
+import { useState, useEffect, ReactNode, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import type { QuizAttempt } from '@/ai/schemas';
 import { generateQuizAnalysis, QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
@@ -11,7 +11,6 @@ import { AlertTriangle, BarChart, Target, Zap, Lightbulb, CheckCircle2, XCircle 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { CricketLoading } from '../CricketLoading';
-import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import { cn } from '@/lib/utils';
 
 const AnalysisSkeleton = () => (
@@ -54,30 +53,25 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
     
     const getAnalysis = useCallback(async () => {
         const attemptId = attempt.slotId || attempt.timestamp.toString();
-        // Use cached analysis if available to prevent re-fetching
+        
         if (analysisCache.has(attemptId)) {
             setAnalysis(analysisCache.get(attemptId)!);
-            setLoading(false);
-            setError(null);
             return;
         }
 
         setLoading(true);
         setError(null);
         setAnalysis(null);
+        
         try {
-            // Ensure all required fields are present before sending to AI
-            const sanitizedAttempt: QuizAttempt = {
-                ...attempt,
-                userAnswers: attempt.userAnswers || [],
-                timePerQuestion: attempt.timePerQuestion || [],
-                unanswered: attempt.unanswered || 0,
-                source: attempt.source || 'ai',
-                reason: attempt.reason || undefined,
-            };
+            // The generateQuizAnalysis flow now handles sanitization and fallbacks internally
+            const result = await generateQuizAnalysis(attempt);
             
-            const result = await generateQuizAnalysis(sanitizeUserProfile(sanitizedAttempt) as QuizAttempt);
-            analysisCache.set(attemptId, result); // Cache the result
+            if (!result) {
+                 throw new Error("Analysis returned empty.");
+            }
+            
+            analysisCache.set(attemptId, result);
             setAnalysis(result);
         } catch (e) {
             console.error("Error generating quiz analysis:", e);
@@ -109,7 +103,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                             <div className="grid grid-cols-3 gap-4">
                                 <StatCard title="Final Score" value={`${attempt.score}/${attempt.totalQuestions}`} />
                                 <StatCard title="Accuracy" value={analysis.accuracy} unit="%" />
-                                <StatCard title="Strike Rate" value={analysis.averageTimePerQuestion} unit="s/q" />
+                                <StatCard title="Strike Rate" value={analysis.averageTimePerQuestion.toFixed(1)} unit="s/q" />
                             </div>
 
                             <Card className="bg-card/50"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart className="text-primary"/> Match Report</CardTitle></CardHeader><CardContent><p>{analysis.overallPerformance}</p></CardContent></Card>

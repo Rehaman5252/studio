@@ -8,7 +8,7 @@ import { z } from 'zod';
  * ensuring type safety and consistent data validation.
  */
 
-// Schema for a single quiz question
+// Schema for a single quiz question, used within QuizAttempt
 export const QuizQuestion = z.object({
   id: z.string().describe('A unique identifier for the question.'),
   question: z.string().describe('The text of the quiz question.'),
@@ -23,12 +23,13 @@ export const QuizData = z.object({
 });
 
 // Schema for a user's attempt at a quiz
+// This is the source of truth for what a valid attempt object looks like for the AI analysis flow.
 export const QuizAttempt = z.object({
   userId: z.string().describe("The user's unique ID."),
   slotId: z.string().describe("The ID of the 10-minute quiz slot."),
   brand: z.string().describe("The brand associated with the quiz."),
   format: z.string().describe("The cricket format of the quiz."),
-  questions: z.array(QuizQuestion).describe("The array of questions that were in the quiz."),
+  questions: z.array(QuizQuestion).min(1).describe("The array of questions that were in the quiz."),
   userAnswers: z.array(z.string()).describe("The answers provided by the user."),
   score: z.number().int().describe("The final score of the user."),
   totalQuestions: z.number().int().describe("The total number of questions in the quiz."),
