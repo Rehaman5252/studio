@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
-import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { AdDialog } from '../AdDialog';
 import { adLibrary } from '@/lib/ads';
 import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
+import { useAuth } from '@/context/AuthProvider';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -55,39 +57,35 @@ const getSlotTimings = (timestamp: number) => {
   };
 
 const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
-  const router = useRouter();
+  const { user, quizHistory, setQuizHistory } = useAuth();
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
-  const [isReviewed, setIsReviewed] = useState(false);
-  const reviewedStorageKey = 'indcric-reviewed-attempts';
-
-  useEffect(() => {
-    if(typeof window === 'undefined') return;
-    const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
-    if (reviewedItems.includes(attempt.slotId)) {
-        setIsReviewed(true);
-    }
-  }, [attempt.slotId]);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
   const handleReviewClick = () => {
-    if (!isReviewed) {
+    if (!attempt.reviewed) {
         setShowAdDialog(true);
     } else {
-        // If already reviewed, just show the dialog without an ad
         setShowReviewDialog(true);
     }
   };
 
-  const handleAdFinished = () => {
+  const handleAdFinished = async () => {
     setShowAdDialog(false);
-    if(typeof window === 'undefined') return;
-    const reviewedItems = JSON.parse(localStorage.getItem(reviewedStorageKey) || '[]');
-    if (!reviewedItems.includes(attempt.slotId)) {
-        reviewedItems.push(attempt.slotId);
-        localStorage.setItem(reviewedStorageKey, JSON.stringify(reviewedItems));
+    if (user && db) {
+        try {
+            const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attempt.slotId);
+            await updateDoc(attemptRef, { reviewed: true });
+
+            // Optimistic update of local state
+            setQuizHistory(prev => ({
+                ...prev,
+                data: prev.data.map(a => a.slotId === attempt.slotId ? { ...a, reviewed: true } : a)
+            }));
+        } catch (error) {
+            console.error("Failed to mark attempt as reviewed:", error);
+        }
     }
-    setIsReviewed(true);
     setShowReviewDialog(true);
   };
   
@@ -128,17 +126,15 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
             </div>
             <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed}>
-                    {isReviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
-                    {isReviewed ? 'Reviewed' : 'Review'}
+                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || attempt.reviewed}>
+                    {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
+                    {attempt.reviewed ? 'Reviewed' : 'Review'}
                 </Button>
                 
-                <AnalysisDialog attempt={attempt}>
-                    <Button variant="secondary" size="sm" disabled={isDisqualified}>
-                        <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                        Analysis
-                    </Button>
-                </AnalysisDialog>
+                <Button variant="secondary" size="sm" disabled={isDisqualified} onClick={() => setIsAnalysisOpen(true)}>
+                    <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                    Analysis
+                </Button>
             </div>
         </CardContent>
         </Card>
@@ -162,6 +158,13 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         <ReviewDialog
             open={showReviewDialog}
             onOpenChange={setShowReviewDialog}
+            attempt={attempt}
+        />
+
+        {/* Analysis Dialog */}
+        <AnalysisDialog 
+            open={isAnalysisOpen} 
+            onOpenChange={setIsAnalysisOpen} 
             attempt={attempt}
         />
     </>

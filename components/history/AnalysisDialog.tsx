@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, ReactNode } from "react";
+import React, { useState, useEffect, ReactNode, memo } from "react";
 import {
   Dialog,
   DialogTrigger,
@@ -18,21 +18,24 @@ import {
   Zap,
   Lightbulb,
   Loader2,
+  ServerCrash,
 } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
-  children: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children?: ReactNode;
 }
 
-export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
+const AnalysisDialogComponent = ({ attempt, open, onOpenChange, children }: AnalysisDialogProps) => {
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!open) return;
 
     const fetchAnalysis = async () => {
       setLoading(true);
@@ -62,7 +65,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
     };
 
     fetchAnalysis();
-  }, [isOpen, attempt]);
+  }, [open, attempt]);
   
   const renderContent = () => {
     if (loading) {
@@ -76,7 +79,13 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
     }
     
     if (error) {
-      return <div className="text-red-500 text-center py-10">{error}</div>;
+      return (
+        <Alert variant="destructive" className="mt-4">
+            <ServerCrash className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      );
     }
 
     if (analysis) {
@@ -91,7 +100,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
               <Card className="bg-card/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <BarChart className="text-primary" /> Match Report
+                    <BarChart className="text-primary" /> Match Summary
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -116,7 +125,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive">
-                      <Target /> Weaknesses
+                      <Target /> Areas for Improvement
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -131,7 +140,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
               <Card className="bg-primary/10">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary">
-                    <Lightbulb /> Recommendations
+                    <Lightbulb /> Coach's Recommendations
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -149,8 +158,8 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">
@@ -167,3 +176,5 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
     </Dialog>
   );
 }
+
+export default memo(AnalysisDialogComponent);

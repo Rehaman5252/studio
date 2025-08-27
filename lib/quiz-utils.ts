@@ -33,12 +33,13 @@ export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
 
 interface BuildAttemptArgs {
     user: User;
-    quizData: QuizData & { source?: 'ai' | 'fallback' };
+    quizData: QuizData;
     brand: string;
     format: string;
     userAnswers: string[];
     timePerQuestion: number[];
     overrides?: Partial<QuizAttempt>;
+    source: 'ai' | 'fallback';
 }
 
 /**
@@ -52,6 +53,7 @@ export const buildAttempt = ({
     userAnswers,
     timePerQuestion,
     overrides = {},
+    source,
 }: BuildAttemptArgs): QuizAttempt => {
     const score = overrides.score ?? quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
     
@@ -68,7 +70,7 @@ export const buildAttempt = ({
         totalQuestions: quizData.questions.length,
         timestamp: Date.now(),
         timePerQuestion,
-        source: quizData.source,
+        source,
         unanswered: unansweredCount,
         ...overrides,
     };

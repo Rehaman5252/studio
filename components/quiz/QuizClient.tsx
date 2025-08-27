@@ -4,12 +4,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData } from '@/ai/schemas';
+import { QuizData, QuizQuestion } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { AdDialog } from '@/components/AdDialog';
-import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
+import { getAIPoweredHint, HintOutput } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
@@ -45,7 +45,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizSource, setQuizSource] = useState<'ai' | 'fallback'>('ai');
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
-  const [hint, setHint] = useState<string | null>(null);
+  const [hints, setHints] = useState<Record<number, HintOutput | null>>({});
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
   const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
@@ -163,15 +163,22 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     if (!quizData || !user) return;
     const attempt = buildAttempt({
       user,
-      quizData: { ...quizData, source: quizSource },
+      quizData,
       brand,
       format,
       userAnswers: currentAnswers,
       timePerQuestion: currentTimePerQuestion,
+      source: quizSource,
     });
-    await addQuizAttempt(attempt);
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
+    const result = await addQuizAttempt(attempt);
+    if(result.success) {
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    } else {
+        // If saving fails, the user is notified by the toast in addQuizAttempt
+        // Stay on the page to allow user to retry or navigate away
+        setError("Could not save quiz results. Please try again or check your connection.");
+    }
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (!quizData || !user) return;
@@ -184,12 +191,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     
     const attempt = buildAttempt({
       user,
-      quizData: { ...quizData, source: quizSource },
+      quizData,
       brand,
       format,
       userAnswers,
       timePerQuestion,
       overrides: { reason, score: 0 },
+      source: quizSource,
     });
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
@@ -239,15 +247,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setIsHintLoading(true);
     try {
       const currentQ = quizData.questions[currentQuestionIndex];
-      const hintText = await getAIPoweredHint({
-          question: currentQ.question,
-          options: currentQ.options,
-          correctAnswer: currentQ.correctAnswer
-      });
-      setHint(hintText);
+      const hintResult = await getAIPoweredHint({ question: currentQ });
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
     } catch (e) {
       console.error("Failed to get AI hint:", e);
-      setHint("Couldn't get a hint this time. Maybe think about the player's most famous matches?");
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback" } }));
     } finally {
       setIsHintLoading(false);
     }
@@ -323,7 +327,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         brand={brand}
         format={format}
         onHintRequest={handleHintRequest}
-        hint={hint}
+        hint={hints[currentQuestionIndex]?.hint || null}
         isHintLoading={isHintLoading}
         soundEnabled={settings.sound}
        />

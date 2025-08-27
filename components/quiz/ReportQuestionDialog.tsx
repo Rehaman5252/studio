@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,6 +26,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 interface ReportQuestionDialogProps {
   questionId: string;
   questionText: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const reportReasons = [
@@ -40,8 +41,7 @@ const reportReasons = [
 
 type ReportFormValues = z.infer<typeof ReportQuestionInputSchema>;
 
-export default function ReportQuestionDialog({ questionId, questionText }: ReportQuestionDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function ReportQuestionDialog({ questionId, questionText, open, onOpenChange }: ReportQuestionDialogProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -56,6 +56,17 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
     },
   });
 
+  // Reset form when question changes
+  useEffect(() => {
+    form.reset({
+      questionId,
+      questionText,
+      reason: "",
+      comment: "",
+      userId: user?.uid || "",
+    });
+  }, [questionId, questionText, user, form]);
+
   const { formState: { isSubmitting } } = form;
 
   const onSubmit = async (data: ReportFormValues) => {
@@ -68,10 +79,10 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
       const result = await reportQuestion({ ...data, userId: user.uid });
       if (result.success) {
         toast({ title: 'Report Submitted', description: result.message });
-        setOpen(false);
+        onOpenChange(false);
         form.reset();
       } else {
-        toast({ title: 'Submission Failed', description: result.message, variant: 'destructive' });
+        toast({ title: "Submission Failed", description: result.message, variant: 'destructive' });
       }
     } catch (error) {
       console.error("Error submitting report:", error);
@@ -80,12 +91,7 @@ export default function ReportQuestionDialog({ questionId, questionText }: Repor
   };
   
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
-          <Flag className="mr-2 h-4 w-4 text-primary" /> Report Question
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Report an Issue</DialogTitle>
