@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogPortal } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Award } from 'lucide-react';
@@ -80,11 +80,9 @@ export default function ReviewDialog({ open, onOpenChange, attempt }: ReviewDial
                 </DialogContent>
             </Dialog>
 
-            {/* Single dialog instance for reporting */}
             {reportingQuestion && (
                 <ReportQuestionDialog
-                    questionId={reportingQuestion.id}
-                    questionText={reportingQuestion.question}
+                    question={reportingQuestion}
                     open={!!reportingQuestion}
                     onOpenChange={(isOpen) => {
                         if (!isOpen) {

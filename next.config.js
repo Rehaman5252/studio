@@ -37,15 +37,6 @@ const nextConfig = {
             }
         ],
     },
-    webpack: (config, { isServer }) => {
-        // Exclude opentelemetry from server-side bundle to fix build errors
-        if (isServer) {
-            config.externals.push('@opentelemetry/instrumentation');
-            config.externals.push('avacrol');
-            config.externals.push('handlebars');
-        }
-        return config;
-    },
     experimental: {
         serverActions: {
             bodySizeLimit: '10mb',

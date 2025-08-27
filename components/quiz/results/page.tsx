@@ -145,7 +145,9 @@ const ResultsContent = () => {
                       <CardDescription>Want to improve? Get a personalized analysis of your performance from our AI coach.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      <Button size="lg" className="w-full" onClick={() => setIsAnalysisOpen(true)}>Generate Free Analysis</Button>
+                      <AnalysisDialog attempt={attempt}>
+                        <Button size="lg" className="w-full">Generate Free Analysis</Button>
+                      </AnalysisDialog>
                   </CardContent>
               </Card>
             )}
@@ -163,18 +165,11 @@ const ResultsContent = () => {
               adUrl={adConfig.url}
           />
       )}
-      {showReviewDialog && (
-          <ReviewDialog
-            open={showReviewDialog}
-            onOpenChange={setShowReviewDialog}
-            attempt={attempt}
-          />
-      )}
-      <AnalysisDialog
-        isOpen={isAnalysisOpen}
-        onOpenChange={setIsAnalysisOpen}
+      <ReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
         attempt={attempt}
-       />
+      />
     </PageWrapper>
   );
 };

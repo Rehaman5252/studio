@@ -4,13 +4,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
+import type { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { AdDialog } from '@/components/AdDialog';
 import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
-import { adLibrary, interstitialAds, InterstitialAdConfig } from '@/lib/ads';
+import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
@@ -229,14 +229,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
-  const handleHintRequest = useCallback(() => {
-    if (!quizData) return;
+  const handleHintRequest = useCallback(async () => {
+    if (!quizData || isHintLoading) return;
     const adConfig = adLibrary.hintAds[currentQuestionIndex];
     if (adConfig) {
       setAdForHint(adConfig as any);
       setShowAdDialog(true);
     }
-  }, [quizData, currentQuestionIndex]);
+  }, [quizData, currentQuestionIndex, isHintLoading]);
 
   const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);

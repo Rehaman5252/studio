@@ -80,14 +80,16 @@ const getAIPoweredHintFlow = ai.defineFlow(
     async (input) => {
         const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
         
-        if (!input.question || typeof input.question.question !== 'string' || !Array.isArray(input.question.options)) {
-            console.warn(`[hints][${reqId}] invalid question shape, returning fallback hint`);
+        const validatedInput = HintInputSchema.safeParse(input);
+
+        if (!validatedInput.success) {
+            console.warn(`[hints][${reqId}] invalid question shape, returning fallback hint`, validatedInput.error.format());
             return { hint: fallbackHintForQuestion(), source: "fallback", debug: IS_DEV ? "invalid_question_shape" : undefined };
         }
 
         try {
             console.info(`[hints][${reqId}] calling AI for hint`);
-            const { output } = await prompt(input);
+            const { output } = await prompt(validatedInput.data);
             
             if (!output || !output.hint || output.hint.trim().length < 5) {
                 throw new Error("AI returned an empty or invalid hint.");
@@ -98,7 +100,7 @@ const getAIPoweredHintFlow = ai.defineFlow(
 
         } catch (error: any) {
             console.error(`[hints][${reqId}] AI hint failed:`, error?.message ?? error);
-            const fbHint = fallbackHintForQuestion(input.question);
+            const fbHint = fallbackHintForQuestion(validatedInput.data.question);
             return {
                 hint: fbHint,
                 source: "fallback",

@@ -20,12 +20,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Flag, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import type { QuizQuestion } from '@/ai/schemas';
 
 interface ReportQuestionDialogProps {
-  questionId: string;
-  questionText: string;
+  question: QuizQuestion | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -41,31 +41,32 @@ const reportReasons = [
 
 type ReportFormValues = z.infer<typeof ReportQuestionInputSchema>;
 
-export default function ReportQuestionDialog({ questionId, questionText, open, onOpenChange }: ReportQuestionDialogProps) {
+export default function ReportQuestionDialog({ question, open, onOpenChange }: ReportQuestionDialogProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(ReportQuestionInputSchema),
     defaultValues: {
-      questionId,
-      questionText,
+      questionId: question?.id || "",
+      questionText: question?.question || "",
       reason: "",
       comment: "",
       userId: user?.uid || "",
     },
   });
 
-  // Reset form when question changes
   useEffect(() => {
-    form.reset({
-      questionId,
-      questionText,
-      reason: "",
-      comment: "",
-      userId: user?.uid || "",
-    });
-  }, [questionId, questionText, user, form]);
+    if (question) {
+        form.reset({
+          questionId: question.id,
+          questionText: question.question,
+          reason: "",
+          comment: "",
+          userId: user?.uid || "",
+        });
+    }
+  }, [question, user, form]);
 
   const { formState: { isSubmitting } } = form;
 
@@ -97,7 +98,7 @@ export default function ReportQuestionDialog({ questionId, questionText, open, o
           <DialogTitle>Report an Issue</DialogTitle>
           <DialogDescription>
             Help us improve the quiz by reporting any issues with this question.
-            <p className="text-xs italic mt-2 bg-muted p-2 rounded-md">"{questionText}"</p>
+            <p className="text-xs italic mt-2 bg-muted p-2 rounded-md">"{question?.question}"</p>
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

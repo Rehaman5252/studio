@@ -39,6 +39,16 @@ export const QuizAttempt = z.object({
   unanswered: z.optional(z.number().int()).describe("The number of questions the user did not answer."),
   reason: z.optional(z.string()).describe("Reason for disqualification, if any (e.g., 'no-ball')."),
   source: z.enum(['ai', 'fallback']).optional().describe("The source of the quiz data."),
+  reviewed: z.boolean().optional().default(false).describe("Whether the user has reviewed the answers."),
+});
+
+// Schema for the AI's analysis output.
+export const QuizAnalysisOutputSchema = z.object({
+  summary: z.string().min(1, "Summary is required"),
+  strengths: z.array(z.string()).default([]),
+  weaknesses: z.array(z.string()).default([]),
+  recommendations: z.array(z.string()).default([]),
+  source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 
 
@@ -46,3 +56,12 @@ export const QuizAttempt = z.object({
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
+export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
+
+// Schema for hint flow
+export const HintOutputSchema = z.object({
+  hint: z.string().min(1),
+  source: z.enum(["ai", "fallback"]),
+});
+
+export type HintOutput = z.infer<typeof HintOutputSchema>;

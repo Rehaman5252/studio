@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -20,15 +21,14 @@ import {
   ServerCrash,
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
-import { Button } from "../ui/button";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
 }
 
-export default function AnalysisDialog({ attempt, isOpen, onOpenChange }: AnalysisDialogProps) {
+export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +124,7 @@ export default function AnalysisDialog({ attempt, isOpen, onOpenChange }: Analys
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive">
-                      <Target /> Areas for Improvement
+                      <Target /> Weaknesses
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -157,7 +157,8 @@ export default function AnalysisDialog({ attempt, isOpen, onOpenChange }: Analys
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">

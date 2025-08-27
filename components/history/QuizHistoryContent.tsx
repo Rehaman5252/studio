@@ -53,14 +53,13 @@ const getSlotTimings = (timestamp: number) => {
     const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-  };
+};
 
 const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const { markAttemptAsReviewed } = useAuth();
   const { toast } = useToast();
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
   const handleReviewClick = () => {
     if (!attempt.reviewed) {
@@ -91,49 +90,50 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   return (
     <>
         <Card key={attempt.slotId} className="bg-card/80 shadow-lg animate-fade-in-up">
-        <CardHeader className='pb-4'>
-            <div className="flex items-start gap-4">
-                <div className="mt-1 flex-shrink-0">
-                    {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
-                    : isPerfectScore ? <Award className="h-8 w-8 text-primary" />
-                    : <CheckCircle className="h-8 w-8 text-primary" />
-                    }
+            <CardHeader className='pb-4'>
+                <div className="flex items-start gap-4">
+                    <div className="mt-1 flex-shrink-0">
+                        {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
+                        : isPerfectScore ? <Award className="h-8 w-8 text-primary" />
+                        : <CheckCircle className="h-8 w-8 text-primary" />
+                        }
+                    </div>
+                    <div className="flex-grow">
+                        <CardTitle className="text-lg">{attempt.format} Quiz</CardTitle>
+                        <CardDescription>Sponsored by {attempt.brand}</CardDescription>
+                        <CardDescription className="pt-2">
+                            {isDisqualified ? 'Disqualified (No Ball)' : `Scored ${attempt.score}/${attempt.totalQuestions}`}
+                        </CardDescription>
+                    </div>
                 </div>
-                <div className="flex-grow">
-                    <CardTitle className="text-lg">{attempt.format} Quiz</CardTitle>
-                    <CardDescription>Sponsored by {attempt.brand}</CardDescription>
-                    <CardDescription className="pt-2">
-                        {isDisqualified ? 'Disqualified (No Ball)' : `Scored ${attempt.score}/${attempt.totalQuestions}`}
-                    </CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground space-y-1">
+                    <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                        <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5 text-primary" />
+                        <span>{slotTiming}</span>
+                    </div>
                 </div>
-            </div>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-primary" />
-                    <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
+                        {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
+                        {attempt.reviewed ? 'Reviewed' : 'Review'}
+                    </Button>
+                    
+                    <AnalysisDialog attempt={attempt}>
+                        <Button variant="secondary" size="sm" disabled={isDisqualified}>
+                            <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                            Analysis
+                        </Button>
+                    </AnalysisDialog>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5 text-primary" />
-                    <span>{slotTiming}</span>
-                </div>
-            </div>
-            <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
-                    {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
-                    {attempt.reviewed ? 'Reviewed' : 'Review'}
-                </Button>
-                
-                <Button variant="secondary" size="sm" disabled={isDisqualified} onClick={() => setIsAnalysisOpen(true)}>
-                    <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                    Analysis
-                </Button>
-            </div>
-        </CardContent>
+            </CardContent>
         </Card>
         
-        {/* Ad before showing review */}
         {showAdDialog && (
             <AdDialog
                 open={showAdDialog}
@@ -148,17 +148,9 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
             </AdDialog>
         )}
 
-        {/* Review Dialog */}
         <ReviewDialog
             open={showReviewDialog}
             onOpenChange={setShowReviewDialog}
-            attempt={attempt}
-        />
-
-        {/* Analysis Dialog */}
-        <AnalysisDialog 
-            isOpen={isAnalysisOpen} 
-            onOpenChange={setIsAnalysisOpen} 
             attempt={attempt}
         />
     </>
