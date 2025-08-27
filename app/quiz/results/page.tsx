@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Sparkles, Trophy, Eye, Ban, BadgeCheck } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
 import { motion } from 'framer-motion';
@@ -96,7 +96,7 @@ const ResultsContent = () => {
                 <CardContent className="p-6 space-y-4">
                     <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
                         {isDisqualified ? <Ban className="h-12 w-12 text-destructive" /> : 
-                         isPerfectScore ? <Trophy className="h-12 w-12 text-primary" /> :
+                         isPerfectScore ? <span className="text-5xl">🏆</span> :
                          <BadgeCheck className="h-12 w-12 text-primary" />}
                     </div>
 
