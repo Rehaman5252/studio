@@ -187,8 +187,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
     unsubs.push(unsubscribeProfile);
 
+    // Listen to the current slot's attempt document
     const currentSlotId = getQuizSlotId();
-    const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
+    const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', currentSlotId);
     const unsubscribeAttempt = onSnapshot(attemptDocRef, (docSnap) => {
         setLastAttemptInSlot(docSnap.exists() ? (docSnap.data() as QuizAttempt) : null);
     }, (error) => {
@@ -198,6 +199,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
     unsubs.push(unsubscribeAttempt);
     
+    // Listen to all past attempts for history
     setQuizHistory(prev => ({ ...prev, loading: true }));
     const historyQuery = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
     const unsubscribeHistory = onSnapshot(historyQuery, (querySnapshot) => {

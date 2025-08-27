@@ -17,6 +17,8 @@ import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle } from 'lucide-react';
+import { mapFirestoreError } from '@/lib/utils';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { fallbackQuizData } from '@/lib/fallback-quiz';
 
 interface QuizClientProps {
@@ -63,7 +65,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    if (authLoading) return;
+    // --- Start: Readiness Checks ---
+    if (authLoading) {
+      return;
+    }
 
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
@@ -78,11 +83,18 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setShowPreQuizLoader(false);
       return;
     }
+    if (!isFirebaseConfigured) {
+        setError("🔥 The app is not connected to the server. Please try again later.");
+        setLoading(false);
+        setShowPreQuizLoader(false);
+        return;
+    }
+    // --- End: Readiness Checks ---
     
     try {
       setLoading(true);
       setError(null);
-      await new Promise(res => setTimeout(res, 100)); // Brief delay to prevent race conditions
+      await new Promise(res => setTimeout(res, 100));
       if (controller.signal.aborted) return;
 
       const response = await fetch('/api/quiz', {
@@ -93,17 +105,19 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       });
 
       if (controller.signal.aborted) return;
-
+      
       const contentType = response.headers.get("content-type") || "";
       if (!contentType.includes("application/json")) {
         throw new Error("Invalid response: Expected JSON but got HTML.");
       }
-      
+
       const data: QuizAPIResponse = await response.json();
       
       if (!response.ok) {
-         if (data.source === 'fallback' && data.questions) {
-             const userMessage = (data.fallbackReason || '').includes('timeout')
+        // Even if the response is not "ok" (e.g. 500), it might contain a fallback quiz.
+        if (data.source === 'fallback' && data.questions) {
+             const reason = data.error || data.fallbackReason || 'An unknown issue occurred';
+             const userMessage = reason.includes('timeout')
                 ? "The AI umpire is thinking! Playing a classic quiz instead."
                 : "Heads up! We're using a classic quiz set for now.";
              toast({
@@ -112,19 +126,19 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
               duration: 5000,
             });
             setQuizData(data);
-         } else {
-             throw new Error(data.error || "An unknown server error occurred.");
-         }
+        } else {
+            const errorMsg = data.error || `The server returned an error (${response.status}). Please try again.`;
+            throw new Error(errorMsg);
+        }
       } else {
-         if (data.source === 'ai') {
+        if (data.source === 'ai') {
            toast({ title: "✅ Fresh AI-powered quiz loaded!" });
-         }
-         setQuizData(data);
+        }
+        setQuizData(data);
       }
       
     } catch (e: any) {
       if (e.name === 'AbortError') return;
-
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. Playing a classic set instead.";
       
@@ -136,9 +150,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
       
-      const localFallback = fallbackQuizData[format.toLowerCase()] || fallbackQuizData.mixed;
+      const localFallback = fallbackQuizData[format.toLowerCase() as keyof typeof fallbackQuizData] || fallbackQuizData.mixed;
       setQuizData({ ...localFallback, source: 'fallback', fallbackReason: 'API failure' });
-      
+
     } finally {
         if (!controller.signal.aborted) {
           setLoading(false);

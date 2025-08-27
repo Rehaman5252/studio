@@ -1,21 +1,24 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import QuizSelection from '@/components/home/QuizSelection';
 import GuidedTour from '@/components/home/GuidedTour';
 import type { CubeBrand } from './brandData';
+import { useToast } from '@/hooks/use-toast';
+import { encodeAttempt } from '@/lib/quiz-utils';
+
 
 interface HomeClientContentProps {
     selectedBrand: CubeBrand;
     setSelectedBrand: React.Dispatch<React.SetStateAction<CubeBrand>>;
+    handleStartQuiz: (brand: CubeBrand) => void;
 }
 
-const HomeClientContent = ({ selectedBrand, setSelectedBrand }: HomeClientContentProps) => {
-    const { user, profile, updateUserData, isProfileComplete, lastAttemptInSlot } = useAuth();
-    const router = useRouter();
+const HomeClientContentComponent = ({ selectedBrand, setSelectedBrand, handleStartQuiz }: HomeClientContentProps) => {
+    const { profile, updateUserData } = useAuth();
 
     const needsTour = profile && !profile.guidedTourCompleted;
 
@@ -29,27 +32,6 @@ const HomeClientContent = ({ selectedBrand, setSelectedBrand }: HomeClientConten
         }
     };
     
-    const handleStartQuiz = (brandToPlay?: CubeBrand) => {
-        const brand = brandToPlay || selectedBrand;
-        if (!user) {
-            router.push(`/auth/login?from=/`);
-            return;
-        }
-        
-        if (lastAttemptInSlot) {
-            const attemptDataString = btoa(JSON.stringify(lastAttemptInSlot));
-            router.push(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
-            return;
-        }
-
-        if (!isProfileComplete) {
-             // The QuizSelection component shows an alert dialog for this case.
-            return;
-        }
-        
-        router.push(`/quiz?brand=${encodeURIComponent(brand.brand)}&format=${encodeURIComponent(brand.format)}`);
-    };
-
     return (
         <>
             <QuizSelection
@@ -62,4 +44,4 @@ const HomeClientContent = ({ selectedBrand, setSelectedBrand }: HomeClientConten
     );
 };
 
-export default HomeClientContent;
+export default memo(HomeClientContentComponent);

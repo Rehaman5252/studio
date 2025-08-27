@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
+import { encodeAttempt } from '@/lib/quiz-utils';
 
 const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
     loading: () => <Skeleton className="h-40 w-full" />,
@@ -31,7 +32,7 @@ const HomeContentSkeleton = () => (
             <Skeleton className="h-8 w-3/4 mx-auto" />
             <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
         </div>
-        <div className="flex justify-center items-center h-[250px]">
+        <div className="flex justify-center items-center h-[200px]">
             <Skeleton className="w-48 h-48 rounded-lg" />
         </div>
         <Skeleton className="h-[124px] w-full rounded-2xl" />
@@ -52,6 +53,7 @@ const MalpracticeWarning = memo(() => {
     const noBallCount = profile.noBallCount || 0;
     if (noBallCount <= 0 || noBallCount >= 3) return null;
 
+    // Check if the last no-ball was today
     const today = new Date().setHours(0, 0, 0, 0);
     const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
 
@@ -64,7 +66,7 @@ const MalpracticeWarning = memo(() => {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Fair Play Warning!</AlertTitle>
             <AlertDescription>
-                You have {noBallCount} No-Ball(s) today. {warningsLeft} more and you're Out for the Day!
+                You have {noBallCount} No-Ball(s) today. {warningsLeft} more and you're Out for the Day! Please contact support to appeal.
             </AlertDescription>
         </Alert>
     )
@@ -81,7 +83,8 @@ function HomePage() {
 
     const hasPlayedInCurrentSlot = useMemo(() => {
         if (!user || !lastAttemptInSlot) return false;
-        return lastAttemptInSlot.slotId === getQuizSlotId();
+        // The check for the current slot ID is implicitly handled by how lastAttemptInSlot is fetched
+        return !!lastAttemptInSlot;
     }, [user, lastAttemptInSlot]);
 
     const handleStartQuiz = useCallback((brandToPlay?: CubeBrand) => {
@@ -92,11 +95,10 @@ function HomePage() {
         }
         
         if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
-            const attemptDataString = btoa(JSON.stringify(lastAttemptInSlot));
-            router.push(`/quiz/results?attempt=${encodeURIComponent(attemptDataString)}`);
+            router.push(`/quiz/results?attempt=${encodeAttempt(lastAttemptInSlot)}`);
             toast({
-                title: "Slot Already Played",
-                description: `Showing your results for the ${lastAttemptInSlot.format} quiz.`,
+                title: "You've already played this innings!",
+                description: `Showing your results for the ${lastAttemptInSlot.format} quiz. You can only attempt one quiz per slot.`,
             });
             return;
         }
@@ -125,10 +127,10 @@ function HomePage() {
     const headerContent = (
       <div className="text-center">
         <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
-          indcric
+          CricBlitz
         </h1>
         <p className="mt-1 text-base font-normal text-foreground/80">
-          Win ₹100 for every 100 seconds!
+          The Ultimate Cricket Quiz
         </p>
       </div>
     );
