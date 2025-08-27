@@ -130,7 +130,7 @@ const ResultsContent = () => {
                         </>
                     )}
 
-                    <div className="space-y-3 pt-4 border-t border-border">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                         <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
                             <Home className="mr-2 h-5 w-5" /> Go Home
                         </Button>
