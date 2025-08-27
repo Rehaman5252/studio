@@ -113,11 +113,11 @@ const ResultsContent = () => {
                     
                     {!isDisqualified && (
                         <>
-                            <div className="flex justify-around items-center pt-4">
+                            <div className="flex justify-around items-center">
                                 <div className="text-center">
                                     <BadgeCheck className="h-8 w-8 text-primary mx-auto mb-1" />
                                     <p className="text-muted-foreground text-sm">You Scored</p>
-                                    <p className="text-4xl font-bold tracking-tighter">
+                                    <p className="text-5xl font-bold tracking-tighter">
                                         <span className="text-primary">{attempt.score}</span>/{attempt.totalQuestions}
                                     </p>
                                 </div>
