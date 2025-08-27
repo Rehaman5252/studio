@@ -166,8 +166,6 @@ export default function QuizView({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {question.options.map((option) => {
                                 const isSelected = selectedOption === option;
-                                const isCorrect = isSelected && option === question.correctAnswer;
-                                const isIncorrect = isSelected && option !== question.correctAnswer;
 
                                 return (
                                 <motion.div 
@@ -182,10 +180,7 @@ export default function QuizView({
                                             "w-full text-left p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2 text-lg font-semibold",
                                             "bg-card shadow-md disabled:cursor-not-allowed",
                                             isAnswered ? "opacity-50" : "hover:border-primary/50 hover:shadow-primary/20",
-                                            isSelected && !isAnswered && 'border-primary shadow-lg shadow-primary/30',
-                                            isSelected && isAnswered && 'opacity-100', // Keep selected one fully visible
-                                            isCorrect && 'bg-green-500/20 border-green-500 shadow-green-500/30',
-                                            isIncorrect && 'bg-destructive/20 border-destructive shadow-destructive/30'
+                                            isSelected && 'border-primary shadow-lg shadow-primary/30 opacity-100'
                                         )}
                                     >
                                         {option}
