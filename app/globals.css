@@ -170,3 +170,32 @@
     animation: subtle-glow 2.5s infinite ease-in-out;
   }
 }
+
+/* Content Protection */
+.prevent-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none;
+}
+
+/* Allow selection for form inputs */
+.prevent-select input,
+.prevent-select textarea {
+  -webkit-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Discourage screenshots by hiding content on print */
+@media print {
+  body.prevent-select * {
+    display: none !important;
+  }
+  body.prevent-select::before {
+    content: "Screenshots and printing are disabled for this application.";
+    display: block !important;
+    text-align: center;
+    font-size: 2rem;
+    padding: 2rem;
+  }
+}
