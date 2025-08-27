@@ -41,13 +41,13 @@ export const QuizAttempt = z.object({
   source: z.enum(['ai', 'fallback']).optional().describe("The source of the quiz data."),
 });
 
-
 // Schema for the AI's analysis output.
 export const QuizAnalysisOutputSchema = z.object({
   summary: z.string().min(1, "Summary is required"),
   strengths: z.array(z.string()).default([]),
   weaknesses: z.array(z.string()).default([]),
   recommendations: z.array(z.string()).default([]),
+  // Always tell the client if this came from AI or a fallback
   source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 

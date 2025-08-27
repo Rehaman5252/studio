@@ -16,83 +16,98 @@ import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 
 
-const fallbackAnalysis: QuizAnalysisOutput = {
-  summary: "We could not generate a personalized analysis this time. Here's a general review.",
-  strengths: ["Good engagement with cricket knowledge.", "Strong attempt overall."],
-  weaknesses: ["AI analysis was unavailable for this session."],
+/** High-quality deterministic fallback to guarantee stability */
+const FALLBACK_ANALYSIS: QuizAnalysisOutput = {
+  summary:
+    "We couldn’t generate an AI analysis this time, so here are general insights based on typical quiz performance.",
+  strengths: [
+    "You completed the quiz – great consistency!",
+    "You’re building recall under time pressure.",
+  ],
+  weaknesses: [
+    "Occasional hesitation on trick questions.",
+    "Some gaps in fundamentals surfaced.",
+  ],
   recommendations: [
-    "Review recent cricket statistics and match results.",
-    "Practice time-bound quizzes to improve speed.",
+    "Revisit questions you answered incorrectly and note why.",
+    "Practice with shorter, timed sets to improve pace.",
+    "Review one focused topic each day for a week.",
   ],
   source: "fallback",
 };
 
 
 export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
-    const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const sanitized = sanitizeQuizAttempt(rawAttempt);
-        
     try {
         const validatedAttempt = QuizAttempt.parse(sanitized);
-        console.info(`[analysis][${reqId}] Starting analysis for user ${validatedAttempt.userId}, slot ${validatedAttempt.slotId}`);
-        const analysis = await generateQuizAnalysisFlow(validatedAttempt);
+        const analysis = await generateQuizAnalysisFlow({ attempt: validatedAttempt });
         return analysis;
     } catch (error: any) {
-        console.error(`[analysis][${reqId}] Validation failed for quiz attempt. Returning fallback.`, {
+        console.error(`[Analysis] Validation failed for quiz attempt. Returning fallback.`, {
             userId: sanitized.userId,
             slotId: sanitized.slotId,
             error: error?.errors ?? error,
         });
-        return fallbackAnalysis;
+        return FALLBACK_ANALYSIS;
     }
 }
 
-const prompt = ai.definePrompt({
+const quizAnalysisPrompt = ai.definePrompt({
     name: 'generateQuizAnalysisPrompt',
-    input: { schema: QuizAttempt },
+    input: { schema: z.object({ attempt: QuizAttempt }) },
     output: { schema: QuizAnalysisOutputSchema },
     prompt: `
     You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful, detailed, and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
 
-    Analyze the following quiz data for the "{{format}}" format:
-    - Score: {{score}} out of {{totalQuestions}}
+    Analyze the following quiz data for the "{{attempt.format}}" format:
+    - Score: {{attempt.score}} out of {{attempt.totalQuestions}}
     - Questions, User Answers, and Time Taken:
-      {{#each questions}}
+      {{#each attempt.questions}}
       - Q{{@index + 1}}: {{this.question}}
-        - Your Answer: {{../userAnswers.[@index]}}
+        - Your Answer: {{../attempt.userAnswers.[@index]}}
         - Correct Answer: {{this.correctAnswer}}
-        - Time Taken: {{../timePerQuestion.[@index]}}s
+        - Time Taken: {{../attempt.timePerQuestion.[@index]}}s
       {{/each}}
 
-    Based on this data, generate a comprehensive analysis. Respond in a JSON object with the following keys: "summary", "strengths", "weaknesses", "recommendations".
-    - summary: A concise, one-paragraph summary of the user's performance.
-    - strengths: An array of 2-3 strings highlighting what the user did well.
-    - weaknesses: An array of 2-3 strings pointing out areas for improvement.
-    - recommendations: An array of 2-3 actionable tips for the user.
+    Return STRICTLY a JSON object that matches this shape:
+    {
+      "summary": string,            // concise overall insight
+      "strengths": string[],        // bullet points of strengths
+      "weaknesses": string[],       // bullet points of weaknesses
+      "recommendations": string[],  // actionable next steps
+      "source": "ai"
+    }
   `,
 });
 
 
-const generateQuizAnalysisFlow = ai.defineFlow(
+export const generateQuizAnalysisFlow = ai.defineFlow(
     {
         name: 'generateQuizAnalysisFlow',
-        inputSchema: QuizAttempt,
+        inputSchema: z.object({ attempt: QuizAttempt }),
         outputSchema: QuizAnalysisOutputSchema,
     },
-    async (input) => {
+    async ({ attempt }) => {
         try {
-            const { output } = await prompt(input);
-            const parsed = QuizAnalysisOutputSchema.safeParse(output);
-            
-            if (!parsed.success) {
-                console.error("[AnalysisFlow] Schema validation failed:", parsed.error.format());
-                return fallbackAnalysis;
-            }
+            // Ask the model
+            const { output } = await quizAnalysisPrompt({ attempt });
 
-            return { ...parsed.data, source: "ai" };
-        } catch (error) {
-             console.error("[AnalysisFlow] Unexpected error:", error);
-             return fallbackAnalysis;
+            // Validate strictly
+            const parsed = QuizAnalysisOutputSchema.safeParse(output);
+            if (!parsed.success) {
+                console.error(
+                    "[generateQuizAnalysisFlow] Schema validation failed:",
+                    parsed.error?.format?.() ?? parsed.error
+                );
+                return FALLBACK_ANALYSIS;
+            }
+            
+            // Force explicit “ai” marker on success
+            return { ...parsed.data, source: "ai" } as QuizAnalysisOutput;
+        } catch (err) {
+            console.error("[generateQuizAnalysisFlow] Unexpected error:", err);
+            return FALLBACK_ANALYSIS;
         }
     }
 );
