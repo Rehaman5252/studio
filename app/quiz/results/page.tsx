@@ -94,7 +94,7 @@ const ResultsContent = () => {
             className="space-y-6"
         >
             <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="p-6 space-y-6">
                     <motion.div
                         animate={{ scale: [1, 1.1, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
