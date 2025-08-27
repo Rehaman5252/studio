@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -32,9 +33,11 @@ const prompt = ai.definePrompt({
     input: { schema: HintInputSchema },
     output: { schema: HintOutputSchema },
     prompt: `
-    You are a clever cricket quizmaster. Your goal is to provide a helpful but indirect hint for the following cricket question.
+    You are a helpful cricket quiz assistant. Your goal is to provide a single, smart, and indirect hint for the following cricket question.
 
-    The hint should not give away the correct answer ("{{correctAnswer}}"). Instead, it should guide the user towards the right line of thinking or help them eliminate one or two incorrect options. Be creative and witty.
+    The hint MUST NOT give away the correct answer ("{{correctAnswer}}").
+    Instead, it should guide the user by providing context, a related fact, or helping them eliminate one or two incorrect options.
+    Be creative and encouraging.
 
     Question: "{{question}}"
 
@@ -46,13 +49,14 @@ const prompt = ai.definePrompt({
     Generate a single, smart hint.
     `,
     config: {
-        // More restrictive safety settings are fine here
         safetySettings: [
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
         ],
+        // Adding a retry mechanism for transient errors
+        retries: 2, 
     },
 });
 
@@ -63,10 +67,17 @@ const getAIPoweredHintFlow = ai.defineFlow(
         outputSchema: HintOutputSchema,
     },
     async (input) => {
-        const { output } = await prompt(input);
-        if (!output) {
-            return { hint: "Think about the era when this player was active. That might help narrow it down!" };
+        try {
+            const { output } = await prompt(input);
+            if (!output || !output.hint) {
+                 // Throw an error to trigger the catch block for a deterministic fallback
+                throw new Error("AI returned an empty or invalid hint.");
+            }
+            return output;
+        } catch (error) {
+            console.error("Error in getAIPoweredHintFlow, using fallback:", error);
+            // Provide a more generic but still helpful fallback hint
+            return { hint: "Consider the era or the format of cricket the question is about. It might spark a memory!" };
         }
-        return output;
     }
 );
