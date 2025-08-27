@@ -4,36 +4,36 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData } from '@/ai/schemas';
+import type { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { AdDialog } from '@/components/AdDialog';
 import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
-import { adLibrary, interstitialAds, InterstitialAdConfig } from '@/lib/ads';
+import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle } from 'lucide-react';
-import { mapFirestoreError } from '@/lib/utils';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import { fallbackQuizData } from '@/lib/fallback-quiz';
+import { getFallbackQuiz } from '@/lib/fallback-quiz';
 
 interface QuizClientProps {
   brand: string;
   format: string;
 }
 
-type QuizAPIResponse = QuizData & {
+type QuizAPIResponse = {
+  quiz: QuizData;
   source?: 'ai' | 'fallback';
-  fallbackReason?: string;
+  reqId?: string;
   error?: string;
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
-  const [quizData, setQuizData] = useState<QuizAPIResponse | null>(null);
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPreQuizLoader, setShowPreQuizLoader] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,9 +42,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
   const [startTime, setStartTime] = useState<number>(0);
   const [showInterstitial, setShowInterstitial] = useState(false);
+  const [quizSource, setQuizSource] = useState<'ai' | 'fallback'>('ai');
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
-  const [hint, setHint] = useState<string | null>(null);
+  const [hints, setHints] = useState<Record<number, HintOutput>>({});
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
   const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
@@ -54,7 +55,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
-    // Show interstitial after Q3 (index 2) or Q4 (index 3)
     return interstitialAds[currentQuestionIndex] || null;
   }, [currentQuestionIndex]);
 
@@ -65,10 +65,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // --- Start: Readiness Checks ---
-    if (authLoading) {
-      return;
-    }
+    if (authLoading || !user) return;
 
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
@@ -76,20 +73,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         setShowPreQuizLoader(false);
         return;
     }
-
-    if (!user) {
-      setError("Please sign in to play a quiz.");
-      setLoading(false);
-      setShowPreQuizLoader(false);
-      return;
-    }
+    
     if (!isFirebaseConfigured) {
         setError("🔥 The app is not connected to the server. Please try again later.");
         setLoading(false);
         setShowPreQuizLoader(false);
         return;
     }
-    // --- End: Readiness Checks ---
     
     try {
       setLoading(true);
@@ -106,39 +96,27 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
-      const contentType = response.headers.get("content-type") || "";
-      if (!contentType.includes("application/json")) {
-        throw new Error("Invalid response: Expected JSON but got HTML.");
-      }
-
       const data: QuizAPIResponse = await response.json();
       
-      if (!response.ok) {
-        // HTTP errors (like 500) might still contain a fallback quiz.
-        // We prioritize showing the fallback to the user over a hard error.
-        if (data && data.questions && data.source === 'fallback') {
-            const reason = data.error || data.fallbackReason || 'An unknown issue occurred';
-            const userMessage = reason.includes('timeout')
+      if (!response.ok || !data.quiz) {
+         throw new Error(data.error || "The server returned an unexpected response.");
+      }
+
+      setQuizData(data.quiz);
+      setQuizSource(data.source || 'fallback');
+
+      if (data.source === 'ai') {
+        toast({ title: "✅ Fresh AI-powered quiz loaded!" });
+      } else {
+        const reason = data.error || 'An unknown issue occurred';
+        const userMessage = reason.includes('timeout')
             ? "The AI umpire is thinking! Playing a classic quiz instead."
             : "Heads up! We're using a classic quiz set for now.";
-            toast({
-                title: "Fallback Quiz Loaded",
-                description: userMessage,
-                duration: 5000,
-            });
-            setQuizData(data);
-        } else {
-            const errorMsg = data.error || `The server returned an error (${response.status}). Please try again.`;
-            throw new Error(errorMsg);
-        }
-      } else {
-          // Successful response
-          if (data.source === 'ai') {
-              toast({ title: "✅ Fresh AI-powered quiz loaded!" });
-          } else if (data.source === 'fallback') {
-               toast({ title: "Fallback Quiz Loaded", description: "Playing a classic quiz set for now." });
-          }
-        setQuizData(data);
+        toast({
+            title: "Fallback Quiz Loaded",
+            description: userMessage,
+            duration: 5000,
+        });
       }
       
     } catch (e: any) {
@@ -146,16 +124,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. Playing a classic set instead.";
       
-      if (e.message.includes("Invalid response")) {
-        userMessage = "❌ Server returned invalid data. Falling back to classics.";
-      } else if (e.message.includes("Failed to fetch")) {
+      if (e.message.includes("Failed to fetch")) {
         userMessage = "📴 You appear to be offline. Please check your connection.";
       }
       
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
       
-      const localFallback = fallbackQuizData[format.toLowerCase() as keyof typeof fallbackQuizData] || fallbackQuizData.mixed;
-      setQuizData({ ...localFallback, source: 'fallback', fallbackReason: 'API failure' });
+      const localFallback = getFallbackQuiz(format);
+      setQuizData(localFallback);
+      setQuizSource('fallback');
 
     } finally {
         if (!controller.signal.aborted) {
@@ -165,11 +142,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    fetchQuiz();
+    if (user) {
+        fetchQuiz();
+    } else if (!authLoading) {
+        setError("Please sign in to play a quiz.");
+        setLoading(false);
+        setShowPreQuizLoader(false);
+    }
     return () => {
         abortControllerRef.current?.abort();
     };
-  }, [fetchQuiz]);
+  }, [fetchQuiz, user, authLoading]);
 
   const handlePreQuizFinish = useCallback(() => {
     setShowPreQuizLoader(false);
@@ -185,10 +168,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       format,
       userAnswers: currentAnswers,
       timePerQuestion: currentTimePerQuestion,
+      source: quizSource,
     });
-    await addQuizAttempt(attempt);
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [quizData, user, brand, format, addQuizAttempt, router]);
+    const result = await addQuizAttempt(attempt);
+    if(result.success) {
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    } else {
+        setError("Could not save quiz results. Please check your connection and try again.");
+    }
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (!quizData || !user) return;
@@ -207,10 +195,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       userAnswers,
       timePerQuestion,
       overrides: { reason, score: 0 },
+      source: quizSource,
     });
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router]);
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
@@ -240,14 +229,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
-  const handleHintRequest = useCallback(() => {
-    if (!quizData) return;
+  const handleHintRequest = useCallback(async () => {
+    if (!quizData || isHintLoading) return;
     const adConfig = adLibrary.hintAds[currentQuestionIndex];
     if (adConfig) {
       setAdForHint(adConfig as any);
       setShowAdDialog(true);
     }
-  }, [quizData, currentQuestionIndex]);
+  }, [quizData, currentQuestionIndex, isHintLoading]);
 
   const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
@@ -256,15 +245,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setIsHintLoading(true);
     try {
       const currentQ = quizData.questions[currentQuestionIndex];
-      const hintText = await getAIPoweredHint({
-          question: currentQ.question,
-          options: currentQ.options,
-          correctAnswer: currentQ.correctAnswer
-      });
-      setHint(hintText);
+      const hintResult = await getAIPoweredHint({ question: currentQ });
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
     } catch (e) {
       console.error("Failed to get AI hint:", e);
-      setHint("Couldn't get a hint this time. Maybe think about the player's most famous matches?");
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
     } finally {
       setIsHintLoading(false);
     }
@@ -340,7 +325,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         brand={brand}
         format={format}
         onHintRequest={handleHintRequest}
-        hint={hint}
+        hint={hints[currentQuestionIndex]?.hint || null}
         isHintLoading={isHintLoading}
         soundEnabled={settings.sound}
        />

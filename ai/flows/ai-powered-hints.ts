@@ -64,6 +64,8 @@ const prompt = ai.definePrompt({
     - {{this}}
     {{/each}}
 
+    Correct Answer: {{question.correctAnswer}}
+
     Generate a single, smart hint.
     `,
     config: {

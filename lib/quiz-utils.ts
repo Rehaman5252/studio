@@ -11,7 +11,8 @@ import { sanitizeUserProfile } from './sanitizeUserProfile';
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
-        return encodeURIComponent(btoa(JSON.stringify(sanitizeUserProfile(attempt))));
+        const sanitized = sanitizeUserProfile(attempt);
+        return encodeURIComponent(btoa(JSON.stringify(sanitized)));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
         return "";
@@ -72,6 +73,7 @@ export const buildAttempt = ({
         timePerQuestion,
         source,
         unanswered: unansweredCount,
+        reviewed: false, // Always initialize as not reviewed
         ...overrides,
     };
 

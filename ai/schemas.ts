@@ -1,5 +1,7 @@
 
 import { z } from 'zod';
+import type { HintOutput as HintOutputType } from './flows/ai-powered-hints';
+import type { QuizAnalysisOutput as QuizAnalysisOutputType } from './flows/generate-quiz-analysis';
 
 /**
  * @fileOverview Zod schemas for the indcric application.
@@ -46,3 +48,5 @@ export const QuizAttempt = z.object({
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
+export type HintOutput = HintOutputType;
+export type QuizAnalysisOutput = QuizAnalysisOutputType;
