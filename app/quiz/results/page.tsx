@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Trophy } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Trophy, Clock } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
 import { motion } from 'framer-motion';
@@ -116,12 +116,14 @@ const ResultsContent = () => {
                         <>
                             <div className="flex justify-around items-center pt-4">
                                 <div className="text-center">
+                                    <BadgeCheck className="h-8 w-8 text-primary mx-auto mb-1" />
                                     <p className="text-muted-foreground text-sm">You Scored</p>
                                     <p className="text-4xl font-bold tracking-tighter">
                                         <span className="text-primary">{attempt.score}</span>/{attempt.totalQuestions}
                                     </p>
                                 </div>
                                 <div className="text-center">
+                                    <Clock className="h-8 w-8 text-primary mx-auto mb-1" />
                                     <p className="text-muted-foreground text-sm">Time Taken</p>
                                     <p className="text-4xl font-bold tracking-tighter">
                                         {totalTime}<span className="text-2xl text-muted-foreground">s</span>
