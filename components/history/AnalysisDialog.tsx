@@ -10,7 +10,8 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
+import type { QuizAttempt } from '@/ai/schemas';
+import type { QuizAnalysisOutput } from "@/ai/flows/generate-quiz-analysis";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   BarChart,
@@ -35,7 +36,13 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
   const [internalOpen, setInternalOpen] = useState(false);
   
   const open = isControlled ? controlledOpen : internalOpen;
-  const setOpen = isControlled ? onOpenChange : setInternalOpen;
+  const setOpen = (newOpenState: boolean) => {
+    if (isControlled) {
+      onOpenChange(newOpenState);
+    } else {
+      setInternalOpen(newOpenState);
+    }
+  };
 
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
@@ -111,7 +118,7 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p>{analysis.summary}</p>
+                  <p>{analysis.overallPerformance}</p>
                 </CardContent>
               </Card>
 
@@ -119,13 +126,13 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-green-500">
-                      <Zap /> Strengths
+                      <Zap /> Key Strengths
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.strengths.map((item, i) => <li key={i}>{item}</li>)}
-                      {analysis.strengths.length === 0 && <li className="text-muted-foreground">No specific strengths identified.</li>}
+                      {analysis.keyStrengths.map((item, i) => <li key={i}>{item}</li>)}
+                      {analysis.keyStrengths.length === 0 && <li className="text-muted-foreground">No specific strengths identified.</li>}
                     </ul>
                   </CardContent>
                 </Card>
@@ -137,8 +144,8 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
                   </CardHeader>
                   <CardContent>
                     <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.weaknesses.map((item, i) => <li key={i}>{item}</li> )}
-                      {analysis.weaknesses.length === 0 && <li className="text-muted-foreground">No specific weaknesses identified.</li>}
+                      {analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li> )}
+                      {analysis.areasForImprovement.length === 0 && <li className="text-muted-foreground">No specific weaknesses identified.</li>}
                     </ul>
                   </CardContent>
                 </Card>
@@ -151,10 +158,7 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.recommendations.map((item, i) => <li key={i}>{item}</li>)}
-                      {analysis.recommendations.length === 0 && <li className="text-muted-foreground">Keep practicing!</li>}
-                    </ul>
+                    <p className="text-sm">{analysis.coachTip}</p>
                 </CardContent>
               </Card>
             </div>

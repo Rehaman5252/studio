@@ -21,14 +21,15 @@ const QuestionAnalysisSchema = z.object({
     category: z.string().describe("A specific category for the question (e.g., 'IPL History', 'Test Bowling Records', 'Player Nicknames', 'Cricket Rules').")
 });
 
-const QuizAnalysisOutputSchema = z.object({
+export const QuizAnalysisOutputSchema = z.object({
     overallPerformance: z.string().describe("A brief, encouraging summary of the user's overall performance in one or two sentences."),
     accuracy: z.number().describe("The user's accuracy percentage."),
     averageTimePerQuestion: z.number().describe("The average time the user took per question, in seconds."),
     keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
     areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories they answered incorrectly or slowly."),
     coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),
-    analyzedQuestions: z.array(QuestionAnalysisSchema).describe("An array containing the analysis for each individual question.")
+    analyzedQuestions: z.array(QuestionAnalysisSchema).describe("An array containing the analysis for each individual question."),
+    source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
 
@@ -69,29 +70,29 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
             isCorrect: attempt.userAnswers[i] === q.correctAnswer,
             timeTaken: attempt.timePerQuestion?.[i] || 0,
             category: "General" // Fallback category
-        }))
+        })),
+        source: "fallback",
     };
 };
 
 
 export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
     try {
-        // 1. Sanitize the raw input from Firestore/client to handle inconsistencies.
         const sanitized = sanitizeQuizAttempt(rawAttempt);
-        
-        // 2. Validate the sanitized data against the strict Zod schema.
-        // This will throw an error if the data is still malformed, which we catch below.
         const validatedAttempt = QuizAttempt.parse(sanitized);
-
-        // 3. If validation passes, call the AI flow.
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
-        return analysis;
+        const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
+
+        if (!parsed.success) {
+            console.error("[generateQuizAnalysis] AI output failed validation, returning fallback.", parsed.error.format());
+            return getFallbackAnalysis(validatedAttempt);
+        }
+        
+        return parsed.data;
+
     } catch (error: any) {
         console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
-        
-        // If any step fails (sanitization, validation, or AI), return the deterministic fallback.
-        // We re-sanitize the raw attempt to ensure the fallback function gets a clean object.
-        const sanitizedForFallback = QuizAttempt.parse(sanitizeQuizAttempt(rawAttempt));
+        const sanitizedForFallback = sanitizeQuizAttempt(rawAttempt);
         return getFallbackAnalysis(sanitizedForFallback);
     }
 }
@@ -121,6 +122,7 @@ const prompt = ai.definePrompt({
     5.  **Identify Improvement Areas:** Based on the categories where answers were incorrect or slow, identify 2-3 areas for improvement.
     6.  **Provide a Coach's Tip:** Give one single, powerful, and personalized tip for the user to focus on for their next quiz.
     7.  **Format Output:** Compile all this information into the required JSON format, including the detailed analysis for every single question.
+    8. **Source**: Set the source to "ai".
   `,
 });
 
@@ -134,15 +136,13 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     async (input) => {
         try {
             const { output } = await prompt(input);
-            // If the AI model fails to return a valid output, throw an error to trigger the fallback in the parent function.
             if (!output) {
                 throw new Error("AI analysis returned a null or empty response.");
             }
-            return output;
+            return { ...output, source: "ai" };
         } catch (error) {
              console.error("Error during AI analysis flow execution:", error);
-             // Re-throw the error to be caught by the parent `generateQuizAnalysis` function, which will then generate the fallback.
-             throw error;
+             throw error; // Re-throw to be caught by the parent function's final fallback mechanism
         }
     }
 );

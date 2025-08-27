@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
     if (!parsed.success) {
       console.error("[Analysis API] Output validation failed:", parsed.error);
+      // Even if parsing fails, we return a structured fallback response.
       return NextResponse.json(
         {
           summary:
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
     return NextResponse.json(parsed.data, { status: 200 });
   } catch (err) {
     console.error("[Analysis API] Unhandled error:", err);
+    // The client should never receive a 500 error that breaks the app.
+    // Always return a valid JSON structure with a fallback source.
     return NextResponse.json(
       {
         summary:
