@@ -12,14 +12,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CricBlitz - The Ultimate Cricket Quiz',
-  description: 'Win exciting rewards in the ultimate cricket quiz challenge!',
+  title: 'indcric - Win ₹100 for every 100 seconds!',
+  description: 'The ultimate cricket quiz challenge! Win exciting rewards.',
   manifest: '/manifest.json',
-  themeColor: '#E0F8E0',
+  themeColor: '#1a1a1a',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
-    title: 'CricBlitz',
+    statusBarStyle: 'black-translucent',
+    title: 'indcric',
   },
 };
 
