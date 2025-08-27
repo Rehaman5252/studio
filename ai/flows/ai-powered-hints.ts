@@ -5,7 +5,8 @@
  * @fileOverview Provides AI-powered hints for quiz questions.
  *
  * This flow generates a contextual hint for a given quiz question, helping the user
- * without giving away the answer directly.
+ * without giving away the answer directly. It includes robust error handling to provide
+ * a helpful fallback hint if the AI generation fails.
  */
 
 import { ai } from '@/ai/genkit';
@@ -23,6 +24,7 @@ const HintOutputSchema = z.object({
 });
 type HintOutput = z.infer<typeof HintOutputSchema>;
 
+// The main function exported to the client. It wraps the Genkit flow.
 export async function getAIPoweredHint(input: HintInput): Promise<string> {
   const { hint } = await getAIPoweredHintFlow(input);
   return hint;
@@ -60,6 +62,7 @@ const prompt = ai.definePrompt({
     },
 });
 
+// Defines the full Genkit flow with robust error handling.
 const getAIPoweredHintFlow = ai.defineFlow(
     {
         name: 'getAIPoweredHintFlow',
@@ -68,15 +71,27 @@ const getAIPoweredHintFlow = ai.defineFlow(
     },
     async (input) => {
         try {
+            // 1. Validate the input to ensure it's not empty.
+            if (!input.question || input.options.length === 0) {
+                throw new Error("Invalid input: Question or options are empty.");
+            }
+
+            // 2. Call the AI prompt.
             const { output } = await prompt(input);
+            
+            // 3. Validate the AI's output.
             if (!output || !output.hint) {
-                 // Throw an error to trigger the catch block for a deterministic fallback
+                 // Throw an error to trigger the catch block for a deterministic fallback.
                 throw new Error("AI returned an empty or invalid hint.");
             }
+
+            // 4. Return the successful output.
             return output;
         } catch (error) {
             console.error("Error in getAIPoweredHintFlow, using fallback:", error);
-            // Provide a more generic but still helpful fallback hint
+            
+            // 5. On any error, return a deterministic and helpful fallback hint.
+            // This ensures the user always gets a response.
             return { hint: "Consider the era or the format of cricket the question is about. It might spark a memory!" };
         }
     }
