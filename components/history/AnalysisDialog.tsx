@@ -3,8 +3,9 @@
 
 import { useState, useEffect, ReactNode, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
+import type { QuizAttempt } from '@/ai/schemas';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis';
+import type { QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart, Target, Zap, Lightbulb, CheckCircle2, XCircle } from 'lucide-react';
@@ -49,7 +50,6 @@ const analysisCache = new Map<string, QuizAnalysisOutput>();
 export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
     const { toast } = useToast();
     const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
-    const [source, setSource] = useState<'ai' | 'fallback' | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -58,36 +58,24 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         const attemptId = attempt.slotId || attempt.timestamp.toString();
         
         if (analysisCache.has(attemptId)) {
-            setAnalysis(analysisCache.get(attemptId)!);
-            // We don't cache the source, so we assume it was AI if cached.
-            setSource('ai');
+            const cached = analysisCache.get(attemptId)!;
+            setAnalysis(cached);
             return;
         }
 
         setLoading(true);
         setError(null);
         setAnalysis(null);
-        setSource(null);
         
         try {
-            // The generateQuizAnalysis flow now handles sanitization and fallbacks internally
             const result = await generateQuizAnalysis(attempt);
             
-            if (!result || !result.analysis) {
+            if (!result) {
                  throw new Error("Analysis returned an empty or invalid response.");
             }
             
-            analysisCache.set(attemptId, result.analysis);
-            setAnalysis(result.analysis);
-            setSource(result.source);
-
-            if (result.source === 'fallback') {
-                toast({
-                    title: "AI Analysis Unavailable",
-                    description: "Showing basic analysis. The AI coach will be back after a short break!",
-                    variant: "default"
-                });
-            }
+            analysisCache.set(attemptId, result);
+            setAnalysis(result);
 
         } catch (e: any) {
             console.error("Error generating quiz analysis:", e);
@@ -170,5 +158,3 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         </Dialog>
     );
 }
-
-    
