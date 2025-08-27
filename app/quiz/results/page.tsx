@@ -74,7 +74,6 @@ const ResultsContent = () => {
 
   const isPerfectScore = attempt.score === attempt.totalQuestions;
   const isDisqualified = !!attempt.reason;
-  const totalTime = Math.round(attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0);
 
   const getMotivationalLine = () => {
       if(isDisqualified) return { text: "Fair play is key to the spirit of cricket.", emoji: "🤝"};
@@ -120,13 +119,6 @@ const ResultsContent = () => {
                                     <p className="text-muted-foreground text-sm">You Scored</p>
                                     <p className="text-4xl font-bold tracking-tighter">
                                         <span className="text-primary">{attempt.score}</span>/{attempt.totalQuestions}
-                                    </p>
-                                </div>
-                                <div className="text-center">
-                                    <Clock className="h-8 w-8 text-primary mx-auto mb-1" />
-                                    <p className="text-muted-foreground text-sm">Time Taken</p>
-                                    <p className="text-4xl font-bold tracking-tighter">
-                                        {totalTime}<span className="text-2xl text-muted-foreground">s</span>
                                     </p>
                                 </div>
                             </div>
