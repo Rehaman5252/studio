@@ -3,8 +3,8 @@
 
 import { useState, useEffect, ReactNode, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-import type { QuizAttempt } from '@/ai/schemas';
-import { generateQuizAnalysis, QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
+import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
+import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart, Target, Zap, Lightbulb, CheckCircle2, XCircle } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { CricketLoading } from '../CricketLoading';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const AnalysisSkeleton = () => (
     <div className="space-y-4 animate-pulse">
@@ -42,11 +43,13 @@ interface AnalysisDialogProps {
     children: ReactNode;
 }
 
-// Simple in-memory cache for the session
+// Simple in-memory cache for the session to avoid re-generating on re-open.
 const analysisCache = new Map<string, QuizAnalysisOutput>();
 
 export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
+    const { toast } = useToast();
     const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
+    const [source, setSource] = useState<'ai' | 'fallback' | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -56,36 +59,54 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         
         if (analysisCache.has(attemptId)) {
             setAnalysis(analysisCache.get(attemptId)!);
+            // We don't cache the source, so we assume it was AI if cached.
+            setSource('ai');
             return;
         }
 
         setLoading(true);
         setError(null);
         setAnalysis(null);
+        setSource(null);
         
         try {
             // The generateQuizAnalysis flow now handles sanitization and fallbacks internally
             const result = await generateQuizAnalysis(attempt);
             
-            if (!result) {
-                 throw new Error("Analysis returned empty.");
+            if (!result || !result.analysis) {
+                 throw new Error("Analysis returned an empty or invalid response.");
             }
             
-            analysisCache.set(attemptId, result);
-            setAnalysis(result);
-        } catch (e) {
+            analysisCache.set(attemptId, result.analysis);
+            setAnalysis(result.analysis);
+            setSource(result.source);
+
+            if (result.source === 'fallback') {
+                toast({
+                    title: "AI Analysis Unavailable",
+                    description: "Showing basic analysis. The AI coach will be back after a short break!",
+                    variant: "default"
+                });
+            }
+
+        } catch (e: any) {
             console.error("Error generating quiz analysis:", e);
             setError("Could not generate AI analysis at this time. Please try again later.");
+            toast({
+                title: "Error",
+                description: "An unexpected error occurred while generating the analysis.",
+                variant: "destructive"
+            });
         } finally {
             setLoading(false);
         }
-    }, [attempt]);
+    }, [attempt, toast]);
 
     useEffect(() => {
-        if (isOpen && !analysis) {
+        if (isOpen && !analysis && !loading) {
             getAnalysis();
         }
-    }, [isOpen, analysis, getAnalysis]);
+    }, [isOpen, analysis, loading, getAnalysis]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -128,8 +149,8 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                                                             <div className="flex items-center gap-2">
                                                                 {q.isCorrect ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-destructive flex-shrink-0" />}
                                                                 <div className="flex flex-col text-xs">
-                                                                    <span className={q.isCorrect ? '' : 'line-through text-muted-foreground'}>{q.userAnswer || "Skipped"}</span>
-                                                                    {!q.isCorrect && <span className="">Correct: {q.correctAnswer}</span>}
+                                                                    <span className={cn('break-all', q.isCorrect ? '' : 'line-through text-muted-foreground'))}>{q.userAnswer || "Skipped"}</span>
+                                                                    {!q.isCorrect && <span className="break-all">Correct: {q.correctAnswer}</span>}
                                                                 </div>
                                                             </div>
                                                         </TableCell>
@@ -149,3 +170,5 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         </Dialog>
     );
 }
+
+    
