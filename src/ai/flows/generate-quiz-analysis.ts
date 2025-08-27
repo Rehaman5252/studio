@@ -5,12 +5,17 @@
  * @fileOverview A flow that generates an AI-powered analysis of a user's quiz attempt.
  *
  * - generateQuizAnalysis - A function that provides a detailed performance breakdown.
+ * This flow is hardened to never throw an error for AI failures. It validates its own
+ * output and returns a high-quality fallback analysis if the AI fails or produces
+ * an invalid response.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
+
+const IS_DEV = process.env.NODE_ENV !== "production";
 
 /**
  * Generates a deterministic, rules-based fallback analysis if the AI fails.
@@ -55,28 +60,20 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
 
 
 export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
-    // 1. Sanitize the raw input from Firestore/client to handle inconsistencies.
+    const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const sanitized = sanitizeQuizAttempt(rawAttempt);
         
     try {
-        // 2. Validate the sanitized data against the strict Zod schema.
         const validatedAttempt = QuizAttempt.parse(sanitized);
-
-        // 3. If validation passes, call the AI flow.
+        console.info(`[analysis][${reqId}] Starting analysis for user ${validatedAttempt.userId}, slot ${validatedAttempt.slotId}`);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         return analysis;
     } catch (error: any) {
-        // Log the validation error and the sanitized data for debugging
-        console.error("Validation failed for quiz attempt before AI call. Returning fallback.", {
-            // Only log non-sensitive info for privacy
+        console.error(`[analysis][${reqId}] Validation failed for quiz attempt. Returning fallback.`, {
             userId: sanitized.userId,
             slotId: sanitized.slotId,
-            format: sanitized.format,
             error: error?.errors ?? error,
         });
-        
-        // If any step fails (validation or AI), return the deterministic fallback.
-        // We can safely cast here because sanitizeQuizAttempt returns a compliant partial.
         return getFallbackAnalysis(sanitized as QuizAttempt);
     }
 }
@@ -119,12 +116,16 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     async (input) => {
         try {
             const { output } = await prompt(input);
-            if (!output) {
-                throw new Error("AI analysis returned a null or empty response.");
+            
+            // Validate the AI's output against our schema.
+            const parsed = QuizAnalysisOutputSchema.safeParse(output);
+            
+            if (!parsed.success) {
+                console.error("AI analysis returned invalid shape:", parsed.error);
+                throw new Error("AI output validation failed.");
             }
-            // Validate the AI's output against our schema. If it fails, Zod throws, and we go to the catch block.
-            const validatedOutput = QuizAnalysisOutputSchema.parse(output);
-            return { ...validatedOutput, source: 'ai' };
+
+            return { ...parsed.data, source: 'ai' };
         } catch (error) {
              console.error("Error during AI analysis flow execution:", error);
              // Instead of re-throwing, we now return the deterministic fallback.

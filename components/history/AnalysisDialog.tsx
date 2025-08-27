@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, ReactNode, useCallback } from "react";
@@ -8,13 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import type { QuizAttempt } from '@/ai/schemas';
-import {
-  generateQuizAnalysis,
-  QuizAnalysisOutput,
-} from '@/ai/flows/generate-quiz-analysis';
+import { QuizAnalysisOutput } from '@/ai/flows/generate-quiz-analysis';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -82,9 +79,6 @@ interface AnalysisDialogProps {
   children: ReactNode;
 }
 
-// Simple in-memory cache for the session to avoid re-generating on re-open.
-const analysisCache = new Map<string, QuizAnalysisOutput>();
-
 export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
@@ -93,26 +87,22 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
   const [isOpen, setIsOpen] = useState(false);
 
   const getAnalysis = useCallback(async () => {
-    const attemptId = attempt.slotId || attempt.timestamp.toString();
-
-    if (analysisCache.has(attemptId)) {
-      const cached = analysisCache.get(attemptId)!;
-      setAnalysis(cached);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setAnalysis(null);
 
     try {
-      const result = await generateQuizAnalysis(attempt);
+      const response = await fetch('/api/analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attempt }),
+      });
 
-      if (!result) {
-        throw new Error('Analysis returned an empty or invalid response.');
+      if (!response.ok) {
+        throw new Error('Failed to fetch analysis from server.');
       }
 
-      analysisCache.set(attemptId, result);
+      const result: QuizAnalysisOutput = await response.json();
       setAnalysis(result);
     } catch (e: any) {
       console.error('Error generating quiz analysis:', e);
@@ -174,7 +164,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                   />
                   <StatCard title="Accuracy" value={analysis.accuracy} unit="%" />
                   <StatCard
-                    title="Strike Rate"
+                    title="Avg Time"
                     value={analysis.averageTimePerQuestion.toFixed(1)}
                     unit="s/q"
                   />
