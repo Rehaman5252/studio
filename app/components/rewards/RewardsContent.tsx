@@ -61,7 +61,6 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
 
   useEffect(() => {
-    // Ensure this code runs only on the client
     if (typeof window !== 'undefined') {
         const savedState = window.localStorage.getItem(storageKey);
         if (savedState === 'true') {
@@ -72,7 +71,6 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
 
   const handleScratch = () => {
     setIsScratched(true);
-     // Ensure this code runs only on the client
     if (typeof window !== 'undefined') {
         window.localStorage.setItem(storageKey, 'true');
     }
@@ -149,14 +147,12 @@ function RewardsContentComponent() {
   
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
-    // Iterate backwards to get the most recent attempt for each slot
     for (let i = quizHistory.data.length - 1; i >= 0; i--) {
         const attempt = quizHistory.data[i];
         if (attempt.slotId && !uniqueAttempts.has(attempt.slotId)) {
             uniqueAttempts.set(attempt.slotId, attempt);
         }
     }
-    // Return attempts sorted from most to least recent
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory.data]);
 

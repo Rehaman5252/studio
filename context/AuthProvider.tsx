@@ -4,7 +4,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy, writeBatch } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/ai/schemas';
@@ -162,7 +162,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !db) {
         console.error("Firestore (db) is not available, possibly due to SSR or missing config.");
         setProfileLoading(false);
         return;
@@ -310,33 +310,29 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     
     const sanitizedAttempt = { ...attempt, score: attempt.score || 0, totalQuestions: attempt.totalQuestions || 0, reason: attempt.reason || null };
     
-    // Optimistic UI update
     setQuizHistory(prev => ({
         ...prev,
         data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
     }));
 
     try {
-      await runTransaction(db, async transaction => {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await transaction.get(userDocRef);
-        if (!userDoc.exists()) throw new Error('User not found');
+        const batch = writeBatch(db);
         
-        const data = userDoc.data() as UserProfile;
-        const statsUpdate: { [key:string]: any } = { 
+        const userDocRef = doc(db, 'users', user.uid);
+        const userStatsUpdate: { [key:string]: any } = { 
             quizzesPlayed: increment(1),
             totalScore: increment(sanitizedAttempt.score),
             updatedAt: serverTimestamp(),
         };
         const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
         if (isPerfectScore) {
-            statsUpdate.perfectScores = increment(1);
-            statsUpdate.totalRewards = increment(100);
+            userStatsUpdate.perfectScores = increment(1);
+            userStatsUpdate.totalRewards = increment(100);
         }
 
         const todayUTC = new Date();
         todayUTC.setUTCHours(0, 0, 0, 0);
-        const lastStreakTimestamp = data.lastStreakTimestamp ? (data.lastStreakTimestamp as Timestamp).toDate() : null;
+        const lastStreakTimestamp = profile.lastStreakTimestamp ? (profile.lastStreakTimestamp as Timestamp).toDate() : null;
         
         if (lastStreakTimestamp) {
             const lastStreakUTC = new Date(lastStreakTimestamp.getTime());
@@ -346,22 +342,21 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             if (!isSameDay) {
                 const yesterdayUTC = new Date(todayUTC.getTime() - 86400000);
                 const isYesterday = lastStreakUTC.getTime() === yesterdayUTC.getTime();
-                statsUpdate.currentStreak = isYesterday ? increment(1) : 1;
-                statsUpdate.lastStreakTimestamp = serverTimestamp();
+                userStatsUpdate.currentStreak = isYesterday ? increment(1) : 1;
+                userStatsUpdate.lastStreakTimestamp = serverTimestamp();
             }
         } else {
-            statsUpdate.currentStreak = 1;
-            statsUpdate.lastStreakTimestamp = serverTimestamp();
+            userStatsUpdate.currentStreak = 1;
+            userStatsUpdate.lastStreakTimestamp = serverTimestamp();
         }
-
-        transaction.update(userDocRef, statsUpdate);
+        batch.update(userDocRef, userStatsUpdate);
         
         const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-        transaction.set(attemptRef, sanitizeUserProfile(sanitizedAttempt));
+        batch.set(attemptRef, sanitizeUserProfile(sanitizedAttempt));
 
         const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
         const totalTime = sanitizedAttempt.timePerQuestion ? sanitizedAttempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
-        transaction.set(liveEntryRef, {
+        batch.set(liveEntryRef, {
             userId: user.uid,
             name: profile.name,
             avatar: profile.photoURL,
@@ -374,14 +369,22 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             source: sanitizedAttempt.source ?? null,
             updatedAt: serverTimestamp(),
         }, { merge: true });
-      });
-      setIsOffline(false);
-      return { success: true };
+
+        const globalStatsRef = doc(db, 'globals', 'stats');
+        const globalStatsUpdate = {
+            totalQuizzesPlayed: increment(1),
+            ...(isPerfectScore && { totalPerfectScores: increment(1) })
+        };
+        batch.set(globalStatsRef, globalStatsUpdate, { merge: true });
+
+        await batch.commit();
+        
+        setIsOffline(false);
+        return { success: true };
     } catch (e: any) {
       console.error('addQuizAttempt failed:', e);
       toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
       setIsOffline(true);
-      // Rollback optimistic update
       setQuizHistory(prev => ({
         ...prev,
         data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
@@ -424,7 +427,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
 
-    // Optimistic update
     setQuizHistory(prev => ({
         ...prev,
         data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
@@ -436,14 +438,13 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
-        // Rollback
         setQuizHistory(prev => ({
             ...prev,
             data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
         }));
         return { success: false };
     }
-}, [user]);
+  }, [user]);
 
   const value: UserDataContextType = { 
     user,

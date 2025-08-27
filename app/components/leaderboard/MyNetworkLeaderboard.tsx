@@ -59,7 +59,7 @@ const ErrorState = ({ message, title }: { message: string, title: string }) => (
     </Alert>
 );
 
-const MyNetworkLeaderboardComponent = () => {
+const MyNetworkLeaderboard = () => {
     const { user, profile, loading: authLoading } = useAuth();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -159,4 +159,4 @@ const MyNetworkLeaderboardComponent = () => {
     );
 };
 
-export default memo(MyNetworkLeaderboardComponent);
+export default memo(MyNetworkLeaderboard);

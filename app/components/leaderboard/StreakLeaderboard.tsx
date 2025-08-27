@@ -1,24 +1,24 @@
 
-'use client';
+"use client";
 
-import React, { memo, useState, useEffect, Fragment } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, where, getCountFromServer } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, getCountFromServer, where } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, mapFirestoreError } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
-    if (rank === 1) return <span className="text-2xl">🥇</span>;
-    if (rank === 2) return <span className="text-2xl">🥈</span>;
-    if (rank === 3) return <span className="text-2xl">🥉</span>;
-    if (!rank) return <span className="text-lg font-bold text-muted-foreground">--</span>;
-    return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
+    if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
+    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
+    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
+    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
+    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
@@ -28,30 +28,64 @@ const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: Strea
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         <div className="text-right flex items-center gap-1">
-            <p className="font-bold text-primary">{player.currentStreak}</p>
-            <Flame className="h-4 w-4 text-primary" />
+            <p className="font-bold text-accent">{player.currentStreak}</p>
+            <Flame className="h-4 w-4 text-accent" />
         </div>
     </div>
 ));
 LeaderboardItem.displayName = 'LeaderboardItem';
 
-
 const LeaderboardItemSkeleton = () => (
     <div className="flex items-center p-2 rounded-lg">
-        <Skeleton className="w-8 h-8 rounded-full" />
-        <Skeleton className="h-10 w-10 mx-4 rounded-full" />
-        <Skeleton className="h-4 flex-1" />
-        <Skeleton className="h-4 w-12" />
+        <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
+        <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
+        <Skeleton key="skel-name" className="h-4 flex-1" />
+        <Skeleton key="skel-streak" className="h-4 w-12" />
     </div>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
+const ErrorState = ({ message, title }: { message: string, title: string }) => (
     <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Rain Delay!</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
+        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+        <AlertTitle>{title}</AlertTitle>
+        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
 );
+
+const EmptyState = () => (
+    <Card className="bg-card/80 text-center mt-4">
+        <CardContent className="p-6">
+            <Trophy className="h-10 w-10 mx-auto text-accent/50 mb-4" />
+            <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
+            <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
+        </CardContent>
+    </Card>
+);
+
+const calculateUserRank = async (streak: number, name: string): Promise<number> => {
+    if (!db) return 999;
+    const usersCollection = collection(db, 'users');
+    
+    try {
+        const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
+        
+        const tieBreakerQuery = query(
+            usersCollection, 
+            where('currentStreak', '==', streak), 
+            where('name', '<', name || '')
+        );
+        
+        const [higherSnapshot, tieSnapshot] = await Promise.all([
+            getCountFromServer(higherStreakQuery),
+            getCountFromServer(tieBreakerQuery)
+        ]);
+
+        return higherSnapshot.data().count + tieSnapshot.data().count + 1;
+    } catch (e: any) {
+        console.error("Rank calculation failed:", e);
+        return 999; 
+    }
+};
 
 const StreakLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
@@ -63,7 +97,7 @@ const StreakLeaderboard = () => {
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("Firestore is not available.");
+            setError("Database not available.");
             setIsLoading(false);
             return;
         }
@@ -76,46 +110,36 @@ const StreakLeaderboard = () => {
                 const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
                 const querySnapshot = await getDocs(q);
 
-                const playersData = querySnapshot.docs.map((doc, index) => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        name: data.name || 'Anonymous Player',
-                        avatar: data.photoURL,
-                        currentStreak: data.currentStreak || 0,
-                        rank: index + 1,
-                        isCurrentUser: user?.uid === doc.id,
-                    };
-                }).filter(player => player.currentStreak > 0);
+                const playersData = querySnapshot.docs
+                    .filter(doc => (doc.data().currentStreak || 0) > 0)
+                    .map((doc, index) => {
+                        const data = doc.data();
+                        return {
+                            uid: doc.id,
+                            name: data.name || 'Anonymous Player',
+                            avatar: data.photoURL,
+                            currentStreak: data.currentStreak || 0,
+                            isCurrentUser: user?.uid === doc.id,
+                            rank: index + 1
+                        };
+                    });
                 
                 setPlayers(playersData);
-
                 if (user && !playersData.some(p => p.uid === user.uid)) {
                    const userDocRef = doc(db, 'users', user.uid);
                    const userDoc = await getDoc(userDocRef);
                    if (userDoc.exists()) {
                         const data = userDoc.data();
-                        if ((data.currentStreak || 0) > 0) {
-                            
-                            // Count users with a strictly higher streak
-                            const higherStreakQuery = query(usersCollection, where('currentStreak', '>', data.currentStreak));
-                            const higherSnapshot = await getCountFromServer(higherStreakQuery);
+                        const streak = data.currentStreak || 0;
+                        const name = data.name || 'Anonymous Player';
 
-                            // Count users with the same streak but alphabetically earlier name
-                            const tieBreakerQuery = query(
-                                usersCollection,
-                                where('currentStreak', '==', data.currentStreak),
-                                where('name', '<', data.name || user.uid) // Use UID as ultimate tie-breaker
-                            );
-                            const tieSnapshot = await getCountFromServer(tieBreakerQuery);
-
-                            const userRank = higherSnapshot.data().count + tieSnapshot.data().count + 1;
-                            
+                        if (streak > 0) {
+                            const userRank = await calculateUserRank(streak, name);
                             setCurrentUserData({
                                 uid: user.uid,
                                 name: data.name || 'You',
                                 avatar: data.photoURL,
-                                currentStreak: data.currentStreak,
+                                currentStreak: streak,
                                 rank: userRank,
                                 isCurrentUser: true,
                             });
@@ -128,14 +152,7 @@ const StreakLeaderboard = () => {
                 }
 
             } catch (e: any) {
-                if (e.code === 'failed-precondition') {
-                    setError("The covers are on! Our leaderboard is being prepared. Please check back in a moment.");
-                } else if (e.code === 'unavailable') {
-                    setError("Bad connection has stopped play. Please check your network and try again.");
-                } else {
-                     setError("A technical fault has interrupted play. We're working to get it fixed.");
-                }
-                console.error("Error fetching streak leaderboard:", e);
+                setError(mapFirestoreError(e));
             } finally {
                 setIsLoading(false);
             }
@@ -146,20 +163,12 @@ const StreakLeaderboard = () => {
     }, [authLoading, user]);
 
 
-    const renderContent = () => {
-        if (isLoading || authLoading) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState message={error} />;
-        if (players.length === 0) {
-            return (
-                 <Card className="bg-card/80 text-center mt-4">
-                    <CardContent className="p-6">
-                        <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
-                        <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
-                    </CardContent>
-                </Card>
-            )
+    const content = () => {
+        if (isLoading || authLoading) {
+            return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         }
+        if (error) return <ErrorState title="Error" message={error} />;
+        if (players.length === 0) return <EmptyState />;
         
         return (
             <>
@@ -168,7 +177,7 @@ const StreakLeaderboard = () => {
                 ))}
                 {currentUserData && (
                     <>
-                        <div className="text-center text-muted-foreground text-sm py-2">...</div>
+                        <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
                         <LeaderboardItem player={currentUserData} isCurrentUser={true} />
                     </>
                 )}
@@ -183,8 +192,8 @@ const StreakLeaderboard = () => {
                 <CardTitle>Daily Streak Champions</CardTitle>
                 <CardDescription>The most consistent players on the pitch.</CardDescription>
             </CardHeader>
-            <CardContent className="p-2">
-                <div className="space-y-2">{renderContent()}</div>
+            <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-2">{content()}</div>
             </CardContent>
         </Card>
     );
