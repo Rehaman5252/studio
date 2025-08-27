@@ -8,7 +8,7 @@ import type { QuizData } from '@/ai/schemas';
  * Note: All keys should be lowercase to match the normalized format from the API route.
  */
 
-const fallbackQuizData: { [key: string]: QuizData } = {
+export const fallbackQuizData: { [key: string]: QuizData } = {
   mixed: {
     questions: [
       { id: 'fb_mix_1', question: 'Who is known as the "God of Cricket"?', options: ['Viv Richards', 'Sachin Tendulkar', 'Don Bradman', 'Brian Lara'], correctAnswer: 'Sachin Tendulkar', explanation: 'Sachin Tendulkar is widely regarded as one of the greatest batsmen in the history of cricket and is affectionately known as the "God of Cricket" by his fans.' },
@@ -69,3 +69,5 @@ export function getFallbackQuiz(format: string): QuizData {
   const normalizedFormat = format.toLowerCase();
   return fallbackQuizData[normalizedFormat] || fallbackQuizData.mixed;
 }
+
+    
