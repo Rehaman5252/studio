@@ -94,7 +94,7 @@ const ResultsContent = () => {
             className="space-y-6"
         >
             <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
-                <CardContent className="p-6 space-y-6">
+                <CardContent className="p-6 space-y-4">
                     <motion.div
                         animate={{ scale: [1, 1.1, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -106,9 +106,11 @@ const ResultsContent = () => {
                             <span className="text-5xl">🏆</span>
                         )}
                     </motion.div>
-
-                    <h1 className="text-3xl font-bold">{pageTitle}</h1>
-                    <p className="text-muted-foreground">{attempt.format} Quiz - Sponsored by {attempt.brand}</p>
+                    
+                    <div className="space-y-1">
+                        <h1 className="text-3xl font-bold">{pageTitle}</h1>
+                        <p className="text-muted-foreground">{attempt.format} Quiz - Sponsored by {attempt.brand}</p>
+                    </div>
                     
                     {!isDisqualified && (
                         <>
