@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Sparkles, Eye, Ban, BadgeCheck } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Trophy } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
 import { motion } from 'framer-motion';
@@ -74,6 +74,7 @@ const ResultsContent = () => {
 
   const isPerfectScore = attempt.score === attempt.totalQuestions;
   const isDisqualified = !!attempt.reason;
+  const totalTime = Math.round(attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0);
 
   const getMotivationalLine = () => {
       if(isDisqualified) return { text: "Fair play is key to the spirit of cricket.", emoji: "🤝"};
@@ -94,22 +95,38 @@ const ResultsContent = () => {
         >
             <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
                 <CardContent className="p-6 space-y-4">
-                    <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
-                        {isDisqualified ? <Ban className="h-12 w-12 text-destructive" /> : 
-                         isPerfectScore ? <span className="text-5xl">🏆</span> :
-                         <BadgeCheck className="h-12 w-12 text-primary" />}
-                    </div>
+                    <motion.div
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="mx-auto bg-primary/10 p-4 rounded-full w-fit"
+                    >
+                        {isDisqualified ? (
+                            <Ban className="h-12 w-12 text-destructive" />
+                         ) : (
+                            <span className="text-5xl">🏆</span>
+                        )}
+                    </motion.div>
 
                     <h1 className="text-3xl font-bold">{pageTitle}</h1>
                     <p className="text-muted-foreground">{attempt.format} Quiz - Sponsored by {attempt.brand}</p>
                     
                     {!isDisqualified && (
                         <>
-                            <p className="text-muted-foreground pt-4">You Scored</p>
-                            <p className="text-6xl font-bold tracking-tighter">
-                                <span className="text-primary">{attempt.score}</span> / {attempt.totalQuestions}
-                            </p>
-                            <p className="text-lg font-semibold text-primary">{motivationalLine.text} {motivationalLine.emoji}</p>
+                            <div className="flex justify-around items-center pt-4">
+                                <div className="text-center">
+                                    <p className="text-muted-foreground text-sm">You Scored</p>
+                                    <p className="text-4xl font-bold tracking-tighter">
+                                        <span className="text-primary">{attempt.score}</span>/{attempt.totalQuestions}
+                                    </p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-muted-foreground text-sm">Time Taken</p>
+                                    <p className="text-4xl font-bold tracking-tighter">
+                                        {totalTime}<span className="text-2xl text-muted-foreground">s</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-lg font-semibold text-primary">{motivationalLine.text}</p>
                         </>
                     )}
                 </CardContent>
