@@ -132,7 +132,7 @@ const ResultsContent = () => {
                             </div>
                             <div className="flex flex-col items-center justify-center">
                                 <span className="text-sm font-semibold text-muted-foreground">Time Taken</span>
-                                <span className="text-6xl font-bold">{timeTaken.toFixed(1)}<span className="text-4xl text-muted-foreground">s</span></span>
+                                <span className="text-6xl font-bold">{timeTaken.toFixed(0)}<span className="text-4xl text-muted-foreground">s</span></span>
                             </div>
                         </div>
                     )}
