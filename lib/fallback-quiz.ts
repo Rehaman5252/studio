@@ -69,5 +69,3 @@ export function getFallbackQuiz(format: string): QuizData {
   const normalizedFormat = format.toLowerCase();
   return fallbackQuizData[normalizedFormat] || fallbackQuizData.mixed;
 }
-
-    

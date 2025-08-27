@@ -5,12 +5,13 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
+import { isProfileConsideredComplete } from '@/lib/profile-utils';
 
 interface UserProfile {
   uid: string;
@@ -39,9 +40,10 @@ interface UserDataContextType {
   signInWithGoogle: () => Promise<User | null>;
   registerWithEmail: (name: string, email: string, phone: string, password: string, referralCode?: string) => Promise<User | null>;
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
-  addQuizAttempt: (attempt: QuizAttempt) => Promise<void>;
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean, error?: string }>;
   updateUserData: (data: Partial<UserProfile>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
+  markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean }>;
   isOffline: boolean;
 }
 
@@ -58,21 +60,19 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const [quizHistory, setQuizHistory] = useState<{data: QuizAttempt[], loading: boolean, error: string | null}>({ data: [], loading: true, error: null });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     
-    if (typeof window !== 'undefined') {
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        // Set initial state
-        setIsOffline(!navigator.onLine);
-    }
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    setIsOffline(!navigator.onLine);
     
     return () => {
-      if(typeof window !== 'undefined') {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
-      }
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -162,8 +162,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    if (!db) {
-        console.error("Firestore (db) is not available, possibly due to SSR.");
+    if (!isFirebaseConfigured) {
+        console.error("Firestore (db) is not available, possibly due to SSR or missing config.");
         setProfileLoading(false);
         return;
     }
@@ -187,9 +187,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
     unsubs.push(unsubscribeProfile);
 
-    // Listen to the current slot's attempt document
     const currentSlotId = getQuizSlotId();
-    const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', currentSlotId);
+    const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
     const unsubscribeAttempt = onSnapshot(attemptDocRef, (docSnap) => {
         setLastAttemptInSlot(docSnap.exists() ? (docSnap.data() as QuizAttempt) : null);
     }, (error) => {
@@ -199,7 +198,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     });
     unsubs.push(unsubscribeAttempt);
     
-    // Listen to all past attempts for history
     setQuizHistory(prev => ({ ...prev, loading: true }));
     const historyQuery = query(collection(db, "users", user.uid, "quizAttempts"), orderBy("timestamp", "desc"));
     const unsubscribeHistory = onSnapshot(historyQuery, (querySnapshot) => {
@@ -303,10 +301,20 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, toast]);
 
-  const addQuizAttempt = useCallback(async (attempt: QuizAttempt) => {
-    if (!user || !profile || !db) return;
+  const addQuizAttempt = useCallback(async (attempt: QuizAttempt): Promise<{ success: boolean, error?: string }> => {
+    if (!user || !profile || !db) {
+        const error = "User not authenticated or database unavailable.";
+        toast({ title: "Save Failed", description: error, variant: "destructive" });
+        return { success: false, error };
+    }
     
     const sanitizedAttempt = { ...attempt, score: attempt.score || 0, totalQuestions: attempt.totalQuestions || 0, reason: attempt.reason || null };
+    
+    // Optimistic UI update
+    setQuizHistory(prev => ({
+        ...prev,
+        data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
+    }));
 
     try {
       await runTransaction(db, async transaction => {
@@ -342,7 +350,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 statsUpdate.lastStreakTimestamp = serverTimestamp();
             }
         } else {
-            // First time playing
             statsUpdate.currentStreak = 1;
             statsUpdate.lastStreakTimestamp = serverTimestamp();
         }
@@ -369,10 +376,17 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         }, { merge: true });
       });
       setIsOffline(false);
-    } catch (e) {
+      return { success: true };
+    } catch (e: any) {
       console.error('addQuizAttempt failed:', e);
-      toast({ title: "Sync Error", description: "Could not save your quiz result.", variant: 'destructive' });
+      toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
       setIsOffline(true);
+      // Rollback optimistic update
+      setQuizHistory(prev => ({
+        ...prev,
+        data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
+      }));
+      return { success: false, error: e.message };
     }
   }, [user, profile, toast]);
 
@@ -406,12 +420,36 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       return newNoBallCount;
     }
   }, [user, profile]);
+  
+  const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
+    if (!user || !db) return { success: false };
+
+    // Optimistic update
+    setQuizHistory(prev => ({
+        ...prev,
+        data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
+    }));
+
+    try {
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
+        await updateDoc(attemptRef, { reviewed: true });
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to mark attempt as reviewed:", error);
+        // Rollback
+        setQuizHistory(prev => ({
+            ...prev,
+            data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
+        }));
+        return { success: false };
+    }
+}, [user]);
 
   const value: UserDataContextType = { 
     user,
     loading: firebaseLoading || profileLoading,
     profile, 
-    isProfileComplete: profile?.profileCompleted || false,
+    isProfileComplete: isProfileConsideredComplete(profile),
     quizHistory,
     logout, 
     signInWithGoogle, 
@@ -420,6 +458,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     updateUserData, 
     addQuizAttempt, 
     handleMalpractice,
+    markAttemptAsReviewed,
     lastAttemptInSlot,
     isOffline,
   };

@@ -4,12 +4,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { QuizData, QuizQuestion } from '@/ai/schemas';
+import { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
 import { AdDialog } from '@/components/AdDialog';
-import { getAIPoweredHint, HintOutput } from '@/ai/flows/ai-powered-hints';
+import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
@@ -45,7 +45,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizSource, setQuizSource] = useState<'ai' | 'fallback'>('ai');
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
-  const [hints, setHints] = useState<Record<number, HintOutput | null>>({});
+  const [hints, setHints] = useState<Record<number, HintOutput>>({});
   const [isHintLoading, setIsHintLoading] = useState(false);
   const router = useRouter();
   const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
@@ -130,7 +130,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
       
-      const localFallback = getFallbackQuiz(format.toLowerCase());
+      const localFallback = getFallbackQuiz(format);
       setQuizData(localFallback);
       setQuizSource('fallback');
 
@@ -174,11 +174,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     if(result.success) {
         router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     } else {
-        // If saving fails, the user is notified by the toast in addQuizAttempt
-        // Stay on the page to allow user to retry or navigate away
-        setError("Could not save quiz results. Please try again or check your connection.");
+        setError("Could not save quiz results. Please check your connection and try again.");
     }
-  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (!quizData || !user) return;

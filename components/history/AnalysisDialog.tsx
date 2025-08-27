@@ -1,10 +1,9 @@
 
 "use client";
 
-import React, { useState, useEffect, ReactNode, memo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -21,21 +20,21 @@ import {
   ServerCrash,
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { Button } from "../ui/button";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
-  open: boolean;
+  isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  children?: ReactNode;
 }
 
-const AnalysisDialogComponent = ({ attempt, open, onOpenChange, children }: AnalysisDialogProps) => {
+export default function AnalysisDialog({ attempt, isOpen, onOpenChange }: AnalysisDialogProps) {
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
 
     const fetchAnalysis = async () => {
       setLoading(true);
@@ -65,7 +64,7 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange, children }: Anal
     };
 
     fetchAnalysis();
-  }, [open, attempt]);
+  }, [isOpen, attempt]);
   
   const renderContent = () => {
     if (loading) {
@@ -100,7 +99,7 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange, children }: Anal
               <Card className="bg-card/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <BarChart className="text-primary" /> Match Summary
+                    <BarChart className="text-primary" /> Overall Performance
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -158,8 +157,7 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange, children }: Anal
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">
@@ -176,5 +174,3 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange, children }: Anal
     </Dialog>
   );
 }
-
-export default memo(AnalysisDialogComponent);

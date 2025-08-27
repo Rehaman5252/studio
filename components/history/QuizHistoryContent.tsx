@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
@@ -12,8 +12,7 @@ import { adLibrary } from '@/lib/ads';
 import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -57,7 +56,8 @@ const getSlotTimings = (timestamp: number) => {
   };
 
 const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
-  const { user, quizHistory, setQuizHistory } = useAuth();
+  const { markAttemptAsReviewed } = useAuth();
+  const { toast } = useToast();
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
@@ -72,19 +72,13 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
   const handleAdFinished = async () => {
     setShowAdDialog(false);
-    if (user && db) {
-        try {
-            const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attempt.slotId);
-            await updateDoc(attemptRef, { reviewed: true });
-
-            // Optimistic update of local state
-            setQuizHistory(prev => ({
-                ...prev,
-                data: prev.data.map(a => a.slotId === attempt.slotId ? { ...a, reviewed: true } : a)
-            }));
-        } catch (error) {
-            console.error("Failed to mark attempt as reviewed:", error);
-        }
+    const { success } = await markAttemptAsReviewed(attempt.slotId);
+    if (!success) {
+      toast({
+        title: "Update Failed",
+        description: "Could not save the reviewed state. Please check your connection.",
+        variant: "destructive"
+      });
     }
     setShowReviewDialog(true);
   };
@@ -126,7 +120,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
             </div>
             <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || attempt.reviewed}>
+                <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
                     {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
                     {attempt.reviewed ? 'Reviewed' : 'Review'}
                 </Button>
@@ -163,7 +157,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
         {/* Analysis Dialog */}
         <AnalysisDialog 
-            open={isAnalysisOpen} 
+            isOpen={isAnalysisOpen} 
             onOpenChange={setIsAnalysisOpen} 
             attempt={attempt}
         />
