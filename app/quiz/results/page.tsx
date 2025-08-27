@@ -94,7 +94,7 @@ const ResultsContent = () => {
             className="space-y-6"
         >
             <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="p-6 space-y-6">
                     <motion.div
                         animate={{ scale: [1, 1.1, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -129,19 +129,19 @@ const ResultsContent = () => {
                             <p className="text-lg font-semibold text-primary">{motivationalLine.text}</p>
                         </>
                     )}
+
+                    <div className="space-y-3 pt-4 border-t border-border">
+                        <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
+                            <Home className="mr-2 h-5 w-5" /> Go Home
+                        </Button>
+                        {!isDisqualified && (
+                            <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
+                                <Eye className="mr-2 h-5 w-5" /> View Correct Answers (Ad)
+                            </Button>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
-
-            <div className="space-y-3">
-                 <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
-                    <Home className="mr-2 h-5 w-5" /> Go Home
-                </Button>
-                {!isDisqualified && (
-                     <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
-                        <Eye className="mr-2 h-5 w-5" /> View Correct Answers (Ad)
-                    </Button>
-                )}
-            </div>
 
             {!isDisqualified && (
               <Card className="bg-card/80">
