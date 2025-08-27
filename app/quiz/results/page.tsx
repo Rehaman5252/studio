@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Trophy, Clock } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Clock } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
 import { motion } from 'framer-motion';
