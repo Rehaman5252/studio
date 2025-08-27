@@ -10,38 +10,23 @@ const VALID_FORMATS = ['mixed', 'ipl', 't20', 'odi', 'wpl', 'test'];
 
 export async function POST(req: NextRequest) {
   let requestedFormat = 'mixed';
-  let fallbackReason: string | null = null;
   
   try {
-    // Critical Pre-check: Ensure Firebase is configured on the server.
     if (!isFirebaseConfigured) {
-        console.error("[API /quiz] Critical Error: Firebase server environment variables are not configured.");
-        // Return a 200 with fallback data, but with a specific error message.
-        const fallback = fallbackQuizData['mixed'];
-        return NextResponse.json({ 
-            ...fallback, 
-            source: 'fallback', 
-            error: 'server_not_configured',
-            fallbackReason: 'The server is not properly configured. Using a classic quiz.' 
-        }, { status: 200 });
+        throw new Error('server_not_configured');
     }
 
     const body = await req.json();
     const { userId, format } = body;
 
     if (!userId) {
-      console.error("[API /quiz] Critical Error: userId is required in the request body.");
-      return NextResponse.json({ error: 'User identification is missing. Please sign in again.' }, { status: 400 });
+      return NextResponse.json({ error: 'User identification is missing.' }, { status: 400 });
     }
     
-    const formatFromRequest = (format || 'mixed').toLowerCase();
-    
-    if (!VALID_FORMATS.includes(formatFromRequest)) {
-      fallbackReason = `Invalid format '${format}' provided. Defaulting to 'mixed'.`;
-      console.warn(`[API /quiz] Fallback Triggered for userId: ${userId}. Reason: ${fallbackReason}`);
-      requestedFormat = 'mixed';
-    } else {
-      requestedFormat = formatFromRequest;
+    requestedFormat = (format || 'mixed').toLowerCase();
+    if (!VALID_FORMATS.includes(requestedFormat)) {
+       console.warn(`[API /quiz] Invalid format '${format}' provided. Defaulting to 'mixed'.`);
+       requestedFormat = 'mixed';
     }
 
     console.log(`[API /quiz] Generating quiz for format: ${requestedFormat}, userId: ${userId}`);
@@ -53,10 +38,7 @@ export async function POST(req: NextRequest) {
     ]);
     
     if (!quizData || !quizData.questions || quizData.questions.length < 5) {
-        fallbackReason = fallbackReason || 'AI returned incomplete or invalid quiz data.';
-        console.warn(`[API /quiz] Fallback Triggered for userId: ${userId}. Reason: ${fallbackReason} for format '${requestedFormat}'. Using fallback quiz.`);
-        const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
-        return NextResponse.json({ ...fallback, source: 'fallback', fallbackReason }, { status: 200 });
+        throw new Error('AI returned incomplete or invalid quiz data.');
     }
     
     console.log(`[API /quiz] Successfully generated AI quiz for userId: ${userId}, format: ${requestedFormat}`);
@@ -64,20 +46,26 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     const isTimeout = error.message.toLowerCase().includes("timeout");
-    const errorMessage = isTimeout
-      ? `AI generation timed out after ${GENERATION_TIMEOUT}ms for format '${requestedFormat}'`
-      : mapFirestoreError(error);
+    let errorMessage = mapFirestoreError(error);
 
-    console.error(`[Quiz API Error] for format ${requestedFormat}:`, error);
+     if(error.message === 'server_not_configured') {
+         errorMessage = 'The server is not properly configured. Using a classic quiz.';
+         console.error("[API /quiz] Critical Error: Firebase server environment variables are not configured.");
+    } else if (isTimeout) {
+         errorMessage = `AI generation timed out after ${GENERATION_TIMEOUT}ms for format '${requestedFormat}'`;
+    }
+
+    console.error(`[Quiz API Error] for format ${requestedFormat}:`, errorMessage);
 
     const fallback = fallbackQuizData[requestedFormat] || fallbackQuizData['mixed'];
     
-    // Always return a 200 with fallback data. The client can decide what to do with the error message.
     return NextResponse.json({ 
         ...fallback, 
         source: 'fallback', 
-        error: 'generation_failed',
+        error: isTimeout ? 'timeout' : 'generation_failed',
         fallbackReason: errorMessage 
-    }, { status: 200 });
+    }, { status: 200 }); // Return 200 with fallback data so client can handle it gracefully
   }
 }
+
+    

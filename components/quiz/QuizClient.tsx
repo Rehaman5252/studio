@@ -19,6 +19,7 @@ import { Button } from '../ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { mapFirestoreError } from '@/lib/utils';
 import { isFirebaseConfigured } from '@/lib/firebase';
+import { fallbackQuizData } from '@/lib/fallback-quiz';
 
 interface QuizClientProps {
   brand: string;
@@ -63,10 +64,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // --- Start: Readiness Checks ---
-    if (authLoading) {
-      return;
-    }
+    if (authLoading) return;
 
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
@@ -81,42 +79,32 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setShowPreQuizLoader(false);
       return;
     }
-    if (!isFirebaseConfigured) {
-        setError("🔥 The app is not connected to the server. Please try again later.");
-        setLoading(false);
-        setShowPreQuizLoader(false);
-        return;
-    }
-    // --- End: Readiness Checks ---
     
     try {
       setLoading(true);
       setError(null);
-      await new Promise(res => setTimeout(res, 100));
+      await new Promise(res => setTimeout(res, 100)); // Brief delay to prevent race conditions
       if (controller.signal.aborted) return;
 
       const response = await fetch('/api/quiz', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ format, userId: user.uid }),
         signal: controller.signal,
       });
 
       if (controller.signal.aborted) return;
-      
-      let data: QuizAPIResponse;
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        // This catches the "<!DOCTYPE html>" error.
-        throw new Error("Server returned an invalid response. Please try again.");
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Invalid response: Expected JSON but got HTML.");
       }
       
+      const data: QuizAPIResponse = await response.json();
+      
       if (!response.ok) {
-        // Even if the response is not "ok" (e.g. 500), it should contain a fallback quiz.
-        if (data.source === 'fallback' && data.questions) {
-             const reason = data.error || data.fallbackReason || 'An unknown issue occurred';
-             const userMessage = reason.includes('timeout')
+         if (data.source === 'fallback' && data.questions) {
+             const userMessage = (data.fallbackReason || '').includes('timeout')
                 ? "The AI umpire is thinking! Playing a classic quiz instead."
                 : "Heads up! We're using a classic quiz set for now.";
              toast({
@@ -124,27 +112,37 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
               description: userMessage,
               duration: 5000,
             });
-        } else {
-            const errorMsg = data.error || `The server returned an error (${response.status}). Please try again.`;
-            throw new Error(errorMsg);
-        }
+            setQuizData(data);
+         } else {
+             throw new Error(data.error || "An unknown server error occurred.");
+         }
+      } else {
+         toast({ title: "✅ Fresh AI-powered quiz loaded!" });
+         setQuizData(data);
       }
-      
-      if (!data.questions || data.questions.length < 5) throw new Error('Invalid quiz data received from the server.');
-
-      setQuizData(data);
       
     } catch (e: any) {
       if (e.name === 'AbortError') return;
-      console.error("Quiz fetch failed:", e);
-      const errorMessage = mapFirestoreError(e);
 
-      if (!controller.signal.aborted) {
-        setError(errorMessage);
-        toast({ title: "Error Loading Quiz", description: errorMessage, variant: "destructive" });
+      console.error("Quiz fetch failed:", e);
+      let userMessage = "Could not load quiz. Playing a classic set instead.";
+      
+      if (e.message.includes("Invalid response")) {
+        userMessage = "❌ Server returned invalid data. Falling back to classics.";
+      } else if (e.message.includes("Failed to fetch")) {
+        userMessage = "📴 You appear to be offline. Please check your connection.";
       }
+      
+      toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
+      
+      // Use the local fallback quiz data
+      const localFallback = fallbackQuizData[format.toLowerCase()] || fallbackQuizData.mixed;
+      setQuizData({ ...localFallback, source: 'fallback', fallbackReason: 'API failure' });
+      
     } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
     }
   }, [format, user, toast, authLoading, isOffline]);
 
@@ -255,7 +253,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
   
-  if (showPreQuizLoader && !error && !authLoading) {
+  if (showPreQuizLoader && !error && !authLoading && loading) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
   
@@ -343,3 +341,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     </>
   );
 }
+
+    
