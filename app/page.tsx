@@ -8,12 +8,13 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import { memo, useState, useCallback } from 'react';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { brandData, CubeBrand } from '@/components/home/brandData';
+import { brandData } from '@/components/home/brandData';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import { encodeAttempt } from '@/lib/quiz-utils';
+import type { CubeBrand } from '@/components/home/brandData';
 
 const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
     loading: () => <Skeleton className="h-40 w-full" />,
@@ -81,8 +82,7 @@ const MalpracticeWarning = memo(() => {
 });
 MalpracticeWarning.displayName = 'MalpracticeWarning';
 
-
-function HomePage() {
+function HomePageContent() {
     const { user, isProfileComplete, lastAttemptInSlot, loading: authLoading } = useAuth();
     const { isLoading: isQuizStatusLoading } = useQuizStatus();
     const router = useRouter();
@@ -128,33 +128,17 @@ function HomePage() {
         router.push(`/quiz?brand=${encodeURIComponent(brand.brand)}&format=${encodeURIComponent(brand.format)}`);
     }, [user, hasPlayedInCurrentSlot, lastAttemptInSlot, isProfileComplete, selectedBrand, router, toast]);
 
-    const headerContent = (
-      <div className="text-center">
-        <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
-          indcric
-        </h1>
-        <p className="mt-1 text-base font-normal text-foreground/80">
-          Win &#8377;100 for every 100 seconds!
-        </p>
-      </div>
-    );
-
     if (authLoading) {
-      return (
-        <PageWrapper title={headerContent} hideBorder>
-            <HomeContentSkeleton />
-        </PageWrapper>
-      )
+      return <HomeContentSkeleton />
     }
     
     return (
-      <PageWrapper title={headerContent} hideBorder>
-          <motion.div 
+        <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
             className="space-y-6"
-          >
+        >
             <MalpracticeWarning />
             
             <HomeClientContent 
@@ -176,9 +160,27 @@ function HomePage() {
               <CricketFact format={selectedBrand.format} />
             </div>
 
-          </motion.div>
-      </PageWrapper>
+        </motion.div>
     );
+}
+
+function HomePage() {
+  const headerContent = (
+      <div className="text-center">
+        <h1 className="text-7xl font-extrabold tracking-tighter animate-shimmer">
+          CricBlitz
+        </h1>
+        <p className="mt-1 text-base font-normal text-foreground/80">
+          The Ultimate Cricket Quiz Challenge!
+        </p>
+      </div>
+    );
+  
+  return (
+    <PageWrapper title={headerContent} hideBorder>
+      <HomePageContent/>
+    </PageWrapper>
+  );
 }
 
 export default memo(HomePage);

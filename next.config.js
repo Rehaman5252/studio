@@ -5,6 +5,10 @@ const nextConfig = {
         remotePatterns: [
             {
                 protocol: 'https',
+                hostname: 'picsum.photos',
+            },
+            {
+                protocol: 'https',
                 hostname: 'placehold.co',
             },
             {
@@ -30,10 +34,6 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'videos.pexels.com',
-            },
-            {
-                protocol: 'https',
-                hostname: 'picsum.photos',
             }
         ],
     },
@@ -41,7 +41,7 @@ const nextConfig = {
         serverActions: {
             bodySizeLimit: '10mb',
         },
-    }
+    },
 };
 
 module.exports = nextConfig;

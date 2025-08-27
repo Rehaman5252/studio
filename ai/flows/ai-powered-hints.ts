@@ -11,6 +11,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import type { QuizQuestion as QuizQuestionType } from '@/ai/schemas';
 import { QuizQuestion as QuestionSchema } from '@/ai/schemas';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -33,7 +34,7 @@ export async function getAIPoweredHint(input: HintInput): Promise<HintOutput> {
 }
 
 
-function fallbackHintForQuestion(q?: any): string {
+function fallbackHintForQuestion(q?: QuizQuestionType): string {
     if (!q) return "Review the topic related to this question and try eliminating obviously incorrect options.";
     if (q.correctAnswer) {
       return "Think about which option directly answers the question. Eliminate options that are clearly unrelated and choose the best match.";

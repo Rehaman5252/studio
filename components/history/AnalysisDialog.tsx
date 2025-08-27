@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,20 +21,28 @@ import {
   ServerCrash,
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOpenChange }: AnalysisDialogProps) => {
+  const isControlled = typeof controlledOpen === 'boolean' && typeof onOpenChange === 'function';
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? onOpenChange : setInternalOpen;
+
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!open) return;
 
     const fetchAnalysis = async () => {
       setLoading(true);
@@ -44,7 +52,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         const res = await fetch("/api/analysis", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attempt }),
+          body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
         
         if (!res.ok) {
@@ -57,14 +65,14 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
 
       } catch (err: any) {
         console.error("AnalysisDialog Error:", err);
-        setError("Could not load analysis. Please try again later.");
+        setError("Could not load AI analysis. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchAnalysis();
-  }, [isOpen, attempt]);
+  }, [open, attempt]);
   
   const renderContent = () => {
     if (loading) {
@@ -124,7 +132,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive">
-                      <Target /> Weaknesses
+                      <Target /> Areas for Improvement
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -139,7 +147,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
               <Card className="bg-primary/10">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary">
-                    <Lightbulb /> Coach's Recommendations
+                    <Lightbulb /> Coach's Tip
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -157,8 +165,8 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">
@@ -175,3 +183,5 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
     </Dialog>
   );
 }
+
+export default memo(AnalysisDialogComponent);

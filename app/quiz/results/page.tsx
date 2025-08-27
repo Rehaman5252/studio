@@ -3,10 +3,9 @@
 
 import { Suspense, useMemo, useState, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Clock } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
 import { motion } from 'framer-motion';
@@ -37,6 +36,7 @@ const ResultsContent = () => {
   const router = useRouter();
   const [showAnswersAd, setShowAnswersAd] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
   const attempt: QuizAttempt | null = useMemo(() => {
       const attemptData = searchParams.get('attempt');
@@ -45,13 +45,16 @@ const ResultsContent = () => {
   }, [searchParams]);
 
   const adConfig = useMemo(() => {
-      // Lazy load ad config to avoid importing it on every page
       return require('@/lib/ads').adLibrary.resultsAd;
   }, []);
 
   const handleViewAnswers = () => {
     setShowAnswersAd(true);
   };
+  
+  const handleOpenAnalysis = () => {
+    setIsAnalysisOpen(true);
+  }
 
   const onAdFinished = () => {
     setShowAnswersAd(false);
@@ -146,9 +149,7 @@ const ResultsContent = () => {
                       <CardDescription>Want to improve? Get a personalized analysis of your performance from our AI coach.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      <AnalysisDialog attempt={attempt}>
-                          <Button size="lg" className="w-full">Generate Free Analysis</Button>
-                      </AnalysisDialog>
+                        <Button size="lg" className="w-full" onClick={handleOpenAnalysis}>Generate Free Analysis</Button>
                   </CardContent>
               </Card>
             )}
@@ -166,22 +167,27 @@ const ResultsContent = () => {
               adUrl={adConfig.url}
           />
       )}
-      {showReviewDialog && (
-          <ReviewDialog
-            open={showReviewDialog}
-            onOpenChange={setShowReviewDialog}
-            attempt={attempt}
-          />
-      )}
+      <ReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        attempt={attempt}
+      />
+       <AnalysisDialog
+        attempt={attempt}
+        open={isAnalysisOpen}
+        onOpenChange={setIsAnalysisOpen}
+       />
     </PageWrapper>
   );
 };
 
 
-export default function QuizResultsPage() {
+const QuizResultsPage = () => {
     return (
         <Suspense fallback={<LoadingSkeleton />}>
             <ResultsContent />
         </Suspense>
     )
 }
+
+export default memo(QuizResultsPage);

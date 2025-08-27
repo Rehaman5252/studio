@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { generateQuizAnalysis } from "@/ai/flows/generate-quiz-analysis";
 import { QuizAnalysisOutputSchema } from "@/ai/schemas";
+import type { QuizAnalysisOutput } from "@/ai/schemas";
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await generateQuizAnalysis(body.attempt);
+    const result: QuizAnalysisOutput = await generateQuizAnalysis(body.attempt);
 
     // Double-check the shape before returning
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
