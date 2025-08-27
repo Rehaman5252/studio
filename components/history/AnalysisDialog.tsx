@@ -1,41 +1,28 @@
 
 "use client";
 
-import React, { useState, useEffect, memo } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import {
-  BarChart,
-  Target,
-  Zap,
-  Lightbulb,
-  Loader2,
-  ServerCrash,
-} from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import type { QuizAnalysisOutput, QuizAttempt } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
+import { BarChart, Lightbulb, Loader2, ServerCrash, Target, Zap } from 'lucide-react';
+import { memo, useEffect, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
-  children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const AnalysisDialogComponent = ({ attempt, children }: AnalysisDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialogProps) => {
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!open) return;
 
     const fetchAnalysis = async () => {
       setLoading(true);
@@ -65,13 +52,13 @@ const AnalysisDialogComponent = ({ attempt, children }: AnalysisDialogProps) => 
     };
 
     fetchAnalysis();
-  }, [isOpen, attempt]);
+  }, [open, attempt]);
   
   const renderContent = () => {
     if (loading) {
       return (
         <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-            <Loader2 className="animate-spin h-8 w-8 mb-4" />
+            <Loader2 className="animate-spin h-8 w-8 mb-4 text-primary" />
             <p className="font-semibold">Generating your analysis...</p>
             <p className="text-sm">The AI coach is reviewing the match footage.</p>
         </div>
@@ -155,8 +142,7 @@ const AnalysisDialogComponent = ({ attempt, children }: AnalysisDialogProps) => 
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">

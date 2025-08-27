@@ -1,19 +1,20 @@
 
 'use client';
 
-import { Skeleton } from '@/components/ui/skeleton';
+import type { CubeBrand } from './brandData';
+import type { QuizAttempt } from '@/ai/schemas';
+import { useAuth } from '@/context/AuthProvider';
+import { brandData } from '@/components/home/brandData';
+import { encodeAttempt } from '@/lib/quiz-utils';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/context/AuthProvider';
-import { memo, useState, useCallback } from 'react';
-import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { brandData } from '@/components/home/brandData';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
+import { memo, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { encodeAttempt } from '@/lib/quiz-utils';
-import type { CubeBrand } from './brandData';
 
 const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
     loading: () => <Skeleton className="h-40 w-full" />,
@@ -148,7 +149,7 @@ function HomePageClient() {
             
              <div className="mt-6">
                 <StartQuizButton
-                    brandFormat={hasPlayedInCurrentSlot ? lastAttemptInSlot!.format : selectedBrand.format}
+                    brandFormat={hasPlayedInCurrentSlot ? (lastAttemptInSlot as QuizAttempt).format : selectedBrand.format}
                     onClick={() => handleStartQuiz()}
                     isDisabled={isQuizStatusLoading}
                     hasPlayed={hasPlayedInCurrentSlot}

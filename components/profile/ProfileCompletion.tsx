@@ -1,29 +1,31 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { PercentCircle } from 'lucide-react';
-import { EditProfileDialog } from './EditProfileDialog';
-import { Button } from '../ui/button';
 import { useAuth } from '@/context/AuthProvider';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PercentCircle } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const EditProfileDialog = dynamic(() => 
+    import('./EditProfileDialog').then(mod => mod.EditProfileDialog), { ssr: false }
+);
 
 export default function ProfileCompletion() {
-    const { profile, isProfileComplete } = useAuth();
-
-    if (!profile || isProfileComplete) {
+    const { profile } = useAuth();
+    
+    if (!profile || isProfileConsideredComplete(profile)) {
         return null;
     }
 
     return (
-        <Card className="bg-amber-500/10 border-amber-500/30">
+        <Card className="bg-accent/10 border-accent/30">
             <CardHeader className='pb-2'>
-                <CardTitle className="text-base flex items-center gap-2 text-amber-500">
+                <CardTitle className="text-base flex items-center gap-2 text-accent">
                     <PercentCircle/> Complete Your Profile
                 </CardTitle>
-                <CardDescription className='text-amber-500/80'>
+                <CardDescription className='text-accent/80'>
                     You're almost there! Finish your profile to start playing.
                 </CardDescription>
             </CardHeader>

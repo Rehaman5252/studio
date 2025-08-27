@@ -1,18 +1,19 @@
 
 'use client';
 
-import React, { useState, memo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import type { LucideIcon } from 'lucide-react';
+import { Award, Ban, Calendar, Check, CheckCircle, Clock, Eye, ServerCrash, Sparkles, WifiOff } from 'lucide-react';
+import { memo, useState, useCallback } from 'react';
 import { AdDialog } from '../AdDialog';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { adLibrary } from '@/lib/ads';
-import AnalysisDialog from './AnalysisDialog';
-import ReviewDialog from './ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import AnalysisDialog from './AnalysisDialog';
+import ReviewDialog from './ReviewDialog';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -58,37 +59,43 @@ const getSlotTimings = (timestamp: number) => {
 const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const { markAttemptAsReviewed } = useAuth();
   const { toast } = useToast();
+  
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [isReviewed, setIsReviewed] = useState(attempt.reviewed || false);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
-  const handleReviewClick = () => {
-    if (!isReviewed) {
-        setShowAdDialog(true);
-    } else {
+  const handleReviewClick = useCallback(() => {
+    if (attempt.reviewed) {
         setShowReviewDialog(true);
+    } else {
+        setShowAdDialog(true);
     }
-  };
+  }, [attempt.reviewed]);
 
-  const handleAdFinished = async () => {
+  const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
     const { success } = await markAttemptAsReviewed(attempt.slotId);
-    if (success) {
-      setIsReviewed(true);
-    } else {
+    if (!success) {
       toast({
         title: "Update Failed",
         description: "Could not save the reviewed state. Please check your connection.",
         variant: "destructive"
       });
     }
+    // Still open the review dialog even if the save fails
     setShowReviewDialog(true);
-  };
+  }, [attempt.slotId, markAttemptAsReviewed, toast]);
   
   const attemptDate = new Date(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions;
   const isDisqualified = !!attempt.reason;
   const slotTiming = getSlotTimings(attempt.timestamp);
+
+  let Icon: LucideIcon = CheckCircle;
+  if(isDisqualified) Icon = Ban;
+  if(isPerfectScore) Icon = Award;
+  
+  const iconColor = isDisqualified ? "text-destructive" : "text-primary";
 
   return (
     <>
@@ -96,10 +103,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
             <CardHeader className='pb-4'>
                 <div className="flex items-start gap-4">
                     <div className="mt-1 flex-shrink-0">
-                        {isDisqualified ? <Ban className="h-8 w-8 text-destructive" />
-                        : isPerfectScore ? <Award className="h-8 w-8 text-primary" />
-                        : <CheckCircle className="h-8 w-8 text-primary" />
-                        }
+                        <Icon className={`h-8 w-8 ${iconColor}`} />
                     </div>
                     <div className="flex-grow">
                         <CardTitle className="text-lg">{attempt.format} Quiz</CardTitle>
@@ -123,41 +127,37 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
-                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
-                        {isReviewed ? 'Reviewed' : 'Review'}
+                        {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
+                        {attempt.reviewed ? 'Reviewed' : 'Review'}
                     </Button>
                     
-                    <AnalysisDialog attempt={attempt}>
-                        <Button variant="secondary" size="sm" disabled={isDisqualified}>
-                            <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                            Analysis
-                        </Button>
-                    </AnalysisDialog>
+                    <Button variant="secondary" size="sm" disabled={isDisqualified} onClick={() => setIsAnalysisOpen(true)}>
+                        <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                        Analysis
+                    </Button>
                 </div>
             </CardContent>
         </Card>
         
-        {showAdDialog && (
-            <AdDialog
-                open={showAdDialog}
-                onAdFinished={handleAdFinished}
-                duration={adLibrary.resultsAd.duration}
-                skippableAfter={adLibrary.resultsAd.skippableAfter}
-                adTitle={adLibrary.resultsAd.title}
-                adType={adLibrary.resultsAd.type}
-                adUrl={adLibrary.resultsAd.url}
-            >
-                 <p className="text-xs text-muted-foreground mt-2">Watch this ad to review your answers. This is a one-time action per quiz.</p>
-            </AdDialog>
-        )}
-
-        {showReviewDialog && (
-          <ReviewDialog
-              open={showReviewDialog}
-              onOpenChange={setShowReviewDialog}
-              attempt={attempt}
-          />
-        )}
+        <AdDialog
+            open={showAdDialog}
+            onOpenChange={setShowAdDialog}
+            onAdFinished={handleAdFinished}
+            {...adLibrary.resultsAd}
+        >
+             <p className="text-xs text-muted-foreground mt-2">Watch this ad to review your answers. This is a one-time action per quiz.</p>
+        </AdDialog>
+        
+        <ReviewDialog
+            open={showReviewDialog}
+            onOpenChange={setShowReviewDialog}
+            attempt={attempt}
+        />
+        <AnalysisDialog 
+            open={isAnalysisOpen}
+            onOpenChange={setIsAnalysisOpen}
+            attempt={attempt}
+        />
     </>
   );
 };

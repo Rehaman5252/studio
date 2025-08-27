@@ -1,28 +1,20 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-  DialogClose,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, Edit } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthProvider';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Timestamp } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthProvider';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
 
 const profileSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -40,18 +32,16 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 const occupations = ["Student", "Employee", "Business", "Professional", "Homemaker", "Other"];
 const cricketFormats = ["Test", "ODI", "T20", "IPL", "WPL", "Mixed"];
 const cricketTeams = [
-    // IPL Teams
     "Chennai Super Kings", "Delhi Capitals", "Gujarat Titans", "Kolkata Knight Riders", 
     "Lucknow Super Giants", "Mumbai Indians", "Punjab Kings", "Rajasthan Royals", 
     "Royal Challengers Bengaluru", "Sunrisers Hyderabad",
-    // International Teams
     "Team India", "Team Australia", "Team England", "Team South Africa", "Team New Zealand",
     "Team Pakistan", "Team Sri Lanka", "Team West Indies", "Team Bangladesh", "Other"
 ];
 
 interface EditProfileDialogProps {
   userProfile: any;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function EditProfileDialog({ userProfile, children }: EditProfileDialogProps) {
@@ -81,7 +71,6 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
     try {
       await updateUserData({
           ...data,
-          profileCompleted: true,
       });
       toast({ title: 'Success!', description: 'Your profile has been updated.' });
       setOpen(false);
@@ -136,12 +125,12 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
                 <Label htmlFor="gender">Gender</Label>
                 <Controller name="gender" control={control} render={({ field }) => (
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
+                        <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
                     </Select>
                 )} />
                 {errors.gender && <p className="text-destructive text-sm mt-1">{errors.gender.message}</p>}
