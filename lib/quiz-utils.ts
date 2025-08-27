@@ -9,8 +9,26 @@ import { sanitizeUserProfile } from './sanitizeUserProfile';
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
  */
-export const encodeAttempt = (attempt: QuizAttempt): string => 
-     encodeURIComponent(btoa(JSON.stringify(sanitizeUserProfile(attempt))));
+export const encodeAttempt = (attempt: QuizAttempt): string => {
+    try {
+        return encodeURIComponent(btoa(JSON.stringify(sanitizeUserProfile(attempt))));
+    } catch (e) {
+        console.error("Failed to encode attempt:", e);
+        return "";
+    }
+}
+
+/**
+ * Decodes a Base64 string from a URL into a QuizAttempt object.
+ */
+export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
+    try {
+        return JSON.parse(atob(decodeURIComponent(encodedAttempt)));
+    } catch (e) {
+        console.error("Failed to decode attempt:", e);
+        return null;
+    }
+}
 
 
 interface BuildAttemptArgs {

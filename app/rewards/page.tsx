@@ -5,16 +5,18 @@ import React, { memo } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { Gift, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { GenericOffer } from '@/components/rewards/RewardsContent';
 import PageWrapper from '@/components/PageWrapper';
-
 
 const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => <RewardsSkeleton />,
   ssr: false,
 });
+const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
+    loading: () => <Skeleton className="h-56 w-full" />,
+});
+
 
 const RewardsSkeleton = () => (
     <div className="space-y-8">

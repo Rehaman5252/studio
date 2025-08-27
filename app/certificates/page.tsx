@@ -1,12 +1,21 @@
 
 'use client';
 
-import CertificatesContent from '@/components/certificates/CertificatesContent';
-import LoginPrompt from '@/components/auth/LoginPrompt';
 import { useAuth } from '@/context/AuthProvider';
 import { Award } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageWrapper from '@/components/PageWrapper';
+import dynamic from 'next/dynamic';
+
+const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
+    loading: () => <CertificatesSkeleton />,
+    ssr: false,
+});
+const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
+    loading: () => <Skeleton className="h-56 w-full" />,
+    ssr: false,
+});
+
 
 const CertificatesSkeleton = () => (
     <div className="space-y-4">

@@ -6,10 +6,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
-import { memo, useMemo, useState, useCallback } from 'react';
-import StartQuizButton from '@/components/home/StartQuizButton';
+import { memo, useState, useCallback } from 'react';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { getQuizSlotId } from '@/lib/utils';
 import { brandData, CubeBrand } from '@/components/home/brandData';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +23,11 @@ const HomeClientContent = dynamic(() => import('@/components/home/HomeClientCont
     loading: () => <HomeContentSkeleton />,
     ssr: false 
 });
+
+const StartQuizButton = dynamic(() => import('@/components/home/StartQuizButton'), {
+    loading: () => <Skeleton className="h-12 w-full rounded-full" />,
+});
+
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse">
@@ -53,7 +56,6 @@ const MalpracticeWarning = memo(() => {
     const noBallCount = profile.noBallCount || 0;
     if (noBallCount <= 0 || noBallCount >= 3) return null;
 
-    // Check if the last no-ball was today
     const today = new Date().setHours(0, 0, 0, 0);
     const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
 
@@ -62,13 +64,19 @@ const MalpracticeWarning = memo(() => {
     const warningsLeft = 3 - noBallCount;
     
     return (
-        <Alert variant="destructive" className="mb-4 animate-fade-in-up">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Fair Play Warning!</AlertTitle>
-            <AlertDescription>
-                You have {noBallCount} No-Ball(s) today. {warningsLeft} more and you're Out for the Day! Please contact support to appeal.
-            </AlertDescription>
-        </Alert>
+        <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+        >
+            <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Fair Play Warning!</AlertTitle>
+                <AlertDescription>
+                    You have {noBallCount} No-Ball(s) today. {warningsLeft} more and you're Out for the Day! Please contact support to appeal.
+                </AlertDescription>
+            </Alert>
+        </motion.div>
     )
 });
 MalpracticeWarning.displayName = 'MalpracticeWarning';
@@ -81,11 +89,7 @@ function HomePage() {
     const { toast } = useToast();
     const [selectedBrand, setSelectedBrand] = useState(brandData[0]);
 
-    const hasPlayedInCurrentSlot = useMemo(() => {
-        if (!user || !lastAttemptInSlot) return false;
-        // The check for the current slot ID is implicitly handled by how lastAttemptInSlot is fetched
-        return !!lastAttemptInSlot;
-    }, [user, lastAttemptInSlot]);
+    const hasPlayedInCurrentSlot = !!lastAttemptInSlot;
 
     const handleStartQuiz = useCallback((brandToPlay?: CubeBrand) => {
         const brand = brandToPlay || selectedBrand;
@@ -130,7 +134,7 @@ function HomePage() {
           indcric
         </h1>
         <p className="mt-1 text-base font-normal text-foreground/80">
-          Win ₹100 for every 100 seconds!
+          Win &#8377;100 for every 100 seconds!
         </p>
       </div>
     );

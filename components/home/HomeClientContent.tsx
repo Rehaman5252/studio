@@ -2,14 +2,16 @@
 'use client';
 
 import React, { memo } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import QuizSelection from '@/components/home/QuizSelection';
-import GuidedTour from '@/components/home/GuidedTour';
 import type { CubeBrand } from './brandData';
-import { useToast } from '@/hooks/use-toast';
-import { encodeAttempt } from '@/lib/quiz-utils';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '../ui/skeleton';
 
+const QuizSelection = dynamic(() => import('@/components/home/QuizSelection'), {
+    loading: () => <Skeleton className="h-[450px] w-full" />,
+    ssr: false
+});
+const GuidedTour = dynamic(() => import('@/components/home/GuidedTour'), { ssr: false });
 
 interface HomeClientContentProps {
     selectedBrand: CubeBrand;

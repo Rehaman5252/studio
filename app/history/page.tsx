@@ -3,31 +3,36 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { History, ServerCrash, WifiOff, Award, Trophy } from 'lucide-react';
+import { History, Award, Trophy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { motion } from 'framer-motion';
-import RecentHistory from '@/components/history/RecentHistory';
-import AllHistory from '@/components/history/AllHistory';
-import PerfectScoresHistory from '@/components/history/PerfectScoresHistory';
 import PageWrapper from '@/components/PageWrapper';
+import dynamic from 'next/dynamic';
 
-const HistorySkeleton = () => (
+const RecentHistory = dynamic(() => import('@/components/history/RecentHistory'), {
+    loading: () => <HistorySkeleton count={3} />,
+    ssr: false,
+});
+const AllHistory = dynamic(() => import('@/components/history/AllHistory'), {
+    loading: () => <HistorySkeleton count={5} />,
+    ssr: false,
+});
+const PerfectScoresHistory = dynamic(() => import('@/components/history/PerfectScoresHistory'), {
+    loading: () => <HistorySkeleton count={2} />,
+    ssr: false,
+});
+const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
+    loading: () => <Skeleton className="h-56 w-full" />,
+});
+
+
+const HistorySkeleton = ({ count = 3 }: { count?: number}) => (
     <div className="space-y-4 pt-4">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
+        {Array.from({ length: count }).map((_, i) => (
+             <Skeleton key={i} className="h-24 w-full" />
+        ))}
     </div>
-);
-
-const ErrorState = ({ message }: { message: string }) => (
-    <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Error Loading History</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-    </Alert>
 );
 
 export default function HistoryPage() {

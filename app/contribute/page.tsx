@@ -1,28 +1,42 @@
 
-
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
-import ContributionStats from '@/components/profile/ContributionStats';
-import UserSubmissionsList from '@/components/profile/UserSubmissionsList';
-import FactForm from '@/components/profile/FactForm';
-import PostForm from '@/components/profile/PostForm';
-import QuestionForm from '@/components/profile/QuestionForm';
 import PageWrapper from '@/components/PageWrapper';
 import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/components/auth/LoginPrompt';
 import { Edit } from 'lucide-react';
-import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), { loading: () => <Skeleton className="h-56 w-full" />});
+const ContributionStats = dynamic(() => import('@/components/profile/ContributionStats'), { loading: () => <Skeleton className="h-48 w-full" />});
+const UserSubmissionsList = dynamic(() => import('@/components/profile/UserSubmissionsList'), { loading: () => <Skeleton className="h-32 w-full" />});
+const FactForm = dynamic(() => import('@/components/profile/FactForm'), { loading: () => <Skeleton className="h-48 w-full" />});
+const PostForm = dynamic(() => import('@/components/profile/PostForm'), { loading: () => <Skeleton className="h-64 w-full" />});
+const QuestionForm = dynamic(() => import('@/components/profile/QuestionForm'), { loading: () => <Skeleton className="h-96 w-full" />});
+
+
+const LoadingSkeleton = () => (
+    <div className="space-y-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-48 w-full" />
+    </div>
+);
 
 export default function ContributePage() {
     const [activeTab, setActiveTab] = useState('stats');
     const { user, loading } = useAuth();
     
     if (loading) {
-        return <ProfileSkeleton />;
+        return (
+            <PageWrapper title="Commentary Box" showBackButton>
+                <LoadingSkeleton />
+            </PageWrapper>
+        );
     }
 
     if (!user) {

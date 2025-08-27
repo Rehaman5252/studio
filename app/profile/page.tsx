@@ -7,16 +7,21 @@ import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { UserCheck, ServerCrash, WifiOff, Settings, Scale, LogOut, ChevronRight, Award, Edit } from 'lucide-react';
 import { useAuth } from "@/context/AuthProvider";
-import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Button } from "@/components/ui/button";
-import SupportCard from "@/components/profile/SupportCard";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/PageWrapper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
   ssr: false,
+});
+const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
+    loading: () => <Skeleton className="h-56 w-full" />,
+});
+const SupportCard = dynamic(() => import('@/components/profile/SupportCard'), {
+    loading: () => <Skeleton className="h-28 w-full" />,
 });
 
 function ProfilePageContent() {
@@ -72,7 +77,6 @@ function ProfilePageContent() {
         )
     }
     
-    // Render the user-specific components
     return <ProfileContent />;
   }
 
@@ -112,7 +116,7 @@ function ProfilePageContent() {
         </section>
         
         {user && (
-            <Card className="bg-card shadow-lg">
+            <Card className="bg-card shadow-lg mt-4">
                 <CardHeader>
                     <CardTitle className="text-lg">Commentary Box</CardTitle>
                     <CardDescription>

@@ -2,20 +2,23 @@
 'use client';
 
 import { Suspense, useMemo, useState, memo } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, BarChart, Home, Sparkles, Cpu, BookOpen, Clock, Eye, XCircle, CheckCircle, Trophy, BadgeCheck } from 'lucide-react';
+import { Home, Sparkles, Cpu, BookOpen, Clock, Eye, Trophy, BadgeCheck } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
-import AnalysisDialog from '@/components/history/AnalysisDialog';
 import { Badge } from '@/components/ui/badge';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { AdDialog } from '@/components/AdDialog';
-import ReviewDialog from '@/components/history/ReviewDialog';
-import { adLibrary } from '@/lib/ads';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+import { decodeAttempt } from '@/lib/quiz-utils';
+
+const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
+const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
+const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'));
 
 const CountdownTimer = memo(() => {
     const { timeLeft } = useQuizStatus();
@@ -33,24 +36,36 @@ const CountdownTimer = memo(() => {
 });
 CountdownTimer.displayName = 'CountdownTimer';
 
+const LoadingSkeleton = () => (
+    <PageWrapper title="Loading Results...">
+        <div className="space-y-4 animate-pulse">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <div className="space-y-3 pt-4">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+            </div>
+        </div>
+    </PageWrapper>
+)
+
 const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const pathname = usePathname();
   const [showAnswersAd, setShowAnswersAd] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
 
-  const attemptData = searchParams.get('attempt');
-
   const attempt: QuizAttempt | null = useMemo(() => {
-    if (!attemptData) return null;
-    try {
-      return JSON.parse(atob(decodeURIComponent(attemptData)));
-    } catch (e) {
-      console.error("Failed to parse attempt data:", e);
-      return null;
-    }
-  }, [attemptData]);
+      const attemptData = searchParams.get('attempt');
+      if (!attemptData) return null;
+      return decodeAttempt(attemptData);
+  }, [searchParams]);
+
+  const adConfig = useMemo(() => {
+      // Lazy load ad config to avoid importing it on every page
+      return require('@/lib/ads').adLibrary.resultsAd;
+  }, []);
 
   const handleViewAnswers = () => {
     setShowAnswersAd(true);
@@ -154,22 +169,24 @@ const ResultsContent = () => {
         </Button>
       </div>
 
-      {showAnswersAd && (
+      {showAnswersAd && adConfig && (
           <AdDialog
               open={showAnswersAd}
               onAdFinished={onAdFinished}
-              duration={adLibrary.resultsAd.duration}
-              skippableAfter={adLibrary.resultsAd.skippableAfter}
-              adTitle={adLibrary.resultsAd.title}
-              adType={adLibrary.resultsAd.type}
-              adUrl={adLibrary.resultsAd.url}
+              duration={adConfig.duration}
+              skippableAfter={adConfig.skippableAfter}
+              adTitle={adConfig.title}
+              adType={adConfig.type}
+              adUrl={adConfig.url}
           />
       )}
-      <ReviewDialog
-        open={showReviewDialog}
-        onOpenChange={setShowReviewDialog}
-        attempt={attempt}
-      />
+      {showReviewDialog && (
+          <ReviewDialog
+            open={showReviewDialog}
+            onOpenChange={setShowReviewDialog}
+            attempt={attempt}
+          />
+      )}
     </PageWrapper>
   );
 };
@@ -177,7 +194,7 @@ const ResultsContent = () => {
 
 export default function QuizResultsPage() {
     return (
-        <Suspense fallback={<div>Loading results...</div>}>
+        <Suspense fallback={<LoadingSkeleton />}>
             <ResultsContent />
         </Suspense>
     )
