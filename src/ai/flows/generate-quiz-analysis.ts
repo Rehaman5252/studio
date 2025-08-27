@@ -15,45 +15,16 @@ import { z } from 'zod';
 import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 
-const FALLBACK_ANALYSIS: Omit<QuizAnalysisOutput, 'source'> = {
-  overallPerformance:
-    "We could not generate a personalized analysis this time. Here's a general review.",
-  accuracy: 0,
-  averageTimePerQuestion: 0,
-  keyStrengths: ["Good engagement with cricket knowledge.", "Strong attempt overall."],
-  areasForImprovement: [
+
+const fallbackAnalysis: QuizAnalysisOutput = {
+  summary: "We could not generate a personalized analysis this time. Here's a general review.",
+  strengths: ["Good engagement with cricket knowledge.", "Strong attempt overall."],
+  weaknesses: ["AI analysis was unavailable for this session."],
+  recommendations: [
     "Review recent cricket statistics and match results.",
     "Practice time-bound quizzes to improve speed.",
   ],
-  coachTip: "Focus on one format for a few days to build deep expertise before switching to another.",
-  analyzedQuestions: [],
-};
-
-
-/**
- * Generates a deterministic, rules-based fallback analysis if the AI fails.
- * @param attempt - The sanitized quiz attempt data.
- * @returns A complete QuizAnalysisOutput object.
- */
-const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
-    const accuracy = (attempt.totalQuestions > 0) ? (attempt.score / attempt.totalQuestions) * 100 : 0;
-    const averageTime = (attempt.totalQuestions > 0) ? ((attempt.timePerQuestion?.reduce((a,b) => a+b, 0) || 0) / attempt.totalQuestions) : 0;
-
-    return {
-        ...FALLBACK_ANALYSIS,
-        overallPerformance: `A solid effort on the ${attempt.format} quiz! You've got a great foundation to build upon.`,
-        accuracy: parseFloat(accuracy.toFixed(1)),
-        averageTimePerQuestion: parseFloat(averageTime.toFixed(1)),
-        analyzedQuestions: attempt.questions.map((q, i) => ({
-            question: q.question,
-            userAnswer: attempt.userAnswers[i] || 'Not Answered',
-            correctAnswer: q.correctAnswer,
-            isCorrect: attempt.userAnswers[i] === q.correctAnswer,
-            timeTaken: attempt.timePerQuestion?.[i] || 0,
-            category: "General"
-        })),
-        source: 'fallback',
-    };
+  source: "fallback",
 };
 
 
@@ -72,7 +43,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
             slotId: sanitized.slotId,
             error: error?.errors ?? error,
         });
-        return getFallbackAnalysis(sanitized as QuizAttempt);
+        return fallbackAnalysis;
     }
 }
 
@@ -93,14 +64,11 @@ const prompt = ai.definePrompt({
         - Time Taken: {{../timePerQuestion.[@index]}}s
       {{/each}}
 
-    Based on this data, generate a comprehensive analysis. Follow these steps:
-    1.  **Calculate Metrics:** Determine the overall accuracy percentage and the average time per question.
-    2.  **Categorize Each Question:** For each question, assign a specific, granular category. Examples: 'IPL Batting Records', 'Test Match History', 'Cricket Terminology', 'Player Nicknames', 'World Cup 2011'.
-    3.  **Overall Summary:** Write a brief, encouraging summary of the user's performance.
-    4.  **Identify Strengths:** Based on the question categories answered correctly and quickly, identify 2-3 key strengths.
-    5.  **Identify Improvement Areas:** Based on the categories where answers were incorrect or slow, identify 2-3 areas for improvement.
-    6.  **Provide a Coach's Tip:** Give one single, powerful, and personalized tip for the user to focus on for their next quiz.
-    7.  **Format Output:** Compile all this information into the required JSON format, including the detailed analysis for every single question.
+    Based on this data, generate a comprehensive analysis. Respond in a JSON object with the following keys: "summary", "strengths", "weaknesses", "recommendations".
+    - summary: A concise, one-paragraph summary of the user's performance.
+    - strengths: An array of 2-3 strings highlighting what the user did well.
+    - weaknesses: An array of 2-3 strings pointing out areas for improvement.
+    - recommendations: An array of 2-3 actionable tips for the user.
   `,
 });
 
@@ -114,20 +82,17 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     async (input) => {
         try {
             const { output } = await prompt(input);
-            
-            // Validate the AI's output against our schema.
             const parsed = QuizAnalysisOutputSchema.safeParse(output);
             
             if (!parsed.success) {
-                console.error("AI analysis returned invalid shape:", parsed.error);
-                throw new Error("AI output validation failed.");
+                console.error("[AnalysisFlow] Schema validation failed:", parsed.error.format());
+                return fallbackAnalysis;
             }
 
-            return { ...parsed.data, source: 'ai' };
+            return { ...parsed.data, source: "ai" };
         } catch (error) {
-             console.error("Error during AI analysis flow execution:", error);
-             // Instead of re-throwing, we now return the deterministic fallback.
-             return getFallbackAnalysis(input);
+             console.error("[AnalysisFlow] Unexpected error:", error);
+             return fallbackAnalysis;
         }
     }
 );

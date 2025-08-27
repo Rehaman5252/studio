@@ -41,24 +41,16 @@ export const QuizAttempt = z.object({
   source: z.enum(['ai', 'fallback']).optional().describe("The source of the quiz data."),
 });
 
+
 // Schema for the AI's analysis output.
 export const QuizAnalysisOutputSchema = z.object({
-    overallPerformance: z.string().describe("A brief, encouraging summary of the user's overall performance in one or two sentences."),
-    accuracy: z.number().describe("The user's accuracy percentage."),
-    averageTimePerQuestion: z.number().describe("The average time the user took per question, in seconds."),
-    keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
-    areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories they answered incorrectly or slowly."),
-    coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),
-    analyzedQuestions: z.array(z.object({
-        question: z.string().describe("The original question text."),
-        userAnswer: z.string().describe("The answer the user provided."),
-        correctAnswer: z.string().describe("The correct answer."),
-        isCorrect: z.boolean().describe("Whether the user's answer was correct."),
-        timeTaken: z.number().describe("Time taken for this question in seconds."),
-        category: z.string().describe("A specific category for the question (e.g., 'IPL History', 'Test Bowling Records', 'Player Nicknames', 'Cricket Rules').")
-    })).describe("An array containing the analysis for each individual question."),
-    source: z.enum(['ai', 'fallback']).optional().describe("The source of the analysis data."),
+  summary: z.string().min(1, "Summary is required"),
+  strengths: z.array(z.string()).default([]),
+  weaknesses: z.array(z.string()).default([]),
+  recommendations: z.array(z.string()).default([]),
+  source: z.enum(["ai", "fallback"]).default("fallback"),
 });
+
 
 // Infer TypeScript types from the Zod schemas
 export type QuizQuestion = z.infer<typeof QuizQuestion>;

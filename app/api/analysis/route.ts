@@ -1,41 +1,48 @@
 
 import { NextResponse } from 'next/server';
 import { generateQuizAnalysis } from '@/ai/flows/generate-quiz-analysis';
-import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
+import { QuizAnalysisOutputSchema } from '@/ai/schemas';
 
-export const dynamic = 'force-dynamic'; // Ensure this is a dynamic route
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  console.log(`[analysis][${reqId}] incoming request`);
-
   try {
-    const { attempt: rawAttempt } = await req.json();
+    const { attempt } = await req.json();
 
-    if (!rawAttempt || typeof rawAttempt !== 'object') {
+    if (!attempt) {
       return NextResponse.json(
-        { error: 'Missing or invalid attempt data.' },
+        { error: "Missing quiz attempt data." },
         { status: 400 }
       );
     }
     
-    // The generateQuizAnalysis function is hardened to handle sanitization,
-    // validation, and AI failures internally, always returning a valid analysis object.
-    const analysis = await generateQuizAnalysis(rawAttempt);
+    const analysis = await generateQuizAnalysis(attempt);
 
-    return NextResponse.json(analysis);
+    const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
+    if (!parsed.success) {
+      console.error("[Analysis API] Validation failed for generated analysis:", parsed.error.format());
+      return NextResponse.json({
+        summary: "Analysis service is temporarily unavailable.",
+        strengths: [],
+        weaknesses: [],
+        recommendations: [],
+        source: "fallback",
+      });
+    }
+
+    return NextResponse.json(parsed.data);
 
   } catch (error: any) {
-    console.error(`[analysis][${reqId}] Unhandled error in API route:`, error);
-    // This catch block is a secondary safety net.
+    console.error("Analysis API error:", error);
     return NextResponse.json(
       {
         summary: "Analysis service is temporarily unavailable.",
         strengths: [],
-        improvements: [],
+        weaknesses: [],
+        recommendations: [],
         source: "fallback",
       },
-      { status: 200 } // Return 200 with fallback data to prevent client error
+      { status: 500 } 
     );
   }
 }
