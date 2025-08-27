@@ -28,7 +28,7 @@ export default function ReviewDialog({ open, onOpenChange, attempt }: ReviewDial
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4 py-4">
                     {attempt.questions.map((question, index) => (
-                        <Card key={question.id} className="bg-card/50">
+                        <Card key={`${attempt.slotId}-${question.id}-${index}`} className="bg-card/50">
                             <CardHeader>
                                 <CardTitle className="text-base font-bold text-foreground">{index + 1}. {question.question}</CardTitle>
                             </CardHeader>
