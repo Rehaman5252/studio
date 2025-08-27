@@ -2,10 +2,11 @@
 'use client';
 
 import { Suspense, useMemo, useState, memo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, BarChart, Home, Sparkles, Cpu, BookOpen, Clock, Eye, XCircle, CheckCircle, Trophy } from 'lucide-react';
+import { Award, BarChart, Home, Sparkles, Cpu, BookOpen, Clock, Eye, XCircle, CheckCircle, Trophy, BadgeCheck } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
 import AnalysisDialog from '@/components/history/AnalysisDialog';
@@ -35,6 +36,7 @@ CountdownTimer.displayName = 'CountdownTimer';
 const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const [showAnswersAd, setShowAnswersAd] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
 
@@ -92,6 +94,7 @@ const ResultsContent = () => {
                     <>
                         <Trophy className="h-16 w-16 mx-auto text-yellow-400 animate-bounce" />
                         <CardTitle className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">Perfect Score!</CardTitle>
+                        <CardDescription className="text-lg">Congratulations! You've earned a certificate!</CardDescription>
                     </>
                 ) : (
                     <CardTitle className="text-3xl font-bold">{isDisqualified ? 'Disqualified (No-Ball)' : 'Quiz Complete!'}</CardTitle>
@@ -128,6 +131,13 @@ const ResultsContent = () => {
       <div className="space-y-3 pt-6">
         {!isDisqualified && (
           <>
+            {isPerfectScore && (
+                <Button asChild size="lg" className="w-full h-14 text-base bg-gradient-to-r from-yellow-400 to-amber-600 text-black hover:from-yellow-500 hover:to-amber-700 animate-glow">
+                   <Link href="/certificates">
+                     <BadgeCheck className="mr-2 h-5 w-5" /> View Certificate
+                   </Link>
+                </Button>
+            )}
             <Button size="lg" className="w-full h-14 text-base" onClick={handleViewAnswers}>
               <Eye className="mr-2 h-5 w-5" /> View Answers
             </Button>
