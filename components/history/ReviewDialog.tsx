@@ -5,7 +5,7 @@ import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
 import { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
 import { Award, CheckCircle, XCircle } from 'lucide-react';
 
