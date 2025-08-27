@@ -1,5 +1,5 @@
 
-import { Timestamp } from "firebase/firestore";
+import type { Timestamp } from "firebase/firestore";
 
 const MANDATORY_PROFILE_FIELDS = [
     'name', 'email', 'phone', 'dob', 'gender', 'occupation', 'upi', 

@@ -124,7 +124,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. Playing a classic set instead.";
       
-      if (e.message.includes("Failed to fetch")) {
+      if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
         userMessage = "📴 You appear to be offline. Please check your connection.";
       }
       
@@ -233,7 +233,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     if (!quizData || isHintLoading) return;
     const adConfig = adLibrary.hintAds[currentQuestionIndex];
     if (adConfig) {
-      setAdForHint(adConfig as any);
+      setAdForHint(adConfig);
       setShowAdDialog(true);
     }
   }, [quizData, currentQuestionIndex, isHintLoading]);
@@ -249,7 +249,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
     } catch (e) {
       console.error("Failed to get AI hint:", e);
-      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback" } }));
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
     } finally {
       setIsHintLoading(false);
     }

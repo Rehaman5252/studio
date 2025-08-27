@@ -10,8 +10,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { QuizAttempt } from '@/ai/schemas';
-import type { QuizAnalysisOutput } from "@/ai/flows/generate-quiz-analysis";
+import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   BarChart,
@@ -26,30 +25,17 @@ import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
-  children?: React.ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  children: React.ReactNode;
 }
 
-const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOpenChange }: AnalysisDialogProps) => {
-  const isControlled = typeof controlledOpen === 'boolean' && typeof onOpenChange === 'function';
-  const [internalOpen, setInternalOpen] = useState(false);
-  
-  const open = isControlled ? controlledOpen : internalOpen;
-  const setOpen = (newOpenState: boolean) => {
-    if (isControlled) {
-      onOpenChange(newOpenState);
-    } else {
-      setInternalOpen(newOpenState);
-    }
-  };
-
+const AnalysisDialogComponent = ({ attempt, children }: AnalysisDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
 
     const fetchAnalysis = async () => {
       setLoading(true);
@@ -79,7 +65,7 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
     };
 
     fetchAnalysis();
-  }, [open, attempt]);
+  }, [isOpen, attempt]);
   
   const renderContent = () => {
     if (loading) {
@@ -169,8 +155,8 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">

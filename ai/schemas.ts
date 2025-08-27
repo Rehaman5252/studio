@@ -1,7 +1,5 @@
 
 import { z } from 'zod';
-import type { HintOutput as HintOutputType } from './flows/ai-powered-hints';
-import type { QuizAnalysisOutput as QuizAnalysisOutputType } from './flows/generate-quiz-analysis';
 
 /**
  * @fileOverview Zod schemas for the indcric application.
@@ -44,9 +42,28 @@ export const QuizAttempt = z.object({
   reviewed: z.boolean().optional().default(false).describe("Whether the user has reviewed the answers."),
 });
 
+// Schema for the AI's analysis output.
+export const QuizAnalysisOutputSchema = z.object({
+  overallPerformance: z.string().describe("A brief, encouraging summary of the user's overall performance in one or two sentences."),
+  accuracy: z.number().describe("The user's accuracy percentage."),
+  averageTimePerQuestion: z.number().describe("The average time the user took per question, in seconds."),
+  keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
+  areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories they answered incorrectly or slowly."),
+  coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),
+  analyzedQuestions: z.array(z.object({
+    question: z.string().describe("The original question text."),
+    userAnswer: z.string().describe("The answer the user provided."),
+    correctAnswer: z.string().describe("The correct answer."),
+    isCorrect: z.boolean().describe("Whether the user's answer was correct."),
+    timeTaken: z.number().describe("Time taken for this question in seconds."),
+    category: z.string().describe("A specific category for the question (e.g., 'IPL History', 'Test Bowling Records', 'Player Nicknames', 'Cricket Rules').")
+  })).describe("An array containing the analysis for each individual question."),
+  source: z.enum(["ai", "fallback"]).default("fallback"),
+});
+
 // Infer TypeScript types from the Zod schemas
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
-export type HintOutput = HintOutputType;
-export type QuizAnalysisOutput = QuizAnalysisOutputType;
+export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
+export type HintOutput = import('./flows/ai-powered-hints').HintOutput;

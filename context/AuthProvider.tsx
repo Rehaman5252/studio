@@ -4,10 +4,10 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, runTransaction, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, writeBatch, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
-import type { QuizAttempt } from '@/ai/schemas';
+import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
@@ -427,21 +427,16 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
 
-    setQuizHistory(prev => ({
-        ...prev,
-        data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
-    }));
-
     try {
         const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
         await updateDoc(attemptRef, { reviewed: true });
+        setQuizHistory(prev => ({
+            ...prev,
+            data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
+        }));
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
-        setQuizHistory(prev => ({
-            ...prev,
-            data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
-        }));
         return { success: false };
     }
   }, [user]);

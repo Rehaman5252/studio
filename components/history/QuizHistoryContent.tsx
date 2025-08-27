@@ -60,9 +60,10 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const { toast } = useToast();
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [isReviewed, setIsReviewed] = useState(attempt.reviewed || false);
 
   const handleReviewClick = () => {
-    if (!attempt.reviewed) {
+    if (!isReviewed) {
         setShowAdDialog(true);
     } else {
         setShowReviewDialog(true);
@@ -72,7 +73,9 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const handleAdFinished = async () => {
     setShowAdDialog(false);
     const { success } = await markAttemptAsReviewed(attempt.slotId);
-    if (!success) {
+    if (success) {
+      setIsReviewed(true);
+    } else {
       toast({
         title: "Update Failed",
         description: "Could not save the reviewed state. Please check your connection.",
@@ -120,8 +123,8 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
-                        {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
-                        {attempt.reviewed ? 'Reviewed' : 'Review'}
+                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
+                        {isReviewed ? 'Reviewed' : 'Review'}
                     </Button>
                     
                     <AnalysisDialog attempt={attempt}>
@@ -148,11 +151,13 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
             </AdDialog>
         )}
 
-        <ReviewDialog
-            open={showReviewDialog}
-            onOpenChange={setShowReviewDialog}
-            attempt={attempt}
-        />
+        {showReviewDialog && (
+          <ReviewDialog
+              open={showReviewDialog}
+              onOpenChange={setShowReviewDialog}
+              attempt={attempt}
+          />
+        )}
     </>
   );
 };

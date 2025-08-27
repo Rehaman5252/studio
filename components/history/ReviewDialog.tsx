@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogPortal } from '@/components/ui/dialog';
+import { useState, memo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Award } from 'lucide-react';
@@ -15,7 +15,7 @@ interface ReviewDialogProps {
   attempt: QuizAttempt;
 }
 
-export default function ReviewDialog({ open, onOpenChange, attempt }: ReviewDialogProps) {
+const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProps) => {
     const [reportingQuestion, setReportingQuestion] = useState<QuizQuestion | null>(null);
 
     if (!attempt) return null;
@@ -94,3 +94,5 @@ export default function ReviewDialog({ open, onOpenChange, attempt }: ReviewDial
         </>
     );
 }
+
+export default memo(ReviewDialogComponent);
