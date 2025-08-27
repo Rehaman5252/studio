@@ -48,7 +48,8 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
             isCorrect: attempt.userAnswers[i] === q.correctAnswer,
             timeTaken: attempt.timePerQuestion?.[i] || 0,
             category: "General" // Fallback category
-        }))
+        })),
+        source: 'fallback',
     };
 };
 
@@ -118,16 +119,16 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     async (input) => {
         try {
             const { output } = await prompt(input);
-            // If the AI model fails to return a valid output, throw an error to trigger the fallback in the parent function.
             if (!output) {
                 throw new Error("AI analysis returned a null or empty response.");
             }
-            // Zod parse to ensure the AI output conforms to the schema
-            return QuizAnalysisOutputSchema.parse(output);
+            // Validate the AI's output against our schema. If it fails, Zod throws, and we go to the catch block.
+            const validatedOutput = QuizAnalysisOutputSchema.parse(output);
+            return { ...validatedOutput, source: 'ai' };
         } catch (error) {
              console.error("Error during AI analysis flow execution:", error);
-             // Re-throw the error to be caught by the parent `generateQuizAnalysis` function, which will then generate the fallback.
-             throw error;
+             // Instead of re-throwing, we now return the deterministic fallback.
+             return getFallbackAnalysis(input);
         }
     }
 );

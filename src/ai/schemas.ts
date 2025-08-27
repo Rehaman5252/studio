@@ -56,7 +56,8 @@ export const QuizAnalysisOutputSchema = z.object({
         isCorrect: z.boolean().describe("Whether the user's answer was correct."),
         timeTaken: z.number().describe("Time taken for this question in seconds."),
         category: z.string().describe("A specific category for the question (e.g., 'IPL History', 'Test Bowling Records', 'Player Nicknames', 'Cricket Rules').")
-    })).describe("An array containing the analysis for each individual question.")
+    })).describe("An array containing the analysis for each individual question."),
+    source: z.enum(['ai', 'fallback']).optional().describe("The source of the analysis data."),
 });
 
 // Infer TypeScript types from the Zod schemas

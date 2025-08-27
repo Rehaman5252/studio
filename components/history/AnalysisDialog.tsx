@@ -25,6 +25,7 @@ import {
   Lightbulb,
   CheckCircle2,
   XCircle,
+  Info
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 const AnalysisSkeleton = () => (
   <div className="space-y-4 animate-pulse">
     <div className="text-center text-sm text-muted-foreground">
-      <p>Analyzing your performance...</p>
+      <p>The third umpire is reviewing the footage...</p>
     </div>
     <CricketLoading />
     <div className="grid grid-cols-3 gap-4">
@@ -156,6 +157,16 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
           ) : (
             analysis && (
               <div className="space-y-6">
+                {analysis.source === 'fallback' && (
+                  <Alert variant="default" className="bg-blue-950/50 border-blue-500/30">
+                    <Info className="h-4 w-4 text-blue-400" />
+                    <AlertTitle className="text-blue-300">Standard Analysis</AlertTitle>
+                    <AlertDescription className="text-blue-400/80">
+                      The AI coach was unavailable, so we've provided a standard performance review.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="grid grid-cols-3 gap-4">
                   <StatCard
                     title="Final Score"
