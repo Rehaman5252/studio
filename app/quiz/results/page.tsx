@@ -90,7 +90,7 @@ const ResultsContent = () => {
     );
   }
 
-  const timeTaken = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
+  const timeTaken = Array.isArray(attempt.timePerQuestion) ? attempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
   const isPerfectScore = attempt.score === attempt.totalQuestions;
   const isDisqualified = !!attempt.reason;
 
