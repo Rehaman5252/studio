@@ -1,4 +1,3 @@
-
 {
   "name": "cricblitz",
   "version": "0.1.0",
@@ -11,7 +10,7 @@
     "deploy": "firebase deploy"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "@genkit-ai/core": "1.10.0",
