@@ -2,10 +2,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Lightbulb, Volume2, VolumeX, Loader2, AlertTriangle } from 'lucide-react';
 import { QuizQuestion } from '@/ai/schemas';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,7 +20,6 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-
 
 const QUESTION_TIME_LIMIT = 20; // seconds
 
@@ -54,6 +51,7 @@ export default function QuizView({
     soundEnabled
 }: QuizViewProps) {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
     const [isMuted, setIsMuted] = useState(!soundEnabled);
     const [showNoBallAlert, setShowNoBallAlert] = useState(false);
@@ -61,6 +59,19 @@ export default function QuizView({
     const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({
         tick: null
     });
+    
+    // Auto-advance logic
+    const handleSelectOption = (option: string) => {
+        if (isAnswered) return; // Prevent changing answer
+        
+        setIsAnswered(true);
+        setSelectedOption(option);
+        
+        // Wait a moment to show selection, then advance
+        setTimeout(() => {
+            onAnswer(option);
+        }, 800);
+    };
 
     useEffect(() => {
         const handleVisibilityChange = () => {
@@ -80,13 +91,14 @@ export default function QuizView({
     useEffect(() => {
         setTimeLeft(QUESTION_TIME_LIMIT);
         setSelectedOption(null);
+        setIsAnswered(false);
         
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    // Give a brief moment for UI to update before submitting
-                    setTimeout(() => onAnswer(selectedOption || ""), 100);
+                    // Time's up, advance with no answer
+                    setTimeout(() => onAnswer(""), 100);
                     return 0;
                 }
                 if(prev <= 6 && !isMuted) {
@@ -97,28 +109,22 @@ export default function QuizView({
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [question, onAnswer, isMuted, selectedOption]);
-
-
-    const handleSubmit = () => {
-        if (selectedOption !== null) {
-            onAnswer(selectedOption);
-        }
-    };
+    }, [question, onAnswer, isMuted]);
     
     const progressValue = (questionNumber / totalQuestions) * 100;
 
     return (
-        <div className="flex flex-col h-screen bg-background text-foreground p-4">
+        <div className="flex flex-col h-screen bg-gradient-to-br from-background to-secondary/50 text-foreground p-4 overflow-hidden">
             {typeof window !== 'undefined' && (
                 <>
                     <audio ref={el => audioRefs.current.tick = el} src="/sounds/tick.mp3" preload="auto" />
                 </>
             )}
 
-            <header className="flex flex-col gap-4 mb-4">
+            {/* Header */}
+            <header className="flex flex-col gap-4 mb-4 shrink-0">
                  <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm font-bold text-primary">{brand} - {format}</p>
+                    <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
                     <div className="relative h-16 w-16">
                          <CircularProgressbar
                             value={timeLeft}
@@ -135,56 +141,69 @@ export default function QuizView({
                 </div>
                  <div>
                     <div className="flex justify-between items-center mb-1">
-                        <h1 className="text-lg font-semibold">Question Progress</h1>
+                        <h1 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Progress</h1>
                         <span className="text-sm font-semibold text-muted-foreground">{questionNumber}/{totalQuestions}</span>
                     </div>
-                    <Progress value={progressValue} className="h-3 w-full" />
+                    <Progress value={progressValue} className="h-2 w-full" />
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col justify-center">
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col justify-center items-center">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={question.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="space-y-6"
+                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -30, scale: 0.95 }}
+                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                        className="w-full max-w-2xl space-y-6"
                     >
-                        <Card className="shadow-lg bg-transparent border-0">
-                            <CardHeader className="p-0">
-                                <CardTitle className="text-2xl md:text-3xl font-bold text-center">{question.question}</CardTitle>
-                            </CardHeader>
+                        <Card className="shadow-lg bg-transparent border-0 text-center">
+                            <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight">{question.question}</h2>
                         </Card>
 
-                        <RadioGroup value={selectedOption || ""} onValueChange={setSelectedOption} className="space-y-4">
-                            {question.options.map((option, index) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {question.options.map((option) => {
+                                const isSelected = selectedOption === option;
+                                const isCorrect = isSelected && option === question.correctAnswer;
+                                const isIncorrect = isSelected && option !== question.correctAnswer;
+
+                                return (
                                 <motion.div 
                                     key={option}
-                                    whileHover={{ scale: 1.03 }}
-                                    whileTap={{ scale: 0.98 }}
+                                    whileHover={{ scale: isAnswered ? 1 : 1.03 }}
+                                    whileTap={{ scale: isAnswered ? 1 : 0.98 }}
                                 >
-                                    <Label 
-                                        htmlFor={`option-${index}`} 
+                                    <button
+                                        onClick={() => handleSelectOption(option)}
+                                        disabled={isAnswered}
                                         className={cn(
-                                            "flex items-center p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2",
-                                            "bg-card shadow-md",
-                                            selectedOption === option 
-                                                ? 'border-primary shadow-lg shadow-primary/30' 
-                                                : 'border-transparent hover:border-primary/50'
+                                            "w-full text-left p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2 text-lg font-semibold",
+                                            "bg-card shadow-md disabled:cursor-not-allowed",
+                                            isAnswered ? "opacity-50" : "hover:border-primary/50 hover:shadow-primary/20",
+                                            isSelected && !isAnswered && 'border-primary shadow-lg shadow-primary/30',
+                                            isSelected && isAnswered && 'opacity-100', // Keep selected one fully visible
+                                            isCorrect && 'bg-green-500/20 border-green-500 shadow-green-500/30',
+                                            isIncorrect && 'bg-destructive/20 border-destructive shadow-destructive/30'
                                         )}
                                     >
-                                        <RadioGroupItem value={option} id={`option-${index}`} className="mr-4 h-5 w-5" />
-                                        <span className="flex-1 text-base font-medium">{option}</span>
-                                    </Label>
+                                        {option}
+                                    </button>
                                 </motion.div>
-                            ))}
-                        </RadioGroup>
+                            )})}
+                        </div>
                     </motion.div>
                 </AnimatePresence>
+            </main>
 
-                 {hint && (
+            {/* Footer */}
+            <footer className="shrink-0 mt-auto pt-4 pb-12 text-center space-y-2">
+                 {isHintLoading ? (
+                    <div className="flex items-center justify-center gap-2 text-primary">
+                        <Loader2 className="animate-spin" /> Fetching hint...
+                    </div>
+                 ) : hint ? (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -192,25 +211,12 @@ export default function QuizView({
                     >
                        <span className="font-bold">Hint:</span> {hint}
                     </motion.div>
-                )}
-
-            </main>
-
-            <footer className="mt-auto pt-4 pb-12">
-                <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" size="lg" onClick={onHintRequest} disabled={isHintLoading || !!hint}>
-                        {isHintLoading ? <Loader2 className="animate-spin text-primary" /> : <Lightbulb className="text-primary" />}
-                        <span className="ml-2">Get a Hint</span>
+                ) : (
+                    <Button variant="outline" size="lg" onClick={onHintRequest} disabled={isAnswered}>
+                        <Lightbulb className="text-primary mr-2" />
+                        <span>Get a Hint</span>
                     </Button>
-                    <motion.div
-                        animate={!selectedOption ? { opacity: [1, 0.7, 1] } : { opacity: 1 }}
-                        transition={!selectedOption ? { duration: 1.5, repeat: Infinity } : {}}
-                    >
-                        <Button onClick={handleSubmit} disabled={!selectedOption || timeLeft === 0} size="lg" className="w-full font-bold">
-                            Submit Answer
-                        </Button>
-                    </motion.div>
-                </div>
+                )}
             </footer>
             
             <div className="fixed bottom-4 right-4 z-50">

@@ -5,7 +5,7 @@ import { Suspense, useMemo, useState, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, BarChart, Home, Sparkles, Cpu, BookOpen, Clock, Eye } from 'lucide-react';
+import { Award, BarChart, Home, Sparkles, Cpu, BookOpen, Clock, Eye, XCircle, CheckCircle, Trophy } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import PageWrapper from '@/components/PageWrapper';
 import AnalysisDialog from '@/components/history/AnalysisDialog';
@@ -14,16 +14,17 @@ import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { AdDialog } from '@/components/AdDialog';
 import ReviewDialog from '@/components/history/ReviewDialog';
 import { adLibrary } from '@/lib/ads';
+import { motion } from 'framer-motion';
 
 const CountdownTimer = memo(() => {
     const { timeLeft } = useQuizStatus();
     return (
-        <Card className="mt-4 bg-secondary">
+        <Card className="mt-4 bg-secondary/50 border-primary/20">
             <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>Next quiz slot opens in:</span>
-                    <span className="font-bold text-foreground">{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span>Next quiz opens in:</span>
+                    <span className="font-bold text-foreground tabular-nums">{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
                 </div>
             </CardContent>
         </Card>
@@ -37,6 +38,8 @@ const ResultsContent = () => {
   const [showAnswersAd, setShowAnswersAd] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
 
+  const attemptData = searchParams.get('attempt');
+
   const attempt: QuizAttempt | null = useMemo(() => {
     if (!attemptData) return null;
     try {
@@ -46,8 +49,6 @@ const ResultsContent = () => {
       return null;
     }
   }, [attemptData]);
-
-  const attemptData = searchParams.get('attempt');
 
   const handleViewAnswers = () => {
     setShowAnswersAd(true);
@@ -80,52 +81,65 @@ const ResultsContent = () => {
 
   return (
     <PageWrapper title={pageTitle} showBackButton>
-      <Card className="text-center shadow-lg">
-        <CardHeader>
-          {isPerfectScore && !isDisqualified ? (
-            <>
-              <Award className="h-16 w-16 mx-auto text-yellow-400 animate-pulse" />
-              <CardTitle className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">Perfect Score!</CardTitle>
-            </>
-          ) : (
-            <CardTitle className="text-3xl font-bold">{isDisqualified ? 'Disqualified (No-Ball)' : 'Quiz Complete!'}</CardTitle>
-          )}
-          <CardDescription className="text-lg">{isDisqualified ? 'Malpractice was detected.' : 'You scored'}</CardDescription>
-          {!isDisqualified && (
-            <p className="text-5xl font-bold">{attempt.score}<span className="text-3xl text-muted-foreground">/{attempt.totalQuestions}</span></p>
-          )}
-           {attempt.source && (
-            <div className="flex justify-center pt-2">
-                <Badge variant={attempt.source === 'ai' ? "default" : "outline"} className="font-normal">
-                    {attempt.source === 'ai' ? <Cpu className="h-3 w-3 mr-1.5"/> : <BookOpen className="h-3 w-3 mr-1.5"/>}
-                    {attempt.source === 'ai' ? 'AI Generated Quiz' : 'Classic Quiz'}
-                </Badge>
-            </div>
-           )}
-        </CardHeader>
-        <CardContent className="flex justify-center gap-4 text-sm text-muted-foreground">
-            <div><strong>Format:</strong> {attempt.format}</div>
-             {!isDisqualified && (<div><strong>Time:</strong> {timeTaken.toFixed(1)}s</div>)}
-        </CardContent>
-      </Card>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, type: 'spring' }}
+        >
+            <Card className="text-center shadow-lg bg-card/80 overflow-hidden">
+                <CardHeader className="bg-secondary/30 p-6">
+                {isPerfectScore && !isDisqualified ? (
+                    <>
+                        <Trophy className="h-16 w-16 mx-auto text-yellow-400 animate-bounce" />
+                        <CardTitle className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">Perfect Score!</CardTitle>
+                    </>
+                ) : (
+                    <CardTitle className="text-3xl font-bold">{isDisqualified ? 'Disqualified (No-Ball)' : 'Quiz Complete!'}</CardTitle>
+                )}
+                <CardDescription className="text-lg">{isDisqualified ? 'Malpractice was detected.' : 'Here is your scorecard'}</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                    {!isDisqualified && (
+                        <div className="flex justify-around items-center">
+                            <div className="flex flex-col items-center">
+                                <span className="text-5xl font-bold">{attempt.score}<span className="text-3xl text-muted-foreground">/{attempt.totalQuestions}</span></span>
+                                <span className="text-sm text-muted-foreground">Your Score</span>
+                            </div>
+                             <div className="flex flex-col items-center">
+                                <span className="text-5xl font-bold">{timeTaken.toFixed(1)}<span className="text-3xl text-muted-foreground">s</span></span>
+                                <span className="text-sm text-muted-foreground">Time Taken</span>
+                            </div>
+                        </div>
+                    )}
+                    {attempt.source && (
+                        <div className="flex justify-center pt-2">
+                            <Badge variant={attempt.source === 'ai' ? "default" : "outline"} className="font-normal">
+                                {attempt.source === 'ai' ? <Cpu className="h-3 w-3 mr-1.5"/> : <BookOpen className="h-3 w-3 mr-1.5"/>}
+                                {attempt.source === 'ai' ? 'AI Generated Quiz' : 'Classic Quiz'}
+                            </Badge>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </motion.div>
       
       <CountdownTimer />
 
-      <div className="space-y-3 pt-4">
+      <div className="space-y-3 pt-6">
         {!isDisqualified && (
           <>
-            <Button size="lg" className="w-full" onClick={handleViewAnswers}>
+            <Button size="lg" className="w-full h-14 text-base" onClick={handleViewAnswers}>
               <Eye className="mr-2 h-5 w-5" /> View Answers
             </Button>
             <AnalysisDialog attempt={attempt}>
-                <Button variant="secondary" size="lg" className="w-full">
+                <Button variant="secondary" size="lg" className="w-full h-14 text-base">
                     <Sparkles className="mr-2 h-5 w-5" />
                     View AI Performance Analysis
                 </Button>
             </AnalysisDialog>
           </>
         )}
-        <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/')}>
+        <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={() => router.push('/')}>
            <Home className="mr-2 h-5 w-5" /> Return to Home
         </Button>
       </div>
