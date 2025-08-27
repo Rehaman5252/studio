@@ -22,33 +22,24 @@ import {
   Lightbulb,
   CheckCircle2,
   XCircle,
-  Info
+  Info,
+  Loader2
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { CricketLoading } from '../CricketLoading';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 
 const AnalysisSkeleton = () => (
-  <div className="space-y-4 animate-pulse">
-    <div className="text-center text-sm text-muted-foreground">
-      <p>The third umpire is reviewing the footage...</p>
+    <div className="space-y-4">
+        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+            <Loader2 className="animate-spin h-8 w-8 mb-4" />
+            <p className="font-semibold">Generating your analysis...</p>
+            <p className="text-sm">The AI coach is reviewing the match footage.</p>
+        </div>
     </div>
-    <CricketLoading />
-    <div className="grid grid-cols-3 gap-4">
-      <div className="h-24 w-full bg-muted rounded-lg" />
-      <div className="h-24 w-full bg-muted rounded-lg" />
-      <div className="h-24 w-full bg-muted rounded-lg" />
-    </div>
-    <div className="h-24 w-full bg-muted rounded-lg" />
-    <div className="grid md:grid-cols-2 gap-4">
-      <div className="h-32 w-full bg-muted rounded-lg" />
-      <div className="h-32 w-full bg-muted rounded-lg" />
-    </div>
-    <div className="h-20 w-full bg-muted rounded-lg" />
-  </div>
 );
+
 
 const StatCard = ({
   title,
@@ -80,13 +71,13 @@ interface AnalysisDialogProps {
 }
 
 export default function AnalysisDialog({ attempt, children }: AnalysisDialogProps) {
-  const { toast } = useToast();
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   const getAnalysis = useCallback(async () => {
+    if (!isOpen) return;
     setLoading(true);
     setError(null);
     setAnalysis(null);
@@ -98,30 +89,36 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         body: JSON.stringify({ attempt }),
       });
 
+      const result = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch analysis from server.');
+        throw new Error(result.error || 'Failed to fetch analysis from server.');
       }
-
-      const result: QuizAnalysisOutput = await response.json();
+      
       setAnalysis(result);
     } catch (e: any) {
       console.error('Error generating quiz analysis:', e);
       setError('Could not generate AI analysis at this time. Please try again later.');
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred while generating the analysis.',
-        variant: 'destructive',
+      setAnalysis({
+          overallPerformance: "Analysis service is temporarily unavailable.",
+          accuracy: 0,
+          averageTimePerQuestion: 0,
+          keyStrengths: [],
+          areasForImprovement: [],
+          coachTip: "Please try again in a few moments.",
+          analyzedQuestions: [],
+          source: "fallback",
       });
     } finally {
       setLoading(false);
     }
-  }, [attempt, toast]);
+  }, [attempt, isOpen]);
 
   useEffect(() => {
-    if (isOpen && !analysis && !loading) {
+    if (isOpen && !analysis && !loading && !error) {
       getAnalysis();
     }
-  }, [isOpen, analysis, loading, getAnalysis]);
+  }, [isOpen, analysis, loading, error, getAnalysis]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -138,12 +135,6 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
         <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6 py-4">
           {loading ? (
             <AnalysisSkeleton />
-          ) : error ? (
-            <Alert variant="destructive" className="my-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Review Unavailable</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
           ) : (
             analysis && (
               <div className="space-y-6">
@@ -152,7 +143,7 @@ export default function AnalysisDialog({ attempt, children }: AnalysisDialogProp
                     <Info className="h-4 w-4 text-blue-400" />
                     <AlertTitle className="text-blue-300">Standard Analysis</AlertTitle>
                     <AlertDescription className="text-blue-400/80">
-                      The AI coach was unavailable, so we've provided a standard performance review.
+                       This is a fallback analysis. The AI coach was unavailable, but here is a standard performance review.
                     </AlertDescription>
                   </Alert>
                 )}

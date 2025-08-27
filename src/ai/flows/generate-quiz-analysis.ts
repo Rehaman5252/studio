@@ -15,7 +15,20 @@ import { z } from 'zod';
 import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 
-const IS_DEV = process.env.NODE_ENV !== "production";
+const FALLBACK_ANALYSIS: Omit<QuizAnalysisOutput, 'source'> = {
+  overallPerformance:
+    "We could not generate a personalized analysis this time. Here's a general review.",
+  accuracy: 0,
+  averageTimePerQuestion: 0,
+  keyStrengths: ["Good engagement with cricket knowledge.", "Strong attempt overall."],
+  areasForImprovement: [
+    "Review recent cricket statistics and match results.",
+    "Practice time-bound quizzes to improve speed.",
+  ],
+  coachTip: "Focus on one format for a few days to build deep expertise before switching to another.",
+  analyzedQuestions: [],
+};
+
 
 /**
  * Generates a deterministic, rules-based fallback analysis if the AI fails.
@@ -23,36 +36,21 @@ const IS_DEV = process.env.NODE_ENV !== "production";
  * @returns A complete QuizAnalysisOutput object.
  */
 const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
-    const accuracy = (attempt.score / attempt.totalQuestions) * 100;
-    const averageTime = (attempt.timePerQuestion?.reduce((a,b) => a+b, 0) || 0) / attempt.totalQuestions;
+    const accuracy = (attempt.totalQuestions > 0) ? (attempt.score / attempt.totalQuestions) * 100 : 0;
+    const averageTime = (attempt.totalQuestions > 0) ? ((attempt.timePerQuestion?.reduce((a,b) => a+b, 0) || 0) / attempt.totalQuestions) : 0;
 
-    const correctQuestions = attempt.questions.filter((q, i) => q.correctAnswer === attempt.userAnswers[i]);
-    const incorrectQuestions = attempt.questions.filter((q, i) => q.correctAnswer !== attempt.userAnswers[i]);
-
-    let strengths = ["Good pace on questions you knew.", "Strong foundational knowledge."];
-    if (accuracy > 80) strengths.unshift("Excellent accuracy under pressure!");
-    
-    let improvements = ["Double-check questions with tricky wording."];
-    if (incorrectQuestions.length > 0) {
-        improvements.push(`Review topics related to: "${incorrectQuestions[0].question.slice(0, 30)}..."`);
-    } else {
-        improvements.push("Time management on tougher questions could be improved.");
-    }
-    
     return {
+        ...FALLBACK_ANALYSIS,
         overallPerformance: `A solid effort on the ${attempt.format} quiz! You've got a great foundation to build upon.`,
         accuracy: parseFloat(accuracy.toFixed(1)),
         averageTimePerQuestion: parseFloat(averageTime.toFixed(1)),
-        keyStrengths: strengths.slice(0,2),
-        areasForImprovement: improvements.slice(0,2),
-        coachTip: "Before your next quiz, try focusing on one specific era or tournament. This can help you build deeper knowledge in one go!",
         analyzedQuestions: attempt.questions.map((q, i) => ({
             question: q.question,
             userAnswer: attempt.userAnswers[i] || 'Not Answered',
             correctAnswer: q.correctAnswer,
             isCorrect: attempt.userAnswers[i] === q.correctAnswer,
             timeTaken: attempt.timePerQuestion?.[i] || 0,
-            category: "General" // Fallback category
+            category: "General"
         })),
         source: 'fallback',
     };
