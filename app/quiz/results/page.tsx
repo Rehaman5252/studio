@@ -97,7 +97,7 @@ const ResultsContent = () => {
   const pageTitle = isDisqualified ? "Disqualified" : "Quiz Results";
 
   const getMotivationalLine = () => {
-      if(isDisqualified) return { text: "Fair play is key to the spirit of cricket.", emoji: " handshake "};
+      if(isDisqualified) return { text: "Fair play is key to the spirit of cricket.", emoji: "🤝"};
       if(isPerfectScore) return { text: "A flawless century! You're a true champion.", emoji: "🏆" };
       if(attempt.score >= 3) return { text: "Great innings! You're getting closer to a perfect score.", emoji: "🏏" };
       return { text: "Tough match, but every game is a learning experience!", emoji: "💪" };
@@ -117,29 +117,27 @@ const ResultsContent = () => {
                         {attempt.format} Quiz by {attempt.brand}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                    <div className="flex justify-around items-center">
-                        {isDisqualified ? (
-                             <div className="flex flex-col items-center text-destructive">
-                                <Ban className="h-16 w-16" />
-                                <span className="text-3xl font-bold mt-2">Disqualified</span>
-                                <span className="text-sm text-muted-foreground mt-1">No-Ball detected</span>
-                            </div>
-                        ) : (
-                             <div className="flex flex-col items-center">
-                                <span className="text-6xl font-bold text-primary">{attempt.score}<span className="text-4xl text-muted-foreground">/{attempt.totalQuestions}</span></span>
+                <CardContent className="p-6 space-y-4">
+                    {isDisqualified ? (
+                        <div className="flex flex-col items-center text-destructive space-y-2">
+                            <Ban className="h-16 w-16" />
+                            <span className="text-3xl font-bold mt-2">Disqualified</span>
+                            <span className="text-sm text-muted-foreground mt-1">No-Ball detected</span>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4 divide-x divide-border">
+                            <div className="flex flex-col items-center justify-center">
                                 <span className="text-sm font-semibold text-muted-foreground">Your Score</span>
+                                <span className="text-6xl font-bold text-primary">{attempt.score}<span className="text-4xl text-muted-foreground">/{attempt.totalQuestions}</span></span>
                             </div>
-                        )}
-                        {!isDisqualified && (
-                             <div className="flex flex-col items-center">
-                                <span className="text-6xl font-bold">{timeTaken.toFixed(1)}<span className="text-4xl text-muted-foreground">s</span></span>
+                            <div className="flex flex-col items-center justify-center">
                                 <span className="text-sm font-semibold text-muted-foreground">Time Taken</span>
+                                <span className="text-6xl font-bold">{timeTaken.toFixed(1)}<span className="text-4xl text-muted-foreground">s</span></span>
                             </div>
-                        )}
-                    </div>
-
-                    <div className="text-center">
+                        </div>
+                    )}
+                    
+                    <div className="text-center pt-2">
                         <p className="text-lg font-semibold">{motivationalLine.emoji} {motivationalLine.text}</p>
                     </div>
                     
