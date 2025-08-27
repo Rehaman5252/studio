@@ -53,7 +53,6 @@ export default function QuizView({
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
-    const [isMuted, setIsMuted] = useState(!soundEnabled);
     const [showNoBallAlert, setShowNoBallAlert] = useState(false);
     
     const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({
@@ -101,7 +100,7 @@ export default function QuizView({
                     setTimeout(() => onAnswer(""), 100);
                     return 0;
                 }
-                if(prev <= 6 && !isMuted) {
+                if(prev <= 6 && soundEnabled) {
                     audioRefs.current.tick?.play().catch(e => console.log("Audio play failed", e));
                 }
                 return prev - 1;
@@ -109,7 +108,7 @@ export default function QuizView({
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [question, onAnswer, isMuted]);
+    }, [question, onAnswer, soundEnabled]);
     
     const progressValue = (questionNumber / totalQuestions) * 100;
 
@@ -214,17 +213,6 @@ export default function QuizView({
                 )}
             </footer>
             
-            <div className="fixed bottom-4 right-4 z-50">
-                <Button 
-                    variant="ghost" 
-                    className="rounded-full h-12 w-12 bg-card/50 hover:bg-card/90 shadow-md" 
-                    size="icon" 
-                    onClick={() => setIsMuted(prev => !prev)}
-                >
-                    {isMuted ? <VolumeX className="text-primary"/> : <Volume2 className="text-primary"/>}
-                </Button>
-            </div>
-
             <AlertDialog open={showNoBallAlert}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

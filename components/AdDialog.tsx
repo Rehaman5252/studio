@@ -24,7 +24,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
   const { settings } = useSettings();
   const [adTimeLeft, setAdTimeLeft] = useState(duration);
   const [isSkippable, setIsSkippable] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Mute by default
+  const [isMuted, setIsMuted] = useState(!settings.sound);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const handleSkip = () => {
@@ -39,6 +39,7 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
 
     setAdTimeLeft(duration);
     setIsSkippable(false);
+    setIsMuted(!settings.sound); // Reset mute state based on global settings
 
     if (videoRef.current) {
         videoRef.current.currentTime = 0;
