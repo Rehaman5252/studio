@@ -1,15 +1,15 @@
+"use client";
 
-'use client';
-
-import { useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { useState, useEffect, ReactNode } from "react";
 import {
   Dialog,
+  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { QuizAttempt } from '@/ai/schemas';
 import {
   generateQuizAnalysis,
