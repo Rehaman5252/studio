@@ -74,7 +74,7 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
 };
 
 
-export async function generateQuizAnalysis(rawAttempt: QuizAttempt): Promise<QuizAnalysisOutput> {
+export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
     try {
         // 1. Sanitize the raw input from Firestore/client to handle inconsistencies.
         const sanitized = sanitizeQuizAttempt(rawAttempt);
@@ -86,8 +86,8 @@ export async function generateQuizAnalysis(rawAttempt: QuizAttempt): Promise<Qui
         // 3. If validation passes, call the AI flow.
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         return analysis;
-    } catch (error) {
-        console.error("Error during analysis generation pipeline:", error);
+    } catch (error: any) {
+        console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
         
         // If any step fails (sanitization, validation, or AI), return the deterministic fallback.
         // We re-sanitize the raw attempt to ensure the fallback function gets a clean object.
@@ -132,14 +132,17 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         outputSchema: QuizAnalysisOutputSchema,
     },
     async (input) => {
-        const { output } = await prompt(input);
-
-        // If the AI model fails to return a valid output, generate the fallback analysis.
-        if (!output) {
-            console.warn("AI analysis returned null, generating fallback.");
-            return getFallbackAnalysis(input);
+        try {
+            const { output } = await prompt(input);
+            // If the AI model fails to return a valid output, throw an error to trigger the fallback in the parent function.
+            if (!output) {
+                throw new Error("AI analysis returned a null or empty response.");
+            }
+            return output;
+        } catch (error) {
+             console.error("Error during AI analysis flow execution:", error);
+             // Re-throw the error to be caught by the parent `generateQuizAnalysis` function, which will then generate the fallback.
+             throw error;
         }
-
-        return output;
     }
 );
