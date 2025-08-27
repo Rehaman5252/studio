@@ -57,5 +57,12 @@ export const interstitialAds: { [key: number]: InterstitialAdConfig } = {
         videoTitle: 'Strategic Timeout',
         durationSec: 30,
         skippableAfterSec: 10,
-    }
+    },
+    // After question 4 (index 3) -> Show a 2s static ad
+    3: {
+        type: 'static',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg',
+        logoHint: 'Nike logo',
+        durationMs: 2000,
+    },
 };

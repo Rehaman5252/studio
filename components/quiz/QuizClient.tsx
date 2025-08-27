@@ -52,8 +52,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
-    // Show interstitial after Q3 (index 2)
-    return currentQuestionIndex === 2 ? interstitialAds[2] : null;
+    // Show interstitial after Q3 (index 2) or Q4 (index 3)
+    return interstitialAds[currentQuestionIndex] || null;
   }, [currentQuestionIndex]);
 
   const fetchQuiz = useCallback(async () => {
@@ -116,7 +116,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
              throw new Error(data.error || "An unknown server error occurred.");
          }
       } else {
-         toast({ title: "✅ Fresh AI-powered quiz loaded!" });
+         if (data.source === 'ai') {
+           toast({ title: "✅ Fresh AI-powered quiz loaded!" });
+         }
          setQuizData(data);
       }
       
@@ -216,8 +218,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const onInterstitialComplete = useCallback(() => {
     setShowInterstitial(false);
-    // After interstitial (from Q3), skip to Q5 (index 4)
-    setCurrentQuestionIndex(4);
+    setCurrentQuestionIndex(prev => prev + 1);
     setStartTime(Date.now());
   }, []);
 
@@ -285,6 +286,16 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }
   
   if (showInterstitial && interstitialConfig) {
+    if (interstitialConfig.type === 'static' && interstitialConfig.logoUrl) {
+      return (
+        <InterstitialLoader
+          logoUrl={interstitialConfig.logoUrl}
+          logoHint={interstitialConfig.logoHint || 'brand logo'}
+          duration={interstitialConfig.durationMs}
+          onComplete={onInterstitialComplete}
+        />
+      );
+    }
     if (interstitialConfig.type === 'video' && interstitialConfig.videoUrl) {
       return (
         <AdDialog 
