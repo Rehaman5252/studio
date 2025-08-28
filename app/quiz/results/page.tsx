@@ -59,8 +59,6 @@ const ResultsContent = () => {
         variant: "destructive"
       });
       router.replace('/');
-    } else if (!decodedAttempt.reviewed) {
-        setIsAnalysisOpen(true);
     }
   }, [decodedAttempt, router, toast]);
 
