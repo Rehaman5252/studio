@@ -131,7 +131,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(to right, hsl(var(--primary)) 30%, hsl(var(--accent)) 50%, hsl(var(--primary)) 70%);
+    background: linear-gradient(to right, hsl(var(--primary)) 40%, hsl(var(--foreground)) 50%, hsl(var(--primary)) 60%);
     background-size: 200% auto;
     color: transparent;
     background-clip: text;
