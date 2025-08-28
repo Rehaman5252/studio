@@ -129,7 +129,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed}>
-                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
+                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
                         {isReviewed ? 'Reviewed' : 'Review'}
                     </Button>
                     
@@ -166,3 +166,5 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
+
+    

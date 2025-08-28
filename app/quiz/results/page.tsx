@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { motion } from 'framer-motion';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check, Trophy, Star } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check, Trophy } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
@@ -50,12 +50,10 @@ const ResultsContent = () => {
     const attemptData = searchParams.get('attempt');
     if (!attemptData) return null;
     try {
-      // Decode URI component first, then decode base64
-      return decodeAttempt(decodeURIComponent(attemptData));
+      return decodeAttempt(attemptData);
     } catch(e) {
       console.error("Failed to decode attempt from URL", e);
-       // Fallback for cases where it might not be URI encoded
-      return decodeAttempt(attemptData);
+      return null;
     }
   }, [searchParams]);
   
@@ -269,7 +267,7 @@ const ResultsContent = () => {
                     </div>
                 </CardContent>
             </Card>
-
+            
             {!isDisqualified && (
               <Card className="bg-card/80">
                   <CardHeader>
@@ -286,7 +284,7 @@ const ResultsContent = () => {
               <Card className="bg-card/80">
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Trophy className="text-primary" /> Certificate of Mastery
+                        <Trophy className="text-primary" /> Certificate Unlocked!
                       </CardTitle>
                       <CardDescription>You've earned a certificate for your perfect score. Download and share it with your friends!</CardDescription>
                   </CardHeader>
@@ -340,3 +338,5 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
+
+    

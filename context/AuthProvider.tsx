@@ -304,18 +304,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const addQuizAttempt = useCallback(async (attempt: QuizAttempt): Promise<{ success: boolean, error?: string }> => {
         if (!user || !profile || !db) {
             const error = "User not authenticated or database unavailable.";
+            toast({ title: "Save Failed", description: error, variant: "destructive" });
             return { success: false, error };
         }
 
         const sanitizedAttempt = sanitizeQuizAttempt(attempt) as QuizAttempt;
         
-        // Optimistically update local state for immediate UI feedback
-        setQuizHistory(prev => ({
-            ...prev,
-            data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
-        }));
-        setLastAttemptInSlot(sanitizedAttempt);
-
         try {
             const batch = writeBatch(db);
             const userDocRef = doc(db, 'users', user.uid);
@@ -376,20 +370,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             }, { merge: true });
 
             await batch.commit();
-
             setIsOffline(false);
             return { success: true };
         } catch (e: any) {
             console.error('addQuizAttempt transaction failed:', e);
-            // Revert optimistic update on failure
-             setQuizHistory(prev => ({
-                ...prev,
-                data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
-            }));
+            toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
+            
+            // Do not revert optimistic updates, as they will sync later when online.
+            
             setIsOffline(true);
             return { success: false, error: e.message };
         }
-    }, [user, profile]);
+    }, [user, profile, toast]);
 
   const handleMalpractice = useCallback(async (): Promise<number> => {
     if (!user || !profile || !db) return 0;
@@ -478,3 +470,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

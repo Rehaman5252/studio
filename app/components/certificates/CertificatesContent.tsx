@@ -124,7 +124,7 @@ export default function CertificatesContent() {
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(212, 175, 55);
+    doc.setTextColor(34, 139, 34);
     doc.text('indcric', doc.internal.pageSize.width / 2, 170, { align: 'center' });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -229,3 +229,5 @@ export default function CertificatesContent() {
     </>
   );
 }
+
+    
