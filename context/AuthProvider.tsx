@@ -7,7 +7,7 @@ import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPas
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, writeBatch, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
-import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
+import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId } from '@/lib/utils';
@@ -301,97 +301,93 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, toast]);
 
-  const addQuizAttempt = useCallback(async (attempt: QuizAttempt): Promise<{ success: boolean, error?: string }> => {
-    if (!user || !profile || !db) {
-        const error = "User not authenticated or database unavailable.";
-        toast({ title: "Save Failed", description: error, variant: "destructive" });
-        return { success: false, error };
-    }
-    
-    const sanitizedAttempt = { ...attempt, score: attempt.score || 0, totalQuestions: attempt.totalQuestions || 0, reason: attempt.reason || null };
-    
-    setQuizHistory(prev => ({
-        ...prev,
-        data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
-    }));
-
-    try {
-        const batch = writeBatch(db);
-        
-        const userDocRef = doc(db, 'users', user.uid);
-        const userStatsUpdate: { [key:string]: any } = { 
-            quizzesPlayed: increment(1),
-            totalScore: increment(sanitizedAttempt.score),
-            updatedAt: serverTimestamp(),
-        };
-        const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
-        if (isPerfectScore) {
-            userStatsUpdate.perfectScores = increment(1);
-            userStatsUpdate.totalRewards = increment(100);
+    const addQuizAttempt = useCallback(async (attempt: QuizAttempt): Promise<{ success: boolean, error?: string }> => {
+        if (!user || !profile || !db) {
+            const error = "User not authenticated or database unavailable.";
+            toast({ title: "Save Failed", description: error, variant: "destructive" });
+            return { success: false, error };
         }
 
-        const todayUTC = new Date();
-        todayUTC.setUTCHours(0, 0, 0, 0);
-        const lastStreakTimestamp = profile.lastStreakTimestamp ? (profile.lastStreakTimestamp as Timestamp).toDate() : null;
+        const sanitizedAttempt = { ...attempt, score: attempt.score || 0, totalQuestions: attempt.totalQuestions || 0, reason: attempt.reason || null };
         
-        if (lastStreakTimestamp) {
-            const lastStreakUTC = new Date(lastStreakTimestamp.getTime());
-            lastStreakUTC.setUTCHours(0, 0, 0, 0);
-            const isSameDay = todayUTC.getTime() === lastStreakUTC.getTime();
+        // Optimistically update local state for immediate UI feedback
+        setQuizHistory(prev => ({
+            ...prev,
+            data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
+        }));
 
-            if (!isSameDay) {
-                const yesterdayUTC = new Date(todayUTC.getTime() - 86400000);
-                const isYesterday = lastStreakUTC.getTime() === yesterdayUTC.getTime();
-                userStatsUpdate.currentStreak = isYesterday ? increment(1) : 1;
+        try {
+            const batch = writeBatch(db);
+            const userDocRef = doc(db, 'users', user.uid);
+
+            // 1. Update User Stats
+            const userStatsUpdate: { [key:string]: any } = { 
+                quizzesPlayed: increment(1),
+                totalScore: increment(sanitizedAttempt.score),
+                updatedAt: serverTimestamp(),
+            };
+            const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
+            if (isPerfectScore) {
+                userStatsUpdate.perfectScores = increment(1);
+                userStatsUpdate.totalRewards = increment(100);
+            }
+
+            const todayUTC = new Date();
+            todayUTC.setUTCHours(0, 0, 0, 0);
+            const lastStreakTimestamp = profile.lastStreakTimestamp ? (profile.lastStreakTimestamp as Timestamp).toDate() : null;
+            
+            if (lastStreakTimestamp) {
+                const lastStreakUTC = new Date(lastStreakTimestamp.getTime());
+                lastStreakUTC.setUTCHours(0, 0, 0, 0);
+                const isSameDay = todayUTC.getTime() === lastStreakUTC.getTime();
+
+                if (!isSameDay) {
+                    const yesterdayUTC = new Date(todayUTC.getTime() - 86400000);
+                    const isYesterday = lastStreakUTC.getTime() === yesterdayUTC.getTime();
+                    userStatsUpdate.currentStreak = isYesterday ? increment(1) : 1;
+                    userStatsUpdate.lastStreakTimestamp = serverTimestamp();
+                }
+            } else {
+                userStatsUpdate.currentStreak = 1;
                 userStatsUpdate.lastStreakTimestamp = serverTimestamp();
             }
-        } else {
-            userStatsUpdate.currentStreak = 1;
-            userStatsUpdate.lastStreakTimestamp = serverTimestamp();
+            batch.update(userDocRef, userStatsUpdate);
+            
+            // 2. Save Quiz Attempt
+            const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
+            batch.set(attemptRef, sanitizeUserProfile(sanitizedAttempt));
+
+            // 3. Update Live Leaderboard
+            const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
+            const totalTime = sanitizedAttempt.timePerQuestion ? sanitizedAttempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+            batch.set(liveEntryRef, {
+                userId: user.uid,
+                name: profile.name,
+                avatar: profile.photoURL,
+                score: sanitizedAttempt.score,
+                time: totalTime,
+                disqualified: !!sanitizedAttempt.reason,
+            }, { merge: true });
+
+            // Commit all writes at once
+            await batch.commit();
+
+            setIsOffline(false);
+            return { success: true };
+        } catch (e: any) {
+            console.error('addQuizAttempt transaction failed:', e);
+            toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
+            
+            // Revert optimistic update on failure
+            setQuizHistory(prev => ({
+                ...prev,
+                data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
+            }));
+            
+            setIsOffline(true);
+            return { success: false, error: e.message };
         }
-        batch.update(userDocRef, userStatsUpdate);
-        
-        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-        batch.set(attemptRef, sanitizeUserProfile(sanitizedAttempt));
-
-        const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
-        const totalTime = sanitizedAttempt.timePerQuestion ? sanitizedAttempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
-        batch.set(liveEntryRef, {
-            userId: user.uid,
-            name: profile.name,
-            avatar: profile.photoURL,
-            score: sanitizedAttempt.score,
-            time: totalTime,
-            disqualified: !!sanitizedAttempt.reason,
-            totalQuestions: sanitizedAttempt.totalQuestions,
-            format: sanitizedAttempt.format,
-            slotId: sanitizedAttempt.slotId,
-            source: sanitizedAttempt.source ?? null,
-            updatedAt: serverTimestamp(),
-        }, { merge: true });
-
-        const globalStatsRef = doc(db, 'globals', 'stats');
-        const globalStatsUpdate = {
-            totalQuizzesPlayed: increment(1),
-            ...(isPerfectScore && { totalPerfectScores: increment(1) })
-        };
-        batch.set(globalStatsRef, globalStatsUpdate, { merge: true });
-
-        await batch.commit();
-        
-        setIsOffline(false);
-        return { success: true };
-    } catch (e: any) {
-      console.error('addQuizAttempt failed:', e);
-      toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
-      setIsOffline(true);
-      setQuizHistory(prev => ({
-        ...prev,
-        data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
-      }));
-      return { success: false, error: e.message };
-    }
-  }, [user, profile, toast]);
+    }, [user, profile, toast]);
 
   const handleMalpractice = useCallback(async (): Promise<number> => {
     if (!user || !profile || !db) return 0;
@@ -427,16 +423,23 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
 
+    // Optimistically update the state
+    setQuizHistory(prev => ({
+        ...prev,
+        data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
+    }));
+
     try {
         const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
         await updateDoc(attemptRef, { reviewed: true });
-        setQuizHistory(prev => ({
-            ...prev,
-            data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
-        }));
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
+        // Revert the optimistic update on failure
+        setQuizHistory(prev => ({
+            ...prev,
+            data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
+        }));
         return { success: false };
     }
   }, [user]);

@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';

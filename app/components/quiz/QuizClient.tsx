@@ -159,15 +159,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
-  const finishQuiz = useCallback(async (currentAnswers: string[], currentTimePerQuestion: number[]) => {
+  const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (!quizData || !user) return;
     const attempt = buildAttempt({
       user,
       quizData,
       brand,
       format,
-      userAnswers: currentAnswers,
-      timePerQuestion: currentTimePerQuestion,
+      userAnswers: finalAnswers,
+      timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
     const result = await addQuizAttempt(attempt);
@@ -219,6 +219,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setStartTime(Date.now());
         }
     } else {
+      // This is the final question, call finishQuiz
       finishQuiz(updatedAnswers, updatedTime);
     }
   }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);

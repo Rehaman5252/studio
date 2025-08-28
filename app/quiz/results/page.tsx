@@ -49,7 +49,7 @@ const ResultsContent = () => {
 
   useEffect(() => {
     // Automatically open analysis dialog if it's a new attempt
-    // and the user hasn't seen the results page before.
+    // and the user hasn't seen the results page before for this attempt.
     if (attempt && !attempt.reviewed) {
         setIsAnalysisOpen(true);
     }
@@ -66,7 +66,11 @@ const ResultsContent = () => {
   const onAdFinished = useCallback(async () => {
     setShowAdForReview(false);
     if(attempt?.slotId) {
-        await markAttemptAsReviewed(attempt.slotId);
+        const { success } = await markAttemptAsReviewed(attempt.slotId);
+        if (success) {
+            // Update the local attempt object to reflect the change
+            if (attempt) attempt.reviewed = true;
+        }
     }
     setShowReviewDialog(true);
   }, [attempt, markAttemptAsReviewed]);
