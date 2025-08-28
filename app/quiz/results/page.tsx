@@ -192,26 +192,29 @@ const ResultsContent = () => {
     }
   };
 
-  if (!attempt || !slotTimings) {
-    return <LoadingSkeleton />;
-  }
-
-  const isPerfectScore = attempt.score === attempt.totalQuestions;
-  const isDisqualified = !!attempt.reason;
-  const adConfig = adLibrary.resultsAd;
+  const isPerfectScore = useMemo(() => attempt?.score === attempt?.totalQuestions, [attempt]);
+  const isDisqualified = useMemo(() => !!attempt?.reason, [attempt]);
 
   const motivationalLine = useMemo(() => {
+    if (!attempt) return "";
     if (isDisqualified) return "Fair play is key to the spirit of cricket.";
     if (isPerfectScore) return "Flawless century! You're a true champion.";
     if (attempt.score >= 3) return "Good effort! Keep practicing.";
     return "Tough match, but every game is a learning experience!";
-  }, [isDisqualified, isPerfectScore, attempt.score]);
+  }, [isDisqualified, isPerfectScore, attempt]);
 
   const pageTitle = useMemo(() => {
     if (isDisqualified) return "Disqualified";
     if (isPerfectScore) return "Perfect Score!";
     return "Quiz Complete!";
   }, [isDisqualified, isPerfectScore]);
+
+
+  if (!attempt || !slotTimings) {
+    return <LoadingSkeleton />;
+  }
+
+  const adConfig = adLibrary.resultsAd;
 
   return (
     <PageWrapper title="Quiz Scorecard" showBackButton>
@@ -347,3 +350,5 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
+
+    
