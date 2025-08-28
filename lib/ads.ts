@@ -50,13 +50,19 @@ export interface InterstitialAdConfig {
 }
   
 export const interstitialAds: { [key: number]: InterstitialAdConfig } = {
-    // After question 3 (index 2) -> Show a 30s video ad, skippable after 10s
-    2: {
-        type: 'video',
-        videoUrl: 'https://videos.pexels.com/video-files/8560088/8560088-hd_1366_720_30fps.mp4',
-        videoTitle: 'Strategic Timeout',
-        durationSec: 30,
-        skippableAfterSec: 10,
+    // After question 1 (index 0) -> Show a 2s static ad
+    0: {
+        type: 'static',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg',
+        logoHint: 'BMW logo',
+        durationMs: 2000,
+    },
+    // After question 2 (index 1) -> Show a 2s static ad
+    1: {
+        type: 'static',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/74/Dominos_pizza_logo.svg',
+        logoHint: 'Dominos logo',
+        durationMs: 2000,
     },
     // After question 4 (index 3) -> Show a 2s static ad
     3: {
