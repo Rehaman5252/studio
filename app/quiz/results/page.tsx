@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { motion } from 'framer-motion';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2 } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
@@ -50,10 +50,12 @@ const ResultsContent = () => {
     const attemptData = searchParams.get('attempt');
     if (!attemptData) return null;
     try {
+      // Decode URI component first, then decode base64
       return decodeAttempt(decodeURIComponent(attemptData));
     } catch(e) {
       console.error("Failed to decode attempt from URL", e);
-      return decodeAttempt(attemptData); // Try without decoding URI component as a fallback
+       // Fallback for cases where it might not be URI encoded
+      return decodeAttempt(attemptData);
     }
   }, [searchParams]);
   
@@ -97,12 +99,12 @@ const ResultsContent = () => {
       if (!attempt || !profile) return;
       
       const doc = new jsPDF();
-      doc.setDrawColor(212, 175, 55); 
+      doc.setDrawColor(34, 139, 34); 
       doc.setLineWidth(1.5);
       doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
       doc.setFontSize(26);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(34, 34, 34);
+      doc.setTextColor(34, 139, 34);
       doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -110,7 +112,7 @@ const ResultsContent = () => {
       doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(212, 175, 55);
+      doc.setTextColor(255, 69, 0);
       doc.text(profile.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -130,7 +132,7 @@ const ResultsContent = () => {
       doc.text('Authorized Signature', 135, 140);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(212, 175, 55);
+      doc.setTextColor(34, 139, 34);
       doc.text('CricBlitz', doc.internal.pageSize.width / 2, 160, { align: 'center' });
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -148,7 +150,12 @@ const ResultsContent = () => {
         url: window.location.origin,
     };
     try {
-        await navigator.share(shareData);
+        if (navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            navigator.clipboard.writeText(shareData.text + ' ' + shareData.url);
+            toast({ title: 'Copied to clipboard', description: 'Sharing is not available, so we copied the text for you!' });
+        }
     } catch (error) {
         console.error('Share failed:', error);
         toast({ title: 'Sharing failed', description: 'Could not open share dialog.', variant: 'destructive'});

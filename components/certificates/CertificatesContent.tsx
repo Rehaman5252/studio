@@ -120,7 +120,7 @@ export default function CertificatesContent() {
     doc.setTextColor(34, 139, 34);
     doc.text('CricBlitz', doc.internal.pageSize.width / 2, 160, { align: 'center' });
     doc.setFontSize(10);
-    setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(150, 150, 150);
     doc.text('The Ultimate Cricket Quiz Challenge!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
     
