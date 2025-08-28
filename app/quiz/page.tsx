@@ -16,6 +16,11 @@ function QuizPageContent() {
   const brand = searchParams.get('brand') || 'Default Brand';
   const format = searchParams.get('format') || 'Mixed';
 
+  // Render the QuizClient only if brand and format are available
+  if (!brand || !format) {
+    return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>
+  }
+
   return <QuizClient brand={brand} format={format} />;
 }
 

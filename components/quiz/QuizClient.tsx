@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -305,7 +306,12 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
   
-  if (quizState === 'submitting' || !quizData) {
+  if (quizState === 'submitting' || quizState === 'finished') {
+    if (quizState === 'finished') {
+        // This state is primarily for preventing re-renders. 
+        // Actual navigation should happen in finishQuiz.
+        return null;
+    }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
         <motion.div
@@ -350,7 +356,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
   }
 
-  if (quizState === 'playing') {
+  if (quizState === 'playing' && quizData) {
     return (
         <>
           <QuizView
@@ -386,3 +392,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   // Fallback case, should not be reached
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+
+    
