@@ -169,7 +169,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     
     // Give a moment for the user to see the "submitting" screen
-    await new Promise(res => setTimeout(res, 2500));
+    await new Promise(res => setTimeout(res, 1500));
 
     const result = await addQuizAttempt(attempt);
     if(result.success) {
@@ -328,34 +328,39 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
   }
 
-  return (
-    <>
-       <QuizView
-        question={quizData.questions[currentQuestionIndex]}
-        questionNumber={currentQuestionIndex + 1}
-        totalQuestions={quizData.questions.length}
-        onAnswer={handleNextQuestion}
-        onNoBall={handleNoBall}
-        brand={brand}
-        format={format}
-        onHintRequest={handleHintRequest}
-        hint={hints[currentQuestionIndex]?.hint || null}
-        isHintLoading={isHintLoading}
-        soundEnabled={settings.sound}
-       />
-      {adForHint && (
-        <AdDialog
-          open={showAdDialog}
-          onOpenChange={setShowAdDialog}
-          onAdFinished={handleAdFinished}
-          duration={adForHint.duration}
-          skippableAfter={adForHint.skippableAfter}
-          adTitle={adForHint.title}
-          adType={adForHint.type}
-          adUrl={adForHint.url}
-          adHint={adForHint.hint}
-        />
-      )}
-    </>
-  );
+  if (quizState === 'playing') {
+    return (
+        <>
+          <QuizView
+            question={quizData.questions[currentQuestionIndex]}
+            questionNumber={currentQuestionIndex + 1}
+            totalQuestions={quizData.questions.length}
+            onAnswer={handleNextQuestion}
+            onNoBall={handleNoBall}
+            brand={brand}
+            format={format}
+            onHintRequest={handleHintRequest}
+            hint={hints[currentQuestionIndex]?.hint || null}
+            isHintLoading={isHintLoading}
+            soundEnabled={settings.sound}
+          />
+          {adForHint && (
+            <AdDialog
+              open={showAdDialog}
+              onOpenChange={setShowAdDialog}
+              onAdFinished={handleAdFinished}
+              duration={adForHint.duration}
+              skippableAfter={adForHint.skippableAfter}
+              adTitle={adForHint.title}
+              adType={adForHint.type}
+              adUrl={adForHint.url}
+              adHint={adForHint.hint}
+            />
+          )}
+        </>
+    );
+  }
+
+  // Fallback case, should not be reached
+  return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
