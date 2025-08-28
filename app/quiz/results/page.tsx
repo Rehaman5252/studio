@@ -15,6 +15,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
 import PageWrapper from '@/components/PageWrapper';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
 
 const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
 const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
@@ -119,6 +121,14 @@ const ResultsContent = () => {
             transition={{ duration: 0.5, type: 'spring' }}
             className="space-y-6"
         >
+             {isDisqualified && (
+                <Alert variant="destructive">
+                    <Ban className="h-4 w-4" />
+                    <AlertTitle>🏏 Third Umpire Decision: Malpractice Detected!</AlertTitle>
+                    <AlertDescription>The innings has been declared closed. Your final scorecard is displayed below.</AlertDescription>
+                </Alert>
+            )}
+
             <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
                 <CardHeader className="p-6">
                     <motion.div
@@ -132,7 +142,7 @@ const ResultsContent = () => {
                     <CardDescription>{attempt.format} Quiz - Sponsored by {attempt.brand}</CardDescription>
                 </CardHeader>
 
-                <CardContent className="p-6 pt-0 space-y-6">
+                <CardContent className="p-6 pt-0 space-y-4">
                     {!isDisqualified && (
                         <div className="space-y-4">
                             <div className="flex justify-around items-center">
@@ -147,7 +157,7 @@ const ResultsContent = () => {
                             <p className="text-lg font-semibold text-primary">{motivationalLine}</p>
                         </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+                     <div className="grid grid-cols-2 gap-4">
                         <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
                             <Home className="mr-2 h-5 w-5" /> Go Home
                         </Button>

@@ -53,7 +53,6 @@ export default function QuizView({
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
-    const [showNoBallAlert, setShowNoBallAlert] = useState(false);
     
     const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({
         tick: null
@@ -75,17 +74,14 @@ export default function QuizView({
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
-                setShowNoBallAlert(true);
+                 // Immediately call onNoBall when malpractice is detected.
+                 // This will stop the quiz and navigate to the results page.
+                 onNoBall('no-ball');
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, []);
-
-    const handleNoBallConfirm = () => {
-        setShowNoBallAlert(false);
-        onNoBall('no-ball');
-    };
+    }, [onNoBall]);
     
     useEffect(() => {
         setTimeLeft(QUESTION_TIME_LIMIT);
@@ -212,20 +208,6 @@ export default function QuizView({
                     </Button>
                 )}
             </footer>
-            
-            <AlertDialog open={showNoBallAlert}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="text-destructive"/>Fair Play Warning!</AlertDialogTitle>
-                        <AlertDialogDescription>
-                           You switched tabs or minimized the window, which is against the rules. This will be counted as a "No Ball".
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction onClick={handleNoBallConfirm}>I Understand</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 }
