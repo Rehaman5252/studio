@@ -64,11 +64,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         const slotId = getQuizSlotId();
         if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
           isFinishedRef.current = true;
-          setQuizState('finished');
-          router.replace('/'); 
+          // If a user somehow lands on this page for a completed quiz, redirect them.
+          // This check is a safeguard. The primary navigation happens in finishQuiz.
+          if (quizState !== 'finished') {
+            setQuizState('finished');
+            router.replace('/'); 
+          }
         }
     }
-  }, [router]);
+  }, [router, quizState]);
 
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
@@ -185,15 +189,19 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
+    // Set the session flag immediately to prevent re-entry
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+
     const result = await addQuizAttempt(attempt);
 
     if(result.success) {
-        sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
         router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     } else {
         setError("Could not save quiz results. Please check your connection and try again.");
         setQuizState('error');
-        isFinishedRef.current = false; 
+        isFinishedRef.current = false;
+        // If saving fails, remove the lock to allow retry
+        sessionStorage.removeItem(`quiz-finished-${attempt.slotId}`);
     }
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
@@ -281,7 +289,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
   
-  if (quizState === 'loading' || authLoading) {
+  if (quizState === 'loading' || authLoading || quizState === 'finished') {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />
@@ -304,7 +312,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
   
-  if (quizState === 'submitting' || isFinishedRef.current && quizState !== 'finished' ) {
+  if (quizState === 'submitting') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
         <motion.div
