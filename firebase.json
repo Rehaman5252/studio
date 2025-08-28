@@ -1,3 +1,4 @@
+
 {
   "hosting": {
     "source": ".",
@@ -10,10 +11,6 @@
       "region": "us-central1"
     },
     "rewrites": [
-      {
-        "source": "/api{,/**}",
-        "function": "nextServer"
-      },
       {
         "source": "**",
         "function": "nextServer"
