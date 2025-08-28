@@ -64,8 +64,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         const slotId = getQuizSlotId();
         if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
           isFinishedRef.current = true;
-          // If a user somehow lands on this page for a completed quiz, redirect them.
-          // This check is a safeguard. The primary navigation happens in finishQuiz.
           if (quizState !== 'finished') {
             setQuizState('finished');
             router.replace('/'); 
@@ -394,6 +392,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
 
-  // Fallback case, should not be reached
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }

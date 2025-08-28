@@ -43,7 +43,6 @@ const ResultsContent = () => {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdForReview, setShowAdForReview] = useState(false);
 
-  // Decode the attempt data from URL
   const decodedAttempt = useMemo(() => {
     const attemptData = searchParams.get('attempt');
     if (!attemptData) return null;
@@ -53,14 +52,6 @@ const ResultsContent = () => {
   const [attempt, setAttempt] = useState(decodedAttempt);
 
   useEffect(() => {
-    if (decodedAttempt && !decodedAttempt.reviewed) {
-        // Automatically open the analysis for first-time viewers
-        setIsAnalysisOpen(true);
-    }
-  }, [decodedAttempt]);
-  
-  // If no attempt data is found in the URL, show an error and redirect.
-  useEffect(() => {
     if (!decodedAttempt) {
       toast({
         title: "Invalid Results Link",
@@ -68,6 +59,8 @@ const ResultsContent = () => {
         variant: "destructive"
       });
       router.replace('/');
+    } else if (!decodedAttempt.reviewed) {
+        setIsAnalysisOpen(true);
     }
   }, [decodedAttempt, router, toast]);
 
@@ -91,7 +84,6 @@ const ResultsContent = () => {
             toast({ title: "Error", description: "Could not save review status. Please check connection.", variant: "destructive" });
         }
     }
-    // Still show the dialog even if saving fails.
     setShowReviewDialog(true);
   }, [attempt, markAttemptAsReviewed, toast]);
   

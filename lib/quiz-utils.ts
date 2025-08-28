@@ -4,15 +4,16 @@
 import type { QuizAttempt, QuizData } from '@/ai/schemas';
 import type { User } from 'firebase/auth';
 import { getQuizSlotId } from '@/lib/utils';
-import { sanitizeUserProfile } from './sanitizeUserProfile';
+import { sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfile';
 
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
-        const sanitized = sanitizeUserProfile(attempt);
-        return encodeURIComponent(btoa(JSON.stringify(sanitized)));
+        const sanitized = sanitizeAttemptData(attempt);
+        const jsonString = JSON.stringify(sanitized);
+        return btoa(encodeURIComponent(jsonString));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
         return "";
@@ -24,7 +25,8 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
  */
 export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
     try {
-        return JSON.parse(atob(decodeURIComponent(encodedAttempt)));
+        const decodedJsonString = decodeURIComponent(atob(encodedAttempt));
+        return JSON.parse(decodedJsonString);
     } catch (e) {
         console.error("Failed to decode attempt:", e);
         return null;
@@ -58,7 +60,7 @@ export const buildAttempt = ({
 }: BuildAttemptArgs): QuizAttempt => {
     const score = overrides.score ?? quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
     
-    const unansweredCount = Math.max(0, quizData.questions.length - userAnswers.length);
+    const unansweredCount = userAnswers.filter(a => a === "").length;
 
     const attemptObject: QuizAttempt = {
         userId: user.uid,
@@ -77,5 +79,5 @@ export const buildAttempt = ({
         ...overrides,
     };
 
-    return sanitizeUserProfile(attemptObject) as QuizAttempt;
+    return sanitizeAttemptData(attemptObject) as QuizAttempt;
 };

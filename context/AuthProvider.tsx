@@ -309,7 +309,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
         const sanitizedAttempt = sanitizeQuizAttempt(attempt) as QuizAttempt;
         
-        // Optimistically update local state for immediate UI feedback
         setQuizHistory(prev => ({
             ...prev,
             data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
@@ -372,7 +371,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             return { success: true };
         } catch (e: any) {
             console.error('addQuizAttempt transaction failed:', e);
-            // Don't show a toast here, let the caller decide
             setIsOffline(true);
             return { success: false, error: e.message };
         }
@@ -412,7 +410,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
 
-    // Optimistically update the state
     setQuizHistory(prev => ({
         ...prev,
         data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
@@ -424,7 +421,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
-        // Revert the optimistic update on failure
         setQuizHistory(prev => ({
             ...prev,
             data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
