@@ -28,7 +28,7 @@ interface QuizClientProps {
   format: string;
 }
 
-type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error';
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'finished';
 
 type QuizAPIResponse = {
   quiz: QuizData;
@@ -59,19 +59,16 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const isFinishedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // This effect runs once to check if the quiz for this slot has already been completed.
-  // It uses sessionStorage to prevent re-entry even if the page is refreshed.
   useEffect(() => {
     if (typeof window !== 'undefined') {
         const slotId = getQuizSlotId();
         if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
           isFinishedRef.current = true;
-          // If the flag is set, redirect away immediately.
-          toast({ title: "Quiz Already Completed", description: "You have already played in this slot.", variant: 'destructive' });
+          setQuizState('finished');
           router.replace('/'); 
         }
     }
-  }, [router, toast]);
+  }, [router]);
 
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
@@ -80,16 +77,24 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const fetchQuiz = useCallback(async () => {
     if (isFinishedRef.current) return;
-    
-    abortControllerRef.current?.abort();
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+    }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     if (authLoading || !user) return;
-    if (isOffline || !isFirebaseConfigured) {
-      setError(isOffline ? "You appear to be offline." : "App not connected to server.");
-      setQuizState('error');
-      return;
+
+    if (isOffline) {
+        setError("You appear to be offline. Please check your connection.");
+        setQuizState('error');
+        return;
+    }
+    
+    if (!isFirebaseConfigured) {
+        setError("🔥 The app is not connected to the server. Please try again later.");
+        setQuizState('error');
+        return;
     }
     
     try {
@@ -104,6 +109,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       });
 
       if (controller.signal.aborted) return;
+      
       const data: QuizAPIResponse = await response.json();
       
       if (!response.ok || !data.quiz) {
@@ -113,13 +119,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setQuizData(data.quiz);
       setQuizSource(data.source || 'fallback');
       setQuizState('pre-quiz');
-      
+
       if (data.source === 'ai') {
         toast({ title: "✅ Fresh AI-powered quiz loaded!" });
       } else {
+        const reason = data.error || 'An unknown issue occurred';
+        const userMessage = reason.includes('timeout')
+            ? "The AI umpire is thinking! Playing a classic quiz instead."
+            : "Heads up! We're using a classic quiz set for now.";
         toast({
             title: "Fallback Quiz Loaded",
-            description: "Heads up! We're using a classic quiz set for now.",
+            description: userMessage,
             duration: 5000,
         });
       }
@@ -127,8 +137,16 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
-      toast({ title: "Error Loading Quiz", description: "Using fallback quiz.", variant: "destructive" });
-      setQuizData(getFallbackQuiz(format));
+      let userMessage = "Could not load quiz. Playing a classic set instead.";
+      
+      if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
+        userMessage = "📴 You appear to be offline. Please check your connection.";
+      }
+      
+      toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
+      
+      const localFallback = getFallbackQuiz(format);
+      setQuizData(localFallback);
       setQuizSource('fallback');
       setQuizState('pre-quiz');
     }
@@ -147,41 +165,41 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [fetchQuiz, user, authLoading]);
 
   const handlePreQuizFinish = useCallback(() => {
+    if (isFinishedRef.current) return;
     setQuizState('playing');
     setStartTime(Date.now());
   }, []);
 
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (isFinishedRef.current || !quizData || !user) return;
-    
-    isFinishedRef.current = true; // Lock the quiz immediately
+    isFinishedRef.current = true; 
     setQuizState('submitting');
     
     const attempt = buildAttempt({
-      user, quizData, brand, format, userAnswers: finalAnswers,
-      timePerQuestion: finalTimePerQuestion, source: quizSource,
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers: finalAnswers,
+      timePerQuestion: finalTimePerQuestion,
+      source: quizSource,
     });
-
-    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    await new Promise(res => setTimeout(res, 1500)); // Simulate umpire review time
-
     const result = await addQuizAttempt(attempt);
+
     if(result.success) {
+        sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
         router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     } else {
         setError("Could not save quiz results. Please check your connection and try again.");
         setQuizState('error');
-        // If save fails, we must allow a retry.
         isFinishedRef.current = false; 
-        sessionStorage.removeItem(`quiz-finished-${attempt.slotId}`);
     }
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (isFinishedRef.current || !quizData || !user) return;
-    
-    isFinishedRef.current = true; // Lock the quiz
+    isFinishedRef.current = true;
     setQuizState('submitting');
 
     const noBallCount = await handleMalpractice();
@@ -192,8 +210,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     
     const attempt = buildAttempt({
-      user, quizData, brand, format, userAnswers,
-      timePerQuestion, overrides: { reason, score: 0 }, source: quizSource,
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers,
+      timePerQuestion,
+      overrides: { reason, score: 0 },
+      source: quizSource,
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     await addQuizAttempt(attempt);
@@ -250,7 +274,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
     } catch (e) {
       console.error("Failed to get AI hint:", e);
-      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Try eliminating an option.", source: "fallback", debug: "Client-side error" } }));
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
     } finally {
       setIsHintLoading(false);
     }
@@ -275,12 +299,12 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
             <AlertTriangle className="h-12 w-12 mb-4" />
             <p className="font-semibold mb-4">{error}</p>
-            <Button onClick={() => router.replace('/')}>Go Home</Button>
+            <Button onClick={fetchQuiz}>Try Again</Button>
         </div>
     );
   }
   
-  if (quizState === 'submitting') {
+  if (quizState === 'submitting' || isFinishedRef.current && quizState !== 'finished' ) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
         <motion.div
@@ -358,5 +382,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
 
+  // Fallback case, should not be reached
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }

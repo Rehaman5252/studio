@@ -308,9 +308,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             return { success: false, error };
         }
 
-        const sanitizedAttempt = { ...attempt, score: attempt.score || 0, totalQuestions: attempt.totalQuestions || 0, reason: attempt.reason || null };
+        const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
         
-        // Optimistically update local state for immediate UI feedback
         setQuizHistory(prev => ({
             ...prev,
             data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
@@ -321,7 +320,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             const batch = writeBatch(db);
             const userDocRef = doc(db, 'users', user.uid);
 
-            // 1. Update User Stats
             const userStatsUpdate: { [key:string]: any } = { 
                 quizzesPlayed: increment(1),
                 totalScore: increment(sanitizedAttempt.score),
@@ -354,11 +352,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             }
             batch.update(userDocRef, userStatsUpdate);
             
-            // 2. Save Quiz Attempt
             const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-            batch.set(attemptRef, sanitizeUserProfile(sanitizedAttempt));
+            batch.set(attemptRef, sanitizedAttempt);
 
-            // 3. Update Live Leaderboard
             const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
             const totalTime = sanitizedAttempt.timePerQuestion ? sanitizedAttempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
             batch.set(liveEntryRef, {
@@ -370,7 +366,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 disqualified: !!sanitizedAttempt.reason,
             }, { merge: true });
 
-            // Commit all writes at once
             await batch.commit();
 
             setIsOffline(false);
@@ -379,7 +374,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             console.error('addQuizAttempt transaction failed:', e);
             toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
             
-            // Revert optimistic update on failure
             setQuizHistory(prev => ({
                 ...prev,
                 data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
@@ -424,7 +418,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
 
-    // Optimistically update the state
     setQuizHistory(prev => ({
         ...prev,
         data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
@@ -436,7 +429,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
-        // Revert the optimistic update on failure
         setQuizHistory(prev => ({
             ...prev,
             data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
@@ -477,5 +469,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
