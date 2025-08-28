@@ -283,11 +283,15 @@ const ResultsContent = () => {
             {isPerfectScore && !isDisqualified && (
               <Card className="bg-gradient-to-br from-yellow-400/20 to-amber-600/20 border-primary/30 shadow-lg">
                   <CardHeader className="text-center">
-                      <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit mb-2">
+                      <motion.div 
+                        className="mx-auto bg-primary/10 p-3 rounded-full w-fit mb-2"
+                        animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                      >
                         <Trophy className="h-8 w-8 text-primary" />
-                      </div>
-                      <CardTitle className="text-xl">Certificate Unlocked!</CardTitle>
-                      <CardDescription className="text-foreground/80">A testament to your perfect score. Download and share your achievement!</CardDescription>
+                      </motion.div>
+                      <CardTitle className="text-xl">Century Scored! Honours Board Induction</CardTitle>
+                      <CardDescription className="text-foreground/80">A flawless performance. Download your certificate and share your triumph!</CardDescription>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
                         <Button size="lg" variant="secondary" onClick={handleDownloadCertificate} className="h-12">
@@ -339,5 +343,3 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
-
-    
