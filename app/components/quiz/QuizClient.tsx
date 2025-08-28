@@ -18,14 +18,17 @@ import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
+import { getFallbackQuiz } from '@/lib/fallback-quiz';
 import { motion } from 'framer-motion';
+import { getQuizSlotId } from '@/lib/utils';
+
 
 interface QuizClientProps {
   brand: string;
   format: string;
 }
 
-type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error';
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'finished';
 
 type QuizAPIResponse = {
   quiz: QuizData;
@@ -55,6 +58,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   
   const isFinishedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Check session storage to prevent re-playing a finished quiz
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const slotId = getQuizSlotId();
+        if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
+          isFinishedRef.current = true;
+          setQuizState('finished');
+          // If user is on this page somehow, redirect them away.
+          router.replace('/'); 
+        }
+    }
+  }, [router]);
+
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
     return interstitialAds[currentQuestionIndex] || null;
@@ -102,7 +119,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
 
       setQuizData(data.quiz);
-      setQuizSource(data.source || 'ai');
+      setQuizSource(data.source || 'fallback');
       setQuizState('pre-quiz');
 
       if (data.source === 'ai') {
@@ -122,22 +139,25 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
-      let userMessage = "Could not load quiz. Please contact support.";
+      let userMessage = "Could not load quiz. Playing a classic set instead.";
       
       if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
         userMessage = "📴 You appear to be offline. Please check your connection.";
       }
       
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
-      setError(userMessage);
-      setQuizState('error');
+      
+      const localFallback = getFallbackQuiz(format);
+      setQuizData(localFallback);
+      setQuizSource('fallback');
+      setQuizState('pre-quiz');
     }
   }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
     if (user && !isFinishedRef.current) {
         fetchQuiz();
-    } else if (!authLoading) {
+    } else if (!authLoading && !isFinishedRef.current) {
         setError("Please sign in to play a quiz.");
         setQuizState('error');
     }
@@ -153,7 +173,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (isFinishedRef.current || !quizData || !user) return;
-    isFinishedRef.current = true;
+    isFinishedRef.current = true; // Lock the quiz
     setQuizState('submitting');
     
     const attempt = buildAttempt({
@@ -165,6 +185,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
+
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
     await new Promise(res => setTimeout(res, 1500));
 
@@ -174,13 +196,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } else {
         setError("Could not save quiz results. Please check your connection and try again.");
         setQuizState('error');
-        isFinishedRef.current = false;
+        isFinishedRef.current = false; // Allow retry if save fails
+        sessionStorage.removeItem(`quiz-finished-${attempt.slotId}`);
     }
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (isFinishedRef.current || !quizData || !user) return;
-    isFinishedRef.current = true;
+    isFinishedRef.current = true; // Lock the quiz
     setQuizState('submitting');
 
     const noBallCount = await handleMalpractice();
@@ -200,6 +223,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       overrides: { reason, score: 0 },
       source: quizSource,
     });
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
@@ -365,3 +389,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   // Fallback case, should not be reached
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+
+    
