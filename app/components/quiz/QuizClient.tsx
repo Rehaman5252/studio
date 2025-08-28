@@ -124,7 +124,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. Playing a classic set instead.";
       
-      if (e.message.includes("Failed to fetch")) {
+      if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
         userMessage = "📴 You appear to be offline. Please check your connection.";
       }
       
@@ -211,7 +211,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setUserAnswers(updatedAnswers);
     setTimePerQuestion(updatedTime);
     
-    if (currentQuestionIndex < quizData!.questions.length - 1) {
+    if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
         if (interstitialConfig) {
             setShowInterstitial(true);
         } else {
@@ -233,7 +233,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     if (!quizData || isHintLoading) return;
     const adConfig = adLibrary.hintAds[currentQuestionIndex];
     if (adConfig) {
-      setAdForHint(adConfig as any);
+      setAdForHint(adConfig);
       setShowAdDialog(true);
     }
   }, [quizData, currentQuestionIndex, isHintLoading]);
@@ -303,6 +303,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       return (
         <AdDialog 
             open={true}
+            onOpenChange={()=>{}}
             onAdFinished={onInterstitialComplete}
             duration={interstitialConfig.durationSec!}
             skippableAfter={interstitialConfig.skippableAfterSec!}
@@ -332,6 +333,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       {adForHint && (
         <AdDialog
           open={showAdDialog}
+          onOpenChange={setShowAdDialog}
           onAdFinished={handleAdFinished}
           duration={adForHint.duration}
           skippableAfter={adForHint.skippableAfter}

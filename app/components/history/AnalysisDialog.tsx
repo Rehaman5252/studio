@@ -25,24 +25,11 @@ import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
-  children?: React.ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOpenChange }: AnalysisDialogProps) => {
-  const isControlled = typeof controlledOpen === 'boolean' && typeof onOpenChange === 'function';
-  const [internalOpen, setInternalOpen] = useState(false);
-  
-  const open = isControlled ? controlledOpen : internalOpen;
-  const setOpen = (newOpenState: boolean) => {
-    if (isControlled) {
-      onOpenChange(newOpenState);
-    } else {
-      setInternalOpen(newOpenState);
-    }
-  };
-
+const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialogProps) => {
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +71,7 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
     if (loading) {
       return (
         <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-            <Loader2 className="animate-spin h-8 w-8 mb-4" />
+            <Loader2 className="animate-spin h-8 w-8 mb-4 text-primary" />
             <p className="font-semibold">Generating your analysis...</p>
             <p className="text-sm">The AI coach is reviewing the match footage.</p>
         </div>
@@ -168,8 +155,7 @@ const AnalysisDialogComponent = ({ attempt, children, open: controlledOpen, onOp
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
@@ -60,16 +60,17 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const { toast } = useToast();
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
-  const handleReviewClick = () => {
+  const handleReviewClick = useCallback(() => {
     if (!attempt.reviewed) {
         setShowAdDialog(true);
     } else {
         setShowReviewDialog(true);
     }
-  };
+  }, [attempt.reviewed]);
 
-  const handleAdFinished = async () => {
+  const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
     const { success } = await markAttemptAsReviewed(attempt.slotId);
     if (!success) {
@@ -80,7 +81,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
       });
     }
     setShowReviewDialog(true);
-  };
+  }, [attempt.slotId, markAttemptAsReviewed, toast]);
   
   const attemptDate = new Date(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions;
@@ -124,12 +125,10 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                         {attempt.reviewed ? 'Reviewed' : 'Review'}
                     </Button>
                     
-                    <AnalysisDialog attempt={attempt}>
-                        <Button variant="secondary" size="sm" disabled={isDisqualified}>
-                            <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                            Analysis
-                        </Button>
-                    </AnalysisDialog>
+                    <Button variant="secondary" size="sm" onClick={() => setIsAnalysisOpen(true)} disabled={isDisqualified}>
+                        <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                        Analysis
+                    </Button>
                 </div>
             </CardContent>
         </Card>
@@ -137,12 +136,9 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         {showAdDialog && (
             <AdDialog
                 open={showAdDialog}
+                onOpenChange={setShowAdDialog}
                 onAdFinished={handleAdFinished}
-                duration={adLibrary.resultsAd.duration}
-                skippableAfter={adLibrary.resultsAd.skippableAfter}
-                adTitle={adLibrary.resultsAd.title}
-                adType={adLibrary.resultsAd.type}
-                adUrl={adLibrary.resultsAd.url}
+                {...adLibrary.resultsAd}
             >
                  <p className="text-xs text-muted-foreground mt-2">Watch this ad to review your answers. This is a one-time action per quiz.</p>
             </AdDialog>
@@ -152,6 +148,11 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
             open={showReviewDialog}
             onOpenChange={setShowReviewDialog}
             attempt={attempt}
+        />
+        <AnalysisDialog
+            attempt={attempt}
+            open={isAnalysisOpen}
+            onOpenChange={setIsAnalysisOpen}
         />
     </>
   );
