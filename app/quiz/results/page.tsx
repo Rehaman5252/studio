@@ -43,19 +43,33 @@ const ResultsContent = () => {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdForReview, setShowAdForReview] = useState(false);
 
-  const initialAttempt = useMemo(() => {
+  // Decode the attempt data from URL
+  const decodedAttempt = useMemo(() => {
     const attemptData = searchParams.get('attempt');
     if (!attemptData) return null;
     return decodeAttempt(attemptData);
   }, [searchParams]);
   
-  const [attempt, setAttempt] = useState(initialAttempt);
+  const [attempt, setAttempt] = useState(decodedAttempt);
 
   useEffect(() => {
-    if (attempt && !attempt.reviewed) {
+    if (decodedAttempt && !decodedAttempt.reviewed) {
+        // Automatically open the analysis for first-time viewers
         setIsAnalysisOpen(true);
     }
-  }, [attempt]);
+  }, [decodedAttempt]);
+  
+  // If no attempt data is found in the URL, show an error and redirect.
+  useEffect(() => {
+    if (!decodedAttempt) {
+      toast({
+        title: "Invalid Results Link",
+        description: "Could not find your quiz data. Redirecting to home.",
+        variant: "destructive"
+      });
+      router.replace('/');
+    }
+  }, [decodedAttempt, router, toast]);
 
   const handleViewAnswers = useCallback(() => {
     if (!attempt) return;
@@ -77,21 +91,12 @@ const ResultsContent = () => {
             toast({ title: "Error", description: "Could not save review status. Please check connection.", variant: "destructive" });
         }
     }
+    // Still show the dialog even if saving fails.
     setShowReviewDialog(true);
   }, [attempt, markAttemptAsReviewed, toast]);
   
   if (!attempt) {
-    return (
-        <PageWrapper title="Error">
-            <div className="flex flex-col items-center justify-center text-center p-4">
-                <h2 className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</h2>
-                <p className="text-muted-foreground">There was an error retrieving your scorecard.</p>
-                <Button onClick={() => router.push('/')} className="mt-4">
-                    <Home className="mr-2 h-4 w-4" /> Return to Home
-                </Button>
-            </div>
-        </PageWrapper>
-    );
+    return <LoadingSkeleton />;
   }
 
   const isPerfectScore = attempt.score === attempt.totalQuestions;
@@ -120,7 +125,7 @@ const ResultsContent = () => {
             className="space-y-6"
         >
             <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
-                <CardHeader>
+                <CardHeader className="p-6">
                     <motion.div
                         animate={{ scale: [1, 1.1, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -128,7 +133,7 @@ const ResultsContent = () => {
                     >
                         {isDisqualified ? <Ban className="h-12 w-12 text-destructive" /> : <Award className="h-12 w-12 text-primary" />}
                     </motion.div>
-                    <CardTitle className="text-3xl font-bold">{pageTitle}</CardTitle>
+                    <CardTitle className="text-3xl font-bold mt-4">{pageTitle}</CardTitle>
                     <CardDescription>{attempt.format} Quiz - Sponsored by {attempt.brand}</CardDescription>
                 </CardHeader>
 
@@ -209,5 +214,3 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
-
-    

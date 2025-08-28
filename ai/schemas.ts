@@ -69,5 +69,3 @@ export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
 export type HintOutput = import('./flows/ai-powered-hints').HintOutput;
-
-    

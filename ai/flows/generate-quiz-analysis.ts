@@ -41,7 +41,8 @@ export const QuizAnalysisOutputSchema = z.object({
  */
 const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
     const accuracy = (attempt.score / attempt.totalQuestions) * 100;
-    const averageTime = (attempt.timePerQuestion?.reduce((a,b) => a+b, 0) || 0) / attempt.totalQuestions;
+    const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
+    const averageTime = totalTime > 0 ? totalTime / attempt.totalQuestions : 0;
 
     const correctQuestions = attempt.questions.filter((q, i) => q.correctAnswer === attempt.userAnswers[i]);
     const incorrectQuestions = attempt.questions.filter((q, i) => q.correctAnswer !== attempt.userAnswers[i]);
@@ -153,5 +154,3 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         }
     }
 );
-
-    
