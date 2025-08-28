@@ -46,7 +46,12 @@ const ResultsContent = () => {
   const decodedAttempt = useMemo(() => {
     const attemptData = searchParams.get('attempt');
     if (!attemptData) return null;
-    return decodeAttempt(attemptData);
+    try {
+      return decodeAttempt(decodeURIComponent(attemptData));
+    } catch(e) {
+      console.error("Failed to decode attempt from URL", e);
+      return decodeAttempt(attemptData); // Try without decoding URI component as a fallback
+    }
   }, [searchParams]);
   
   const [attempt, setAttempt] = useState(decodedAttempt);
@@ -142,10 +147,15 @@ const ResultsContent = () => {
                             <p className="text-lg font-semibold text-primary">{motivationalLine}</p>
                         </div>
                     )}
-                    <div className="grid grid-cols-1 gap-4 pt-4 border-t border-border">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                         <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
                             <Home className="mr-2 h-5 w-5" /> Go Home
                         </Button>
+                         {!isDisqualified && (
+                            <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
+                                <Eye className="mr-2 h-4 w-4" /> View Answers {attempt.reviewed ? '' : '(Ad)'}
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -156,11 +166,8 @@ const ResultsContent = () => {
                       <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary" /> AI Performance Analysis</CardTitle>
                       <CardDescription>Get a personalized analysis of your performance from our AI coach.</CardDescription>
                   </CardHeader>
-                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <CardContent>
                         <Button size="lg" className="w-full" onClick={() => setIsAnalysisOpen(true)}>Generate Free Analysis</Button>
-                        <Button size="lg" variant="outline" className="w-full" onClick={handleViewAnswers}>
-                            <Eye className="mr-2 h-4 w-4" /> View Answers {attempt.reviewed ? '' : '(Ad)'}
-                        </Button>
                   </CardContent>
               </Card>
             )}
