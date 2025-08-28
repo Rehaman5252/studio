@@ -39,7 +39,7 @@ function HomePage() {
           indcric
         </h1>
         <p className="mt-1 text-sm font-normal text-foreground/80">
-          Click a face to play instantly
+          Win ₹100 for every 100 seconds!
         </p>
       </div>
     );
