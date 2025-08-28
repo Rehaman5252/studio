@@ -76,13 +76,13 @@ export default function CertificatesContent() {
   const handleDownload = (cert: typeof certificates[0]) => {
     const doc = new jsPDF();
 
-    doc.setDrawColor(34, 139, 34); 
+    doc.setDrawColor(212, 175, 55); 
     doc.setLineWidth(1.5);
     doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
 
     doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(34, 139, 34);
+    doc.setTextColor(34, 34, 34);
     doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
 
     doc.setFontSize(12);
@@ -92,7 +92,7 @@ export default function CertificatesContent() {
     
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 69, 0);
+    doc.setTextColor(212, 175, 55);
     doc.text(profile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
     
     doc.setFontSize(12);
@@ -117,14 +117,14 @@ export default function CertificatesContent() {
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(34, 139, 34);
-    doc.text('CricBlitz', doc.internal.pageSize.width / 2, 160, { align: 'center' });
+    doc.setTextColor(212, 175, 55);
+    doc.text('indcric', doc.internal.pageSize.width / 2, 160, { align: 'center' });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(150, 150, 150);
-    doc.text('The Ultimate Cricket Quiz Challenge!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
+    doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
     
-    doc.save(`CricBlitz_${cert.format}_Certificate.pdf`);
+    doc.save(`indcric_${cert.format}_Certificate.pdf`);
     
     toast({
         title: "Download Started",
@@ -134,8 +134,8 @@ export default function CertificatesContent() {
 
   const handleShare = async (cert: typeof certificates[0]) => {
     const shareData = {
-        title: `I earned a CricBlitz Certificate!`,
-        text: `I just got a perfect score in the ${cert.format} quiz on CricBlitz! Think you can beat me?`,
+        title: `I earned an indcric Certificate!`,
+        text: `I just got a perfect score in the ${cert.format} quiz on indcric! Think you can beat me?`,
         url: window.location.origin,
     };
     try {

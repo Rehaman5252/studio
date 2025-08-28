@@ -99,12 +99,12 @@ const ResultsContent = () => {
       if (!attempt || !profile) return;
       
       const doc = new jsPDF();
-      doc.setDrawColor(34, 139, 34); 
+      doc.setDrawColor(212, 175, 55);
       doc.setLineWidth(1.5);
       doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
       doc.setFontSize(26);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(34, 139, 34);
+      doc.setTextColor(34, 34, 34);
       doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -112,7 +112,7 @@ const ResultsContent = () => {
       doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 69, 0);
+      doc.setTextColor(212, 175, 55);
       doc.text(profile.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -133,20 +133,20 @@ const ResultsContent = () => {
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(34, 139, 34);
-      doc.text('CricBlitz', doc.internal.pageSize.width / 2, 160, { align: 'center' });
+      doc.text('indcric', doc.internal.pageSize.width / 2, 160, { align: 'center' });
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(150, 150, 150);
-      doc.text('The Ultimate Cricket Quiz Challenge!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
-      doc.save(`CricBlitz_${attempt.format}_Certificate.pdf`);
+      doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
+      doc.save(`indcric_${attempt.format}_Certificate.pdf`);
       toast({ title: "Download Started", description: "Your certificate is being downloaded." });
   };
 
   const handleShare = async () => {
     if (!attempt) return;
     const shareData = {
-        title: `I earned a perfect score on CricBlitz!`,
-        text: `I just got a perfect score in the ${attempt.format} quiz on CricBlitz! Think you can beat me?`,
+        title: `I earned a perfect score on indcric!`,
+        text: `I just got a perfect score in the ${attempt.format} quiz on indcric! Think you can beat me?`,
         url: window.location.origin,
     };
     try {
