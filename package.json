@@ -10,7 +10,7 @@
     "deploy": "firebase deploy"
   },
   "engines": {
-    "node": "20"
+    "node": "20.x"
   },
   "dependencies": {
     "@genkit-ai/core": "1.10.0",
