@@ -210,6 +210,8 @@ const ResultsContent = () => {
     return "Quiz Complete!";
   }, [isDisqualified, isPerfectScore]);
   
+  const slotTimings = getSlotTimings(attempt.timestamp);
+
   return (
     <PageWrapper title="Quiz Scorecard" showBackButton>
         <motion.div
@@ -237,6 +239,7 @@ const ResultsContent = () => {
                     </motion.div>
                     <CardTitle className="text-3xl font-bold mt-4">{pageTitle}</CardTitle>
                     <CardDescription>{attempt.format} Quiz - Sponsored by {attempt.brand}</CardDescription>
+                    <CardDescription>Slot: {slotTimings}</CardDescription>
                 </CardHeader>
 
                 <CardContent className="p-6 pt-0 space-y-4">
