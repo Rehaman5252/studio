@@ -13,6 +13,8 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
         const sanitized = sanitizeAttemptData(attempt);
         const jsonString = JSON.stringify(sanitized);
+        // btoa creates a Base64 string.
+        // encodeURIComponent makes it safe for URLs.
         return btoa(encodeURIComponent(jsonString));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
@@ -25,6 +27,7 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
  */
 export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
     try {
+        // decodeURIComponent reverses the encoding, then atob decodes the Base64.
         const decodedJsonString = decodeURIComponent(atob(encodedAttempt));
         return JSON.parse(decodedJsonString);
     } catch (e) {

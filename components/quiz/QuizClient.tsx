@@ -55,23 +55,23 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
   const { toast } = useToast();
   const { settings } = useSettings();
-  
+
   const isFinishedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // --- Prevent replay but DO NOT force a redirect to home.
+  // Previously this effect redirected to '/', causing the homepage behavior you reported.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const slotId = getQuizSlotId();
-        if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
-          isFinishedRef.current = true;
-          if (quizState !== 'finished') {
-            setQuizState('finished');
-            router.replace('/'); 
-          }
-        }
+    if (typeof window === 'undefined') return;
+    const slotId = getQuizSlotId();
+    if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
+      isFinishedRef.current = true;
+      // Do NOT navigate away here. We just block replay and set local state.
+      setQuizState('finished');
+      // Removed router.replace('/') which caused the race redirect to homepage.
     }
-  }, [router, quizState]);
-
+  // empty deps - only run once on mount (slotId is derived from time/slot util)
+  }, []);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
     return interstitialAds[currentQuestionIndex] || null;
@@ -92,13 +92,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         setQuizState('error');
         return;
     }
-    
+
     if (!isFirebaseConfigured) {
         setError("🔥 The app is not connected to the server. Please try again later.");
         setQuizState('error');
         return;
     }
-    
+
     try {
       setQuizState('loading');
       setError(null);
@@ -111,9 +111,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       });
 
       if (controller.signal.aborted) return;
-      
+
       const data: QuizAPIResponse = await response.json();
-      
+
       if (!response.ok || !data.quiz) {
          throw new Error(data.error || "The server returned an unexpected response.");
       }
@@ -135,18 +135,18 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             duration: 5000,
         });
       }
-      
+
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. Playing a classic set instead.";
-      
+
       if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
         userMessage = "📴 You appear to be offline. Please check your connection.";
       }
-      
+
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
-      
+
       const localFallback = getFallbackQuiz(format);
       setQuizData(localFallback);
       setQuizSource('fallback');
@@ -172,12 +172,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
+  // ---------- IMPORTANT: show "Third Umpire Review" (submitting) for 3s before navigating ----------
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (isFinishedRef.current || !quizData || !user) return;
-    
+
     isFinishedRef.current = true;
-    setQuizState('submitting');
-    
+    setQuizState('submitting'); // <-- shows your Third Umpire Review UI
+
     const attempt = buildAttempt({
       user,
       quizData,
@@ -187,21 +188,34 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
-    
-    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+
+    // mark finished to prevent replay
+    try {
+      sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+    } catch (e) {
+      console.warn("Could not set sessionStorage flag:", e);
+    }
 
     const result = await addQuizAttempt(attempt);
 
-    if (result.success) {
-      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-    } else {
+    // Always navigate to results AFTER a short pause so the user sees the review UI.
+    // Use encodeURIComponent for safe query string inclusion.
+    const encoded = encodeURIComponent(encodeAttempt(attempt));
+
+    // Wait 3 seconds so UI is visible (you can tweak duration here)
+    setTimeout(() => {
+      // Use replace so back-button behaviour doesn't re-run the quiz accidentally.
+      router.replace(`/quiz/results?attempt=${encoded}`);
+    }, 3000);
+
+    if (!result.success) {
+      // also show toast about save failure (score is cached locally and attempt was still encoded in URL)
       toast({
           title: "Could not save your quiz result",
           description: "Please check your connection. Your score is safe on this device for now.",
           variant: "destructive",
           duration: 10000,
       });
-      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     }
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
 
@@ -216,7 +230,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         description: `Malpractice detected. You have ${noBallCount} no-ball(s). 3 no-balls and you're out!`,
         variant: "destructive"
     });
-    
+
     const attempt = buildAttempt({
       user,
       quizData,
@@ -227,25 +241,35 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       overrides: { reason, score: 0 },
       source: quizSource,
     });
-    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
-    
-    await addQuizAttempt(attempt);
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
 
+    try {
+      sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+    } catch (e) {
+      console.warn("Could not set sessionStorage flag:", e);
+    }
+
+    await addQuizAttempt(attempt);
+
+    const encoded = encodeURIComponent(encodeAttempt(attempt));
+    setTimeout(() => {
+      router.replace(`/quiz/results?attempt=${encoded}`);
+    }, 3000);
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     if (isFinishedRef.current) return;
 
     const endTime = Date.now();
-    const timeTaken = (endTime - startTime) / 1000;
-    
+    // If startTime is 0 (safe fallback) treat timeTaken as 0.5s rather than huge
+    const rawTime = startTime ? (endTime - startTime) / 1000 : 0.5;
+    const timeTaken = parseFloat(rawTime.toFixed(2));
+
     const updatedAnswers = [...userAnswers, answer];
-    const updatedTime = [...timePerQuestion, parseFloat(timeTaken.toFixed(2))];
-    
+    const updatedTime = [...timePerQuestion, timeTaken];
+
     setUserAnswers(updatedAnswers);
     setTimePerQuestion(updatedTime);
-    
+
     if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
         if (interstitialConfig) {
             setShowInterstitial(true);
@@ -276,7 +300,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
     if (!adForHint || !quizData) return;
-    
+
     setIsHintLoading(true);
     try {
       const currentQ = quizData.questions[currentQuestionIndex];
@@ -290,7 +314,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
-  
+
   if (quizState === 'loading' || authLoading || quizState === 'finished') {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
@@ -299,7 +323,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         </div>
     );
   }
-  
+
   if (quizState === 'pre-quiz' && quizData) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
@@ -313,7 +337,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         </div>
     );
   }
-  
+
   if (quizState === 'submitting') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
@@ -331,7 +355,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       </div>
     );
   }
-  
+
   if (showInterstitial && interstitialConfig) {
     if (interstitialConfig.type === 'static' && interstitialConfig.logoUrl) {
       return (
@@ -345,7 +369,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
     if (interstitialConfig.type === 'video' && interstitialConfig.videoUrl) {
       return (
-        <AdDialog 
+        <AdDialog
             open={true}
             onOpenChange={()=>{}}
             onAdFinished={onInterstitialComplete}
