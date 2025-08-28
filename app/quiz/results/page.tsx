@@ -281,18 +281,19 @@ const ResultsContent = () => {
             )}
 
             {isPerfectScore && !isDisqualified && (
-              <Card className="bg-card/80">
-                  <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Trophy className="text-primary" /> Certificate Unlocked!
-                      </CardTitle>
-                      <CardDescription>You've earned a certificate for your perfect score. Download and share it with your friends!</CardDescription>
+              <Card className="bg-gradient-to-br from-yellow-400/20 to-amber-600/20 border-primary/30 shadow-lg">
+                  <CardHeader className="text-center">
+                      <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit mb-2">
+                        <Trophy className="h-8 w-8 text-primary" />
+                      </div>
+                      <CardTitle className="text-xl">Certificate Unlocked!</CardTitle>
+                      <CardDescription className="text-foreground/80">A testament to your perfect score. Download and share your achievement!</CardDescription>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
-                        <Button size="lg" variant="secondary" onClick={handleDownloadCertificate}>
+                        <Button size="lg" variant="secondary" onClick={handleDownloadCertificate} className="h-12">
                             <Download className="mr-2 h-4 w-4"/> Download
                         </Button>
-                        <Button size="lg" variant="outline" onClick={handleShare}>
+                        <Button size="lg" variant="outline" onClick={handleShare} className="h-12">
                             <Share2 className="mr-2 h-4 w-4"/> Share
                         </Button>
                   </CardContent>
