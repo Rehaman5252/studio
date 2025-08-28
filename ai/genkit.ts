@@ -34,5 +34,6 @@ configureGenkit({
   logLevel: 'debug',
 
   // Enable OpenTelemetry for tracing and metrics, which is useful for monitoring flow performance.
-  enableTracingAndMetrics: true,
+  // This is disabled as it can cause issues with the Next.js bundler.
+  enableTracingAndMetrics: false,
 });
