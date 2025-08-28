@@ -61,19 +61,27 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
+  const [isReviewed, setIsReviewed] = useState(attempt.reviewed);
+
 
   const handleReviewClick = useCallback(() => {
-    if (!attempt.reviewed) {
+    if (!isReviewed) {
         setShowAdDialog(true);
     } else {
         setShowReviewDialog(true);
     }
-  }, [attempt.reviewed]);
+  }, [isReviewed]);
 
   const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
     const { success } = await markAttemptAsReviewed(attempt.slotId);
-    if (!success) {
+    if (success) {
+      setIsReviewed(true);
+      toast({
+        title: "Success",
+        description: "You can now review your answers."
+      });
+    } else {
       toast({
         title: "Update Failed",
         description: "Could not save the reviewed state. Please check your connection.",
@@ -120,9 +128,9 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
-                        {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
-                        {attempt.reviewed ? 'Reviewed' : 'Review'}
+                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed}>
+                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
+                        {isReviewed ? 'Reviewed' : 'Review'}
                     </Button>
                     
                     <Button variant="secondary" size="sm" onClick={() => setIsAnalysisOpen(true)} disabled={isDisqualified}>

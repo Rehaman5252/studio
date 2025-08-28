@@ -4,7 +4,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
+import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
@@ -83,12 +83,12 @@ export default function CertificatesContent() {
     doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(34, 34, 34);
-    doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
+    doc.text('Certificate of Mastery', doc.internal.pageSize.width / 2, 30, { align: 'center' });
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
-    doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
+    doc.text('For an outstanding innings by', doc.internal.pageSize.width / 2, 50, { align: 'center' });
     
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
@@ -98,31 +98,38 @@ export default function CertificatesContent() {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
-    doc.text('has successfully achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
+    doc.text('who achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
     
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text(`${cert.format} Quiz (${cert.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
     
+    const stars = Math.floor((profile?.perfectScores || 1) / 5);
+    if (stars > 0) {
+      doc.setFontSize(20);
+      doc.setTextColor(255, 215, 0);
+      doc.text('★'.repeat(stars), doc.internal.pageSize.width / 2, 120, { align: 'center' });
+    }
+    
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 100, 100);
-    doc.text(`Awarded on: ${cert.date}`, 30, 130);
-    doc.text(`Quiz Slot: ${cert.slot}`, 30, 137);
+    doc.text(`Date of Innings: ${cert.date}`, 30, 140);
+    doc.text(`Match Slot: ${cert.slot}`, 30, 147);
 
     doc.setLineWidth(0.5);
-    doc.line(130, 135, 180, 135);
+    doc.line(130, 150, 180, 150);
     doc.setFontSize(10);
-    doc.text('Authorized Signature', 135, 140);
+    doc.text('Official Scorer', 140, 155);
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(212, 175, 55);
-    doc.text('indcric', doc.internal.pageSize.width / 2, 160, { align: 'center' });
+    doc.text('indcric', doc.internal.pageSize.width / 2, 170, { align: 'center' });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(150, 150, 150);
-    doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
+    doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 175, { align: 'center' });
     
     doc.save(`indcric_${cert.format}_Certificate.pdf`);
     
@@ -133,9 +140,13 @@ export default function CertificatesContent() {
   };
 
   const handleShare = async (cert: typeof certificates[0]) => {
+    if (!profile) return;
+    const stars = Math.floor((profile.perfectScores || 0) / 5);
+    const starText = stars > 0 ? ` I now have ${stars} star(s) on my profile! ⭐` : '';
+
     const shareData = {
-        title: `I earned an indcric Certificate!`,
-        text: `I just got a perfect score in the ${cert.format} quiz on indcric! Think you can beat me?`,
+        title: `I aced a quiz on indcric!`,
+        text: `I just hit a century with a perfect score in the ${cert.format} quiz on indcric!${starText} Think you can match my score?`,
         url: window.location.origin,
     };
     try {
@@ -143,7 +154,7 @@ export default function CertificatesContent() {
             await navigator.share(shareData);
         } else {
            navigator.clipboard.writeText(shareData.text + ' ' + shareData.url);
-           toast({ title: 'Copied to clipboard', description: 'Sharing is not available, so we copied the text for you!' });
+           toast({ title: 'Copied to clipboard!', description: 'Sharing not available, so we copied the text for you.' });
         }
     } catch (error) {
         console.error('Share failed:', error);

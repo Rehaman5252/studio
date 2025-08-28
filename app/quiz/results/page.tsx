@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { motion } from 'framer-motion';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check, Trophy } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check, Trophy, Star } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
@@ -95,6 +95,21 @@ const ResultsContent = () => {
     setShowReviewDialog(true);
   }, [attempt, markAttemptAsReviewed, toast]);
 
+  const getSlotTimings = (timestamp: number) => {
+    const attemptDate = new Date(timestamp);
+    const minutes = attemptDate.getMinutes();
+    const slotStartMinute = Math.floor(minutes / 10) * 10;
+    
+    const slotStartTime = new Date(attemptDate);
+    slotStartTime.setMinutes(slotStartMinute, 0, 0);
+    
+    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+  };
+
   const handleDownloadCertificate = () => {
       if (!attempt || !profile) return;
       
@@ -105,11 +120,11 @@ const ResultsContent = () => {
       doc.setFontSize(26);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(34, 34, 34);
-      doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
+      doc.text('Certificate of Mastery', doc.internal.pageSize.width / 2, 30, { align: 'center' });
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
-      doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
+      doc.text('For an outstanding innings by', doc.internal.pageSize.width / 2, 50, { align: 'center' });
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(212, 175, 55);
@@ -117,36 +132,50 @@ const ResultsContent = () => {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
-      doc.text('has successfully achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
+      doc.text('who achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text(`${attempt.format} Quiz (${attempt.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
+      
+      const stars = Math.floor((profile.perfectScores || 1) / 5);
+      if (stars > 0) {
+        doc.setFontSize(20);
+        doc.setTextColor(255, 215, 0);
+        doc.text('★'.repeat(stars), doc.internal.pageSize.width / 2, 120, { align: 'center' });
+      }
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(100, 100, 100);
       const attemptDate = new Date(attempt.timestamp);
-      doc.text(`Awarded on: ${attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 30, 130);
+      doc.text(`Date of Innings: ${attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 30, 140);
+      doc.text(`Match Slot: ${getSlotTimings(attempt.timestamp)}`, 30, 147);
+
       doc.setLineWidth(0.5);
-      doc.line(130, 135, 180, 135);
+      doc.line(130, 150, 180, 150);
       doc.setFontSize(10);
-      doc.text('Authorized Signature', 135, 140);
+      doc.text('Official Scorer', 140, 155);
+
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(34, 139, 34);
-      doc.text('indcric', doc.internal.pageSize.width / 2, 160, { align: 'center' });
+      doc.text('indcric', doc.internal.pageSize.width / 2, 170, { align: 'center' });
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(150, 150, 150);
-      doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
+      doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 175, { align: 'center' });
       doc.save(`indcric_${attempt.format}_Certificate.pdf`);
       toast({ title: "Download Started", description: "Your certificate is being downloaded." });
   };
 
   const handleShare = async () => {
-    if (!attempt) return;
+    if (!attempt || !profile) return;
+    const stars = Math.floor((profile.perfectScores || 0) / 5);
+    const starText = stars > 0 ? ` I now have ${stars} star(s) on my profile! ⭐` : '';
+
     const shareData = {
-        title: `I earned a perfect score on indcric!`,
-        text: `I just got a perfect score in the ${attempt.format} quiz on indcric! Think you can beat me?`,
+        title: `I aced a quiz on indcric!`,
+        text: `I just hit a century with a perfect score in the ${attempt.format} quiz on indcric!${starText} Think you can match my score?`,
         url: window.location.origin,
     };
     try {
@@ -154,7 +183,7 @@ const ResultsContent = () => {
             await navigator.share(shareData);
         } else {
             navigator.clipboard.writeText(shareData.text + ' ' + shareData.url);
-            toast({ title: 'Copied to clipboard', description: 'Sharing is not available, so we copied the text for you!' });
+            toast({ title: 'Copied to clipboard!', description: 'Sharing not available, so we copied the text for you.' });
         }
     } catch (error) {
         console.error('Share failed:', error);
@@ -234,29 +263,12 @@ const ResultsContent = () => {
                          {!isDisqualified && (
                             <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers} disabled={attempt.reviewed}>
                                 {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4" />}
-                                {attempt.reviewed ? 'Answers Reviewed' : 'View Answers (Ad)'}
+                                {attempt.reviewed ? 'Answers Reviewed' : 'Review Answers (Ad)'}
                             </Button>
                         )}
                     </div>
                 </CardContent>
             </Card>
-
-            {isPerfectScore && !isDisqualified && (
-              <Card className="bg-card/80">
-                  <CardHeader>
-                      <CardTitle className="flex items-center gap-2"><Trophy className="text-primary" /> Certificate Unlocked!</CardTitle>
-                      <CardDescription>You've earned a certificate for your perfect score. Download and share it with your friends!</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                        <Button size="lg" variant="secondary" onClick={handleDownloadCertificate}>
-                            <Download className="mr-2 h-4 w-4"/> Download
-                        </Button>
-                        <Button size="lg" variant="outline" onClick={handleShare}>
-                            <Share2 className="mr-2 h-4 w-4"/> Share
-                        </Button>
-                  </CardContent>
-              </Card>
-            )}
 
             {!isDisqualified && (
               <Card className="bg-card/80">
@@ -266,6 +278,25 @@ const ResultsContent = () => {
                   </CardHeader>
                   <CardContent>
                         <Button size="lg" className="w-full" onClick={() => setIsAnalysisOpen(true)}>Generate Free Analysis</Button>
+                  </CardContent>
+              </Card>
+            )}
+
+            {isPerfectScore && !isDisqualified && (
+              <Card className="bg-card/80">
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Trophy className="text-primary" /> Certificate of Mastery
+                      </CardTitle>
+                      <CardDescription>You've earned a certificate for your perfect score. Download and share it with your friends!</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                        <Button size="lg" variant="secondary" onClick={handleDownloadCertificate}>
+                            <Download className="mr-2 h-4 w-4"/> Download
+                        </Button>
+                        <Button size="lg" variant="outline" onClick={handleShare}>
+                            <Share2 className="mr-2 h-4 w-4"/> Share
+                        </Button>
                   </CardContent>
               </Card>
             )}
@@ -309,5 +340,3 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
-
-    
