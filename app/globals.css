@@ -6,58 +6,58 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 120 60% 96%; /* Pale Green */
-    --foreground: 120 60% 10%; /* Dark Forest Green */
+    --background: 45 10% 96%; /* Off-white for a less stark light mode */
+    --foreground: 45 10% 10%; /* Dark brown-black */
 
-    --card: 120 60% 100%; /* White */
-    --card-foreground: 120 60% 10%;
+    --card: 45 10% 100%;
+    --card-foreground: 45 10% 10%;
 
-    --primary: 120 61% 34%; /* Forest Green */
-    --primary-foreground: 0 0% 100%;
+    --primary: 45 90% 50%; /* Gold */
+    --primary-foreground: 45 10% 10%; /* Dark text on gold for readability */
 
-    --secondary: 120 20% 90%;
-    --secondary-foreground: 120 60% 10%;
+    --secondary: 45 10% 90%;
+    --secondary-foreground: 45 10% 10%;
     
-    --destructive: 16 100% 50%; /* Sunset Orange */
+    --destructive: 0 84% 60%; /* A standard red for errors */
     --destructive-foreground: 0 0% 100%;
     
-    --accent: 16 100% 50%; /* Sunset Orange */
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 90% 55%; /* Slightly brighter gold for accents */
+    --accent-foreground: 45 10% 10%;
 
-    --muted: 120 20% 90%;
-    --muted-foreground: 120 30% 40%;
+    --muted: 45 10% 90%;
+    --muted-foreground: 45 10% 40%;
     
-    --input: 120 20% 88%;
-    --ring: 120 61% 34%;
+    --input: 45 10% 88%;
+    --ring: 45 90% 50%;
 
     --radius: 0.5rem;
     --font-inter: 'Inter', sans-serif;
   }
 
   .dark {
-    --background: 120 10% 8%; /* Dark Green-Black */
-    --foreground: 120 25% 95%; /* Pale Green-White */
+    --background: 0 0% 8%; /* Near black */
+    --foreground: 45 30% 95%; /* Pale gold-white text */
 
-    --card: 120 10% 12%; /* Darker Green-Black */
-    --card-foreground: 120 25% 95%;
+    --card: 0 0% 12%; /* Slightly lighter black for cards */
+    --card-foreground: 45 30% 95%;
 
-    --primary: 120 61% 40%; /* Brighter Forest Green */
-    --primary-foreground: 120 25% 95%;
+    --primary: 45 80% 55%; /* Vibrant Gold */
+    --primary-foreground: 0 0% 10%; /* Black text on gold buttons */
 
-    --secondary: 120 10% 15%;
-    --secondary-foreground: 120 25% 95%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 45 30% 95%;
     
-    --destructive: 16 100% 55%; /* Brighter Sunset Orange */
+    --destructive: 0 70% 55%; /* Slightly brighter red for dark mode */
     --destructive-foreground: 0 0% 100%;
     
-    --accent: 16 100% 60%; /* Bright Sunset Orange */
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 80% 60%; /* Brighter Gold for accents */
+    --accent-foreground: 0 0% 10%;
 
-    --muted: 120 10% 15%;
-    --muted-foreground: 120 15% 65%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 45 20% 65%;
     
-    --input: 120 10% 20%;
-    --ring: 120 61% 40%;
+    --input: 0 0% 20%;
+    --ring: 45 80% 55%;
   }
 }
 
