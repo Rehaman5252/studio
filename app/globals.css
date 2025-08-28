@@ -6,29 +6,29 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 45 10% 96%; /* Off-white for a less stark light mode */
-    --foreground: 45 10% 10%; /* Dark brown-black */
+    --background: 0 0% 8%; /* Near black */
+    --foreground: 45 30% 95%; /* Pale gold-white text */
 
-    --card: 45 10% 100%;
-    --card-foreground: 45 10% 10%;
+    --card: 0 0% 12%; /* Slightly lighter black for cards */
+    --card-foreground: 45 30% 95%;
 
-    --primary: 45 90% 50%; /* Gold */
-    --primary-foreground: 45 10% 10%; /* Dark text on gold for readability */
+    --primary: 45 80% 55%; /* Vibrant Gold */
+    --primary-foreground: 0 0% 10%; /* Black text on gold buttons */
 
-    --secondary: 45 10% 90%;
-    --secondary-foreground: 45 10% 10%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 45 30% 95%;
     
-    --destructive: 0 84% 60%; /* A standard red for errors */
+    --destructive: 0 70% 55%; /* Slightly brighter red for dark mode */
     --destructive-foreground: 0 0% 100%;
     
-    --accent: 45 90% 55%; /* Slightly brighter gold for accents */
-    --accent-foreground: 45 10% 10%;
+    --accent: 45 80% 60%; /* Brighter Gold for accents */
+    --accent-foreground: 0 0% 10%;
 
-    --muted: 45 10% 90%;
-    --muted-foreground: 45 10% 40%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 45 20% 65%;
     
-    --input: 45 10% 88%;
-    --ring: 45 90% 50%;
+    --input: 0 0% 20%;
+    --ring: 45 80% 55%;
 
     --radius: 0.5rem;
     --font-inter: 'Inter', sans-serif;
