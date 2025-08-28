@@ -11,12 +11,13 @@ import { z } from 'zod';
 
 const GenerateFactsInputSchema = z.object({
   format: z.string().describe('The cricket format (e.g., T20, IPL, Test).'),
-  seenFacts: z.array(z.string()).describe('A list of facts that have already been shown to the user to avoid repetition.'),
+  count: z.number().int().positive().default(5).describe('The number of facts to generate.'),
+  seenFacts: z.array(z.string()).optional().describe('A list of facts that have already been shown to the user to avoid repetition.'),
 });
 type GenerateFactsInput = z.infer<typeof GenerateFactsInputSchema>;
 
 const GenerateFactsOutputSchema = z.object({
-  facts: z.array(z.string()).length(10).describe('A list of exactly 10 unique, interesting, little-known, and engaging pieces of information about the specified cricket format. These can be a surprising fact, a recent update from your knowledge cutoff, a historical ancedote, or a funny real-life moment.'),
+  facts: z.array(z.string()).describe('A list of unique, interesting, little-known, and engaging pieces of information about the specified cricket format. These can be a surprising fact, a recent update from your knowledge cutoff, a historical ancedote, or a funny real-life moment.'),
 });
 type GenerateFactsOutput = z.infer<typeof GenerateFactsOutputSchema>;
 
@@ -26,6 +27,14 @@ export async function generateCricketFacts(input: GenerateFactsInput): Promise<s
     return facts;
 }
 
+const getFallbackFacts = (): string[] => [
+    "The term 'Googly' was named after its inventor, Bernard Bosanquet.",
+    "The longest Test match in history lasted for 12 days.",
+    "Shahid Afridi once hit the fastest ODI century using Sachin Tendulkar's bat.",
+    "Sir Don Bradman needed only 4 runs in his last innings to have a Test average of 100, but was out for a duck.",
+    "In 2003, Adam Gilchrist famously 'walked' in a World Cup semi-final despite being given not out."
+];
+
 
 const prompt = ai.definePrompt({
   name: 'generateCricketFactsPrompt',
@@ -33,17 +42,19 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateFactsOutputSchema },
   prompt: `You are a cricket encyclopedia with a witty and engaging personality.
   
-  Generate a list of exactly 10 unique, interesting, little-known, and engaging pieces of information about "{{format}}" cricket. Each item can be a surprising fact, a funny real-life moment, a notable update from your knowledge cutoff, or a fascinating historical anecdote.
+  Generate a list of exactly {{count}} unique, interesting, little-known, and engaging pieces of information about "{{format}}" cricket. Each item can be a surprising fact, a funny real-life moment, a notable update from your knowledge cutoff, or a fascinating historical anecdote.
   
   The content must be strictly about the sport and not mention any brands or sponsors.
-  
+  The facts must not be direct answers to common quiz questions.
+
   Crucially, none of the facts in your response MUST be similar to any of the facts in the following list of already seen facts:
-  {{#each seenFacts}}
-  - "{{this}}"
-  {{/each}}
+  {{#if seenFacts}}
+    {{#each seenFacts}}
+    - "{{this}}"
+    {{/each}}
+  {{/if}}
   `,
   config: {
-    // Set extremely permissive safety settings to prevent the model from blocking valid responses.
     safetySettings: [
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -62,22 +73,15 @@ const generateCricketFactsFlow = ai.defineFlow(
     outputSchema: GenerateFactsOutputSchema,
   },
   async (input: GenerateFactsInput) => {
-    const { output } = await prompt(input);
-    if (!output || output.facts.length < 10) {
-      // Provide a fallback list if the AI fails
-      return { facts: [
-        "Shahid Afridi used Sachin Tendulkar’s bat to hit the fastest ODI century (then a record) in 1996, scoring 100 off just 37 balls.",
-        "MS Dhoni is so quick behind the stumps that in 2018, he broke his own record for the fastest stumping, dismissing a batsman in just 0.08 seconds!",
-        "Irfan Pathan took a hat-trick in the very first over of a Test match against Pakistan in 2006—still the only instance in history.",
-        "Sir Don Bradman needed just 4 runs in his last innings to average 100, but was bowled for a duck, ending his career with a 99.94 average.",
-        "Adam Gilchrist walked off in a World Cup semi-final (2003) even when the umpire didn’t give him out, a famous act of sportsmanship.",
-        "Lasith Malinga is the only bowler to take four wickets in four consecutive balls in international cricket.",
-        "In a 2019 Ranji Trophy match, a dog ran onto the field and stopped play for several minutes.",
-        "Virender Sehwag is the only player to reach a triple century (300 runs) with a six, and he did it twice!",
-        "The longest Test match in history (the “timeless Test” of 1939) lasted for 12 days before ending in a draw.",
-        "South Africa’s Herschelle Gibbs is the only player to hit six sixes in an over in a World Cup match (2007)."
-      ] };
+    try {
+        const { output } = await prompt(input);
+        if (!output || output.facts.length < input.count) {
+          throw new Error("AI returned fewer facts than requested.");
+        }
+        return output;
+    } catch (error) {
+        console.warn("AI fact generation failed, using fallback.", error);
+        return { facts: getFallbackFacts() };
     }
-    return output;
   }
 );
