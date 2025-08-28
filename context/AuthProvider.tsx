@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, writeBatch, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
-import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
+import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
@@ -304,12 +304,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const addQuizAttempt = useCallback(async (attempt: QuizAttempt): Promise<{ success: boolean, error?: string }> => {
         if (!user || !profile || !db) {
             const error = "User not authenticated or database unavailable.";
-            toast({ title: "Save Failed", description: error, variant: "destructive" });
             return { success: false, error };
         }
 
-        const sanitizedAttempt = sanitizeUserProfile(attempt) as QuizAttempt;
+        const sanitizedAttempt = sanitizeQuizAttempt(attempt) as QuizAttempt;
         
+        // Optimistically update local state for immediate UI feedback
         setQuizHistory(prev => ({
             ...prev,
             data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
@@ -372,17 +372,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             return { success: true };
         } catch (e: any) {
             console.error('addQuizAttempt transaction failed:', e);
-            toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
-            
-            setQuizHistory(prev => ({
-                ...prev,
-                data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
-            }));
-            
+            // Don't show a toast here, let the caller decide
             setIsOffline(true);
             return { success: false, error: e.message };
         }
-    }, [user, profile, toast]);
+    }, [user, profile]);
 
   const handleMalpractice = useCallback(async (): Promise<number> => {
     if (!user || !profile || !db) return 0;
@@ -418,6 +412,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
 
+    // Optimistically update the state
     setQuizHistory(prev => ({
         ...prev,
         data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
@@ -429,6 +424,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
+        // Revert the optimistic update on failure
         setQuizHistory(prev => ({
             ...prev,
             data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)

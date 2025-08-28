@@ -176,6 +176,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (isFinishedRef.current || !quizData || !user) return;
+    
     isFinishedRef.current = true;
     setQuizState('submitting');
     
@@ -189,25 +190,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
-    // Set the session flag immediately to prevent re-entry
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
 
-    // Navigate immediately to the results page with the generated attempt data.
-    // The user sees their score instantly.
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-
-    // In the background, try to save the results to the database.
-    // This no longer blocks the UI.
     const result = await addQuizAttempt(attempt);
 
-    // If saving fails, show a toast on the results page. The user is already there.
-    if(!result.success) {
-        toast({
-            title: "Could not save your quiz result",
-            description: "Please check your connection. Your score is safe on this device for now.",
-            variant: "destructive",
-            duration: 10000,
-        });
+    if (result.success) {
+      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    } else {
+      toast({
+          title: "Could not save your quiz result",
+          description: "Please check your connection. Your score is safe on this device for now.",
+          variant: "destructive",
+          duration: 10000,
+      });
+      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     }
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
 
@@ -235,9 +231,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-    
     await addQuizAttempt(attempt);
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
 
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
