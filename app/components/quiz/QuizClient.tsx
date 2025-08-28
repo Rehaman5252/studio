@@ -28,7 +28,7 @@ interface QuizClientProps {
   format: string;
 }
 
-type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'finished';
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error';
 
 type QuizAPIResponse = {
   quiz: QuizData;
@@ -59,14 +59,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const isFinishedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Check session storage to prevent re-playing a finished quiz
   useEffect(() => {
     if (typeof window !== 'undefined') {
         const slotId = getQuizSlotId();
         if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
           isFinishedRef.current = true;
-          setQuizState('finished');
-          // If user is on this page somehow, redirect them away.
+          // If a user somehow lands on this page for a completed quiz, redirect them.
+          // This check is a safeguard. The primary navigation happens in finishQuiz.
           router.replace('/'); 
         }
     }
@@ -167,13 +166,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [fetchQuiz, user, authLoading]);
 
   const handlePreQuizFinish = useCallback(() => {
+    if (isFinishedRef.current) return;
     setQuizState('playing');
     setStartTime(Date.now());
   }, []);
 
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (isFinishedRef.current || !quizData || !user) return;
-    isFinishedRef.current = true; // Lock the quiz
+    isFinishedRef.current = true; 
     setQuizState('submitting');
     
     const attempt = buildAttempt({
@@ -185,25 +185,26 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
-
-    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    await new Promise(res => setTimeout(res, 1500));
+    // Set the session flag immediately to prevent re-entry
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
 
     const result = await addQuizAttempt(attempt);
+
     if(result.success) {
         router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     } else {
         setError("Could not save quiz results. Please check your connection and try again.");
         setQuizState('error');
-        isFinishedRef.current = false; // Allow retry if save fails
+        isFinishedRef.current = false;
+        // If saving fails, remove the lock to allow retry
         sessionStorage.removeItem(`quiz-finished-${attempt.slotId}`);
     }
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (isFinishedRef.current || !quizData || !user) return;
-    isFinishedRef.current = true; // Lock the quiz
+    isFinishedRef.current = true;
     setQuizState('submitting');
 
     const noBallCount = await handleMalpractice();
@@ -308,7 +309,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
   
-  if (quizState === 'submitting' || !quizData) {
+  if (quizState === 'submitting') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
         <motion.div
@@ -353,7 +354,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
   }
 
-  if (quizState === 'playing') {
+  if (quizState === 'playing' && quizData) {
     return (
         <>
           <QuizView
@@ -389,5 +390,3 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   // Fallback case, should not be reached
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
-
-    

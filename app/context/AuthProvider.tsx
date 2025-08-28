@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { signOut, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword as firebaseSignInWithEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, onSnapshot, writeBatch, arrayUnion, Timestamp, collection, query, where, limit, getDocs, orderBy } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
-import { sanitizeUserProfile } from '@/lib/sanitizeUserProfile';
+import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
@@ -308,19 +308,19 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             return { success: false, error };
         }
 
-        const sanitizedAttempt = { ...attempt, score: attempt.score || 0, totalQuestions: attempt.totalQuestions || 0, reason: attempt.reason || null };
+        const sanitizedAttempt = sanitizeQuizAttempt(attempt) as QuizAttempt;
         
         // Optimistically update local state for immediate UI feedback
         setQuizHistory(prev => ({
             ...prev,
             data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
         }));
+        setLastAttemptInSlot(sanitizedAttempt);
 
         try {
             const batch = writeBatch(db);
             const userDocRef = doc(db, 'users', user.uid);
 
-            // 1. Update User Stats
             const userStatsUpdate: { [key:string]: any } = { 
                 quizzesPlayed: increment(1),
                 totalScore: increment(sanitizedAttempt.score),
@@ -353,11 +353,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             }
             batch.update(userDocRef, userStatsUpdate);
             
-            // 2. Save Quiz Attempt
             const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-            batch.set(attemptRef, sanitizeUserProfile(sanitizedAttempt));
+            batch.set(attemptRef, sanitizedAttempt);
 
-            // 3. Update Live Leaderboard
             const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
             const totalTime = sanitizedAttempt.timePerQuestion ? sanitizedAttempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
             batch.set(liveEntryRef, {
@@ -369,7 +367,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 disqualified: !!sanitizedAttempt.reason,
             }, { merge: true });
 
-            // Commit all writes at once
             await batch.commit();
 
             setIsOffline(false);
@@ -378,7 +375,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             console.error('addQuizAttempt transaction failed:', e);
             toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
             
-            // Revert optimistic update on failure
             setQuizHistory(prev => ({
                 ...prev,
                 data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
