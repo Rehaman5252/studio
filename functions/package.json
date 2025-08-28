@@ -1,20 +1,12 @@
 {
-  "name": "cricblitz-functions",
-  "description": "Cloud Functions for CricBlitz",
-  "scripts": {
-    "serve": "firebase emulators:start --only functions",
-    "shell": "firebase functions:shell",
-    "start": "node index.js",
-    "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
-  },
+  "name": "functions",
+  "version": "1.0.0",
+  "main": "index.js",
   "engines": {
     "node": "20"
   },
-  "main": "index.js",
-  "dependencies": {},
-  "devDependencies": {
-    "firebase-functions-test": "^3.1.0"
+  "scripts": {
+    "start": "node index.js"
   },
-  "private": true
+  "dependencies": {}
 }
