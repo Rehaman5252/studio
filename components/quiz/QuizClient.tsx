@@ -61,12 +61,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   // Check session storage to prevent re-playing a finished quiz
   useEffect(() => {
-    const slotId = getQuizSlotId();
-    if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
-      isFinishedRef.current = true;
-      setQuizState('finished');
-      // If user is on this page somehow, redirect them away.
-      router.replace('/'); 
+    if (typeof window !== 'undefined') {
+        const slotId = getQuizSlotId();
+        if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
+          isFinishedRef.current = true;
+          setQuizState('finished');
+          // If user is on this page somehow, redirect them away.
+          router.replace('/'); 
+        }
     }
   }, [router]);
 
@@ -307,11 +309,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }
   
   if (quizState === 'submitting' || quizState === 'finished') {
-    if (quizState === 'finished') {
-        // This state is primarily for preventing re-renders. 
-        // Actual navigation should happen in finishQuiz.
-        return null;
-    }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
         <motion.div
@@ -392,5 +389,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   // Fallback case, should not be reached
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+
+    
 
     
