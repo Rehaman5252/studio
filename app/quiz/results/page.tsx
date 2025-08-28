@@ -45,6 +45,7 @@ const ResultsContent = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdForReview, setShowAdForReview] = useState(false);
+  const [slotTimings, setSlotTimings] = useState<string | null>(null);
 
   const decodedAttempt = useMemo(() => {
     const attemptData = searchParams.get('attempt');
@@ -67,6 +68,23 @@ const ResultsContent = () => {
         variant: "destructive"
       });
       router.replace('/');
+    } else {
+      // Calculate timings on the client side to prevent hydration errors
+      const getSlotTimings = (timestamp: number) => {
+        const attemptDate = new Date(timestamp);
+        const minutes = attemptDate.getMinutes();
+        const slotStartMinute = Math.floor(minutes / 10) * 10;
+        
+        const slotStartTime = new Date(attemptDate);
+        slotStartTime.setMinutes(slotStartMinute, 0, 0);
+        
+        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+      };
+      setSlotTimings(getSlotTimings(decodedAttempt.timestamp));
     }
   }, [decodedAttempt, router, toast]);
 
@@ -93,23 +111,8 @@ const ResultsContent = () => {
     setShowReviewDialog(true);
   }, [attempt, markAttemptAsReviewed, toast]);
 
-  const getSlotTimings = (timestamp: number) => {
-    const attemptDate = new Date(timestamp);
-    const minutes = attemptDate.getMinutes();
-    const slotStartMinute = Math.floor(minutes / 10) * 10;
-    
-    const slotStartTime = new Date(attemptDate);
-    slotStartTime.setMinutes(slotStartMinute, 0, 0);
-    
-    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-  };
-
   const handleDownloadCertificate = () => {
-      if (!attempt || !profile) return;
+      if (!attempt || !profile || !slotTimings) return;
       
       const doc = new jsPDF();
       doc.setDrawColor(212, 175, 55);
@@ -147,7 +150,7 @@ const ResultsContent = () => {
       doc.setTextColor(100, 100, 100);
       const attemptDate = new Date(attempt.timestamp);
       doc.text(`Date of Innings: ${attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 30, 140);
-      doc.text(`Match Slot: ${getSlotTimings(attempt.timestamp)}`, 30, 147);
+      doc.text(`Match Slot: ${slotTimings}`, 30, 147);
 
       doc.setLineWidth(0.5);
       doc.line(130, 150, 180, 150);
@@ -189,7 +192,7 @@ const ResultsContent = () => {
     }
   };
 
-  if (!attempt) {
+  if (!attempt || !slotTimings) {
     return <LoadingSkeleton />;
   }
 
@@ -209,8 +212,6 @@ const ResultsContent = () => {
     if (isPerfectScore) return "Perfect Score!";
     return "Quiz Complete!";
   }, [isDisqualified, isPerfectScore]);
-  
-  const slotTimings = getSlotTimings(attempt.timestamp);
 
   return (
     <PageWrapper title="Quiz Scorecard" showBackButton>
