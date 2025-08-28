@@ -315,6 +315,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             ...prev,
             data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
         }));
+        setLastAttemptInSlot(sanitizedAttempt);
 
         try {
             const batch = writeBatch(db);

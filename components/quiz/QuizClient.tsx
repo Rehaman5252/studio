@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -20,6 +19,7 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { getFallbackQuiz } from '@/lib/fallback-quiz';
 import { motion } from 'framer-motion';
+import { getQuizSlotId } from '@/lib/utils';
 
 
 interface QuizClientProps {
@@ -27,7 +27,7 @@ interface QuizClientProps {
   format: string;
 }
 
-type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error';
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'finished';
 
 type QuizAPIResponse = {
   quiz: QuizData;
@@ -55,13 +55,27 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const { toast } = useToast();
   const { settings } = useSettings();
   
+  const isFinishedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Check session storage to prevent re-playing a finished quiz
+  useEffect(() => {
+    const slotId = getQuizSlotId();
+    if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
+      isFinishedRef.current = true;
+      setQuizState('finished');
+      // If user is on this page somehow, redirect them away.
+      router.replace('/'); 
+    }
+  }, [router]);
+
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
     return interstitialAds[currentQuestionIndex] || null;
   }, [currentQuestionIndex]);
 
   const fetchQuiz = useCallback(async () => {
+    if (isFinishedRef.current) return;
     if (abortControllerRef.current) {
         abortControllerRef.current.abort();
     }
@@ -138,9 +152,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !isFinishedRef.current) {
         fetchQuiz();
-    } else if (!authLoading) {
+    } else if (!authLoading && !isFinishedRef.current) {
         setError("Please sign in to play a quiz.");
         setQuizState('error');
     }
@@ -155,7 +169,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, []);
 
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
-    if (quizState === 'submitting' || !quizData || !user) return;
+    if (isFinishedRef.current || !quizData || !user) return;
+    isFinishedRef.current = true; // Lock the quiz
     setQuizState('submitting');
     
     const attempt = buildAttempt({
@@ -167,8 +182,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
+
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    // Give a moment for the user to see the "submitting" screen
     await new Promise(res => setTimeout(res, 1500));
 
     const result = await addQuizAttempt(attempt);
@@ -177,11 +193,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } else {
         setError("Could not save quiz results. Please check your connection and try again.");
         setQuizState('error');
+        isFinishedRef.current = false; // Allow retry if save fails
+        sessionStorage.removeItem(`quiz-finished-${attempt.slotId}`);
     }
-  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, quizState]);
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
-    if (quizState === 'submitting' || !quizData || !user) return;
+    if (isFinishedRef.current || !quizData || !user) return;
+    isFinishedRef.current = true; // Lock the quiz
     setQuizState('submitting');
 
     const noBallCount = await handleMalpractice();
@@ -201,11 +220,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       overrides: { reason, score: 0 },
       source: quizSource,
     });
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource, quizState]);
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
+    if (isFinishedRef.current) return;
+
     const endTime = Date.now();
     const timeTaken = (endTime - startTime) / 1000;
     
@@ -294,7 +316,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         >
             <ShieldCheck className="h-16 w-16 text-primary animate-pulse" />
             <h2 className="text-2xl font-bold text-foreground">Third Umpire Review...</h2>
-            <p>Checking your answers and updating the scorecard.</p>
+            <p>Sending your scorecard for verification.</p>
             <CricketLoading />
         </motion.div>
       </div>
