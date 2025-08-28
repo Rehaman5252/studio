@@ -55,7 +55,7 @@ const prompt = ai.definePrompt({
 
     The hint MUST NOT give away the correct answer ("{{question.correctAnswer}}").
     Instead, it should guide the user by providing context, a related fact, or helping them eliminate one or two incorrect options.
-    Be creative and encouraging.
+    Be creative and encouraging. The hint should be a single sentence.
 
     Question: "{{question.question}}"
 
@@ -66,7 +66,7 @@ const prompt = ai.definePrompt({
 
     Correct Answer: {{question.correctAnswer}}
 
-    Generate a single, smart hint.
+    Generate one single, smart, and indirect hint.
     `,
     config: {
         retries: 2,

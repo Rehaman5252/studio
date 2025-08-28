@@ -16,9 +16,11 @@ import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { getFallbackQuiz } from '@/lib/fallback-quiz';
+import { motion } from 'framer-motion';
+
 
 interface QuizClientProps {
   brand: string;
@@ -166,6 +168,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
+    // Give a moment for the user to see the "submitting" screen
+    await new Promise(res => setTimeout(res, 2500));
+
     const result = await addQuizAttempt(attempt);
     if(result.success) {
         router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
@@ -255,7 +260,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
   
-  if (quizState === 'loading') {
+  if (quizState === 'loading' || authLoading) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />
@@ -281,8 +286,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   if (quizState === 'submitting' || !quizData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
-        <CricketLoading />
-        <p className="mb-4 mt-4">Sending your scorecard to the umpire...</p>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            className="flex flex-col items-center gap-4"
+        >
+            <ShieldCheck className="h-16 w-16 text-primary animate-pulse" />
+            <h2 className="text-2xl font-bold text-foreground">Third Umpire Review...</h2>
+            <p>Checking your answers and updating the scorecard.</p>
+            <CricketLoading />
+        </motion.div>
       </div>
     );
   }
