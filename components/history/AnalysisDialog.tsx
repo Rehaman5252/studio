@@ -1,14 +1,26 @@
 
 "use client";
 
-import type { QuizAnalysisOutput, QuizAttempt } from '@/ai/schemas';
+import React, { useState, useEffect, memo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  BarChart,
+  Target,
+  Zap,
+  Lightbulb,
+  Loader2,
+  ServerCrash,
+} from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
-import { BarChart, Lightbulb, Loader2, ServerCrash, Target, Zap } from 'lucide-react';
-import { memo, useEffect, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
@@ -158,6 +170,8 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
       </DialogContent>
     </Dialog>
   );
-}
+};
 
 export default memo(AnalysisDialogComponent);
+
+    

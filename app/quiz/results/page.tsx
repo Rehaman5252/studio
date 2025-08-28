@@ -204,3 +204,5 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
+
+    

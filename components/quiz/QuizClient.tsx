@@ -159,15 +159,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
-  const finishQuiz = useCallback(async (currentAnswers: string[], currentTimePerQuestion: number[]) => {
+  const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (!quizData || !user) return;
     const attempt = buildAttempt({
       user,
       quizData,
       brand,
       format,
-      userAnswers: currentAnswers,
-      timePerQuestion: currentTimePerQuestion,
+      userAnswers: finalAnswers,
+      timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
     const result = await addQuizAttempt(attempt);
@@ -211,7 +211,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setUserAnswers(updatedAnswers);
     setTimePerQuestion(updatedTime);
     
-    if (currentQuestionIndex < quizData!.questions.length - 1) {
+    if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
         if (interstitialConfig) {
             setShowInterstitial(true);
         } else {
@@ -219,6 +219,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setStartTime(Date.now());
         }
     } else {
+      // This is the final question, call finishQuiz
       finishQuiz(updatedAnswers, updatedTime);
     }
   }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);
@@ -303,6 +304,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       return (
         <AdDialog 
             open={true}
+            onOpenChange={()=>{}}
             onAdFinished={onInterstitialComplete}
             duration={interstitialConfig.durationSec!}
             skippableAfter={interstitialConfig.skippableAfterSec!}
@@ -332,6 +334,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       {adForHint && (
         <AdDialog
           open={showAdDialog}
+          onOpenChange={setShowAdDialog}
           onAdFinished={handleAdFinished}
           duration={adForHint.duration}
           skippableAfter={adForHint.skippableAfter}
@@ -344,3 +347,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     </>
   );
 }
+
+    
