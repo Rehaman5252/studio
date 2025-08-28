@@ -14,8 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import GlobalStats from '@/components/home/GlobalStats';
-import SelectedBrandCard from '@/components/home/SelectedBrandCard';
 import { brandData, type CubeBrand } from '@/components/home/brandData';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +21,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 const BrandCube = dynamic(() => import('@/components/home/BrandCube'), { 
     loading: () => <Skeleton className="w-48 h-48 rounded-lg" />,
     ssr: false 
+});
+const GlobalStats = dynamic(() => import('@/components/home/GlobalStats'), {
+    loading: () => <Skeleton className="h-[200px] w-full" />,
+});
+const SelectedBrandCard = dynamic(() => import('@/components/home/SelectedBrandCard'), {
+    loading: () => <Skeleton className="h-[124px] w-full" />,
 });
 
 const faceRotations = [
@@ -33,6 +37,8 @@ const faceRotations = [
     { x: -90, y: 0 },  // Top (WPL)
     { x: 90, y: 0 }    // Bottom (Test)
 ];
+
+const ROTATION_INTERVAL_MS = 750;
 
 interface QuizSelectionProps {
     selectedBrand: CubeBrand;
@@ -50,7 +56,6 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
     const [isRotating, setIsRotating] = useState(true);
 
     useEffect(() => {
-        // Prefetch immediately on component mount if user is available
         if (user?.uid) {
             fetch('/api/quiz', {
                 method: 'POST',
@@ -70,12 +75,13 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
                 setSelectedBrand(brandData[newIndex]);
                 return newIndex;
             });
-        }, 750);
+        }, ROTATION_INTERVAL_MS);
 
         return () => clearInterval(rotationInterval);
     }, [isRotating, setSelectedBrand]);
     
     const initiateQuiz = useCallback((brand: CubeBrand) => {
+        setIsRotating(false);
         if (!isProfileComplete) {
             setShowProfileAlert(true);
         } else {
