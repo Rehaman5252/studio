@@ -18,9 +18,7 @@ import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import { getFallbackQuiz } from '@/lib/fallback-quiz';
 import { motion } from 'framer-motion';
-
 
 interface QuizClientProps {
   brand: string;
@@ -104,7 +102,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
 
       setQuizData(data.quiz);
-      setQuizSource(data.source || 'fallback');
+      setQuizSource(data.source || 'ai');
       setQuizState('pre-quiz');
 
       if (data.source === 'ai') {
@@ -124,18 +122,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
-      let userMessage = "Could not load quiz. Playing a classic set instead.";
+      let userMessage = "Could not load quiz. Please contact support.";
       
       if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
         userMessage = "📴 You appear to be offline. Please check your connection.";
       }
       
       toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
-      
-      const localFallback = getFallbackQuiz(format);
-      setQuizData(localFallback);
-      setQuizSource('fallback');
-      setQuizState('pre-quiz');
+      setError(userMessage);
+      setQuizState('error');
     }
   }, [format, user, toast, authLoading, isOffline]);
 
@@ -210,6 +205,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
+    if (isFinishedRef.current) return;
+
     const endTime = Date.now();
     const timeTaken = (endTime - startTime) / 1000;
     

@@ -423,6 +423,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
 
+    // Optimistically update the state
     setQuizHistory(prev => ({
         ...prev,
         data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
@@ -434,6 +435,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
+        // Revert the optimistic update on failure
         setQuizHistory(prev => ({
             ...prev,
             data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
