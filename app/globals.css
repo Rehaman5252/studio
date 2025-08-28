@@ -6,58 +6,58 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 0 0% 8%; /* Near Black */
-    --foreground: 45 60% 95%; /* Pale Gold */
+    --background: 120 60% 96%; /* Pale Green */
+    --foreground: 120 60% 10%; /* Dark Forest Green */
 
-    --card: 0 0% 12%; /* Dark Grey */
-    --card-foreground: 45 60% 95%;
+    --card: 120 60% 100%; /* White */
+    --card-foreground: 120 60% 10%;
 
-    --primary: 45 80% 60%; /* Gold */
-    --primary-foreground: 0 0% 8%;
+    --primary: 120 61% 34%; /* Forest Green */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 45 60% 95%;
+    --secondary: 120 20% 90%;
+    --secondary-foreground: 120 60% 10%;
     
-    --destructive: 0 70% 55%; /* Red for errors */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 16 100% 50%; /* Sunset Orange */
+    --destructive-foreground: 0 0% 100%;
     
-    --accent: 45 80% 65%; /* Bright Gold */
-    --accent-foreground: 0 0% 8%;
+    --accent: 16 100% 50%; /* Sunset Orange */
+    --accent-foreground: 0 0% 100%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 30% 70%;
+    --muted: 120 20% 90%;
+    --muted-foreground: 120 30% 40%;
     
-    --input: 0 0% 20%;
-    --ring: 45 80% 60%;
+    --input: 120 20% 88%;
+    --ring: 120 61% 34%;
 
     --radius: 0.5rem;
     --font-inter: 'Inter', sans-serif;
   }
 
   .dark {
-    --background: 0 0% 8%; /* Near Black */
-    --foreground: 45 60% 95%; /* Pale Gold */
+    --background: 120 10% 8%; /* Dark Green-Black */
+    --foreground: 120 25% 95%; /* Pale Green-White */
 
-    --card: 0 0% 12%; /* Dark Grey */
-    --card-foreground: 45 60% 95%;
+    --card: 120 10% 12%; /* Darker Green-Black */
+    --card-foreground: 120 25% 95%;
 
-    --primary: 45 80% 60%; /* Gold */
-    --primary-foreground: 0 0% 8%;
+    --primary: 120 61% 40%; /* Brighter Forest Green */
+    --primary-foreground: 120 25% 95%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 45 60% 95%;
+    --secondary: 120 10% 15%;
+    --secondary-foreground: 120 25% 95%;
     
-    --destructive: 0 70% 55%; /* Red for errors */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 16 100% 55%; /* Brighter Sunset Orange */
+    --destructive-foreground: 0 0% 100%;
     
-    --accent: 45 80% 65%; /* Bright Gold */
-    --accent-foreground: 0 0% 8%;
+    --accent: 16 100% 60%; /* Bright Sunset Orange */
+    --accent-foreground: 0 0% 100%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 30% 70%;
+    --muted: 120 10% 15%;
+    --muted-foreground: 120 15% 65%;
     
-    --input: 0 0% 20%;
-    --ring: 45 80% 60%;
+    --input: 120 10% 20%;
+    --ring: 120 61% 40%;
   }
 }
 
@@ -131,7 +131,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(to right, hsl(var(--primary)) 30%, hsl(var(--foreground)) 50%, hsl(var(--primary)) 70%);
+    background: linear-gradient(to right, hsl(var(--primary)) 30%, hsl(var(--accent)) 50%, hsl(var(--primary)) 70%);
     background-size: 200% auto;
     color: transparent;
     background-clip: text;

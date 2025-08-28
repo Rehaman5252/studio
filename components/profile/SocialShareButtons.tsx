@@ -38,13 +38,13 @@ const InstagramIcon = () => (
 
 const SnapchatIcon = () => (
     <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm7.17 14.33c-.22 0-.44-.05-.65-.16-1.12-.55-2.01-1.39-2.58-2.43-.22-.4-.1-.89.3-1.11.4-.22.89-.1 1.11.3.43.8 1.12 1.47 2.02 1.92.4.19.53.69.33 1.09-.16.32-.5.5-.83.5zm-3.23-2.91c-.34-.61-1.25-.91-1.9-.68-.89.31-1.57.99-1.95 1.84-.2.45-.69.64-1.14.45-.45-.2-.64-.69-.45-1.14.59-1.33 1.73-2.38 3.12-2.8.63-.19 1.29.12 1.48.75.19.63-.12 1.29-.75 1.48h-.01zm-7.6-1.4c-.26 0-.52-.1-.71-.29-.4-.4-.35-.98.02-1.42l4-4.5c.34-.38.9-.42 1.28-.08s.42.9.08 1.28l-4 4.5c-.17.19-.4.29-.67.29zm.01-6c-.55 0-1-.45-1-1s.45-1 1-1h6c.55 0 1 .45 1 1s-.45 1-1 1h-6z"/>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm7.17 14.33c-.22 0-.44-.05-.65-.16-1.12-.55-2.01-1.39-2.58-2.43-.22-.4-.1-.89.3-1.11.4-.22.89-.1 1.11.3.43.8 1.12 1.47 2.02 1.92.4.19.53.69.33 1.09-.16.32-.5.5-.83.5zm-3.23-2.91c-.34-.61-1.25-.91-1.9-.68-.89.31-1.57.99-1.95 1.84-.2.45-.69.64-1.14-.45-.45-.2-.64-.69-.45-1.14.59-1.33 1.73-2.38 3.12-2.8.63-.19 1.29.12 1.48.75.19.63-.12 1.29-.75 1.48h-.01zm-7.6-1.4c-.26 0-.52-.1-.71-.29-.4-.4-.35-.98.02-1.42l4-4.5c.34-.38.9-.42 1.28-.08s.42.9.08 1.28l-4 4.5c-.17.19-.4.29-.67.29zm.01-6c-.55 0-1-.45-1-1s.45-1 1-1h6c.55 0 1 .45 1 1s-.45 1-1 1h-6z"/>
     </svg>
 );
 
 const SocialShareButtonsComponent = ({ referralLink }: { referralLink: string }) => {
-  const text = "Join me on indcric! It's the ultimate cricket quiz challenge. Use my link to sign up and we both get rewarded when you play!";
-  const title = "indcric: Win ₹100 for every 100 seconds!";
+  const text = "Join me on CricBlitz! It's the ultimate cricket quiz challenge. Use my link to sign up and we both get rewarded when you play!";
+  const title = "CricBlitz: The Ultimate Cricket Quiz Challenge!";
 
   const platforms = [
     { name: 'WhatsApp', icon: <WhatsAppIcon />, url: `https://wa.me/?text=${encodeURIComponent(text + ' ' + referralLink)}` },

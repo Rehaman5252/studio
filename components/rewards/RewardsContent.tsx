@@ -56,12 +56,11 @@ const ErrorState = ({ message }: { message: string }) => (
 
 const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) => {
   const [isScratched, setIsScratched] = useState(false);
-  const storageKey = useMemo(() => `indcric-scratch-card-${slotId}`, [slotId]);
+  const storageKey = useMemo(() => `cricblitz-scratch-card-${slotId}`, [slotId]);
   
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
 
   useEffect(() => {
-    // Ensure this code runs only on the client
     if (typeof window !== 'undefined') {
         const savedState = window.localStorage.getItem(storageKey);
         if (savedState === 'true') {
@@ -72,7 +71,6 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
 
   const handleScratch = () => {
     setIsScratched(true);
-     // Ensure this code runs only on the client
     if (typeof window !== 'undefined') {
         window.localStorage.setItem(storageKey, 'true');
     }
@@ -85,7 +83,7 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -94,8 +92,8 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
         <Card className={cn(
             "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
             isScratched
-                ? "bg-gradient-to-br from-amber-200 to-yellow-400 text-amber-900"
-                : "bg-gradient-to-br from-yellow-400 to-amber-600 text-white"
+                ? "bg-gradient-to-br from-green-100 to-green-200 text-green-900"
+                : "bg-gradient-to-br from-green-500 to-green-700 text-white"
         )}>
             {!isScratched ? (
                 <button 
@@ -149,14 +147,12 @@ function RewardsContentComponent() {
   
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
-    // Iterate backwards to get the most recent attempt for each slot
     for (let i = quizHistory.data.length - 1; i >= 0; i--) {
         const attempt = quizHistory.data[i];
         if (attempt.slotId && !uniqueAttempts.has(attempt.slotId)) {
             uniqueAttempts.set(attempt.slotId, attempt);
         }
     }
-    // Return attempts sorted from most to least recent
     return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [quizHistory.data]);
 

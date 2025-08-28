@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { motion } from 'framer-motion';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Award } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
 import PageWrapper from '@/components/PageWrapper';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import jsPDF from 'jspdf';
 
 
 const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
@@ -38,7 +39,7 @@ const LoadingSkeleton = () => (
 const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { markAttemptAsReviewed } = useAuth();
+  const { user, profile, markAttemptAsReviewed } = useAuth();
   const { toast } = useToast();
   
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -91,7 +92,69 @@ const ResultsContent = () => {
     }
     setShowReviewDialog(true);
   }, [attempt, markAttemptAsReviewed, toast]);
-  
+
+  const handleDownloadCertificate = () => {
+      if (!attempt || !profile) return;
+      
+      const doc = new jsPDF();
+      doc.setDrawColor(212, 175, 55); 
+      doc.setLineWidth(1.5);
+      doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
+      doc.setFontSize(26);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(34, 34, 34);
+      doc.text('Certificate of Achievement', doc.internal.pageSize.width / 2, 30, { align: 'center' });
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text('This certifies that', doc.internal.pageSize.width / 2, 50, { align: 'center' });
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(212, 175, 55);
+      doc.text(profile.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text('has successfully achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${attempt.format} Quiz (${attempt.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100, 100, 100);
+      const attemptDate = new Date(attempt.timestamp);
+      doc.text(`Awarded on: ${attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 30, 130);
+      doc.setLineWidth(0.5);
+      doc.line(130, 135, 180, 135);
+      doc.setFontSize(10);
+      doc.text('Authorized Signature', 135, 140);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(212, 175, 55);
+      doc.text('CricBlitz', doc.internal.pageSize.width / 2, 160, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(150, 150, 150);
+      doc.text('The Ultimate Cricket Quiz Challenge!', doc.internal.pageSize.width / 2, 165, { align: 'center' });
+      doc.save(`CricBlitz_${attempt.format}_Certificate.pdf`);
+      toast({ title: "Download Started", description: "Your certificate is being downloaded." });
+  };
+
+  const handleShare = async () => {
+    if (!attempt) return;
+    const shareData = {
+        title: `I earned a perfect score on CricBlitz!`,
+        text: `I just got a perfect score in the ${attempt.format} quiz on CricBlitz! Think you can beat me?`,
+        url: window.location.origin,
+    };
+    try {
+        await navigator.share(shareData);
+    } catch (error) {
+        console.error('Share failed:', error);
+        toast({ title: 'Sharing failed', description: 'Could not open share dialog.', variant: 'destructive'});
+    }
+  };
+
   if (!attempt) {
     return <LoadingSkeleton />;
   }
@@ -162,13 +225,31 @@ const ResultsContent = () => {
                             <Home className="mr-2 h-5 w-5" /> Go Home
                         </Button>
                          {!isDisqualified && (
-                            <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
-                                <Eye className="mr-2 h-4 w-4" /> View Answers {attempt.reviewed ? '' : '(Ad)'}
+                            <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers} disabled={attempt.reviewed}>
+                                {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4" />}
+                                {attempt.reviewed ? 'Answers Reviewed' : 'View Answers (Ad)'}
                             </Button>
                         )}
                     </div>
                 </CardContent>
             </Card>
+
+            {isPerfectScore && !isDisqualified && (
+              <Card className="bg-card/80">
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2"><Trophy className="text-primary" /> Certificate Unlocked!</CardTitle>
+                      <CardDescription>You've earned a certificate for your perfect score. Download and share it with your friends!</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                        <Button size="lg" variant="secondary" onClick={handleDownloadCertificate}>
+                            <Download className="mr-2 h-4 w-4"/> Download
+                        </Button>
+                        <Button size="lg" variant="outline" onClick={handleShare}>
+                            <Share2 className="mr-2 h-4 w-4"/> Share
+                        </Button>
+                  </CardContent>
+              </Card>
+            )}
 
             {!isDisqualified && (
               <Card className="bg-card/80">

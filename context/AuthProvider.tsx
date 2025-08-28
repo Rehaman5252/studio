@@ -318,16 +318,22 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         try {
             const batch = writeBatch(db);
             const userDocRef = doc(db, 'users', user.uid);
+            const statsDocRef = doc(db, 'globals', 'stats');
 
             const userStatsUpdate: { [key:string]: any } = { 
                 quizzesPlayed: increment(1),
                 totalScore: increment(sanitizedAttempt.score),
                 updatedAt: serverTimestamp(),
             };
+            const globalStatsUpdate: { [key:string]: any } = {
+                totalQuizzesPlayed: increment(1),
+            };
+
             const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
             if (isPerfectScore) {
                 userStatsUpdate.perfectScores = increment(1);
                 userStatsUpdate.totalRewards = increment(100);
+                globalStatsUpdate.totalPerfectScores = increment(1);
             }
 
             const todayUTC = new Date();
@@ -350,6 +356,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
                 userStatsUpdate.lastStreakTimestamp = serverTimestamp();
             }
             batch.update(userDocRef, userStatsUpdate);
+            batch.update(statsDocRef, globalStatsUpdate, { merge: true });
             
             const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
             batch.set(attemptRef, sanitizedAttempt);

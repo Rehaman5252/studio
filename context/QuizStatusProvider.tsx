@@ -4,9 +4,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
-import type { QuizAttempt } from '@/lib/mockData';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getCountFromServer, onSnapshot } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -25,6 +24,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [playersPlaying, setPlayersPlaying] = useState(0);
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -46,17 +46,40 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   }, [calculateTimeLeft]);
 
   useEffect(() => {
-    const setInitialStats = () => {
-      setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
-      setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
-      setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
+    if (!db) return;
+    setIsLoading(true);
+
+    const statsDocRef = doc(db, 'globals', 'stats');
+    const unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
+        if (doc.exists()) {
+            const data = doc.data();
+            setPlayersPlayed(data.totalQuizzesPlayed || 0);
+            setTotalWinners(data.totalPerfectScores || 0);
+        }
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to listen to global stats:", error);
+        setIsLoading(false);
+    });
+
+    const fetchLivePlayers = async () => {
+        try {
+            const currentSlotId = getQuizSlotId();
+            const liveEntriesRef = collection(db, 'leaderboard_live', currentSlotId, 'entries');
+            const snapshot = await getCountFromServer(liveEntriesRef);
+            setPlayersPlaying(snapshot.data().count);
+        } catch (error) {
+            console.warn("Could not fetch live player count:", error);
+        }
     };
-    setInitialStats();
-    const playersTimer = setInterval(() => {
-      setPlayersPlaying(p => Math.max(800, p + Math.floor(Math.random() * 21) - 10));
-      setPlayersPlayed(p => p + Math.floor(Math.random() * 5));
-    }, 3000);
-    return () => clearInterval(playersTimer);
+    
+    fetchLivePlayers();
+    const interval = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
+
+    return () => {
+        unsubscribeStats();
+        clearInterval(interval);
+    };
   }, []);
 
   const value = {
@@ -64,7 +87,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     playersPlaying,
     playersPlayed,
     totalWinners,
-    isLoading: isAuthLoading,
+    isLoading: isLoading || isAuthLoading,
   };
 
   return <QuizStatusContext.Provider value={value}>{children}</QuizStatusContext.Provider>;

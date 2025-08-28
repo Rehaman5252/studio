@@ -79,13 +79,10 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
 
 export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
     try {
-        // Sanitize first to prevent errors on malformed inputs
         const sanitized = sanitizeQuizAttempt(rawAttempt);
-        // Then parse with Zod to ensure type safety
         const validatedAttempt = QuizAttempt.parse(sanitized);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
-        // Final validation of the AI's output before sending to client
         const parsed = OutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
@@ -97,7 +94,6 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
     } catch (error: any) {
         console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
-        // Sanitize again in case the initial rawAttempt was the cause of the throw
         const sanitizedForFallback = sanitizeQuizAttempt(rawAttempt);
         return getFallbackAnalysis(sanitizedForFallback);
     }
@@ -145,11 +141,9 @@ const generateQuizAnalysisFlow = ai.defineFlow(
             if (!output) {
                 throw new Error("AI analysis returned a null or empty response.");
             }
-            // Ensure the source is correctly set
             return { ...output, source: "ai" };
         } catch (error) {
              console.error("Error during AI analysis flow execution:", error);
-             // Re-throw to be caught by the parent function's final fallback mechanism
              throw error; 
         }
     }
