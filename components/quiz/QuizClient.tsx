@@ -25,6 +25,8 @@ interface QuizClientProps {
   format: string;
 }
 
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error';
+
 type QuizAPIResponse = {
   quiz: QuizData;
   source?: 'ai' | 'fallback';
@@ -33,9 +35,8 @@ type QuizAPIResponse = {
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
+  const [quizState, setQuizState] = useState<QuizState>('loading');
   const [quizData, setQuizData] = useState<QuizData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showPreQuizLoader, setShowPreQuizLoader] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
@@ -69,23 +70,19 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
-        setLoading(false);
-        setShowPreQuizLoader(false);
+        setQuizState('error');
         return;
     }
     
     if (!isFirebaseConfigured) {
         setError("🔥 The app is not connected to the server. Please try again later.");
-        setLoading(false);
-        setShowPreQuizLoader(false);
+        setQuizState('error');
         return;
     }
     
     try {
-      setLoading(true);
+      setQuizState('loading');
       setError(null);
-      await new Promise(res => setTimeout(res, 100));
-      if (controller.signal.aborted) return;
 
       const response = await fetch('/api/quiz', {
         method: 'POST',
@@ -104,6 +101,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       setQuizData(data.quiz);
       setQuizSource(data.source || 'fallback');
+      setQuizState('pre-quiz');
 
       if (data.source === 'ai') {
         toast({ title: "✅ Fresh AI-powered quiz loaded!" });
@@ -133,11 +131,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       const localFallback = getFallbackQuiz(format);
       setQuizData(localFallback);
       setQuizSource('fallback');
-
-    } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+      setQuizState('pre-quiz');
     }
   }, [format, user, toast, authLoading, isOffline]);
 
@@ -146,8 +140,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         fetchQuiz();
     } else if (!authLoading) {
         setError("Please sign in to play a quiz.");
-        setLoading(false);
-        setShowPreQuizLoader(false);
+        setQuizState('error');
     }
     return () => {
         abortControllerRef.current?.abort();
@@ -155,12 +148,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [fetchQuiz, user, authLoading]);
 
   const handlePreQuizFinish = useCallback(() => {
-    setShowPreQuizLoader(false);
+    setQuizState('playing');
     setStartTime(Date.now());
   }, []);
 
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
-    if (!quizData || !user) return;
+    if (quizState === 'submitting' || !quizData || !user) return;
+    setQuizState('submitting');
+    
     const attempt = buildAttempt({
       user,
       quizData,
@@ -170,16 +165,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
+    
     const result = await addQuizAttempt(attempt);
     if(result.success) {
         router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     } else {
         setError("Could not save quiz results. Please check your connection and try again.");
+        setQuizState('error');
     }
-  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, quizState]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
-    if (!quizData || !user) return;
+    if (quizState === 'submitting' || !quizData || !user) return;
+    setQuizState('submitting');
+
     const noBallCount = await handleMalpractice();
     toast({
         title: "No Ball!",
@@ -199,7 +198,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     await addQuizAttempt(attempt);
     router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource, quizState]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     const endTime = Date.now();
@@ -219,7 +218,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setStartTime(Date.now());
         }
     } else {
-      // This is the final question, call finishQuiz
       finishQuiz(updatedAnswers, updatedTime);
     }
   }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);
@@ -257,20 +255,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setAdForHint(null);
   }, [adForHint, quizData, currentQuestionIndex]);
   
-  if (showPreQuizLoader && !error && !authLoading && loading) {
-      return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
-  }
-  
-  if (authLoading) {
-     return (
+  if (quizState === 'loading') {
+    return (
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />
-            <p className="mb-4 mt-4">Connecting to server...</p>
+            <p className="mb-4 mt-4">Warming up...</p>
         </div>
     );
   }
+  
+  if (quizState === 'pre-quiz' && quizData) {
+      return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
+  }
 
-  if (error) {
+  if (quizState === 'error') {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
             <AlertTriangle className="h-12 w-12 mb-4" />
@@ -279,13 +277,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         </div>
     );
   }
-
-  if (loading || !quizData) {
+  
+  if (quizState === 'submitting' || !quizData) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
-             <CricketLoading />
-            <p className="mb-4 mt-4">Loading Quiz...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+        <CricketLoading />
+        <p className="mb-4 mt-4">Sending your scorecard to the umpire...</p>
+      </div>
     );
   }
   
@@ -347,5 +345,3 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     </>
   );
 }
-
-    

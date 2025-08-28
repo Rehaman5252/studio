@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
 import PageWrapper from '@/components/PageWrapper';
+import { useToast } from '@/hooks/use-toast';
 
 const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
 const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
@@ -36,27 +37,29 @@ const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { markAttemptAsReviewed } = useAuth();
+  const { toast } = useToast();
   
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdForReview, setShowAdForReview] = useState(false);
 
-  const attempt: QuizAttempt | null = useMemo(() => {
+  const initialAttempt = useMemo(() => {
     const attemptData = searchParams.get('attempt');
     if (!attemptData) return null;
     return decodeAttempt(attemptData);
   }, [searchParams]);
+  
+  const [attempt, setAttempt] = useState(initialAttempt);
 
   useEffect(() => {
-    // Automatically open analysis dialog if it's a new attempt
-    // and the user hasn't seen the results page before for this attempt.
     if (attempt && !attempt.reviewed) {
         setIsAnalysisOpen(true);
     }
   }, [attempt]);
 
   const handleViewAnswers = useCallback(() => {
-    if (attempt?.reviewed) {
+    if (!attempt) return;
+    if (attempt.reviewed) {
         setShowReviewDialog(true);
     } else {
         setShowAdForReview(true);
@@ -68,12 +71,14 @@ const ResultsContent = () => {
     if(attempt?.slotId) {
         const { success } = await markAttemptAsReviewed(attempt.slotId);
         if (success) {
-            // Update the local attempt object to reflect the change
-            if (attempt) attempt.reviewed = true;
+            setAttempt(prev => prev ? { ...prev, reviewed: true } : null);
+            toast({ title: "Success", description: "You can now view your answers." });
+        } else {
+            toast({ title: "Error", description: "Could not save review status. Please check connection.", variant: "destructive" });
         }
     }
     setShowReviewDialog(true);
-  }, [attempt, markAttemptAsReviewed]);
+  }, [attempt, markAttemptAsReviewed, toast]);
   
   if (!attempt) {
     return (
@@ -204,5 +209,3 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
-
-    

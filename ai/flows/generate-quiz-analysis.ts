@@ -27,7 +27,7 @@ export const QuizAnalysisOutputSchema = z.object({
     accuracy: z.number().describe("The user's accuracy percentage."),
     averageTimePerQuestion: z.number().describe("The average time the user took per question, in seconds."),
     keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
-    areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories they answered incorrectly or slowly."),
+    areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories where answers were incorrect or slowly."),
     coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),
     analyzedQuestions: z.array(QuestionAnalysisSchema).describe("An array containing the analysis for each individual question."),
     source: z.enum(["ai", "fallback"]).default("fallback"),
@@ -153,5 +153,3 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         }
     }
 );
-
-    
