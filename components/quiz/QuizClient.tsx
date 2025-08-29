@@ -60,17 +60,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // --- Prevent replay but DO NOT force a redirect to home.
-  // Previously this effect redirected to '/', causing the homepage behavior you reported.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const slotId = getQuizSlotId();
     if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
       isFinishedRef.current = true;
-      // Do NOT navigate away here. We just block replay and set local state.
       setQuizState('finished');
-      // Removed router.replace('/') which caused the race redirect to homepage.
     }
-  // empty deps - only run once on mount (slotId is derived from time/slot util)
   }, []);
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
@@ -172,12 +168,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     setStartTime(Date.now());
   }, []);
 
-  // ---------- IMPORTANT: show "Third Umpire Review" (submitting) for 3s before navigating ----------
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (isFinishedRef.current || !quizData || !user) return;
 
     isFinishedRef.current = true;
-    setQuizState('submitting'); // <-- shows your Third Umpire Review UI
+    setQuizState('submitting'); 
 
     const attempt = buildAttempt({
       user,
@@ -188,8 +183,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       timePerQuestion: finalTimePerQuestion,
       source: quizSource,
     });
-
-    // mark finished to prevent replay
+    
     try {
       sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     } catch (e) {
@@ -197,19 +191,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
 
     const result = await addQuizAttempt(attempt);
+    
+    const encoded = encodeAttempt(attempt);
 
-    // Always navigate to results AFTER a short pause so the user sees the review UI.
-    // Use encodeURIComponent for safe query string inclusion.
-    const encoded = encodeURIComponent(encodeAttempt(attempt));
-
-    // Wait 3 seconds so UI is visible (you can tweak duration here)
     setTimeout(() => {
-      // Use replace so back-button behaviour doesn't re-run the quiz accidentally.
       router.replace(`/quiz/results?attempt=${encoded}`);
     }, 3000);
 
     if (!result.success) {
-      // also show toast about save failure (score is cached locally and attempt was still encoded in URL)
       toast({
           title: "Could not save your quiz result",
           description: "Please check your connection. Your score is safe on this device for now.",
@@ -247,20 +236,20 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     } catch (e) {
       console.warn("Could not set sessionStorage flag:", e);
     }
-
+    
     await addQuizAttempt(attempt);
+    const encoded = encodeAttempt(attempt);
 
-    const encoded = encodeURIComponent(encodeAttempt(attempt));
     setTimeout(() => {
       router.replace(`/quiz/results?attempt=${encoded}`);
     }, 3000);
+
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
     if (isFinishedRef.current) return;
 
     const endTime = Date.now();
-    // If startTime is 0 (safe fallback) treat timeTaken as 0.5s rather than huge
     const rawTime = startTime ? (endTime - startTime) / 1000 : 0.5;
     const timeTaken = parseFloat(rawTime.toFixed(2));
 
