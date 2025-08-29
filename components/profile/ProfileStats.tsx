@@ -1,8 +1,10 @@
+
 'use client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
 import React, { memo } from 'react';
 import { useAuth } from '@/context/AuthProvider';
+import { Skeleton } from '../ui/skeleton';
 
 const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
   <Card className="bg-secondary/50 p-3 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-primary/40">
@@ -14,9 +16,22 @@ const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string
   </Card>
 );
 
+const StatsSkeleton = () => (
+    <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="h-[90px] w-full" />
+        <Skeleton className="h-[90px] w-full" />
+        <Skeleton className="h-[90px] w-full" />
+        <Skeleton className="h-[90px] w-full" />
+    </div>
+);
+
 const ProfileStatsComponent = () => {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   
+  if (loading || !profile) {
+    return <StatsSkeleton />;
+  }
+
   const quizzesPlayed = profile?.quizzesPlayed || 0;
   const perfectScores = profile?.perfectScores || 0;
   const winPercentage = quizzesPlayed > 0 ? ((perfectScores / quizzesPlayed) * 100).toFixed(1) : 0;

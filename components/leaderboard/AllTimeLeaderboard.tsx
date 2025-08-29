@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useMemo } from 'react';
@@ -74,8 +75,13 @@ const AllTimeLeaderboard = () => {
         if (leaderboardAllTime.error) return <ErrorState title="Error" message={leaderboardAllTime.error} />;
         if (leaderboardAllTime.rows.length === 0) return <EmptyState />;
         
-        return leaderboardAllTime.rows.map((player, index) => (
-            <LeaderboardItem key={player.uid} player={{...player, rank: index + 1}} isCurrentUser={user?.uid === player.uid}/>
+        const playersWithRank = leaderboardAllTime.rows.map((player, index) => ({
+            ...player,
+            rank: index + 1,
+        }));
+
+        return playersWithRank.map(player => (
+            <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
         ));
     }, [leaderboardAllTime, user]);
 

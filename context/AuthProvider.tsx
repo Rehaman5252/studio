@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -371,7 +372,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       },
       (error) => {
         console.error('Error fetching quiz history:', error);
-        setQuizHistory({ data: [], loading: false, error: 'Failed to load quiz history. You may be offline.' });
+        setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error) });
         setIsOffline(true);
       }
     );
@@ -485,12 +486,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       if (!auth) return null;
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const { user } = userCredential;
-        await updateProfile(user, { displayName: name });
-        await handleUserDocument(user, { name, phone, referralCode });
-        await sendEmailVerification(user);
+        const { user: userCredentialUser } = userCredential;
+        await updateProfile(userCredentialUser, { displayName: name });
+        await handleUserDocument(userCredentialUser, { name, phone, referralCode });
+        await sendEmailVerification(userCredentialUser);
         toast({ title: 'Account created', description: 'Verification email sent.' });
-        return user;
+        return userCredentialUser;
       } catch (error: any) {
         let description = 'An unexpected error occurred. Please try again.';
         if (error.code === 'auth/email-already-in-use') {

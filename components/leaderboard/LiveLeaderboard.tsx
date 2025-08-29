@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useMemo } from 'react';
@@ -82,11 +83,16 @@ const LiveLeaderboard = () => {
         if (leaderboardLive.loading) {
             return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
         }
-        if (leaderboardLive.error) return <ErrorState title="Error" message={leaderboardLive.error} />;
+        if (leaderboardLive.error) return <ErrorState title="Error Loading Leaderboard" message={leaderboardLive.error} />;
         if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
         
-        return leaderboardLive.rows.map((player, index) => (
-            <LeaderboardItem key={player.userId} player={{...player, rank: index + 1}} isCurrentUser={user?.uid === player.userId} />
+        const playersWithRank = leaderboardLive.rows.map((player, index) => ({
+            ...player,
+            rank: index + 1,
+        }));
+
+        return playersWithRank.map((player) => (
+            <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />
         ));
     }, [leaderboardLive, timeLeft, user]);
 

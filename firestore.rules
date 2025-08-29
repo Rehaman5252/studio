@@ -1,48 +1,35 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Allow authenticated users to read and query the public questions collection.
-    match /questions/{questionId} {
-      allow get, list: if request.auth != null;
-    }
-
-    // Users can read/write their own profile and subcollections.
-    // Other authenticated users can read basic profile info for leaderboards.
+    // Users can only read/write their own document
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
-
-      // Users can manage their own quiz attempts.
-      match /quizAttempts/{attemptId} {
-        allow read, write: if request.auth.uid == userId;
-      }
-      
-      // Users can manage their own daily activity for streaks.
-       match /dailyActivity/{date} {
-        allow read, write: if request.auth.uid == userId;
-      }
-    }
-
-    // Allow authenticated users to write to the quizSlots collection to track uniqueness.
-    match /quizSlots/{slotId} {
-        allow read, write: if request.auth != null;
-    }
-
-    // The leaderboard is public to read for anyone, but only authenticated users can write their scores.
-    match /leaderboard/currentQuiz {
-        allow read: if true;
-        allow write: if request.auth != null;
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
     
-    // Allow authenticated users to submit reports for questions.
-    match /reportedQuestions/{reportId} {
-        allow create: if request.auth != null;
+    // Users can only read/write their own quiz attempts
+    match /users/{userId}/quizAttempts/{attemptId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // By default, deny all other access to prevent unauthorized data access.
-    match /{document=**} {
-      allow read, write: if false;
+    // Users can only write their own entry to the live leaderboard
+    match /leaderboard_live/{slotId}/entries/{userId} {
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+        // All authenticated users can read the leaderboard
+        allow list, get: if request.auth != null;
+    }
+
+    // Global stats can be read by anyone, but only updated by server-side logic (not enforced here, done via secure functions)
+    match /globals/stats {
+      allow get: if true;
+      allow write: if false; // Should be written from a trusted backend
+    }
+    
+    // User contributions can be created by any auth'd user, but only read by owner or admin
+    match /userContributions/{docId} {
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId; // Or admin role
     }
   }
 }
