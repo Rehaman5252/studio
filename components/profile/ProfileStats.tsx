@@ -1,8 +1,8 @@
-
 'use client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
 import React, { memo } from 'react';
+import { useAuth } from '@/context/AuthProvider';
 
 const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
   <Card className="bg-secondary/50 p-3 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-primary/40">
@@ -14,13 +14,19 @@ const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string
   </Card>
 );
 
-const ProfileStatsComponent = ({ userProfile }: { userProfile: any }) => {
+const ProfileStatsComponent = () => {
+  const { profile } = useAuth();
+  
+  const quizzesPlayed = profile?.quizzesPlayed || 0;
+  const perfectScores = profile?.perfectScores || 0;
+  const winPercentage = quizzesPlayed > 0 ? ((perfectScores / quizzesPlayed) * 100).toFixed(1) : 0;
+
   return (
     <div className="grid grid-cols-2 gap-3">
-        <StatItem icon={<Star size={24} className="text-primary"/>} label="Perfect Scores" value={userProfile?.perfectScores || 0} />
-        <StatItem icon={<Award size={24} className="text-primary"/>} label="Quizzes Played" value={userProfile?.quizzesPlayed || 0} />
-        <StatItem icon={<TrendingUp size={24} className="text-primary"/>} label="Win Percentage" value={`${userProfile?.quizzesPlayed > 0 ? ((userProfile.perfectScores / userProfile.quizzesPlayed) * 100).toFixed(1) : 0}%`} />
-        <StatItem icon={<Trophy size={24} className="text-primary"/>} label="Rewards Earned" value={`₹${userProfile?.totalRewards || 0}`} />
+        <StatItem icon={<Star size={24} className="text-primary"/>} label="Perfect Scores" value={perfectScores} />
+        <StatItem icon={<Award size={24} className="text-primary"/>} label="Quizzes Played" value={quizzesPlayed} />
+        <StatItem icon={<TrendingUp size={24} className="text-primary"/>} label="Win Percentage" value={`${winPercentage}%`} />
+        <StatItem icon={<Trophy size={24} className="text-primary"/>} label="Rewards Earned" value={`₹${profile?.totalRewards || 0}`} />
     </div>
   );
 };

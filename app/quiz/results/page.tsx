@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { QuizAttempt } from '@/ai/schemas';
@@ -350,5 +349,3 @@ function QuizResultsPage() {
 }
 
 export default memo(QuizResultsPage);
-
-    

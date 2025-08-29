@@ -2,28 +2,24 @@
 export interface LivePlayer {
     userId: string;
     name: string;
-    avatar: string;
+    avatar?: string;
     score: number;
     time: number;
     disqualified: boolean;
     rank?: number;
     isCurrentUser?: boolean;
-    totalQuestions: number;
-    format: string;
-    slotId: string;
-    source?: 'ai' | 'fallback' | null;
-    updatedAt?: any;
 }
 
 export interface AllTimePlayer {
     uid: string;
     name: string;
-    avatar: string;
+    avatar?: string;
     perfectScores: number;
     totalScore: number;
     quizzesPlayed: number;
     rank?: number;
     isCurrentUser?: boolean;
+    currentStreak?: number;
 }
 
 export interface MyNetworkPlayer {
