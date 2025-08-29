@@ -20,13 +20,14 @@ const ProfileStatsComponent = () => {
   const quizzesPlayed = profile?.quizzesPlayed || 0;
   const perfectScores = profile?.perfectScores || 0;
   const winPercentage = quizzesPlayed > 0 ? ((perfectScores / quizzesPlayed) * 100).toFixed(1) : 0;
+  const totalRewards = profile?.totalRewards || 0;
 
   return (
     <div className="grid grid-cols-2 gap-3">
         <StatItem icon={<Star size={24} className="text-primary"/>} label="Perfect Scores" value={perfectScores} />
         <StatItem icon={<Award size={24} className="text-primary"/>} label="Quizzes Played" value={quizzesPlayed} />
         <StatItem icon={<TrendingUp size={24} className="text-primary"/>} label="Win Percentage" value={`${winPercentage}%`} />
-        <StatItem icon={<Trophy size={24} className="text-primary"/>} label="Rewards Earned" value={`₹${profile?.totalRewards || 0}`} />
+        <StatItem icon={<Trophy size={24} className="text-primary"/>} label="Rewards Earned" value={`₹${totalRewards}`} />
     </div>
   );
 };

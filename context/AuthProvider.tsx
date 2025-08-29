@@ -42,7 +42,7 @@ import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProf
 import type { QuizAttempt } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
-import { getQuizSlotId } from '@/lib/utils';
+import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
 import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderboardTypes';
 
@@ -395,7 +395,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         },
         (err) => {
           console.error('Live leaderboard error:', err);
-          setLeaderboardLive((prev) => ({ ...prev, loading: false, error: 'Failed to load live leaderboard' }));
+          setLeaderboardLive((prev) => ({ ...prev, loading: false, error: mapFirestoreError(err) }));
           setIsOffline(true);
         }
       );
@@ -418,12 +418,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     // All-time leaderboard (from users collection)
     setLeaderboardAllTime((prev) => ({ ...prev, loading: true }));
-    // NOTE: Ensure Firestore index for orderBy(totalScore desc, perfectScores desc, currentStreak desc)
+    // NOTE: Ensure Firestore index for orderBy(totalScore desc, perfectScores desc, quizzesPlayed asc)
     const allTimeQ = query(
       collection(db, 'users'),
       orderBy('totalScore', 'desc'),
       orderBy('perfectScores', 'desc'),
-      orderBy('currentStreak', 'desc'),
+      orderBy('quizzesPlayed', 'asc'),
       limit(100)
     );
     const unsubscribeAllTime = onSnapshot(
@@ -437,15 +437,15 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
             avatar: u.photoURL,
             totalScore: u.totalScore ?? 0,
             perfectScores: u.perfectScores ?? 0,
-            currentStreak: u.currentStreak ?? 0,
             quizzesPlayed: u.quizzesPlayed ?? 0,
+            isCurrentUser: user?.uid === u.uid,
           };
         });
         setLeaderboardAllTime({ rows, loading: false, error: null });
       },
       (err) => {
         console.error('All-time leaderboard error:', err);
-        setLeaderboardAllTime({ rows: [], loading: false, error: 'Failed to load all-time leaderboard' });
+        setLeaderboardAllTime({ rows: [], loading: false, error: mapFirestoreError(err) });
       }
     );
     unsubs.push(unsubscribeAllTime);
