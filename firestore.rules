@@ -1,42 +1,39 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Leaderboard: allow anyone to read, but deny direct writes
-    // This allows the public leaderboards to be viewed by anyone.
-    match /leaderboard_live/{slotId}/{entry=**} {
+    // Leaderboard collections
+    match /leaderboard_live/{slotId}/{entry} {
       allow read: if true;
-      allow write: if false; // Only backend can write here
+      allow write: if false; // Only server can write
     }
 
-    // All-time user data for leaderboard is public-read
+    // User profile data
     match /users/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User-specific subcollections
+    match /users/{userId}/{subcollection}/{docId} {
+       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // User's own quiz attempts are private
-    match /users/{userId}/quizAttempts/{attemptId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // User contributions can be created by logged-in users
-    // and should be readable by others once verified (future rule).
-    match /userContributions/{docId} {
-        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-        allow read: if true; // Public can read contributions
-    }
-
-    // Reported questions can only be created by logged-in users.
-    match /reportedQuestions/{docId} {
-        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-        allow read: if false; // Keep reports private
-    }
-
-    // Global stats are public-read
+    // Global app statistics
     match /globals/{docId} {
         allow read: if true;
-        allow write: if false; // Only backend can write
+        allow write: if false; // Only server can write
+    }
+    
+    // User-submitted content
+    match /userContributions/{docId} {
+        allow read: if true; // Allow reading for review/display
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+     match /reportedQuestions/{docId} {
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        allow read: if false; // Should only be readable by backend/admin
     }
   }
 }
