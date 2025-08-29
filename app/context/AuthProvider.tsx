@@ -309,77 +309,84 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const sanitizedAttempt = sanitizeQuizAttempt(attempt) as QuizAttempt;
-        
-        // Optimistically update local state for immediate UI feedback
-        setQuizHistory(prev => ({
-            ...prev,
-            data: [sanitizedAttempt, ...prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId)]
-        }));
-        setLastAttemptInSlot(sanitizedAttempt);
 
         try {
             const batch = writeBatch(db);
             const userDocRef = doc(db, 'users', user.uid);
+            const statsDocRef = doc(db, 'globals', 'stats');
 
-            const userStatsUpdate: { [key:string]: any } = { 
-                quizzesPlayed: increment(1),
-                totalScore: increment(sanitizedAttempt.score),
-                updatedAt: serverTimestamp(),
+            // Base stats update
+            const userStatsUpdate: Record<string, any> = {
+            quizzesPlayed: increment(1),
+            totalScore: increment(sanitizedAttempt.score),
+            updatedAt: serverTimestamp(),
             };
+
+            const globalStatsUpdate: Record<string, any> = {
+            totalQuizzesPlayed: increment(1),
+            };
+
+            // Perfect score = add rewards + streak
             const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
             if (isPerfectScore) {
-                userStatsUpdate.perfectScores = increment(1);
-                userStatsUpdate.totalRewards = increment(100);
+            userStatsUpdate.perfectScores = increment(1);
+            userStatsUpdate.totalRewards = increment(100);
+            globalStatsUpdate.totalPerfectScores = increment(1);
             }
 
+            // ✅ FIXED streak calculation
             const todayUTC = new Date();
             todayUTC.setUTCHours(0, 0, 0, 0);
-            const lastStreakTimestamp = profile.lastStreakTimestamp ? (profile.lastStreakTimestamp as Timestamp).toDate() : null;
-            
-            if (lastStreakTimestamp) {
-                const lastStreakUTC = new Date(lastStreakTimestamp.getTime());
-                lastStreakUTC.setUTCHours(0, 0, 0, 0);
-                const isSameDay = todayUTC.getTime() === lastStreakUTC.getTime();
 
-                if (!isSameDay) {
-                    const yesterdayUTC = new Date(todayUTC.getTime() - 86400000);
-                    const isYesterday = lastStreakUTC.getTime() === yesterdayUTC.getTime();
-                    userStatsUpdate.currentStreak = isYesterday ? increment(1) : 1;
-                    userStatsUpdate.lastStreakTimestamp = serverTimestamp();
-                }
+            const lastStreakDate = profile.lastStreakTimestamp
+            ? (profile.lastStreakTimestamp as Timestamp).toDate()
+            : null;
+
+            if (!lastStreakDate) {
+            userStatsUpdate.currentStreak = 1;
+            userStatsUpdate.lastStreakTimestamp = serverTimestamp();
             } else {
+            const lastUTC = new Date(lastStreakDate);
+            lastUTC.setUTCHours(0, 0, 0, 0);
+
+            if (todayUTC.getTime() === lastUTC.getTime()) {
+                // Already played today → don’t increment streak
+            } else if (todayUTC.getTime() - lastUTC.getTime() === 86400000) {
+                // Played yesterday → continue streak
+                userStatsUpdate.currentStreak = increment(1);
+                userStatsUpdate.lastStreakTimestamp = serverTimestamp();
+            } else {
+                // Missed a day → reset streak
                 userStatsUpdate.currentStreak = 1;
                 userStatsUpdate.lastStreakTimestamp = serverTimestamp();
             }
-            batch.update(userDocRef, userStatsUpdate);
-            
-            const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-            batch.set(attemptRef, sanitizedAttempt);
+            }
 
+            // Save user stats + attempt
+            batch.update(userDocRef, userStatsUpdate);
+            batch.set(statsDocRef, globalStatsUpdate, { merge: true });
+
+            const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
+            batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
+
+            // Save leaderboard entry
             const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
-            const totalTime = sanitizedAttempt.timePerQuestion ? sanitizedAttempt.timePerQuestion.reduce((a, b) => a + b, 0) : 0;
+            const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
             batch.set(liveEntryRef, {
-                userId: user.uid,
-                name: profile.name,
-                avatar: profile.photoURL,
-                score: sanitizedAttempt.score,
-                time: totalTime,
-                disqualified: !!sanitizedAttempt.reason,
+            userId: user.uid,
+            name: profile.name,
+            avatar: profile.photoURL,
+            score: sanitizedAttempt.score,
+            time: totalTime,
+            disqualified: !!sanitizedAttempt.reason,
             }, { merge: true });
 
             await batch.commit();
-
             setIsOffline(false);
             return { success: true };
         } catch (e: any) {
-            console.error('addQuizAttempt transaction failed:', e);
+            console.error('addQuizAttempt failed:', e);
             toast({ title: "Sync Error", description: "Could not save your quiz result. Please check your connection and try again.", variant: 'destructive' });
-            
-            setQuizHistory(prev => ({
-                ...prev,
-                data: prev.data.filter(a => a.slotId !== sanitizedAttempt.slotId),
-            }));
-            
             setIsOffline(true);
             return { success: false, error: e.message };
         }
@@ -418,8 +425,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   
   const markAttemptAsReviewed = useCallback(async (attemptId: string): Promise<{ success: boolean }> => {
     if (!user || !db) return { success: false };
-
-    // Optimistically update the state
+    
     setQuizHistory(prev => ({
         ...prev,
         data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: true } : a)
@@ -431,7 +437,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
     } catch (error) {
         console.error("Failed to mark attempt as reviewed:", error);
-        // Revert the optimistic update on failure
         setQuizHistory(prev => ({
             ...prev,
             data: prev.data.map(a => a.slotId === attemptId ? { ...a, reviewed: false } : a)
@@ -472,3 +477,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
