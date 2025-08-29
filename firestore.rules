@@ -3,59 +3,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // =========================
-    // USERS COLLECTION (Profile)
-    // =========================
+    // Users collection - only allow user to read/write their own profile
     match /users/{userId} {
-      allow read: if request.auth != null;              // all authenticated users can read user profiles
-      allow write: if request.auth != null 
-                   && request.auth.uid == userId;       // users can only edit their own profile
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
 
-    // =========================
-    // LIVE LEADERBOARD (SLOT-BASED)
-    // =========================
-    match /leaderboard_live/{slotId}/{entry=**} {
-        // Anyone can read live leaderboards
-        allow read: if true;
-        // Only authenticated users can write their own entries
-        allow write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    // Quiz results - allow user to read/write their own results
+    match /quiz_results/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
 
-    // =========================
-    // QUIZ ATTEMPTS (HISTORY)
-    // =========================
-    match /users/{userId}/quizAttempts/{attemptId} {
-      // Users can only read/write their own quiz attempts
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // =========================
-    // USER CONTRIBUTIONS
-    // =========================
-    match /userContributions/{contributionId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    
-    // =========================
-    // REPORTED QUESTIONS
-    // =========================
-     match /reportedQuestions/{reportId} {
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-        // deny all reads for privacy
-        allow read: if false;
-    }
-    
-    // =========================
-    // GLOBAL STATS
-    // =========================
-    match /globals/{docId} {
-        allow read: if true;
-        allow write: if false; // Only allow server-side writes
+    // Leaderboard - allow read to all (for displaying rankings), but writes only if user is logged in
+    match /leaderboard/{docId} {
+      allow read: if true;
+      allow create, update: if request.auth != null;
     }
 
-    // Fallback: Deny all other reads/writes by default for security
+    // Rewards - only logged in users can access their rewards
+    match /rewards/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Default: deny everything else
     match /{document=**} {
       allow read, write: if false;
     }
