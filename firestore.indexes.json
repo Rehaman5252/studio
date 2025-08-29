@@ -7,13 +7,14 @@
       "fields": [
         { "fieldPath": "totalScore", "order": "DESCENDING" },
         { "fieldPath": "perfectScores", "order": "DESCENDING" },
-        { "fieldPath": "quizzesPlayed", "order": "ASCENDING" }
+        { "fieldPath": "currentStreak", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizAttempts",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
