@@ -64,6 +64,14 @@ export const interstitialAds: { [key: number]: InterstitialAdConfig } = {
         logoHint: 'Dominos logo',
         durationMs: 2000,
     },
+    // After question 3 (index 2) -> Show the 30s video ad
+    2: {
+        type: 'video',
+        videoUrl: 'https://videos.pexels.com/video-files/3209828/3209828-hd_1920_1080_25fps.mp4',
+        videoTitle: 'Sponsored by Pepsi',
+        durationSec: 30,
+        skippableAfterSec: 10,
+    },
     // After question 4 (index 3) -> Show a 2s static ad
     3: {
         type: 'static',
