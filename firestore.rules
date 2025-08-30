@@ -1,49 +1,49 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users can read their own profile, and only update their own profile.
-    match /users/{userId} {
-      // Allow reads for authenticated users to see their own profile and for leaderboards.
-      allow read: if request.auth != null;
-      // Allow users to create their own document.
-      allow create: if request.auth.uid == userId;
-      // Allow users to update their own document.
-      allow update: if request.auth.uid == userId;
-      // Deletes are not allowed.
-      allow delete: if false;
-
-      // Quiz attempts are private to the user.
-      match /quizAttempts/{attemptId} {
-        allow read, write: if request.auth.uid == userId;
-      }
-    }
-
-    // Live leaderboard entries can be read by anyone, but only created/updated by the user themselves.
-    match /leaderboard_live/{slotId}/entries/{userId} {
+    
+    // Globals collection for app-wide stats
+    match /globals/stats {
+      // Allow any authenticated user to increment stats.
+      // For production, you might restrict this to a server-side process.
+      allow write: if request.auth != null;
       allow read: if true;
-      allow create, update: if request.auth.uid == userId;
-      allow delete: if false;
-    }
-
-    // User-submitted content can be read by anyone, but only created by authenticated users.
-    match /userContributions/{contributionId} {
-        allow read: if true;
-        allow create: if request.auth != null;
-        allow update, delete: if false; // Managed by backend/admins
     }
     
-    // Reported questions are write-only for users.
-    match /reportedQuestions/{reportId} {
-        allow read, update, delete: if false; // Managed by backend/admins
-        allow create: if request.auth != null;
+    // User-specific data
+    match /users/{userId} {
+      // Users can read their own profile, and it is publicly readable for leaderboards
+      allow read: if true;
+      
+      // Users can create their own document, and update it if they are the owner.
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // Quiz attempts subcollection
+      match /quizAttempts/{slotId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Live leaderboard entries for each slot
+    match /leaderboard_live/{slotId}/entries/{userId} {
+      // Anyone can read the live leaderboard
+      allow read: if true;
+      // Only the authenticated user can write their own entry
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Global stats are publicly readable, but not writable by clients.
-    match /globals/{docId} {
-      allow read: if true;
-      allow write: if false; // Should only be updated by server-side logic/batch writes.
+    // User-submitted content
+    match /userContributions/{contributionId} {
+      allow read: if true; // Allow reading contributions
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Reported questions
+    match /reportedQuestions/{reportId} {
+       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
   }
 }

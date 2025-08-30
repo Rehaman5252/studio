@@ -720,7 +720,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       // commit the batch (throw if commit fails so higher-level code can queue)
       await batch.commit();
     },
-    [user, profile, db]
+    [user, profile]
   );
 
   // Public API
@@ -838,7 +838,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: false };
       }
     },
-    [user]
+    [user, db]
   );
 
   /* ------------------------------ Context val ---------------------------- */

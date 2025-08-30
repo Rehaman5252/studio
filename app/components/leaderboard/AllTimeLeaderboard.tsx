@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useMemo } from 'react';
@@ -84,7 +85,7 @@ const AllTimeLeaderboard = () => {
         if ((!leaderboardAllTime.rows || leaderboardAllTime.rows.length === 0)) {
             if (leaderboardAllTime.error) {
                 // show the error state if there are no fallback rows
-                return <ErrorState title="Error" message={leaderboardAllTime.error} />;
+                return <ErrorState title="Error Loading Leaderboard" message={leaderboardAllTime.error} />;
             }
             return <EmptyState />;
         }
