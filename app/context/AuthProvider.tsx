@@ -53,7 +53,8 @@ interface UserProfile {
   name: string;
   photoURL?: string;
   currentStreak: number;
-  lastStreakTimestamp?: Timestamp;
+  longestStreak: number;
+  lastPlayedAt?: Timestamp;
   referredBy?: string;
   noBallCount: number;
   lastNoBallTimestamp?: Timestamp;
@@ -218,6 +219,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           photoURL: u.photoURL || `https://placehold.co/100x100.png`,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+          lastPlayedAt: serverTimestamp(),
           emailVerified: u.emailVerified,
           referredBy,
           referralBonusPaid: false,
@@ -233,6 +235,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           noBallCount: 0,
           lastNoBallTimestamp: null,
           currentStreak: 0,
+          longestStreak: 0,
           lastStreakTimestamp: null,
         } as any;
 
@@ -469,97 +472,108 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
   const persistAttemptBatch = useCallback(
     async (attempt: QuizAttempt) => {
-      if (!user || !profile || !db) throw new Error('Missing user/profile/db');
-  
-      const sanitizedAttempt = sanitizeQuizAttempt(attempt);
-      if (!sanitizedAttempt) throw new Error("Attempt sanitization failed");
-  
-      const batch = writeBatch(db);
-      const userDocRef = doc(db, 'users', user.uid);
-      const statsDocRef = doc(db, 'globals', 'stats');
-  
-      // 1. User Stats Update
-      const userStatsUpdate: Record<string, any> = {
-        quizzesPlayed: increment(1),
-        totalScore: increment(sanitizedAttempt.score),
-        updatedAt: serverTimestamp(),
-      };
-  
-      const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
-      if (isPerfectScore) {
-        userStatsUpdate.perfectScores = increment(1);
-        userStatsUpdate.totalRewards = increment(100);
-      }
-  
-      // Streak Logic
-      const todayUTC = new Date();
-      todayUTC.setUTCHours(0, 0, 0, 0);
-      const lastStreakDate = profile.lastStreakTimestamp
-        ? (profile.lastStreakTimestamp as Timestamp).toDate()
-        : null;
-  
-      if (!lastStreakDate) {
-        userStatsUpdate.currentStreak = 1;
-        userStatsUpdate.lastStreakTimestamp = serverTimestamp();
-      } else {
-        const lastUTC = new Date(lastStreakDate);
-        lastUTC.setUTCHours(0, 0, 0, 0);
-        const diffDays = (todayUTC.getTime() - lastUTC.getTime()) / (1000 * 3600 * 24);
+        if (!user || !db) throw new Error('Missing user/db');
+        
+        const sanitizedAttempt = sanitizeQuizAttempt(attempt);
+        if (!sanitizedAttempt) throw new Error("Attempt sanitization failed");
 
-        if (diffDays === 1) { // Played yesterday, continue streak
-          userStatsUpdate.currentStreak = increment(1);
-          userStatsUpdate.lastStreakTimestamp = serverTimestamp();
-        } else if (diffDays > 1) { // Missed one or more days, reset streak
-          userStatsUpdate.currentStreak = 1;
-          userStatsUpdate.lastStreakTimestamp = serverTimestamp();
+        const batch = writeBatch(db);
+        const userDocRef = doc(db, 'users', user.uid);
+        const statsDocRef = doc(db, 'globals', 'stats');
+
+        // 1. Get current user stats for streak calculation
+        const userSnap = await getDoc(userDocRef);
+        const userData = userSnap.exists() ? userSnap.data() as UserProfile : null;
+
+        // 2. Base User & Global Stats Update
+        const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
+        const userStatsUpdate: Record<string, any> = {
+            quizzesPlayed: increment(1),
+            totalScore: increment(sanitizedAttempt.score),
+            perfectScores: increment(isPerfectScore ? 1 : 0),
+            lastPlayedAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+
+        const globalStatsUpdate: Record<string, any> = {
+             totalQuizzesPlayed: increment(1) 
+        };
+        if (isPerfectScore) {
+            globalStatsUpdate.totalPerfectScores = increment(1);
         }
-        // If diffDays is 0 or less, do nothing (already played today or clock issue)
-      }
-      
-      batch.update(userDocRef, userStatsUpdate);
-      
-      // 2. Global Stats Update
-      const globalStatsUpdate: Record<string, any> = { totalQuizzesPlayed: increment(1) };
-      if (isPerfectScore) {
-        globalStatsUpdate.totalPerfectScores = increment(1);
-      }
-      batch.set(statsDocRef, globalStatsUpdate, { merge: true });
-  
-      // 3. Quiz Attempt Document
-      const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-      batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
-  
-      // 4. Live Leaderboard Entry
-      const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
-      const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
-      batch.set(
-        liveEntryRef,
-        {
-          userId: user.uid,
-          name: profile.name || "Anonymous Player",
-          avatar: profile.photoURL || `https://placehold.co/40x40.png`,
-          score: sanitizedAttempt.score,
-          time: totalTime,
-          disqualified: !!sanitizedAttempt.reason,
-        },
-        { merge: true }
-      );
-  
-      try {
-        await batch.commit();
-      } catch (err: any) {
-        const code = err?.code || 'unknown';
-        const message = err?.message || String(err);
-        throw new Error(`firestore_commit_failed:${code}:${message}`);
-      }
+
+        // 3. Streak Logic
+        if (userData) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const lastPlayed = userData.lastPlayedAt ? userData.lastPlayedAt.toDate() : null;
+            if (lastPlayed) {
+                lastPlayed.setHours(0,0,0,0);
+                const daysDiff = (today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24);
+
+                if (daysDiff === 1) { // Continued streak
+                    userStatsUpdate.currentStreak = increment(1);
+                } else if (daysDiff > 1) { // Reset streak
+                    userStatsUpdate.currentStreak = 1;
+                }
+                // If daysDiff is 0, do nothing (already played today).
+            } else { // First play ever
+                userStatsUpdate.currentStreak = 1;
+            }
+
+            // Update longest streak if current is greater
+            const newStreak = (userData.currentStreak || 0) + 1;
+            if (newStreak > (userData.longestStreak || 0)) {
+                userStatsUpdate.longestStreak = newStreak;
+            }
+        } else {
+             userStatsUpdate.currentStreak = 1;
+             userStatsUpdate.longestStreak = 1;
+        }
+
+        // 4. Add updates to batch
+        batch.update(userDocRef, userStatsUpdate);
+        batch.set(statsDocRef, globalStatsUpdate, { merge: true });
+
+        // 5. Quiz Attempt Document
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
+        batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
+
+        // 6. Live Leaderboard Entry
+        if (userData) {
+            const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
+            const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
+            batch.set(
+                liveEntryRef,
+                {
+                    userId: user.uid,
+                    name: userData.name || "Anonymous",
+                    avatar: userData.photoURL || '',
+                    score: sanitizedAttempt.score,
+                    time: totalTime,
+                    disqualified: !!sanitizedAttempt.reason,
+                },
+                { merge: true }
+            );
+        }
+
+        try {
+            await batch.commit();
+        } catch (err: any) {
+            const code = err?.code || 'unknown';
+            const message = err?.message || String(err);
+            throw new Error(`firestore_commit_failed:${code}:${message}`);
+        }
     },
-    [user, profile]
-  );
+    [user]
+);
+
 
   // Public API
   const addQuizAttempt = useCallback(
     async (attempt: QuizAttempt): Promise<{ success: boolean; error?: string; queued?: boolean }> => {
-      if (!user || !profile || !db) {
+      if (!user || !db) {
         const msg = 'User not authenticated or database unavailable.';
         toast({ title: 'Save Failed', description: msg, variant: 'destructive' });
         pushPending(attempt);
@@ -585,7 +599,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: e.message, queued: true };
       }
     },
-    [persistAttemptBatch, toast, user, profile]
+    [persistAttemptBatch, toast, user]
   );
 
   // Auto-retry queued attempts when user/db/online becomes available
