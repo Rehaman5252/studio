@@ -419,36 +419,93 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     // All-time leaderboard (from users collection)
     setLeaderboardAllTime((prev) => ({ ...prev, loading: true }));
-    // NOTE: Ensure Firestore index for orderBy(totalScore desc, perfectScores desc, quizzesPlayed asc)
-    const allTimeQ = query(
-      collection(db, 'users'),
-      orderBy('totalScore', 'desc'),
-      orderBy('perfectScores', 'desc'),
-      orderBy('quizzesPlayed', 'asc'),
-      limit(100)
-    );
-    const unsubscribeAllTime = onSnapshot(
-      allTimeQ,
-      (qs) => {
-        const rows: AllTimePlayer[] = qs.docs.map((d) => {
-          const u = d.data() as UserProfile;
-          return {
-            uid: u.uid,
-            name: u.name,
-            avatar: u.photoURL,
-            totalScore: u.totalScore ?? 0,
-            perfectScores: u.perfectScores ?? 0,
-            quizzesPlayed: u.quizzesPlayed ?? 0,
-            isCurrentUser: user?.uid === u.uid,
-          };
-        });
-        setLeaderboardAllTime({ rows, loading: false, error: null });
-      },
-      (err) => {
-        console.error('All-time leaderboard error:', err);
+
+    const buildAllTimeListener = () => {
+      try {
+        const allTimeQ = query(
+          collection(db, 'users'),
+          orderBy('totalScore', 'desc'),
+          orderBy('perfectScores', 'desc'),
+          orderBy('quizzesPlayed', 'asc'),
+          limit(100)
+        );
+
+        const unsubscribe = onSnapshot(
+          allTimeQ,
+          (qs) => {
+            const rows: AllTimePlayer[] = qs.docs.map((d) => {
+              const u = d.data() as UserProfile;
+              return {
+                uid: u.uid,
+                name: u.name,
+                avatar: u.photoURL,
+                totalScore: u.totalScore ?? 0,
+                perfectScores: u.perfectScores ?? 0,
+                quizzesPlayed: u.quizzesPlayed ?? 0,
+                isCurrentUser: user?.uid === u.uid,
+              };
+            });
+            setLeaderboardAllTime({ rows, loading: false, error: null });
+          },
+          (err) => {
+            console.error('All-time leaderboard snapshot error:', err);
+            // If Firestore says index missing (failed-precondition), fall back to safe query
+            const code = err?.code || '';
+            if (code === 'failed-precondition' || (err?.message && err.message.includes('requires an index'))) {
+              console.warn('All-time leaderboard: missing composite index. Falling back to single-field query + client-side sort.');
+              // console prints link if present in message
+              const match = err?.message?.match(/https:\\/\\/console\\.firebase\\.google\\.com\\/[^\\s]+/);
+              if (match && match[0]) console.info('Create index link:', match[0]);
+    
+              // fallback: query only by totalScore and perform the remaining ordering in-memory
+              query(
+                collection(db, 'users'),
+                orderBy('totalScore', 'desc'),
+                limit(500)
+              )
+                .with_converter(null as any) // noop to satisfy typing; not mandatory
+              // use getDocs for the fallback (one-shot)
+              .then(async () => {
+                // getDocs approach:
+                const { getDocs } = await import('firebase/firestore');
+                const snap = await getDocs(query(collection(db, 'users'), orderBy('totalScore', 'desc'), limit(500)));
+                const arr = snap.docs.map(d => d.data() as UserProfile);
+                // client-side stable sort using tie-breaks: perfectScores desc, quizzesPlayed asc
+                arr.sort((a, b) => {
+                  const s = (b.totalScore ?? 0) - (a.totalScore ?? 0);
+                  if (s !== 0) return s;
+                  const p = (b.perfectScores ?? 0) - (a.perfectScores ?? 0);
+                  if (p !== 0) return p;
+                  return (a.quizzesPlayed ?? 0) - (b.quizzesPlayed ?? 0);
+                });
+                const rows: AllTimePlayer[] = arr.slice(0, 100).map(u => ({
+                  uid: u.uid,
+                  name: u.name,
+                  avatar: u.photoURL,
+                  totalScore: u.totalScore ?? 0,
+                  perfectScores: u.perfectScores ?? 0,
+                  quizzesPlayed: u.quizzesPlayed ?? 0,
+                  isCurrentUser: user?.uid === u.uid,
+                }));
+                setLeaderboardAllTime({ rows, loading: false, error: 'Partial results: composite index missing; showing best-effort ranking.' });
+              }).catch(fbErr => {
+                console.error('Fallback all-time query failed:', fbErr);
+                setLeaderboardAllTime({ rows: [], loading: false, error: mapFirestoreError(fbErr) });
+              });
+            } else {
+              setLeaderboardAllTime({ rows: [], loading: false, error: mapFirestoreError(err) });
+            }
+          }
+        );
+        return unsubscribe;
+      } catch (err: any) {
+        console.error('Failed to start All-time leaderboard listener:', err);
         setLeaderboardAllTime({ rows: [], loading: false, error: mapFirestoreError(err) });
+        return () => {};
       }
-    );
+    };
+    
+    const unsubscribeAllTime = buildAllTimeListener();
     unsubs.push(unsubscribeAllTime);
 
     return () => {
@@ -586,23 +643,23 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   const persistAttemptBatch = useCallback(
     async (attempt: QuizAttempt) => {
       if (!user || !profile || !db) throw new Error('Missing user/profile/db');
-
+  
       const sanitizedAttempt = sanitizeQuizAttempt(attempt) as QuizAttempt;
-
+  
       const batch = writeBatch(db);
       const userDocRef = doc(db, 'users', user.uid);
       const statsDocRef = doc(db, 'globals', 'stats');
-
+  
       const userStatsUpdate: Record<string, any> = {
         quizzesPlayed: increment(1),
         totalScore: increment(sanitizedAttempt.score),
         updatedAt: serverTimestamp(),
       };
-
+  
       const globalStatsUpdate: Record<string, any> = {
         totalQuizzesPlayed: increment(1),
       };
-
+  
       const isPerfectScore =
         sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
       if (isPerfectScore) {
@@ -610,47 +667,43 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         userStatsUpdate.totalRewards = increment(100);
         globalStatsUpdate.totalPerfectScores = increment(1);
       }
-
-      // Robust streak calculation (UTC-day granularity)
+  
+      // streak calculation (keeps original logic)
       const todayUTC = new Date();
       todayUTC.setUTCHours(0, 0, 0, 0);
-
       const lastStreakDate = profile.lastStreakTimestamp
         ? (profile.lastStreakTimestamp as Timestamp).toDate()
         : null;
-
+  
       if (!lastStreakDate) {
         userStatsUpdate.currentStreak = 1;
         userStatsUpdate.lastStreakTimestamp = serverTimestamp();
       } else {
         const lastUTC = new Date(lastStreakDate);
         lastUTC.setUTCHours(0, 0, 0, 0);
-
+  
         if (todayUTC.getTime() === lastUTC.getTime()) {
-          // already played today → keep streak same
+          // already played today → no change
         } else if (todayUTC.getTime() - lastUTC.getTime() === 86_400_000) {
-          // played yesterday → continue
           userStatsUpdate.currentStreak = increment(1);
           userStatsUpdate.lastStreakTimestamp = serverTimestamp();
         } else {
-          // missed day → reset
           userStatsUpdate.currentStreak = 1;
           userStatsUpdate.lastStreakTimestamp = serverTimestamp();
         }
       }
-
-      // user stats + global stats
-      batch.update(userDocRef, userStatsUpdate);
+  
+      // IMPORTANT: use set(..., { merge: true }) instead of update() so doc creation isn't required
+      batch.set(userDocRef, userStatsUpdate, { merge: true });
       batch.set(statsDocRef, globalStatsUpdate, { merge: true });
-
-      // attempt (timestamp with serverTimestamp to prevent clock skew)
+  
+      // attempt doc
       const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-      batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
-
+      batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() }, { merge: true });
+  
       // live leaderboard entry
       const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
-      const totalTime =
-        sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
+      const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
       batch.set(
         liveEntryRef,
         {
@@ -663,10 +716,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         },
         { merge: true }
       );
-
+  
+      // commit the batch (throw if commit fails so higher-level code can queue)
       await batch.commit();
     },
-    [user, profile]
+    [user, profile, db]
   );
 
   // Public API
