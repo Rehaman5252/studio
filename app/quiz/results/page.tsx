@@ -3,7 +3,6 @@
 
 import type { QuizAttempt } from '@/ai/schemas';
 import { adLibrary } from '@/lib/ads';
-import { decodeAttempt } from '@/lib/quiz-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,41 +39,35 @@ const LoadingSkeleton = () => (
 const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, profile, markAttemptAsReviewed } = useAuth();
+  const { user, profile, quizHistory, markAttemptAsReviewed } = useAuth();
   const { toast } = useToast();
   
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdForReview, setShowAdForReview] = useState(false);
   const [slotTimings, setSlotTimings] = useState<string | null>(null);
-
-  const decodedAttempt = useMemo(() => {
-    const attemptData = searchParams.get('attempt');
-    if (!attemptData) return null;
-    try {
-      const parsed = decodeAttempt(attemptData);
-      // Ensure timestamp is a number for client-side use, converting from Firestore-like object if needed
-      if (parsed && parsed.timestamp && typeof parsed.timestamp === 'object' && 'seconds' in parsed.timestamp) {
-         return { ...parsed, timestamp: (parsed.timestamp as any).seconds * 1000 };
-      }
-      return parsed;
-    } catch(e) {
-      console.error("Failed to decode attempt from URL", e);
-      return null;
-    }
-  }, [searchParams]);
   
-  const [attempt, setAttempt] = useState(decodedAttempt);
+  const slotId = searchParams.get('slotId');
+
+  const attempt = useMemo(() => {
+    if (!slotId) return null;
+    return quizHistory.data.find(a => a.slotId === slotId) || null;
+  }, [quizHistory.data, slotId]);
+
+  const [currentAttempt, setCurrentAttempt] = useState(attempt);
 
   useEffect(() => {
-    if (!decodedAttempt) {
-      toast({
-        title: "Invalid Results Link",
-        description: "Could not find your quiz data. Redirecting to home.",
-        variant: "destructive"
-      });
+    if (quizHistory.loading) return;
+
+    if (!slotId) {
+      toast({ title: "Invalid Link", description: "No quiz slot specified.", variant: "destructive" });
       router.replace('/');
-    } else {
+      return;
+    }
+    
+    const foundAttempt = quizHistory.data.find(a => a.slotId === slotId);
+    if (foundAttempt) {
+      setCurrentAttempt(foundAttempt);
       const getSlotTimings = (ts: number | Timestamp) => {
         const attemptDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
         const minutes = attemptDate.getMinutes();
@@ -89,35 +82,38 @@ const ResultsContent = () => {
 
         return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
       };
-      setSlotTimings(getSlotTimings(decodedAttempt.timestamp));
+      setSlotTimings(getSlotTimings(foundAttempt.timestamp));
+    } else if (!quizHistory.loading) {
+       toast({ title: "Results not found", description: "Could not find quiz data for this slot.", variant: "destructive" });
+       router.replace('/');
     }
-  }, [decodedAttempt, router, toast]);
+  }, [slotId, quizHistory.data, quizHistory.loading, router, toast]);
 
   const handleViewAnswers = useCallback(() => {
-    if (!attempt) return;
-    if (attempt.reviewed) {
+    if (!currentAttempt) return;
+    if (currentAttempt.reviewed) {
         setShowReviewDialog(true);
     } else {
         setShowAdForReview(true);
     }
-  }, [attempt]);
+  }, [currentAttempt]);
   
   const onAdFinished = useCallback(async () => {
     setShowAdForReview(false);
-    if(attempt?.slotId) {
-        const { success } = await markAttemptAsReviewed(attempt.slotId);
+    if(currentAttempt?.slotId) {
+        const { success } = await markAttemptAsReviewed(currentAttempt.slotId);
         if (success) {
-            setAttempt(prev => prev ? { ...prev, reviewed: true } : null);
+            setCurrentAttempt(prev => prev ? { ...prev, reviewed: true } : null);
             toast({ title: "Success", description: "You can now view your answers." });
         } else {
             toast({ title: "Error", description: "Could not save review status. Please check connection.", variant: "destructive" });
         }
     }
     setShowReviewDialog(true);
-  }, [attempt, markAttemptAsReviewed, toast]);
+  }, [currentAttempt, markAttemptAsReviewed, toast]);
 
   const handleDownloadCertificate = () => {
-      if (!attempt || !profile || !slotTimings) return;
+      if (!currentAttempt || !profile || !slotTimings) return;
       
       const doc = new jsPDF();
       doc.setDrawColor(212, 175, 55);
@@ -141,7 +137,7 @@ const ResultsContent = () => {
       doc.text('who achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${attempt.format} Quiz (${attempt.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
+      doc.text(`${currentAttempt.format} Quiz (${currentAttempt.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
       
       const stars = Math.floor((profile.perfectScores || 1) / 5);
       if (stars > 0) {
@@ -153,7 +149,7 @@ const ResultsContent = () => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(100, 100, 100);
-      const attemptDate = new Date(attempt.timestamp);
+      const attemptDate = new Date(currentAttempt.timestamp as number);
       doc.text(`Date of Innings: ${attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 30, 140);
       doc.text(`Match Slot: ${slotTimings}`, 30, 147);
 
@@ -170,18 +166,18 @@ const ResultsContent = () => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(150, 150, 150);
       doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 175, { align: 'center' });
-      doc.save(`indcric_${attempt.format}_Certificate.pdf`);
+      doc.save(`indcric_${currentAttempt.format}_Certificate.pdf`);
       toast({ title: "Download Started", description: "Your certificate is being downloaded." });
   };
 
   const handleShare = async () => {
-    if (!attempt || !profile) return;
+    if (!currentAttempt || !profile) return;
     const stars = Math.floor((profile.perfectScores || 0) / 5);
     const starText = stars > 0 ? ` I now have ${stars} star(s) on my profile! ⭐` : '';
 
     const shareData = {
         title: `I aced a quiz on indcric!`,
-        text: `I just hit a century with a perfect score in the ${attempt.format} quiz on indcric!${starText} Think you can match my score?`,
+        text: `I just hit a century with a perfect score in the ${currentAttempt.format} quiz on indcric!${starText} Think you can match my score?`,
         url: window.location.origin,
     };
     try {
@@ -197,16 +193,16 @@ const ResultsContent = () => {
     }
   };
 
-  const isPerfectScore = useMemo(() => attempt?.score === attempt?.totalQuestions && !attempt?.reason, [attempt]);
-  const isDisqualified = useMemo(() => !!attempt?.reason, [attempt]);
+  const isPerfectScore = useMemo(() => currentAttempt?.score === currentAttempt?.totalQuestions && !currentAttempt?.reason, [currentAttempt]);
+  const isDisqualified = useMemo(() => !!currentAttempt?.reason, [currentAttempt]);
 
   const motivationalLine = useMemo(() => {
-    if (!attempt) return "";
+    if (!currentAttempt) return "";
     if (isDisqualified) return "Fair play is key to the spirit of cricket.";
     if (isPerfectScore) return "Flawless century! You're a true champion.";
-    if (attempt.score >= 3) return "Good effort! Keep practicing.";
+    if (currentAttempt.score >= 3) return "Good effort! Keep practicing.";
     return "Tough match, but every game is a learning experience!";
-  }, [isDisqualified, isPerfectScore, attempt]);
+  }, [isDisqualified, isPerfectScore, currentAttempt]);
 
   const pageTitle = useMemo(() => {
     if (isDisqualified) return "Innings Disqualified";
@@ -215,7 +211,7 @@ const ResultsContent = () => {
   }, [isDisqualified, isPerfectScore]);
 
 
-  if (!attempt || !slotTimings) {
+  if (!currentAttempt || !slotTimings) {
     return <LoadingSkeleton />;
   }
 
@@ -249,7 +245,7 @@ const ResultsContent = () => {
                         {isDisqualified ? <Ban className="h-12 w-12 text-yellow-400" /> : <Award className="h-12 w-12 text-primary" />}
                     </motion.div>
                     <CardTitle className="text-3xl font-bold mt-4">{pageTitle}</CardTitle>
-                    <CardDescription>{attempt.format} Quiz - Sponsored by {attempt.brand}</CardDescription>
+                    <CardDescription>{currentAttempt.format} Quiz - Sponsored by {currentAttempt.brand}</CardDescription>
                     <CardDescription>Slot: {slotTimings}</CardDescription>
                 </CardHeader>
 
@@ -261,7 +257,7 @@ const ResultsContent = () => {
                                     <BadgeCheck className="h-8 w-8 text-primary mx-auto mb-1" />
                                     <p className="text-muted-foreground text-sm">You Scored</p>
                                     <p className="text-5xl font-bold tracking-tighter">
-                                        <span className="text-primary">{attempt.score}</span>/{attempt.totalQuestions}
+                                        <span className="text-primary">{currentAttempt.score}</span>/{currentAttempt.totalQuestions}
                                     </p>
                                 </div>
                             </div>
@@ -281,8 +277,8 @@ const ResultsContent = () => {
                         </Button>
                          {!isDisqualified && (
                             <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
-                                {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4" />}
-                                {attempt.reviewed ? 'Answers Reviewed' : 'Review Answers (Ad)'}
+                                {currentAttempt.reviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4" />}
+                                {currentAttempt.reviewed ? 'Answers Reviewed' : 'Review Answers (Ad)'}
                             </Button>
                         )}
                     </div>
@@ -337,15 +333,15 @@ const ResultsContent = () => {
           </AdDialog>
       )}
 
-      {attempt && (
+      {currentAttempt && (
          <>
             <ReviewDialog
                 open={showReviewDialog}
                 onOpenChange={setShowReviewDialog}
-                attempt={attempt}
+                attempt={currentAttempt}
             />
             <AnalysisDialog
-                attempt={attempt}
+                attempt={currentAttempt}
                 open={isAnalysisOpen}
                 onOpenChange={setIsAnalysisOpen}
             />

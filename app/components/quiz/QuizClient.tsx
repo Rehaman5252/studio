@@ -13,7 +13,7 @@ import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
-import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
+import { buildAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
@@ -192,7 +192,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const result = await addQuizAttempt(attempt);
 
     if(result.success) {
-        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+        router.replace(`/quiz/results?slotId=${attempt.slotId}`);
     } else {
         setError("Could not save quiz results. Please check your connection and try again.");
         setQuizState('error');
@@ -226,7 +226,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     await addQuizAttempt(attempt);
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    router.replace(`/quiz/results?slotId=${attempt.slotId}`);
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
