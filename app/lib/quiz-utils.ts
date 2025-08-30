@@ -8,13 +8,13 @@ import { sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfil
 
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
+ * This version uses encodeURIComponent to handle all possible characters safely.
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
-        // Use a simple JSON stringify and btoa for transport. The data is already sanitized
-        // before this function is called.
-        const jsonString = JSON.stringify(attempt);
-        return btoa(jsonString);
+        const sanitized = sanitizeAttemptData(attempt);
+        const jsonString = JSON.stringify(sanitized);
+        return encodeURIComponent(btoa(jsonString));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
         return "";
@@ -23,10 +23,11 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
 
 /**
  * Decodes a Base64 string from a URL into a QuizAttempt object.
+ * This version uses decodeURIComponent to correctly parse the encoded string.
  */
 export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
     try {
-        const decodedJsonString = atob(encodedAttempt);
+        const decodedJsonString = atob(decodeURIComponent(encodedAttempt));
         return JSON.parse(decodedJsonString);
     } catch (e) {
         console.error("Failed to decode attempt:", e);
