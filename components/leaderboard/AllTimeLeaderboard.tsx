@@ -72,17 +72,36 @@ const AllTimeLeaderboard = () => {
         if (leaderboardAllTime.loading) {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
-        if (leaderboardAllTime.error) return <ErrorState title="Error" message={leaderboardAllTime.error} />;
-        if (leaderboardAllTime.rows.length === 0) return <EmptyState />;
         
         const playersWithRank = leaderboardAllTime.rows.map((player, index) => ({
             ...player,
             rank: index + 1,
         }));
+        
+        // This is the key change: we check for the specific fallback error message.
+        if (leaderboardAllTime.error && !leaderboardAllTime.error.includes("Partial results")) {
+            return <ErrorState title="Error Loading Leaderboard" message={leaderboardAllTime.error} />;
+        }
+        
+        if (playersWithRank.length === 0) return <EmptyState />;
 
-        return playersWithRank.map(player => (
-            <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
-        ));
+        return (
+            <>
+                {leaderboardAllTime.error && (
+                    <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+                        <AlertTitle>Displaying Partial Results</AlertTitle>
+                        <AlertDescription>
+                            The full leaderboard is being indexed. Showing a best-effort ranking for now.
+                        </AlertDescription>
+                    </Alert>
+                )}
+                {playersWithRank.map(player => (
+                    <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
+                ))}
+            </>
+        );
+
     }, [leaderboardAllTime, user]);
 
     return (
