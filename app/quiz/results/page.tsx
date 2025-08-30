@@ -16,7 +16,8 @@ import PageWrapper from '@/components/PageWrapper';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import jsPDF from 'jspdf';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
@@ -39,7 +40,7 @@ const LoadingSkeleton = () => (
 const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, profile, quizHistory, markAttemptAsReviewed } = useAuth();
+  const { user, profile, markAttemptAsReviewed } = useAuth();
   const { toast } = useToast();
   
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -48,46 +49,57 @@ const ResultsContent = () => {
   const [slotTimings, setSlotTimings] = useState<string | null>(null);
   
   const slotId = searchParams.get('slotId');
-
-  const attempt = useMemo(() => {
-    if (!slotId) return null;
-    return quizHistory.data.find(a => a.slotId === slotId) || null;
-  }, [quizHistory.data, slotId]);
-
-  const [currentAttempt, setCurrentAttempt] = useState(attempt);
+  const [currentAttempt, setCurrentAttempt] = useState<QuizAttempt | null>(null);
+  const [attemptLoading, setAttemptLoading] = useState(true);
 
   useEffect(() => {
-    if (quizHistory.loading) return;
-
-    if (!slotId) {
-      toast({ title: "Invalid Link", description: "No quiz slot specified.", variant: "destructive" });
-      router.replace('/');
-      return;
+    if (!slotId || !user) {
+        if(!user) return; // Wait for user to be available
+        toast({ title: "Invalid Link", description: "No quiz slot specified.", variant: "destructive" });
+        router.replace('/');
+        return;
     }
     
-    const foundAttempt = quizHistory.data.find(a => a.slotId === slotId);
-    if (foundAttempt) {
-      setCurrentAttempt(foundAttempt);
-      const getSlotTimings = (ts: number | Timestamp) => {
-        const attemptDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
-        const minutes = attemptDate.getMinutes();
-        const slotStartMinute = Math.floor(minutes / 10) * 10;
-        
-        const slotStartTime = new Date(attemptDate);
-        slotStartTime.setMinutes(slotStartMinute, 0, 0);
-        
-        const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+    const fetchAttempt = async () => {
+        setAttemptLoading(true);
+        if (!db) {
+            toast({ title: "Database Error", description: "Could not connect to the database.", variant: "destructive" });
+            setAttemptLoading(false);
+            return;
+        }
 
-        const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', slotId);
+        const docSnap = await getDoc(attemptDocRef);
 
-        return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-      };
-      setSlotTimings(getSlotTimings(foundAttempt.timestamp));
-    } else if (!quizHistory.loading) {
-       toast({ title: "Results not found", description: "Could not find quiz data for this slot.", variant: "destructive" });
-       router.replace('/');
-    }
-  }, [slotId, quizHistory.data, quizHistory.loading, router, toast]);
+        if (docSnap.exists()) {
+            const attemptData = docSnap.data() as QuizAttempt;
+            setCurrentAttempt(attemptData);
+
+             const getSlotTimings = (ts: number | Timestamp) => {
+                const attemptDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+                const minutes = attemptDate.getMinutes();
+                const slotStartMinute = Math.floor(minutes / 10) * 10;
+                
+                const slotStartTime = new Date(attemptDate);
+                slotStartTime.setMinutes(slotStartMinute, 0, 0);
+                
+                const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+
+                const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+            };
+            setSlotTimings(getSlotTimings(attemptData.timestamp));
+
+        } else {
+            toast({ title: "Results not found", description: "Could not find quiz data for this slot.", variant: "destructive" });
+            router.replace('/');
+        }
+        setAttemptLoading(false);
+    };
+
+    fetchAttempt();
+  }, [slotId, user, router, toast]);
 
   const handleViewAnswers = useCallback(() => {
     if (!currentAttempt) return;
@@ -149,7 +161,7 @@ const ResultsContent = () => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(100, 100, 100);
-      const attemptDate = new Date(currentAttempt.timestamp as number);
+      const attemptDate = new Date((currentAttempt.timestamp as Timestamp).seconds * 1000);
       doc.text(`Date of Innings: ${attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 30, 140);
       doc.text(`Match Slot: ${slotTimings}`, 30, 147);
 
@@ -211,7 +223,7 @@ const ResultsContent = () => {
   }, [isDisqualified, isPerfectScore]);
 
 
-  if (!currentAttempt || !slotTimings) {
+  if (attemptLoading || !currentAttempt || !slotTimings) {
     return <LoadingSkeleton />;
   }
 
