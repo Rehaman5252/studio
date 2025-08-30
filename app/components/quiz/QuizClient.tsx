@@ -225,8 +225,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
-    await addQuizAttempt(attempt);
-    router.replace(`/quiz/results?slotId=${attempt.slotId}`);
+    const result = await addQuizAttempt(attempt);
+    if(result.success) {
+        router.replace(`/quiz/results?slotId=${attempt.slotId}`);
+    }
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
