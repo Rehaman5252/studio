@@ -717,7 +717,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         { merge: true }
       );
   
-      // commit the batch (throw if commit fails so higher-level code can queue)
       try {
         await batch.commit();
       } catch (err: any) {
@@ -751,7 +750,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
       } catch (e: any) {
         console.error('addQuizAttempt failed:', e);
-        // extract code if thrown above
         const errMsg = String(e?.message || e);
         toast({
           title: 'Sync Error',
