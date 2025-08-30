@@ -45,8 +45,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
-import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderboardTypes';
-
 
 /* -------------------------------- Types ------------------------------- */
 
@@ -72,24 +70,12 @@ interface UserDataContextType {
   profile: UserProfile | null;
   isProfileComplete: boolean;
   loading: boolean;
+  firebaseAppReady: boolean; // Expose firebase readiness
 
   // Attempt data
   lastAttemptInSlot: QuizAttempt | null;
   quizHistory: {
     data: QuizAttempt[];
-    loading: boolean;
-    error: string | null;
-  };
-
-  // Leaderboards
-  leaderboardLive: {
-    slotId: string;
-    rows: LivePlayer[];
-    loading: boolean;
-    error: string | null;
-  };
-  leaderboardAllTime: {
-    rows: AllTimePlayer[];
     loading: boolean;
     error: string | null;
   };
@@ -170,27 +156,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     loading: true,
     error: null,
   });
-
-  // Leaderboards
-  const [leaderboardLive, setLeaderboardLive] = useState<{
-    slotId: string;
-    rows: LivePlayer[];
-    loading: boolean;
-    error: string | null;
-  }>({
-    slotId: getQuizSlotId(),
-    rows: [],
-    loading: true,
-    error: null,
-  });
-
-  const [leaderboardAllTime, setLeaderboardAllTime] = useState<{
-    rows: AllTimePlayer[];
-    loading: boolean;
-    error: string | null;
-  }>({ rows: [], loading: true, error: null });
-
-  const slotIdRef = useRef<string>(getQuizSlotId());
+  
+  const [firebaseAppReady, setFirebaseAppReady] = useState(false);
+  useEffect(() => {
+    setFirebaseAppReady(isFirebaseConfigured);
+  }, []);
 
   /* ---------------------------- Online/offline ---------------------------- */
 
@@ -296,7 +266,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubs: Array<() => void> = [];
 
-    if (firebaseLoading) {
+    if (firebaseLoading || !firebaseAppReady) {
       setProfileLoading(true);
       return;
     }
@@ -306,14 +276,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       setProfileLoading(false);
       setLastAttemptInSlot(null);
       setQuizHistory({ data: [], loading: false, error: null });
-      setLeaderboardLive((prev) => ({ ...prev, rows: [], loading: false, error: null }));
-      setLeaderboardAllTime({ rows: [], loading: false, error: null });
-      return;
-    }
-
-    if (!isFirebaseConfigured || !db) {
-      console.error('Firestore (db) is not available, possibly due to SSR or missing config.');
-      setProfileLoading(false);
       return;
     }
 
@@ -330,13 +292,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
         }
         setProfileLoading(false);
-        setIsOffline(false);
       },
       (error) => {
         console.error('Error fetching profile with onSnapshot:', error);
         setProfile(null);
         setProfileLoading(false);
-        setIsOffline(true);
       }
     );
     unsubs.push(unsubscribeProfile);
@@ -352,7 +312,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       (error) => {
         console.warn('Could not listen to slot attempt:', error.message);
         setLastAttemptInSlot(null);
-        setIsOffline(true);
       }
     );
     unsubs.push(unsubscribeAttempt);
@@ -368,150 +327,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       (querySnapshot) => {
         const historyData = querySnapshot.docs.map((d) => d.data() as QuizAttempt);
         setQuizHistory({ data: historyData, loading: false, error: null });
-        setIsOffline(false);
       },
       (error) => {
         console.error('Error fetching quiz history:', error);
         setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error) });
-        setIsOffline(true);
       }
     );
     unsubs.push(unsubscribeHistory);
 
-    // Live leaderboard (current slot)
-    const startLiveLeaderboardListener = (slotId: string) => {
-      setLeaderboardLive({ slotId, rows: [], loading: true, error: null });
-      const liveQ = query(
-        collection(db, 'leaderboard_live', slotId, 'entries'),
-        orderBy('score', 'desc'),
-        orderBy('time', 'asc'),
-        limit(100)
-      );
-      const unsub = onSnapshot(
-        liveQ,
-        (qs) => {
-          const rows = qs.docs.map((d) => d.data() as LivePlayer);
-          setLeaderboardLive({ slotId, rows, loading: false, error: null });
-          setIsOffline(false);
-        },
-        (err) => {
-          console.error('Live leaderboard error:', err);
-          setLeaderboardLive((prev) => ({ ...prev, loading: false, error: mapFirestoreError(err) }));
-          setIsOffline(true);
-        }
-      );
-      return unsub;
-    };
-
-    let liveUnsub = startLiveLeaderboardListener(currentSlotId);
-    unsubs.push(() => liveUnsub && liveUnsub());
-
-    // Rotate listener when slot changes (every ~10s check)
-    const slotTicker = setInterval(() => {
-      const newSlot = getQuizSlotId();
-      if (newSlot !== slotIdRef.current) {
-        slotIdRef.current = newSlot;
-        liveUnsub && liveUnsub();
-        liveUnsub = startLiveLeaderboardListener(newSlot);
-      }
-    }, 10_000);
-    unsubs.push(() => clearInterval(slotTicker));
-
-    // All-time leaderboard (from users collection)
-    setLeaderboardAllTime((prev) => ({ ...prev, loading: true }));
-
-    const buildAllTimeListener = () => {
-      try {
-        const allTimeQ = query(
-          collection(db, 'users'),
-          orderBy('totalScore', 'desc'),
-          orderBy('perfectScores', 'desc'),
-          orderBy('quizzesPlayed', 'asc'),
-          limit(100)
-        );
-
-        const unsubscribe = onSnapshot(
-          allTimeQ,
-          (qs) => {
-            const rows: AllTimePlayer[] = qs.docs.map((d) => {
-              const u = d.data() as UserProfile;
-              return {
-                uid: u.uid,
-                name: u.name,
-                avatar: u.photoURL,
-                totalScore: u.totalScore ?? 0,
-                perfectScores: u.perfectScores ?? 0,
-                quizzesPlayed: u.quizzesPlayed ?? 0,
-                isCurrentUser: user?.uid === u.uid,
-              };
-            });
-            setLeaderboardAllTime({ rows, loading: false, error: null });
-          },
-          (err) => {
-            console.error('All-time leaderboard snapshot error:', err);
-            // If Firestore says index missing (failed-precondition), fall back to safe query
-            const code = err?.code || '';
-            if (code === 'failed-precondition' || (err?.message && err.message.includes('requires an index'))) {
-              console.warn('All-time leaderboard: missing composite index. Falling back to single-field query + client-side sort.');
-              // console prints link if present in message
-              const match = err?.message?.match(/https:\\/\\/console\\.firebase\\.google\\.com\\/[^\\s]+/);
-              if (match && match[0]) console.info('Create index link:', match[0]);
-    
-              // fallback: query only by totalScore and perform the remaining ordering in-memory
-              query(
-                collection(db, 'users'),
-                orderBy('totalScore', 'desc'),
-                limit(500)
-              )
-                .with_converter(null as any) // noop to satisfy typing; not mandatory
-              // use getDocs for the fallback (one-shot)
-              .then(async () => {
-                // getDocs approach:
-                const { getDocs } = await import('firebase/firestore');
-                const snap = await getDocs(query(collection(db, 'users'), orderBy('totalScore', 'desc'), limit(500)));
-                const arr = snap.docs.map(d => d.data() as UserProfile);
-                // client-side stable sort using tie-breaks: perfectScores desc, quizzesPlayed asc
-                arr.sort((a, b) => {
-                  const s = (b.totalScore ?? 0) - (a.totalScore ?? 0);
-                  if (s !== 0) return s;
-                  const p = (b.perfectScores ?? 0) - (a.perfectScores ?? 0);
-                  if (p !== 0) return p;
-                  return (a.quizzesPlayed ?? 0) - (b.quizzesPlayed ?? 0);
-                });
-                const rows: AllTimePlayer[] = arr.slice(0, 100).map(u => ({
-                  uid: u.uid,
-                  name: u.name,
-                  avatar: u.photoURL,
-                  totalScore: u.totalScore ?? 0,
-                  perfectScores: u.perfectScores ?? 0,
-                  quizzesPlayed: u.quizzesPlayed ?? 0,
-                  isCurrentUser: user?.uid === u.uid,
-                }));
-                setLeaderboardAllTime({ rows, loading: false, error: 'Partial results: composite index missing; showing best-effort ranking.' });
-              }).catch(fbErr => {
-                console.error('Fallback all-time query failed:', fbErr);
-                setLeaderboardAllTime({ rows: [], loading: false, error: mapFirestoreError(fbErr) });
-              });
-            } else {
-              setLeaderboardAllTime({ rows: [], loading: false, error: mapFirestoreError(err) });
-            }
-          }
-        );
-        return unsubscribe;
-      } catch (err: any) {
-        console.error('Failed to start All-time leaderboard listener:', err);
-        setLeaderboardAllTime({ rows: [], loading: false, error: mapFirestoreError(err) });
-        return () => {};
-      }
-    };
-    
-    const unsubscribeAllTime = buildAllTimeListener();
-    unsubs.push(unsubscribeAllTime);
-
     return () => {
       unsubs.forEach((u) => u && u());
     };
-  }, [user, firebaseLoading, handleUserDocument]);
+  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
 
   /* -------------------------- Auth convenience --------------------------- */
 
@@ -854,12 +681,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     loading: firebaseLoading || profileLoading,
     profile,
     isProfileComplete: isProfileConsideredComplete(profile),
+    firebaseAppReady,
     quizHistory,
     lastAttemptInSlot,
-
-    leaderboardLive,
-    leaderboardAllTime,
-
     logout,
     signInWithGoogle,
     registerWithEmail,

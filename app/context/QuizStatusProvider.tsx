@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getCountFromServer } from 'firebase/firestore';
+import { doc, getDoc, collection, getCountFromServer, onSnapshot } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -49,36 +49,37 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     if (!db) return;
     setIsLoading(true);
 
-    const fetchGlobalStats = async () => {
+    const statsDocRef = doc(db, 'globals', 'stats');
+    const unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
+        if (doc.exists()) {
+            const data = doc.data();
+            setPlayersPlayed(data.totalQuizzesPlayed || 0);
+            setTotalWinners(data.totalPerfectScores || 0);
+        }
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to listen to global stats:", error);
+        setIsLoading(false);
+    });
+
+    const fetchLivePlayers = async () => {
         try {
-            const statsDocRef = doc(db, 'globals', 'stats');
-            const statsDoc = await getDoc(statsDocRef);
-
-            if (statsDoc.exists()) {
-                const data = statsDoc.data();
-                setPlayersPlayed(data.totalQuizzesPlayed || 0);
-                setTotalWinners(data.totalPerfectScores || 0);
-            }
-
             const currentSlotId = getQuizSlotId();
             const liveEntriesRef = collection(db, 'leaderboard_live', currentSlotId, 'entries');
             const snapshot = await getCountFromServer(liveEntriesRef);
             setPlayersPlaying(snapshot.data().count);
-
         } catch (error) {
-            console.error("Failed to fetch global stats:", error);
-            // Set some defaults if fetching fails
-            setPlayersPlaying(Math.floor(Math.random() * (1500 - 800 + 1)) + 800);
-            setPlayersPlayed(Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000);
-            setTotalWinners(Math.floor(Math.random() * (500 - 200 + 1)) + 200);
-        } finally {
-            setIsLoading(false);
+            console.warn("Could not fetch live player count:", error);
         }
     };
+    
+    fetchLivePlayers();
+    const interval = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
 
-    fetchGlobalStats();
-    const interval = setInterval(fetchGlobalStats, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    return () => {
+        unsubscribeStats();
+        clearInterval(interval);
+    };
   }, []);
 
   const value = {

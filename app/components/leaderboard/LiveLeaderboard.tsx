@@ -78,13 +78,17 @@ const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: numb
 );
 
 const LiveLeaderboard = () => {
-    const { user, loading: authLoading, isOffline } = useAuth();
+    const { user, loading: authLoading, firebaseAppReady } = useAuth();
     const { timeLeft } = useQuizStatus();
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [status, setStatus] = useState<'loading' | 'active' | 'waiting' | 'error'>('loading');
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!firebaseAppReady) {
+            setStatus('waiting');
+            return;
+        };
         if (!db) {
             setError("Database not available.");
             setStatus('error');
@@ -131,7 +135,7 @@ const LiveLeaderboard = () => {
             clearInterval(interval);
             if (unsubscribe) unsubscribe();
         };
-    }, [user, isOffline]);
+    }, [user, firebaseAppReady]);
 
     const content = useMemo(() => {
         if (status === 'loading' || authLoading) {
