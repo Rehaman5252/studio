@@ -53,8 +53,8 @@ const ResultsContent = () => {
     if (!attemptData) return null;
     try {
       const parsed = decodeAttempt(attemptData);
+      // Ensure timestamp is a number for client-side use, converting from Firestore-like object if needed
       if (parsed && parsed.timestamp && typeof parsed.timestamp === 'object' && 'seconds' in parsed.timestamp) {
-         // Convert Firestore-like timestamp object back to a number for client-side use
          return { ...parsed, timestamp: parsed.timestamp.seconds * 1000 };
       }
       return parsed;
@@ -197,7 +197,7 @@ const ResultsContent = () => {
     }
   };
 
-  const isPerfectScore = useMemo(() => attempt?.score === attempt?.totalQuestions, [attempt]);
+  const isPerfectScore = useMemo(() => attempt?.score === attempt?.totalQuestions && !attempt?.reason, [attempt]);
   const isDisqualified = useMemo(() => !!attempt?.reason, [attempt]);
 
   const motivationalLine = useMemo(() => {
@@ -301,7 +301,7 @@ const ResultsContent = () => {
               </Card>
             )}
 
-            {isPerfectScore && !isDisqualified && (
+            {isPerfectScore && (
               <Card className="bg-gradient-to-br from-yellow-400/20 to-amber-600/20 border-primary/30 shadow-lg">
                   <CardHeader className="text-center">
                       <motion.div 
