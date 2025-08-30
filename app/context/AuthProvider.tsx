@@ -461,7 +461,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
               query(
                 collection(db, 'users'),
                 orderBy('totalScore', 'desc'),
-                limit(500)
+                limit(500) // increase limit slightly to preserve tie-break candidates
               )
                 .with_converter(null as any) // noop to satisfy typing; not mandatory
               // use getDocs for the fallback (one-shot)
@@ -718,7 +718,16 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       );
   
       // commit the batch (throw if commit fails so higher-level code can queue)
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (err: any) {
+        console.error('Batch commit failed:', err);
+        // throw Error with Firestore code & message so caller knows exactly why it failed
+        const code = err?.code || 'unknown';
+        const message = err?.message || String(err);
+        // Re-throw with structured info so addQuizAttempt can queue and user sees toast
+        throw new Error(`firestore_commit_failed:${code}:${message}`);
+      }
     },
     [user, profile]
   );
@@ -742,14 +751,14 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
       } catch (e: any) {
         console.error('addQuizAttempt failed:', e);
-        // Queue locally for auto-retry
-        pushPending(attempt);
+        // extract code if thrown above
+        const errMsg = String(e?.message || e);
         toast({
           title: 'Sync Error',
-          description:
-            'Could not save your quiz result now. It will auto-sync when you are back online.',
+          description: `Could not save your quiz result now. (${errMsg}) It will auto-sync when you are back online.`,
           variant: 'destructive',
         });
+        pushPending(attempt);
         setIsOffline(true);
         return { success: false, error: e.message, queued: true };
       }

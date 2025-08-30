@@ -1,46 +1,130 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Globals collection for app-wide stats
+    // ---------------------------
+    // Globals stats doc: /globals/stats
+    // Allow authenticated users to write limited numeric counters.
+    // ---------------------------
     match /globals/stats {
-      // Allow reading by anyone, but writing should be restricted.
-      // Since writes happen in a batch triggered by a user, we allow if the user is authenticated.
       allow read: if true;
-      allow write: if request.auth != null;
+
+      allow write: if request.auth != null
+        // allow only numeric increments for known keys
+        && request.resource.data.keys().hasOnly(["totalQuizzesPlayed", "totalPerfectScores"])
+        && request.resource.data.totalQuizzesPlayed is number
+        && request.resource.data.totalPerfectScores is number;
     }
 
-    // User profile documents
+    // ---------------------------
+    // Users collection (profiles & stats)
+    // /users/{userId}
+    // Allow reads publicly (leaderboard) and allow the user to create/update their own doc
+    // but restrict what fields they may set.
+    // ---------------------------
     match /users/{userId} {
-      // Allow anyone to read public user data for leaderboards.
+      // Allow public read for leaderboards and profile display
       allow read: if true;
-      
-      // Allow a user to create their own document and update it.
-      // This covers initial user creation and subsequent profile edits.
-      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow create only by that user (initial profile creation)
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Allow update by user if only permitted fields are being changed.
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        // allowed fields for updates performed by the app batch:
+        && request.resource.data.keys().hasOnly([
+          "quizzesPlayed",
+          "totalScore",
+          "perfectScores",
+          "totalRewards",
+          "currentStreak",
+          "lastStreakTimestamp",
+          "noBallCount",
+          "lastNoBallTimestamp",
+          "updatedAt",
+          // allow safe profile edits too (optional)
+          "name",
+          "phone",
+          "photoURL",
+          "profileCompleted",
+          "guidedTourCompleted",
+          "dob",
+          "gender",
+          "occupation",
+          "upi",
+          "favoriteFormat",
+          "favoriteTeam",
+          "favoriteCricketer",
+          "phoneVerified"
+        ]);
+
+      // No client-side deletes
+      allow delete: if false;
+
+      // ---------------------------
+      // Subcollection: quizAttempts
+      // /users/{userId}/quizAttempts/{attemptId}
+      // Allow the user to create (write) their own attempt and read their attempts.
+      // No client updates/deletes allowed (immutable).
+      // ---------------------------
+      match /quizAttempts/{attemptId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null
+            && request.auth.uid == userId
+            // require that the attempt document contains its userId and slotId
+            && ("userId" in request.resource.data)
+            && request.resource.data.userId == request.auth.uid
+            && ("slotId" in request.resource.data)
+            && request.resource.data.slotId is string
+            // optional basic type checks
+            && ("score" in request.resource.data ? request.resource.data.score is number : true)
+            && ("totalQuestions" in request.resource.data ? request.resource.data.totalQuestions is number : true);
+        allow update, delete: if false;
+      }
     }
 
-    // User's private quiz history
-    match /users/{userId}/quizAttempts/{attemptId} {
-      // A user can read and write to their own quiz history.
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
+    // ---------------------------
     // Live leaderboard entries
-    match /leaderboard_live/{slotId}/entries/{userId} {
-       // Anyone can read the live leaderboard.
+    // /leaderboard_live/{slotId}/entries/{entryId}
+    // Anyone can read; only the authenticated user can create/update their own entry.
+    // ---------------------------
+    match /leaderboard_live/{slotId}/entries/{entryId} {
       allow read: if true;
-      
-      // Only the authenticated user can write their own leaderboard entry.
-      // This prevents tampering with others' scores.
-      allow write: if request.auth != null && request.auth.uid == userId;
+
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userId == entryId
+        // minimal fields required and types validated
+        && ("score" in request.resource.data ? request.resource.data.score is number : true)
+        && ("time" in request.resource.data ? request.resource.data.time is number : true);
+
+      // allow update by owner to support merge writes (e.g. set with merge)
+      allow update: if request.auth != null
+        && request.auth.uid == entryId;
+
+      allow delete: if false;
     }
-     
-    // Default deny all other access
-    match /{document=**} {
-      allow read, write: if false;
+     // ---------------------------
+    // User Contributions
+    // /userContributions/{contributionId}
+    // Allow authenticated users to create contributions.
+    // ---------------------------
+    match /userContributions/{contributionId} {
+      allow read: if true; // Or restrict to admins/owner
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false; // Only admin/backend should modify
+    }
+    
+    // ---------------------------
+    // Reported Questions
+    // /reportedQuestions/{reportId}
+    // Allow authenticated users to submit reports.
+    // ---------------------------
+    match /reportedQuestions/{reportId} {
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow read, update, delete: if false; // Only admin/backend
     }
   }
 }
