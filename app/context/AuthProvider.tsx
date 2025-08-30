@@ -461,7 +461,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
               query(
                 collection(db, 'users'),
                 orderBy('totalScore', 'desc'),
-                limit(500) // increase limit slightly to preserve tie-break candidates
+                limit(500)
               )
                 .with_converter(null as any) // noop to satisfy typing; not mandatory
               // use getDocs for the fallback (one-shot)
@@ -650,6 +650,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       const userDocRef = doc(db, 'users', user.uid);
       const statsDocRef = doc(db, 'globals', 'stats');
   
+      // Use set with merge:true for user and global stats to create doc if non-existent
       const userStatsUpdate: Record<string, any> = {
         quizzesPlayed: increment(1),
         totalScore: increment(sanitizedAttempt.score),
@@ -668,7 +669,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         globalStatsUpdate.totalPerfectScores = increment(1);
       }
   
-      // streak calculation (keeps original logic)
       const todayUTC = new Date();
       todayUTC.setUTCHours(0, 0, 0, 0);
       const lastStreakDate = profile.lastStreakTimestamp
@@ -683,7 +683,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         lastUTC.setUTCHours(0, 0, 0, 0);
   
         if (todayUTC.getTime() === lastUTC.getTime()) {
-          // already played today → no change
+          // No change to streak
         } else if (todayUTC.getTime() - lastUTC.getTime() === 86_400_000) {
           userStatsUpdate.currentStreak = increment(1);
           userStatsUpdate.lastStreakTimestamp = serverTimestamp();
@@ -693,23 +693,22 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         }
       }
   
-      // Use set with merge to prevent failures on non-existent docs
       batch.set(userDocRef, userStatsUpdate, { merge: true });
       batch.set(statsDocRef, globalStatsUpdate, { merge: true });
   
-      // attempt doc
+      // Attempt doc in subcollection
       const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
       batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() }, { merge: true });
   
-      // live leaderboard entry
+      // Live leaderboard entry
       const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
       const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
       batch.set(
         liveEntryRef,
         {
           userId: user.uid,
-          name: profile.name || "Anonymous Player", // Add fallback for name
-          avatar: profile.photoURL || `https://placehold.co/40x40.png`, // Add fallback for avatar
+          name: profile.name || "Anonymous Player",
+          avatar: profile.photoURL || `https://placehold.co/40x40.png`,
           score: sanitizedAttempt.score,
           time: totalTime,
           disqualified: !!sanitizedAttempt.reason,
@@ -751,6 +750,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           title: 'Sync Error',
           description: `Could not save your quiz result now. (${errMsg}) It will auto-sync when you are back online.`,
           variant: 'destructive',
+          duration: 10000,
         });
         pushPending(attempt);
         setIsOffline(true);
@@ -767,6 +767,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       const list = readPending();
       if (!list.length) return;
 
+      toast({
+        title: 'Reconnecting...',
+        description: `Syncing ${list.length} pending quiz attempt(s).`,
+      });
+
       for (const a of list) {
         try {
           await persistAttemptBatch(a);
@@ -778,7 +783,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     tryFlush();
-  }, [user, db, isOffline, persistAttemptBatch]);
+  }, [user, db, isOffline, persistAttemptBatch, toast]);
 
   /* ------------------------------ Malpractice ---------------------------- */
 
