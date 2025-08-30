@@ -13,6 +13,7 @@ import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { Timestamp } from 'firebase/firestore';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -40,8 +41,10 @@ export const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
-const getSlotTimings = (timestamp: number) => {
-    const attemptDate = new Date(timestamp);
+const getSlotTimings = (timestamp: number | Timestamp) => {
+    const attemptDate = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+    if (isNaN(attemptDate.getTime())) return 'Invalid Time';
+
     const minutes = attemptDate.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
     
@@ -61,7 +64,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
-  const [isReviewed, setIsReviewed] = useState(attempt.reviewed);
+  const [isReviewed, setIsReviewed] = useState(attempt.reviewed || false);
 
 
   const handleReviewClick = useCallback(() => {
@@ -91,10 +94,14 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
     setShowReviewDialog(true);
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
   
-  const attemptDate = new Date(attempt.timestamp);
-  const isPerfectScore = attempt.score === attempt.totalQuestions;
+  const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
+  const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
   const isDisqualified = !!attempt.reason;
   const slotTiming = getSlotTimings(attempt.timestamp);
+
+  const formattedDate = !isNaN(attemptDate.getTime()) 
+    ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : 'Invalid Date';
 
   return (
     <>
@@ -120,7 +127,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 <div className="text-xs text-muted-foreground space-y-1">
                     <div className="flex items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 text-primary" />
-                        <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <span>{formattedDate}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Clock className="h-3.5 w-3.5 text-primary" />
@@ -151,20 +158,22 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                  <p className="text-xs text-muted-foreground mt-2">Watch this ad to review your answers. This is a one-time action per quiz.</p>
             </AdDialog>
         )}
-
-        <ReviewDialog
-            open={showReviewDialog}
-            onOpenChange={setShowReviewDialog}
-            attempt={attempt}
-        />
-        <AnalysisDialog
-            attempt={attempt}
-            open={isAnalysisOpen}
-            onOpenChange={setIsAnalysisOpen}
-        />
+        
+        {attempt && (
+            <>
+                <ReviewDialog
+                    open={showReviewDialog}
+                    onOpenChange={setShowReviewDialog}
+                    attempt={attempt}
+                />
+                <AnalysisDialog
+                    attempt={attempt}
+                    open={isAnalysisOpen}
+                    onOpenChange={setIsAnalysisOpen}
+                />
+            </>
+        )}
     </>
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
-
-    
