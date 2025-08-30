@@ -9,7 +9,6 @@ service cloud.firestore {
     // ---------------------------
     match /globals/stats {
       allow read: if true;
-
       allow write: if request.auth != null
         && request.resource.data.keys().hasOnly(["totalQuizzesPlayed", "totalPerfectScores"])
         && request.resource.data.totalQuizzesPlayed is number
@@ -18,78 +17,61 @@ service cloud.firestore {
 
     // ---------------------------
     // Users collection (profiles & stats)
-    // /users/{userId}
-    // Allow reads publicly (leaderboard) and allow the user to create/update their own doc
-    // but restrict what fields they may set.
     // ---------------------------
     match /users/{userId} {
-      // Allow public read for leaderboards and profile display
       allow read: if true;
-
-      // Allow create only by that user (initial profile creation)
       allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Allow update by user if only permitted fields are being changed.
       allow update: if request.auth != null
-        && request.auth.uid == userId;
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          "quizzesPlayed",
+          "totalScore",
+          "perfectScores",
+          "totalRewards",
+          "currentStreak",
+          "lastStreakTimestamp",
+          "noBallCount",
+          "lastNoBallTimestamp",
+          "updatedAt",
+          "name",
+          "phone",
+          "photoURL",
+          "profileCompleted",
+          "guidedTourCompleted",
+          "dob",
+          "gender",
+          "occupation",
+          "upi",
+          "favoriteFormat",
+          "favoriteTeam",
+          "favoriteCricketer",
+          "phoneVerified",
+          "referrals"
+        ]);
 
-      // No client-side deletes
       allow delete: if false;
 
       // ---------------------------
       // Subcollection: quizAttempts
-      // /users/{userId}/quizAttempts/{attemptId}
-      // Allow the user to create (write) their own attempt and read their attempts.
-      // No client updates/deletes allowed (immutable).
       // ---------------------------
       match /quizAttempts/{attemptId} {
         allow read: if request.auth != null && request.auth.uid == userId;
-        allow create: if request.auth != null
-            && request.auth.uid == userId
-            && ("userId" in request.resource.data)
-            && request.resource.data.userId == request.auth.uid
-            && ("slotId" in request.resource.data)
-            && request.resource.data.slotId is string
-            && ("score" in request.resource.data ? request.resource.data.score is number : true)
-            && ("totalQuestions" in request.resource.data ? request.resource.data.totalQuestions is number : true);
-        allow update, delete: if false;
+        allow create, update: if request.auth != null && request.auth.uid == userId
+            && request.resource.data.userId == request.auth.uid;
+        allow delete: if false;
       }
     }
 
     // ---------------------------
     // Live leaderboard entries
-    // /leaderboard_live/{slotId}/entries/{entryId}
-    // Anyone can read; only the authenticated user can create/update their own entry.
     // ---------------------------
     match /leaderboard_live/{slotId}/entries/{entryId} {
       allow read: if true;
-
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.userId == entryId
-        && ("score" in request.resource.data ? request.resource.data.score is number : true)
-        && ("time" in request.resource.data ? request.resource.data.time is number : true);
-
-      allow update: if request.auth != null
-        && request.auth.uid == entryId;
-
+      allow create, update: if request.auth != null
+        && request.auth.uid == entryId
+        && request.resource.data.userId == request.auth.uid;
       allow delete: if false;
-    }
-     
-    match /userContributions/{docId} {
-        allow read: if true;
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-
-    match /reportedQuestions/{docId} {
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-
-    // ---------------------------
-    // Default: deny everything else
-    // ---------------------------
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }

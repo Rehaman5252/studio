@@ -477,7 +477,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       const userDocRef = doc(db, 'users', user.uid);
       const statsDocRef = doc(db, 'globals', 'stats');
   
-      // Use set with merge:true for user and global stats to create doc if non-existent
       const userStatsUpdate: Record<string, any> = {
         quizzesPlayed: increment(1),
         totalScore: increment(sanitizedAttempt.score),
@@ -486,6 +485,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   
       const globalStatsUpdate: Record<string, any> = {
         totalQuizzesPlayed: increment(1),
+        totalPerfectScores: increment(0), // Ensure field exists
       };
   
       const isPerfectScore =
@@ -520,14 +520,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         }
       }
   
-      batch.set(userDocRef, userStatsUpdate, { merge: true });
+      batch.update(userDocRef, userStatsUpdate);
       batch.set(statsDocRef, globalStatsUpdate, { merge: true });
   
-      // Attempt doc in subcollection
       const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
       batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() }, { merge: true });
   
-      // Live leaderboard entry
       const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
       const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
       batch.set(
