@@ -11,6 +11,14 @@
       ]
     },
     {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "score", "order": "DESCENDING" },
+        { "fieldPath": "time", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "quizAttempts",
       "queryScope": "COLLECTION",
       "fields": [
@@ -38,14 +46,6 @@
       "fields": [
         { "fieldPath": "currentStreak", "order": "DESCENDING" },
         { "fieldPath": "name", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "entries",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "score", "order": "DESCENDING" },
-        { "fieldPath": "time", "order": "ASCENDING" }
       ]
     }
   ],
