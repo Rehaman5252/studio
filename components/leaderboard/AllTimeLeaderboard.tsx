@@ -1,15 +1,18 @@
 
 "use client";
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
+import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
+import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -66,43 +69,89 @@ const ErrorState = ({ message, title }: { message: string, title: string }) => (
 );
 
 const AllTimeLeaderboard = () => {
-    const { user, leaderboardAllTime } = useAuth();
+    const { user, loading: authLoading, firebaseAppReady } = useAuth();
+    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const content = useMemo(() => {
-        if (leaderboardAllTime.loading) {
-          return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
+    useEffect(() => {
+        if (!firebaseAppReady) {
+            setIsLoading(false);
+            return;
         }
-        
-        const playersWithRank = leaderboardAllTime.rows.map((player, index) => ({
-            ...player,
-            rank: index + 1,
-        }));
-        
-        // This is the key change: we check for the specific fallback error message.
-        if (leaderboardAllTime.error && !leaderboardAllTime.error.includes("Partial results")) {
-            return <ErrorState title="Error Loading Leaderboard" message={leaderboardAllTime.error} />;
-        }
-        
-        if (playersWithRank.length === 0) return <EmptyState />;
 
-        return (
-            <>
-                {leaderboardAllTime.error && (
-                    <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-                        <AlertTitle>Displaying Partial Results</AlertTitle>
-                        <AlertDescription>
-                            The full leaderboard is being indexed. Showing a best-effort ranking for now.
-                        </AlertDescription>
-                    </Alert>
-                )}
-                {playersWithRank.map(player => (
-                    <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
-                ))}
-            </>
+        if (authLoading) return;
+        
+        if (!db) {
+            setError("Database not available.");
+            setIsLoading(false);
+            return;
+        }
+
+        const usersCollection = collection(db, 'users');
+        const q = query(
+            usersCollection, 
+            orderBy('totalScore', 'desc'),
+            orderBy('perfectScores', 'desc'), 
+            orderBy('quizzesPlayed', 'asc'),
+            limit(50)
         );
 
-    }, [leaderboardAllTime, user]);
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const playersData = querySnapshot.docs
+                .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
+                .map((doc, index) => {
+                    const data = doc.data();
+                    return {
+                        uid: doc.id,
+                        name: data.name || 'Anonymous Player',
+                        avatar: data.photoURL,
+                        perfectScores: data.perfectScores || 0,
+                        totalScore: data.totalScore || 0,
+                        quizzesPlayed: data.quizzesPlayed || 0,
+                        isCurrentUser: user?.uid === doc.id,
+                        rank: index + 1
+                    };
+                });
+
+            setPlayers(playersData);
+            setIsLoading(false);
+            setError(null);
+        }, (err: any) => {
+            console.error("All-Time Leaderboard snapshot error: ", err);
+            setError(mapFirestoreError(err));
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [authLoading, user, firebaseAppReady]);
+
+    const content = useMemo(() => {
+        if (isLoading || authLoading) {
+          return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
+        }
+        if (error) {
+             if (error.includes("index")) {
+                 return (
+                     <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+                        <AlertTitle>Leaderboard Indexing</AlertTitle>
+                        <AlertDescription>
+                            The all-time leaderboard is currently being indexed by the database. This can take a few minutes. Please check back shortly.
+                        </AlertDescription>
+                    </Alert>
+                 )
+            }
+            return <ErrorState title="Error Loading Leaderboard" message={error} />;
+        }
+        if (players.length === 0) return <EmptyState />;
+        
+        const playersWithRank = players.map((player, index) => ({ ...player, rank: index + 1 }));
+
+        return playersWithRank.map(player => (
+            <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
+        ));
+    }, [isLoading, authLoading, error, players, user]);
 
     return (
         <Card className="bg-card/80 shadow-lg">
