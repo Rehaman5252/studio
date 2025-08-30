@@ -38,7 +38,7 @@ const faceRotations = [
     { x: 90, y: 0 }    // Bottom (Test)
 ];
 
-const ROTATION_INTERVAL_MS = 2000;
+const ROTATION_INTERVAL_MS = 750;
 
 interface QuizSelectionProps {
     selectedBrand: CubeBrand;
@@ -57,7 +57,6 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
 
     useEffect(() => {
         if (user?.uid) {
-            // Pre-fetch the default quiz in the background to speed up loading
             fetch('/api/quiz', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
