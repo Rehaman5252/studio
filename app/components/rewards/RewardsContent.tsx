@@ -54,28 +54,9 @@ const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
-const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) => {
-  const [isScratched, setIsScratched] = useState(false);
-  const storageKey = useMemo(() => `indcric-scratch-card-${slotId}`, [slotId]);
-  
+const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, onScratch: () => void, isScratched: boolean }) => {
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const savedState = window.localStorage.getItem(storageKey);
-        if (savedState === 'true') {
-            setIsScratched(true);
-        }
-    }
-  }, [storageKey]);
-
-  const handleScratch = () => {
-    setIsScratched(true);
-    if (typeof window !== 'undefined') {
-        window.localStorage.setItem(storageKey, 'true');
-    }
-  };
-
+  
   const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
     'Amazon': { gift: '₹150 Gift Card', description: 'Credited to your Amazon Pay.', link: 'https://www.amazon.in/gp/sva/dashboard' },
     'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: 'https://www.nike.com/in/' },
@@ -99,7 +80,7 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
                 <button 
                     type="button"
                     className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-95 rounded-2xl p-2 text-center" 
-                    onClick={handleScratch} 
+                    onClick={onScratch} 
                     role="button" 
                     aria-label={`Scratch to reveal gift from ${brand}`}
                 >
@@ -144,6 +125,29 @@ GenericOffer.displayName = 'GenericOffer';
 
 function RewardsContentComponent() {
   const { user, quizHistory, loading } = useAuth();
+  const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && quizHistory.data.length > 0) {
+      const initialScratchedState: Record<string, boolean> = {};
+      quizHistory.data.forEach(attempt => {
+        const storageKey = `indcric-scratch-card-${attempt.slotId}`;
+        const savedState = window.localStorage.getItem(storageKey);
+        if (savedState === 'true') {
+          initialScratchedState[attempt.slotId] = true;
+        }
+      });
+      setScratchedCards(initialScratchedState);
+    }
+  }, [quizHistory.data]);
+
+  const handleScratch = (slotId: string) => {
+    setScratchedCards(prev => ({ ...prev, [slotId]: true }));
+    if (typeof window !== 'undefined') {
+      const storageKey = `indcric-scratch-card-${slotId}`;
+      window.localStorage.setItem(storageKey, 'true');
+    }
+  };
   
   const rewardableAttempts = useMemo(() => {
     const uniqueAttempts = new Map<string, QuizAttempt>();
@@ -175,8 +179,9 @@ function RewardsContentComponent() {
           {rewardableAttempts.map((attempt, index) => (
             <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
               <ScratchCard 
-                brand={attempt.brand} 
-                slotId={attempt.slotId}
+                brand={attempt.brand}
+                isScratched={scratchedCards[attempt.slotId] || false}
+                onScratch={() => handleScratch(attempt.slotId)}
               />
             </CarouselItem>
           ))}
@@ -200,3 +205,5 @@ function RewardsContentComponent() {
 
 const RewardsContent = memo(RewardsContentComponent);
 export default RewardsContent;
+
+    
