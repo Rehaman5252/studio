@@ -17,17 +17,21 @@ import type { QuizAttempt } from '@/ai/schemas';
  * This function handles missing fields, incorrect types, and ensures the structure
  * is consistent for AI processing.
  * @param raw - The raw quiz attempt object from Firestore or client.
- * @returns A sanitized QuizAttempt object.
+ * @returns A sanitized QuizAttempt object, or null if the input is invalid.
  */
-export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> {
+export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
   const sanitized: Partial<QuizAttempt> = {};
 
-  sanitized.userId = String(raw?.userId ?? "");
-  sanitized.slotId = String(raw?.slotId ?? "");
-  sanitized.brand = String(raw?.brand ?? "Unknown");
-  sanitized.format = String(raw?.format ?? "Mixed");
+  sanitized.userId = String(raw.userId ?? "");
+  sanitized.slotId = String(raw.slotId ?? "");
+  sanitized.brand = String(raw.brand ?? "Unknown");
+  sanitized.format = String(raw.format ?? "Mixed");
 
-  sanitized.questions = Array.isArray(raw?.questions)
+  sanitized.questions = Array.isArray(raw.questions)
     ? raw.questions.map((q: any) => ({
         id: String(q?.id ?? Math.random().toString(36).substring(2)),
         question: String(q?.question ?? ""),
@@ -39,32 +43,39 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> {
   
   sanitized.totalQuestions = sanitized.questions.length;
 
-  const answers = Array.isArray(raw?.userAnswers) ? raw.userAnswers.map(String) : [];
+  const answers = Array.isArray(raw.userAnswers) ? raw.userAnswers.map(String) : [];
   while (answers.length < sanitized.totalQuestions) {
-    answers.push(""); // Pad with empty string for unanswered
+    answers.push("");
   }
-  sanitized.userAnswers = answers;
+  sanitized.userAnswers = answers.slice(0, sanitized.totalQuestions);
 
-  const score = Number(raw?.score);
+  const score = Number(raw.score);
   sanitized.score = Number.isFinite(score) ? Math.floor(score) : 0;
 
-  sanitized.timestamp = Number(raw?.timestamp) || Date.now();
+  sanitized.timestamp = raw.timestamp instanceof Timestamp ? raw.timestamp.toMillis() : (Number(raw.timestamp) || Date.now());
   
-  const timePer = Array.isArray(raw?.timePerQuestion) ? raw.timePerQuestion.map(Number) : [];
+  const timePer = Array.isArray(raw.timePerQuestion) ? raw.timePerQuestion.map(Number) : [];
    while (timePer.length < sanitized.totalQuestions) {
     timePer.push(0);
   }
-  sanitized.timePerQuestion = timePer;
+  sanitized.timePerQuestion = timePer.slice(0, sanitized.totalQuestions);
 
-  sanitized.unanswered = raw?.unanswered ?? (sanitized.totalQuestions - answers.filter(a => a).length);
+  sanitized.unanswered = raw.unanswered ?? (sanitized.totalQuestions - answers.filter(Boolean).length);
   
-  // Explicitly handle the 'reason' field to prevent 'undefined' values.
-  if (raw?.reason && typeof raw.reason === 'string') {
+  // Explicitly handle the 'reason' field: only include it if it's a non-empty string.
+  if (raw.reason && typeof raw.reason === 'string') {
     sanitized.reason = raw.reason;
   }
 
-  sanitized.source = raw?.source === 'ai' ? 'ai' : 'fallback';
-  sanitized.reviewed = !!raw?.reviewed;
+  sanitized.source = raw.source === 'ai' ? 'ai' : 'fallback';
+  sanitized.reviewed = !!raw.reviewed;
+
+  // Final check to remove any top-level undefined properties
+  Object.keys(sanitized).forEach(key => {
+    if (sanitized[key as keyof typeof sanitized] === undefined) {
+      delete sanitized[key as keyof typeof sanitized];
+    }
+  });
 
   return sanitized;
 }

@@ -471,31 +471,27 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     async (attempt: QuizAttempt) => {
       if (!user || !profile || !db) throw new Error('Missing user/profile/db');
   
-      const sanitizedAttempt = sanitizeQuizAttempt(attempt) as QuizAttempt;
+      const sanitizedAttempt = sanitizeQuizAttempt(attempt);
+      if (!sanitizedAttempt) throw new Error("Attempt sanitization failed");
   
       const batch = writeBatch(db);
       const userDocRef = doc(db, 'users', user.uid);
       const statsDocRef = doc(db, 'globals', 'stats');
   
+      // 1. User Stats Update
       const userStatsUpdate: Record<string, any> = {
         quizzesPlayed: increment(1),
         totalScore: increment(sanitizedAttempt.score),
         updatedAt: serverTimestamp(),
       };
   
-      const globalStatsUpdate: Record<string, any> = {
-        totalQuizzesPlayed: increment(1),
-        totalPerfectScores: increment(0), // Ensure field exists
-      };
-  
-      const isPerfectScore =
-        sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
+      const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
       if (isPerfectScore) {
         userStatsUpdate.perfectScores = increment(1);
         userStatsUpdate.totalRewards = increment(100);
-        globalStatsUpdate.totalPerfectScores = increment(1);
       }
   
+      // Streak Logic
       const todayUTC = new Date();
       todayUTC.setUTCHours(0, 0, 0, 0);
       const lastStreakDate = profile.lastStreakTimestamp
@@ -508,25 +504,32 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       } else {
         const lastUTC = new Date(lastStreakDate);
         lastUTC.setUTCHours(0, 0, 0, 0);
-  
-        if (todayUTC.getTime() === lastUTC.getTime()) {
-          // No change to streak
-        } else if (todayUTC.getTime() - lastUTC.getTime() === 86_400_000) {
+        const diffDays = (todayUTC.getTime() - lastUTC.getTime()) / (1000 * 3600 * 24);
+
+        if (diffDays === 1) { // Played yesterday, continue streak
           userStatsUpdate.currentStreak = increment(1);
           userStatsUpdate.lastStreakTimestamp = serverTimestamp();
-        } else {
+        } else if (diffDays > 1) { // Missed one or more days, reset streak
           userStatsUpdate.currentStreak = 1;
           userStatsUpdate.lastStreakTimestamp = serverTimestamp();
         }
+        // If diffDays is 0 or less, do nothing (already played today or clock issue)
       }
-  
+      
       batch.update(userDocRef, userStatsUpdate);
+      
+      // 2. Global Stats Update
+      const globalStatsUpdate: Record<string, any> = { totalQuizzesPlayed: increment(1) };
+      if (isPerfectScore) {
+        globalStatsUpdate.totalPerfectScores = increment(1);
+      }
       batch.set(statsDocRef, globalStatsUpdate, { merge: true });
   
+      // 3. Quiz Attempt Document
       const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-      const { timestamp, ...restOfAttempt } = sanitizedAttempt;
-      batch.set(attemptRef, { ...restOfAttempt, timestamp: serverTimestamp() }, { merge: true });
+      batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
   
+      // 4. Live Leaderboard Entry
       const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
       const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
       batch.set(
@@ -545,11 +548,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       try {
         await batch.commit();
       } catch (err: any) {
-        console.error('Batch commit failed:', err);
-        // throw Error with Firestore code & message so caller knows exactly why it failed
         const code = err?.code || 'unknown';
         const message = err?.message || String(err);
-        // Re-throw with structured info so addQuizAttempt can queue and user sees toast
         throw new Error(`firestore_commit_failed:${code}:${message}`);
       }
     },
