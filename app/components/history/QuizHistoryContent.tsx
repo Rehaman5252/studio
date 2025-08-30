@@ -159,19 +159,19 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
             </AdDialog>
         )}
         
-        {attempt && (
-            <>
-                <ReviewDialog
-                    open={showReviewDialog}
-                    onOpenChange={setShowReviewDialog}
-                    attempt={attempt}
-                />
-                <AnalysisDialog
-                    attempt={attempt}
-                    open={isAnalysisOpen}
-                    onOpenChange={setIsAnalysisOpen}
-                />
-            </>
+        {attempt && showReviewDialog && (
+            <ReviewDialog
+                open={showReviewDialog}
+                onOpenChange={setShowReviewDialog}
+                attempt={attempt}
+            />
+        )}
+        {attempt && isAnalysisOpen && (
+            <AnalysisDialog
+                attempt={attempt}
+                open={isAnalysisOpen}
+                onOpenChange={setIsAnalysisOpen}
+            />
         )}
     </>
   );
