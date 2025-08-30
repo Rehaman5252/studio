@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { QuizAttempt } from '@/ai/schemas';
@@ -16,6 +17,7 @@ import PageWrapper from '@/components/PageWrapper';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import jsPDF from 'jspdf';
+import { Timestamp } from 'firebase/firestore';
 
 
 const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
@@ -50,7 +52,12 @@ const ResultsContent = () => {
     const attemptData = searchParams.get('attempt');
     if (!attemptData) return null;
     try {
-      return decodeAttempt(attemptData);
+      const parsed = decodeAttempt(attemptData);
+      if (parsed && parsed.timestamp && typeof parsed.timestamp === 'object' && 'seconds' in parsed.timestamp) {
+         // Convert Firestore-like timestamp object back to a number for client-side use
+         return { ...parsed, timestamp: parsed.timestamp.seconds * 1000 };
+      }
+      return parsed;
     } catch(e) {
       console.error("Failed to decode attempt from URL", e);
       return null;
@@ -68,9 +75,8 @@ const ResultsContent = () => {
       });
       router.replace('/');
     } else {
-      // Calculate timings on the client side to prevent hydration errors
-      const getSlotTimings = (timestamp: number) => {
-        const attemptDate = new Date(timestamp);
+      const getSlotTimings = (ts: number | Timestamp) => {
+        const attemptDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
         const minutes = attemptDate.getMinutes();
         const slotStartMinute = Math.floor(minutes / 10) * 10;
         

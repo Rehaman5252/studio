@@ -524,7 +524,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       batch.set(statsDocRef, globalStatsUpdate, { merge: true });
   
       const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
-      batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() }, { merge: true });
+      const { timestamp, ...restOfAttempt } = sanitizedAttempt;
+      batch.set(attemptRef, { ...restOfAttempt, timestamp: serverTimestamp() }, { merge: true });
   
       const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
       const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;

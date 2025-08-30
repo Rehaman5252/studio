@@ -13,6 +13,7 @@ import AnalysisDialog from './AnalysisDialog';
 import ReviewDialog from './ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { Timestamp } from 'firebase/firestore';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -40,8 +41,10 @@ export const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
-const getSlotTimings = (timestamp: number) => {
-    const attemptDate = new Date(timestamp);
+const getSlotTimings = (timestamp: number | Timestamp) => {
+    const attemptDate = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+    if (isNaN(attemptDate.getTime())) return 'Invalid Time';
+
     const minutes = attemptDate.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
     
@@ -91,10 +94,14 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
     setShowReviewDialog(true);
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
   
-  const attemptDate = new Date(attempt.timestamp);
+  const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions;
   const isDisqualified = !!attempt.reason;
   const slotTiming = getSlotTimings(attempt.timestamp);
+
+  const formattedDate = !isNaN(attemptDate.getTime()) 
+    ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : 'Invalid Date';
 
   return (
     <>
@@ -120,7 +127,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 <div className="text-xs text-muted-foreground space-y-1">
                     <div className="flex items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 text-primary" />
-                        <span>{attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <span>{formattedDate}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Clock className="h-3.5 w-3.5 text-primary" />
@@ -129,7 +136,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed}>
-                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-primary" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
+                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
                         {isReviewed ? 'Reviewed' : 'Review'}
                     </Button>
                     
@@ -166,3 +173,5 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
+
+    
