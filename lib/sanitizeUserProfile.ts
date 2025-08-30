@@ -57,8 +57,14 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> {
   sanitized.timePerQuestion = timePer;
 
   sanitized.unanswered = raw?.unanswered ?? (sanitized.totalQuestions - answers.filter(a => a).length);
-  sanitized.reason = raw?.reason;
+  
+  // Explicitly handle the 'reason' field to prevent 'undefined' values.
+  if (raw?.reason && typeof raw.reason === 'string') {
+    sanitized.reason = raw.reason;
+  }
+
   sanitized.source = raw?.source === 'ai' ? 'ai' : 'fallback';
+  sanitized.reviewed = !!raw?.reviewed;
 
   return sanitized;
 }
