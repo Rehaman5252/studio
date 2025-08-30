@@ -3,47 +3,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Globals collection for app-wide stats
     match /globals/stats {
-      // Allow any authenticated user to increment stats.
-      // For production, you might restrict this to a server-side process.
-      allow write: if request.auth != null;
+      // Allow reading by anyone, but writing should be restricted.
+      // Since writes happen in a batch triggered by a user, we allow if the user is authenticated.
       allow read: if true;
+      allow write: if request.auth != null;
     }
-    
-    // User-specific data
+
+    // User profile documents
     match /users/{userId} {
-      // Users can read their own profile, and it is publicly readable for leaderboards
+      // Allow anyone to read public user data for leaderboards.
       allow read: if true;
       
-      // Users can create their own document, and update it if they are the owner.
+      // Allow a user to create their own document and update it.
+      // This covers initial user creation and subsequent profile edits.
       allow write: if request.auth != null && request.auth.uid == userId;
-
-      // Quiz attempts subcollection
-      match /quizAttempts/{slotId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if request.auth != null && request.auth.uid == userId;
-      }
     }
-    
-    // Live leaderboard entries for each slot
+
+    // User's private quiz history
+    match /users/{userId}/quizAttempts/{attemptId} {
+      // A user can read and write to their own quiz history.
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Live leaderboard entries
     match /leaderboard_live/{slotId}/entries/{userId} {
-      // Anyone can read the live leaderboard
+       // Anyone can read the live leaderboard.
       allow read: if true;
-      // Only the authenticated user can write their own entry
+      
+      // Only the authenticated user can write their own leaderboard entry.
+      // This prevents tampering with others' scores.
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // User-submitted content
-    match /userContributions/{contributionId} {
-      allow read: if true; // Allow reading contributions
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-
-    // Reported questions
-    match /reportedQuestions/{reportId} {
-       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+     
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
