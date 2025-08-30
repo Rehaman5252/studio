@@ -3,75 +3,52 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------------------------
-    // Globals stats doc: /globals/stats
-    // Allow authenticated users to write limited numeric counters.
-    // ---------------------------
+    // Default deny all access to prevent unintentional open collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow public read for global stats
     match /globals/stats {
       allow read: if true;
-      allow write: if request.auth != null
-        && request.resource.data.keys().hasOnly(["totalQuizzesPlayed", "totalPerfectScores"])
-        && request.resource.data.totalQuizzesPlayed is number
-        && request.resource.data.totalPerfectScores is number;
+      // Allow writes only from authenticated users to increment counters
+      // For more security, this could be moved to a Cloud Function.
+      allow write: if request.auth != null;
     }
 
-    // ---------------------------
-    // Users collection (profiles & stats)
-    // ---------------------------
+    // User profiles can be read by anyone (for leaderboards),
+    // but only the owner can create or update their own document.
     match /users/{userId} {
       allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
 
-      allow update: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly([
-          "quizzesPlayed",
-          "totalScore",
-          "perfectScores",
-          "totalRewards",
-          "currentStreak",
-          "lastStreakTimestamp",
-          "noBallCount",
-          "lastNoBallTimestamp",
-          "updatedAt",
-          "name",
-          "phone",
-          "photoURL",
-          "profileCompleted",
-          "guidedTourCompleted",
-          "dob",
-          "gender",
-          "occupation",
-          "upi",
-          "favoriteFormat",
-          "favoriteTeam",
-          "favoriteCricketer",
-          "phoneVerified",
-          "referrals"
-        ]);
-
-      allow delete: if false;
-
-      // ---------------------------
-      // Subcollection: quizAttempts
-      // ---------------------------
+      // Quiz attempts are private to the user.
+      // A user can only create their own attempt documents.
       match /quizAttempts/{attemptId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow create, update: if request.auth != null && request.auth.uid == userId
-            && request.resource.data.userId == request.auth.uid;
-        allow delete: if false;
+        allow read, create: if request.auth != null && request.auth.uid == userId;
+        // prevent history from being changed
+        allow update, delete: if false;
       }
     }
-
-    // ---------------------------
-    // Live leaderboard entries
-    // ---------------------------
-    match /leaderboard_live/{slotId}/entries/{entryId} {
+    
+    // Live leaderboard entries can be read by anyone.
+    // A user can only create or update their own entry, identified by their UID.
+    match /leaderboard_live/{slotId}/entries/{userId} {
       allow read: if true;
-      allow create, update: if request.auth != null
-        && request.auth.uid == entryId
-        && request.resource.data.userId == request.auth.uid;
-      allow delete: if false;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // User contributions can be created by any authenticated user.
+    // Reading/updating/deleting would typically be handled by admin roles, not covered here.
+    match /userContributions/{contributionId} {
+        allow create: if request.auth != null;
+        allow read, update, delete: if false; // Only admin/backend access
+    }
+
+    // Reported questions can be created by any authenticated user.
+    match /reportedQuestions/{reportId} {
+        allow create: if request.auth != null;
+        allow read, update, delete: if false; // Only admin/backend access
     }
   }
 }
