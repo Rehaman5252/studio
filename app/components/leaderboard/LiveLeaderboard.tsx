@@ -7,11 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Clock, Ban, Users } from 'lucide-react';
-import { cn, getQuizSlotId, mapFirestoreError } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
@@ -22,8 +20,8 @@ const RankIcon = memo(({ rank }: { rank: number }) => {
 });
 RankIcon.displayName = 'RankIcon';
 
-const LeaderboardItem = memo(({ player }: { player: LivePlayer }) => (
-    <div className={cn("flex items-center p-2 rounded-lg transition-colors", player.isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
+const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
+    <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
@@ -78,73 +76,26 @@ const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: numb
 );
 
 const LiveLeaderboard = () => {
-    const { user, loading: authLoading, firebaseAppReady } = useAuth();
+    const { user, loading: authLoading, leaderboardLive } = useAuth();
     const { timeLeft } = useQuizStatus();
-    const [players, setPlayers] = useState<LivePlayer[]>([]);
-    const [status, setStatus] = useState<'loading' | 'active' | 'waiting' | 'error'>('loading');
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!firebaseAppReady) {
-            setStatus('waiting');
-            return;
-        };
-        if (!db) {
-            setError("Database not available.");
-            setStatus('error');
-            return;
-        }
-
-        let unsubscribe: (() => void) | null = null;
-        let lastSlotId = '';
-
-        const setupListener = () => {
-            const currentSlotId = getQuizSlotId();
-            if (currentSlotId === lastSlotId && unsubscribe) return;
-            
-            lastSlotId = currentSlotId;
-            if (unsubscribe) unsubscribe();
-
-            setStatus('loading');
-            const entriesCollection = collection(db, 'leaderboard_live', currentSlotId, 'entries');
-            const q = query(entriesCollection, orderBy('score', 'desc'), orderBy('time', 'asc'), limit(50));
-
-            unsubscribe = onSnapshot(q, (snapshot) => {
-                const playersData: LivePlayer[] = snapshot.docs.map((doc, index) => {
-                    const data = doc.data();
-                    return {
-                        ...data,
-                        rank: index + 1,
-                        isCurrentUser: user?.uid === data.userId,
-                    } as LivePlayer;
-                });
-                setPlayers(playersData);
-                setStatus(playersData.length > 0 ? 'active' : 'waiting');
-                setError(null);
-            }, (err: any) => {
-                console.error("Live Leaderboard snapshot error: ", err);
-                setError(mapFirestoreError(err));
-                setStatus('error');
-            });
-        };
-
-        setupListener(); 
-        const interval = setInterval(setupListener, 5000); 
-
-        return () => {
-            clearInterval(interval);
-            if (unsubscribe) unsubscribe();
-        };
-    }, [user, firebaseAppReady]);
-
+   
     const content = useMemo(() => {
-        if (status === 'loading' || authLoading) {
+        if (leaderboardLive.loading || authLoading) {
             return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
         }
-        if (status === 'error' && error) return <ErrorState title="Error" message={error} />;
-        if (status === 'waiting' || players.length === 0) return <WaitingState timeLeft={timeLeft} />;
-        return players.map((player) => <LeaderboardItem key={player.userId} player={player} />);
-    }, [status, authLoading, error, players, timeLeft]);
+        if (leaderboardLive.error) return <ErrorState title="Error Loading Leaderboard" message={leaderboardLive.error} />;
+        if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
+        
+        const playersWithRank = leaderboardLive.rows.map((player, index) => ({
+            ...player,
+            rank: index + 1,
+            isCurrentUser: user?.uid === player.userId,
+        }));
+
+        return playersWithRank.map((player) => (
+            <LeaderboardItem key={player.userId} player={player} isCurrentUser={player.isCurrentUser} />
+        ));
+    }, [leaderboardLive, timeLeft, user, authLoading]);
 
     return (
         <Card className="bg-card/80 shadow-lg">

@@ -280,7 +280,7 @@ const ResultsContent = () => {
                             <Home className="mr-2 h-5 w-5" /> Go Home
                         </Button>
                          {!isDisqualified && (
-                            <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers} disabled={attempt.reviewed}>
+                            <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
                                 {attempt.reviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4" />}
                                 {attempt.reviewed ? 'Answers Reviewed' : 'Review Answers (Ad)'}
                             </Button>

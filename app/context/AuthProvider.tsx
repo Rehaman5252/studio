@@ -45,6 +45,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
+import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderboardTypes';
+
 
 /* -------------------------------- Types ------------------------------- */
 
@@ -80,6 +82,20 @@ interface UserDataContextType {
     loading: boolean;
     error: string | null;
   };
+
+  // Leaderboards
+  leaderboardLive: {
+    slotId: string;
+    rows: LivePlayer[];
+    loading: boolean;
+    error: string | null;
+  };
+  leaderboardAllTime: {
+    rows: AllTimePlayer[];
+    loading: boolean;
+    error: string | null;
+  };
+
 
   // Auth & actions
   logout: () => Promise<void>;
@@ -162,6 +178,24 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setFirebaseAppReady(isFirebaseConfigured);
   }, []);
+
+  const [leaderboardLive, setLeaderboardLive] = useState<{
+    slotId: string;
+    rows: LivePlayer[];
+    loading: boolean;
+    error: string | null;
+  }>({
+    slotId: getQuizSlotId(),
+    rows: [],
+    loading: true,
+    error: null,
+  });
+
+  const [leaderboardAllTime, setLeaderboardAllTime] = useState<{
+    rows: AllTimePlayer[];
+    loading: boolean;
+    error: string | null;
+  }>({ rows: [], loading: true, error: null });
 
   /* ---------------------------- Online/offline ---------------------------- */
 
@@ -701,6 +735,8 @@ const persistAttemptBatch = useCallback(
     firebaseAppReady,
     quizHistory,
     lastAttemptInSlot,
+    leaderboardLive,
+    leaderboardAllTime,
     logout,
     signInWithGoogle,
     registerWithEmail,
