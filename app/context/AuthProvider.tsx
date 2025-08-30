@@ -693,7 +693,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         }
       }
   
-      // IMPORTANT: use set(..., { merge: true }) instead of update() so doc creation isn't required
+      // Use set with merge to prevent failures on non-existent docs
       batch.set(userDocRef, userStatsUpdate, { merge: true });
       batch.set(statsDocRef, globalStatsUpdate, { merge: true });
   
@@ -708,8 +708,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         liveEntryRef,
         {
           userId: user.uid,
-          name: profile.name,
-          avatar: profile.photoURL,
+          name: profile.name || "Anonymous Player", // Add fallback for name
+          avatar: profile.photoURL || `https://placehold.co/40x40.png`, // Add fallback for avatar
           score: sanitizedAttempt.score,
           time: totalTime,
           disqualified: !!sanitizedAttempt.reason,
@@ -721,10 +721,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         await batch.commit();
       } catch (err: any) {
         console.error('Batch commit failed:', err);
-        // throw Error with Firestore code & message so caller knows exactly why it failed
         const code = err?.code || 'unknown';
         const message = err?.message || String(err);
-        // Re-throw with structured info so addQuizAttempt can queue and user sees toast
         throw new Error(`firestore_commit_failed:${code}:${message}`);
       }
     },
@@ -737,14 +735,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       if (!user || !profile || !db) {
         const msg = 'User not authenticated or database unavailable.';
         toast({ title: 'Save Failed', description: msg, variant: 'destructive' });
-        // Queue locally so it persists after reload
         pushPending(attempt);
         return { success: false, error: msg, queued: true };
       }
 
       try {
         await persistAttemptBatch(attempt);
-        // If attempt was previously queued, drop it
         popPending(attempt.slotId);
         setIsOffline(false);
         return { success: true };
@@ -776,7 +772,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           await persistAttemptBatch(a);
           popPending(a.slotId);
         } catch (e) {
-          // Stop early; will retry later
           console.warn('Retry persist failed for', a.slotId, e);
           break;
         }
@@ -826,7 +821,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     async (attemptId: string): Promise<{ success: boolean }> => {
       if (!user || !db) return { success: false };
 
-      // optimistic update → history subscription will correct if needed
       setQuizHistory((prev) => ({
         ...prev,
         data: prev.data.map((a) => (a.slotId === attemptId ? { ...a, reviewed: true } : a)),
