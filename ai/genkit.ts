@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileoverview This file initializes the Genkit AI toolkit and configures its plugins.
@@ -34,6 +35,6 @@ configureGenkit({
   logLevel: 'debug',
 
   // Enable OpenTelemetry for tracing and metrics, which is useful for monitoring flow performance.
-  // This is disabled as it can cause issues with the Next.js bundler.
+  // This MUST be disabled for Next.js applications to prevent server startup errors.
   enableTracingAndMetrics: false,
 });
