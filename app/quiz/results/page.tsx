@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { motion } from 'framer-motion';
-import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check, Trophy } from 'lucide-react';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check, Trophy, AlertTriangle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
@@ -203,7 +203,7 @@ const ResultsContent = () => {
   }, [isDisqualified, isPerfectScore, attempt]);
 
   const pageTitle = useMemo(() => {
-    if (isDisqualified) return "Disqualified";
+    if (isDisqualified) return "Innings Disqualified";
     if (isPerfectScore) return "Perfect Score!";
     return "Quiz Complete!";
   }, [isDisqualified, isPerfectScore]);
@@ -224,10 +224,12 @@ const ResultsContent = () => {
             className="space-y-6"
         >
              {isDisqualified && (
-                <Alert variant="destructive">
-                    <Ban className="h-4 w-4" />
-                    <AlertTitle>🏏 Third Umpire Decision: Malpractice Detected!</AlertTitle>
-                    <AlertDescription>The innings has been declared closed. Your final scorecard is displayed below.</AlertDescription>
+                <Alert variant="default" className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
+                    <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+                    <AlertTitle>Fair Play Review</AlertTitle>
+                    <AlertDescription>
+                        This quiz was disqualified due to a violation of our Fair Play policy. Your score for this round is recorded as zero.
+                    </AlertDescription>
                 </Alert>
             )}
 
@@ -238,7 +240,7 @@ const ResultsContent = () => {
                         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                         className="mx-auto bg-primary/10 p-4 rounded-full w-fit"
                     >
-                        {isDisqualified ? <Ban className="h-12 w-12 text-destructive" /> : <Award className="h-12 w-12 text-primary" />}
+                        {isDisqualified ? <Ban className="h-12 w-12 text-yellow-400" /> : <Award className="h-12 w-12 text-primary" />}
                     </motion.div>
                     <CardTitle className="text-3xl font-bold mt-4">{pageTitle}</CardTitle>
                     <CardDescription>{attempt.format} Quiz - Sponsored by {attempt.brand}</CardDescription>
@@ -246,7 +248,7 @@ const ResultsContent = () => {
                 </CardHeader>
 
                 <CardContent className="p-6 pt-0 space-y-4">
-                    {!isDisqualified && (
+                    {!isDisqualified ? (
                         <div className="space-y-4">
                             <div className="flex justify-around items-center">
                                 <div className="text-center">
@@ -259,8 +261,15 @@ const ResultsContent = () => {
                             </div>
                             <p className="text-lg font-semibold text-primary">{motivationalLine}</p>
                         </div>
+                    ) : (
+                         <div className="space-y-2">
+                             <p className="font-semibold text-muted-foreground">Your score for this round is 0.</p>
+                             <p className="text-xs text-muted-foreground">
+                                 Please refer to our Fair Play policy for more details. If you believe this was an error, please contact support.
+                             </p>
+                         </div>
                     )}
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 gap-4">
                         <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
                             <Home className="mr-2 h-5 w-5" /> Go Home
                         </Button>
