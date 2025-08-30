@@ -1,54 +1,94 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny all access to prevent unintentional open collections
+    // Default-deny all access
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow public read for global stats
+    //----------------------------------------------------------------------
+    // /globals/stats - Publicly readable, writable only by authenticated users for specific fields.
+    // This allows the client-side batch write to increment global counters.
+    // For higher security, this should be moved to a Cloud Function.
+    //----------------------------------------------------------------------
     match /globals/stats {
       allow read: if true;
-      // Allow writes only from authenticated users to increment counters
-      // For more security, this could be moved to a Cloud Function.
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasOnly(["totalQuizzesPlayed", "totalPerfectScores"])
+        && request.resource.data.totalQuizzesPlayed is number
+        && request.resource.data.totalPerfectScores is number;
     }
 
-    // User profiles can be read by anyone (for leaderboards),
-    // but only the owner can create or update their own document.
+    //----------------------------------------------------------------------
+    // /users/{userId} - User profile data.
+    // Publicly readable for leaderboards.
+    // Users can create their own profile and update a specific set of fields.
+    //----------------------------------------------------------------------
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Quiz attempts are private to the user.
-      // A user can only create their own attempt documents.
+      // Allow updates only by the user and only for a specific list of fields.
+      // This is crucial for securing the batch write from the client.
+      allow update: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+            // Fields updated by the quiz result batch write
+            'quizzesPlayed', 'totalScore', 'perfectScores', 'totalRewards',
+            'currentStreak', 'lastStreakTimestamp', 'updatedAt',
+            // Fields updated by malpractice detection
+            'noBallCount', 'lastNoBallTimestamp',
+            // Fields updated by the user profile edit form
+            'name', 'phone', 'photoURL', 'dob', 'gender', 'occupation', 'upi',
+            'favoriteFormat', 'favoriteTeam', 'favoriteCricketer', 'phoneVerified',
+            'profileCompleted', 'guidedTourCompleted', 'referrals'
+        ]);
+
+      allow delete: if false; // Users cannot delete their profiles from the client.
+
+      //----------------------------------------------------------------------
+      // /users/{userId}/quizAttempts/{attemptId} - Subcollection for quiz history.
+      // A user can read their own history and create new attempts.
+      // Attempts are immutable; they cannot be updated or deleted from the client.
+      //----------------------------------------------------------------------
       match /quizAttempts/{attemptId} {
-        allow read, create: if request.auth != null && request.auth.uid == userId;
-        // prevent history from being changed
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.userId == request.auth.uid // Ensure payload integrity
+          && request.resource.data.slotId == attemptId; // Ensure doc ID matches slot
         allow update, delete: if false;
       }
     }
-    
-    // Live leaderboard entries can be read by anyone.
-    // A user can only create or update their own entry, identified by their UID.
+
+    //----------------------------------------------------------------------
+    // /leaderboard_live/{slotId}/entries/{userId} - Live leaderboard entries.
+    // Publicly readable.
+    // Users can only create or update their own entry (doc ID must match their UID).
+    //----------------------------------------------------------------------
     match /leaderboard_live/{slotId}/entries/{userId} {
       allow read: if true;
       allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
     }
-
-    // User contributions can be created by any authenticated user.
-    // Reading/updating/deleting would typically be handled by admin roles, not covered here.
+    
+    //----------------------------------------------------------------------
+    // /userContributions/{contributionId} - User-submitted content.
+    // Readable by anyone, but only writable by the user who created it.
+    //----------------------------------------------------------------------
     match /userContributions/{contributionId} {
-        allow create: if request.auth != null;
-        allow read, update, delete: if false; // Only admin/backend access
+        allow read: if true;
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        allow update, delete: if false;
     }
 
-    // Reported questions can be created by any authenticated user.
+    //----------------------------------------------------------------------
+    // /reportedQuestions/{reportId} - User-submitted reports.
+    // Write-only for authenticated users. Not readable from the client to protect privacy.
+    //----------------------------------------------------------------------
     match /reportedQuestions/{reportId} {
-        allow create: if request.auth != null;
-        allow read, update, delete: if false; // Only admin/backend access
+        allow read, update, delete: if false;
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
   }
 }

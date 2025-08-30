@@ -545,8 +545,10 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         await batch.commit();
       } catch (err: any) {
         console.error('Batch commit failed:', err);
+        // throw Error with Firestore code & message so caller knows exactly why it failed
         const code = err?.code || 'unknown';
         const message = err?.message || String(err);
+        // Re-throw with structured info so addQuizAttempt can queue and user sees toast
         throw new Error(`firestore_commit_failed:${code}:${message}`);
       }
     },
