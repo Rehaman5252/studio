@@ -1,4 +1,5 @@
 
+
 import { Timestamp } from "firebase/firestore";
 import type { QuizAttempt } from '@/ai/schemas';
 
@@ -52,7 +53,14 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   const score = Number(raw.score);
   sanitized.score = Number.isFinite(score) ? Math.floor(score) : 0;
 
-  sanitized.timestamp = raw.timestamp instanceof Timestamp ? raw.timestamp.toMillis() : (Number(raw.timestamp) || Date.now());
+  // Handle both Firestore Timestamps and number timestamps
+  if (raw.timestamp instanceof Timestamp) {
+    sanitized.timestamp = raw.timestamp.toMillis();
+  } else if (raw.timestamp && typeof raw.timestamp === 'object' && 'seconds' in raw.timestamp) {
+    sanitized.timestamp = raw.timestamp.seconds * 1000;
+  } else {
+    sanitized.timestamp = Number(raw.timestamp) || Date.now();
+  }
   
   const timePer = Array.isArray(raw.timePerQuestion) ? raw.timePerQuestion.map(Number) : [];
    while (timePer.length < sanitized.totalQuestions) {
@@ -63,7 +71,6 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   sanitized.unanswered = raw.unanswered ?? (sanitized.totalQuestions - answers.filter(Boolean).length);
   
   // Explicitly handle the 'reason' field: only include it if it's a non-empty string.
-  // This prevents 'undefined' from being sent to Firestore.
   if (raw.reason && typeof raw.reason === 'string') {
     sanitized.reason = raw.reason;
   }
@@ -74,8 +81,8 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   // Final check to remove any top-level undefined properties
   Object.keys(sanitized).forEach(keyStr => {
     const key = keyStr as keyof typeof sanitized;
-    if (sanitized[key] === undefined) {
-      delete sanitized[key];
+    if ((sanitized as any)[key] === undefined) {
+      delete (sanitized as any)[key];
     }
   });
 

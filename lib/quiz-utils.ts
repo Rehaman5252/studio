@@ -4,17 +4,17 @@
 import type { QuizAttempt, QuizData } from '@/ai/schemas';
 import type { User } from 'firebase/auth';
 import { getQuizSlotId } from '@/lib/utils';
-import { sanitizeUserProfile, sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfile';
+import { sanitizeAttemptData } from './sanitizeUserProfile';
 
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
+ * This version uses encodeURIComponent to handle all possible characters safely.
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
-        // Use a broader sanitizer that handles nested objects and Timestamps correctly.
-        const sanitized = sanitizeUserProfile(attempt);
+        const sanitized = sanitizeAttemptData(attempt);
         const jsonString = JSON.stringify(sanitized);
-        return btoa(jsonString);
+        return encodeURIComponent(btoa(jsonString));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
         return "";
@@ -23,10 +23,11 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
 
 /**
  * Decodes a Base64 string from a URL into a QuizAttempt object.
+ * This version uses decodeURIComponent to correctly parse the encoded string.
  */
 export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
     try {
-        const decodedJsonString = atob(encodedAttempt);
+        const decodedJsonString = atob(decodeURIComponent(encodedAttempt));
         return JSON.parse(decodedJsonString);
     } catch (e) {
         console.error("Failed to decode attempt:", e);

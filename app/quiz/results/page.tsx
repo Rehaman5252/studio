@@ -55,7 +55,7 @@ const ResultsContent = () => {
       const parsed = decodeAttempt(attemptData);
       // Ensure timestamp is a number for client-side use, converting from Firestore-like object if needed
       if (parsed && parsed.timestamp && typeof parsed.timestamp === 'object' && 'seconds' in parsed.timestamp) {
-         return { ...parsed, timestamp: parsed.timestamp.seconds * 1000 };
+         return { ...parsed, timestamp: (parsed.timestamp as any).seconds * 1000 };
       }
       return parsed;
     } catch(e) {
