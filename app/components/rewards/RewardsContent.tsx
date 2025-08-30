@@ -201,21 +201,25 @@ function RewardsContentComponent() {
       );
     }
     return (
-      <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
-        <CarouselContent className="-ml-4">
-          {rewardableAttempts.map((attempt, index) => (
-            <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-              <ScratchCard 
-                brand={attempt.brand}
-                isScratched={scratchedCards[attempt.slotId] || false}
-                onScratch={() => handleScratch(attempt.slotId)}
-              />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious className="hidden sm:flex" />
-        <CarouselNext className="hidden sm:flex" />
-      </Carousel>
+        <div className="relative">
+            <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+                <CarouselContent className="-ml-4">
+                {rewardableAttempts.map((attempt, index) => (
+                    <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                    <ScratchCard 
+                        brand={attempt.brand}
+                        isScratched={scratchedCards[attempt.slotId] || false}
+                        onScratch={() => handleScratch(attempt.slotId)}
+                    />
+                    </CarouselItem>
+                ))}
+                </CarouselContent>
+                <div className="flex justify-between w-full px-4 pt-4">
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </div>
+            </Carousel>
+        </div>
     );
   };
 
@@ -232,5 +236,3 @@ function RewardsContentComponent() {
 
 const RewardsContent = memo(RewardsContentComponent);
 export default RewardsContent;
-
-    
