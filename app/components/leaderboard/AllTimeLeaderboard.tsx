@@ -1,18 +1,14 @@
-
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
+import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
-import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -22,8 +18,8 @@ const RankIcon = memo(({ rank }: { rank: number }) => {
 });
 RankIcon.displayName = 'RankIcon';
 
-const LeaderboardItem = memo(({ player }: { player: AllTimePlayer }) => (
-    <div className={cn("flex items-center p-2 rounded-lg transition-colors", player.isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
+const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
+    <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || 'A'}</AvatarFallback></Avatar>
         <div className="flex-1">
@@ -68,74 +64,53 @@ const ErrorState = ({ message, title }: { message: string, title: string }) => (
     </Alert>
 );
 
+const WarningBanner = ({ text }: { text: string }) => (
+    <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+        <AlertTitle>Partial Results</AlertTitle>
+        <AlertDescription>{text}</AlertDescription>
+    </Alert>
+);
+
 const AllTimeLeaderboard = () => {
-    const { user, loading: authLoading } = useAuth();
-    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (authLoading) return;
-        if (!db) {
-            setError("Database not available.");
-            setIsLoading(false);
-            return;
-        }
-
-        const usersCollection = collection(db, 'users');
-        const q = query(
-            usersCollection, 
-            orderBy('totalScore', 'desc'),
-            orderBy('perfectScores', 'desc'), 
-            orderBy('quizzesPlayed', 'asc'),
-            limit(50)
-        );
-
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const playersData = querySnapshot.docs
-                .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
-                .map((doc, index) => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        name: data.name || 'Anonymous Player',
-                        avatar: data.photoURL,
-                        perfectScores: data.perfectScores || 0,
-                        totalScore: data.totalScore || 0,
-                        quizzesPlayed: data.quizzesPlayed || 0,
-                        isCurrentUser: user?.uid === doc.id,
-                        rank: index + 1
-                    };
-                });
-
-            setPlayers(playersData);
-            setIsLoading(false);
-            setError(null);
-        }, (err: any) => {
-            console.error("All-Time Leaderboard snapshot error: ", err);
-            setError(mapFirestoreError(err));
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [authLoading, user]);
+    const { user, leaderboardAllTime } = useAuth();
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) {
+        if (leaderboardAllTime.loading) {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
-        if (error) return <ErrorState title="Error" message={error} />;
-        if (players.length === 0) return <EmptyState />;
-        return players.map((player) => <LeaderboardItem key={player.uid} player={player} />);
-    }, [isLoading, authLoading, error, players]);
+
+        // If there are no rows at all, show the friendly empty/error states:
+        if ((!leaderboardAllTime.rows || leaderboardAllTime.rows.length === 0)) {
+            if (leaderboardAllTime.error) {
+                // show the error state if there are no fallback rows
+                return <ErrorState title="Error" message={leaderboardAllTime.error} />;
+            }
+            return <EmptyState />;
+        }
+
+        // If we have rows, show them. If there's an error too (partial/fallback), show a small warning banner above.
+        const playersWithRank = leaderboardAllTime.rows.map((player, index) => ({
+            ...player,
+            rank: index + 1,
+        }));
+
+        return playersWithRank.map(player => (
+            <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
+        ));
+    }, [leaderboardAllTime, user]);
 
     return (
         <Card className="bg-card/80 shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle>All-Time Honours Board</CardTitle>
-                <CardDescription>Based on Perfect Scores and Total Runs</CardDescription>
+                <CardDescription>Based on Total Score and Perfect Scores</CardDescription>
             </CardHeader>
             <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
+                {/* Show a small in-panel warning if there was a partial-results fallback */}
+                {leaderboardAllTime.error && leaderboardAllTime.rows && leaderboardAllTime.rows.length > 0 && (
+                    <WarningBanner text={leaderboardAllTime.error} />
+                )}
                 <div className="space-y-2">{content}</div>
             </CardContent>
         </Card>
