@@ -219,7 +219,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           photoURL: u.photoURL || `https://placehold.co/100x100.png`,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          lastPlayedAt: serverTimestamp(),
+          lastPlayedAt: null,
           emailVerified: u.emailVerified,
           referredBy,
           referralBonusPaid: false,
@@ -470,7 +470,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
   /* --------------------------- Attempt persistence ----------------------- */
 
-  const persistAttemptBatch = useCallback(
+const persistAttemptBatch = useCallback(
     async (attempt: QuizAttempt) => {
         if (!user || !db) throw new Error('Missing user/db');
         
@@ -483,13 +483,16 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
         // 1. Get current user stats for streak calculation
         const userSnap = await getDoc(userDocRef);
-        const userData = userSnap.exists() ? userSnap.data() as UserProfile : null;
+        if (!userSnap.exists()) {
+            throw new Error("User document does not exist, cannot update stats.");
+        }
+        const userData = userSnap.data() as UserProfile;
 
         // 2. Base User & Global Stats Update
-        const isPerfectScore = sanitizedAttempt.score === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
+        const isPerfectScore = (sanitizedAttempt.score || 0) === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
         const userStatsUpdate: Record<string, any> = {
             quizzesPlayed: increment(1),
-            totalScore: increment(sanitizedAttempt.score),
+            totalScore: increment(sanitizedAttempt.score || 0),
             perfectScores: increment(isPerfectScore ? 1 : 0),
             lastPlayedAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -503,66 +506,65 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // 3. Streak Logic
-        if (userData) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-            const lastPlayed = userData.lastPlayedAt ? userData.lastPlayedAt.toDate() : null;
-            if (lastPlayed) {
-                lastPlayed.setHours(0,0,0,0);
-                const daysDiff = (today.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60 * 24);
+        const lastPlayed = userData.lastPlayedAt ? userData.lastPlayedAt.toDate() : null;
+        if (!lastPlayed) {
+            // First quiz ever
+            userStatsUpdate.currentStreak = 1;
+            userStatsUpdate.longestStreak = 1;
+        } else {
+            const lastPlayedDay = new Date(lastPlayed);
+            lastPlayedDay.setHours(0, 0, 0, 0);
+            
+            const daysDiff = (today.getTime() - lastPlayedDay.getTime()) / (1000 * 60 * 60 * 24);
 
-                if (daysDiff === 1) { // Continued streak
-                    userStatsUpdate.currentStreak = increment(1);
-                } else if (daysDiff > 1) { // Reset streak
-                    userStatsUpdate.currentStreak = 1;
+            if (daysDiff === 1) { // Continued streak
+                const newStreak = (userData.currentStreak || 0) + 1;
+                userStatsUpdate.currentStreak = newStreak;
+                if (newStreak > (userData.longestStreak || 0)) {
+                    userStatsUpdate.longestStreak = newStreak;
                 }
-                // If daysDiff is 0, do nothing (already played today).
-            } else { // First play ever
+            } else if (daysDiff > 1) { // Reset streak
                 userStatsUpdate.currentStreak = 1;
             }
-
-            // Update longest streak if current is greater
-            const newStreak = (userData.currentStreak || 0) + 1;
-            if (newStreak > (userData.longestStreak || 0)) {
-                userStatsUpdate.longestStreak = newStreak;
-            }
-        } else {
-             userStatsUpdate.currentStreak = 1;
-             userStatsUpdate.longestStreak = 1;
+            // If daysDiff is 0, do nothing (already played today).
         }
+        
 
         // 4. Add updates to batch
         batch.update(userDocRef, userStatsUpdate);
         batch.set(statsDocRef, globalStatsUpdate, { merge: true });
 
         // 5. Quiz Attempt Document
-        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId!);
         batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
 
         // 6. Live Leaderboard Entry
-        if (userData) {
-            const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
-            const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
-            batch.set(
-                liveEntryRef,
-                {
-                    userId: user.uid,
-                    name: userData.name || "Anonymous",
-                    avatar: userData.photoURL || '',
-                    score: sanitizedAttempt.score,
-                    time: totalTime,
-                    disqualified: !!sanitizedAttempt.reason,
-                },
-                { merge: true }
-            );
-        }
+        const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId!, 'entries', user.uid);
+        const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
+        batch.set(
+            liveEntryRef,
+            {
+                userId: user.uid,
+                name: userData.name || "Anonymous",
+                avatar: userData.photoURL || '',
+                score: sanitizedAttempt.score,
+                time: totalTime,
+                disqualified: !!sanitizedAttempt.reason,
+            },
+            { merge: true }
+        );
+        
 
         try {
             await batch.commit();
         } catch (err: any) {
+            console.error("Batch commit failed:", err);
             const code = err?.code || 'unknown';
             const message = err?.message || String(err);
+            // Throw a more descriptive error to be caught by the calling function
             throw new Error(`firestore_commit_failed:${code}:${message}`);
         }
     },
@@ -686,7 +688,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { success: false };
       }
     },
-    [user, db]
+    [user]
   );
 
   /* ------------------------------ Context val ---------------------------- */

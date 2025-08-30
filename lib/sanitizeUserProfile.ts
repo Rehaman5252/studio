@@ -63,6 +63,7 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   sanitized.unanswered = raw.unanswered ?? (sanitized.totalQuestions - answers.filter(Boolean).length);
   
   // Explicitly handle the 'reason' field: only include it if it's a non-empty string.
+  // This prevents 'undefined' from being sent to Firestore.
   if (raw.reason && typeof raw.reason === 'string') {
     sanitized.reason = raw.reason;
   }
@@ -71,9 +72,10 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   sanitized.reviewed = !!raw.reviewed;
 
   // Final check to remove any top-level undefined properties
-  Object.keys(sanitized).forEach(key => {
-    if (sanitized[key as keyof typeof sanitized] === undefined) {
-      delete sanitized[key as keyof typeof sanitized];
+  Object.keys(sanitized).forEach(keyStr => {
+    const key = keyStr as keyof typeof sanitized;
+    if (sanitized[key] === undefined) {
+      delete sanitized[key];
     }
   });
 
