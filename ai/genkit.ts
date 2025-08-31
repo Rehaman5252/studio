@@ -5,20 +5,17 @@
  * It sets up Firebase, Google AI, and Next.js integration for the application.
  */
 
-import { configureGenkit, genkit } from '@genkit-ai/core';
+import { genkit } from '@genkit-ai/core';
 import { firebase } from '@genkit-ai/firebase';
 import { googleAI } from '@genkit-ai/googleai';
-import { NextJsPlugin } from '@genkit-ai/next';
+import { nextjs } from '@genkit-ai/next';
 
 // This is the global AI object that will be used to define flows, prompts, etc.
 // It is exported for use throughout the application.
-export const ai = genkit;
-
-// Configure Genkit with the necessary plugins for this application.
-configureGenkit({
+export const ai = genkit({
   plugins: [
     // The Next.js plugin is required for Genkit to work within a Next.js application.
-    new NextJsPlugin(),
+    nextjs(),
     
     // The Firebase plugin integrates Genkit with Firebase services,
     // allowing for features like Firestore-based flow state management.
