@@ -1,17 +1,58 @@
+
 'use client';
 
 import React from 'react';
-import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Users, HelpCircle, Gift, Banknote } from 'lucide-react';
+
+const StatCard = ({ title, value, icon, description }: { title: string; value: string; icon: React.ReactNode; description: string; }) => (
+    <Card className="shadow-md hover:shadow-lg transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {icon}
+        </CardHeader>
+        <CardContent>
+            <div className="text-2xl font-bold">{value}</div>
+            <p className="text-xs text-muted-foreground">{description}</p>
+        </CardContent>
+    </Card>
+);
 
 export default function AdminDashboard() {
   return (
     <>
         <CardHeader>
             <CardTitle>Dashboard</CardTitle>
-            <CardDescription>Welcome to the indcric Admin Panel.</CardDescription>
+            <CardDescription>An overview of the indcric platform.</CardDescription>
         </CardHeader>
-        <CardContent>
-            <p>Admin features will be built here.</p>
+        <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+                 <StatCard 
+                    title="Total Users" 
+                    value="1,234" 
+                    icon={<Users className="h-4 w-4 text-muted-foreground" />} 
+                    description="+20.1% from last month" 
+                />
+                <StatCard 
+                    title="Pending Payouts" 
+                    value="₹12,500" 
+                    icon={<Banknote className="h-4 w-4 text-muted-foreground" />} 
+                    description="52 pending transactions" 
+                />
+                <StatCard 
+                    title="Pending Questions" 
+                    value="89" 
+                    icon={<HelpCircle className="h-4 w-4 text-muted-foreground" />} 
+                    description="In moderation queue" 
+                />
+                <StatCard 
+                    title="Active Ad Campaigns" 
+                    value="12" 
+                    icon={<Gift className="h-4 w-4 text-muted-foreground" />} 
+                    description="Across all formats" 
+                />
+            </div>
+            {/* Additional charts and tables will go here */}
         </CardContent>
     </>
   );
