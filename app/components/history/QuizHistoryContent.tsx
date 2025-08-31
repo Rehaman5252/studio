@@ -135,7 +135,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
+                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed}>
                         {isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
                         {isReviewed ? 'Reviewed' : 'Review'}
                     </Button>
@@ -159,19 +159,20 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
             </AdDialog>
         )}
         
-        {attempt && showReviewDialog && (
-            <ReviewDialog
-                open={showReviewDialog}
-                onOpenChange={setShowReviewDialog}
-                attempt={attempt}
-            />
+        {attempt && (
+          <ReviewDialog
+            open={showReviewDialog}
+            onOpenChange={setShowReviewDialog}
+            attempt={attempt}
+          />
         )}
-        {attempt && isAnalysisOpen && (
-            <AnalysisDialog
-                attempt={attempt}
-                open={isAnalysisOpen}
-                onOpenChange={setIsAnalysisOpen}
-            />
+
+        {attempt && (
+          <AnalysisDialog
+            open={isAnalysisOpen}
+            onOpenChange={setIsAnalysisOpen}
+            attempt={attempt}
+          />
         )}
     </>
   );
