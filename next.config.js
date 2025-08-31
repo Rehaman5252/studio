@@ -2,14 +2,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: "standalone",
-    async rewrites() {
-        return [
-          {
-            source: '/:path*',
-            destination: 'https://indcric.app/:path*',
-          },
-        ];
-    },
     images: {
         remotePatterns: [
             {
