@@ -5,7 +5,8 @@
  * @fileOverview Generates a 5-question cricket quiz for a specific format.
  *
  * This flow creates a unique quiz with questions, options, correct answers, and explanations.
- * It ensures questions are not repeated for the same user within a short timeframe.
+ * It ensures questions are not repeated for the same user and follows a strict, progressive
+ * difficulty curve from easy to extremely hard, covering a balanced range of topics.
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,8 +14,6 @@ import { z } from 'zod';
 import { QuizQuestion, QuizData } from '@/ai/schemas';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { getFallbackQuiz } from '@/lib/fallback-quiz';
-
 
 const GenerateQuizInputSchema = z.object({
     format: z.string().describe('The cricket format for the quiz (e.g., T20, IPL, Test).'),
@@ -58,9 +57,27 @@ const prompt = ai.definePrompt({
     },
     output: { schema: QuizData },
     prompt: `
-    You are a world-class cricket expert designing a quiz.
-    Generate a 5-question multiple-choice quiz about "{{format}}" cricket.
+    You are a world-class cricket expert and quizmaster. Your task is to generate a completely new and unique 5-question multiple-choice quiz about "{{format}}" cricket.
 
+    This quiz must follow a strict and specific structure for difficulty and topic balance.
+
+    ## Rule 1: Progressive Difficulty Curve
+    The five questions MUST have an escalating difficulty. Adhere to this structure precisely:
+    - **Question 1 (Easy):** A straightforward question that a casual cricket fan would likely know.
+    - **Question 2 (Medium):** A question that requires a bit more than surface-level knowledge.
+    - **Question 3 (Difficult):** A challenging question about a specific record, event, or player stat that requires deeper knowledge.
+    - **Question 4 (Very Hard):** A question about an obscure or less-known fact, rule, or historical event.
+    - **Question 5 (Extremely Hard / "The GOAT Question"):** A truly expert-level question. This should be a very specific, almost unanswerable piece of trivia that only a cricket historian or statistician might know.
+
+    ## Rule 2: Balanced Topic Coverage
+    You must pull questions from a variety of topics to ensure the quiz is well-rounded. Do not ask multiple questions about the same player or team. Use the following topic blueprint:
+    - **Topic Pool 1: IPL & Domestic T20:** Team stats (CSK, MI, etc.), cap winners, finals history, records, iconic matches, BBL, PSL, CPL, The Hundred, SA20.
+    - **Topic Pool 2: Indian Cricket:** World Cup wins (1983, 2011, 2007), famous partnerships, legendary captains, player milestones (Sachin, Kohli, etc.), Ranji Trophy.
+    - **Topic Pool 3: International Cricket (Specific Nations):** Focus on history, key players, and achievements of Australia, England, West Indies, Pakistan, Sri Lanka, South Africa, and New Zealand.
+    - **Topic Pool 4: Cricket Records & Terminology:** General stats (highest scores, best bowling), rare dismissals (Mankading), rules (DRS, Powerplay), umpire signals.
+    - **Topic Pool 5: Legends, Personalities & Current Affairs:** Questions about legends (Lara, Warne), current stars (Bumrah, Babar), coaches, commentators, or very recent records and series results.
+
+    ## Rule 3: Output Format & Uniqueness
     Each question must include:
     - A unique ID (a short random string like "q1a2b").
     - The question text.
@@ -68,12 +85,15 @@ const prompt = ai.definePrompt({
     - The correct answer, which must exactly match one of the options.
     - A brief, engaging explanation for the correct answer.
 
-    The questions should be challenging but fair, covering a range of topics like history, records, rules, and famous players related to the format.
-
-    IMPORTANT: Do NOT generate any questions that are similar to the ones in this list of recently seen questions:
+    ## Rule 4: Avoid Repetition
+    This is critical. Do NOT generate any questions that are similar in theme or answer to the questions in this list of recently seen questions:
+    {{#if seenQuestions}}
     {{#each seenQuestions}}
     - "{{this}}"
     {{/each}}
+    {{/if}}
+
+    Now, generate the 5-question quiz based on all these rules for the "{{format}}" format.
   `,
     config: {
         // Set extremely permissive safety settings to prevent the model from blocking valid responses.
