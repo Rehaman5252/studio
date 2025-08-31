@@ -75,7 +75,7 @@ const prompt = ai.definePrompt({
     - **Topic Pool 2: Indian Cricket:** World Cup wins (1983, 2011, 2007), famous partnerships, legendary captains, player milestones (Sachin, Kohli, etc.), Ranji Trophy.
     - **Topic Pool 3: International Cricket (Specific Nations):** Focus on history, key players, and achievements of Australia, England, West Indies, Pakistan, Sri Lanka, South Africa, and New Zealand.
     - **Topic Pool 4: Cricket Records & Terminology:** General stats (highest scores, best bowling), rare dismissals (Mankading), rules (DRS, Powerplay), umpire signals.
-    - **Topic Pool 5: Legends, Personalities & Current Affairs:** Questions about legends (Lara, Warne), current stars (Bumrah, Babar), coaches, commentators, or very recent records and series results.
+    - **Topic Pool 5: Legends, Personalities & Current Affairs:** Questions about legends (Lara, Warne), current stars (Bumrah, Babar), coaches, commentators, or very recent records and series results from your knowledge cutoff date.
 
     ## Rule 3: Output Format & Uniqueness
     Each question must include:
