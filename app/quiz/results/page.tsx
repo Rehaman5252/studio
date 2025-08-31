@@ -16,8 +16,8 @@ import PageWrapper from '@/components/PageWrapper';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import jsPDF from 'jspdf';
-import { Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { Timestamp } from 'firebase/firestore';
+import { decodeAttempt } from '@/lib/quiz-utils';
 
 
 const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
@@ -25,7 +25,7 @@ const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog
 const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'));
 
 const LoadingSkeleton = () => (
-    <PageWrapper title="Loading Results...">
+    <PageWrapper title="Loading Scorecard...">
         <div className="space-y-4 animate-pulse">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-40 w-full" />
@@ -40,89 +40,44 @@ const LoadingSkeleton = () => (
 const ResultsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, profile, markAttemptAsReviewed } = useAuth();
+  const { profile, markAttemptAsReviewed } = useAuth();
   const { toast } = useToast();
   
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdForReview, setShowAdForReview] = useState(false);
-  const [slotTimings, setSlotTimings] = useState<string | null>(null);
-  
-  const slotId = searchParams.get('slotId');
-  const [currentAttempt, setCurrentAttempt] = useState<QuizAttempt | null>(null);
-  const [attemptLoading, setAttemptLoading] = useState(true);
 
+  // Decode the attempt data directly from the URL search parameter.
+  const [currentAttempt, setCurrentAttempt] = useState<QuizAttempt | null>(() => {
+    const attemptData = searchParams.get('attempt');
+    return attemptData ? decodeAttempt(attemptData) : null;
+  });
+
+  const [isReviewed, setIsReviewed] = useState(currentAttempt?.reviewed || false);
+
+  // If the attempt data couldn't be decoded, show an error.
   useEffect(() => {
-    if (!slotId || !user) {
-        if(!user && !attemptLoading) {
-             toast({ title: "Authentication Error", description: "You must be logged in to view results.", variant: "destructive" });
-             router.replace('/auth/login');
-        }
-        return;
+    if (!searchParams.get('attempt')) {
+      toast({ title: "Invalid Link", description: "No quiz data found in the link.", variant: "destructive" });
+      router.replace('/');
     }
-    
-    const fetchAttempt = async () => {
-        setAttemptLoading(true);
-        if (!db) {
-            toast({ title: "Database Error", description: "Could not connect to the database.", variant: "destructive" });
-            setAttemptLoading(false);
-            return;
-        }
-
-        try {
-            const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', slotId);
-            const docSnap = await getDoc(attemptDocRef);
-
-            if (docSnap.exists()) {
-                const attemptData = docSnap.data() as QuizAttempt;
-                setCurrentAttempt(attemptData);
-
-                const getSlotTimings = (ts: number | Timestamp) => {
-                    const attemptDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
-                    const minutes = attemptDate.getMinutes();
-                    const slotStartMinute = Math.floor(minutes / 10) * 10;
-                    
-                    const slotStartTime = new Date(attemptDate);
-                    slotStartTime.setMinutes(slotStartMinute, 0, 0);
-                    
-                    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
-
-                    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-                    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-                };
-                setSlotTimings(getSlotTimings(attemptData.timestamp));
-
-            } else {
-                toast({ title: "Results not found", description: "Could not find quiz data for this slot.", variant: "destructive" });
-                router.replace('/');
-            }
-        } catch (error) {
-             toast({ title: "Error fetching results", description: "An unexpected error occurred.", variant: "destructive" });
-             router.replace('/');
-        } finally {
-            setAttemptLoading(false);
-        }
-    };
-
-    fetchAttempt();
-  }, [slotId, user, router, toast, attemptLoading]);
+  }, [searchParams, router, toast]);
 
   const handleViewAnswers = useCallback(() => {
     if (!currentAttempt) return;
-    if (currentAttempt.reviewed) {
+    if (isReviewed) {
         setShowReviewDialog(true);
     } else {
         setShowAdForReview(true);
     }
-  }, [currentAttempt]);
+  }, [currentAttempt, isReviewed]);
   
   const onAdFinished = useCallback(async () => {
     setShowAdForReview(false);
     if(currentAttempt?.slotId) {
         const { success } = await markAttemptAsReviewed(currentAttempt.slotId);
         if (success) {
-            setCurrentAttempt(prev => prev ? { ...prev, reviewed: true } : null);
+            setIsReviewed(true);
             toast({ title: "Success", description: "You can now view your answers." });
         } else {
             toast({ title: "Error", description: "Could not save review status. Please check connection.", variant: "destructive" });
@@ -132,7 +87,7 @@ const ResultsContent = () => {
   }, [currentAttempt, markAttemptAsReviewed, toast]);
 
   const handleDownloadCertificate = () => {
-      if (!currentAttempt || !profile || !slotTimings) return;
+      if (!currentAttempt || !profile) return;
       
       const doc = new jsPDF();
       doc.setDrawColor(212, 175, 55);
@@ -168,9 +123,8 @@ const ResultsContent = () => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(100, 100, 100);
-      const attemptDate = new Date((currentAttempt.timestamp as Timestamp).seconds * 1000);
+      const attemptDate = new Date(currentAttempt.timestamp as number);
       doc.text(`Date of Innings: ${attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 30, 140);
-      doc.text(`Match Slot: ${slotTimings}`, 30, 147);
 
       doc.setLineWidth(0.5);
       doc.line(130, 150, 180, 150);
@@ -230,7 +184,7 @@ const ResultsContent = () => {
   }, [isDisqualified, isPerfectScore]);
 
 
-  if (attemptLoading || !currentAttempt || !slotTimings) {
+  if (!currentAttempt) {
     return <LoadingSkeleton />;
   }
 
@@ -265,7 +219,6 @@ const ResultsContent = () => {
                     </motion.div>
                     <CardTitle className="text-3xl font-bold mt-4">{pageTitle}</CardTitle>
                     <CardDescription>{currentAttempt.format} Quiz - Sponsored by {currentAttempt.brand}</CardDescription>
-                    <CardDescription>Slot: {slotTimings}</CardDescription>
                 </CardHeader>
 
                 <CardContent className="p-6 pt-0 space-y-4">
@@ -296,8 +249,8 @@ const ResultsContent = () => {
                         </Button>
                          {!isDisqualified && (
                             <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
-                                {currentAttempt.reviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4" />}
-                                {currentAttempt.reviewed ? 'Answers Reviewed' : 'Review Answers (Ad)'}
+                                {isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4" />}
+                                {isReviewed ? 'Answers Reviewed' : 'Review Answers (Ad)'}
                             </Button>
                         )}
                     </div>

@@ -4,7 +4,7 @@
 import type { QuizAttempt, QuizData } from '@/ai/schemas';
 import type { User } from 'firebase/auth';
 import { getQuizSlotId } from '@/lib/utils';
-import { sanitizeQuizAttempt } from './sanitizeUserProfile';
+import { sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfile';
 
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
@@ -12,9 +12,11 @@ import { sanitizeQuizAttempt } from './sanitizeUserProfile';
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
-        const sanitized = sanitizeQuizAttempt(attempt);
+        const sanitized = sanitizeAttemptData(attempt);
         const jsonString = JSON.stringify(sanitized);
-        return encodeURIComponent(btoa(jsonString));
+        // btoa is a common source of errors with Unicode, but JSON stringify should escape it.
+        // We wrap with encodeURIComponent for URL safety.
+        return encodeURIComponent(btoa(unescape(encodeURIComponent(jsonString))));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
         return "";
@@ -27,8 +29,9 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
  */
 export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
     try {
-        const decodedJsonString = atob(decodeURIComponent(encodedAttempt));
-        return JSON.parse(decodedJsonString);
+        const decodedB64 = decodeURIComponent(encodedAttempt);
+        const jsonString = decodeURIComponent(escape(atob(decodedB64)));
+        return JSON.parse(jsonString);
     } catch (e) {
         console.error("Failed to decode attempt:", e);
         return null;
@@ -82,5 +85,5 @@ export const buildAttempt = ({
     };
 
     // Sanitize before returning to ensure no undefined fields are ever present.
-    return sanitizeQuizAttempt(attemptObject) as QuizAttempt;
+    return sanitizeAttemptData(attemptObject) as QuizAttempt;
 };

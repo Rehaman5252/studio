@@ -13,7 +13,7 @@ import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
-import { buildAttempt } from '@/lib/quiz-utils';
+import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
@@ -189,17 +189,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     // Set the session flag immediately to prevent re-entry
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
 
-    const result = await addQuizAttempt(attempt);
+    // Don't await this. Fire-and-forget for a faster UI response.
+    // The data is passed via URL, so the results page can render instantly.
+    addQuizAttempt(attempt);
 
-    if(result.success) {
-        router.replace(`/quiz/results?slotId=${attempt.slotId}`);
-    } else {
-        setError("Could not save quiz results. Please check your connection and try again.");
-        setQuizState('error');
-        isFinishedRef.current = false;
-        // If saving fails, remove the lock to allow retry
-        sessionStorage.removeItem(`quiz-finished-${attempt.slotId}`);
-    }
+    // Redirect immediately with the full data.
+    setTimeout(() => {
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    }, 3000); // 3-second "Third Umpire" delay
+
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
@@ -225,10 +223,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
-    const result = await addQuizAttempt(attempt);
-    if(result.success) {
-        router.replace(`/quiz/results?slotId=${attempt.slotId}`);
-    }
+    
+    // Fire and forget
+    addQuizAttempt(attempt);
+
+    setTimeout(() => {
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    }, 3000); // 3-second "Third Umpire" delay
+
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
   const handleNextQuestion = useCallback((answer: string) => {
