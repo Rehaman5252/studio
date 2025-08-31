@@ -54,9 +54,10 @@ const ResultsContent = () => {
 
   useEffect(() => {
     if (!slotId || !user) {
-        if(!user) return; // Wait for user to be available
-        toast({ title: "Invalid Link", description: "No quiz slot specified.", variant: "destructive" });
-        router.replace('/');
+        if(!user && !attemptLoading) {
+             toast({ title: "Authentication Error", description: "You must be logged in to view results.", variant: "destructive" });
+             router.replace('/auth/login');
+        }
         return;
     }
     
@@ -68,38 +69,44 @@ const ResultsContent = () => {
             return;
         }
 
-        const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', slotId);
-        const docSnap = await getDoc(attemptDocRef);
+        try {
+            const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', slotId);
+            const docSnap = await getDoc(attemptDocRef);
 
-        if (docSnap.exists()) {
-            const attemptData = docSnap.data() as QuizAttempt;
-            setCurrentAttempt(attemptData);
+            if (docSnap.exists()) {
+                const attemptData = docSnap.data() as QuizAttempt;
+                setCurrentAttempt(attemptData);
 
-             const getSlotTimings = (ts: number | Timestamp) => {
-                const attemptDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
-                const minutes = attemptDate.getMinutes();
-                const slotStartMinute = Math.floor(minutes / 10) * 10;
-                
-                const slotStartTime = new Date(attemptDate);
-                slotStartTime.setMinutes(slotStartMinute, 0, 0);
-                
-                const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+                const getSlotTimings = (ts: number | Timestamp) => {
+                    const attemptDate = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+                    const minutes = attemptDate.getMinutes();
+                    const slotStartMinute = Math.floor(minutes / 10) * 10;
+                    
+                    const slotStartTime = new Date(attemptDate);
+                    slotStartTime.setMinutes(slotStartMinute, 0, 0);
+                    
+                    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
 
-                const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-                return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-            };
-            setSlotTimings(getSlotTimings(attemptData.timestamp));
+                    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+                };
+                setSlotTimings(getSlotTimings(attemptData.timestamp));
 
-        } else {
-            toast({ title: "Results not found", description: "Could not find quiz data for this slot.", variant: "destructive" });
-            router.replace('/');
+            } else {
+                toast({ title: "Results not found", description: "Could not find quiz data for this slot.", variant: "destructive" });
+                router.replace('/');
+            }
+        } catch (error) {
+             toast({ title: "Error fetching results", description: "An unexpected error occurred.", variant: "destructive" });
+             router.replace('/');
+        } finally {
+            setAttemptLoading(false);
         }
-        setAttemptLoading(false);
     };
 
     fetchAttempt();
-  }, [slotId, user, router, toast]);
+  }, [slotId, user, router, toast, attemptLoading]);
 
   const handleViewAnswers = useCallback(() => {
     if (!currentAttempt) return;
