@@ -68,10 +68,10 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
 
   const handleReviewClick = useCallback(() => {
-    if (!isReviewed) {
-        setShowAdDialog(true);
-    } else {
+    if (isReviewed) {
         setShowReviewDialog(true);
+    } else {
+        setShowAdDialog(true);
     }
   }, [isReviewed]);
 
