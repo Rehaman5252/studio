@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "firebase:emulate": "firebase emulators:start",
-    "firebase:deploy": "npm run build && firebase deploy --only hosting"
+    "firebase:deploy": "firebase deploy --only hosting"
   },
   "engines": {
     "node": "20.x",
