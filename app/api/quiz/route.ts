@@ -19,26 +19,6 @@ function isValidQuizShape(candidate: any): boolean {
   );
 }
 
-function timeoutPromise<T>(ms: number, reason = "timeout") {
-  return new Promise<T>((_, reject) => setTimeout(() => reject(new Error(reason)), ms));
-}
-
-async function callWithRetry<T>(fn: () => Promise<T>, retries: number): Promise<T> {
-  let attempt = 0;
-  while (true) {
-    try {
-      return await fn();
-    } catch (error) {
-      attempt++;
-      if (attempt > retries) {
-        throw error;
-      }
-      console.warn(`[quiz] Attempt ${attempt} failed, retrying...`);
-      await new Promise(res => setTimeout(res, 500 * attempt));
-    }
-  }
-}
-
 export async function POST(req: Request) {
   const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -56,34 +36,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing format or userId", reqId }, { status: 400 });
   }
 
-  const generate = () => {
-    const aiPromise = generateQuizFlow({ format, userId });
-    return Promise.race([aiPromise, timeoutPromise(GENERATION_TIMEOUT_MS, "ai_generation_timeout")]);
-  };
-
   try {
     console.info(`[quiz][${reqId}] starting generation format=${format} user=${userId}`);
-    const aiResult = await callWithRetry(generate, MAX_RETRIES);
+    const aiResult = await generateQuizFlow({ format, userId });
 
     if (!isValidQuizShape(aiResult)) {
-      console.warn(`[quiz][${reqId}] AI returned invalid shape — falling back`, {
+      console.warn(`[quiz][${reqId}] AI returned invalid shape`, {
         aiSample: aiResult?.questions?.slice(0, 1),
       });
-      throw new Error('ai_invalid_shape');
+      throw new Error('AI returned an invalid quiz structure.');
     }
 
     console.info(`[quiz][${reqId}] AI generation succeeded`);
     return NextResponse.json({ quiz: aiResult, source: "ai", reqId }, { status: 200 });
 
   } catch (err: any) {
-    console.error(`[quiz][${reqId}] generation error, using fallback:`, err?.message ?? err);
+    console.error(`[quiz][${reqId}] AI generation failed:`, err?.message ?? err);
 
-    const fallback = getFallbackQuiz(format);
-    const payload: any = { quiz: fallback, source: "fallback", reqId };
-
-    if (IS_DEV) payload.error = String(err?.message ?? err);
-
-    // Always return 200 with a valid quiz structure
-    return NextResponse.json(payload, { status: 200 });
+    const errorMessage = IS_DEV ? (err?.message ?? 'AI quiz generation failed.') : 'The AI quiz master is busy. Please try again in a moment.';
+    
+    // Do not serve a fallback. Return an error to the client.
+    return NextResponse.json(
+        { error: errorMessage, reqId }, 
+        { status: 500 }
+    );
   }
 }

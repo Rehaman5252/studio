@@ -18,7 +18,6 @@ import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
-import { getFallbackQuiz } from '@/lib/fallback-quiz';
 import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
 
@@ -118,38 +117,24 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
 
       setQuizData(data.quiz);
-      setQuizSource(data.source || 'fallback');
+      setQuizSource(data.source || 'ai');
       setQuizState('pre-quiz');
-
-      if (data.source === 'ai') {
-        toast({ title: "✅ Fresh AI-powered quiz loaded!" });
-      } else {
-        const reason = data.error || 'An unknown issue occurred';
-        const userMessage = reason.includes('timeout')
-            ? "The AI umpire is thinking! Playing a classic quiz instead."
-            : "Heads up! We're using a classic quiz set for now.";
-        toast({
-            title: "Fallback Quiz Loaded",
-            description: userMessage,
-            duration: 5000,
-        });
-      }
       
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
-      let userMessage = "Could not load quiz. Playing a classic set instead.";
+      let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
       
-      if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
-        userMessage = "📴 You appear to be offline. Please check your connection.";
+      if (typeof e.message === 'string') {
+        if(e.message.includes("Failed to fetch")) {
+            userMessage = "📴 You appear to be offline. Please check your connection.";
+        } else {
+            userMessage = e.message;
+        }
       }
       
-      toast({ title: "Error Loading Quiz", description: userMessage, variant: "destructive" });
-      
-      const localFallback = getFallbackQuiz(format);
-      setQuizData(localFallback);
-      setQuizSource('fallback');
-      setQuizState('pre-quiz');
+      setError(userMessage);
+      setQuizState('error');
     }
   }, [format, user, toast, authLoading, isOffline]);
 
