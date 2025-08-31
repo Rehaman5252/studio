@@ -29,7 +29,9 @@ export default function AdminLogin() {
         title: 'Authentication Successful',
         description: 'Welcome, Admin. Redirecting to dashboard...',
       });
-      router.push('/admin/dashboard');
+      setTimeout(() => {
+        router.push('/admin/dashboard');
+      }, 1000);
     } else {
       toast({
         title: 'Authentication Failed',
@@ -83,17 +85,17 @@ export default function AdminLogin() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-1 top-7 h-8 w-8"
+                        className="absolute right-1 top-7 h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={togglePasswordVisibility}
                         disabled={isLoading}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
                     </Button>
                 </div>
                 <Button type="submit" className="w-full h-12 text-base font-bold" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Proceed to Review
+                    {isLoading ? 'Checking Credentials...' : 'Proceed to Review'}
                 </Button>
                 <div className="text-center">
                     <Button variant="link" asChild className="text-xs text-muted-foreground">
