@@ -6,9 +6,9 @@
  */
 
 import { genkit } from 'genkit';
-import { firebase } from '@genkit-ai/firebase/plugin';
-import { googleAI } from '@genkit-ai/googleai/plugin';
-import { nextjs } from '@genkit-ai/next/plugin';
+import { firebase } from '@genkit-ai/firebase';
+import { googleAI } from '@genkit-ai/googleai';
+import { nextjs } from '@genkit-ai/next';
 
 // This is the global AI object that will be used to define flows, prompts, etc.
 // It is exported for use throughout the application.
