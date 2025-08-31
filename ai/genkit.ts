@@ -5,10 +5,10 @@
  * It sets up Firebase, Google AI, and Next.js integration for the application.
  */
 
-import { genkit } from '@genkit-ai/core';
-import { firebase } from '@genkit-ai/firebase';
-import { googleAI } from '@genkit-ai/googleai';
-import { nextjs } from '@genkit-ai/next';
+import { genkit } from 'genkit';
+import { firebase } from '@genkit-ai/firebase/plugin';
+import { googleAI } from '@genkit-ai/googleai/plugin';
+import { nextjs } from '@genkit-ai/next/plugin';
 
 // This is the global AI object that will be used to define flows, prompts, etc.
 // It is exported for use throughout the application.
