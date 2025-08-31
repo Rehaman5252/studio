@@ -1,14 +1,49 @@
+
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Shield } from 'lucide-react';
+import { Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLogin() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Hardcoded credentials check
+    if (email === 'rehamansyed07@gmail.com' && password === 'Indcric@100') {
+      toast({
+        title: 'Authentication Successful',
+        description: 'Welcome, Admin. Redirecting to dashboard...',
+      });
+      router.push('/admin/dashboard');
+    } else {
+      toast({
+        title: 'Authentication Failed',
+        description: 'Invalid credentials. Please try again.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <Card className="shadow-2xl bg-card/80 backdrop-blur-lg border-primary/20 animate-fade-in-up">
         <CardHeader className="text-center">
@@ -19,16 +54,45 @@ export default function AdminLogin() {
             <CardDescription>Access restricted to authorized indcric match officials.</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-            <div className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="email">Official Email</Label>
-                    <Input id="email" type="email" placeholder="umpire@indcric.app" required className="h-12" />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="umpire@indcric.app" 
+                      required 
+                      className="h-12"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading}
+                    />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                     <Label htmlFor="password">Access Code</Label>
-                    <Input id="password" type="password" required className="h-12" />
+                    <Input 
+                      id="password" 
+                      type={showPassword ? 'text' : 'password'}
+                      required 
+                      className="h-12 pr-10"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-7 h-8 w-8"
+                        onClick={togglePasswordVisibility}
+                        disabled={isLoading}
+                    >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+                    </Button>
                 </div>
-                <Button type="submit" className="w-full h-12 text-base font-bold">
+                <Button type="submit" className="w-full h-12 text-base font-bold" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Proceed to Review
                 </Button>
                 <div className="text-center">
@@ -38,7 +102,7 @@ export default function AdminLogin() {
                         </Link>
                     </Button>
                 </div>
-            </div>
+            </form>
         </CardContent>
     </Card>
   );
