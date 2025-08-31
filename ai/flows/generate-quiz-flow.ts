@@ -14,6 +14,8 @@ import { z } from 'zod';
 import { QuizQuestion, QuizData } from '@/ai/schemas';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { getFallbackQuiz } from '@/lib/fallback-quiz';
+
 
 const GenerateQuizInputSchema = z.object({
     format: z.string().describe('The cricket format for the quiz (e.g., T20, IPL, Test).'),
@@ -35,8 +37,10 @@ const getRecentQuestions = async (userId: string): Promise<string[]> => {
         querySnapshot.forEach(doc => {
             const attempt = doc.data();
             if (attempt.questions) {
-                attempt.questions.forEach((question: QuizQuestion) => {
-                    seenQuestions.add(question.question);
+                attempt.questions.forEach((question: any) => {
+                    if(question && typeof question.question === 'string') {
+                      seenQuestions.add(question.question);
+                    }
                 });
             }
         });
