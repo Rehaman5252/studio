@@ -16,7 +16,7 @@ export default function AdminLogin() {
                 <Shield className="h-12 w-12 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold">Third Umpire's Room</CardTitle>
-            <CardDescription>Access restricted to authorized match officials.</CardDescription>
+            <CardDescription>Access restricted to authorized indcric match officials.</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
             <div className="space-y-4">
