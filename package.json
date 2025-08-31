@@ -5,14 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 8080",
     "lint": "next lint",
     "firebase:emulate": "firebase emulators:start",
-    "firebase:deploy": "npm run build && firebase deploy --only hosting"
+    "firebase:deploy": "firebase deploy --only hosting"
   },
   "engines": {
-    "node": "20.x",
-    "npm": "10.x"
+    "node": "20"
   },
   "dependencies": {
     "@genkit-ai/core": "1.10.0",
