@@ -11,7 +11,8 @@
     "firebase:deploy": "firebase deploy --only hosting"
   },
   "engines": {
-    "node": "20.x"
+    "node": "20.x",
+    "npm": "10.x"
   },
   "dependencies": {
     "@genkit-ai/core": "1.10.0",
