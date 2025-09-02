@@ -36,7 +36,7 @@ export const QuizAttempt = z.object({
   userAnswers: z.array(z.string()).describe("The answers provided by the user (padded with empty strings for unanswered)."),
   score: z.number().int().describe("The final score of the user."),
   totalQuestions: z.number().int().describe("The total number of questions in the quiz."),
-  timestamp: z.union([z.number(), z.custom<Timestamp>()]).describe("The Unix timestamp when the quiz was completed."),
+  timestamp: z.number().describe("The Unix timestamp (in milliseconds) when the quiz was completed."),
   timePerQuestion: z.optional(z.array(z.number())).describe("Time taken in seconds for each question."),
   unanswered: z.optional(z.number().int()).describe("The number of questions the user did not answer."),
   reason: z.optional(z.string().nullable()).describe("Reason for disqualification, if any (e.g., 'no-ball')."),
@@ -71,4 +71,5 @@ export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
 export type HintOutput = import('./flows/ai-powered-hints').HintOutput;
+
 
