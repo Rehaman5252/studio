@@ -1,21 +1,16 @@
 
 'use client';
 
-import { useAuth } from '@/context/AuthProvider';
 import { Award } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
     loading: () => <CertificatesSkeleton />,
     ssr: false,
 });
-const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
-    loading: () => <Skeleton className="h-56 w-full" />,
-    ssr: false,
-});
-
 
 const CertificatesSkeleton = () => (
     <div className="space-y-4">
@@ -25,31 +20,17 @@ const CertificatesSkeleton = () => (
 );
 
 export default function CertificatesPage() {
-  const { user, loading } = useAuth();
-  
-  const renderContent = () => {
-      if (loading) {
-          return <CertificatesSkeleton />;
-      }
-      
-      if (!user) {
-          return (
-             <div className="pt-8">
-                <LoginPrompt 
-                    icon={Award}
-                    title="View Your Achievements"
-                    description="Sign in to view and download your perfect score certificates."
-                />
-            </div>
-          );
-      }
-      
-      return <CertificatesContent />;
+  const loginPromptProps = {
+      icon: Award,
+      title: "View Your Achievements",
+      description: "Sign in to view and download your perfect score certificates."
   }
-
+  
   return (
     <PageWrapper title="My Certificates" showBackButton>
-        {renderContent()}
+        <AuthGuard loadingSkeleton={<CertificatesSkeleton />} loginPrompt={loginPromptProps}>
+            <CertificatesContent />
+        </AuthGuard>
     </PageWrapper>
   );
 }
