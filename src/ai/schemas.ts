@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import { Timestamp } from 'firebase/firestore';
 
 /**
  * @fileOverview Zod schemas for the indcric application.
@@ -34,21 +35,33 @@ export const QuizAttempt = z.object({
   userAnswers: z.array(z.string()).describe("The answers provided by the user (padded with empty strings for unanswered)."),
   score: z.number().int().describe("The final score of the user."),
   totalQuestions: z.number().int().describe("The total number of questions in the quiz."),
-  timestamp: z.number().describe("The Unix timestamp when the quiz was completed."),
+  timestamp: z.number().describe("The Unix timestamp (in milliseconds) when the quiz was completed."),
   timePerQuestion: z.optional(z.array(z.number())).describe("Time taken in seconds for each question."),
   unanswered: z.optional(z.number().int()).describe("The number of questions the user did not answer."),
-  reason: z.optional(z.string()).describe("Reason for disqualification, if any (e.g., 'no-ball')."),
+  reason: z.optional(z.string().nullable()).describe("Reason for disqualification, if any (e.g., 'no-ball')."),
   source: z.enum(['ai', 'fallback']).optional().describe("The source of the quiz data."),
+  reviewed: z.boolean().optional().default(false).describe("Whether the user has reviewed the answers."),
 });
 
 // Schema for the AI's analysis output.
 export const QuizAnalysisOutputSchema = z.object({
-  summary: z.string().min(1, "Summary is required"),
-  strengths: z.array(z.string()).default([]),
-  weaknesses: z.array(z.string()).default([]),
-  recommendations: z.array(z.string()).default([]),
-  // Always tell the client if this came from AI or a fallback
-  source: z.enum(["ai", "fallback"]).default("fallback"),
+  overallPerformance: z.string(),
+  accuracy: z.number().min(0).max(100),
+  averageTimePerQuestion: z.number().min(0),
+  keyStrengths: z.array(z.string()),
+  areasForImprovement: z.array(z.string()),
+  coachTip: z.string(),
+  analyzedQuestions: z.array(
+    z.object({
+      question: z.string(),
+      userAnswer: z.string(),
+      correctAnswer: z.string(),
+      isCorrect: z.boolean(),
+      timeTaken: z.number(),
+      category: z.string(),
+    })
+  ),
+  source: z.string().optional(),
 });
 
 
@@ -57,3 +70,4 @@ export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
+export type HintOutput = import('./flows/ai-powered-hints').HintOutput;

@@ -17,14 +17,10 @@ export async function POST(req: Request) {
 
     const result: QuizAnalysisOutput = await generateQuizAnalysis(body.attempt);
 
-    // The generateQuizAnalysis flow is now hardened and should always return a valid object.
-    // We can still validate as a final safety check.
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
     if (!parsed.success) {
       console.error("[Analysis API] Output validation failed despite hardened flow:", parsed.error);
-      // This path should ideally not be hit, but if it is, send a generic fallback.
-      return NextResponse.json(
-        {
+      const fallbackAnalysis: QuizAnalysisOutput = {
           overallPerformance: "An unexpected error occurred while generating analysis.",
           accuracy: 0,
           averageTimePerQuestion: 0,
@@ -33,18 +29,14 @@ export async function POST(req: Request) {
           coachTip: "Practice makes perfect. Keep playing!",
           analyzedQuestions: [],
           source: "fallback",
-        },
-        { status: 200 }
-      );
+      };
+      return NextResponse.json(fallbackAnalysis, { status: 200 });
     }
 
     return NextResponse.json(parsed.data, { status: 200 });
   } catch (err) {
     console.error("[Analysis API] Unhandled error:", err);
-    // The client should never receive a 500 error that breaks the app.
-    // Always return a valid JSON structure with a fallback source.
-    return NextResponse.json(
-      {
+    const fallbackAnalysis: QuizAnalysisOutput = {
         overallPerformance: "An unexpected server error occurred. Please try again later.",
         accuracy: 0,
         averageTimePerQuestion: 0,
@@ -53,8 +45,10 @@ export async function POST(req: Request) {
         coachTip: "Keep playing!",
         analyzedQuestions: [],
         source: "fallback",
-      },
-      { status: 500 } // Use 500 to indicate a server issue, but client can still parse the body.
+    };
+    return NextResponse.json(
+      fallbackAnalysis,
+      { status: 500 }
     );
   }
 }
