@@ -76,23 +76,23 @@ function LeaderboardContentComponent() {
                 </Suspense>
             </TabsContent>
 
-            <TabsContent value="all-time" forceMount={activeTab !== 'all-time'}>
+            <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
                  <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>
 
-             <TabsContent value="streaks" forceMount={activeTab !== 'streaks'}>
+             <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
                  <Suspense fallback={<LeaderboardSkeleton />}>
                     <StreakLeaderboard />
                 </Suspense>
             </TabsContent>
             
             {user && (
-              <TabsContent value="network" forceMount={activeTab !== 'network'}>
+              <TabsContent value="network" forceMount={activeTab === 'network'}>
                  <Suspense fallback={<LeaderboardSkeleton count={3} />}>
                     <MyNetworkLeaderboard />
-                </Suspense>
+                 </Suspense>
               </TabsContent>
             )}
         </motion.div>

@@ -63,8 +63,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         const slotId = getQuizSlotId();
         if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
           isFinishedRef.current = true;
-          // If a user somehow lands on this page for a completed quiz, redirect them.
-          // This check is a safeguard. The primary navigation happens in finishQuiz.
           router.replace('/'); 
         }
     }
@@ -83,7 +81,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // This is the key fix: wait for auth to finish before checking user.
     if (authLoading) return;
     if (!user) {
         setError("Please sign in to play a quiz.");
@@ -145,13 +142,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    if (!isFinishedRef.current) {
+    if (!authLoading && !isFinishedRef.current) {
         fetchQuiz();
     }
     return () => {
         abortControllerRef.current?.abort();
     };
-  }, [fetchQuiz]);
+  }, [fetchQuiz, authLoading]);
 
   const handlePreQuizFinish = useCallback(() => {
     if (isFinishedRef.current) return;
@@ -174,17 +171,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
-    // Set the session flag immediately to prevent re-entry
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+    await addQuizAttempt(attempt);
 
-    // Don't await this. Fire-and-forget for a faster UI response.
-    // The data is passed via URL, so the results page can render instantly.
-    addQuizAttempt(attempt);
-
-    // Redirect immediately with the full data.
-    setTimeout(() => {
-        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-    }, 3000); // 3-second "Third Umpire" delay
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
 
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
@@ -212,12 +202,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    // Fire and forget
     addQuizAttempt(attempt);
 
-    setTimeout(() => {
-        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
-    }, 3000); // 3-second "Third Umpire" delay
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
 
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
@@ -379,6 +366,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
 
-  // Fallback case, should not be reached
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }

@@ -57,27 +57,6 @@ export default function HistoryPage() {
     }
     
     return (
-        <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-        >
-            <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                <RecentHistory />
-            </TabsContent>
-            <TabsContent value="all" forceMount={activeTab === 'all'}>
-                <AllHistory />
-            </TabsContent>
-            <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                <PerfectScoresHistory />
-            </TabsContent>
-        </motion.div>
-    )
-  }
-
-  return (
-    <PageWrapper title="My Innings">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="recent">Recent</TabsTrigger>
@@ -85,10 +64,30 @@ export default function HistoryPage() {
                 <TabsTrigger value="perfect">Perfect Scores</TabsTrigger>
             </TabsList>
             
-            <div className="mt-4">
-                {renderContent()}
-            </div>
+            <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4"
+            >
+                <TabsContent value="recent" forceMount={activeTab === 'recent'}>
+                    <RecentHistory />
+                </TabsContent>
+                <TabsContent value="all" forceMount={activeTab === 'all'}>
+                    <AllHistory />
+                </TabsContent>
+                <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
+                    <PerfectScoresHistory />
+                </TabsContent>
+            </motion.div>
         </Tabs>
+    )
+  }
+
+  return (
+    <PageWrapper title="My Innings">
+        {renderContent()}
     </PageWrapper>
   );
 }
