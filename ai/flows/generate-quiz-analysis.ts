@@ -9,29 +9,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { QuizAttempt, QuizAnalysisOutputSchema as OutputSchema } from '@/ai/schemas';
+import { QuizAttempt, QuizAnalysisOutputSchema } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 import type { QuizAnalysisOutput } from '@/ai/schemas';
-
-const QuestionAnalysisSchema = z.object({
-    question: z.string().describe("The original question text."),
-    userAnswer: z.string().describe("The answer the user provided."),
-    correctAnswer: z.string().describe("The correct answer."),
-    isCorrect: z.boolean().describe("Whether the user's answer was correct."),
-    timeTaken: z.number().describe("Time taken for this question in seconds."),
-    category: z.string().describe("A specific category for the question (e.g., 'IPL History', 'Test Bowling Records', 'Player Nicknames', 'Cricket Rules').")
-});
-
-export const QuizAnalysisOutputSchema = z.object({
-    overallPerformance: z.string().describe("A brief, encouraging summary of the user's overall performance in one or two sentences."),
-    accuracy: z.number().describe("The user's accuracy percentage."),
-    averageTimePerQuestion: z.number().describe("The average time the user took per question, in seconds."),
-    keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
-    areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories where answers were incorrect or slowly."),
-    coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),
-    analyzedQuestions: z.array(QuestionAnalysisSchema).describe("An array containing the analysis for each individual question."),
-    source: z.enum(["ai", "fallback"]).default("fallback"),
-});
 
 
 /**
@@ -83,7 +63,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
         const validatedAttempt = QuizAttempt.parse(sanitized);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
-        const parsed = OutputSchema.safeParse(analysis);
+        const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
             console.error("[generateQuizAnalysis] AI output failed validation, returning fallback.", parsed.error.format());
@@ -102,7 +82,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 const prompt = ai.definePrompt({
     name: 'generateQuizAnalysisPrompt',
     input: { schema: QuizAttempt },
-    output: { schema: OutputSchema },
+    output: { schema: QuizAnalysisOutputSchema },
     prompt: `
     You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful, detailed, and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
 
@@ -133,7 +113,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     {
         name: 'generateQuizAnalysisFlow',
         inputSchema: QuizAttempt,
-        outputSchema: OutputSchema,
+        outputSchema: QuizAnalysisOutputSchema,
     },
     async (input) => {
         try {
@@ -144,7 +124,8 @@ const generateQuizAnalysisFlow = ai.defineFlow(
             return { ...output, source: "ai" };
         } catch (error) {
              console.error("Error during AI analysis flow execution:", error);
-             throw error; 
+             // Instead of re-throwing, which could crash the caller, return a fallback.
+             return getFallbackAnalysis(input);
         }
     }
 );

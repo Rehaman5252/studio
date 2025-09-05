@@ -17,21 +17,20 @@ export async function POST(req: Request) {
 
     const result: QuizAnalysisOutput = await generateQuizAnalysis(body.attempt);
 
-    // Double-check the shape before returning
+    // The generateQuizAnalysis flow is now hardened and should always return a valid object.
+    // We can still validate as a final safety check.
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
     if (!parsed.success) {
-      console.error("[Analysis API] Output validation failed:", parsed.error);
-      // The generateQuizAnalysis flow has its own robust fallback.
-      // If validation *still* fails, it's a critical error, but we still
-      // send a structured fallback to the client to prevent crashes.
+      console.error("[Analysis API] Output validation failed despite hardened flow:", parsed.error);
+      // This path should ideally not be hit, but if it is, send a generic fallback.
       return NextResponse.json(
         {
-          overallPerformance: "We couldn’t generate AI analysis this time, but here are general insights.",
-          accuracy: body.attempt?.accuracy || 0,
-          averageTimePerQuestion: body.attempt?.averageTimePerQuestion || 0,
-          keyStrengths: ["Completed the quiz!"],
-          areasForImprovement: ["Focus on reviewing incorrect answers."],
-          coachTip: "Practice makes perfect. Keep playing to improve your skills!",
+          overallPerformance: "An unexpected error occurred while generating analysis.",
+          accuracy: 0,
+          averageTimePerQuestion: 0,
+          keyStrengths: [],
+          areasForImprovement: [],
+          coachTip: "Practice makes perfect. Keep playing!",
           analyzedQuestions: [],
           source: "fallback",
         },
@@ -55,7 +54,7 @@ export async function POST(req: Request) {
         analyzedQuestions: [],
         source: "fallback",
       },
-      { status: 200 } // still 200 so client reliably parses JSON
+      { status: 500 } // Use 500 to indicate a server issue, but client can still parse the body.
     );
   }
 }
