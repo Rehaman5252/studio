@@ -45,6 +45,22 @@ const nextConfig = {
             bodySizeLimit: '10mb',
         },
     },
+    webpack(config, { webpack, isServer }) {
+      // This is a temporary addition to help debug build errors.
+      // It will be removed once the root cause is identified.
+      if (!isServer) {
+        config.stats = {
+          all: false,
+          errors: true,
+          errorsCount: true,
+          errorDetails: true, 
+        };
+        config.infrastructureLogging = {
+          level: 'error', 
+        };
+      }
+      return config;
+    },
 };
 
 module.exports = nextConfig;
