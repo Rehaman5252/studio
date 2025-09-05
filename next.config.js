@@ -46,20 +46,19 @@ const nextConfig = {
         },
     },
     webpack(config, { webpack, isServer }) {
-      // This is a temporary addition to help debug build errors.
-      // It will be removed once the root cause is identified.
-      if (!isServer) {
+        // Restrict build output to errors only
+        config.infrastructureLogging = {
+          level: 'error',
+        };
+
         config.stats = {
           all: false,
           errors: true,
           errorsCount: true,
-          errorDetails: true, 
+          errorDetails: true,
         };
-        config.infrastructureLogging = {
-          level: 'error', 
-        };
-      }
-      return config;
+
+        return config;
     },
 };
 
