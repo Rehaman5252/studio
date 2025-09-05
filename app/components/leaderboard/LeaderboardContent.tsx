@@ -79,13 +79,13 @@ function LeaderboardContentComponent() {
             <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
                  <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
-                </Suspense>
+                 </Suspense>
             </TabsContent>
 
              <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
                  <Suspense fallback={<LeaderboardSkeleton />}>
                     <StreakLeaderboard />
-                </Suspense>
+                 </Suspense>
             </TabsContent>
             
             {user && (

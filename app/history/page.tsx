@@ -86,7 +86,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <PageWrapper title="My Innings">
+    <PageWrapper title="My Innings" showBackButton>
         {renderContent()}
     </PageWrapper>
   );
