@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/AuthProvider';
 import type { ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import LoginPrompt from './LoginPrompt';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 import { LucideIcon } from 'lucide-react';
 
 interface AuthGuardProps {
