@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthProvider';
-import { History, Award, Trophy } from 'lucide-react';
+import { History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
@@ -40,40 +40,22 @@ export default function HistoryPage() {
   const [activeTab, setActiveTab] = useState('recent');
   
   const renderContent = () => {
-    if (loading) return <HistorySkeleton />;
+    if (loading) {
+      return <HistorySkeleton />;
+    }
 
     if (!user) {
-        let promptProps;
-        switch (activeTab) {
-            case 'all':
-                promptProps = { 
-                    icon: Trophy, 
-                    title: "View Your Career Stats", 
-                    description: "Sign in to access your complete match history and track your progress over time." 
-                };
-                break;
-            case 'perfect':
-                promptProps = { 
-                    icon: Award, 
-                    title: "Your Hall of Fame", 
-                    description: "Sign in to see all your perfect scores and celebrate your moments of glory!" 
-                };
-                break;
-            default:
-                promptProps = { 
-                    icon: History, 
-                    title: "Check Your Recent Form", 
-                    description: "Just finished a match? Sign in to see how you performed in your last few innings." 
-                };
-        }
-        return (
-            <div className="pt-8">
-                <LoginPrompt {...promptProps} />
-            </div>
-        );
+      return (
+        <div className="pt-8">
+            <LoginPrompt 
+                icon={History} 
+                title="Check Your Match History" 
+                description="Sign in to review your past performances, analyze your stats, and track your progress." 
+            />
+        </div>
+      );
     }
     
-
     return (
         <motion.div
             key={activeTab}

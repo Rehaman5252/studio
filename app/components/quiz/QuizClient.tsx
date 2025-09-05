@@ -83,7 +83,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    if (authLoading || !user) return;
+    // This is the key fix: wait for auth to finish before checking user.
+    if (authLoading) return;
+    if (!user) {
+        setError("Please sign in to play a quiz.");
+        setQuizState('error');
+        return;
+    }
 
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
@@ -139,16 +145,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    if (user && !isFinishedRef.current) {
+    if (!isFinishedRef.current) {
         fetchQuiz();
-    } else if (!authLoading && !isFinishedRef.current) {
-        setError("Please sign in to play a quiz.");
-        setQuizState('error');
     }
     return () => {
         abortControllerRef.current?.abort();
     };
-  }, [fetchQuiz, user, authLoading]);
+  }, [fetchQuiz]);
 
   const handlePreQuizFinish = useCallback(() => {
     if (isFinishedRef.current) return;
