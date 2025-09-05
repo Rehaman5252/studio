@@ -1,5 +1,4 @@
 
-
 import { z } from 'zod';
 import { Timestamp } from 'firebase/firestore';
 
@@ -65,12 +64,10 @@ export const QuizAnalysisOutputSchema = z.object({
     source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 
+
 // Infer TypeScript types from the Zod schemas
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
 export type HintOutput = import('./flows/ai-powered-hints').HintOutput;
-
-
-
