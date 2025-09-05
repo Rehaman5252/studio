@@ -38,7 +38,7 @@ function ProfilePageContent() {
       return <ProfileSkeleton />;
     }
 
-    if (!user) {
+    if (!user || !profile) {
        return (
          <div className="w-full pt-8">
              <LoginPrompt
