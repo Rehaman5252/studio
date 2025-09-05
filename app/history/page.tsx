@@ -6,7 +6,7 @@ import { History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageWrapper from '@/components/PageWrapper';
 import AuthGuard from '@/app/components/auth/AuthGuard';
-import HistoryContent from '@/components/history/HistoryContent';
+import HistoryContent from '@/app/components/history/HistoryContent';
 
 const HistorySkeleton = ({ count = 3 }: { count?: number}) => (
     <div className="space-y-4 pt-4">
