@@ -74,7 +74,7 @@ function ProfilePageContent() {
         )
     }
     
-    return <ProfileContent />;
+    return <ProfileContent profile={profile} />;
   }
 
   return (
