@@ -28,7 +28,7 @@ function ProfileContentComponent({ profile }: { profile: UserProfile | null }) {
       <ProfileHeader userProfile={profile} />
       <ProfileCompletion />
       <DailyStreakCard userProfile={profile} />
-      <ProfileStats userProfile={profile} />
+      <ProfileStats />
       <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
     </div>
   );
