@@ -68,10 +68,7 @@ function ProfilePageContent() {
                 <ServerCrash className="h-4 w-4" />
                 <AlertTitle>Profile Not Found</AlertTitle>
                 <AlertDescription>
-                    We couldn't find your profile data. Please complete your profile to continue.
-                    <Button asChild className="mt-4 w-full">
-                        <Link href="/profile">Complete Profile</Link>
-                    </Button>
+                    We couldn't find your profile data. It might still be syncing. If this persists, please contact support.
                 </AlertDescription>
             </Alert>
         )

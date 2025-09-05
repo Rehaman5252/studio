@@ -27,17 +27,29 @@ const CertificatesSkeleton = () => (
 export default function CertificatesPage() {
   const { user, loading } = useAuth();
   
-  return (
-    <PageWrapper title="My Certificates" showBackButton>
-        {loading ? <CertificatesSkeleton /> : user ? <CertificatesContent /> : (
-            <div className="pt-8">
+  const renderContent = () => {
+      if (loading) {
+          return <CertificatesSkeleton />;
+      }
+      
+      if (!user) {
+          return (
+             <div className="pt-8">
                 <LoginPrompt 
                     icon={Award}
                     title="View Your Achievements"
                     description="Sign in to view and download your perfect score certificates."
                 />
             </div>
-        )}
+          );
+      }
+      
+      return <CertificatesContent />;
+  }
+
+  return (
+    <PageWrapper title="My Certificates" showBackButton>
+        {renderContent()}
     </PageWrapper>
   );
 }

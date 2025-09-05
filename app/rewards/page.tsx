@@ -39,17 +39,30 @@ const RewardsSkeleton = () => (
 
 function RewardsPage() {
   const { user, loading } = useAuth();
+  
+  const renderContent = () => {
+    if (loading) {
+      return <RewardsSkeleton />;
+    }
+    
+    if (!user) {
+      return (
+        <div className="pt-4">
+            <LoginPrompt 
+                icon={Trophy}
+                title="Claim Your Man of the Match Awards! 🏆"
+                description="You've played a great innings! Sign in to claim the brand gifts and rewards you've earned."
+            />
+        </div>
+      );
+    }
+    
+    return <RewardsContent />;
+  };
+
   return (
     <PageWrapper title="Trophy Cabinet">
-         {loading ? <RewardsSkeleton/> : user ? <RewardsContent /> : (
-            <div className="pt-4">
-                <LoginPrompt 
-                    icon={Trophy}
-                    title="Claim Your Man of the Match Awards! 🏆"
-                    description="You've played a great innings! Sign in to claim the brand gifts and rewards you've earned."
-                />
-            </div>
-         )}
+         {renderContent()}
          <section className="pt-6">
             <h2 className="text-xl font-semibold mb-4 text-foreground">Sponsor's Pavilion</h2>
             <div className="space-y-4">
