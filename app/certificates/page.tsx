@@ -1,12 +1,12 @@
 
 'use client';
 
-import PageWrapper from '@/app/components/PageWrapper';
+import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
-import AuthGuard from '@/app/components/auth/AuthGuard';
+import AuthGuard from '@/components/auth/AuthGuard';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const CertificatesContent = dynamic(() => import('@/app/components/certificates/CertificatesContent'), {
+const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
     loading: () => <CertificatesSkeleton />,
     ssr: false,
 });
