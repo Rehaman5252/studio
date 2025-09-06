@@ -50,7 +50,7 @@ import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderb
 
 /* -------------------------------- Types ------------------------------- */
 
-interface UserProfile {
+export interface UserProfile {
   uid: string;
   name: string;
   photoURL?: string;
