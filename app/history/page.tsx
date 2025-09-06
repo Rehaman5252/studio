@@ -1,10 +1,9 @@
-
 'use client';
 
 import React from 'react';
-import PageWrapper from '@/components/PageWrapper';
+import PageWrapper from '@/app/components/PageWrapper';
 import AuthGuard from '@/app/components/auth/AuthGuard';
-import HistoryContent from '@/components/history/HistoryContent';
+import HistoryContent from '@/app/components/history/HistoryContent';
 
 export default function HistoryPage() {
   return (
