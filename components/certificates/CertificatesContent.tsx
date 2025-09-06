@@ -8,8 +8,8 @@ import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy,
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { Skeleton } from '../ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
