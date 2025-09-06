@@ -12,7 +12,7 @@
     },
     {
       "collectionGroup": "entries",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "score", "order": "DESCENDING" },
         { "fieldPath": "time", "order": "ASCENDING" }

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -163,7 +163,7 @@ const StreakLeaderboard = () => {
     }, [authLoading, user]);
 
 
-    const content = () => {
+    const content = useMemo(() => {
         if (isLoading || authLoading) {
             return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         }
@@ -196,7 +196,7 @@ const StreakLeaderboard = () => {
                 )}
             </>
         );
-    };
+    }, [isLoading, authLoading, error, players, currentUserData]);
 
 
     return (
@@ -206,7 +206,7 @@ const StreakLeaderboard = () => {
                 <CardDescription>The most consistent players on the pitch.</CardDescription>
             </CardHeader>
             <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-2">{content()}</div>
+                <div className="space-y-2">{content}</div>
             </CardContent>
         </Card>
     );
