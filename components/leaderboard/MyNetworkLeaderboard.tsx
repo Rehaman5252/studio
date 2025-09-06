@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, where, query, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Star, Users } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
@@ -60,16 +60,12 @@ const ErrorState = ({ message, title }: { message: string, title: string }) => (
 );
 
 const MyNetworkLeaderboard = () => {
-    const { user, profile, loading: authLoading, firebaseAppReady } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!firebaseAppReady) {
-            setIsLoading(false);
-            return;
-        }
         if (authLoading || !user || !profile) {
             if (!authLoading) setIsLoading(false);
             return;
@@ -125,7 +121,7 @@ const MyNetworkLeaderboard = () => {
 
         fetchNetworkData();
 
-    }, [user, profile, authLoading, firebaseAppReady]);
+    }, [user, profile, authLoading]);
 
 
     const content = useMemo(() => {

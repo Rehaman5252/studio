@@ -7,11 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Clock, Ban, Users } from 'lucide-react';
-import { cn, getQuizSlotId, mapFirestoreError } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
@@ -22,8 +20,8 @@ const RankIcon = memo(({ rank }: { rank: number }) => {
 });
 RankIcon.displayName = 'RankIcon';
 
-const LeaderboardItem = memo(({ player }: { player: LivePlayer }) => (
-    <div className={cn("flex items-center p-2 rounded-lg transition-colors", player.isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
+const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
+    <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
         <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
@@ -95,7 +93,7 @@ const LiveLeaderboard = () => {
         }));
 
         return playersWithRank.map((player) => (
-            <LeaderboardItem key={player.userId} player={player} />
+            <LeaderboardItem key={player.userId} player={player} isCurrentUser={player.isCurrentUser} />
         ));
     }, [leaderboardLive, timeLeft, user, authLoading]);
 

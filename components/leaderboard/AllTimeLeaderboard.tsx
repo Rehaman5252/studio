@@ -69,19 +69,13 @@ const ErrorState = ({ message, title }: { message: string, title: string }) => (
 );
 
 const AllTimeLeaderboard = () => {
-    const { user, loading: authLoading, firebaseAppReady } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!firebaseAppReady) {
-            setIsLoading(false);
-            return;
-        }
-
         if (authLoading) return;
-        
         if (!db) {
             setError("Database not available.");
             setIsLoading(false);
@@ -124,7 +118,7 @@ const AllTimeLeaderboard = () => {
         });
 
         return () => unsubscribe();
-    }, [authLoading, user, firebaseAppReady]);
+    }, [authLoading, user]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) {

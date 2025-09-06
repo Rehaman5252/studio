@@ -6,9 +6,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { cn } from '@/lib/utils';
 import { FileText, Newspaper, HelpCircle, ServerCrash, WifiOff } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
@@ -63,6 +62,11 @@ export default function UserSubmissionsList() {
         }
 
         const fetchSubmissions = async () => {
+            if (!db) {
+                setError("Database not available.");
+                setIsLoading(false);
+                return;
+            }
             setIsLoading(true);
             setError(null);
             try {

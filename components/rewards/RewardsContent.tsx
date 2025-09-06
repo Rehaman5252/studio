@@ -9,11 +9,12 @@ import Image from 'next/image';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Skeleton } from '../ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -54,28 +55,9 @@ const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
-const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) => {
-  const [isScratched, setIsScratched] = useState(false);
-  const storageKey = useMemo(() => `indcric-scratch-card-${slotId}`, [slotId]);
-  
+const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, onScratch: () => void, isScratched: boolean }) => {
   const brandInfo = useMemo(() => brandData.find(b => b.brand === brand) || { logoUrl: 'https://placehold.co/100x100.png' }, [brand]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const savedState = window.localStorage.getItem(storageKey);
-        if (savedState === 'true') {
-            setIsScratched(true);
-        }
-    }
-  }, [storageKey]);
-
-  const handleScratch = () => {
-    setIsScratched(true);
-    if (typeof window !== 'undefined') {
-        window.localStorage.setItem(storageKey, 'true');
-    }
-  };
-
+  
   const rewardsByBrand: { [key: string]: { gift: string; description: string; link: string; } } = {
     'Amazon': { gift: '₹150 Gift Card', description: 'Credited to your Amazon Pay.', link: 'https://www.amazon.in/gp/sva/dashboard' },
     'Nike': { gift: 'Free Shipping', description: 'On your next order over ₹2000.', link: 'https://www.nike.com/in/' },
@@ -99,7 +81,7 @@ const ScratchCard = memo(({ brand, slotId }: { brand: string, slotId: string }) 
                 <button 
                     type="button"
                     className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-opacity hover:opacity-95 rounded-2xl p-2 text-center" 
-                    onClick={handleScratch} 
+                    onClick={onScratch} 
                     role="button" 
                     aria-label={`Scratch to reveal gift from ${brand}`}
                 >
@@ -141,19 +123,68 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
 ));
 GenericOffer.displayName = 'GenericOffer';
 
+const getStartOfWeek = (timestamp: number | Timestamp): number => {
+    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+    const day = date.getDay();
+    // Adjust to Monday as the start of the week (Sunday is 0)
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
+    const startOfWeek = new Date(date.setDate(diff));
+    return startOfWeek.setHours(0, 0, 0, 0);
+};
+
 
 function RewardsContentComponent() {
   const { user, quizHistory, loading } = useAuth();
+  const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && quizHistory.data.length > 0) {
+      const initialScratchedState: Record<string, boolean> = {};
+      quizHistory.data.forEach(attempt => {
+        const storageKey = `indcric-scratch-card-${attempt.slotId}`;
+        const savedState = window.localStorage.getItem(storageKey);
+        if (savedState === 'true') {
+          initialScratchedState[attempt.slotId] = true;
+        }
+      });
+      setScratchedCards(initialScratchedState);
+    }
+  }, [quizHistory.data]);
+
+  const handleScratch = (slotId: string) => {
+    setScratchedCards(prev => ({ ...prev, [slotId]: true }));
+    if (typeof window !== 'undefined') {
+      const storageKey = `indcric-scratch-card-${slotId}`;
+      window.localStorage.setItem(storageKey, 'true');
+    }
+  };
   
   const rewardableAttempts = useMemo(() => {
-    const uniqueAttempts = new Map<string, QuizAttempt>();
-    for (let i = quizHistory.data.length - 1; i >= 0; i--) {
-        const attempt = quizHistory.data[i];
-        if (attempt.slotId && !uniqueAttempts.has(attempt.slotId)) {
-            uniqueAttempts.set(attempt.slotId, attempt);
-        }
+    // Sort all attempts newest first to ensure we process the most recent ones
+    const sortedAttempts = [...quizHistory.data].sort((a, b) => {
+      const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
+      const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
+      return timeB - timeA;
+    });
+
+    const weeklyBrandTracker = new Set<string>();
+    const uniqueWeeklyAttempts: QuizAttempt[] = [];
+
+    for (const attempt of sortedAttempts) {
+      if (!attempt.brand || !attempt.timestamp) continue;
+
+      const weekStartTimestamp = getStartOfWeek(attempt.timestamp);
+      const brandWeekKey = `${attempt.brand}-${weekStartTimestamp}`;
+
+      // If we haven't already added a reward for this brand in this week, add it.
+      if (!weeklyBrandTracker.has(brandWeekKey)) {
+        uniqueWeeklyAttempts.push(attempt);
+        weeklyBrandTracker.add(brandWeekKey);
+      }
     }
-    return Array.from(uniqueAttempts.values()).sort((a, b) => b.timestamp - a.timestamp);
+    
+    // The list is already sorted by newest first from the initial sort.
+    return uniqueWeeklyAttempts;
   }, [quizHistory.data]);
 
   const BrandGifts = () => {
@@ -170,20 +201,25 @@ function RewardsContentComponent() {
       );
     }
     return (
-      <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
-        <CarouselContent className="-ml-4">
-          {rewardableAttempts.map((attempt, index) => (
-            <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-              <ScratchCard 
-                brand={attempt.brand} 
-                slotId={attempt.slotId}
-              />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious className="hidden sm:flex" />
-        <CarouselNext className="hidden sm:flex" />
-      </Carousel>
+        <div className="relative">
+            <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+                <CarouselContent className="-ml-4">
+                {rewardableAttempts.map((attempt, index) => (
+                    <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                    <ScratchCard 
+                        brand={attempt.brand}
+                        isScratched={scratchedCards[attempt.slotId] || false}
+                        onScratch={() => handleScratch(attempt.slotId)}
+                    />
+                    </CarouselItem>
+                ))}
+                </CarouselContent>
+                <div className="flex justify-between w-full px-4 pt-4">
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </div>
+            </Carousel>
+        </div>
     );
   };
 

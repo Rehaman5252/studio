@@ -3,17 +3,17 @@
 
 import React, { memo } from 'react';
 import dynamic from 'next/dynamic';
-import { Skeleton } from '../components/ui/skeleton';
-import { useAuth } from '../context/AuthProvider';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
 import { Trophy } from 'lucide-react';
-import { GenericOffer } from '../components/rewards/RewardsContent';
-import PageWrapper from '../components/PageWrapper';
+import { GenericOffer } from '@/components/rewards/RewardsContent';
+import PageWrapper from '@/components/PageWrapper';
 
-const RewardsContent = dynamic(() => import('../components/rewards/RewardsContent'), {
+const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
   loading: () => <RewardsSkeleton />,
   ssr: false,
 });
-const LoginPrompt = dynamic(() => import('../components/auth/LoginPrompt'), {
+const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
     loading: () => <Skeleton className="h-56 w-full" />,
 });
 

@@ -11,6 +11,7 @@ import { useSettings } from '@/hooks/use-settings';
 interface AdDialogProps {
   open: boolean;
   onAdFinished: () => void;
+  onOpenChange: (open: boolean) => void;
   duration: number; // in seconds
   skippableAfter: number; // in seconds
   adTitle: string;
@@ -20,7 +21,7 @@ interface AdDialogProps {
   adHint?: string; // for data-ai-hint on images
 }
 
-export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle, adType, adUrl, adHint, children }: AdDialogProps) {
+export function AdDialog({ open, onAdFinished, onOpenChange, duration, skippableAfter, adTitle, adType, adUrl, adHint, children }: AdDialogProps) {
   const { settings } = useSettings();
   const [adTimeLeft, setAdTimeLeft] = useState(duration);
   const [isSkippable, setIsSkippable] = useState(false);
@@ -85,6 +86,8 @@ export function AdDialog({ open, onAdFinished, duration, skippableAfter, adTitle
     <Dialog open={open} onOpenChange={(isOpen) => {
         if (!isOpen && isSkippable) {
             handleSkip();
+        } else {
+            onOpenChange(isOpen);
         }
     }}>
         <DialogContent

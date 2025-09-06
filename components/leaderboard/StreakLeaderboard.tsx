@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -67,10 +67,8 @@ const calculateUserRank = async (streak: number, name: string): Promise<number> 
     const usersCollection = collection(db, 'users');
     
     try {
-        // Count users with a strictly higher streak
         const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
         
-        // Count users with the same streak but alphabetically earlier name for tie-breaking
         const tieBreakerQuery = query(
             usersCollection, 
             where('currentStreak', '==', streak), 
@@ -85,23 +83,18 @@ const calculateUserRank = async (streak: number, name: string): Promise<number> 
         return higherSnapshot.data().count + tieSnapshot.data().count + 1;
     } catch (e: any) {
         console.error("Rank calculation failed:", e);
-        // In case of index error etc., return a non-breaking value
         return 999; 
     }
 };
 
 const StreakLeaderboard = () => {
-    const { user, loading: authLoading, firebaseAppReady } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<StreakPlayer[]>([]);
     const [currentUserData, setCurrentUserData] = useState<StreakPlayer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!firebaseAppReady) {
-            setIsLoading(false);
-            return;
-        }
         if (authLoading) return;
         if (!db) {
             setError("Database not available.");
@@ -132,8 +125,6 @@ const StreakLeaderboard = () => {
                     });
                 
                 setPlayers(playersData);
-
-                // Only calculate rank if user exists and is not already in the top 50 list
                 if (user && !playersData.some(p => p.uid === user.uid)) {
                    const userDocRef = doc(db, 'users', user.uid);
                    const userDoc = await getDoc(userDocRef);
@@ -157,7 +148,6 @@ const StreakLeaderboard = () => {
                         }
                    }
                 } else {
-                    // If user is in the top list, no need to show them separately at the bottom
                     setCurrentUserData(null);
                 }
 
@@ -170,10 +160,10 @@ const StreakLeaderboard = () => {
 
         fetchLeaderboard();
 
-    }, [authLoading, user, firebaseAppReady]);
+    }, [authLoading, user]);
 
 
-    const content = useMemo(() => {
+    const content = () => {
         if (isLoading || authLoading) {
             return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         }
@@ -193,7 +183,7 @@ const StreakLeaderboard = () => {
                 )}
             </>
         );
-    }, [isLoading, authLoading, error, players, currentUserData]);
+    };
 
 
     return (
@@ -203,7 +193,7 @@ const StreakLeaderboard = () => {
                 <CardDescription>The most consistent players on the pitch.</CardDescription>
             </CardHeader>
             <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-2">{content}</div>
+                <div className="space-y-2">{content()}</div>
             </CardContent>
         </Card>
     );

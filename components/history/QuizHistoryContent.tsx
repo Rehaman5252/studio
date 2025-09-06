@@ -64,14 +64,14 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const [showAdDialog, setShowAdDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
-  const [isReviewed, setIsReviewed] = useState(attempt.reviewed);
+  const [isReviewed, setIsReviewed] = useState(attempt.reviewed || false);
 
 
   const handleReviewClick = useCallback(() => {
-    if (!isReviewed) {
-        setShowAdDialog(true);
-    } else {
+    if (isReviewed) {
         setShowReviewDialog(true);
+    } else {
+        setShowAdDialog(true);
     }
   }, [isReviewed]);
 
@@ -95,7 +95,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
   
   const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
-  const isPerfectScore = attempt.score === attempt.totalQuestions;
+  const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
   const isDisqualified = !!attempt.reason;
   const slotTiming = getSlotTimings(attempt.timestamp);
 
@@ -158,20 +158,23 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                  <p className="text-xs text-muted-foreground mt-2">Watch this ad to review your answers. This is a one-time action per quiz.</p>
             </AdDialog>
         )}
-
-        <ReviewDialog
+        
+        {attempt && (
+          <ReviewDialog
             open={showReviewDialog}
             onOpenChange={setShowReviewDialog}
             attempt={attempt}
-        />
-        <AnalysisDialog
-            attempt={attempt}
+          />
+        )}
+
+        {attempt && (
+          <AnalysisDialog
             open={isAnalysisOpen}
             onOpenChange={setIsAnalysisOpen}
-        />
+            attempt={attempt}
+          />
+        )}
     </>
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
-
-    
