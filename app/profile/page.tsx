@@ -1,4 +1,3 @@
-
 "use client";
 import React, { Suspense, memo } from "react";
 import dynamic from 'next/dynamic';
@@ -12,20 +11,18 @@ import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/PageWrapper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import AuthGuard from "@/components/auth/AuthGuard";
 
 const ProfileContent = dynamic(() => import('@/components/profile/ProfileContent'), {
   loading: () => <ProfileSkeleton />,
   ssr: false,
-});
-const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
-    loading: () => <Skeleton className="h-56 w-full" />,
 });
 const SupportCard = dynamic(() => import('@/components/profile/SupportCard'), {
     loading: () => <Skeleton className="h-28 w-full" />,
 });
 
 function ProfilePageContent() {
-  const { user, profile, loading, isOffline, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -33,59 +30,15 @@ function ProfilePageContent() {
     router.replace('/auth/login');
   };
   
-  const renderPrivateContent = () => {
-    if (loading) {
-      return <ProfileSkeleton />;
-    }
-
-    if (!user || !profile) {
-       return (
-         <div className="w-full pt-8">
-             <LoginPrompt
-                icon={UserCheck}
-                title="Ready to Step up to the Crease?"
-                description="Pad up and sign in to view your player stats, achievements, and rewards."
-             />
-         </div>
-       );
-    }
-
-    if (isOffline && !profile) {
-        return (
-            <Alert variant="destructive" className="max-w-md mx-auto">
-                <WifiOff className="h-4 w-4" />
-                <AlertTitle>Could Not Load Profile</AlertTitle>
-                <AlertDescription>
-                    You appear to be offline. Please check your connection to view your profile.
-                </AlertDescription>
-            </Alert>
-        )
-    }
-    
-    if (!profile) {
-        return (
-            <Alert variant="destructive" className="max-w-md mx-auto">
-                <ServerCrash className="h-4 w-4" />
-                <AlertTitle>Profile Not Found</AlertTitle>
-                <AlertDescription>
-                    We couldn't find your profile data. It might still be syncing. If this persists, please contact support.
-                </AlertDescription>
-            </Alert>
-        )
-    }
-    
-    return <ProfileContent profile={profile} />;
-  }
-
   return (
     <PageWrapper title="Player's Pavilion">
-        <Suspense fallback={<ProfileSkeleton />}>
-          {renderPrivateContent()}
-        </Suspense>
+        <AuthGuard>
+            <Suspense fallback={<ProfileSkeleton />}>
+              {profile ? <ProfileContent profile={profile} /> : <ProfileSkeleton />}
+            </Suspense>
 
-        <section className="space-y-3 pt-4">
-            {user && (
-                 <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+            <section className="space-y-3 pt-4">
+                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                     <Link href="/certificates">
                         <div className="flex items-center">
                             <Award className="mr-4 text-primary" /> View Certificates
@@ -93,26 +46,24 @@ function ProfilePageContent() {
                         <ChevronRight/>
                     </Link>
                 </Button>
-            )}
-            <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
-                <Link href="/settings">
-                    <div className="flex items-center">
-                        <Settings className="mr-4 text-primary" /> App Settings
-                    </div>
-                    <ChevronRight/>
-                </Link>
-            </Button>
-            <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
-                <Link href="/policies">
-                    <div className="flex items-center">
-                        <Scale className="mr-4 text-primary" /> Legal & Policies
-                    </div>
-                    <ChevronRight/>
-                </Link>
-            </Button>
-        </section>
-        
-        {user && (
+                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                    <Link href="/settings">
+                        <div className="flex items-center">
+                            <Settings className="mr-4 text-primary" /> App Settings
+                        </div>
+                        <ChevronRight/>
+                    </Link>
+                </Button>
+                <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                    <Link href="/policies">
+                        <div className="flex items-center">
+                            <Scale className="mr-4 text-primary" /> Legal & Policies
+                        </div>
+                        <ChevronRight/>
+                    </Link>
+                </Button>
+            </section>
+            
             <Card className="bg-card shadow-lg mt-4">
                 <CardHeader>
                     <CardTitle className="text-lg">Commentary Box</CardTitle>
@@ -132,17 +83,15 @@ function ProfilePageContent() {
                     </Button>
                 </CardContent>
             </Card>
-        )}
 
-        <SupportCard />
+            <SupportCard />
 
-        {user && (
             <section className="pt-4">
                 <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
                     <LogOut className="mr-2 h-5 w-5" /> Logout
                 </Button>
             </section>
-        )}
+        </AuthGuard>
     </PageWrapper>
   );
 }
