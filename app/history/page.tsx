@@ -3,7 +3,7 @@
 
 import React from 'react';
 import PageWrapper from '@/components/PageWrapper';
-import AuthGuard from '@/components/auth/AuthGuard';
+import AuthGuard from '@/app/components/auth/AuthGuard';
 import HistoryContent from '@/components/history/HistoryContent';
 
 export default function HistoryPage() {
