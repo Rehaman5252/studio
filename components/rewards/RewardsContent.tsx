@@ -123,6 +123,16 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
 ));
 GenericOffer.displayName = 'GenericOffer';
 
+const getStartOfWeek = (timestamp: number | Timestamp): number => {
+    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+    const day = date.getDay();
+    // Adjust to Monday as the start of the week (Sunday is 0)
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
+    const startOfWeek = new Date(date.setDate(diff));
+    return startOfWeek.setHours(0, 0, 0, 0);
+};
+
+
 function RewardsContentComponent() {
   const { user, quizHistory, loading } = useAuth();
   const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
@@ -150,27 +160,32 @@ function RewardsContentComponent() {
   };
   
   const rewardableAttempts = useMemo(() => {
-    const latestAttemptByBrand: { [brand: string]: QuizAttempt } = {};
-    
-    // Iterate through all attempts to find the latest one for each brand
-    for (const attempt of quizHistory.data) {
-        if (attempt.brand) {
-            const existing = latestAttemptByBrand[attempt.brand];
-            const attemptTimestamp = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toMillis() : attempt.timestamp;
-            if (!existing || attemptTimestamp > (existing.timestamp instanceof Timestamp ? existing.timestamp.toMillis() : existing.timestamp)) {
-                latestAttemptByBrand[attempt.brand] = attempt;
-            }
-        }
+    // Sort all attempts newest first to ensure we process the most recent ones
+    const sortedAttempts = [...quizHistory.data].sort((a, b) => {
+      const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
+      const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
+      return timeB - timeA;
+    });
+
+    const weeklyBrandTracker = new Set<string>();
+    const uniqueWeeklyAttempts: QuizAttempt[] = [];
+
+    for (const attempt of sortedAttempts) {
+      if (!attempt.brand || !attempt.timestamp) continue;
+
+      const weekStartTimestamp = getStartOfWeek(attempt.timestamp);
+      const brandWeekKey = `${attempt.brand}-${weekStartTimestamp}`;
+
+      // If we haven't already added a reward for this brand in this week, add it.
+      if (!weeklyBrandTracker.has(brandWeekKey)) {
+        uniqueWeeklyAttempts.push(attempt);
+        weeklyBrandTracker.add(brandWeekKey);
+      }
     }
     
-    // Return the collected latest attempts, sorted from newest to oldest
-    return Object.values(latestAttemptByBrand).sort((a, b) => {
-        const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
-        const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
-        return timeB - timeA;
-    });
-}, [quizHistory.data]);
-
+    // The list is already sorted by newest first from the initial sort.
+    return uniqueWeeklyAttempts;
+  }, [quizHistory.data]);
 
   const BrandGifts = () => {
     if (loading || quizHistory.loading) return <RewardsSkeleton />;
@@ -199,9 +214,9 @@ function RewardsContentComponent() {
                     </CarouselItem>
                 ))}
                 </CarouselContent>
-                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
-                    <CarouselPrevious className="static -translate-x-4" />
-                    <CarouselNext className="static translate-x-4" />
+                <div className="flex justify-between w-full px-4 pt-4 sm:hidden">
+                    <CarouselPrevious />
+                    <CarouselNext />
                 </div>
             </Carousel>
         </div>
