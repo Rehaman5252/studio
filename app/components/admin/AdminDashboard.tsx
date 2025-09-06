@@ -30,9 +30,13 @@ export default function AdminDashboard() {
   
   const handleLogout = async () => {
     if (!auth) return;
-    await signOut(auth);
-    toast({ title: "Signed Out" });
-    router.replace('/admin/login');
+    try {
+        await signOut(auth);
+        toast({ title: "Signed Out" });
+        router.replace('/admin/login');
+    } catch (error) {
+        toast({ title: "Sign Out Error", description: "Could not sign out. Please try again.", variant: "destructive" });
+    }
   };
 
   return (
@@ -40,7 +44,7 @@ export default function AdminDashboard() {
         <CardHeader className="flex flex-row items-center justify-between">
             <div>
                 <CardTitle>Dashboard</CardTitle>
-                <CardDescription>An overview of the indcric platform.</CardDescription>
+                <CardDescription>An overview of the CricBlitz platform.</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4"/>
