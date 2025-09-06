@@ -16,14 +16,14 @@ const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
     if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
     if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
-    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
+    return <span aria-label={\`Rank \${rank}\`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
     <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
+        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || \`https://placehold.co/40x40.png\`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         {player.disqualified ? (
             <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
@@ -81,7 +81,7 @@ const LiveLeaderboard = () => {
    
     const content = useMemo(() => {
         if (leaderboardLive.loading || authLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
+            return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={\`skel-live-\${i}\`} />);
         }
         if (leaderboardLive.error) return <ErrorState title="Error Loading Leaderboard" message={leaderboardLive.error} />;
         if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;

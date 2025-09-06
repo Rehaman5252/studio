@@ -237,7 +237,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         if (!querySnapshot.empty) {
           referredBy = querySnapshot.docs[0].id;
         } else {
-          console.warn(`Referral code "${additionalData.referralCode}" not found.`);
+          console.warn(\`Referral code "\${additionalData.referralCode}" not found.\`);
         }
       }
 
@@ -250,7 +250,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           name,
           email: u.email,
           phone: additionalData.phone || '',
-          photoURL: u.photoURL || `https://placehold.co/100x100.png`,
+          photoURL: u.photoURL || \`https://placehold.co/100x100.png\`,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           lastPlayedAt: null,
@@ -264,7 +264,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           profileCompleted: false,
           guidedTourCompleted: false,
           phoneVerified: false,
-          referralCode: `ref${u.uid.substring(0, 4)}`,
+          referralCode: \`ref\${u.uid.substring(0, 4)}\`,
           referralEarnings: 0,
           noBallCount: 0,
           lastNoBallTimestamp: null,
@@ -648,7 +648,7 @@ const persistAttemptBatch = useCallback(
             const code = err?.code || 'unknown';
             const message = err?.message || String(err);
             // Throw a more descriptive error to be caught by the calling function
-            throw new Error(`firestore_commit_failed:${code}:${message}`);
+            throw new Error(\`firestore_commit_failed:\${code}:\${message}\`);
         }
     },
     [user]
@@ -675,7 +675,7 @@ const persistAttemptBatch = useCallback(
         const errMsg = String(e?.message || e);
         toast({
           title: 'Sync Error',
-          description: `Could not save your quiz result now. (${errMsg}) It will auto-sync when you are back online.`,
+          description: \`Could not save your quiz result now. (\${errMsg}) It will auto-sync when you are back online.\`,
           variant: 'destructive',
           duration: 10000,
         });
@@ -696,7 +696,7 @@ const persistAttemptBatch = useCallback(
 
       toast({
         title: 'Reconnecting...',
-        description: `Syncing ${list.length} pending quiz attempt(s).`,
+        description: \`Syncing \${list.length} pending quiz attempt(s).\`,
       });
 
       for (const a of list) {
