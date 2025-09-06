@@ -11,21 +11,21 @@ import { FirebaseProvider } from '@/providers/FirebaseProvider';
 // This component composes all the providers for the application.
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <FirebaseProvider>
-      <UserDataProvider>
-        <SettingsProvider>
-          <QuizStatusProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <SettingsProvider>
+        <FirebaseProvider>
+          <UserDataProvider>
+            <QuizStatusProvider>
               {children}
-            </ThemeProvider>
-          </QuizStatusProvider>
-        </SettingsProvider>
-      </UserDataProvider>
-    </FirebaseProvider>
+            </QuizStatusProvider>
+          </UserDataProvider>
+        </FirebaseProvider>
+      </SettingsProvider>
+    </ThemeProvider>
   );
 }
