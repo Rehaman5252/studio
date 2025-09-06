@@ -75,13 +75,13 @@ export function mapFirestoreError(error: any): string {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
       return "You appear to be offline. Please check your internet connection.";
   }
-
+  
   const code = error.code || '';
   const message = (error.message || '').toLowerCase();
   
   // Specific check for Firestore index errors
   if (code === 'failed-precondition' && message.includes('index')) {
-    return "The leaderboard data is being prepared. This can take a few minutes. Please check back shortly. (needs_index)";
+    return "The server is not ready to handle requests. This might be due to a missing database index. Please try again in a moment. (needs_index)";
   }
 
   if (error instanceof FirebaseError) {
@@ -96,7 +96,7 @@ export function mapFirestoreError(error: any): string {
               return 'The request timed out. Please check your connection and try again.';
           case 'cancelled':
               return 'The request was cancelled. Please try again.';
-          case "unauthenticated":
+           case "unauthenticated":
               return "Your session may have expired. Please log in again.";
           case "resource-exhausted":
               return "The request limit was reached. Please wait before trying again.";
