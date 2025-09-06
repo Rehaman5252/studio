@@ -75,13 +75,13 @@ export function mapFirestoreError(error: any): string {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
       return "You appear to be offline. Please check your internet connection.";
   }
-  
+
   const code = error.code || '';
   const message = (error.message || '').toLowerCase();
   
   // Specific check for Firestore index errors
   if (code === 'failed-precondition' && message.includes('index')) {
-    return "The server is not ready to handle requests. This might be due to a missing database index. Please try again in a moment. (needs_index)";
+    return "needs_index"; // Special keyword for components to handle
   }
 
   if (error instanceof FirebaseError) {

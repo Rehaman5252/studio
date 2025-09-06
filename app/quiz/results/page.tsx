@@ -16,7 +16,6 @@ import PageWrapper from '@/components/PageWrapper';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import jsPDF from 'jspdf';
-import { Timestamp } from 'firebase/firestore';
 import { decodeAttempt } from '@/lib/quiz-utils';
 
 
@@ -47,21 +46,21 @@ const ResultsContent = () => {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdForReview, setShowAdForReview] = useState(false);
 
-  // Decode the attempt data directly from the URL search parameter.
-  const [currentAttempt, setCurrentAttempt] = useState<QuizAttempt | null>(() => {
+  const currentAttempt: QuizAttempt | null = useMemo(() => {
     const attemptData = searchParams.get('attempt');
     return attemptData ? decodeAttempt(attemptData) : null;
-  });
+  }, [searchParams]);
 
   const [isReviewed, setIsReviewed] = useState(currentAttempt?.reviewed || false);
 
-  // If the attempt data couldn't be decoded, show an error.
   useEffect(() => {
     if (!searchParams.get('attempt')) {
       toast({ title: "Invalid Link", description: "No quiz data found in the link.", variant: "destructive" });
       router.replace('/');
+    } else if (currentAttempt && currentAttempt.reviewed) {
+        setIsReviewed(true);
     }
-  }, [searchParams, router, toast]);
+  }, [searchParams, router, toast, currentAttempt]);
 
   const handleViewAnswers = useCallback(() => {
     if (!currentAttempt) return;

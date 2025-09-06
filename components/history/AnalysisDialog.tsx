@@ -21,9 +21,9 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;

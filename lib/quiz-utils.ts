@@ -8,14 +8,13 @@ import { sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfil
 
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
- * This version uses encodeURIComponent to handle all possible characters safely.
+ * This version uses a robust method to handle all possible characters safely.
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
         const sanitized = sanitizeAttemptData(attempt);
         const jsonString = JSON.stringify(sanitized);
-        // btoa is a common source of errors with Unicode, but JSON stringify should escape it.
-        // We wrap with encodeURIComponent for URL safety.
+        // This combination correctly handles Unicode characters before base64 encoding.
         return encodeURIComponent(btoa(unescape(encodeURIComponent(jsonString))));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
@@ -25,11 +24,12 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
 
 /**
  * Decodes a Base64 string from a URL into a QuizAttempt object.
- * This version uses decodeURIComponent to correctly parse the encoded string.
+ * This version correctly reverses the robust encoding method.
  */
 export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
     try {
         const decodedB64 = decodeURIComponent(encodedAttempt);
+        // This combination correctly decodes Unicode characters from base64.
         const jsonString = decodeURIComponent(escape(atob(decodedB64)));
         return JSON.parse(jsonString);
     } catch (e) {

@@ -1,6 +1,4 @@
 
-
-
 import { Timestamp } from "firebase/firestore";
 import type { QuizAttempt } from '@/ai/schemas';
 
@@ -54,13 +52,14 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   const score = Number(raw.score);
   sanitized.score = Number.isFinite(score) ? Math.floor(score) : 0;
 
-  // Handle both Firestore Timestamps and number timestamps
   if (raw.timestamp instanceof Timestamp) {
     sanitized.timestamp = raw.timestamp.toMillis();
   } else if (raw.timestamp && typeof raw.timestamp === 'object' && 'seconds' in raw.timestamp) {
-    sanitized.timestamp = raw.timestamp.seconds * 1000;
+    sanitized.timestamp = new Timestamp(raw.timestamp.seconds, raw.timestamp.nanoseconds).toMillis();
+  } else if (typeof raw.timestamp === 'number') {
+    sanitized.timestamp = raw.timestamp;
   } else {
-    sanitized.timestamp = Number(raw.timestamp) || Date.now();
+    sanitized.timestamp = Date.now();
   }
   
   const timePer = Array.isArray(raw.timePerQuestion) ? raw.timePerQuestion.map(Number) : [];
