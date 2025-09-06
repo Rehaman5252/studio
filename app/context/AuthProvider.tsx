@@ -377,6 +377,51 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
 
+  /* ------------------------ Leaderboard Subscriptions ----------------------- */
+  useEffect(() => {
+    if (!db) return;
+  
+    // Live Leaderboard Listener
+    const setupLiveLeaderboardListener = () => {
+      const slotId = getQuizSlotId();
+      setLeaderboardLive((prev) => ({ ...prev, slotId, loading: true }));
+  
+      const q = query(
+        collection(db, 'leaderboard_live', slotId, 'entries'),
+        orderBy('score', 'desc'),
+        orderBy('time', 'asc'),
+        limit(50)
+      );
+  
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const rows = snapshot.docs.map(d => d.data() as LivePlayer);
+        setLeaderboardLive({ slotId, rows, loading: false, error: null });
+      }, (error) => {
+        console.error("Live Leaderboard Error: ", error);
+        setLeaderboardLive({ slotId, rows: [], loading: false, error: mapFirestoreError(error) });
+      });
+  
+      return unsubscribe;
+    };
+  
+    let liveUnsubscribe = setupLiveLeaderboardListener();
+  
+    // This interval checks if the slot has changed and re-subscribes if it has.
+    const slotCheckInterval = setInterval(() => {
+      const newSlotId = getQuizSlotId();
+      if (newSlotId !== leaderboardLive.slotId) {
+        if (liveUnsubscribe) liveUnsubscribe();
+        liveUnsubscribe = setupLiveLeaderboardListener();
+      }
+    }, 5000); // Check every 5 seconds
+  
+    return () => {
+      if (liveUnsubscribe) liveUnsubscribe();
+      clearInterval(slotCheckInterval);
+    };
+  }, [leaderboardLive.slotId]); // Rerun only when slotId changes manually
+  
+
   /* -------------------------- Auth convenience --------------------------- */
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
