@@ -77,6 +77,7 @@ export function mapFirestoreError(error: any): string {
   }
 
   const code = error.code || (typeof error.message === 'string' ? error.message : "");
+  const message = error.message || '';
 
   if (error instanceof FirebaseError) {
       switch (error.code) {
@@ -91,7 +92,10 @@ export function mapFirestoreError(error: any): string {
           case 'cancelled':
               return 'The request was cancelled. Please try again.';
           case 'failed-precondition':
-              return 'The server is not ready to handle requests. This might be due to a missing database index. Please try again in a moment.';
+              if (message.toLowerCase().includes('index')) {
+                  return 'This leaderboard is being prepared. Please check back in a few minutes. (Error: needs_index)';
+              }
+              return 'The server is not ready to handle requests. Please try again in a moment.';
            case "unauthenticated":
               return "Your session may have expired. Please log in again.";
           case "resource-exhausted":

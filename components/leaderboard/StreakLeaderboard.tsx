@@ -8,8 +8,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, getCountFromServer, where } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Trophy, Flame } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle } from 'lucide-react';
 import { cn, mapFirestoreError } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
 
@@ -167,7 +167,20 @@ const StreakLeaderboard = () => {
         if (isLoading || authLoading) {
             return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         }
-        if (error) return <ErrorState title="Error" message={error} />;
+        if (error) {
+            if (error.includes("needs_index")) {
+                 return (
+                     <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+                        <AlertTitle>Leaderboard Indexing</AlertTitle>
+                        <AlertDescription>
+                            The streaks leaderboard is currently being indexed by the database. This can take a few minutes. Please check back shortly.
+                        </AlertDescription>
+                    </Alert>
+                 )
+            }
+            return <ErrorState title="Error" message={error} />;
+        }
         if (players.length === 0) return <EmptyState />;
         
         return (

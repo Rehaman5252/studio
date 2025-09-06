@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
@@ -125,7 +125,7 @@ const AllTimeLeaderboard = () => {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
         if (error) {
-             if (error.includes("index")) {
+             if (error.includes("needs_index")) {
                  return (
                      <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
                         <AlertTriangle className="h-4 w-4 !text-yellow-300" />
