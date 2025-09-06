@@ -2,11 +2,11 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
 import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
-import { useAuth } from '@/context/AuthProvider';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/app/context/AuthProvider';
+import { useToast } from '@/app/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -229,5 +229,3 @@ export default function CertificatesContent() {
     </>
   );
 }
-
-    

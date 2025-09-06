@@ -2,11 +2,11 @@
 'use client';
 
 import { memo } from 'react';
-import PageWrapper from '@/components/PageWrapper';
+import PageWrapper from './components/PageWrapper';
 import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from './components/ui/skeleton';
 
-const HomePageClient = dynamic(() => import('@/components/home/HomePageClient'), {
+const HomePageClient = dynamic(() => import('./components/home/HomePageClient'), {
   ssr: false,
   loading: () => <HomeContentSkeleton />,
 });
