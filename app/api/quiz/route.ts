@@ -1,7 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow"; 
-import { getFallbackQuiz } from "@/lib/fallback-quiz"; 
+import { getFallbackQuiz } from "@/app/lib/fallback-quiz"; 
 
 const GENERATION_TIMEOUT_MS = 15000;
 const MAX_RETRIES = 2; // Increased retries for more resilience

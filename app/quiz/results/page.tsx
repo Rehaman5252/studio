@@ -1,27 +1,27 @@
 'use client';
 
 import type { QuizAttempt } from '@/ai/schemas';
-import { adLibrary } from '@/lib/ads';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthProvider';
+import { adLibrary } from '@/app/lib/ads';
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Skeleton } from '@/app/components/ui/skeleton';
+import { useAuth } from '@/app/context/AuthProvider';
 import { motion } from 'framer-motion';
 import { Home, Sparkles, Eye, Ban, BadgeCheck, Award, Download, Share2, Check, Trophy, AlertTriangle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useMemo, useState, memo, useCallback, useEffect } from 'react';
-import PageWrapper from '@/components/PageWrapper';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import PageWrapper from '@/app/components/PageWrapper';
+import { useToast } from '@/app/hooks/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/app/components/ui/alert';
 import jsPDF from 'jspdf';
 import { Timestamp } from 'firebase/firestore';
-import { decodeAttempt } from '@/lib/quiz-utils';
+import { decodeAttempt } from '@/app/lib/quiz-utils';
 
 
-const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
-const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
-const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'));
+const AdDialog = dynamic(() => import('@/app/components/AdDialog').then(mod => mod.AdDialog));
+const AnalysisDialog = dynamic(() => import('@/app/components/history/AnalysisDialog'));
+const ReviewDialog = dynamic(() => import('@/app/components/history/ReviewDialog'));
 
 const LoadingSkeleton = () => (
     <PageWrapper title="Loading Scorecard...">
