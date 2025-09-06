@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Copy, Gift, Check, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { SocialShareButtons } from './SocialShareButtons';
-import { Input } from '../ui/input';
+import { SocialShareButtons } from '@/components/profile/SocialShareButtons';
+import { Input } from '@/components/ui/input';
 
 const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCode: string, referralEarnings: number }) => {
     const { toast } = useToast();

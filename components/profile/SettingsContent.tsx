@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/hooks/use-settings';
 import { Bell, Volume2, Waves, SkipForward, Moon, Sun } from 'lucide-react';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTheme } from 'next-themes';
 
 const SettingsItem = ({ icon, title, description, checked, onCheckedChange, disabled = false }: { icon: React.ReactNode, title: string, description: string, checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) => (

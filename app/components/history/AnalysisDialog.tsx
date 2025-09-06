@@ -19,7 +19,7 @@ import {
   Loader2,
   ServerCrash,
 } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
 interface AnalysisDialogProps {

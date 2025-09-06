@@ -15,11 +15,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 
 
 interface QuizClientProps {
@@ -27,7 +28,7 @@ interface QuizClientProps {
   format: string;
 }
 
-type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error';
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'unauthenticated';
 
 type QuizAPIResponse = {
   quiz: QuizData;
@@ -74,17 +75,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [currentQuestionIndex]);
 
   const fetchQuiz = useCallback(async () => {
-    if (isFinishedRef.current) return;
+    if (isFinishedRef.current || authLoading) return;
     if (abortControllerRef.current) {
         abortControllerRef.current.abort();
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    if (authLoading) return;
     if (!user) {
-        setError("Please sign in to play a quiz.");
-        setQuizState('error');
+        setQuizState('unauthenticated');
         return;
     }
 
@@ -142,7 +141,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   }, [format, user, toast, authLoading, isOffline]);
 
   useEffect(() => {
-    if (!authLoading && !isFinishedRef.current) {
+    if (!authLoading) {
         fetchQuiz();
     }
     return () => {
@@ -270,6 +269,18 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
              <CricketLoading />
             <p className="mb-4 mt-4">Warming up...</p>
+        </div>
+    );
+  }
+
+  if (quizState === 'unauthenticated') {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4">
+            <LoginPrompt 
+                icon={AlertTriangle}
+                title="Authentication Required"
+                description="Please sign in to play a quiz."
+            />
         </div>
     );
   }

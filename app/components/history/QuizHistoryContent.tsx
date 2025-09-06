@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { AdDialog } from '../AdDialog';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AdDialog } from '@/components/AdDialog';
 import { adLibrary } from '@/lib/ads';
-import AnalysisDialog from './AnalysisDialog';
-import ReviewDialog from './ReviewDialog';
+import AnalysisDialog from '@/components/history/AnalysisDialog';
+import ReviewDialog from '@/components/history/ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';

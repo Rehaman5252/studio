@@ -5,11 +5,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
-import { Skeleton } from '../ui/skeleton';
-import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { FileText, Newspaper, HelpCircle, ServerCrash, WifiOff } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const SubmissionItemSkeleton = () => (
     <div className="flex items-center justify-between p-3">

@@ -5,7 +5,7 @@ import React from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Gift } from 'lucide-react';
 
 const REWARD_GOALS = {

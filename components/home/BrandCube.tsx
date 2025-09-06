@@ -52,7 +52,7 @@ const BrandCube = ({ onFaceClick, rotation }: BrandCubeProps) => {
                         priority
                     />
                 </div>
-                <p className="font-extrabold text-xl tracking-tight text-inherit">{face.brand.format}</p>
+                <p className="font-normal text-lg tracking-tight text-primary">{face.brand.format}</p>
             </div>
           </button>
         ))}
