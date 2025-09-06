@@ -1,31 +1,31 @@
-
 "use client";
 
+import { ReactNode } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { redirect } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [user, loading] = useAuthState(auth);
-  const router = useRouter();
+interface AuthGuardProps {
+  children: ReactNode;
+}
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/auth/login");
-    }
-  }, [loading, user, router]);
+export default function AuthGuard({ children }: AuthGuardProps) {
+  const [user, loading] = useAuthState(auth);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Skeleton className="h-10 w-32" />
+      <div className="flex flex-col gap-4 p-6">
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    redirect("/auth/login");
+  }
 
   return <>{children}</>;
 }
