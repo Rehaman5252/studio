@@ -10,30 +10,31 @@ import { Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('rehamansyed07@gmail.com');
+  const [password, setPassword] = useState('Indcric@100');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     setIsLoading(true);
 
-    // Hardcoded credentials check
-    if (email === 'rehamansyed07@gmail.com' && password === 'Indcric@100') {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Authentication Successful',
         description: 'Welcome, Admin. Redirecting to dashboard...',
       });
-      setTimeout(() => {
-        router.push('/admin/dashboard');
-      }, 1000);
-    } else {
-      toast({
+      router.push('/admin/dashboard');
+    } catch (error: any) {
+       toast({
         title: 'Authentication Failed',
         description: 'Invalid credentials. Please try again.',
         variant: 'destructive',
@@ -75,6 +76,7 @@ export default function AdminLogin() {
                     <Input 
                       id="password" 
                       type={showPassword ? 'text' : 'password'}
+                      placeholder='••••••••'
                       required 
                       className="h-12 pr-10"
                       value={password}
