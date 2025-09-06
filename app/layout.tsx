@@ -1,9 +1,9 @@
 
 import './globals.css';
 import type { Metadata } from 'next';
-import Providers from '@/app/context/Providers';
-import { Toaster } from '@/app/components/ui/toaster';
-import BottomNav from '@/app/components/BottomNav';
+import Providers from '@/context/Providers';
+import { Toaster } from '@/components/ui/toaster';
+import BottomNav from '@/components/BottomNav';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({
