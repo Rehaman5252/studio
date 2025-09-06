@@ -1,45 +1,37 @@
+"use client";
 
-'use client';
-
-import { useAuth } from '@/context/AuthProvider';
-import type { ReactNode } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { LucideIcon } from 'lucide-react';
+import React, { useEffect } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AuthGuardProps {
-  children: ReactNode;
-  loadingSkeleton: ReactNode;
-  loginPrompt: {
-    icon: LucideIcon;
-    title: string;
-    description: string;
-  };
+  children: React.ReactNode;
+  loadingSkeleton?: React.ReactNode;
+  loginPrompt?: React.ReactNode;
 }
 
-const FullPageSkeleton = () => (
-    <div className="space-y-4">
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-[60px] w-full" />
-      <Skeleton className="h-[60px] w-full" />
-      <Skeleton className="h-[60px] w-full" />
-    </div>
-);
+export default function AuthGuard({ children, loadingSkeleton }: AuthGuardProps) {
+  const [user, loading] = useAuthState(auth);
+  const router = useRouter();
 
-
-export default function AuthGuard({ children, loadingSkeleton, loginPrompt }: AuthGuardProps) {
-  const { user, loading } = useAuth();
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/auth/login");
+    }
+  }, [loading, user, router]);
 
   if (loading) {
-    return loadingSkeleton;
+    return loadingSkeleton || (
+      <div className="flex justify-center items-center min-h-screen">
+        <Skeleton className="h-10 w-32" />
+      </div>
+    );
   }
 
   if (!user) {
-    return (
-        <div className="pt-8">
-            <LoginPrompt {...loginPrompt} />
-        </div>
-    );
+    return null; // or a login prompt
   }
 
   return <>{children}</>;

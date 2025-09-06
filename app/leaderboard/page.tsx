@@ -4,7 +4,7 @@
 import React from 'react';
 import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
 import PageWrapper from '@/components/PageWrapper';
-import AuthGuard from '@/components/auth/AuthGuard';
+import AuthGuard from '@/app/components/auth/AuthGuard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
 
@@ -31,7 +31,7 @@ export default function LeaderboardPage() {
   
   return (
     <PageWrapper title="Hall of Fame">
-        <AuthGuard loadingSkeleton={<LeaderboardSkeleton />} loginPrompt={loginPromptProps}>
+        <AuthGuard loadingSkeleton={<LeaderboardSkeleton />}>
             <LeaderboardContent />
         </AuthGuard>
     </PageWrapper>

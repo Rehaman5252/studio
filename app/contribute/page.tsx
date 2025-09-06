@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AuthGuard from '@/components/auth/AuthGuard';
+import AuthGuard from '@/app/components/auth/AuthGuard';
 
 const ContributionStats = dynamic(() => import('@/components/profile/ContributionStats'), { loading: () => <Skeleton className="h-48 w-full" />});
 const UserSubmissionsList = dynamic(() => import('@/components/profile/UserSubmissionsList'), { loading: () => <Skeleton className="h-32 w-full" />});
@@ -83,7 +83,7 @@ export default function ContributePage() {
 
     return (
         <PageWrapper title="Commentary Box" showBackButton>
-             <AuthGuard loadingSkeleton={<LoadingSkeleton />} loginPrompt={loginPromptProps}>
+             <AuthGuard loadingSkeleton={<LoadingSkeleton />}>
                 <ContributionPageContent />
              </AuthGuard>
         </PageWrapper>

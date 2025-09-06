@@ -5,7 +5,7 @@ import React from 'react';
 import { History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageWrapper from '@/components/PageWrapper';
-import AuthGuard from '@/components/auth/AuthGuard';
+import AuthGuard from '@/app/components/auth/AuthGuard';
 import HistoryContent from '@/components/history/HistoryContent';
 
 const HistorySkeleton = ({ count = 3 }: { count?: number}) => (
@@ -25,7 +25,7 @@ export default function HistoryPage() {
 
   return (
     <PageWrapper title="My Innings" showBackButton>
-        <AuthGuard loadingSkeleton={<HistorySkeleton />} loginPrompt={loginPromptProps}>
+        <AuthGuard loadingSkeleton={<HistorySkeleton />}>
             <HistoryContent />
         </AuthGuard>
     </PageWrapper>

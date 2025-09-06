@@ -5,7 +5,7 @@ import { Award } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
-import AuthGuard from '@/components/auth/AuthGuard';
+import AuthGuard from '@/app/components/auth/AuthGuard';
 
 const CertificatesContent = dynamic(() => import('@/components/certificates/CertificatesContent'), {
     loading: () => <CertificatesSkeleton />,
@@ -28,7 +28,7 @@ export default function CertificatesPage() {
   
   return (
     <PageWrapper title="My Certificates" showBackButton>
-        <AuthGuard loadingSkeleton={<CertificatesSkeleton />} loginPrompt={loginPromptProps}>
+        <AuthGuard loadingSkeleton={<CertificatesSkeleton />}>
             <CertificatesContent />
         </AuthGuard>
     </PageWrapper>
