@@ -1,10 +1,9 @@
 
 import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow"; 
-import { getFallbackQuiz } from "@/app/lib/fallback-quiz"; 
+import { getFallbackQuiz } from "@/lib/fallback-quiz"; 
+import { mapFirestoreError } from "@/lib/utils";
 
-const GENERATION_TIMEOUT_MS = 15000;
-const MAX_RETRIES = 2; // Increased retries for more resilience
 const IS_DEV = process.env.NODE_ENV !== "production";
 
 function isValidQuizShape(candidate: any): boolean {
@@ -51,14 +50,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ quiz: aiResult, source: "ai", reqId }, { status: 200 });
 
   } catch (err: any) {
-    console.error(`[quiz][${reqId}] AI generation failed:`, err?.message ?? err);
-
-    const errorMessage = IS_DEV ? (err?.message ?? 'AI quiz generation failed.') : 'The AI quiz master is busy. Please try again in a moment.';
+    console.error(`[quiz][${reqId}] API Error:`, err);
     
-    // Do not serve a fallback. Return an error to the client.
-    return NextResponse.json(
-        { error: errorMessage, reqId }, 
-        { status: 500 }
-    );
+    // Map Firestore and other errors to user-friendly messages
+    const userMessage = mapFirestoreError(err);
+    
+    // Fallback logic
+    try {
+        console.warn(`[quiz][${reqId}] AI failed, serving fallback for format=${format}`);
+        const fallbackQuiz = getFallbackQuiz(format);
+        return NextResponse.json({ 
+            quiz: fallbackQuiz, 
+            source: "fallback", 
+            reqId,
+            error: IS_DEV ? userMessage : "The AI is busy, here's a standard quiz." // Provide original error in dev
+        }, { status: 200 });
+    } catch (fbErr) {
+        console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fbErr);
+        // If even the fallback fails, send a final error response
+        return NextResponse.json(
+            { error: "We're sorry, but the quiz is currently unavailable. Please try again later.", reqId }, 
+            { status: 500 }
+        );
+    }
   }
 }
