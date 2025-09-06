@@ -2,9 +2,9 @@
 'use client';
 
 import React from 'react';
-import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
-import PageWrapper from '@/components/PageWrapper';
-import AuthGuard from '@/components/auth/AuthGuard';
+import LeaderboardContent from './components/leaderboard/LeaderboardContent';
+import PageWrapper from './components/PageWrapper';
+import AuthGuard from './components/auth/AuthGuard';
 
 export default function LeaderboardPage() {
   return (
