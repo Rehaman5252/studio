@@ -384,7 +384,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     // Live Leaderboard Listener
     const setupLiveLeaderboardListener = () => {
       const slotId = getQuizSlotId();
-      setLeaderboardLive((prev) => ({ ...prev, slotId, loading: true }));
+      setLeaderboardLive((prev) => ({ ...prev, slotId, loading: true, rows: [] }));
   
       const q = query(
         collection(db, 'leaderboard_live', slotId, 'entries'),
@@ -409,17 +409,21 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     // This interval checks if the slot has changed and re-subscribes if it has.
     const slotCheckInterval = setInterval(() => {
       const newSlotId = getQuizSlotId();
-      if (newSlotId !== leaderboardLive.slotId) {
-        if (liveUnsubscribe) liveUnsubscribe();
-        liveUnsubscribe = setupLiveLeaderboardListener();
-      }
+      setLeaderboardLive(prev => {
+        if (newSlotId !== prev.slotId) {
+            if (liveUnsubscribe) liveUnsubscribe();
+            liveUnsubscribe = setupLiveLeaderboardListener();
+            return { ...prev, slotId: newSlotId }; // This will trigger the re-render if needed
+        }
+        return prev;
+      });
     }, 5000); // Check every 5 seconds
   
     return () => {
       if (liveUnsubscribe) liveUnsubscribe();
       clearInterval(slotCheckInterval);
     };
-  }, [leaderboardLive.slotId]); // Rerun only when slotId changes manually
+  }, [db]); // Rerun only when db becomes available
   
 
   /* -------------------------- Auth convenience --------------------------- */
