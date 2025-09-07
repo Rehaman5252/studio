@@ -100,7 +100,8 @@ const AllTimeLeaderboard = () => {
         );
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            if (!querySnapshot.metadata.fromCache) {
+            // Stop loading only on the first response from the server to prevent UI flicker
+            if (isLoading && !querySnapshot.metadata.fromCache) {
               setIsLoading(false);
             }
             const playersData = querySnapshot.docs
@@ -128,7 +129,7 @@ const AllTimeLeaderboard = () => {
         });
 
         return () => unsubscribe();
-    }, [authLoading, user]);
+    }, [authLoading, user, isLoading]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) {
