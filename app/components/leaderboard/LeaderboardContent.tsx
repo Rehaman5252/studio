@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
 
 const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
     loading: () => <LeaderboardSkeleton count={5} />,
@@ -42,14 +43,13 @@ const FullPageSkeleton = () => (
 
 function LeaderboardContentComponent() {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('live');
-
+  
   if (loading) {
     return <FullPageSkeleton />;
   }
   
   return (
-    <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs defaultValue="live" className="w-full">
         <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             <TabsTrigger value="all-time">All-Time</TabsTrigger>
