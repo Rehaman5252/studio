@@ -68,7 +68,7 @@ function toInputDate(value: any): string {
 
 interface EditProfileDialogProps {
   userProfile: any;
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export function EditProfileDialog({ userProfile, children }: EditProfileDialogProps) {

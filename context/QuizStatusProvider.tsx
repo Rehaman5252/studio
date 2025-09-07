@@ -91,6 +91,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     intervalId = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
 
     return () => {
+        // Defensive cleanup
         try {
             if (typeof unsubscribeStats === "function") {
                 unsubscribeStats();
