@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { db } from '@/lib/firebase';
@@ -91,7 +91,6 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     intervalId = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
 
     return () => {
-        // Defensive cleanup
         try {
             if (typeof unsubscribeStats === "function") {
                 unsubscribeStats();

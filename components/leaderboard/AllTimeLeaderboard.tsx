@@ -100,7 +100,6 @@ const AllTimeLeaderboard = () => {
         );
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            // Stop loading only on the first response from the server to prevent UI flicker
             if (isLoading && !querySnapshot.metadata.fromCache) {
               setIsLoading(false);
             }

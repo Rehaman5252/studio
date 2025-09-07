@@ -18,7 +18,7 @@ import { Timestamp } from 'firebase/firestore';
 
 const profileSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format").refine(val => new Date(val) < new Date(), "Date of birth must be in the past."),
   gender: z.string().min(1, "Please select a gender"),
   occupation: z.string().min(1, "Please select an occupation"),
   upi: z.string().min(3, "Please enter a valid UPI ID").regex(/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/, "Please enter a valid UPI ID format (e.g., yourname@bank)"),
@@ -41,26 +41,17 @@ const cricketTeams = [
 
 function toInputDate(value: any): string {
   if (!value) return "";
-  // Check if it's a Firestore Timestamp
   if (value instanceof Timestamp) {
     return new Date(value.toMillis()).toISOString().slice(0, 10);
   }
-  // Check if it's a JS Date object
   if (value instanceof Date) {
     return value.toISOString().slice(0, 10);
   }
-  // Check if it's already a string in the correct format
   if (typeof value === "string") {
-    // Handle Firestore's serialized object format from client-side cache
-    if (value.includes('seconds')) {
-        try {
-            const parsed = JSON.parse(value);
-            return new Date(parsed.seconds * 1000).toISOString().slice(0, 10);
-        } catch {
-            // fall through
-        }
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().slice(0, 10);
     }
-    return value.slice(0, 10);
   }
   return "";
 }
@@ -68,7 +59,7 @@ function toInputDate(value: any): string {
 
 interface EditProfileDialogProps {
   userProfile: any;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function EditProfileDialog({ userProfile, children }: EditProfileDialogProps) {

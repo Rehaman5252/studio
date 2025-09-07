@@ -114,8 +114,6 @@ const StreakLeaderboard = () => {
         const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
         
         const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-            // Only stop loading on the first successful snapshot from the server
-            // This prevents a flash of cached (potentially empty) data
             if (isLoading && !querySnapshot.metadata.fromCache) {
                 setIsLoading(false);
             }
