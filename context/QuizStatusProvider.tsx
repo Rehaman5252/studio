@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { db } from '@/lib/firebase';
@@ -46,11 +46,13 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   }, [calculateTimeLeft]);
 
   useEffect(() => {
-    if (!db) return;
-    setIsLoading(true);
-
+    if (!db) {
+        setIsLoading(false);
+        return;
+    };
+    
     let unsubscribeStats: (() => void) | null = null;
-    const intervalId = setInterval(fetchLivePlayers, 15000);
+    let intervalId: NodeJS.Timeout | null = null;
 
     async function initListener() {
         try {
@@ -61,30 +63,32 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
                     setPlayersPlayed(data.totalQuizzesPlayed || 0);
                     setTotalWinners(data.totalPerfectScores || 0);
                 }
-                setIsLoading(false);
+                if (isLoading) setIsLoading(false);
             }, (error) => {
-                console.error("Failed to listen to global stats:", error);
-                setIsLoading(false);
+                console.error("[QuizStatus] Failed to listen to global stats:", error);
+                if (isLoading) setIsLoading(false);
             });
         } catch (err) {
-            console.error("[QuizStatus] failed to init listener:", err);
-            setIsLoading(false);
+            console.error("[QuizStatus] Failed to initialize listener:", err);
+            if (isLoading) setIsLoading(false);
         }
     }
 
     async function fetchLivePlayers() {
+        if (!db) return;
         try {
             const currentSlotId = getQuizSlotId();
             const liveEntriesRef = collection(db, 'leaderboard_live', currentSlotId, 'entries');
             const snapshot = await getCountFromServer(liveEntriesRef);
             setPlayersPlaying(snapshot.data().count);
         } catch (error) {
-            console.warn("Could not fetch live player count:", error);
+            console.warn("[QuizStatus] Could not fetch live player count:", error);
         }
     }
     
     initListener();
     fetchLivePlayers();
+    intervalId = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
 
     return () => {
         try {
@@ -92,12 +96,14 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
                 unsubscribeStats();
             }
         } catch (cleanupErr) {
-            console.warn("[QuizStatus] unsubscribe threw:", cleanupErr);
+            console.warn("[QuizStatus] Unsubscribe threw an error:", cleanupErr);
         } finally {
-            clearInterval(intervalId);
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
         }
     };
-  }, []);
+  }, [isLoading]);
 
   const value = {
     timeLeft,

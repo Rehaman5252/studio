@@ -115,7 +115,8 @@ const StreakLeaderboard = () => {
         
         const unsubscribe = onSnapshot(q, async (querySnapshot) => {
             // Only stop loading on the first successful snapshot from the server
-            if (!querySnapshot.metadata.fromCache) {
+            // This prevents a flash of cached (potentially empty) data
+            if (isLoading && !querySnapshot.metadata.fromCache) {
                 setIsLoading(false);
             }
             
@@ -168,7 +169,7 @@ const StreakLeaderboard = () => {
 
         return () => unsubscribe();
 
-    }, [authLoading, user]);
+    }, [authLoading, user, isLoading]);
 
 
     const content = useMemo(() => {
