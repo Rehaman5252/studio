@@ -151,7 +151,7 @@ function RewardsContentComponent() {
   };
   
   const rewardableAttempts = useMemo(() => {
-    // Sort all attempts newest first to ensure we process the most recent ones
+    // Sort all attempts newest first
     const sortedAttempts = [...quizHistory.data].sort((a, b) => {
       const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
       const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
@@ -160,6 +160,7 @@ function RewardsContentComponent() {
 
     const uniqueBrandAttempts = new Map<string, QuizAttempt>();
 
+    // Iterate and keep only the first (most recent) attempt for each brand
     for (const attempt of sortedAttempts) {
         if (attempt.brand && !uniqueBrandAttempts.has(attempt.brand)) {
             uniqueBrandAttempts.set(attempt.brand, attempt);
@@ -174,7 +175,7 @@ function RewardsContentComponent() {
     if (quizHistory.error) return <ErrorState message={quizHistory.error} />;
     if (!user) {
       return (
-        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4" type="button"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
+        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4" type="button"><Link href="/">Play a Quiz</Link></Button></CardContent></Card>
       );
     }
     if (rewardableAttempts.length === 0) {

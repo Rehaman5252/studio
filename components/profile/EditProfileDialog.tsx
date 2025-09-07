@@ -41,17 +41,21 @@ const cricketTeams = [
 
 function toInputDate(value: any): string {
   if (!value) return "";
-  if (value instanceof Timestamp) {
-    return new Date(value.toMillis()).toISOString().slice(0, 10);
+  // Check if it's a Firestore Timestamp
+  if (value.seconds && typeof value.seconds === 'number') {
+    return new Date(value.seconds * 1000).toISOString().slice(0, 10);
   }
+  // Check if it's a JS Date object
   if (value instanceof Date) {
     return value.toISOString().slice(0, 10);
   }
+  // Check if it's already a string in the correct format
   if (typeof value === "string") {
     return value.slice(0, 10);
   }
   return "";
 }
+
 
 interface EditProfileDialogProps {
   userProfile: any;

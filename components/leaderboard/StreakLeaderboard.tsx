@@ -7,8 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDoc, doc, getCountFromServer, where, onSnapshot } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where } from 'firebase/firestore';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle } from 'lucide-react';
 import { cn, mapFirestoreError } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
@@ -102,43 +102,11 @@ const StreakLeaderboard = () => {
             return;
         }
 
-        const fetchLeaderboardData = async () => {
-             if (user && !players.some(p => p.uid === user.uid)) {
-               const userDocRef = doc(db, 'users', user.uid);
-               const userDoc = await getDoc(userDocRef);
-               if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const streak = data.currentStreak || 0;
-                    const name = data.name || 'Anonymous Player';
-
-                    if (streak > 0) {
-                        try {
-                            const userRank = await calculateUserRank(streak, name);
-                             setCurrentUserData({
-                                uid: user.uid,
-                                name: data.name || 'You',
-                                avatar: data.photoURL,
-                                currentStreak: streak,
-                                rank: userRank,
-                                isCurrentUser: true,
-                            });
-                        } catch (rankError) {
-                             console.error("Could not calculate user rank for streak board", rankError);
-                             setCurrentUserData(null);
-                        }
-                    } else {
-                        setCurrentUserData(null);
-                    }
-               }
-            } else {
-                setCurrentUserData(null);
-            }
-        }
-
         const usersCollection = collection(db, 'users');
         const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
         
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+            setIsLoading(true);
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().currentStreak || 0) > 0)
                 .map((doc, index) => {
@@ -154,7 +122,32 @@ const StreakLeaderboard = () => {
                 });
             
             setPlayers(playersData);
-            fetchLeaderboardData();
+
+            if (user && !playersData.some(p => p.uid === user.uid)) {
+               const userDocRef = doc(db, 'users', user.uid);
+               const userDoc = await getDoc(userDocRef);
+               if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    const streak = data.currentStreak || 0;
+                    const name = data.name || 'Anonymous Player';
+
+                    if (streak > 0) {
+                        const userRank = await calculateUserRank(streak, name);
+                        setCurrentUserData({
+                            uid: user.uid,
+                            name: data.name || 'You',
+                            avatar: data.photoURL,
+                            currentStreak: streak,
+                            rank: userRank,
+                            isCurrentUser: true,
+                        });
+                    } else {
+                        setCurrentUserData(null);
+                    }
+               }
+            } else {
+                setCurrentUserData(null);
+            }
             setIsLoading(false);
             setError(null);
         }, (err: any) => {
@@ -164,7 +157,7 @@ const StreakLeaderboard = () => {
 
         return () => unsubscribe();
 
-    }, [authLoading, user, players]);
+    }, [authLoading, user]);
 
 
     const content = useMemo(() => {
