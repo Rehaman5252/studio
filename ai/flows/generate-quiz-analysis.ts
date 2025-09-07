@@ -21,37 +21,27 @@ import type { QuizAnalysisOutput } from '@/ai/schemas';
  */
 const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
     const accuracy = attempt.totalQuestions > 0 ? (attempt.score / attempt.totalQuestions) * 100 : 0;
-    const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
-    const averageTime = attempt.totalQuestions > 0 ? totalTime / attempt.totalQuestions : 0;
-
-    const correctQuestions = attempt.questions.filter((q, i) => q.correctAnswer === attempt.userAnswers[i]);
-    const incorrectQuestions = attempt.questions.filter((q, i) => q.correctAnswer !== attempt.userAnswers[i]);
-
+    
     let strengths = ["Good pace on questions you knew.", "Strong foundational knowledge."];
     if (accuracy > 80) strengths.unshift("Excellent accuracy under pressure!");
     
-    let improvements = ["Double-check questions with tricky wording."];
+    let weaknesses = ["Double-check questions with tricky wording."];
+    const incorrectQuestions = attempt.questions.filter((q, i) => q.correctAnswer !== attempt.userAnswers[i]);
     if (incorrectQuestions.length > 0) {
-        improvements.push(`Review topics related to: "${incorrectQuestions[0].question.slice(0, 30)}..."`);
+        weaknesses.push(`Struggled with topics related to: "${incorrectQuestions[0].question.slice(0, 30)}..."`);
     } else {
-        improvements.push("Time management on tougher questions could be improved.");
+        weaknesses.push("Time management on tougher questions could be improved.");
     }
     
     return {
-        overallPerformance: `A solid effort on the ${attempt.format} quiz! You've got a great foundation to build upon.`,
-        accuracy: parseFloat(accuracy.toFixed(1)),
-        averageTimePerQuestion: parseFloat(averageTime.toFixed(1)),
-        keyStrengths: strengths.slice(0,2),
-        areasForImprovement: improvements.slice(0,2),
-        coachTip: "Before your next quiz, try focusing on one specific era or tournament. This can help you build deeper knowledge in one go!",
-        analyzedQuestions: attempt.questions.map((q, i) => ({
-            question: q.question,
-            userAnswer: attempt.userAnswers[i] || 'Not Answered',
-            correctAnswer: q.correctAnswer,
-            isCorrect: attempt.userAnswers[i] === q.correctAnswer,
-            timeTaken: attempt.timePerQuestion?.[i] || 0,
-            category: "General" // Fallback category
-        })),
+        summary: `A solid effort on the ${attempt.format} quiz! You scored ${attempt.score} out of ${attempt.totalQuestions}. You've got a great foundation to build upon.`,
+        strengths: strengths.slice(0,2),
+        weaknesses: weaknesses.slice(0,2),
+        recommendations: [
+            "Review the questions you got wrong and understand the explanations.",
+            "Focus on one specific era or tournament before your next quiz to build deeper knowledge.",
+            "Try to answer a bit faster on questions you feel confident about."
+        ],
         source: "fallback",
     };
 };
@@ -97,14 +87,12 @@ const prompt = ai.definePrompt({
       {{/each}}
 
     Based on this data, generate a comprehensive analysis. Follow these steps:
-    1.  **Calculate Metrics:** Determine the overall accuracy percentage and the average time per question.
-    2.  **Categorize Each Question:** For each question, assign a specific, granular category. Examples: 'IPL Batting Records', 'Test Match History', 'Cricket Terminology', 'Player Nicknames', 'World Cup 2011'.
-    3.  **Overall Summary:** Write a brief, encouraging summary of the user's performance.
-    4.  **Identify Strengths:** Based on the question categories answered correctly and quickly, identify 2-3 key strengths.
-    5.  **Identify Improvement Areas:** Based on the categories where answers were incorrect or slow, identify 2-3 areas for improvement.
-    6.  **Provide a Coach's Tip:** Give one single, powerful, and personalized tip for the user to focus on for their next quiz.
-    7.  **Format Output:** Compile all this information into the required JSON format, including the detailed analysis for every single question.
-    8. **Source**: Set the source to "ai".
+    1.  **Summary:** Write a brief, encouraging summary of the user's performance.
+    2.  **Strengths:** Based on the questions answered correctly and quickly, identify 2-3 key strengths.
+    3.  **Weaknesses:** Based on the questions where answers were incorrect or slow, identify 2-3 areas for improvement.
+    4.  **Recommendations:** Provide 2-3 concrete, actionable recommendations for the user to focus on.
+    5.  **Format Output:** Compile all this information into the required JSON format.
+    6. **Source**: Set the source to "ai".
   `,
 });
 

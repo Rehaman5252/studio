@@ -18,12 +18,9 @@ import {
   Lightbulb,
   Loader2,
   ServerCrash,
-  CheckCircle,
-  XCircle,
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
-import { Badge } from "@/components/ui/badge";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
@@ -102,21 +99,11 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
               <Card className="bg-card/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <BarChart className="text-primary" /> Overall Performance
+                    <BarChart className="text-primary" /> Overall Summary
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p>{analysis.overallPerformance}</p>
-                   <div className="grid grid-cols-2 gap-4 mt-4 text-center">
-                        <div>
-                            <p className="text-2xl font-bold">{analysis.accuracy.toFixed(1)}%</p>
-                            <p className="text-xs text-muted-foreground">Accuracy</p>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{analysis.averageTimePerQuestion.toFixed(1)}s</p>
-                            <p className="text-xs text-muted-foreground">Avg. Time</p>
-                        </div>
-                    </div>
+                  <p>{analysis.summary}</p>
                 </CardContent>
               </Card>
 
@@ -129,8 +116,8 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
                   </CardHeader>
                   <CardContent>
                     <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.keyStrengths.map((item, i) => <li key={i}>{item}</li>)}
-                      {analysis.keyStrengths.length === 0 && <li className="text-muted-foreground">No specific strengths identified.</li>}
+                      {analysis.strengths.map((item, i) => <li key={i}>{item}</li>)}
+                      {analysis.strengths.length === 0 && <li className="text-muted-foreground">No specific strengths identified.</li>}
                     </ul>
                   </CardContent>
                 </Card>
@@ -142,8 +129,8 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
                   </CardHeader>
                   <CardContent>
                     <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li> )}
-                      {analysis.areasForImprovement.length === 0 && <li className="text-muted-foreground">No specific weaknesses identified.</li>}
+                      {analysis.weaknesses.map((item, i) => <li key={i}>{item}</li> )}
+                      {analysis.weaknesses.length === 0 && <li className="text-muted-foreground">No specific weaknesses identified.</li>}
                     </ul>
                   </CardContent>
                 </Card>
@@ -152,38 +139,15 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
               <Card className="bg-primary/10">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary">
-                    <Lightbulb /> Coach's Tip
+                    <Lightbulb /> Recommendations
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm font-semibold">{analysis.coachTip}</p>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      {analysis.recommendations.map((item, i) => <li key={i}>{item}</li>)}
+                      {analysis.recommendations.length === 0 && <li className="text-muted-foreground">Keep practicing!</li>}
+                    </ul>
                 </CardContent>
-              </Card>
-               <Card>
-                  <CardHeader>
-                      <CardTitle>Question Breakdown</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                      {analysis.analyzedQuestions.map((q, i) => (
-                          <div key={i} className="text-sm p-3 rounded-md bg-secondary/50 border border-border">
-                              <p className="font-semibold flex items-start gap-2">
-                                  {q.isCorrect 
-                                      ? <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                                      : <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                                  }
-                                  {q.question}
-                              </p>
-                              <div className="pl-7 text-xs text-muted-foreground mt-2 space-y-1">
-                                  <p>You answered: <span className="font-semibold text-foreground">{q.userAnswer || "Not Answered"}</span></p>
-                                  {!q.isCorrect && <p>Correct: <span className="font-semibold text-foreground">{q.correctAnswer}</span></p>}
-                                  <div className="flex items-center gap-2 pt-1">
-                                      <Badge variant="outline">{q.category}</Badge>
-                                      <Badge variant="outline">{q.timeTaken.toFixed(1)}s</Badge>
-                                  </div>
-                              </div>
-                          </div>
-                      ))}
-                  </CardContent>
               </Card>
             </div>
       );

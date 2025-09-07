@@ -48,15 +48,13 @@ const QuestionAnalysisSchema = z.object({
 });
 
 export const QuizAnalysisOutputSchema = z.object({
-    overallPerformance: z.string().describe("A brief, encouraging summary of the user's overall performance in one or two sentences."),
-    accuracy: z.number().min(0).max(100).describe("The user's accuracy percentage."),
-    averageTimePerQuestion: z.number().nonnegative().describe("The average time the user took per question, in seconds."),
-    keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
-    areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories where answers were incorrect or slowly."),
-    coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),
-    analyzedQuestions: z.array(QuestionAnalysisSchema).describe("An array containing the analysis for each individual question."),
-    source: z.enum(["ai", "fallback"]).default("fallback"),
+  summary: z.string().describe("A concise overall insight into the user's performance."),
+  strengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated."),
+  weaknesses: z.array(z.string()).describe("A list of 2-3 specific areas for improvement."),
+  recommendations: z.array(z.string()).describe("A list of 2-3 actionable next steps for the user."),
+  source: z.enum(["ai", "fallback"]).default("fallback"),
 });
+
 
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;

@@ -41,19 +41,14 @@ const cricketTeams = [
 
 function toInputDate(value: any): string {
   if (!value) return "";
+  let date: Date;
   if (value instanceof Timestamp) {
-    return new Date(value.toMillis()).toISOString().slice(0, 10);
+    date = value.toDate();
+  } else {
+    date = new Date(value);
   }
-  if (value instanceof Date) {
-    return value.toISOString().slice(0, 10);
-  }
-  if (typeof value === "string") {
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().slice(0, 10);
-    }
-  }
-  return "";
+  if (isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
 }
 
 
@@ -85,9 +80,11 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      await updateUserData({
-          ...data,
-      });
+      const payload = {
+        ...data,
+        dob: data.dob ? new Date(data.dob) : null,
+      };
+      await updateUserData(payload);
       toast({ title: 'Success!', description: 'Your profile has been updated.' });
       setOpen(false);
     } catch (error) {
