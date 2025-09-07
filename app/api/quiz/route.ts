@@ -60,7 +60,8 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error(`[quiz][${reqId}] API Error:`, err);
     
-    const userMessage = mapFirestoreError(err).userMessage;
+    const mappedError = mapFirestoreError(err);
+    const userMessage = mappedError.userMessage;
     
     try {
         console.warn(`[quiz][${reqId}] AI failed, serving fallback for format=${format}`);

@@ -60,7 +60,7 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
 export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
     try {
         const sanitized = sanitizeQuizAttempt(rawAttempt);
-        const validatedAttempt = QuizAttempt.parse(sanitized);
+        const validatedAttempt = QuizAttempt.parse(sanitized as z.infer<typeof QuizAttempt>);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);

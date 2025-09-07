@@ -48,6 +48,7 @@ function toInputDate(value: any): string {
     return value.toISOString().slice(0, 10);
   }
   if (typeof value === "string") {
+    // Handle potential ISO string or YYYY-MM-DD from form state
     return value.slice(0, 10);
   }
   return "";

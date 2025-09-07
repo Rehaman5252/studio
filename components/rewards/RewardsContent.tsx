@@ -123,7 +123,8 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const RewardsContentComponent = () => {
+
+function RewardsContentComponent() {
   const { user, quizHistory, loading } = useAuth();
   const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
 
@@ -150,23 +151,22 @@ const RewardsContentComponent = () => {
   };
   
   const rewardableAttempts = useMemo(() => {
+    // Sort all attempts newest first to ensure we process the most recent ones
     const sortedAttempts = [...quizHistory.data].sort((a, b) => {
       const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
       const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
       return timeB - timeA;
     });
 
-    const uniqueBrandAttempts: QuizAttempt[] = [];
-    const seenBrands = new Set<string>();
+    const uniqueBrandAttempts = new Map<string, QuizAttempt>();
 
     for (const attempt of sortedAttempts) {
-        if (attempt.brand && !seenBrands.has(attempt.brand)) {
-            uniqueBrandAttempts.push(attempt);
-            seenBrands.add(attempt.brand);
+        if (attempt.brand && !uniqueBrandAttempts.has(attempt.brand)) {
+            uniqueBrandAttempts.set(attempt.brand, attempt);
         }
     }
     
-    return uniqueBrandAttempts;
+    return Array.from(uniqueBrandAttempts.values());
   }, [quizHistory.data]);
 
   const BrandGifts = () => {
@@ -207,7 +207,7 @@ const RewardsContentComponent = () => {
     <>
       <section>
         <h2 className="text-xl font-semibold text-foreground">Man of the Match Awards</h2>
-        <p className="text-sm text-muted-foreground mb-4">Your latest reward from each brand partner. Claim your prize!</p>
+        <p className="text-sm text-muted-foreground mb-4">A special award for every match you play. Claim your prize!</p>
         <BrandGifts />
       </section>
     </>
