@@ -4,11 +4,13 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, HelpCircle, Gift, Banknote, LogOut } from 'lucide-react';
+import { Users, HelpCircle, Gift, Banknote, LogOut, Loader2 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthProvider';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const StatCard = ({ title, value, icon, description }: { title: string; value: string; icon: React.ReactNode; description: string; }) => (
@@ -24,9 +26,27 @@ const StatCard = ({ title, value, icon, description }: { title: string; value: s
     </Card>
 );
 
+const DashboardSkeleton = () => (
+    <Card>
+        <CardHeader>
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-2/3 mt-2" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+             <div className="grid gap-4 md:grid-cols-2">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+             </div>
+        </CardContent>
+    </Card>
+)
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, loading } = useAuth();
   
   const handleLogout = async () => {
     if (!auth) return;
@@ -38,6 +58,10 @@ export default function AdminDashboard() {
         toast({ title: "Sign Out Error", description: "Could not sign out. Please try again.", variant: "destructive" });
     }
   };
+
+  if (loading || !user) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <Card>
