@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -84,6 +84,9 @@ const AllTimeLeaderboard = () => {
 
     useEffect(() => {
         if (authLoading) return;
+        
+        let unsubscribe: Unsubscribe | null = null;
+
         if (!db) {
             setError({userMessage: "Database not available."});
             setIsLoading(false);
@@ -99,11 +102,8 @@ const AllTimeLeaderboard = () => {
             limit(50)
         );
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            // Stop loading only on the first response from the server to prevent UI flicker
-            if (isLoading && !querySnapshot.metadata.fromCache) {
-              setIsLoading(false);
-            }
+        unsubscribe = onSnapshot(q, (querySnapshot) => {
+            setIsLoading(false);
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
                 .map((doc, index) => {
@@ -128,8 +128,12 @@ const AllTimeLeaderboard = () => {
             setIsLoading(false);
         });
 
-        return () => unsubscribe();
-    }, [authLoading, user, isLoading]);
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, [authLoading, user]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) {
@@ -137,7 +141,7 @@ const AllTimeLeaderboard = () => {
         }
         if (error) {
              return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
                 message={error.userMessage} 
                 isIndexError={error.code === "INDEX_REQUIRED"}
             />;

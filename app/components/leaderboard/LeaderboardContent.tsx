@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { motion } from 'framer-motion';
 
 const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
     loading: () => <LeaderboardSkeleton count={5} />,
@@ -49,11 +48,6 @@ function LeaderboardContentComponent() {
     return <FullPageSkeleton />;
   }
   
-  const tabContentVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-  };
-
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
@@ -63,39 +57,29 @@ function LeaderboardContentComponent() {
             {user && <TabsTrigger value="network">My Network</TabsTrigger>}
         </TabsList>
         
-        <div className="mt-4 relative">
-             <motion.div
-               key={activeTab}
-               variants={tabContentVariants}
-               initial="hidden"
-               animate="visible"
-            >
-                <TabsContent value="live" forceMount={true} hidden={activeTab !== 'live'}>
-                    <Suspense fallback={<LeaderboardSkeleton />}>
-                        <LiveLeaderboard />
-                    </Suspense>
-                </TabsContent>
-
-                <TabsContent value="all-time" forceMount={true} hidden={activeTab !== 'all-time'}>
-                    <Suspense fallback={<LeaderboardSkeleton />}>
-                        <AllTimeLeaderboard />
-                    </Suspense>
-                </TabsContent>
-
-                <TabsContent value="streaks" forceMount={true} hidden={activeTab !== 'streaks'}>
-                    <Suspense fallback={<LeaderboardSkeleton />}>
-                        <StreakLeaderboard />
-                    </Suspense>
-                </TabsContent>
-                
-                {user && (
-                <TabsContent value="network" forceMount={true} hidden={activeTab !== 'network'}>
-                    <Suspense fallback={<LeaderboardSkeleton count={3} />}>
-                        <MyNetworkLeaderboard />
-                    </Suspense>
-                </TabsContent>
-                )}
-            </motion.div>
+        <div className="mt-4">
+            <TabsContent value="live">
+                <Suspense fallback={<LeaderboardSkeleton />}>
+                    <LiveLeaderboard />
+                </Suspense>
+            </TabsContent>
+            <TabsContent value="all-time">
+                <Suspense fallback={<LeaderboardSkeleton />}>
+                    <AllTimeLeaderboard />
+                </Suspense>
+            </TabsContent>
+            <TabsContent value="streaks">
+                <Suspense fallback={<LeaderboardSkeleton />}>
+                    <StreakLeaderboard />
+                </Suspense>
+            </TabsContent>
+            {user && (
+            <TabsContent value="network">
+                <Suspense fallback={<LeaderboardSkeleton count={3} />}>
+                    <MyNetworkLeaderboard />
+                </Suspense>
+            </TabsContent>
+            )}
         </div>
     </Tabs>
   );

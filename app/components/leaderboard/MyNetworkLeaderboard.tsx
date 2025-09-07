@@ -66,6 +66,7 @@ const MyNetworkLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        let isMounted = true;
         if (authLoading || !user || !profile) {
             if (!authLoading) setIsLoading(false);
             return;
@@ -87,14 +88,18 @@ const MyNetworkLeaderboard = () => {
                 }
 
                 if (networkIds.length === 0) {
-                    setNetworkPlayers([]);
-                    setIsLoading(false);
+                    if (isMounted) {
+                        setNetworkPlayers([]);
+                        setIsLoading(false);
+                    }
                     return;
                 }
                 
                 const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
                 const playerDocs = await Promise.all(playerPromises);
                 
+                if (!isMounted) return;
+
                 const playersData: MyNetworkPlayer[] = playerDocs
                     .filter(doc => doc.exists())
                     .map(doc => {
@@ -113,13 +118,17 @@ const MyNetworkLeaderboard = () => {
 
             } catch (e: any) {
                 console.error("Error fetching network leaderboard:", e);
-                setError(mapFirestoreError(e));
+                if (isMounted) setError(mapFirestoreError(e).userMessage);
             } finally {
-                setIsLoading(false);
+                if (isMounted) setIsLoading(false);
             }
         };
 
         fetchNetworkData();
+
+        return () => {
+            isMounted = false;
+        }
 
     }, [user, profile, authLoading]);
 
