@@ -49,20 +49,30 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     if (!db) return;
     setIsLoading(true);
 
-    const statsDocRef = doc(db, 'globals', 'stats');
-    const unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
-        if (doc.exists()) {
-            const data = doc.data();
-            setPlayersPlayed(data.totalQuizzesPlayed || 0);
-            setTotalWinners(data.totalPerfectScores || 0);
-        }
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Failed to listen to global stats:", error);
-        setIsLoading(false);
-    });
+    let unsubscribeStats: (() => void) | null = null;
+    const intervalId = setInterval(fetchLivePlayers, 15000);
 
-    const fetchLivePlayers = async () => {
+    async function initListener() {
+        try {
+            const statsDocRef = doc(db, 'globals', 'stats');
+            unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    setPlayersPlayed(data.totalQuizzesPlayed || 0);
+                    setTotalWinners(data.totalPerfectScores || 0);
+                }
+                setIsLoading(false);
+            }, (error) => {
+                console.error("Failed to listen to global stats:", error);
+                setIsLoading(false);
+            });
+        } catch (err) {
+            console.error("[QuizStatus] failed to init listener:", err);
+            setIsLoading(false);
+        }
+    }
+
+    async function fetchLivePlayers() {
         try {
             const currentSlotId = getQuizSlotId();
             const liveEntriesRef = collection(db, 'leaderboard_live', currentSlotId, 'entries');
@@ -71,14 +81,21 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
             console.warn("Could not fetch live player count:", error);
         }
-    };
+    }
     
+    initListener();
     fetchLivePlayers();
-    const interval = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
 
     return () => {
-        unsubscribeStats();
-        clearInterval(interval);
+        try {
+            if (typeof unsubscribeStats === "function") {
+                unsubscribeStats();
+            }
+        } catch (cleanupErr) {
+            console.warn("[QuizStatus] unsubscribe threw:", cleanupErr);
+        } finally {
+            clearInterval(intervalId);
+        }
     };
   }, []);
 
