@@ -9,7 +9,6 @@ import { z } from 'zod';
  * strict; any malformed input should be fixed by a sanitizer before validation.
  */
 
-// Schema for a single quiz question, used within QuizAttempt
 export const QuizQuestion = z.object({
   id: z.string().describe('A unique identifier for the question.'),
   question: z.string().describe('The text of the quiz question.'),
@@ -18,13 +17,10 @@ export const QuizQuestion = z.object({
   explanation: z.string().describe('A brief explanation of the correct answer.'),
 });
 
-// Schema for a full quiz, containing 5 questions
 export const QuizData = z.object({
   questions: z.array(QuizQuestion).length(5).describe('An array of exactly five quiz questions.'),
 });
 
-// Schema for a user's attempt at a quiz
-// This is the source of truth for what a valid attempt object looks like for the AI analysis flow.
 export const QuizAttempt = z.object({
   userId: z.string().min(1).describe("The user's unique ID."),
   slotId: z.string().describe("The ID of the 10-minute quiz slot."),
@@ -42,7 +38,6 @@ export const QuizAttempt = z.object({
   reviewed: z.boolean().optional().default(false).describe("Whether the user has reviewed the answers."),
 });
 
-// Schema for the AI's analysis output.
 const QuestionAnalysisSchema = z.object({
     question: z.string().describe("The original question text."),
     userAnswer: z.string().describe("The answer the user provided."),
@@ -63,8 +58,6 @@ export const QuizAnalysisOutputSchema = z.object({
     source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 
-
-// Infer TypeScript types from the Zod schemas
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;

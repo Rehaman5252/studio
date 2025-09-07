@@ -4,6 +4,8 @@ import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz"; 
 import { mapFirestoreError } from "@/lib/utils";
 
+export const dynamic = 'force-dynamic';
+
 const IS_DEV = process.env.NODE_ENV !== "production";
 
 function isValidQuizShape(candidate: any): boolean {
@@ -19,8 +21,6 @@ function isValidQuizShape(candidate: any): boolean {
     typeof q?.explanation === 'string' && q.explanation.length > 0
   );
 }
-
-export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -56,10 +56,8 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error(`[quiz][${reqId}] API Error:`, err);
     
-    // Map Firestore and other errors to user-friendly messages
     const userMessage = mapFirestoreError(err);
     
-    // Fallback logic
     try {
         console.warn(`[quiz][${reqId}] AI failed, serving fallback for format=${format}`);
         const fallbackQuiz = getFallbackQuiz(format);
@@ -67,11 +65,10 @@ export async function POST(req: Request) {
             quiz: fallbackQuiz, 
             source: "fallback", 
             reqId,
-            error: IS_DEV ? userMessage : "The AI is busy, here's a standard quiz." // Provide original error in dev
+            error: IS_DEV ? userMessage : "The AI is busy, here's a standard quiz."
         }, { status: 200 });
-    } catch (fbErr) {
-        console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fbErr);
-        // If even the fallback fails, send a final error response
+    } catch (fallbackErr) {
+        console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fallbackErr);
         return NextResponse.json(
             { error: "We're sorry, but the quiz is currently unavailable. Please try again later.", reqId }, 
             { status: 500 }

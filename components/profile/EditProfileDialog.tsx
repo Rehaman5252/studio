@@ -39,6 +39,20 @@ const cricketTeams = [
     "Team Pakistan", "Team Sri Lanka", "Team West Indies", "Team Bangladesh", "Other"
 ];
 
+function toInputDate(value: any): string {
+  if (!value) return "";
+  if (value instanceof Timestamp) {
+    return new Date(value.toMillis()).toISOString().slice(0, 10);
+  }
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (typeof value === "string") {
+    return value.slice(0, 10);
+  }
+  return "";
+}
+
 interface EditProfileDialogProps {
   userProfile: any;
   children: ReactNode;
@@ -49,9 +63,7 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
   const { toast } = useToast();
   const { updateUserData } = useAuth();
   
-  const defaultDob = (userProfile.dob && userProfile.dob.seconds)
-    ? new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]
-    : '';
+  const defaultDob = toInputDate(userProfile.dob);
 
   const { control, handleSubmit, formState: { isSubmitting, errors } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),

@@ -1,20 +1,19 @@
-
 {
   "indexes": [
     {
-      "collectionGroup": "quizAttempts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "entries",
-      "queryScope": "COLLECTION_GROUP",
+      "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "score", "order": "DESCENDING" },
         { "fieldPath": "time", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "currentStreak", "order": "DESCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
       ]
     },
     {
@@ -27,11 +26,10 @@
       ]
     },
     {
-      "collectionGroup": "users",
+      "collectionGroup": "quizAttempts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "currentStreak", "order": "DESCENDING" },
-        { "fieldPath": "name", "order": "ASCENDING" }
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
     {

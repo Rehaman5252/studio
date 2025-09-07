@@ -63,7 +63,6 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
         const validatedAttempt = QuizAttempt.parse(sanitized);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
-        // Final validation of the output from the flow
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
@@ -75,7 +74,6 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
     } catch (error: any) {
         console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
-        // Ensure even in failure, we get a sanitized attempt for the fallback
         const sanitizedForFallback = sanitizeQuizAttempt(rawAttempt);
         return getFallbackAnalysis(sanitizedForFallback as z.infer<typeof QuizAttempt>);
     }
@@ -126,7 +124,6 @@ const generateQuizAnalysisFlow = ai.defineFlow(
             return { ...output, source: "ai" };
         } catch (error) {
              console.error("Error during AI analysis flow execution:", error);
-             // Instead of re-throwing, which could crash the caller, return a fallback.
              return getFallbackAnalysis(input);
         }
     }
