@@ -79,9 +79,9 @@ export function mapFirestoreError(error: any): string {
   const code = error.code || '';
   const message = (error.message || '').toLowerCase();
   
-  // Specific check for Firestore index errors, which is a common and actionable issue.
+  // Specific check for Firestore index errors
   if (code === 'failed-precondition' && message.includes('index')) {
-    return "needs_index"; // Special keyword for components to handle gracefully.
+    return "needs_index"; // Special keyword for components to handle
   }
 
   if (error instanceof FirebaseError) {

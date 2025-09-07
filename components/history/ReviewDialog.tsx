@@ -1,13 +1,13 @@
 
 'use client';
 
-import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
-import { memo, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, memo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, XCircle, Award } from 'lucide-react';
+import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
-import { Award, CheckCircle, XCircle } from 'lucide-react';
 
 interface ReviewDialogProps {
   open: boolean;
@@ -44,7 +44,7 @@ const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProp
                                     <div className="text-sm space-y-2">
                                         <p className="flex items-start gap-2">
                                             {attempt.userAnswers[index] === question.correctAnswer ?
-                                                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" /> :
+                                                <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /> :
                                                 <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                                             }
                                             <span>Your Answer: <span className="font-semibold">{attempt.userAnswers[index] || "Not Answered"}</span></span>
@@ -72,14 +72,15 @@ const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProp
                             </Card>
                         ))}
                     </div>
-                    <DialogFooter>
+                    <div className="flex justify-end pt-4 border-t">
                         <DialogClose asChild>
                             <Button variant="outline">Close</Button>
                         </DialogClose>
-                    </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
 
+            {/* This ensures only one Report dialog is rendered at a time */}
             {reportingQuestion && (
                 <ReportQuestionDialog
                     question={reportingQuestion}

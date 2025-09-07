@@ -214,7 +214,7 @@ function RewardsContentComponent() {
                     </CarouselItem>
                 ))}
                 </CarouselContent>
-                <div className="flex justify-between w-full px-4 pt-4 sm:hidden">
+                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
                     <CarouselPrevious />
                     <CarouselNext />
                 </div>
