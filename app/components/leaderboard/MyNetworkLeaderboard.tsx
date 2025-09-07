@@ -68,16 +68,19 @@ const MyNetworkLeaderboard = () => {
     useEffect(() => {
         let isMounted = true;
         if (authLoading || !user || !profile) {
-            if (!authLoading) setIsLoading(false);
+            if (!authLoading && isMounted) setIsLoading(false);
             return;
         }
         if (!db) {
-            setError("Database not available.");
-            setIsLoading(false);
+             if (isMounted) {
+                setError("Database not available.");
+                setIsLoading(false);
+            }
             return;
         }
 
         const fetchNetworkData = async () => {
+            if (!isMounted) return;
             setIsLoading(true);
             setError(null);
             
