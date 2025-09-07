@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
@@ -60,24 +60,32 @@ const EmptyState = () => (
     </Card>
 );
 
-const ErrorState = ({ message, title }: { message: string, title: string }) => (
-    <Alert variant="destructive" className="mt-4">
+const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+     isIndexError ? (
+        <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+            <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+            <AlertTitle>{title}</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    ) : (
+    <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
+    )
 );
 
 const AllTimeLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("Database not available.");
+            setError({userMessage: "Database not available."});
             setIsLoading(false);
             return;
         }
@@ -92,6 +100,9 @@ const AllTimeLeaderboard = () => {
         );
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            if (!querySnapshot.metadata.fromCache) {
+              setIsLoading(false);
+            }
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
                 .map((doc, index) => {
@@ -109,7 +120,6 @@ const AllTimeLeaderboard = () => {
                 });
 
             setPlayers(playersData);
-            setIsLoading(false);
             setError(null);
         }, (err: any) => {
             console.error("All-Time Leaderboard snapshot error: ", err);
@@ -125,18 +135,11 @@ const AllTimeLeaderboard = () => {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
         if (error) {
-             if (error.includes("index")) {
-                 return (
-                     <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-                        <AlertTitle>Leaderboard Indexing</AlertTitle>
-                        <AlertDescription>
-                            The all-time leaderboard is currently being indexed by the database. This can take a few minutes. Please check back shortly.
-                        </AlertDescription>
-                    </Alert>
-                 )
-            }
-            return <ErrorState title="Error Loading Leaderboard" message={error} />;
+             return <ErrorState 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                message={error.userMessage} 
+                isIndexError={error.code === "INDEX_REQUIRED"}
+            />;
         }
         if (players.length === 0) return <EmptyState />;
         

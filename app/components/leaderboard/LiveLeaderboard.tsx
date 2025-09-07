@@ -8,22 +8,23 @@ import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Clock, Ban, Users } from 'lucide-react';
+import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
+import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
     if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
     if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
-    return <span aria-label={\`Rank \${rank}\`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
+    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
     <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
         <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || \`https://placehold.co/40x40.png\`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
+        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
         <p className="font-semibold text-foreground flex-1">{player.name}</p>
         {player.disqualified ? (
             <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
@@ -51,12 +52,20 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title }: { message: string, title: string }) => (
-    <Alert variant="destructive" className="mt-4">
+const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+     isIndexError ? (
+        <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+            <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+            <AlertTitle>{title}</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    ) : (
+    <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
+    )
 );
 
 const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: number; }}) => (
@@ -81,9 +90,16 @@ const LiveLeaderboard = () => {
    
     const content = useMemo(() => {
         if (leaderboardLive.loading || authLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={\`skel-live-\${i}\`} />);
+            return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
         }
-        if (leaderboardLive.error) return <ErrorState title="Error Loading Leaderboard" message={leaderboardLive.error} />;
+        if (leaderboardLive.error) {
+            const mappedError = mapFirestoreError(leaderboardLive.error);
+            return <ErrorState 
+                title={mappedError.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                message={mappedError.userMessage}
+                isIndexError={mappedError.code === "INDEX_REQUIRED"}
+            />;
+        }
         if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
         
         const playersWithRank = leaderboardLive.rows.map((player, index) => ({
