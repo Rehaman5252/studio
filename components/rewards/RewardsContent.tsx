@@ -207,7 +207,7 @@ function RewardsContentComponent() {
                 {rewardableAttempts.map((attempt, index) => (
                     <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
                     <ScratchCard 
-                        brand={attempt.brand!}
+                        brand={attempt.brand as string}
                         isScratched={scratchedCards[attempt.slotId] || false}
                         onScratch={() => handleScratch(attempt.slotId)}
                     />
