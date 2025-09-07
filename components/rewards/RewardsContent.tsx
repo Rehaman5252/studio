@@ -123,17 +123,7 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
 ));
 GenericOffer.displayName = 'GenericOffer';
 
-const getStartOfWeek = (timestamp: number | Timestamp): number => {
-    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
-    const day = date.getDay();
-    // Adjust to Monday as the start of the week (Sunday is 0)
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
-    const startOfWeek = new Date(date.setDate(diff));
-    return startOfWeek.setHours(0, 0, 0, 0);
-};
-
-
-function RewardsContentComponent() {
+const RewardsContentComponent = () => {
   const { user, quizHistory, loading } = useAuth();
   const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
 
@@ -160,31 +150,23 @@ function RewardsContentComponent() {
   };
   
   const rewardableAttempts = useMemo(() => {
-    // Sort all attempts newest first to ensure we process the most recent ones
     const sortedAttempts = [...quizHistory.data].sort((a, b) => {
       const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
       const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
       return timeB - timeA;
     });
 
-    const weeklyBrandTracker = new Set<string>();
-    const uniqueWeeklyAttempts: QuizAttempt[] = [];
+    const uniqueBrandAttempts: QuizAttempt[] = [];
+    const seenBrands = new Set<string>();
 
     for (const attempt of sortedAttempts) {
-      if (!attempt.brand || !attempt.timestamp) continue;
-
-      const weekStartTimestamp = getStartOfWeek(attempt.timestamp);
-      const brandWeekKey = `${attempt.brand}-${weekStartTimestamp}`;
-
-      // If we haven't already added a reward for this brand in this week, add it.
-      if (!weeklyBrandTracker.has(brandWeekKey)) {
-        uniqueWeeklyAttempts.push(attempt);
-        weeklyBrandTracker.add(brandWeekKey);
-      }
+        if (attempt.brand && !seenBrands.has(attempt.brand)) {
+            uniqueBrandAttempts.push(attempt);
+            seenBrands.add(attempt.brand);
+        }
     }
     
-    // The list is already sorted by newest first from the initial sort.
-    return uniqueWeeklyAttempts;
+    return uniqueBrandAttempts;
   }, [quizHistory.data]);
 
   const BrandGifts = () => {
@@ -214,10 +196,8 @@ function RewardsContentComponent() {
                     </CarouselItem>
                 ))}
                 </CarouselContent>
-                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
-                    <CarouselPrevious />
-                    <CarouselNext />
-                </div>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
             </Carousel>
         </div>
     );
@@ -227,7 +207,7 @@ function RewardsContentComponent() {
     <>
       <section>
         <h2 className="text-xl font-semibold text-foreground">Man of the Match Awards</h2>
-        <p className="text-sm text-muted-foreground mb-4">A special award for every match you play. Claim your prize!</p>
+        <p className="text-sm text-muted-foreground mb-4">Your latest reward from each brand partner. Claim your prize!</p>
         <BrandGifts />
       </section>
     </>

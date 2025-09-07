@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, getCountFromServer, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, getCountFromServer, where, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle } from 'lucide-react';
 import { cn, mapFirestoreError } from '@/lib/utils';
@@ -92,50 +92,29 @@ const StreakLeaderboard = () => {
     const [players, setPlayers] = useState<StreakPlayer[]>([]);
     const [currentUserData, setCurrentUserData] = useState<StreakPlayer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<{ code?: string; userMessage: string; technical?: string } | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("Database not available.");
+            setError({userMessage: "Database not available."});
             setIsLoading(false);
             return;
         }
 
-        const fetchLeaderboard = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const usersCollection = collection(db, 'users');
-                const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
-                const querySnapshot = await getDocs(q);
+        const fetchLeaderboardData = async () => {
+             if (user && !players.some(p => p.uid === user.uid)) {
+               const userDocRef = doc(db, 'users', user.uid);
+               const userDoc = await getDoc(userDocRef);
+               if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    const streak = data.currentStreak || 0;
+                    const name = data.name || 'Anonymous Player';
 
-                const playersData = querySnapshot.docs
-                    .filter(doc => (doc.data().currentStreak || 0) > 0)
-                    .map((doc, index) => {
-                        const data = doc.data();
-                        return {
-                            uid: doc.id,
-                            name: data.name || 'Anonymous Player',
-                            avatar: data.photoURL,
-                            currentStreak: data.currentStreak || 0,
-                            isCurrentUser: user?.uid === doc.id,
-                            rank: index + 1
-                        };
-                    });
-                
-                setPlayers(playersData);
-                if (user && !playersData.some(p => p.uid === user.uid)) {
-                   const userDocRef = doc(db, 'users', user.uid);
-                   const userDoc = await getDoc(userDocRef);
-                   if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        const streak = data.currentStreak || 0;
-                        const name = data.name || 'Anonymous Player';
-
-                        if (streak > 0) {
+                    if (streak > 0) {
+                        try {
                             const userRank = await calculateUserRank(streak, name);
-                            setCurrentUserData({
+                             setCurrentUserData({
                                 uid: user.uid,
                                 name: data.name || 'You',
                                 avatar: data.photoURL,
@@ -143,22 +122,47 @@ const StreakLeaderboard = () => {
                                 rank: userRank,
                                 isCurrentUser: true,
                             });
-                        } else {
-                            setCurrentUserData(null);
+                        } catch (rankError) {
+                             console.error("Could not calculate user rank for streak board", rankError);
+                             setCurrentUserData(null);
                         }
-                   }
-                } else {
-                    setCurrentUserData(null);
-                }
-
-            } catch (e: any) {
-                setError(mapFirestoreError(e));
-            } finally {
-                setIsLoading(false);
+                    } else {
+                        setCurrentUserData(null);
+                    }
+               }
+            } else {
+                setCurrentUserData(null);
             }
-        };
+        }
 
-        fetchLeaderboard();
+        const usersCollection = collection(db, 'users');
+        const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
+        
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const playersData = querySnapshot.docs
+                .filter(doc => (doc.data().currentStreak || 0) > 0)
+                .map((doc, index) => {
+                    const data = doc.data();
+                    return {
+                        uid: doc.id,
+                        name: data.name || 'Anonymous Player',
+                        avatar: data.photoURL,
+                        currentStreak: data.currentStreak || 0,
+                        isCurrentUser: user?.uid === doc.id,
+                        rank: index + 1
+                    };
+                });
+            
+            setPlayers(playersData);
+            fetchLeaderboardData();
+            setIsLoading(false);
+            setError(null);
+        }, (err: any) => {
+            setError(mapFirestoreError(err));
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
 
     }, [authLoading, user]);
 
@@ -168,18 +172,16 @@ const StreakLeaderboard = () => {
             return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         }
         if (error) {
-             if (error.includes("needs_index")) {
+             if (error.code === "INDEX_REQUIRED") {
                  return (
                      <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
                         <AlertTriangle className="h-4 w-4 !text-yellow-300" />
                         <AlertTitle>Leaderboard Indexing</AlertTitle>
-                        <AlertDescription>
-                            The streaks leaderboard is currently being indexed by the database. This can take a few minutes. Please check back shortly.
-                        </AlertDescription>
+                        <AlertDescription>{error.userMessage}</AlertDescription>
                     </Alert>
                  )
             }
-            return <ErrorState title="Error" message={error} />;
+            return <ErrorState title="Error" message={error.userMessage} />;
         }
         if (players.length === 0) return <EmptyState />;
         

@@ -72,12 +72,12 @@ const AllTimeLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<{ code?: string; userMessage: string; technical?: string } | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
         if (!db) {
-            setError("Database not available.");
+            setError({userMessage: "Database not available."});
             setIsLoading(false);
             return;
         }
@@ -125,18 +125,16 @@ const AllTimeLeaderboard = () => {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
         if (error) {
-             if (error.includes("needs_index")) {
+             if (error.code === "INDEX_REQUIRED") {
                  return (
                      <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
                         <AlertTriangle className="h-4 w-4 !text-yellow-300" />
                         <AlertTitle>Leaderboard Indexing</AlertTitle>
-                        <AlertDescription>
-                            The all-time leaderboard is currently being indexed by the database. This can take a few minutes. Please check back shortly.
-                        </AlertDescription>
+                        <AlertDescription>{error.userMessage}</AlertDescription>
                     </Alert>
                  )
             }
-            return <ErrorState title="Error Loading Leaderboard" message={error} />;
+            return <ErrorState title="Error Loading Leaderboard" message={error.userMessage} />;
         }
         if (players.length === 0) return <EmptyState />;
         

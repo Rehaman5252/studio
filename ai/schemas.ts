@@ -49,8 +49,8 @@ const QuestionAnalysisSchema = z.object({
 
 export const QuizAnalysisOutputSchema = z.object({
     overallPerformance: z.string().describe("A brief, encouraging summary of the user's overall performance in one or two sentences."),
-    accuracy: z.number().describe("The user's accuracy percentage."),
-    averageTimePerQuestion: z.number().describe("The average time the user took per question, in seconds."),
+    accuracy: z.number().min(0).max(100).describe("The user's accuracy percentage."),
+    averageTimePerQuestion: z.number().nonnegative().describe("The average time the user took per question, in seconds."),
     keyStrengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated, based on the categories they answered correctly and quickly."),
     areasForImprovement: z.array(z.string()).describe("A list of 2-3 specific, actionable areas for improvement, based on the categories where answers were incorrect or slowly."),
     coachTip: z.string().describe("A single, personalized, actionable tip from an AI coach to help the user improve next time."),

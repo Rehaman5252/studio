@@ -19,7 +19,6 @@ export interface AllTimePlayer {
     quizzesPlayed: number;
     rank?: number;
     isCurrentUser?: boolean;
-    currentStreak?: number;
 }
 
 export interface MyNetworkPlayer {

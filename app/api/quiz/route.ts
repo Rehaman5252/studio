@@ -34,9 +34,13 @@ export async function POST(req: Request) {
   }
 
   const { format, userId } = body ?? {};
+  const allowedFormats = ["mixed", "odi", "t20", "test", "ipl", "wpl"];
 
-  if (!format || typeof format !== 'string' || !userId || typeof userId !== 'string') {
-    return NextResponse.json({ error: "Missing or invalid format or userId", reqId }, { status: 400 });
+  if (!format || typeof format !== "string" || !allowedFormats.includes(format.toLowerCase())) {
+    return NextResponse.json({ error: "Invalid or missing format", reqId }, { status: 400 });
+  }
+  if (!userId || typeof userId !== 'string') {
+    return NextResponse.json({ error: "Missing or invalid userId", reqId }, { status: 400 });
   }
 
   try {
@@ -56,7 +60,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error(`[quiz][${reqId}] API Error:`, err);
     
-    const userMessage = mapFirestoreError(err);
+    const userMessage = mapFirestoreError(err).userMessage;
     
     try {
         console.warn(`[quiz][${reqId}] AI failed, serving fallback for format=${format}`);

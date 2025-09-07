@@ -8,9 +8,10 @@ import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { WifiOff, ServerCrash, Clock, Ban, Users } from 'lucide-react';
+import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
+import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -83,7 +84,19 @@ const LiveLeaderboard = () => {
         if (leaderboardLive.loading || authLoading) {
             return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
         }
-        if (leaderboardLive.error) return <ErrorState title="Error Loading Leaderboard" message={leaderboardLive.error} />;
+        if (leaderboardLive.error) {
+            const mappedError = mapFirestoreError(leaderboardLive.error);
+            if (mappedError.code === 'INDEX_REQUIRED') {
+                return (
+                    <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+                        <AlertTitle>Leaderboard Indexing</AlertTitle>
+                        <AlertDescription>{mappedError.userMessage}</AlertDescription>
+                    </Alert>
+                )
+            }
+            return <ErrorState title="Error Loading Leaderboard" message={mappedError.userMessage} />;
+        }
         if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
         
         const playersWithRank = leaderboardLive.rows.map((player, index) => ({
