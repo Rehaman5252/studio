@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { motion } from 'framer-motion';
 
 const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
     loading: () => <LeaderboardSkeleton count={5} />,
