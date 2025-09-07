@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -84,6 +84,9 @@ const AllTimeLeaderboard = () => {
 
     useEffect(() => {
         if (authLoading) return;
+        
+        let unsubscribe: Unsubscribe | null = null;
+
         if (!db) {
             setError({userMessage: "Database not available."});
             setIsLoading(false);
@@ -99,7 +102,8 @@ const AllTimeLeaderboard = () => {
             limit(50)
         );
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        unsubscribe = onSnapshot(q, (querySnapshot) => {
+            // Stop loading only on the first response from the server to prevent UI flicker
             if (isLoading && !querySnapshot.metadata.fromCache) {
               setIsLoading(false);
             }
@@ -127,7 +131,11 @@ const AllTimeLeaderboard = () => {
             setIsLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
     }, [authLoading, user, isLoading]);
 
     const content = useMemo(() => {
