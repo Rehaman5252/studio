@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
@@ -52,12 +52,20 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title }: { message: string, title: string }) => (
-    <Alert variant="destructive" className="mt-4">
+const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+     isIndexError ? (
+        <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+            <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+            <AlertTitle>{title}</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    ) : (
+    <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
+    )
 );
 
 const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: number; }}) => (
@@ -86,16 +94,11 @@ const LiveLeaderboard = () => {
         }
         if (leaderboardLive.error) {
             const mappedError = mapFirestoreError(leaderboardLive.error);
-            if (mappedError.code === 'INDEX_REQUIRED') {
-                return (
-                    <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-                        <AlertTitle>Leaderboard Indexing</AlertTitle>
-                        <AlertDescription>{mappedError.userMessage}</AlertDescription>
-                    </Alert>
-                )
-            }
-            return <ErrorState title="Error Loading Leaderboard" message={mappedError.userMessage} />;
+            return <ErrorState 
+                title={mappedError.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                message={mappedError.userMessage}
+                isIndexError={mappedError.code === "INDEX_REQUIRED"}
+            />;
         }
         if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
         

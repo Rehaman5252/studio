@@ -42,8 +42,8 @@ const cricketTeams = [
 function toInputDate(value: any): string {
   if (!value) return "";
   // Check if it's a Firestore Timestamp
-  if (value.seconds && typeof value.seconds === 'number') {
-    return new Date(value.seconds * 1000).toISOString().slice(0, 10);
+  if (value instanceof Timestamp) {
+    return new Date(value.toMillis()).toISOString().slice(0, 10);
   }
   // Check if it's a JS Date object
   if (value instanceof Date) {
@@ -51,6 +51,15 @@ function toInputDate(value: any): string {
   }
   // Check if it's already a string in the correct format
   if (typeof value === "string") {
+    // Handle Firestore's serialized object format from client-side cache
+    if (value.includes('seconds')) {
+        try {
+            const parsed = JSON.parse(value);
+            return new Date(parsed.seconds * 1000).toISOString().slice(0, 10);
+        } catch {
+            // fall through
+        }
+    }
     return value.slice(0, 10);
   }
   return "";

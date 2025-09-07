@@ -60,19 +60,27 @@ const EmptyState = () => (
     </Card>
 );
 
-const ErrorState = ({ message, title }: { message: string, title: string }) => (
-    <Alert variant="destructive" className="mt-4">
+const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+     isIndexError ? (
+        <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
+            <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+            <AlertTitle>{title}</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+        </Alert>
+    ) : (
+    <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
     </Alert>
+    )
 );
 
 const AllTimeLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<{ code?: string; userMessage: string; technical?: string } | null>(null);
+    const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
@@ -127,16 +135,11 @@ const AllTimeLeaderboard = () => {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
         if (error) {
-             if (error.code === "INDEX_REQUIRED") {
-                 return (
-                     <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-                        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-                        <AlertTitle>Leaderboard Indexing</AlertTitle>
-                        <AlertDescription>{error.userMessage}</AlertDescription>
-                    </Alert>
-                 )
-            }
-            return <ErrorState title="Error Loading Leaderboard" message={error.userMessage} />;
+             return <ErrorState 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                message={error.userMessage} 
+                isIndexError={error.code === "INDEX_REQUIRED"}
+            />;
         }
         if (players.length === 0) return <EmptyState />;
         
