@@ -70,26 +70,26 @@ function LeaderboardContentComponent() {
                initial="hidden"
                animate="visible"
             >
-                <TabsContent value="live" className={activeTab !== 'live' ? 'hidden' : ''}>
+                <TabsContent value="live" forceMount={true} hidden={activeTab !== 'live'}>
                     <Suspense fallback={<LeaderboardSkeleton />}>
                         <LiveLeaderboard />
                     </Suspense>
                 </TabsContent>
 
-                <TabsContent value="all-time" className={activeTab !== 'all-time' ? 'hidden' : ''}>
+                <TabsContent value="all-time" forceMount={true} hidden={activeTab !== 'all-time'}>
                     <Suspense fallback={<LeaderboardSkeleton />}>
                         <AllTimeLeaderboard />
                     </Suspense>
                 </TabsContent>
 
-                <TabsContent value="streaks" className={activeTab !== 'streaks' ? 'hidden' : ''}>
+                <TabsContent value="streaks" forceMount={true} hidden={activeTab !== 'streaks'}>
                     <Suspense fallback={<LeaderboardSkeleton />}>
                         <StreakLeaderboard />
                     </Suspense>
                 </TabsContent>
                 
                 {user && (
-                <TabsContent value="network" className={activeTab !== 'network' ? 'hidden' : ''}>
+                <TabsContent value="network" forceMount={true} hidden={activeTab !== 'network'}>
                     <Suspense fallback={<LeaderboardSkeleton count={3} />}>
                         <MyNetworkLeaderboard />
                     </Suspense>

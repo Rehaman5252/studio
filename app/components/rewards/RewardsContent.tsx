@@ -207,14 +207,14 @@ function RewardsContentComponent() {
                 {rewardableAttempts.map((attempt, index) => (
                     <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
                     <ScratchCard 
-                        brand={attempt.brand}
+                        brand={attempt.brand as string}
                         isScratched={scratchedCards[attempt.slotId] || false}
                         onScratch={() => handleScratch(attempt.slotId)}
                     />
                     </CarouselItem>
                 ))}
                 </CarouselContent>
-                <div className="flex justify-between w-full px-4 pt-4">
+                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
                     <CarouselPrevious />
                     <CarouselNext />
                 </div>

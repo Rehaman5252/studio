@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -48,7 +49,7 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
   const { toast } = useToast();
   const { updateUserData } = useAuth();
   
-  const defaultDob = userProfile.dob && userProfile.dob.seconds 
+  const defaultDob = (userProfile.dob && userProfile.dob.seconds)
     ? new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]
     : '';
 

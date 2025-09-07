@@ -168,7 +168,7 @@ const StreakLeaderboard = () => {
             return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         }
         if (error) {
-             if (error.includes("needs_index")) {
+             if (error.includes("index")) {
                  return (
                      <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
                         <AlertTriangle className="h-4 w-4 !text-yellow-300" />
