@@ -92,6 +92,9 @@ const AllTimeLeaderboard = () => {
         );
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            if (!querySnapshot.metadata.fromCache) {
+              setIsLoading(false);
+            }
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
                 .map((doc, index) => {
@@ -109,7 +112,6 @@ const AllTimeLeaderboard = () => {
                 });
 
             setPlayers(playersData);
-            setIsLoading(false);
             setError(null);
         }, (err: any) => {
             console.error("All-Time Leaderboard snapshot error: ", err);

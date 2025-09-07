@@ -106,7 +106,11 @@ const StreakLeaderboard = () => {
         const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
         
         const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-            setIsLoading(true);
+            // Only stop loading on the first successful snapshot from the server
+            if (!querySnapshot.metadata.fromCache) {
+                setIsLoading(false);
+            }
+            
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().currentStreak || 0) > 0)
                 .map((doc, index) => {
@@ -148,7 +152,6 @@ const StreakLeaderboard = () => {
             } else {
                 setCurrentUserData(null);
             }
-            setIsLoading(false);
             setError(null);
         }, (err: any) => {
             setError(mapFirestoreError(err));
