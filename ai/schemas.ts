@@ -38,15 +38,6 @@ export const QuizAttempt = z.object({
   reviewed: z.boolean().optional().default(false).describe("Whether the user has reviewed the answers."),
 });
 
-const QuestionAnalysisSchema = z.object({
-    question: z.string().describe("The original question text."),
-    userAnswer: z.string().describe("The answer the user provided."),
-    correctAnswer: z.string().describe("The correct answer."),
-    isCorrect: z.boolean().describe("Whether the user's answer was correct."),
-    timeTaken: z.number().describe("Time taken for this question in seconds."),
-    category: z.string().describe("A specific category for the question (e.g., 'IPL History', 'Test Bowling Records', 'Player Nicknames', 'Cricket Rules').")
-});
-
 export const QuizAnalysisOutputSchema = z.object({
   summary: z.string().describe("A concise overall insight into the user's performance."),
   strengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated."),

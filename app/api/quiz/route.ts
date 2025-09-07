@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     } catch (fallbackErr) {
         console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fallbackErr);
         return NextResponse.json(
-            { ok: false, error: { code: "FALLBACK_FAILED", message: "We're sorry, but the quiz is currently unavailable. Please try again later." }, reqId }, 
+            { ok: false, error: { code: "FALLBACK_FAILED", message: "We're sorry, but the quiz is currently unavailable. Please try again later." } }, 
             { status: 500 }
         );
     }
