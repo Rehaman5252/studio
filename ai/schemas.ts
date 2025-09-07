@@ -1,6 +1,5 @@
 
 import { z } from 'zod';
-import { Timestamp } from 'firebase/firestore';
 
 /**
  * @fileOverview Zod schemas for the indcric application.

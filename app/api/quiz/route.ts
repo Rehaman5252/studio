@@ -9,14 +9,18 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 function isValidQuizShape(candidate: any): boolean {
   if (!candidate || typeof candidate !== "object") return false;
   if (!Array.isArray(candidate.questions) || candidate.questions.length !== 5) return false;
+  
   return candidate.questions.every((q: any) => 
-    typeof q?.question === "string" && 
+    typeof q?.question === "string" && q.question.length > 0 &&
     Array.isArray(q?.options) && 
     q.options.length === 4 &&
-    typeof q?.correctAnswer === 'string' &&
-    typeof q?.explanation === 'string'
+    q.options.every((opt: any) => typeof opt === 'string' && opt.length > 0) &&
+    typeof q?.correctAnswer === 'string' && q.options.includes(q.correctAnswer) &&
+    typeof q?.explanation === 'string' && q.explanation.length > 0
   );
 }
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -31,8 +35,8 @@ export async function POST(req: Request) {
 
   const { format, userId } = body ?? {};
 
-  if (!format || !userId) {
-    return NextResponse.json({ error: "Missing format or userId", reqId }, { status: 400 });
+  if (!format || typeof format !== 'string' || !userId || typeof userId !== 'string') {
+    return NextResponse.json({ error: "Missing or invalid format or userId", reqId }, { status: 400 });
   }
 
   try {

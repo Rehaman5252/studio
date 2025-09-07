@@ -20,9 +20,9 @@ import type { QuizAnalysisOutput } from '@/ai/schemas';
  * @returns A complete QuizAnalysisOutput object.
  */
 const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
-    const accuracy = (attempt.score / attempt.totalQuestions) * 100;
+    const accuracy = attempt.totalQuestions > 0 ? (attempt.score / attempt.totalQuestions) * 100 : 0;
     const totalTime = attempt.timePerQuestion?.reduce((a, b) => a + b, 0) || 0;
-    const averageTime = totalTime > 0 ? totalTime / attempt.totalQuestions : 0;
+    const averageTime = attempt.totalQuestions > 0 ? totalTime / attempt.totalQuestions : 0;
 
     const correctQuestions = attempt.questions.filter((q, i) => q.correctAnswer === attempt.userAnswers[i]);
     const incorrectQuestions = attempt.questions.filter((q, i) => q.correctAnswer !== attempt.userAnswers[i]);
@@ -63,6 +63,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
         const validatedAttempt = QuizAttempt.parse(sanitized);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
+        // Final validation of the output from the flow
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
@@ -74,8 +75,9 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
     } catch (error: any) {
         console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
+        // Ensure even in failure, we get a sanitized attempt for the fallback
         const sanitizedForFallback = sanitizeQuizAttempt(rawAttempt);
-        return getFallbackAnalysis(sanitizedForFallback);
+        return getFallbackAnalysis(sanitizedForFallback as z.infer<typeof QuizAttempt>);
     }
 }
 

@@ -5,7 +5,41 @@
       "collectionGroup": "quizAttempts",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "score", "order": "DESCENDING" },
+        { "fieldPath": "time", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "totalScore", "order": "DESCENDING" },
+        { "fieldPath": "perfectScores", "order": "DESCENDING" },
+        { "fieldPath": "quizzesPlayed", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "currentStreak", "order": "DESCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "userContributions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "submittedAt", "order": "DESCENDING" }
       ]
     }
   ],

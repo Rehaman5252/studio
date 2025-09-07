@@ -165,18 +165,18 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
                   </CardHeader>
                   <CardContent className="space-y-4">
                       {analysis.analyzedQuestions.map((q, i) => (
-                          <div key={i} className="text-sm p-2 rounded-md bg-secondary/50">
+                          <div key={i} className="text-sm p-3 rounded-md bg-secondary/50 border border-border">
                               <p className="font-semibold flex items-start gap-2">
                                   {q.isCorrect 
-                                      ? <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                                      : <XCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+                                      ? <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                                      : <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                                   }
                                   {q.question}
                               </p>
-                              <div className="pl-7 text-xs text-muted-foreground">
-                                  <p>You answered: <span className="font-semibold">{q.userAnswer || "N/A"}</span></p>
-                                  {!q.isCorrect && <p>Correct: <span className="font-semibold">{q.correctAnswer}</span></p>}
-                                  <div className="flex items-center gap-2 mt-1">
+                              <div className="pl-7 text-xs text-muted-foreground mt-2 space-y-1">
+                                  <p>You answered: <span className="font-semibold text-foreground">{q.userAnswer || "Not Answered"}</span></p>
+                                  {!q.isCorrect && <p>Correct: <span className="font-semibold text-foreground">{q.correctAnswer}</span></p>}
+                                  <div className="flex items-center gap-2 pt-1">
                                       <Badge variant="outline">{q.category}</Badge>
                                       <Badge variant="outline">{q.timeTaken.toFixed(1)}s</Badge>
                                   </div>

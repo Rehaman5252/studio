@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { Timestamp } from 'firebase/firestore';
 
 const profileSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -49,7 +49,7 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
   const { toast } = useToast();
   const { updateUserData } = useAuth();
   
-  const defaultDob = userProfile.dob && userProfile.dob.seconds 
+  const defaultDob = (userProfile.dob && userProfile.dob.seconds)
     ? new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]
     : '';
 

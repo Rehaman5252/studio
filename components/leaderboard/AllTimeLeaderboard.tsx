@@ -129,9 +129,9 @@ const AllTimeLeaderboard = () => {
                  return (
                      <Alert variant="default" className="mb-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
                         <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-                        <AlertTitle>Leaderboard Indexing</AlertTitle>
+                        <AlertTitle>Leaderboard is being prepared</AlertTitle>
                         <AlertDescription>
-                            The all-time leaderboard is currently being indexed by the database. This can take a few minutes. Please check back shortly.
+                            The database index for this leaderboard is being built. This can take a few minutes. Please check back shortly.
                         </AlertDescription>
                     </Alert>
                  )
