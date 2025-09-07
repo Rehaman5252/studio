@@ -30,7 +30,7 @@ const RewardsSkeleton = () => (
         <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
             <CarouselContent className="-ml-4">
                 {[...Array(3)].map((_, index) => (
-                    <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                    <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3">
                         <ScratchCardSkeleton />
                     </CarouselItem>
                 ))}
@@ -202,10 +202,10 @@ function RewardsContentComponent() {
     }
     return (
         <div className="relative">
-            <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+            <Carousel opts={{ align: 'start' }} className="w-full">
                 <CarouselContent className="-ml-4">
                 {rewardableAttempts.map((attempt, index) => (
-                    <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                    <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4">
                     <ScratchCard 
                         brand={attempt.brand as string}
                         isScratched={scratchedCards[attempt.slotId] || false}
@@ -214,10 +214,8 @@ function RewardsContentComponent() {
                     </CarouselItem>
                 ))}
                 </CarouselContent>
-                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
-                    <CarouselPrevious />
-                    <CarouselNext />
-                </div>
+                <CarouselPrevious className="absolute left-0" />
+                <CarouselNext className="absolute right-0" />
             </Carousel>
         </div>
     );

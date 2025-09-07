@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getCountFromServer, onSnapshot } from 'firebase/firestore';
+import { doc, collection, getCountFromServer, onSnapshot, Unsubscribe } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -51,10 +51,11 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         return;
     };
     
-    let unsubscribeStats: (() => void) | null = null;
+    let unsubscribeStats: Unsubscribe | null = null;
     let intervalId: NodeJS.Timeout | null = null;
 
     async function initListener() {
+        if (isLoading) setIsLoading(true);
         try {
             const statsDocRef = doc(db, 'globals', 'stats');
             unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
@@ -92,7 +93,7 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
         try {
-            if (typeof unsubscribeStats === "function") {
+            if (unsubscribeStats) {
                 unsubscribeStats();
             }
         } catch (cleanupErr) {
