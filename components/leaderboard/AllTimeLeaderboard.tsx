@@ -103,7 +103,6 @@ const AllTimeLeaderboard = () => {
         );
 
         unsubscribe = onSnapshot(q, (querySnapshot) => {
-            // Stop loading only on the first response from the server to prevent UI flicker
             if (isLoading && !querySnapshot.metadata.fromCache) {
               setIsLoading(false);
             }
@@ -133,7 +132,11 @@ const AllTimeLeaderboard = () => {
 
         return () => {
             if (unsubscribe) {
-                unsubscribe();
+                try {
+                    unsubscribe();
+                } catch (e) {
+                    console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e)
+                }
             }
         };
     }, [authLoading, user, isLoading]);
@@ -144,7 +147,7 @@ const AllTimeLeaderboard = () => {
         }
         if (error) {
              return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
                 message={error.userMessage} 
                 isIndexError={error.code === "INDEX_REQUIRED"}
             />;

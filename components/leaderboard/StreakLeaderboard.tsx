@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle } from 'lucide-react';
 import { cn, mapFirestoreError } from '@/lib/utils';
@@ -104,6 +104,8 @@ const StreakLeaderboard = () => {
 
     useEffect(() => {
         if (authLoading) return;
+        let unsubscribe: Unsubscribe | null = null;
+        
         if (!db) {
             setError({userMessage: "Database not available."});
             setIsLoading(false);
@@ -113,7 +115,7 @@ const StreakLeaderboard = () => {
         const usersCollection = collection(db, 'users');
         const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
         
-        const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+        unsubscribe = onSnapshot(q, async (querySnapshot) => {
             if (isLoading && !querySnapshot.metadata.fromCache) {
                 setIsLoading(false);
             }
@@ -165,7 +167,15 @@ const StreakLeaderboard = () => {
             setIsLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            if (unsubscribe) {
+                try {
+                    unsubscribe();
+                } catch (e) {
+                    console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
+                }
+            }
+        };
 
     }, [authLoading, user, isLoading]);
 
@@ -176,7 +186,7 @@ const StreakLeaderboard = () => {
         }
         if (error) {
              return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
                 message={error.userMessage}
                 isIndexError={error.code === "INDEX_REQUIRED"}
              />;
