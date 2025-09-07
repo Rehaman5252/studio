@@ -1,17 +1,18 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle } from 'lucide-react';
+import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
 import { mapFirestoreError } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -41,7 +42,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, i
 LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
         <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <Skeleton key="skel-name" className="h-4 flex-1" />
@@ -52,7 +53,7 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
      isIndexError ? (
         <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
             <AlertTriangle className="h-4 w-4 !text-yellow-300" />
@@ -63,7 +64,8 @@ const ErrorState = ({ message, title, isIndexError }: { message: string, title: 
     <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
     )
 );
@@ -85,7 +87,7 @@ const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: numb
 );
 
 const LiveLeaderboard = () => {
-    const { user, loading: authLoading, leaderboardLive } = useAuth();
+    const { user, loading: authLoading, leaderboardLive, refreshLiveLeaderboard } = useAuth();
     const { timeLeft } = useQuizStatus();
    
     const content = useMemo(() => {
@@ -98,6 +100,7 @@ const LiveLeaderboard = () => {
                 title={mappedError.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
                 message={mappedError.userMessage}
                 isIndexError={mappedError.code === "INDEX_REQUIRED"}
+                onRetry={refreshLiveLeaderboard}
             />;
         }
         if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
@@ -111,7 +114,7 @@ const LiveLeaderboard = () => {
         return playersWithRank.map((player) => (
             <LeaderboardItem key={player.userId} player={player} isCurrentUser={player.isCurrentUser} />
         ));
-    }, [leaderboardLive, timeLeft, user, authLoading]);
+    }, [leaderboardLive, timeLeft, user, authLoading, refreshLiveLeaderboard]);
 
     return (
         <Card className="bg-card/80 shadow-lg">

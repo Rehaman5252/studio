@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Star, Users } from 'lucide-react';
+import { WifiOff, ServerCrash, Star, Users, RefreshCw } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -43,7 +43,7 @@ LeaderboardItem.displayName = 'LeaderboardItem';
 
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton className="w-8 h-8 rounded-full" />
         <Skeleton className="h-10 w-10 mx-4 rounded-full" />
         <div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
@@ -51,11 +51,12 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title }: { message: string, title: string }) => (
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
     <Alert variant="destructive" className="mt-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
 );
 
@@ -65,44 +66,32 @@ const MyNetworkLeaderboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const fetchNetworkData = useCallback(async () => {
         let isMounted = true;
-        if (authLoading || !user || !profile) {
-            if (!authLoading && isMounted) setIsLoading(false);
-            return;
+        if (!user || !profile || !db) {
+            setIsLoading(false);
+            if (!db) setError("Database not available.");
+            return () => { isMounted = false; };
         }
-        if (!db) {
-             if (isMounted) {
-                setError("Database not available.");
-                setIsLoading(false);
+
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const networkIds: string[] = [...(profile.referrals || [])];
+            if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
+                networkIds.push(profile.referredBy);
             }
-            return;
-        }
 
-        const fetchNetworkData = async () => {
-            if (!isMounted) return;
-            setIsLoading(true);
-            setError(null);
+            if (networkIds.length === 0) {
+                if (isMounted) setNetworkPlayers([]);
+                return () => { isMounted = false; };
+            }
             
-            try {
-                const networkIds: string[] = [...(profile.referrals || [])];
-                if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
-                    networkIds.push(profile.referredBy);
-                }
-
-                if (networkIds.length === 0) {
-                    if (isMounted) {
-                        setNetworkPlayers([]);
-                        setIsLoading(false);
-                    }
-                    return;
-                }
-                
-                const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
-                const playerDocs = await Promise.all(playerPromises);
-                
-                if (!isMounted) return;
-
+            const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
+            const playerDocs = await Promise.all(playerPromises);
+            
+            if (isMounted) {
                 const playersData: MyNetworkPlayer[] = playerDocs
                     .filter(doc => doc.exists())
                     .map(doc => {
@@ -118,27 +107,30 @@ const MyNetworkLeaderboard = () => {
                 
                 const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
+            }
+        } catch (e: any) {
+            console.error("Error fetching network leaderboard:", e);
+            if (isMounted) setError(mapFirestoreError(e).userMessage);
+        } finally {
+            if (isMounted) setIsLoading(false);
+        }
+        
+        return () => { isMounted = false; };
+    }, [user, profile]);
 
-            } catch (e: any) {
-                console.error("Error fetching network leaderboard:", e);
-                if (isMounted) setError(mapFirestoreError(e).userMessage);
-            } finally {
-                if (isMounted) setIsLoading(false);
+    useEffect(() => {
+        if (authLoading) return;
+        const cleanup = fetchNetworkData();
+        return () => {
+            if (typeof cleanup === 'function') {
+                cleanup();
             }
         };
-
-        fetchNetworkData();
-
-        return () => {
-            isMounted = false;
-        }
-
-    }, [user, profile, authLoading]);
-
+    }, [authLoading, fetchNetworkData]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState title="Error" message={error} />;
+        if (error) return <ErrorState title="Error" message={error} onRetry={fetchNetworkData} />;
         if (networkPlayers.length === 0) {
             return (
                 <Card className="bg-card/80 text-center mt-4">
@@ -155,7 +147,7 @@ const MyNetworkLeaderboard = () => {
         return networkPlayers.map((player) => (
             <LeaderboardItem key={player.uid} player={player} />
         ));
-    }, [isLoading, authLoading, error, networkPlayers]);
+    }, [isLoading, authLoading, error, networkPlayers, fetchNetworkData]);
 
 
     return (

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -9,10 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
+import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { mapFirestoreError } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -39,7 +40,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer
 LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
         <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <div key="skel-info" className='flex-1 space-y-2'>
@@ -60,7 +61,7 @@ const EmptyState = () => (
     </Card>
 );
 
-const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
      isIndexError ? (
         <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
             <AlertTriangle className="h-4 w-4 !text-yellow-300" />
@@ -71,7 +72,8 @@ const ErrorState = ({ message, title, isIndexError }: { message: string, title: 
     <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
     )
 );
@@ -82,15 +84,13 @@ const AllTimeLeaderboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-    useEffect(() => {
-        if (authLoading) return;
-        
-        let unsubscribe: Unsubscribe | null = null;
-
+    const startListener = useCallback(() => {
+        setIsLoading(true);
+        setError(null);
         if (!db) {
             setError({userMessage: "Database not available."});
             setIsLoading(false);
-            return;
+            return () => {};
         }
 
         const usersCollection = collection(db, 'users');
@@ -102,7 +102,7 @@ const AllTimeLeaderboard = () => {
             limit(50)
         );
 
-        unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
             setIsLoading(false);
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
@@ -119,7 +119,6 @@ const AllTimeLeaderboard = () => {
                         rank: index + 1
                     };
                 });
-
             setPlayers(playersData);
             setError(null);
         }, (err: any) => {
@@ -128,12 +127,18 @@ const AllTimeLeaderboard = () => {
             setIsLoading(false);
         });
 
+        return unsubscribe;
+    }, [user]);
+
+    useEffect(() => {
+        if (authLoading) return;
+        const unsubscribe = startListener();
         return () => {
             if (unsubscribe) {
                 unsubscribe();
             }
         };
-    }, [authLoading, user]);
+    }, [authLoading, startListener]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) {
@@ -144,6 +149,7 @@ const AllTimeLeaderboard = () => {
                 title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
                 message={error.userMessage} 
                 isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
             />;
         }
         if (players.length === 0) return <EmptyState />;
@@ -153,7 +159,7 @@ const AllTimeLeaderboard = () => {
         return playersWithRank.map(player => (
             <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
         ));
-    }, [isLoading, authLoading, error, players, user]);
+    }, [isLoading, authLoading, error, players, user, startListener]);
 
     return (
         <Card className="bg-card/80 shadow-lg">
