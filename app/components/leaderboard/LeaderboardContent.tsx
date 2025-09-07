@@ -49,7 +49,7 @@ function LeaderboardContentComponent() {
   }
   
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             <TabsTrigger value="all-time">All-Time</TabsTrigger>
