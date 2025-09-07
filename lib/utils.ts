@@ -80,10 +80,10 @@ export function mapFirestoreError(error: any): { code?: string; userMessage: str
     const msg = String(error.message || error).toLowerCase();
 
     // Specific check for Firestore index errors
-    if (code === 'failed-precondition' && msg.includes('index')) {
+    if (/index|failed-precondition/i.test(msg)) {
         return {
           code: "INDEX_REQUIRED",
-          userMessage: "The leaderboards are being prepared. Please wait a few moments and refresh.",
+          userMessage: "We're preparing the leaderboard. Please wait a few moments and refresh.",
           technical: msg
         };
     }
@@ -100,12 +100,12 @@ export function mapFirestoreError(error: any): { code?: string; userMessage: str
                 return { code: error.code, userMessage: 'The request timed out. Please check your connection and try again.' };
             case 'cancelled':
                 return { code: error.code, userMessage: 'The request was cancelled. Please try again.' };
-            case "unauthenticated":
-                return { code: error.code, userMessage: "Your session may have expired. Please log in again." };
-            case "resource-exhausted":
-                return { code: error.code, userMessage: "The request limit was reached. Please wait before trying again." };
-            default:
-                return { code: error.code, userMessage: `An unexpected server error occurred (${error.code}). Please try again.` };
+           case "unauthenticated":
+              return { code: error.code, userMessage: "Your session may have expired. Please log in again." };
+          case "resource-exhausted":
+              return { code: error.code, userMessage: "The request limit was reached. Please wait before trying again." };
+          default:
+              return { code: error.code, userMessage: `An unexpected server error occurred (${error.code}). Please try again.` };
         }
     }
 

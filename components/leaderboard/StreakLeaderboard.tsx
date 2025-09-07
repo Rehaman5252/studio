@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, getCountFromServer, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDoc, doc, getCountFromServer, where, onSnapshot } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle } from 'lucide-react';
 import { cn, mapFirestoreError } from '@/lib/utils';
@@ -164,7 +164,7 @@ const StreakLeaderboard = () => {
 
         return () => unsubscribe();
 
-    }, [authLoading, user]);
+    }, [authLoading, user, players]);
 
 
     const content = useMemo(() => {
