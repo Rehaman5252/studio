@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -9,9 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle } from 'lucide-react';
+import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn, mapFirestoreError } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
+import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
     if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
@@ -36,7 +37,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: Strea
 LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
         <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <Skeleton key="skel-name" className="h-4 flex-1" />
@@ -44,7 +45,7 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
      isIndexError ? (
         <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
             <AlertTriangle className="h-4 w-4 !text-yellow-300" />
@@ -55,7 +56,8 @@ const ErrorState = ({ message, title, isIndexError }: { message: string, title: 
     <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
     )
 );
@@ -98,14 +100,15 @@ const calculateUserRank = async (streak: number, name: string): Promise<number> 
 const StreakLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<StreakPlayer[]>([]);
-    const [currentUserData, setCurrentUserData] = useState<StreakPlayer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string; userMessage: string; technical?: string } | null>(null);
+    const listenerRef = useRef<Unsubscribe>();
 
-    useEffect(() => {
-        if (authLoading) return;
-        let unsubscribe: Unsubscribe | null = null;
-        
+    const startListener = useCallback(() => {
+        if (listenerRef.current) listenerRef.current();
+        setIsLoading(true);
+        setError(null);
+
         if (!db) {
             setError({userMessage: "Database not available."});
             setIsLoading(false);
@@ -115,11 +118,7 @@ const StreakLeaderboard = () => {
         const usersCollection = collection(db, 'users');
         const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
         
-        unsubscribe = onSnapshot(q, async (querySnapshot) => {
-            if (isLoading && !querySnapshot.metadata.fromCache) {
-                setIsLoading(false);
-            }
-            
+        const unsubscribe = onSnapshot(q, async (querySnapshot) => {
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().currentStreak || 0) > 0)
                 .map((doc, index) => {
@@ -134,50 +133,57 @@ const StreakLeaderboard = () => {
                     };
                 });
             
-            setPlayers(playersData);
-
             if (user && !playersData.some(p => p.uid === user.uid)) {
-               const userDocRef = doc(db, 'users', user.uid);
-               const userDoc = await getDoc(userDocRef);
-               if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const streak = data.currentStreak || 0;
-                    const name = data.name || 'Anonymous Player';
-
-                    if (streak > 0) {
-                        const userRank = await calculateUserRank(streak, name);
-                        setCurrentUserData({
-                            uid: user.uid,
-                            name: data.name || 'You',
-                            avatar: data.photoURL,
-                            currentStreak: streak,
-                            rank: userRank,
-                            isCurrentUser: true,
-                        });
+               try {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                            const data = userDoc.data();
+                            const streak = data.currentStreak || 0;
+                            if (streak > 0) {
+                                const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
+                                const currentUserData = {
+                                    uid: user.uid,
+                                    name: data.name || 'You',
+                                    avatar: data.photoURL,
+                                    currentStreak: streak,
+                                    rank: userRank,
+                                    isCurrentUser: true,
+                                };
+                                setPlayers([...playersData, currentUserData]);
+                            } else {
+                                setPlayers(playersData);
+                            }
                     } else {
-                        setCurrentUserData(null);
+                        setPlayers(playersData);
                     }
+               } catch (e) {
+                    console.error("Error fetching current user for streak board", e);
+                    setPlayers(playersData); // Show top players even if current user fetch fails
                }
             } else {
-                setCurrentUserData(null);
+                setPlayers(playersData);
             }
             setError(null);
+            setIsLoading(false);
         }, (err: any) => {
             setError(mapFirestoreError(err));
             setIsLoading(false);
         });
+        
+        listenerRef.current = unsubscribe;
 
+    }, [user]);
+
+    useEffect(() => {
+        if (authLoading) return;
+        
+        startListener();
+        
         return () => {
-            if (unsubscribe) {
-                try {
-                    unsubscribe();
-                } catch (e) {
-                    console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
-                }
-            }
+            if (listenerRef.current) listenerRef.current();
         };
-
-    }, [authLoading, user, isLoading]);
+    }, [authLoading, startListener]);
 
 
     const content = useMemo(() => {
@@ -189,24 +195,28 @@ const StreakLeaderboard = () => {
                 title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
                 message={error.userMessage}
                 isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
              />;
         }
         if (players.length === 0) return <EmptyState />;
         
+        const sortedPlayers = [...players].sort((a,b) => (a.rank || 999) - (b.rank || 999));
+        const currentUserInList = sortedPlayers.find(p => p.isCurrentUser);
+
         return (
             <>
-                {players.map((player) => (
-                    <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.isCurrentUser} />
+                {sortedPlayers.filter(p => !p.isCurrentUser).map((player) => (
+                    <LeaderboardItem key={player.uid} player={player} />
                 ))}
-                {currentUserData && (
+                {currentUserInList && (
                     <>
                         <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
-                        <LeaderboardItem player={currentUserData} isCurrentUser={true} />
+                        <LeaderboardItem player={currentUserInList} isCurrentUser={true} />
                     </>
                 )}
             </>
         );
-    }, [isLoading, authLoading, error, players, currentUserData]);
+    }, [isLoading, authLoading, error, players, startListener]);
 
 
     return (

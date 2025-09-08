@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -9,17 +9,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Star, Users } from 'lucide-react';
+import { WifiOff, ServerCrash, Star, Users, RefreshCw } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
-    if (rank === 1) return <span className="text-2xl">🥇</span>;
-    if (rank === 2) return <span className="text-2xl">🥈</span>;
-    if (rank === 3) return <span className="text-2xl">🥉</span>;
-    return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
+    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
+    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
+    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
+    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
@@ -43,7 +43,7 @@ LeaderboardItem.displayName = 'LeaderboardItem';
 
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton className="w-8 h-8 rounded-full" />
         <Skeleton className="h-10 w-10 mx-4 rounded-full" />
         <div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
@@ -51,11 +51,12 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title }: { message: string, title: string }) => (
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
     <Alert variant="destructive" className="mt-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
 );
 
@@ -65,36 +66,35 @@ const MyNetworkLeaderboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (authLoading || !user || !profile) {
-            if (!authLoading) setIsLoading(false);
-            return;
-        }
-        if (!db) {
-            setError("Database not available.");
+    const fetchNetworkData = useCallback(async () => {
+        let isMounted = true;
+        if (!user || !profile || !db) {
             setIsLoading(false);
-            return;
+            if (!db) setError("Database not available.");
+            return () => { isMounted = false; };
         }
 
-        const fetchNetworkData = async () => {
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                const networkIds: string[] = [...(profile.referrals || [])];
-                if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
-                    networkIds.push(profile.referredBy);
-                }
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const networkIds: string[] = [...(profile.referrals || [])];
+            if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
+                networkIds.push(profile.referredBy);
+            }
 
-                if (networkIds.length === 0) {
+            if (networkIds.length === 0) {
+                if (isMounted) {
                     setNetworkPlayers([]);
                     setIsLoading(false);
-                    return;
                 }
-                
-                const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
-                const playerDocs = await Promise.all(playerPromises);
-                
+                return () => { isMounted = false; };
+            }
+            
+            const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
+            const playerDocs = await Promise.all(playerPromises);
+            
+            if (isMounted) {
                 const playersData: MyNetworkPlayer[] = playerDocs
                     .filter(doc => doc.exists())
                     .map(doc => {
@@ -110,23 +110,32 @@ const MyNetworkLeaderboard = () => {
                 
                 const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
-
-            } catch (e: any) {
-                console.error("Error fetching network leaderboard:", e);
-                setError(mapFirestoreError(e));
-            } finally {
-                setIsLoading(false);
             }
+        } catch (e: any) {
+            console.error("Error fetching network leaderboard:", e);
+            if (isMounted) setError(mapFirestoreError(e).userMessage);
+        } finally {
+            if (isMounted) setIsLoading(false);
+        }
+        
+        return () => { isMounted = false; };
+    }, [user, profile]);
+
+    useEffect(() => {
+        if (authLoading) return;
+        const cleanupPromise = fetchNetworkData();
+        return () => {
+            cleanupPromise.then(cleanup => {
+                if (typeof cleanup === 'function') {
+                    cleanup();
+                }
+            });
         };
-
-        fetchNetworkData();
-
-    }, [user, profile, authLoading]);
-
+    }, [authLoading, fetchNetworkData]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState title="Error" message={error} />;
+        if (error) return <ErrorState title="Error" message={error} onRetry={fetchNetworkData} />;
         if (networkPlayers.length === 0) {
             return (
                 <Card className="bg-card/80 text-center mt-4">
@@ -143,7 +152,7 @@ const MyNetworkLeaderboard = () => {
         return networkPlayers.map((player) => (
             <LeaderboardItem key={player.uid} player={player} />
         ));
-    }, [isLoading, authLoading, error, networkPlayers]);
+    }, [isLoading, authLoading, error, networkPlayers, fetchNetworkData]);
 
 
     return (

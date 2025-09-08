@@ -226,4 +226,3 @@ const ResultsContent = () => {
       )
   }
 
-    

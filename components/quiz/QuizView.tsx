@@ -71,20 +71,10 @@ export default function QuizView({
      useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
-                malpracticeRef.current.hiddenCount++;
-                
-                // If this is the first time they've switched away on this question, start a timer.
-                if (!malpracticeRef.current.hiddenTimer) {
-                    malpracticeRef.current.hiddenTimer = setTimeout(() => {
-                        // If they are still hidden after 3 seconds, it's a no-ball.
-                        onNoBall('no-ball');
-                    }, 3000); // 3-second grace period
-                }
-
-                // If they switch away more than once, it's an immediate no-ball.
-                if (malpracticeRef.current.hiddenCount > 1) {
+                // If hidden for >1 second then count as malpractice. This grace period handles quick app switches.
+                malpracticeRef.current.hiddenTimer = setTimeout(() => {
                     onNoBall('no-ball');
-                }
+                }, 1000); 
             } else {
                 // User returned to the tab, clear the timer if it exists.
                 if (malpracticeRef.current.hiddenTimer) {
@@ -239,4 +229,3 @@ export default function QuizView({
     );
 }
 
-    
