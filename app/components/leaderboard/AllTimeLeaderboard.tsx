@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -83,14 +83,19 @@ const AllTimeLeaderboard = () => {
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
+    const listenerRef = useRef<Unsubscribe>();
 
     const startListener = useCallback(() => {
+        if (listenerRef.current) {
+            listenerRef.current(); // Clean up old listener
+        }
         setIsLoading(true);
         setError(null);
+        
         if (!db) {
-            setError({userMessage: "Database not available."});
+            setError({ userMessage: "Database connection is not available." });
             setIsLoading(false);
-            return () => {};
+            return;
         }
 
         const usersCollection = collection(db, 'users');
@@ -99,11 +104,11 @@ const AllTimeLeaderboard = () => {
             orderBy('totalScore', 'desc'),
             orderBy('perfectScores', 'desc'), 
             orderBy('quizzesPlayed', 'asc'),
+            orderBy('name', 'asc'), // Tie-breaker for stable sort
             limit(50)
         );
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            setIsLoading(false);
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
                 .map((doc, index) => {
@@ -121,21 +126,24 @@ const AllTimeLeaderboard = () => {
                 });
             setPlayers(playersData);
             setError(null);
+            setIsLoading(false);
         }, (err: any) => {
             console.error("All-Time Leaderboard snapshot error: ", err);
             setError(mapFirestoreError(err));
             setIsLoading(false);
         });
 
-        return unsubscribe;
+        listenerRef.current = unsubscribe;
     }, [user]);
 
     useEffect(() => {
         if (authLoading) return;
-        const unsubscribe = startListener();
+        
+        startListener();
+
         return () => {
-            if (unsubscribe) {
-                unsubscribe();
+            if (listenerRef.current) {
+                listenerRef.current();
             }
         };
     }, [authLoading, startListener]);
@@ -154,9 +162,7 @@ const AllTimeLeaderboard = () => {
         }
         if (players.length === 0) return <EmptyState />;
         
-        const playersWithRank = players.map((player, index) => ({ ...player, rank: index + 1 }));
-
-        return playersWithRank.map(player => (
+        return players.map(player => (
             <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
         ));
     }, [isLoading, authLoading, error, players, user, startListener]);

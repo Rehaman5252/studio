@@ -28,7 +28,7 @@ const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakL
 const LeaderboardSkeleton = ({ count = 5 }: { count?: number }) => (
     <div className="pt-4 space-y-2">
         {Array.from({ length: count }).map((_, i) => (
-            <Skeleton key={`leaderboard-skel-${i}`} className="h-[60px] w-full" />
+            <Skeleton key={`leaderboard-skel-${i}`} className="h-[60px] w-full animate-pulse" />
         ))}
     </div>
 );

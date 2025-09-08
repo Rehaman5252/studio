@@ -16,10 +16,10 @@ import Link from 'next/link';
 import { mapFirestoreError } from '@/lib/utils';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
-    if (rank === 1) return <span className="text-2xl">🥇</span>;
-    if (rank === 2) return <span className="text-2xl">🥈</span>;
-    if (rank === 3) return <span className="text-2xl">🥉</span>;
-    return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
+    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
+    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
+    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
+    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
 });
 RankIcon.displayName = 'RankIcon';
 
@@ -67,11 +67,10 @@ const MyNetworkLeaderboard = () => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchNetworkData = useCallback(async () => {
-        let isMounted = true;
         if (!user || !profile || !db) {
             setIsLoading(false);
             if (!db) setError("Database not available.");
-            return () => { isMounted = false; };
+            return;
         }
 
         setIsLoading(true);
@@ -84,48 +83,46 @@ const MyNetworkLeaderboard = () => {
             }
 
             if (networkIds.length === 0) {
-                if (isMounted) setNetworkPlayers([]);
-                return () => { isMounted = false; };
+                setNetworkPlayers([]);
+                setIsLoading(false);
+                return;
             }
             
             const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
             const playerDocs = await Promise.all(playerPromises);
             
-            if (isMounted) {
-                const playersData: MyNetworkPlayer[] = playerDocs
-                    .filter(doc => doc.exists())
-                    .map(doc => {
-                        const data = doc.data();
-                        return {
-                            uid: doc.id,
-                            name: data.name || 'Unknown User',
-                            avatar: data.photoURL,
-                            perfectScores: data.perfectScores || 0,
-                            isReferrer: doc.id === profile.referredBy,
-                        };
-                    });
-                
-                const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
-                setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
-            }
+            const playersData: MyNetworkPlayer[] = playerDocs
+                .filter(doc => doc.exists())
+                .map(doc => {
+                    const data = doc.data();
+                    return {
+                        uid: doc.id,
+                        name: data.name || 'Unknown User',
+                        avatar: data.photoURL,
+                        perfectScores: data.perfectScores || 0,
+                        isReferrer: doc.id === profile.referredBy,
+                    };
+                });
+            
+            const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
+            setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
         } catch (e: any) {
             console.error("Error fetching network leaderboard:", e);
-            if (isMounted) setError(mapFirestoreError(e).userMessage);
+            setError(mapFirestoreError(e).userMessage);
         } finally {
-            if (isMounted) setIsLoading(false);
+            setIsLoading(false);
         }
-        
-        return () => { isMounted = false; };
     }, [user, profile]);
 
     useEffect(() => {
+        let isMounted = true;
         if (authLoading) return;
-        const cleanup = fetchNetworkData();
-        return () => {
-            if (typeof cleanup === 'function') {
-                cleanup();
-            }
-        };
+
+        if (isMounted) {
+            fetchNetworkData();
+        }
+        
+        return () => { isMounted = false; };
     }, [authLoading, fetchNetworkData]);
 
     const content = useMemo(() => {
