@@ -50,7 +50,6 @@ export default function QuizView({
     });
     
     const malpracticeRef = useRef({
-      hiddenCount: 0,
       hiddenTimer: null as NodeJS.Timeout | null,
     });
 
@@ -99,7 +98,7 @@ export default function QuizView({
         setTimeLeft(QUESTION_TIME_LIMIT);
         setSelectedOption(null);
         setIsAnswered(false);
-        malpracticeRef.current.hiddenCount = 0; // Reset counter for each question
+        
         if (malpracticeRef.current.hiddenTimer) {
             clearTimeout(malpracticeRef.current.hiddenTimer);
             malpracticeRef.current.hiddenTimer = null;
@@ -229,3 +228,4 @@ export default function QuizView({
     );
 }
 
+    
