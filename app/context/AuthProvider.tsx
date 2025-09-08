@@ -110,7 +110,7 @@ interface UserDataContextType {
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
 
   // Writes
-  addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean; error?: string; queued?: boolean }>;
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }>;
   updateUserData: (data: Partial<UserProfile>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
   markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean }>;
@@ -237,7 +237,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         if (!querySnapshot.empty) {
           referredBy = querySnapshot.docs[0].id;
         } else {
-          console.warn(\`Referral code "\${additionalData.referralCode}" not found.\`);
+          console.warn(`Referral code "${additionalData.referralCode}" not found.`);
         }
       }
 
@@ -250,7 +250,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           name,
           email: u.email,
           phone: additionalData.phone || '',
-          photoURL: u.photoURL || \`https://placehold.co/100x100.png\`,
+          photoURL: u.photoURL || `https://placehold.co/100x100.png`,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           lastPlayedAt: null,
@@ -264,7 +264,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           profileCompleted: false,
           guidedTourCompleted: false,
           phoneVerified: false,
-          referralCode: \`ref\${u.uid.substring(0, 4)}\`,
+          referralCode: `ref${u.uid.substring(0, 4)}`,
           referralEarnings: 0,
           noBallCount: 0,
           lastNoBallTimestamp: null,
@@ -367,7 +367,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       },
       (error) => {
         console.error('Error fetching quiz history:', error);
-        setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error) });
+        setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error).userMessage });
       }
     );
     unsubs.push(unsubscribeHistory);
@@ -398,7 +398,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setLeaderboardLive({ slotId, rows, loading: false, error: null });
       }, (error) => {
         console.error("Live Leaderboard Error: ", error);
-        setLeaderboardLive({ slotId, rows: [], loading: false, error: mapFirestoreError(error) });
+        setLeaderboardLive({ slotId, rows: [], loading: false, error: mapFirestoreError(error).userMessage });
       });
   
       return unsubscribe;
@@ -423,7 +423,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       if (liveUnsubscribe) liveUnsubscribe();
       clearInterval(slotCheckInterval);
     };
-  }, [db]); // Rerun only when db becomes available
+  }, []); // Rerun only when db becomes available
   
 
   /* -------------------------- Auth convenience --------------------------- */
@@ -648,7 +648,7 @@ const persistAttemptBatch = useCallback(
             const code = err?.code || 'unknown';
             const message = err?.message || String(err);
             // Throw a more descriptive error to be caught by the calling function
-            throw new Error(\`firestore_commit_failed:\${code}:\${message}\`);
+            throw new Error(`firestore_commit_failed:${code}:${message}`);
         }
     },
     [user]
@@ -657,7 +657,7 @@ const persistAttemptBatch = useCallback(
 
   // Public API
   const addQuizAttempt = useCallback(
-    async (attempt: QuizAttempt): Promise<{ success: boolean; error?: string; queued?: boolean }> => {
+    async (attempt: QuizAttempt): Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }> => {
       if (!user || !db) {
         const msg = 'User not authenticated or database unavailable.';
         toast({ title: 'Save Failed', description: msg, variant: 'destructive' });
@@ -669,19 +669,19 @@ const persistAttemptBatch = useCallback(
         await persistAttemptBatch(attempt);
         popPending(attempt.slotId);
         setIsOffline(false);
-        return { success: true };
+        return { success: true, attemptId: attempt.slotId };
       } catch (e: any) {
         console.error('addQuizAttempt failed:', e);
         const errMsg = String(e?.message || e);
         toast({
           title: 'Sync Error',
-          description: \`Could not save your quiz result now. (\${errMsg}) It will auto-sync when you are back online.\`,
+          description: `Could not save your quiz result now. (${errMsg}) It will auto-sync when you are back online.`,
           variant: 'destructive',
           duration: 10000,
         });
         pushPending(attempt);
         setIsOffline(true);
-        return { success: false, error: e.message, queued: true };
+        return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
       }
     },
     [persistAttemptBatch, toast, user]
@@ -696,7 +696,7 @@ const persistAttemptBatch = useCallback(
 
       toast({
         title: 'Reconnecting...',
-        description: \`Syncing \${list.length} pending quiz attempt(s).\`,
+        description: `Syncing ${list.length} pending quiz attempt(s).`,
       });
 
       for (const a of list) {

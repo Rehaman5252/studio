@@ -13,7 +13,7 @@ import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
-import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
+import { buildAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
@@ -31,10 +31,11 @@ interface QuizClientProps {
 type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'unauthenticated';
 
 type QuizAPIResponse = {
+  ok: boolean;
   quiz: QuizData;
   source?: 'ai' | 'fallback';
   reqId?: string;
-  error?: string;
+  error?: { message: string };
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
@@ -114,8 +115,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       const data: QuizAPIResponse = await response.json();
       
-      if (!response.ok || !data.quiz) {
-         throw new Error(data.error || "The server returned an unexpected response.");
+      if (!response.ok || !data.ok || !data.quiz) {
+         throw new Error(data.error?.message || "The server returned an unexpected response.");
       }
 
       setQuizData(data.quiz);
@@ -171,11 +172,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
-    await addQuizAttempt(attempt);
+    const { success, attemptId } = await addQuizAttempt(attempt);
 
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    if (success && attemptId) {
+        router.replace(`/quiz/results?attemptId=${attemptId}`);
+    } else {
+        toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
+        // Fallback to old method if ID is not returned, though this shouldn't happen
+        router.replace('/'); 
+    }
 
-  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (isFinishedRef.current || !quizData || !user) return;
@@ -201,9 +208,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    addQuizAttempt(attempt);
+    const { success, attemptId } = await addQuizAttempt(attempt);
 
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    if (success && attemptId) {
+        router.replace(`/quiz/results?attemptId=${attemptId}`);
+    } else {
+        toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
+        router.replace('/');
+    }
 
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
