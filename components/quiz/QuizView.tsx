@@ -51,7 +51,7 @@ export default function QuizView({
     
     const malpracticeRef = useRef({
       hiddenCount: 0,
-      timer: null as NodeJS.Timeout | null,
+      hiddenTimer: null as NodeJS.Timeout | null,
     });
 
 
@@ -68,43 +68,52 @@ export default function QuizView({
         }, 800);
     };
 
-    useEffect(() => {
-        let hiddenTimer: NodeJS.Timeout | null = null;
+     useEffect(() => {
         const handleVisibilityChange = () => {
-          if (document.visibilityState === 'hidden') {
-            malpracticeRef.current.hiddenCount += 1;
-            
-            // Start a timer. If still hidden after 3s, or if they switch 3 times, it's a no-ball.
-            hiddenTimer = setTimeout(() => {
-              onNoBall('no-ball');
-            }, 3000); // 3-second grace period
-    
-            if (malpracticeRef.current.hiddenCount >= 3) {
-              onNoBall('no-ball');
+            if (document.visibilityState === 'hidden') {
+                malpracticeRef.current.hiddenCount++;
+                
+                // If this is the first time they've switched away on this question, start a timer.
+                if (!malpracticeRef.current.hiddenTimer) {
+                    malpracticeRef.current.hiddenTimer = setTimeout(() => {
+                        // If they are still hidden after 3 seconds, it's a no-ball.
+                        onNoBall('no-ball');
+                    }, 3000); // 3-second grace period
+                }
+
+                // If they switch away more than once, it's an immediate no-ball.
+                if (malpracticeRef.current.hiddenCount > 1) {
+                    onNoBall('no-ball');
+                }
+            } else {
+                // User returned to the tab, clear the timer if it exists.
+                if (malpracticeRef.current.hiddenTimer) {
+                    clearTimeout(malpracticeRef.current.hiddenTimer);
+                    malpracticeRef.current.hiddenTimer = null;
+                }
             }
-          } else {
-            // User returned to tab, clear the timer.
-            if (hiddenTimer) {
-              clearTimeout(hiddenTimer);
-            }
-          }
         };
-    
+
         document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
         return () => {
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
-          if (hiddenTimer) {
-            clearTimeout(hiddenTimer);
-          }
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (malpracticeRef.current.hiddenTimer) {
+                clearTimeout(malpracticeRef.current.hiddenTimer);
+            }
         };
-      }, [onNoBall]);
+    }, [onNoBall]);
     
     useEffect(() => {
+        // Reset state for the new question
         setTimeLeft(QUESTION_TIME_LIMIT);
         setSelectedOption(null);
         setIsAnswered(false);
-        // Do not reset hiddenCount here, so it persists across questions in a single quiz attempt.
+        malpracticeRef.current.hiddenCount = 0; // Reset counter for each question
+        if (malpracticeRef.current.hiddenTimer) {
+            clearTimeout(malpracticeRef.current.hiddenTimer);
+            malpracticeRef.current.hiddenTimer = null;
+        }
         
         const timer = setInterval(() => {
             setTimeLeft(prev => {
