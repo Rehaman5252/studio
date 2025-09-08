@@ -69,26 +69,24 @@ export default function QuizView({
     };
 
     useEffect(() => {
+        let hiddenTimer: NodeJS.Timeout | null = null;
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'hidden') {
             malpracticeRef.current.hiddenCount += 1;
             
-            // If hidden for more than 3 seconds OR it's the second time, disqualify.
+            // Start a timer. If still hidden after 3s, it's a no-ball.
+            hiddenTimer = setTimeout(() => {
+              onNoBall('no-ball');
+            }, 3000); // 3-second grace period
+    
+            // Also trigger if they switch tabs multiple times quickly
             if (malpracticeRef.current.hiddenCount >= 2) {
               onNoBall('no-ball');
-              return;
             }
-            
-            // Start a timer. If still hidden after 3s, it's a no-ball.
-            malpracticeRef.current.timer = setTimeout(() => {
-              onNoBall('no-ball');
-            }, 3000);
-    
           } else {
             // User returned to tab, clear the timer.
-            if (malpracticeRef.current.timer) {
-              clearTimeout(malpracticeRef.current.timer);
-              malpracticeRef.current.timer = null;
+            if (hiddenTimer) {
+              clearTimeout(hiddenTimer);
             }
           }
         };
@@ -97,8 +95,8 @@ export default function QuizView({
     
         return () => {
           document.removeEventListener('visibilitychange', handleVisibilityChange);
-          if (malpracticeRef.current.timer) {
-            clearTimeout(malpracticeRef.current.timer);
+          if (hiddenTimer) {
+            clearTimeout(hiddenTimer);
           }
         };
       }, [onNoBall]);
@@ -107,6 +105,7 @@ export default function QuizView({
         setTimeLeft(QUESTION_TIME_LIMIT);
         setSelectedOption(null);
         setIsAnswered(false);
+        malpracticeRef.current.hiddenCount = 0; // Reset counter for new question
         
         const timer = setInterval(() => {
             setTimeLeft(prev => {
@@ -231,5 +230,3 @@ export default function QuizView({
         </div>
     );
 }
-
-    

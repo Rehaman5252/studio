@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
-import { CricketLoading } from '@/components/CricketLoading';
 import { useToast } from '@/hooks/use-toast';
 
 const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
@@ -225,6 +224,3 @@ const ResultsContent = () => {
           </Suspense>
       )
   }
-  
-
-    
