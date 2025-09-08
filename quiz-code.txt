@@ -1,0 +1,807 @@
+
+// =================================================================================
+// FILE: app/quiz/page.tsx
+// =================================================================================
+'use client';
+
+import React, { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { CricketLoading } from '@/components/CricketLoading';
+import dynamic from 'next/dynamic';
+import AuthGuard from '@/components/auth/AuthGuard';
+
+const QuizClient = dynamic(() => import('@/components/quiz/QuizClient'), {
+  loading: () => <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>,
+  ssr: false,
+});
+
+function QuizPageContent() {
+  const searchParams = useSearchParams();
+  const brand = searchParams.get('brand') || 'Default Brand';
+  const format = searchParams.get('format') || 'Mixed';
+
+  if (!brand || !format) {
+    return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>
+  }
+
+  return <QuizClient brand={brand} format={format} />;
+}
+
+export default function QuizPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>}>
+      <AuthGuard>
+        <QuizPageContent />
+      </AuthGuard>
+    </Suspense>
+  );
+}
+
+
+// =================================================================================
+// FILE: app/quiz/results/page.tsx
+// =================================================================================
+'use client';
+
+import { Suspense, useMemo, useState, memo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Home, Sparkles, Eye, Ban, BadgeCheck } from 'lucide-react';
+import type { QuizAttempt } from '@/ai/schemas';
+import PageWrapper from '@/components/PageWrapper';
+import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+import { decodeAttempt } from '@/lib/quiz-utils';
+
+const AdDialog = dynamic(() => import('@/components/AdDialog').then(mod => mod.AdDialog));
+const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
+const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'));
+
+
+const LoadingSkeleton = () => (
+    <PageWrapper title="Loading Results...">
+        <div className="space-y-4 animate-pulse">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-40 w-full" />
+            <div className="space-y-3 pt-4">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+            </div>
+        </div>
+    </PageWrapper>
+)
+
+const ResultsContent = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
+
+  const attempt: QuizAttempt | null = useMemo(() => {
+      const attemptData = searchParams.get('attempt');
+      if (!attemptData) return null;
+      return decodeAttempt(attemptData);
+  }, [searchParams]);
+
+  const handleViewAnswers = () => {
+    setShowReviewDialog(true);
+  };
+
+  if (!attempt) {
+    return (
+        <PageWrapper title="Error">
+            <div className="flex flex-col items-center justify-center text-center p-4">
+                <h2 className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</h2>
+                <p className="text-muted-foreground">There was an error retrieving your scorecard.</p>
+                <Button onClick={() => router.push('/')} className="mt-4">
+                Return to Home
+                </Button>
+            </div>
+        </PageWrapper>
+    );
+  }
+
+  const isPerfectScore = attempt.score === attempt.totalQuestions;
+  const isDisqualified = !!attempt.reason;
+
+  const getMotivationalLine = () => {
+      if(isDisqualified) return { text: "Fair play is key to the spirit of cricket.", emoji: "🤝"};
+      if(isPerfectScore) return { text: "Flawless century! You're a true champion.", emoji: "🏆" };
+      if(attempt.score >= 3) return { text: "Good effort! Keep practicing.", emoji: "💪" };
+      return { text: "Tough match, but every game is a learning experience!", emoji: "👍" };
+  }
+  const motivationalLine = getMotivationalLine();
+  const pageTitle = isDisqualified ? "Disqualified" : isPerfectScore ? "Perfect Score!" : "Quiz Complete!";
+
+  return (
+    <PageWrapper title="Quiz Scorecard" showBackButton>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, type: 'spring' }}
+            className="space-y-6"
+        >
+            <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
+                <CardContent className="p-6 space-y-6">
+                    <motion.div
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="mx-auto bg-primary/10 p-4 rounded-full w-fit"
+                    >
+                        {isDisqualified ? (
+                            <Ban className="h-12 w-12 text-destructive" />
+                         ) : (
+                            <span className="text-5xl">🏆</span>
+                        )}
+                    </motion.div>
+                    
+                    <div className="space-y-1">
+                        <h1 className="text-3xl font-bold">{pageTitle}</h1>
+                        <p className="text-muted-foreground">{attempt.format} Quiz - Sponsored by {attempt.brand}</p>
+                    </div>
+                    
+                    {!isDisqualified && (
+                        <>
+                            <div className="flex justify-around items-center">
+                                <div className="text-center">
+                                    <BadgeCheck className="h-8 w-8 text-primary mx-auto mb-1" />
+                                    <p className="text-muted-foreground text-sm">You Scored</p>
+                                    <p className="text-5xl font-bold tracking-tighter">
+                                        <span className="text-primary">{attempt.score}</span>/{attempt.totalQuestions}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-lg font-semibold text-primary">{motivationalLine.text}</p>
+                        </>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+                        <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
+                            <Home className="mr-2 h-5 w-5" /> Go Home
+                        </Button>
+                        {!isDisqualified && (
+                            <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
+                                <Eye className="mr-2 h-5 w-5" /> View Answers
+                            </Button>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {!isDisqualified && (
+              <Card className="bg-card/80">
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary" /> AI Performance Analysis</CardTitle>
+                      <CardDescription>Want to improve? Get a personalized analysis of your performance from our AI coach.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <AnalysisDialog attempt={attempt} open={isAnalysisOpen} onOpenChange={setIsAnalysisOpen} />
+                      <Button size="lg" className="w-full" onClick={() => setIsAnalysisOpen(true)}>Generate Free Analysis</Button>
+                  </CardContent>
+              </Card>
+            )}
+            
+        </motion.div>
+      
+      <ReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        attempt={attempt}
+      />
+    </PageWrapper>
+  );
+};
+
+
+export default function QuizResultsPage() {
+    return (
+        <Suspense fallback={<LoadingSkeleton />}>
+            <ResultsContent />
+        </Suspense>
+    )
+}
+
+// =================================================================================
+// FILE: components/quiz/QuizClient.tsx
+// =================================================================================
+'use client';
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthProvider';
+import type { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
+import { CricketLoading } from '@/components/CricketLoading';
+import QuizView from '@/components/quiz/QuizView';
+import InterstitialLoader from '@/components/InterstitialLoader';
+import { AdDialog } from '@/components/AdDialog';
+import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
+import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
+import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/use-settings';
+import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
+import PreQuizLoader from './PreQuizLoader';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import { motion } from 'framer-motion';
+import { getQuizSlotId } from '@/lib/utils';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+
+
+interface QuizClientProps {
+  brand: string;
+  format: string;
+}
+
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'unauthenticated';
+
+type QuizAPIResponse = {
+  ok: boolean,
+  quiz: QuizData;
+  source?: 'ai' | 'fallback';
+  reqId?: string;
+  error?: any;
+};
+
+export default function QuizClient({ brand, format }: QuizClientProps) {
+  const [quizState, setQuizState] = useState<QuizState>('loading');
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
+  const [startTime, setStartTime] = useState<number>(0);
+  const [showInterstitial, setShowInterstitial] = useState(false);
+  const [quizSource, setQuizSource] = useState<'ai' | 'fallback'>('ai');
+  const [showAdDialog, setShowAdDialog] = useState(false);
+  const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
+  const [hints, setHints] = useState<Record<number, HintOutput>>({});
+  const [isHintLoading, setIsHintLoading] = useState(false);
+  const router = useRouter();
+  const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
+  const { toast } = useToast();
+  const { settings } = useSettings();
+  
+  const isFinishedRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const slotId = getQuizSlotId();
+        if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
+          isFinishedRef.current = true;
+          router.replace('/'); 
+        }
+    }
+  }, [router]);
+
+
+  const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
+    return interstitialAds[currentQuestionIndex] || null;
+  }, [currentQuestionIndex]);
+
+  const fetchQuiz = useCallback(async () => {
+    if (isFinishedRef.current || authLoading) return;
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    if (!user) {
+        setQuizState('unauthenticated');
+        return;
+    }
+
+    if (isOffline) {
+        setError("You appear to be offline. Please check your connection.");
+        setQuizState('error');
+        return;
+    }
+    
+    if (!isFirebaseConfigured) {
+        setError("🔥 The app is not connected to the server. Please try again later.");
+        setQuizState('error');
+        return;
+    }
+    
+    try {
+      setQuizState('loading');
+      setError(null);
+
+      const response = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ format, userId: user.uid }),
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted) return;
+      
+      const data: QuizAPIResponse = await response.json();
+      
+      if (!response.ok || !data.ok || !data.quiz) {
+         throw new Error(data.error?.message || "The server returned an unexpected response.");
+      }
+
+      setQuizData(data.quiz);
+      setQuizSource(data.source || 'ai');
+      setQuizState('pre-quiz');
+      
+    } catch (e: any) {
+      if (e.name === 'AbortError') return;
+      console.error("Quiz fetch failed:", e);
+      let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
+      
+      if (typeof e.message === 'string') {
+        if(e.message.includes("Failed to fetch")) {
+            userMessage = "📴 You appear to be offline. Please check your connection.";
+        } else {
+            userMessage = e.message;
+        }
+      }
+      
+      setError(userMessage);
+      setQuizState('error');
+    }
+  }, [format, user, toast, authLoading, isOffline]);
+
+  useEffect(() => {
+    if (!authLoading) {
+        fetchQuiz();
+    }
+    return () => {
+        abortControllerRef.current?.abort();
+    };
+  }, [fetchQuiz, authLoading]);
+
+  const handlePreQuizFinish = useCallback(() => {
+    if (isFinishedRef.current) return;
+    setQuizState('playing');
+    setStartTime(Date.now());
+  }, []);
+
+  const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
+    if (isFinishedRef.current || !quizData || !user) return;
+    isFinishedRef.current = true; 
+    setQuizState('submitting');
+    
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers: finalAnswers,
+      timePerQuestion: finalTimePerQuestion,
+      source: quizSource,
+    });
+    
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+    await addQuizAttempt(attempt);
+
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
+
+  const handleNoBall = useCallback(async (reason: 'no-ball') => {
+    if (isFinishedRef.current || !quizData || !user) return;
+    isFinishedRef.current = true;
+    setQuizState('submitting');
+
+    const noBallCount = await handleMalpractice();
+    toast({
+        title: "No Ball!",
+        description: `Malpractice detected. You have ${noBallCount} no-ball(s). 3 no-balls and you're out!`,
+        variant: "destructive"
+    });
+    
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers,
+      timePerQuestion,
+      overrides: { reason, score: 0 },
+      source: quizSource,
+    });
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+    
+    addQuizAttempt(attempt);
+
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
+
+  const handleNextQuestion = useCallback((answer: string) => {
+    if (isFinishedRef.current) return;
+
+    const endTime = Date.now();
+    const timeTaken = (endTime - startTime) / 1000;
+    
+    const updatedAnswers = [...userAnswers, answer];
+    const updatedTime = [...timePerQuestion, parseFloat(timeTaken.toFixed(2))];
+    
+    setUserAnswers(updatedAnswers);
+    setTimePerQuestion(updatedTime);
+    
+    if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
+        if (interstitialConfig) {
+            setShowInterstitial(true);
+        } else {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setStartTime(Date.now());
+        }
+    } else {
+      finishQuiz(updatedAnswers, updatedTime);
+    }
+  }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);
+
+  const onInterstitialComplete = useCallback(() => {
+    setShowInterstitial(false);
+    setCurrentQuestionIndex(prev => prev + 1);
+    setStartTime(Date.now());
+  }, []);
+
+  const handleHintRequest = useCallback(async () => {
+    if (!quizData || isHintLoading) return;
+    const adConfig = adLibrary.hintAds[currentQuestionIndex];
+    if (adConfig) {
+      setAdForHint(adConfig);
+      setShowAdDialog(true);
+    }
+  }, [quizData, currentQuestionIndex, isHintLoading]);
+
+  const handleAdFinished = useCallback(async () => {
+    setShowAdDialog(false);
+    if (!adForHint || !quizData) return;
+    
+    setIsHintLoading(true);
+    try {
+      const currentQ = quizData.questions[currentQuestionIndex];
+      const hintResult = await getAIPoweredHint({ question: currentQ });
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
+    } catch (e) {
+      console.error("Failed to get AI hint:", e);
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
+    } finally {
+      setIsHintLoading(false);
+    }
+    setAdForHint(null);
+  }, [adForHint, quizData, currentQuestionIndex]);
+  
+  if (quizState === 'loading' || authLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+             <CricketLoading />
+            <p className="mb-4 mt-4">Warming up...</p>
+        </div>
+    );
+  }
+
+  if (quizState === 'unauthenticated') {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4">
+            <LoginPrompt 
+                icon={AlertTriangle}
+                title="Authentication Required"
+                description="Please sign in to play a quiz."
+            />
+        </div>
+    );
+  }
+  
+  if (quizState === 'pre-quiz' && quizData) {
+      return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
+  }
+
+  if (quizState === 'error') {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
+            <AlertTriangle className="h-12 w-12 mb-4" />
+            <p className="font-semibold mb-4">{error}</p>
+            <Button onClick={fetchQuiz}>Try Again</Button>
+        </div>
+    );
+  }
+  
+  if (quizState === 'submitting') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+        <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            className="flex flex-col items-center gap-4"
+        >
+            <ShieldCheck className="h-16 w-16 text-primary animate-pulse" />
+            <h2 className="text-2xl font-bold text-foreground">Third Umpire Review...</h2>
+            <p>Sending your scorecard for verification.</p>
+            <CricketLoading />
+        </motion.div>
+      </div>
+    );
+  }
+  
+  if (showInterstitial && interstitialConfig) {
+    if (interstitialConfig.type === 'static' && interstitialConfig.logoUrl) {
+      return (
+        <InterstitialLoader
+          logoUrl={interstitialConfig.logoUrl}
+          logoHint={interstitialConfig.logoHint || 'brand logo'}
+          duration={interstitialConfig.durationMs}
+          onComplete={onInterstitialComplete}
+        />
+      );
+    }
+    if (interstitialConfig.type === 'video' && interstitialConfig.videoUrl) {
+      return (
+        <AdDialog 
+            open={true}
+            onOpenChange={()=>{}}
+            onAdFinished={onInterstitialComplete}
+            duration={interstitialConfig.durationSec!}
+            skippableAfter={interstitialConfig.skippableAfterSec!}
+            adTitle={interstitialConfig.videoTitle!}
+            adType='video'
+            adUrl={interstitialConfig.videoUrl!}
+        />
+      )
+    }
+  }
+
+  if (quizState === 'playing' && quizData) {
+    return (
+        <>
+          <QuizView
+            question={quizData.questions[currentQuestionIndex]}
+            questionNumber={currentQuestionIndex + 1}
+            totalQuestions={quizData.questions.length}
+            onAnswer={handleNextQuestion}
+            onNoBall={handleNoBall}
+            brand={brand}
+            format={format}
+            onHintRequest={handleHintRequest}
+            hint={hints[currentQuestionIndex]?.hint || null}
+            isHintLoading={isHintLoading}
+            soundEnabled={settings.sound}
+          />
+          {adForHint && (
+            <AdDialog
+              open={showAdDialog}
+              onOpenChange={setShowAdDialog}
+              onAdFinished={handleAdFinished}
+              duration={adForHint.duration}
+              skippableAfter={adForHint.skippableAfter}
+              adTitle={adForHint.title}
+              adType={adForHint.type}
+              adUrl={adForHint.url}
+              adHint={adForHint.hint}
+            />
+          )}
+        </>
+    );
+  }
+
+  return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
+}
+
+
+// =================================================================================
+// FILE: components/quiz/QuizView.tsx
+// =================================================================================
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Lightbulb, Volume2, VolumeX, Loader2, AlertTriangle } from 'lucide-react';
+import { QuizQuestion } from '@/ai/schemas';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
+import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+
+const QUESTION_TIME_LIMIT = 20; // seconds
+
+interface QuizViewProps {
+    question: QuizQuestion;
+    questionNumber: number;
+    totalQuestions: number;
+    onAnswer: (answer: string) => void;
+    onNoBall: (reason: 'no-ball') => void;
+    brand: string;
+    format: string;
+    onHintRequest: () => void;
+    hint: string | null;
+    isHintLoading: boolean;
+    soundEnabled: boolean;
+}
+
+export default function QuizView({
+    question,
+    questionNumber,
+    totalQuestions,
+    onAnswer,
+    onNoBall,
+    brand,
+    format,
+    onHintRequest,
+    hint,
+    isHintLoading,
+    soundEnabled
+}: QuizViewProps) {
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
+    
+    const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({
+        tick: null
+    });
+    
+    // Auto-advance logic
+    const handleSelectOption = (option: string) => {
+        if (isAnswered) return; // Prevent changing answer
+        
+        setIsAnswered(true);
+        setSelectedOption(option);
+        
+        // Wait a moment to show selection, then advance
+        setTimeout(() => {
+            onAnswer(option);
+        }, 800);
+    };
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                 // Immediately call onNoBall when malpractice is detected.
+                 // This will stop the quiz and navigate to the results page.
+                 onNoBall('no-ball');
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [onNoBall]);
+    
+    useEffect(() => {
+        setTimeLeft(QUESTION_TIME_LIMIT);
+        setSelectedOption(null);
+        setIsAnswered(false);
+        
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    // Time's up, advance with no answer
+                    setTimeout(() => onAnswer(""), 100);
+                    return 0;
+                }
+                if(prev <= 6 && soundEnabled) {
+                    audioRefs.current.tick?.play().catch(e => console.log("Audio play failed", e));
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [question, onAnswer, soundEnabled]);
+    
+    const progressValue = (questionNumber / totalQuestions) * 100;
+
+    return (
+        <div className="flex flex-col h-screen bg-gradient-to-br from-background to-secondary/50 text-foreground p-4 overflow-hidden">
+            {typeof window !== 'undefined' && (
+                <>
+                    <audio ref={el => audioRefs.current.tick = el} src="/sounds/tick.mp3" preload="auto" />
+                </>
+            )}
+
+            {/* Header */}
+            <header className="flex flex-col gap-4 mb-4 shrink-0">
+                 <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
+                    <div className="relative h-16 w-16">
+                         <CircularProgressbar
+                            value={timeLeft}
+                            maxValue={QUESTION_TIME_LIMIT}
+                            text={`${timeLeft}`}
+                            styles={buildStyles({
+                                textColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                                pathColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                                trailColor: 'hsl(var(--muted))',
+                                textSize: '28px',
+                            })}
+                         />
+                    </div>
+                </div>
+                 <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <h1 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Progress</h1>
+                        <span className="text-sm font-semibold text-muted-foreground">{questionNumber}/{totalQuestions}</span>
+                    </div>
+                    <Progress value={progressValue} className="h-2 w-full" />
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col justify-center items-center">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -30, scale: 0.95 }}
+                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                        className="w-full max-w-2xl space-y-6"
+                    >
+                        <Card className="shadow-lg bg-transparent border-0 text-center">
+                            <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight">{question.question}</h2>
+                        </Card>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {question.options.map((option) => {
+                                const isSelected = selectedOption === option;
+
+                                return (
+                                <motion.div 
+                                    key={option}
+                                    whileHover={{ scale: isAnswered ? 1 : 1.03 }}
+                                    whileTap={{ scale: isAnswered ? 1 : 0.98 }}
+                                >
+                                    <button
+                                        onClick={() => handleSelectOption(option)}
+                                        disabled={isAnswered}
+                                        className={cn(
+                                            "w-full text-left p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2 text-lg font-semibold",
+                                            "bg-card shadow-md disabled:cursor-not-allowed",
+                                            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background",
+                                            isAnswered ? "opacity-50" : "hover:border-primary/50 hover:shadow-primary/20",
+                                            isSelected && 'border-primary shadow-lg shadow-primary/30 opacity-100'
+                                        )}
+                                    >
+                                        {option}
+                                    </button>
+                                </motion.div>
+                            )})}
+                        </div>
+                    </motion.div>
+                </AnimatePresence>
+            </main>
+
+            {/* Footer */}
+            <footer className="shrink-0 mt-auto pt-4 pb-12 text-center space-y-2">
+                 {isHintLoading ? (
+                    <div className="flex items-center justify-center gap-2 text-primary">
+                        <Loader2 className="animate-spin" /> Fetching hint...
+                    </div>
+                 ) : hint ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4 p-3 bg-accent/20 rounded-lg text-sm text-center"
+                    >
+                       <span className="font-bold">Hint:</span> {hint}
+                    </motion.div>
+                ) : (
+                    <Button variant="outline" size="lg" onClick={onHintRequest} disabled={isAnswered}>
+                        <Lightbulb className="text-primary mr-2" />
+                        <span>Get a Hint (Ad)</span>
+                    </Button>
+                )}
+            </footer>
+        </div>
+    );
+}

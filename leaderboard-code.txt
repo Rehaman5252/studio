@@ -47,7 +47,7 @@ const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakL
 const LeaderboardSkeleton = ({ count = 5 }: { count?: number }) => (
     <div className="pt-4 space-y-2">
         {Array.from({ length: count }).map((_, i) => (
-            <Skeleton key={`leaderboard-skel-${i}`} className="h-[60px] w-full" />
+            <Skeleton key={`leaderboard-skel-${i}`} className="h-[60px] w-full animate-pulse" />
         ))}
     </div>
 );
@@ -129,17 +129,18 @@ export default LeaderboardContent;
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle } from 'lucide-react';
+import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
 import { mapFirestoreError } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -169,7 +170,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, i
 LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
         <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <Skeleton key="skel-name" className="h-4 flex-1" />
@@ -180,7 +181,7 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
      isIndexError ? (
         <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
             <AlertTriangle className="h-4 w-4 !text-yellow-300" />
@@ -191,7 +192,8 @@ const ErrorState = ({ message, title, isIndexError }: { message: string, title: 
     <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
     )
 );
@@ -213,7 +215,7 @@ const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: numb
 );
 
 const LiveLeaderboard = () => {
-    const { user, loading: authLoading, leaderboardLive } = useAuth();
+    const { user, loading: authLoading, leaderboardLive, refreshLiveLeaderboard } = useAuth();
     const { timeLeft } = useQuizStatus();
    
     const content = useMemo(() => {
@@ -226,6 +228,7 @@ const LiveLeaderboard = () => {
                 title={mappedError.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
                 message={mappedError.userMessage}
                 isIndexError={mappedError.code === "INDEX_REQUIRED"}
+                onRetry={refreshLiveLeaderboard}
             />;
         }
         if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
@@ -239,7 +242,7 @@ const LiveLeaderboard = () => {
         return playersWithRank.map((player) => (
             <LeaderboardItem key={player.userId} player={player} isCurrentUser={player.isCurrentUser} />
         ));
-    }, [leaderboardLive, timeLeft, user, authLoading]);
+    }, [leaderboardLive, timeLeft, user, authLoading, refreshLiveLeaderboard]);
 
     return (
         <Card className="bg-card/80 shadow-lg">
@@ -263,7 +266,7 @@ export default memo(LiveLeaderboard);
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -271,10 +274,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle } from 'lucide-react';
+import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
 import { mapFirestoreError } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank: number }) => {
     if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
@@ -301,7 +305,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer
 LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
         <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <div key="skel-info" className='flex-1 space-y-2'>
@@ -322,7 +326,7 @@ const EmptyState = () => (
     </Card>
 );
 
-const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
      isIndexError ? (
         <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
             <AlertTriangle className="h-4 w-4 !text-yellow-300" />
@@ -333,7 +337,8 @@ const ErrorState = ({ message, title, isIndexError }: { message: string, title: 
     <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
     )
 );
@@ -344,15 +349,13 @@ const AllTimeLeaderboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-    useEffect(() => {
-        if (authLoading) return;
-        
-        let unsubscribe: Unsubscribe | null = null;
-
+    const startListener = useCallback(() => {
+        setIsLoading(true);
+        setError(null);
         if (!db) {
             setError({userMessage: "Database not available."});
             setIsLoading(false);
-            return;
+            return () => {};
         }
 
         const usersCollection = collection(db, 'users');
@@ -364,10 +367,8 @@ const AllTimeLeaderboard = () => {
             limit(50)
         );
 
-        unsubscribe = onSnapshot(q, (querySnapshot) => {
-            if (isLoading && !querySnapshot.metadata.fromCache) {
-              setIsLoading(false);
-            }
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            setIsLoading(false);
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
                 .map((doc, index) => {
@@ -383,7 +384,6 @@ const AllTimeLeaderboard = () => {
                         rank: index + 1
                     };
                 });
-
             setPlayers(playersData);
             setError(null);
         }, (err: any) => {
@@ -392,16 +392,18 @@ const AllTimeLeaderboard = () => {
             setIsLoading(false);
         });
 
+        return unsubscribe;
+    }, [user]);
+
+    useEffect(() => {
+        if (authLoading) return;
+        const unsubscribe = startListener();
         return () => {
             if (unsubscribe) {
-                try {
-                    unsubscribe();
-                } catch (e) {
-                    console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e)
-                }
+                unsubscribe();
             }
         };
-    }, [authLoading, user, isLoading]);
+    }, [authLoading, startListener]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) {
@@ -412,6 +414,7 @@ const AllTimeLeaderboard = () => {
                 title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
                 message={error.userMessage} 
                 isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
             />;
         }
         if (players.length === 0) return <EmptyState />;
@@ -421,7 +424,7 @@ const AllTimeLeaderboard = () => {
         return playersWithRank.map(player => (
             <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
         ));
-    }, [isLoading, authLoading, error, players, user]);
+    }, [isLoading, authLoading, error, players, user, startListener]);
 
     return (
         <Card className="bg-card/80 shadow-lg">
@@ -445,7 +448,7 @@ export default memo(AllTimeLeaderboard);
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -453,9 +456,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle } from 'lucide-react';
+import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn, mapFirestoreError } from '@/lib/utils';
 import type { StreakPlayer } from './leaderboardTypes';
+import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
     if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
@@ -480,7 +484,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: Strea
 LeaderboardItem.displayName = 'LeaderboardItem';
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
         <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
         <Skeleton key="skel-name" className="h-4 flex-1" />
@@ -488,7 +492,7 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title, isIndexError }: { message: string, title: string, isIndexError?: boolean }) => (
+const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
      isIndexError ? (
         <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
             <AlertTriangle className="h-4 w-4 !text-yellow-300" />
@@ -499,7 +503,8 @@ const ErrorState = ({ message, title, isIndexError }: { message: string, title: 
     <Alert variant="destructive" className="m-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
     )
 );
@@ -542,28 +547,22 @@ const calculateUserRank = async (streak: number, name: string): Promise<number> 
 const StreakLeaderboard = () => {
     const { user, loading: authLoading } = useAuth();
     const [players, setPlayers] = useState<StreakPlayer[]>([]);
-    const [currentUserData, setCurrentUserData] = useState<StreakPlayer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string; userMessage: string; technical?: string } | null>(null);
 
-    useEffect(() => {
-        if (authLoading) return;
-        let unsubscribe: Unsubscribe | null = null;
-        
+    const startListener = useCallback(() => {
+        setIsLoading(true);
+        setError(null);
         if (!db) {
             setError({userMessage: "Database not available."});
             setIsLoading(false);
-            return;
+            return () => {};
         }
 
         const usersCollection = collection(db, 'users');
         const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
         
-        unsubscribe = onSnapshot(q, async (querySnapshot) => {
-            if (isLoading && !querySnapshot.metadata.fromCache) {
-                setIsLoading(false);
-            }
-            
+        const unsubscribe = onSnapshot(q, async (querySnapshot) => {
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().currentStreak || 0) > 0)
                 .map((doc, index) => {
@@ -578,50 +577,49 @@ const StreakLeaderboard = () => {
                     };
                 });
             
-            setPlayers(playersData);
-
             if (user && !playersData.some(p => p.uid === user.uid)) {
                const userDocRef = doc(db, 'users', user.uid);
                const userDoc = await getDoc(userDocRef);
                if (userDoc.exists()) {
                     const data = userDoc.data();
                     const streak = data.currentStreak || 0;
-                    const name = data.name || 'Anonymous Player';
-
                     if (streak > 0) {
-                        const userRank = await calculateUserRank(streak, name);
-                        setCurrentUserData({
+                        const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
+                        const currentUserData = {
                             uid: user.uid,
                             name: data.name || 'You',
                             avatar: data.photoURL,
                             currentStreak: streak,
                             rank: userRank,
                             isCurrentUser: true,
-                        });
+                        };
+                        setPlayers([...playersData, currentUserData]);
                     } else {
-                        setCurrentUserData(null);
+                         setPlayers(playersData);
                     }
+               } else {
+                 setPlayers(playersData);
                }
             } else {
-                setCurrentUserData(null);
+                setPlayers(playersData);
             }
             setError(null);
+            setIsLoading(false);
         }, (err: any) => {
             setError(mapFirestoreError(err));
             setIsLoading(false);
         });
 
-        return () => {
-            if (unsubscribe) {
-                try {
-                    unsubscribe();
-                } catch (e) {
-                    console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
-                }
-            }
-        };
+        return unsubscribe;
+    }, [user]);
 
-    }, [authLoading, user, isLoading]);
+    useEffect(() => {
+        if (authLoading) return;
+        const unsubscribe = startListener();
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [authLoading, startListener]);
 
 
     const content = useMemo(() => {
@@ -633,24 +631,27 @@ const StreakLeaderboard = () => {
                 title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
                 message={error.userMessage}
                 isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
              />;
         }
         if (players.length === 0) return <EmptyState />;
         
+        const currentUserInList = players.find(p => p.isCurrentUser);
+
         return (
             <>
-                {players.map((player) => (
-                    <LeaderboardItem key={player.uid} player={player} isCurrentUser={player.isCurrentUser} />
+                {players.filter(p => !p.isCurrentUser).map((player) => (
+                    <LeaderboardItem key={player.uid} player={player} />
                 ))}
-                {currentUserData && (
+                {currentUserInList && (
                     <>
                         <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
-                        <LeaderboardItem player={currentUserData} isCurrentUser={true} />
+                        <LeaderboardItem player={currentUserInList} isCurrentUser={true} />
                     </>
                 )}
             </>
         );
-    }, [isLoading, authLoading, error, players, currentUserData]);
+    }, [isLoading, authLoading, error, players, startListener]);
 
 
     return (
@@ -675,17 +676,17 @@ export default memo(StreakLeaderboard);
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { WifiOff, ServerCrash, Star, Users } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { WifiOff, ServerCrash, Star, Users, RefreshCw } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { mapFirestoreError } from '@/lib/utils';
 
@@ -717,7 +718,7 @@ LeaderboardItem.displayName = 'LeaderboardItem';
 
 
 const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg">
+    <div className="flex items-center p-2 rounded-lg animate-pulse">
         <Skeleton className="w-8 h-8 rounded-full" />
         <Skeleton className="h-10 w-10 mx-4 rounded-full" />
         <div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
@@ -725,11 +726,12 @@ const LeaderboardItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message, title }: { message: string, title: string }) => (
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
     <Alert variant="destructive" className="mt-4">
         {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message || 'An unexpected error occurred.'}</AlertDescription>
+        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
 );
 
@@ -739,36 +741,32 @@ const MyNetworkLeaderboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (authLoading || !user || !profile) {
-            if (!authLoading) setIsLoading(false);
-            return;
-        }
-        if (!db) {
-            setError("Database not available.");
+    const fetchNetworkData = useCallback(async () => {
+        let isMounted = true;
+        if (!user || !profile || !db) {
             setIsLoading(false);
-            return;
+            if (!db) setError("Database not available.");
+            return () => { isMounted = false; };
         }
 
-        const fetchNetworkData = async () => {
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                const networkIds: string[] = [...(profile.referrals || [])];
-                if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
-                    networkIds.push(profile.referredBy);
-                }
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const networkIds: string[] = [...(profile.referrals || [])];
+            if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
+                networkIds.push(profile.referredBy);
+            }
 
-                if (networkIds.length === 0) {
-                    setNetworkPlayers([]);
-                    setIsLoading(false);
-                    return;
-                }
-                
-                const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
-                const playerDocs = await Promise.all(playerPromises);
-                
+            if (networkIds.length === 0) {
+                if (isMounted) setNetworkPlayers([]);
+                return () => { isMounted = false; };
+            }
+            
+            const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
+            const playerDocs = await Promise.all(playerPromises);
+            
+            if (isMounted) {
                 const playersData: MyNetworkPlayer[] = playerDocs
                     .filter(doc => doc.exists())
                     .map(doc => {
@@ -784,23 +782,30 @@ const MyNetworkLeaderboard = () => {
                 
                 const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
                 setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
+            }
+        } catch (e: any) {
+            console.error("Error fetching network leaderboard:", e);
+            if (isMounted) setError(mapFirestoreError(e).userMessage);
+        } finally {
+            if (isMounted) setIsLoading(false);
+        }
+        
+        return () => { isMounted = false; };
+    }, [user, profile]);
 
-            } catch (e: any) {
-                console.error("Error fetching network leaderboard:", e);
-                setError(mapFirestoreError(e));
-            } finally {
-                setIsLoading(false);
+    useEffect(() => {
+        if (authLoading) return;
+        const cleanup = fetchNetworkData();
+        return () => {
+            if (typeof cleanup === 'function') {
+                cleanup();
             }
         };
-
-        fetchNetworkData();
-
-    }, [user, profile, authLoading]);
-
+    }, [authLoading, fetchNetworkData]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState title="Error" message={error} />;
+        if (error) return <ErrorState title="Error" message={error} onRetry={fetchNetworkData} />;
         if (networkPlayers.length === 0) {
             return (
                 <Card className="bg-card/80 text-center mt-4">
@@ -817,7 +822,7 @@ const MyNetworkLeaderboard = () => {
         return networkPlayers.map((player) => (
             <LeaderboardItem key={player.uid} player={player} />
         ));
-    }, [isLoading, authLoading, error, networkPlayers]);
+    }, [isLoading, authLoading, error, networkPlayers, fetchNetworkData]);
 
 
     return (
