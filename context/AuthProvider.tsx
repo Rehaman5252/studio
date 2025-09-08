@@ -50,7 +50,7 @@ import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderb
 
 /* -------------------------------- Types ------------------------------- */
 
-interface UserProfile {
+export interface UserProfile {
   uid: string;
   name: string;
   photoURL?: string;
@@ -110,7 +110,7 @@ interface UserDataContextType {
   loginWithEmail: (email: string, password: string) => Promise<User | null>;
 
   // Writes
-  addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean; error?: string; queued?: boolean }>;
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }>;
   updateUserData: (data: Partial<UserProfile>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
   markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean }>;
@@ -367,7 +367,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       },
       (error) => {
         console.error('Error fetching quiz history:', error);
-        setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error) });
+        setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error).userMessage });
       }
     );
     unsubs.push(unsubscribeHistory);
@@ -376,6 +376,55 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       unsubs.forEach((u) => u && u());
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
+
+  /* ------------------------ Leaderboard Subscriptions ----------------------- */
+  useEffect(() => {
+    if (!db) return;
+  
+    // Live Leaderboard Listener
+    const setupLiveLeaderboardListener = () => {
+      const slotId = getQuizSlotId();
+      setLeaderboardLive((prev) => ({ ...prev, slotId, loading: true, rows: [] }));
+  
+      const q = query(
+        collection(db, 'leaderboard_live', slotId, 'entries'),
+        orderBy('score', 'desc'),
+        orderBy('time', 'asc'),
+        limit(50)
+      );
+  
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const rows = snapshot.docs.map(d => d.data() as LivePlayer);
+        setLeaderboardLive({ slotId, rows, loading: false, error: null });
+      }, (error) => {
+        console.error("Live Leaderboard Error: ", error);
+        setLeaderboardLive({ slotId, rows: [], loading: false, error: mapFirestoreError(error).userMessage });
+      });
+  
+      return unsubscribe;
+    };
+  
+    let liveUnsubscribe = setupLiveLeaderboardListener();
+  
+    // This interval checks if the slot has changed and re-subscribes if it has.
+    const slotCheckInterval = setInterval(() => {
+      const newSlotId = getQuizSlotId();
+      setLeaderboardLive(prev => {
+        if (newSlotId !== prev.slotId) {
+            if (liveUnsubscribe) liveUnsubscribe();
+            liveUnsubscribe = setupLiveLeaderboardListener();
+            return { ...prev, slotId: newSlotId }; // This will trigger the re-render if needed
+        }
+        return prev;
+      });
+    }, 5000); // Check every 5 seconds
+  
+    return () => {
+      if (liveUnsubscribe) liveUnsubscribe();
+      clearInterval(slotCheckInterval);
+    };
+  }, []); // Rerun only when db becomes available
+  
 
   /* -------------------------- Auth convenience --------------------------- */
 
@@ -608,7 +657,7 @@ const persistAttemptBatch = useCallback(
 
   // Public API
   const addQuizAttempt = useCallback(
-    async (attempt: QuizAttempt): Promise<{ success: boolean; error?: string; queued?: boolean }> => {
+    async (attempt: QuizAttempt): Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }> => {
       if (!user || !db) {
         const msg = 'User not authenticated or database unavailable.';
         toast({ title: 'Save Failed', description: msg, variant: 'destructive' });
@@ -620,7 +669,7 @@ const persistAttemptBatch = useCallback(
         await persistAttemptBatch(attempt);
         popPending(attempt.slotId);
         setIsOffline(false);
-        return { success: true };
+        return { success: true, attemptId: attempt.slotId };
       } catch (e: any) {
         console.error('addQuizAttempt failed:', e);
         const errMsg = String(e?.message || e);
@@ -632,7 +681,7 @@ const persistAttemptBatch = useCallback(
         });
         pushPending(attempt);
         setIsOffline(true);
-        return { success: false, error: e.message, queued: true };
+        return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
       }
     },
     [persistAttemptBatch, toast, user]
@@ -760,3 +809,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

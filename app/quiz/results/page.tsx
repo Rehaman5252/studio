@@ -51,8 +51,7 @@ const ResultsContent = () => {
     useEffect(() => {
         if (!attemptId || !user) {
             if (!user) {
-                // Wait for auth state to resolve, or redirect if definitely not logged in.
-                // This case is mostly handled by AuthGuard, but good to have.
+                // This case is mostly handled by AuthGuard, but good to have a fallback.
                 toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
                 router.replace('/auth/login');
             } else {
@@ -71,6 +70,7 @@ const ResultsContent = () => {
             
             setLoading(true);
             try {
+                // The attempt ID is the slot ID.
                 const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
                 const attemptDoc = await getDoc(attemptDocRef);
                 if (attemptDoc.exists()) {
@@ -226,3 +226,5 @@ const ResultsContent = () => {
       )
   }
   
+
+    

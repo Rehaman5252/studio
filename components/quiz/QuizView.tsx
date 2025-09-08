@@ -7,15 +7,6 @@ import { Card } from "@/components/ui/card"
 import { Lightbulb, Volume2, VolumeX, Loader2, AlertTriangle } from 'lucide-react';
 import { QuizQuestion } from '@/ai/schemas';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { cn } from '@/lib/utils';
@@ -58,6 +49,12 @@ export default function QuizView({
         tick: null
     });
     
+    const malpracticeRef = useRef({
+      hiddenCount: 0,
+      timer: null as NodeJS.Timeout | null,
+    });
+
+
     // Auto-advance logic
     const handleSelectOption = (option: string) => {
         if (isAnswered) return; // Prevent changing answer
@@ -73,15 +70,38 @@ export default function QuizView({
 
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') {
-                 // Immediately call onNoBall when malpractice is detected.
-                 // This will stop the quiz and navigate to the results page.
-                 onNoBall('no-ball');
+          if (document.visibilityState === 'hidden') {
+            malpracticeRef.current.hiddenCount += 1;
+            
+            // If hidden for more than 3 seconds OR it's the second time, disqualify.
+            if (malpracticeRef.current.hiddenCount >= 2) {
+              onNoBall('no-ball');
+              return;
             }
+            
+            // Start a timer. If still hidden after 3s, it's a no-ball.
+            malpracticeRef.current.timer = setTimeout(() => {
+              onNoBall('no-ball');
+            }, 3000);
+    
+          } else {
+            // User returned to tab, clear the timer.
+            if (malpracticeRef.current.timer) {
+              clearTimeout(malpracticeRef.current.timer);
+              malpracticeRef.current.timer = null;
+            }
+          }
         };
+    
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [onNoBall]);
+    
+        return () => {
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          if (malpracticeRef.current.timer) {
+            clearTimeout(malpracticeRef.current.timer);
+          }
+        };
+      }, [onNoBall]);
     
     useEffect(() => {
         setTimeLeft(QUESTION_TIME_LIMIT);
@@ -211,3 +231,5 @@ export default function QuizView({
         </div>
     );
 }
+
+    
