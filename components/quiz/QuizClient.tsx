@@ -15,12 +15,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
-import LoginPrompt from '@/components/auth/LoginPrompt';
+import LoginPrompt from '../auth/LoginPrompt';
 
 
 interface QuizClientProps {
@@ -178,7 +178,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         router.replace(`/quiz/results?attemptId=${attemptId}`);
     } else {
         toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
-        // Fallback to old method if ID is not returned, though this shouldn't happen
         router.replace('/'); 
     }
 
@@ -391,3 +390,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+
+    

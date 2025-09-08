@@ -74,13 +74,12 @@ export default function QuizView({
           if (document.visibilityState === 'hidden') {
             malpracticeRef.current.hiddenCount += 1;
             
-            // Start a timer. If still hidden after 3s, it's a no-ball.
+            // Start a timer. If still hidden after 3s, or if they switch 3 times, it's a no-ball.
             hiddenTimer = setTimeout(() => {
               onNoBall('no-ball');
             }, 3000); // 3-second grace period
     
-            // Also trigger if they switch tabs multiple times quickly
-            if (malpracticeRef.current.hiddenCount >= 2) {
+            if (malpracticeRef.current.hiddenCount >= 3) {
               onNoBall('no-ball');
             }
           } else {
@@ -105,7 +104,7 @@ export default function QuizView({
         setTimeLeft(QUESTION_TIME_LIMIT);
         setSelectedOption(null);
         setIsAnswered(false);
-        malpracticeRef.current.hiddenCount = 0; // Reset counter for new question
+        // Do not reset hiddenCount here, so it persists across questions in a single quiz attempt.
         
         const timer = setInterval(() => {
             setTimeLeft(prev => {
@@ -230,3 +229,5 @@ export default function QuizView({
         </div>
     );
 }
+
+    

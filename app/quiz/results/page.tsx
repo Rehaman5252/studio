@@ -48,14 +48,15 @@ const ResultsContent = () => {
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
     useEffect(() => {
-        if (!attemptId || !user) {
-            if (!user) {
-                // This case is mostly handled by AuthGuard, but good to have a fallback.
-                toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
-                router.replace('/auth/login');
-            } else {
-                 setError("No quiz attempt ID found in the link.");
-            }
+        if (!attemptId) {
+            setError("No quiz attempt ID found in the link.");
+            setLoading(false);
+            return;
+        }
+        if (!user) {
+            // This case is mostly handled by AuthGuard, but good to have a fallback.
+             toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
+             router.replace(`/auth/login?from=/quiz/results?attemptId=${attemptId}`);
             setLoading(false);
             return;
         }
@@ -224,3 +225,5 @@ const ResultsContent = () => {
           </Suspense>
       )
   }
+
+    
