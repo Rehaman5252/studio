@@ -86,5 +86,3 @@ function LeaderboardContentComponent() {
 
 const LeaderboardContent = memo(LeaderboardContentComponent);
 export default LeaderboardContent;
-
-    

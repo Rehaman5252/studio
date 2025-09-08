@@ -71,7 +71,7 @@ const MyNetworkLeaderboard = () => {
         if (!user || !profile || !db) {
             setIsLoading(false);
             if (!db) setError("Database not available.");
-            return () => { isMounted = false; };
+            return;
         }
 
         setIsLoading(true);
@@ -88,7 +88,7 @@ const MyNetworkLeaderboard = () => {
                     setNetworkPlayers([]);
                     setIsLoading(false);
                 }
-                return () => { isMounted = false; };
+                return;
             }
             
             const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
@@ -117,19 +117,15 @@ const MyNetworkLeaderboard = () => {
         } finally {
             if (isMounted) setIsLoading(false);
         }
-        
-        return () => { isMounted = false; };
     }, [user, profile]);
 
     useEffect(() => {
-        if (authLoading) return;
-        const cleanupPromise = fetchNetworkData();
+        let isMounted = true;
+        if (!authLoading) {
+            fetchNetworkData();
+        }
         return () => {
-            cleanupPromise.then(cleanup => {
-                if (typeof cleanup === 'function') {
-                    cleanup();
-                }
-            });
+            isMounted = false;
         };
     }, [authLoading, fetchNetworkData]);
 
@@ -169,5 +165,3 @@ const MyNetworkLeaderboard = () => {
 };
 
 export default memo(MyNetworkLeaderboard);
-
-    

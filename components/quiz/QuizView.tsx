@@ -51,6 +51,7 @@ export default function QuizView({
     
     const malpracticeRef = useRef({
       hiddenTimer: null as NodeJS.Timeout | null,
+      tabSwitchCount: 0,
     });
 
 
@@ -70,12 +71,14 @@ export default function QuizView({
      useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
-                // If hidden for >1 second then count as malpractice. This grace period handles quick app switches.
+                malpracticeRef.current.tabSwitchCount += 1;
+                // If hidden for >1 second, or it's the 2nd switch, disqualify.
                 malpracticeRef.current.hiddenTimer = setTimeout(() => {
-                    onNoBall('no-ball');
+                    if (malpracticeRef.current.tabSwitchCount >= 2) {
+                        onNoBall('no-ball');
+                    }
                 }, 1000); 
             } else {
-                // User returned to the tab, clear the timer if it exists.
                 if (malpracticeRef.current.hiddenTimer) {
                     clearTimeout(malpracticeRef.current.hiddenTimer);
                     malpracticeRef.current.hiddenTimer = null;
@@ -98,6 +101,7 @@ export default function QuizView({
         setTimeLeft(QUESTION_TIME_LIMIT);
         setSelectedOption(null);
         setIsAnswered(false);
+        malpracticeRef.current.tabSwitchCount = 0; // Reset counter for new question
         
         if (malpracticeRef.current.hiddenTimer) {
             clearTimeout(malpracticeRef.current.hiddenTimer);
@@ -227,5 +231,3 @@ export default function QuizView({
         </div>
     );
 }
-
-    

@@ -225,5 +225,3 @@ const ResultsContent = () => {
           </Suspense>
       )
   }
-
-    
