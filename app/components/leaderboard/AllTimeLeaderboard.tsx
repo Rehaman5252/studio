@@ -66,7 +66,9 @@ const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string
         <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
             <AlertTriangle className="h-4 w-4 !text-yellow-300" />
             <AlertTitle>{title}</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
+            <AlertDescription>
+                {message} This is usually a one-time setup process. If this persists, please contact support.
+            </AlertDescription>
         </Alert>
     ) : (
     <Alert variant="destructive" className="m-4">
@@ -154,7 +156,7 @@ const AllTimeLeaderboard = () => {
         }
         if (error) {
              return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
                 message={error.userMessage} 
                 isIndexError={error.code === "INDEX_REQUIRED"}
                 onRetry={startListener}
