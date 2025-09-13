@@ -88,7 +88,6 @@ export async function POST(req: Request) {
       }
     }
   } catch (globalError: any) {
-    // This is the new top-level catch block to prevent the API from ever returning HTML on a crash.
     console.error(`[quiz][${reqId}] FATAL API error:`, globalError);
     return NextResponse.json(
         { ok: false, error: { code: "INTERNAL_SERVER_ERROR", message: "A critical server error occurred. Please try again." } }, 
