@@ -1,4 +1,3 @@
-
 {
   "indexes": [
     {
@@ -31,8 +30,8 @@
       "collectionGroup": "quizAttempts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+        { "fieldPath": "slotId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     }
   ],
