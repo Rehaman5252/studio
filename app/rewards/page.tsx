@@ -36,6 +36,7 @@ const LoginPrompt = dynamic(
         try {
             return await import('@/components/auth/LoginPrompt');
         } catch(e) {
+             console.error("Failed to load LoginPrompt", e);
             return () => <Skeleton className="h-56 w-full" />;
         }
     },

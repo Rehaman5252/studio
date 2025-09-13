@@ -24,7 +24,7 @@ const AnalysisDialog = dynamic(
             return await import('@/components/history/AnalysisDialog');
         } catch(e) {
             console.error("Failed to load AnalysisDialog", e);
-            return () => null;
+            return () => <div className="p-4 text-destructive">Failed to load analysis. Please refresh.</div>;
         }
     }, 
     { ssr: false, loading: () => <Skeleton className="h-40 w-full" /> }
@@ -35,7 +35,7 @@ const ReviewDialog = dynamic(
             return await import('@/components/history/ReviewDialog');
         } catch (e) {
             console.error("Failed to load ReviewDialog", e);
-            return () => null;
+            return () => <div className="p-4 text-destructive">Failed to load review. Please refresh.</div>;
         }
     }, 
     { ssr: false, loading: () => <Skeleton className="h-40 w-full" /> }
