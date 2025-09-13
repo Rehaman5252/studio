@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { Suspense, useEffect, useState, memo } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ const LoadingSkeleton = () => (
 )
 
 const ResultsContent = () => {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const searchParams = useSearchParams();
@@ -48,16 +48,16 @@ const ResultsContent = () => {
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
     useEffect(() => {
+        if (authLoading) return; // Wait until auth state is resolved
+
         if (!attemptId) {
             setError("No quiz attempt ID found in the link.");
             setLoading(false);
             return;
         }
         if (!user) {
-            // This case is mostly handled by AuthGuard, but good to have a fallback.
              toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
              router.replace(`/auth/login?from=/quiz/results?attemptId=${attemptId}`);
-            setLoading(false);
             return;
         }
 
@@ -70,9 +70,10 @@ const ResultsContent = () => {
             
             setLoading(true);
             try {
-                // The attempt ID is the slot ID.
+                // The attempt ID is the slot ID, which is the document ID in the subcollection.
                 const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
                 const attemptDoc = await getDoc(attemptDocRef);
+
                 if (attemptDoc.exists()) {
                     setAttempt(attemptDoc.data() as QuizAttempt);
                 } else {
@@ -87,17 +88,17 @@ const ResultsContent = () => {
         };
 
         fetchAttempt();
-    }, [attemptId, user, router, toast]);
+    }, [attemptId, user, router, toast, authLoading]);
 
     const handleViewAnswers = () => {
         setShowReviewDialog(true);
     };
 
-    if (loading) {
+    if (loading || authLoading) {
         return <LoadingSkeleton />;
     }
 
-    if (error || !attempt) {
+    if (error) {
         return (
             <PageWrapper title="Error">
                 <Card className="text-center">
@@ -106,7 +107,27 @@ const ResultsContent = () => {
                         <CardTitle className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground mb-6">{error || "The attempt data is missing."}</p>
+                        <p className="text-muted-foreground mb-6">{error}</p>
+                        <Button onClick={() => router.push('/')}>
+                            <Home className="mr-2 h-4 w-4" />
+                            Return to Home
+                        </Button>
+                    </CardContent>
+                </Card>
+            </PageWrapper>
+        );
+    }
+
+    if (!attempt) {
+        return (
+             <PageWrapper title="Not Found">
+                <Card className="text-center">
+                    <CardHeader>
+                        <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                        <CardTitle className="text-2xl font-bold text-destructive">Attempt Not Found</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground mb-6">The quiz result you are looking for does not exist or has been moved.</p>
                         <Button onClick={() => router.push('/')}>
                             <Home className="mr-2 h-4 w-4" />
                             Return to Home
@@ -218,10 +239,10 @@ const ResultsContent = () => {
   };
   
   
-  export default function QuizResultsPage() {
-      return (
-          <Suspense fallback={<LoadingSkeleton />}>
-              <ResultsContent />
-          </Suspense>
-      )
-  }
+export default function QuizResultsPage() {
+    return (
+        <Suspense fallback={<LoadingSkeleton />}>
+            <ResultsContent />
+        </Suspense>
+    )
+}

@@ -669,6 +669,7 @@ const persistAttemptBatch = useCallback(
         await persistAttemptBatch(attempt);
         popPending(attempt.slotId);
         setIsOffline(false);
+        // The slotId is the unique identifier for this attempt in this context.
         return { success: true, attemptId: attempt.slotId };
       } catch (e: any) {
         console.error('addQuizAttempt failed:', e);
@@ -681,6 +682,7 @@ const persistAttemptBatch = useCallback(
         });
         pushPending(attempt);
         setIsOffline(true);
+        // Still return the ID so the user can be redirected to the results page, even if data is just local for now.
         return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
       }
     },
@@ -809,5 +811,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
