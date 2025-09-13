@@ -85,11 +85,12 @@ const AllTimeLeaderboard = () => {
     const [players, setPlayers] = useState<AllTimePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
-    const listenerRef = useRef<Unsubscribe>();
+    const listenerRef = useRef<Unsubscribe | null>(null);
+    const lastGoodRef = useRef<AllTimePlayer[] | null>(null);
 
     const startListener = useCallback(() => {
         if (listenerRef.current) {
-            listenerRef.current(); // Clean up old listener
+            listenerRef.current(); 
         }
         setIsLoading(true);
         setError(null);
@@ -110,7 +111,7 @@ const AllTimeLeaderboard = () => {
             limit(50)
         );
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        listenerRef.current = onSnapshot(q, (querySnapshot) => {
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
                 .map((doc, index) => {
@@ -126,16 +127,26 @@ const AllTimeLeaderboard = () => {
                         rank: index + 1
                     };
                 });
-            setPlayers(playersData);
+            if(playersData.length > 0) {
+                lastGoodRef.current = playersData;
+                setPlayers(playersData);
+            } else if (lastGoodRef.current) {
+                setPlayers(lastGoodRef.current);
+            } else {
+                setPlayers([]);
+            }
             setError(null);
             setIsLoading(false);
         }, (err: any) => {
             console.error("All-Time Leaderboard snapshot error: ", err);
-            setError(mapFirestoreError(err));
+            const mappedError = mapFirestoreError(err);
+            setError(mappedError);
             setIsLoading(false);
+             if (lastGoodRef.current) {
+                setPlayers(lastGoodRef.current);
+            }
         });
 
-        listenerRef.current = unsubscribe;
     }, [user]);
 
     useEffect(() => {
@@ -151,23 +162,16 @@ const AllTimeLeaderboard = () => {
     }, [authLoading, startListener]);
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) {
+        const showSkeletons = isLoading && !lastGoodRef.current;
+        if (showSkeletons) {
           return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
         }
-        if (error) {
-             return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Database Indexing" : "Error Loading Leaderboard"} 
-                message={error.userMessage} 
-                isIndexError={error.code === "INDEX_REQUIRED"}
-                onRetry={startListener}
-            />;
-        }
-        if (players.length === 0) return <EmptyState />;
+        if (players.length === 0 && !error) return <EmptyState />;
         
         return players.map(player => (
             <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
         ));
-    }, [isLoading, authLoading, error, players, user, startListener]);
+    }, [isLoading, authLoading, error, players, user]);
 
     return (
         <Card className="bg-card/80 shadow-lg">
@@ -175,6 +179,12 @@ const AllTimeLeaderboard = () => {
                 <CardTitle>All-Time Honours Board</CardTitle>
                 <CardDescription>Based on Total Score and Perfect Scores</CardDescription>
             </CardHeader>
+            {error && <ErrorState 
+                title={error.code === "INDEX_REQUIRED" ? "Database Indexing" : "Error Loading Leaderboard"} 
+                message={error.userMessage} 
+                isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
+            />}
             <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-2">{content}</div>
             </CardContent>

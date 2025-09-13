@@ -102,7 +102,9 @@ const StreakLeaderboard = () => {
     const [players, setPlayers] = useState<StreakPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string; userMessage: string; technical?: string } | null>(null);
-    const listenerRef = useRef<Unsubscribe>();
+    const listenerRef = useRef<Unsubscribe | null>(null);
+    const lastGoodRef = useRef<StreakPlayer[] | null>(null);
+    const mountedRef = useRef(true);
 
     const startListener = useCallback(() => {
         if (listenerRef.current) listenerRef.current();
@@ -118,7 +120,7 @@ const StreakLeaderboard = () => {
         const usersCollection = collection(db, 'users');
         const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
         
-        const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+        listenerRef.current = onSnapshot(q, async (querySnapshot) => {
             const playersData = querySnapshot.docs
                 .filter(doc => (doc.data().currentStreak || 0) > 0)
                 .map((doc, index) => {
@@ -132,6 +134,15 @@ const StreakLeaderboard = () => {
                         rank: index + 1
                     };
                 });
+            
+            if (playersData.length > 0) {
+              lastGoodRef.current = playersData;
+              if (mountedRef.current) setPlayers(playersData);
+            } else if (lastGoodRef.current) {
+               if (mountedRef.current) setPlayers(lastGoodRef.current);
+            } else {
+               if (mountedRef.current) setPlayers([]);
+            }
             
             if (user && !playersData.some(p => p.uid === user.uid)) {
                try {
@@ -150,57 +161,59 @@ const StreakLeaderboard = () => {
                                     rank: userRank,
                                     isCurrentUser: true,
                                 };
-                                setPlayers([...playersData, currentUserData]);
-                            } else {
-                                setPlayers(playersData);
+                                 if (mountedRef.current) {
+                                    setPlayers(prev => {
+                                        const final = [...prev.filter(p => p.uid !== user.uid), currentUserData];
+                                        lastGoodRef.current = final;
+                                        return final;
+                                    });
+                                 }
                             }
-                    } else {
-                        setPlayers(playersData);
                     }
                } catch (e) {
                     console.error("Error fetching current user for streak board", e);
-                    setPlayers(playersData); // Show top players even if current user fetch fails
                }
-            } else {
-                setPlayers(playersData);
             }
-            setError(null);
-            setIsLoading(false);
+            if (mountedRef.current) {
+                setError(null);
+                setIsLoading(false);
+            }
         }, (err: any) => {
-            setError(mapFirestoreError(err));
-            setIsLoading(false);
+            console.error("Streak leaderboard snapshot error:", err);
+            const mappedError = mapFirestoreError(err);
+            if (mountedRef.current) {
+                setError(mappedError);
+                setIsLoading(false);
+                if (lastGoodRef.current) {
+                    setPlayers(lastGoodRef.current);
+                }
+            }
         });
-        
-        listenerRef.current = unsubscribe;
 
     }, [user]);
 
     useEffect(() => {
+        mountedRef.current = true;
         if (authLoading) return;
         
         startListener();
         
         return () => {
+            mountedRef.current = false;
             if (listenerRef.current) listenerRef.current();
         };
     }, [authLoading, startListener]);
 
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) {
+        const showSkeletons = isLoading && !lastGoodRef.current;
+
+        if (showSkeletons) {
             return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
         }
-        if (error) {
-             return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
-                message={error.userMessage}
-                isIndexError={error.code === "INDEX_REQUIRED"}
-                onRetry={startListener}
-             />;
-        }
-        if (players.length === 0) return <EmptyState />;
+        if (players.length === 0 && !error) return <EmptyState />;
         
-        const sortedPlayers = [...players].sort((a,b) => (a.rank || 999) - (b.rank || 999));
+        const sortedPlayers = [...players].sort((a,b) => (a.rank || 9999) - (b.rank || 9999));
         const currentUserInList = sortedPlayers.find(p => p.isCurrentUser);
 
         return (
@@ -216,7 +229,7 @@ const StreakLeaderboard = () => {
                 )}
             </>
         );
-    }, [isLoading, authLoading, error, players, startListener]);
+    }, [isLoading, authLoading, error, players]);
 
 
     return (
@@ -225,6 +238,12 @@ const StreakLeaderboard = () => {
                 <CardTitle>Daily Streak Champions</CardTitle>
                 <CardDescription>The most consistent players on the pitch.</CardDescription>
             </CardHeader>
+            {error && <ErrorState 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
+                message={error.userMessage}
+                isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
+             />}
             <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-2">{content}</div>
             </CardContent>

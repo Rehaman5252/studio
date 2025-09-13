@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -65,11 +65,14 @@ const MyNetworkLeaderboard = () => {
     const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const mountedRef = useRef(true);
 
     const fetchNetworkData = useCallback(async () => {
         if (!user || !profile || !db) {
-            setIsLoading(false);
-            if (!db) setError("Database not available.");
+            if (mountedRef.current) {
+                setIsLoading(false);
+                if (!db) setError("Database not available.");
+            }
             return;
         }
 
@@ -83,51 +86,54 @@ const MyNetworkLeaderboard = () => {
             }
 
             if (networkIds.length === 0) {
-                setNetworkPlayers([]);
-                setIsLoading(false);
+                if (mountedRef.current) {
+                    setNetworkPlayers([]);
+                    setIsLoading(false);
+                }
                 return;
             }
             
             const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
             const playerDocs = await Promise.all(playerPromises);
             
-            const playersData: MyNetworkPlayer[] = playerDocs
-                .filter(doc => doc.exists())
-                .map(doc => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        name: data.name || 'Unknown User',
-                        avatar: data.photoURL,
-                        perfectScores: data.perfectScores || 0,
-                        isReferrer: doc.id === profile.referredBy,
-                    };
-                });
-            
-            const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
-            setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
+            if (mountedRef.current) {
+                const playersData: MyNetworkPlayer[] = playerDocs
+                    .filter(doc => doc.exists())
+                    .map(doc => {
+                        const data = doc.data();
+                        return {
+                            uid: doc.id,
+                            name: data.name || 'Unknown User',
+                            avatar: data.photoURL,
+                            perfectScores: data.perfectScores || 0,
+                            isReferrer: doc.id === profile.referredBy,
+                        };
+                    });
+                
+                const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
+                setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
+            }
         } catch (e: any) {
             console.error("Error fetching network leaderboard:", e);
-            setError(mapFirestoreError(e).userMessage);
+            if (mountedRef.current) setError(mapFirestoreError(e).userMessage);
         } finally {
-            setIsLoading(false);
+            if (mountedRef.current) setIsLoading(false);
         }
     }, [user, profile]);
 
     useEffect(() => {
-        let isMounted = true;
-        if (authLoading) return;
-
-        if (isMounted) {
+        mountedRef.current = true;
+        if (!authLoading) {
             fetchNetworkData();
         }
-        
-        return () => { isMounted = false; };
+        return () => {
+            mountedRef.current = false;
+        };
     }, [authLoading, fetchNetworkData]);
 
     const content = useMemo(() => {
         if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState title="Error" message={error} onRetry={fetchNetworkData} />;
+        if (error) return <ErrorState title="Error Loading Network" message={error} onRetry={fetchNetworkData} />;
         if (networkPlayers.length === 0) {
             return (
                 <Card className="bg-card/80 text-center mt-4">

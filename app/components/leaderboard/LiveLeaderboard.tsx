@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { memo, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthProvider';
@@ -9,9 +9,8 @@ import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle, RefreshCw } from 'lucide-react';
-import { cn, getQuizSlotId } from '@/lib/utils';
+import { cn, getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import type { LivePlayer } from './leaderboardTypes';
-import { mapFirestoreError } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
@@ -94,7 +93,8 @@ const LiveLeaderboard = () => {
     const [players, setPlayers] = useState<LivePlayer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
-    const listenerRef = useRef<Unsubscribe>();
+    const listenerRef = useRef<Unsubscribe | null>(null);
+    const lastGoodRef = useRef<LivePlayer[] | null>(null);
 
     const startListener = useCallback(() => {
         if (listenerRef.current) {
@@ -117,28 +117,37 @@ const LiveLeaderboard = () => {
             limit(50)
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        listenerRef.current = onSnapshot(q, (snapshot) => {
             const rows = snapshot.docs.map((d, index) => ({
                 ...(d.data() as LivePlayer),
                 rank: index + 1,
             }));
-            setPlayers(rows);
+            
+            if (rows.length > 0) {
+              lastGoodRef.current = rows;
+              setPlayers(rows);
+            } else if (lastGoodRef.current) {
+              setPlayers(lastGoodRef.current);
+            } else {
+              setPlayers([]);
+            }
             setError(null);
             setIsLoading(false);
         }, (err) => {
             console.error("Live Leaderboard Error: ", err);
-            setError(mapFirestoreError(err));
+            const mappedError = mapFirestoreError(err);
+            setError(mappedError);
             setIsLoading(false);
+            if(lastGoodRef.current) {
+                setPlayers(lastGoodRef.current);
+            }
         });
         
-        listenerRef.current = unsubscribe;
     }, []);
 
     useEffect(() => {
         startListener();
-        const slotCheckInterval = setInterval(() => {
-            startListener();
-        }, 30000); // Refresh listener every 30 seconds to catch slot changes
+        const slotCheckInterval = setInterval(startListener, 30000); 
 
         return () => {
             if (listenerRef.current) listenerRef.current();
@@ -147,23 +156,16 @@ const LiveLeaderboard = () => {
     }, [startListener]);
 
     const content = useMemo(() => {
-        if (isLoading || authLoading) {
+        const showSkeletons = isLoading && !lastGoodRef.current;
+        if (showSkeletons) {
             return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
         }
-        if (error) {
-            return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
-                message={error.userMessage}
-                isIndexError={error.code === "INDEX_REQUIRED"}
-                onRetry={startListener}
-            />;
-        }
-        if (players.length === 0) return <WaitingState timeLeft={timeLeft} />;
+        if (players.length === 0 && !error) return <WaitingState timeLeft={timeLeft} />;
         
         return players.map((player) => (
             <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />
         ));
-    }, [isLoading, authLoading, error, players, timeLeft, user, startListener]);
+    }, [isLoading, authLoading, error, players, timeLeft, user]);
 
     return (
         <Card className="bg-card/80 shadow-lg">
@@ -171,6 +173,12 @@ const LiveLeaderboard = () => {
                 <CardTitle>Current Match</CardTitle>
                 <CardDescription>Live standings for this 10-minute slot</CardDescription>
             </CardHeader>
+            {error && <ErrorState 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
+                message={error.userMessage}
+                isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
+            />}
             <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-2">{content}</div>
             </CardContent>
