@@ -5,14 +5,32 @@ import React, { memo } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { Trophy } from 'lucide-react';
+import { Trophy, AlertTriangle } from 'lucide-react';
 import { GenericOffer } from '@/components/rewards/RewardsContent';
 import PageWrapper from '@/components/PageWrapper';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
-const RewardsContent = dynamic(() => import('@/components/rewards/RewardsContent'), {
-  loading: () => <RewardsSkeleton />,
-  ssr: false,
-});
+const RewardsContent = dynamic(
+    async () => {
+        try {
+            return await import('@/components/rewards/RewardsContent');
+        } catch (e) {
+            console.error("Failed to load RewardsContent", e);
+            return () => (
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Failed to load rewards. Please refresh the page.</AlertDescription>
+                </Alert>
+            )
+        }
+    },
+    {
+        loading: () => <RewardsSkeleton />,
+        ssr: false,
+    }
+);
+
 const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
     loading: () => <Skeleton className="h-56 w-full" />,
 });

@@ -5,11 +5,30 @@ import { memo } from 'react';
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
-const HomePageClient = dynamic(() => import('@/components/home/HomePageClient'), {
-  ssr: false,
-  loading: () => <HomeContentSkeleton />,
-});
+const HomePageClient = dynamic(
+  async () => {
+    try {
+      return await import('@/components/home/HomePageClient');
+    } catch (error) {
+      console.error('Failed to load HomePageClient chunk', error);
+      return () => (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Failed to load page content. Please refresh the page.</AlertDescription>
+        </Alert>
+      );
+    }
+  },
+  {
+    ssr: false,
+    loading: () => <HomeContentSkeleton />,
+  }
+);
+
 
 const HomeContentSkeleton = () => (
     <div className="space-y-8 animate-pulse">

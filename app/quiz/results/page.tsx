@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { Suspense, useEffect, useState, memo } from 'react';
@@ -14,9 +15,11 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
-const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'));
+
+const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'), { ssr: false });
+const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'), { ssr: false });
 
 const LoadingSkeleton = () => (
     <PageWrapper title="Loading Results...">

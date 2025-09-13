@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const QuizClient = dynamic(
   async () => {
@@ -18,10 +19,14 @@ const QuizClient = dynamic(
       // Return a component that displays an error and a refresh button
       return () => (
         <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
-          <AlertTriangle className="h-10 w-10 text-destructive mb-4" />
-          <h2 className="text-xl font-semibold">Failed to load quiz</h2>
-          <p className="text-muted-foreground mb-4">A network error occurred. Please check your connection and try again.</p>
-          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Failed to load quiz</AlertTitle>
+            <AlertDescription>
+                A network error occurred. Please check your connection and try again.
+                 <Button onClick={() => window.location.reload()} className="mt-4">Refresh Page</Button>
+            </AlertDescription>
+          </Alert>
         </div>
       );
     }
