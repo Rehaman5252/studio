@@ -25,65 +25,74 @@ function isValidQuizShape(candidate: any): boolean {
 export async function POST(req: Request) {
   const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-  let body: any;
   try {
-    body = await req.json();
-  } catch (err) {
-    console.error(`[quiz][${reqId}] invalid json body`, err);
-    return NextResponse.json({ ok: false, error: { code: "INVALID_JSON", message: "Invalid JSON body" }, reqId }, { status: 400 });
-  }
-
-  const { format, userId } = body ?? {};
-  const allowedFormats = ["mixed", "odi", "t20", "test", "ipl", "wpl"];
-
-  if (!format || typeof format !== "string" || !allowedFormats.includes(format.toLowerCase())) {
-    return NextResponse.json({ ok: false, error: { code: "INVALID_FORMAT", message: "Invalid or missing format" }, reqId }, { status: 400 });
-  }
-  if (!userId || typeof userId !== 'string') {
-    return NextResponse.json({ ok: false, error: { code: "INVALID_USERID", message: "Missing or invalid userId" }, reqId }, { status: 400 });
-  }
-
-  try {
-    console.info(`[quiz][${reqId}] starting generation format=${format} user=${userId}`);
-    const aiResult = await generateQuizFlow({ format, userId });
-
-    if (!isValidQuizShape(aiResult)) {
-      console.warn(`[quiz][${reqId}] AI returned invalid shape`, {
-        aiSample: aiResult?.questions?.slice(0, 1),
-      });
-      throw new Error('AI returned an invalid quiz structure.');
-    }
-
-    console.info(`[quiz][${reqId}] AI generation succeeded`);
-    return NextResponse.json({ ok: true, quiz: aiResult, source: "ai", reqId }, { status: 200 });
-
-  } catch (err: any) {
-    console.error(`[quiz][${reqId}] API Error:`, err);
-    
-    const mappedError = mapFirestoreError(err);
-    
-    // If it's an index error, the frontend can handle it gracefully.
-    if (mappedError.code === "INDEX_REQUIRED") {
-        return NextResponse.json({ ok: false, error: mappedError, reqId }, { status: 500 });
-    }
-    
-    // For other errors, serve a fallback quiz.
+    let body: any;
     try {
-        console.warn(`[quiz][${reqId}] AI failed, serving fallback for format=${format}`);
-        const fallbackQuiz = getFallbackQuiz(format);
-        return NextResponse.json({ 
-            ok: true, // Still a success from the user's perspective
-            quiz: fallbackQuiz, 
-            source: "fallback", 
-            reqId,
-            error: IS_DEV ? mappedError.userMessage : "The AI is busy, here's a standard quiz."
-        }, { status: 200 });
-    } catch (fallbackErr) {
-        console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fallbackErr);
-        return NextResponse.json(
-            { ok: false, error: { code: "FALLBACK_FAILED", message: "We're sorry, but the quiz is currently unavailable. Please try again later." } }, 
-            { status: 500 }
-        );
+      body = await req.json();
+    } catch (err) {
+      console.error(`[quiz][${reqId}] invalid json body`, err);
+      return NextResponse.json({ ok: false, error: { code: "INVALID_JSON", message: "Invalid JSON body" }, reqId }, { status: 400 });
     }
+
+    const { format, userId } = body ?? {};
+    const allowedFormats = ["mixed", "odi", "t20", "test", "ipl", "wpl"];
+
+    if (!format || typeof format !== "string" || !allowedFormats.includes(format.toLowerCase())) {
+      return NextResponse.json({ ok: false, error: { code: "INVALID_FORMAT", message: "Invalid or missing format" }, reqId }, { status: 400 });
+    }
+    if (!userId || typeof userId !== 'string') {
+      return NextResponse.json({ ok: false, error: { code: "INVALID_USERID", message: "Missing or invalid userId" }, reqId }, { status: 400 });
+    }
+
+    try {
+      console.info(`[quiz][${reqId}] starting generation format=${format} user=${userId}`);
+      const aiResult = await generateQuizFlow({ format, userId });
+
+      if (!isValidQuizShape(aiResult)) {
+        console.warn(`[quiz][${reqId}] AI returned invalid shape`, {
+          aiSample: aiResult?.questions?.slice(0, 1),
+        });
+        throw new Error('AI returned an invalid quiz structure.');
+      }
+
+      console.info(`[quiz][${reqId}] AI generation succeeded`);
+      return NextResponse.json({ ok: true, quiz: aiResult, source: "ai", reqId }, { status: 200 });
+
+    } catch (err: any) {
+      console.error(`[quiz][${reqId}] API Error during quiz generation:`, err);
+      
+      const mappedError = mapFirestoreError(err);
+      
+      // If it's an index error, the frontend can handle it gracefully.
+      if (mappedError.code === "INDEX_REQUIRED") {
+          return NextResponse.json({ ok: false, error: mappedError, reqId }, { status: 500 });
+      }
+      
+      // For other errors, serve a fallback quiz.
+      try {
+          console.warn(`[quiz][${reqId}] AI failed, serving fallback for format=${format}`);
+          const fallbackQuiz = getFallbackQuiz(format);
+          return NextResponse.json({ 
+              ok: true, // Still a success from the user's perspective
+              quiz: fallbackQuiz, 
+              source: "fallback", 
+              reqId,
+              error: IS_DEV ? mappedError.userMessage : "The AI is busy, here's a standard quiz."
+          }, { status: 200 });
+      } catch (fallbackErr) {
+          console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fallbackErr);
+          return NextResponse.json(
+              { ok: false, error: { code: "FALLBACK_FAILED", message: "We're sorry, but the quiz is currently unavailable. Please try again later." } }, 
+              { status: 500 }
+          );
+      }
+    }
+  } catch (globalError: any) {
+    // This is the new top-level catch block to prevent the API from ever returning HTML on a crash.
+    console.error(`[quiz][${reqId}] FATAL API error:`, globalError);
+    return NextResponse.json(
+        { ok: false, error: { code: "INTERNAL_SERVER_ERROR", message: "A critical server error occurred. Please try again." } }, 
+        { status: 500 }
+    );
   }
 }
