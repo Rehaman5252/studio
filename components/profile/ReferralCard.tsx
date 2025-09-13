@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCode: string, referralEarnings: number }) => {
     const { toast } = useToast();
     const [hasCopied, setHasCopied] = React.useState(false);
-    const referralLink = `https://indcric.app/auth/signup?ref=${referralCode}`;
+    const referralLink = `https://cricblitz.app/auth/signup?ref=${referralCode}`;
 
     const onCopy = async () => {
         if (!navigator.clipboard) {

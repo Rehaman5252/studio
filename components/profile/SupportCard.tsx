@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { MessageSquare, Mail, Phone } from 'lucide-react';
 
 const SupportCardComponent = () => {
-    const supportEmail = 'support@indcric.app';
+    const supportEmail = 'support@cricblitz.app';
     const supportWhatsApp = '911234567890'; // Replace with a real number
 
     return (

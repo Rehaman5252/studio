@@ -6,58 +6,66 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 0 0% 8%; /* Near black */
-    --foreground: 45 30% 95%; /* Pale gold-white text */
-
-    --card: 0 0% 12%; /* Slightly lighter black for cards */
-    --card-foreground: 45 30% 95%;
-
-    --primary: 45 80% 55%; /* Vibrant Gold */
-    --primary-foreground: 0 0% 10%; /* Black text on gold buttons */
-
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 45 30% 95%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
     
-    --destructive: 0 70% 55%; /* Slightly brighter red for dark mode */
-    --destructive-foreground: 0 0% 100%;
-    
-    --accent: 45 80% 60%; /* Brighter Gold for accents */
-    --accent-foreground: 0 0% 10%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 20% 65%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 22.1 83.2% 53.3%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
     
-    --input: 0 0% 20%;
-    --ring: 45 80% 55%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.1 76.2% 36.3%;
 
     --radius: 0.5rem;
     --font-inter: 'Inter', sans-serif;
   }
 
   .dark {
-    --background: 0 0% 8%; /* Near black */
-    --foreground: 45 30% 95%; /* Pale gold-white text */
-
-    --card: 0 0% 12%; /* Slightly lighter black for cards */
-    --card-foreground: 45 30% 95%;
-
-    --primary: 45 80% 55%; /* Vibrant Gold */
-    --primary-foreground: 0 0% 10%; /* Black text on gold buttons */
-
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 45 30% 95%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
     
-    --destructive: 0 70% 55%; /* Slightly brighter red for dark mode */
-    --destructive-foreground: 0 0% 100%;
-    
-    --accent: 45 80% 60%; /* Brighter Gold for accents */
-    --accent-foreground: 0 0% 10%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 45 20% 65%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
     
-    --input: 0 0% 20%;
-    --ring: 45 80% 55%;
+    --accent: 22.1 83.2% 53.3%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.1 76.2% 36.3%;
   }
 }
 
@@ -93,8 +101,8 @@
   border: 1px solid hsl(var(--border));
   font-size: 1.5rem;
   font-weight: bold;
-  color: hsl(var(--primary-foreground));
-  background: hsla(var(--primary), 0.9);
+  color: hsl(var(--card-foreground));
+  background: hsla(var(--card), 0.8);
   backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
@@ -106,8 +114,8 @@
 }
 
 .cube-face:hover {
-    background: hsla(var(--accent), 0.9);
-    color: hsl(var(--accent-foreground));
+    background: hsla(var(--primary), 0.9);
+    color: hsl(var(--primary-foreground));
     border-color: hsl(var(--accent));
     box-shadow: 0 0 20px 7px hsla(var(--accent), 0.6);
 }
@@ -131,7 +139,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(to right, hsl(var(--primary)) 40%, hsl(var(--foreground)) 50%, hsl(var(--primary)) 60%);
+    background: linear-gradient(to right, hsl(var(--accent)) 40%, hsl(var(--foreground)) 50%, hsl(var(--accent)) 60%);
     background-size: 200% auto;
     color: transparent;
     background-clip: text;
