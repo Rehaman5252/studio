@@ -2,8 +2,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
+import { useFirebase } from "@/providers/FirebaseProvider";
 import { redirect } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -12,7 +11,7 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const [user, loading] = useAuthState(auth);
+  const { user, loading } = useFirebase();
 
   if (loading) {
     return (

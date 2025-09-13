@@ -3,7 +3,7 @@
 
 import { ReactNode, useEffect, useState, createContext, useContext } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { getAuth } from "@/lib/firebase";
 
 type FirebaseContextType = {
   user: User | null;
@@ -17,6 +17,7 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const auth = getAuth();
     if (!auth) {
         setLoading(false);
         return;

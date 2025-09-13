@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth as getFirebaseAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -23,17 +23,33 @@ export const isFirebaseConfigured = !!(
 );
 
 let app: FirebaseApp;
-let auth: ReturnType<typeof getAuth> | null = null;
+let auth: ReturnType<typeof getFirebaseAuth> | null = null;
 let db: ReturnType<typeof getFirestore> | null = null;
 
-// Initialize Firebase only on the client side, and only if it's not already initialized.
+// Initialize Firebase only on the client side
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+    auth = getFirebaseAuth(app);
     db = getFirestore(app);
     // This check prevents errors on the server where auth might be null.
     auth.useDeviceLanguage();
 }
 
+// Export a function to get auth, ensuring it's initialized.
+export const getAuth = () => {
+    if (!auth) {
+        // This will only happen on the server or if config is missing.
+        // It's a safeguard.
+        if (typeof window !== 'undefined' && isFirebaseConfigured && getApps().length) {
+             return getFirebaseAuth(getApp());
+        }
+        return null;
+    }
+    return auth;
+}
 
-export { app, auth, db };
+export { app, db };
