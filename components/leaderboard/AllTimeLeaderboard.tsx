@@ -26,7 +26,7 @@ RankIcon.displayName = 'RankIcon';
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || 'A'}</AvatarFallback></Avatar>
+    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback></Avatar>
     <div className="flex-1">
       <p className="font-semibold text-foreground flex-1">{player.name}</p>
       <p className="text-xs text-muted-foreground">Played: {player.quizzesPlayed} | Total Score: {player.totalScore}</p>
@@ -97,8 +97,10 @@ const AllTimeLeaderboard = () => {
     setError(null);
 
     if (!db) {
-      setError({ userMessage: "Database connection is not available." });
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setError({ userMessage: "Database connection is not available." });
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -112,48 +114,44 @@ const AllTimeLeaderboard = () => {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      try {
-        const playersData = querySnapshot.docs
-          .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
-          .map((doc, index) => {
-            const data = doc.data();
-            return {
-              uid: doc.id,
-              name: data.name || 'Anonymous Player',
-              avatar: data.photoURL,
-              perfectScores: data.perfectScores || 0,
-              totalScore: data.totalScore || 0,
-              quizzesPlayed: data.quizzesPlayed || 0,
-              isCurrentUser: user?.uid === doc.id,
-              rank: index + 1
-            } as AllTimePlayer;
-          });
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      if (!mountedRef.current) return;
 
-        if (playersData.length > 0) {
-          lastGoodRef.current = playersData;
-          if (mountedRef.current) setPlayers(playersData);
-        } else if (lastGoodRef.current) {
-          if (mountedRef.current) setPlayers(lastGoodRef.current);
-        } else {
-          if (mountedRef.current) setPlayers([]);
-        }
+      const playersData = querySnapshot.docs
+        .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
+        .map((doc, index) => {
+          const data = doc.data();
+          return {
+            uid: doc.id,
+            name: data.name || 'Anonymous Player',
+            avatar: data.photoURL,
+            perfectScores: data.perfectScores || 0,
+            totalScore: data.totalScore || 0,
+            quizzesPlayed: data.quizzesPlayed || 0,
+            isCurrentUser: user?.uid === doc.id,
+            rank: index + 1
+          } as AllTimePlayer;
+        });
 
-        setError(null);
-        setIsLoading(false);
-      } catch (e) {
-        console.error("All-Time snapshot processing error:", e);
-        setError({ userMessage: "Error processing leaderboard data." });
-        setIsLoading(false);
-        if (lastGoodRef.current && lastGoodRef.current.length > 0) {
-          setPlayers(lastGoodRef.current);
-        }
+      if (playersData.length > 0) {
+        lastGoodRef.current = playersData;
+        setPlayers(playersData);
+      } else if (lastGoodRef.current) {
+        setPlayers(lastGoodRef.current);
+      } else {
+        setPlayers([]);
       }
+      
+      setError(null);
+      setIsLoading(false);
+
     }, (err: any) => {
+      if (!mountedRef.current) return;
       console.error("All-Time Leaderboard snapshot error: ", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
+      // Do not wipe data if we have some from cache
       if (lastGoodRef.current && lastGoodRef.current.length > 0) {
         setPlayers(lastGoodRef.current);
       }
@@ -164,19 +162,25 @@ const AllTimeLeaderboard = () => {
 
   useEffect(() => {
     mountedRef.current = true;
-    if (!authLoading) startListener();
+    if (!authLoading) {
+      startListener();
+    }
     return () => {
       mountedRef.current = false;
-      if (listenerRef.current) listenerRef.current();
-      listenerRef.current = null;
+      if (listenerRef.current) {
+        listenerRef.current();
+        listenerRef.current = null;
+      }
     };
   }, [authLoading, startListener]);
 
   const contentList = useMemo(() => {
-    if (isLoading && !lastGoodRef.current) {
+    const showSkeletons = isLoading && !lastGoodRef.current;
+    if (showSkeletons) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
     }
-    if ((!players || players.length === 0) && !error) return <EmptyState />;
+    
+    if (players.length === 0 && !error) return <EmptyState />;
 
     return players.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
   }, [isLoading, authLoading, players, user, error]);
@@ -191,7 +195,7 @@ const AllTimeLeaderboard = () => {
       {error && (
         <div className="px-4">
           <ErrorState
-            title={error.code === "INDEX_REQUIRED" ? "Leaderboard setup in progress" : "Error Loading Leaderboard"}
+            title={error.code === "INDEX_REQUIRED" ? "Database Indexing" : "Error Loading Leaderboard"}
             message={error.userMessage}
             isIndexError={error.code === "INDEX_REQUIRED"}
             onRetry={startListener}

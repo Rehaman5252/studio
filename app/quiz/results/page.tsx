@@ -1,7 +1,6 @@
+"use client";
 
-'use client';
-
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 
 const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'));
 const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'));
-
 
 const LoadingSkeleton = () => (
     <PageWrapper title="Loading Results...">

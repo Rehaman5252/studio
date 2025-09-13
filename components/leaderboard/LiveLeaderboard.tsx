@@ -26,7 +26,7 @@ RankIcon.displayName = 'RankIcon';
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
+    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? "A"}</AvatarFallback></Avatar>
     <p className="font-semibold text-foreground flex-1">{player.name}</p>
     {player.disqualified ? (
       <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
@@ -95,6 +95,7 @@ const LiveLeaderboard = () => {
   const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
   const listenerRef = useRef<Unsubscribe | null>(null);
   const lastGoodRef = useRef<LivePlayer[] | null>(null);
+  const mountedRef = useRef(true);
 
   const startListener = useCallback(() => {
     if (listenerRef.current) {
@@ -105,9 +106,11 @@ const LiveLeaderboard = () => {
     setError(null);
 
     if (!db) {
-      setError({ userMessage: "Database not available." });
-      setIsLoading(false);
-      return;
+        if(mountedRef.current) {
+            setError({ userMessage: "Database not available." });
+            setIsLoading(false);
+        }
+        return;
     }
 
     const slotId = getQuizSlotId();
@@ -119,6 +122,7 @@ const LiveLeaderboard = () => {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if(!mountedRef.current) return;
       const rows = snapshot.docs.map((d, index) => ({
         ...(d.data() as LivePlayer),
         rank: index + 1,
@@ -134,6 +138,7 @@ const LiveLeaderboard = () => {
       setError(null);
       setIsLoading(false);
     }, (err) => {
+      if(!mountedRef.current) return;
       console.error("Live Leaderboard Error: ", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
@@ -147,11 +152,13 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     startListener();
-    const slotInterval = setInterval(() => startListener(), 30000);
+    const slotInterval = setInterval(() => startListener(), 30000); // Re-subscribe periodically to catch slot change
     return () => {
-      if (listenerRef.current) listenerRef.current();
-      clearInterval(slotInterval);
+        mountedRef.current = false;
+        if (listenerRef.current) listenerRef.current();
+        clearInterval(slotInterval);
     };
   }, [startListener]);
 
@@ -160,7 +167,7 @@ const LiveLeaderboard = () => {
     if (showSkeletons) {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
     }
-    if (error) {
+    if (error && players.length === 0) {
       return <ErrorState
         title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"}
         message={error.userMessage}
@@ -179,7 +186,16 @@ const LiveLeaderboard = () => {
         <CardTitle>Current Match</CardTitle>
         <CardDescription>Live standings for this 10-minute slot</CardDescription>
       </CardHeader>
-      {error && <div className="px-4">{/* Error state is now inside content */}</div>}
+      {error && players.length > 0 && 
+        <div className="px-4">
+            <ErrorState 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"}
+                message={error.userMessage}
+                isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
+            />
+        </div>
+      }
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
         <div className="space-y-2">{content}</div>
       </CardContent>
