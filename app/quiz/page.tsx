@@ -16,19 +16,17 @@ const QuizClient = dynamic(
       return await import('@/components/quiz/QuizClient');
     } catch (error) {
       console.error('Failed to load QuizClient chunk', error);
-      // Return a component that displays an error and a refresh button
-      return () => (
-        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Failed to load quiz</AlertTitle>
-            <AlertDescription>
-                A network error occurred. Please check your connection and try again.
-                 <Button onClick={() => window.location.reload()} className="mt-4">Refresh Page</Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
+      // fallback functional component
+      return function ChunkLoadFallback() {
+        return (
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div className="text-center">
+              <p className="text-destructive mb-2">Failed to load the quiz UI.</p>
+              <p className="text-sm text-muted-foreground">Please refresh the page or try again later.</p>
+            </div>
+          </div>
+        );
+      };
     }
   },
   {

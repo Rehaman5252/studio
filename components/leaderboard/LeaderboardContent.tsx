@@ -13,7 +13,7 @@ const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeade
     ssr: false,
 });
 const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard'), {
-    loading: () => <LeaderboardSkeleton count={10} />,
+    loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
 const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard'), {
@@ -63,7 +63,7 @@ function LeaderboardContentComponent() {
                 </Suspense>
             </TabsContent>
             <TabsContent value="all-time">
-                <Suspense fallback={<LeaderboardSkeleton count={10} />}>
+                <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>

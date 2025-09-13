@@ -1,11 +1,10 @@
 
 'use client';
 
-import type { CubeBrand } from './brandData';
+import type { CubeBrand } from '@/components/home/brandData';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useAuth } from '@/context/AuthProvider';
 import { brandData } from '@/components/home/brandData';
-import { encodeAttempt } from '@/lib/quiz-utils';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -99,7 +98,7 @@ function HomePageClient() {
         }
         
         if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
-            router.push(`/quiz/results?attempt=${encodeAttempt(lastAttemptInSlot)}`);
+            router.push(`/quiz/results?attemptId=${lastAttemptInSlot.slotId}`);
             toast({
                 title: "You've already played this innings!",
                 description: `Showing your results for the ${lastAttemptInSlot.format} quiz. You can only attempt one quiz per slot.`,

@@ -31,9 +31,19 @@ const RewardsContent = dynamic(
     }
 );
 
-const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
-    loading: () => <Skeleton className="h-56 w-full" />,
-});
+const LoginPrompt = dynamic(
+    async () => {
+        try {
+            return await import('@/components/auth/LoginPrompt');
+        } catch(e) {
+            return () => <Skeleton className="h-56 w-full" />;
+        }
+    },
+    {
+        loading: () => <Skeleton className="h-56 w-full" />,
+        ssr: false,
+    }
+);
 
 
 const RewardsSkeleton = () => (

@@ -25,7 +25,7 @@ const HistoryContent = dynamic(
         }
     },
     {
-        loading: () => <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-48 w-full" /></div>,
+        loading: () => <div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-48 w-full" /></div>,
         ssr: false,
     }
 );

@@ -18,8 +18,28 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
-const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'), { ssr: false });
-const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'), { ssr: false });
+const AnalysisDialog = dynamic(
+    async () => {
+        try {
+            return await import('@/components/history/AnalysisDialog');
+        } catch(e) {
+            console.error("Failed to load AnalysisDialog", e);
+            return () => null;
+        }
+    }, 
+    { ssr: false, loading: () => <Skeleton className="h-40 w-full" /> }
+);
+const ReviewDialog = dynamic(
+    async () => {
+        try {
+            return await import('@/components/history/ReviewDialog');
+        } catch (e) {
+            console.error("Failed to load ReviewDialog", e);
+            return () => null;
+        }
+    }, 
+    { ssr: false, loading: () => <Skeleton className="h-40 w-full" /> }
+);
 
 const LoadingSkeleton = () => (
     <PageWrapper title="Loading Results...">
