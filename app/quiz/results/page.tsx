@@ -48,14 +48,15 @@ const ResultsContent = () => {
     useEffect(() => {
         if (authLoading) return; // Wait until auth state is resolved
 
+        if (!user) {
+             toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
+             router.replace(`/auth/login?from=/quiz/results?attemptId=${attemptId || ''}`);
+            return;
+        }
+
         if (!attemptId) {
             setError("No quiz attempt ID found in the link.");
             setLoading(false);
-            return;
-        }
-        if (!user) {
-             toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
-             router.replace(`/auth/login?from=/quiz/results?attemptId=${attemptId}`);
             return;
         }
 
