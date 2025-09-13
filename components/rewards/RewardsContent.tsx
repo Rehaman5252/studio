@@ -65,7 +65,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -74,8 +74,8 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
         <Card className={cn(
             "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
             isScratched
-                ? "bg-gradient-to-br from-accent/80 to-accent/60 text-accent-foreground"
-                : "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground"
+                ? "bg-gradient-to-br from-amber-200 to-yellow-400 text-amber-900"
+                : "bg-gradient-to-br from-yellow-400 to-amber-600 text-white"
         )}>
             {!isScratched ? (
                 <button 
@@ -96,7 +96,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
                     <Trophy className="h-10 w-10 mb-2 text-current" />
                     <h3 className="text-lg font-bold text-current">{reward.gift}</h3>
                     <p className="text-xs text-current/80 mt-1">{reward.description}</p>
-                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-background/20 text-foreground hover:bg-background/30" size="sm" type="button">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
+                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-white/20 text-white hover:bg-white/30" size="sm" type="button">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
                 </div>
             )}
         </Card>
@@ -141,7 +141,7 @@ function RewardsContentComponent() {
     if (typeof window !== 'undefined' && quizHistory.data.length > 0) {
       const initialScratchedState: Record<string, boolean> = {};
       quizHistory.data.forEach(attempt => {
-        const storageKey = `cricblitz-scratch-card-${attempt.slotId}`;
+        const storageKey = `indcric-scratch-card-${attempt.slotId}`;
         const savedState = window.localStorage.getItem(storageKey);
         if (savedState === 'true') {
           initialScratchedState[attempt.slotId] = true;
@@ -154,7 +154,7 @@ function RewardsContentComponent() {
   const handleScratch = (slotId: string) => {
     setScratchedCards(prev => ({ ...prev, [slotId]: true }));
     if (typeof window !== 'undefined') {
-      const storageKey = `cricblitz-scratch-card-${slotId}`;
+      const storageKey = `indcric-scratch-card-${slotId}`;
       window.localStorage.setItem(storageKey, 'true');
     }
   };
