@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -28,7 +29,7 @@ const LeaderboardItem = memo(({ player }: { player: MyNetworkPlayer }) => (
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
     <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback></Avatar>
     <div className="flex-1">
-      <p className="font-semibold text-foreground">{player.name}</p>
+      <p className="font-semibold text-foreground">{player.name ?? 'Anonymous'}</p>
       <p className="text-sm text-muted-foreground">{player.isReferrer ? 'Your Referrer' : 'Your Referral'}</p>
     </div>
     <div className="text-right flex items-center gap-2">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
@@ -27,7 +28,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, i
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
     <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? "A"}</AvatarFallback></Avatar>
-    <p className="font-semibold text-foreground flex-1">{player.name}</p>
+    <p className="font-semibold text-foreground flex-1">{player.name ?? 'Anonymous'}</p>
     {player.disqualified ? (
       <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
         <Ban className="h-4 w-4"/> Disqualified
@@ -167,6 +168,10 @@ const LiveLeaderboard = () => {
     if (showSkeletons) {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
     }
+    
+    if (players.length === 0 && !error) return <WaitingState timeLeft={timeLeft} />;
+    
+    // Do not render error state if we have players to show
     if (error && players.length === 0) {
       return <ErrorState
         title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"}
@@ -175,7 +180,6 @@ const LiveLeaderboard = () => {
         onRetry={startListener}
       />;
     }
-    if (players.length === 0) return <WaitingState timeLeft={timeLeft} />;
 
     return players.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
   }, [isLoading, authLoading, error, players, timeLeft, user, startListener]);

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -26,7 +27,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: Strea
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
     <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback></Avatar>
-    <p className="font-semibold text-foreground flex-1">{player.name}</p>
+    <p className="font-semibold text-foreground flex-1">{player.name ?? 'Anonymous'}</p>
     <div className="text-right flex items-center gap-1">
       <p className="font-bold text-accent">{player.currentStreak}</p>
       <Flame className="h-4 w-4 text-accent" />
