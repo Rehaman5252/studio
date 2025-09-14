@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -8,7 +7,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '../auth/LoginPrompt';
-import { History } from 'lucide-react';
+import { History, BarChart, Trophy } from 'lucide-react';
 
 const RecentHistory = dynamic(() => import('@/components/history/RecentHistory'), {
     loading: () => <HistorySkeleton count={3} />,
@@ -31,12 +30,12 @@ const HistorySkeleton = ({ count = 3 }: { count?: number}) => (
     </div>
 );
 
-const LoggedOutView = () => (
+const LoggedOutView = ({ icon, title, description }: { icon: React.ComponentType<any>, title: string, description: string }) => (
     <div className="pt-8">
         <LoginPrompt 
-            icon={History} 
-            title="Review Your Past Innings" 
-            description="Sign in to analyze your stats, review your match performances, and track your progress on the pitch." 
+            icon={icon} 
+            title={title} 
+            description={description} 
         />
     </div>
 );
@@ -70,13 +69,13 @@ export default function HistoryContent() {
               className="mt-4"
           >
               <TabsContent value="recent" forceMount={true}>
-                  {user ? <RecentHistory /> : <LoggedOutView />}
+                  {user ? <RecentHistory /> : <LoggedOutView icon={History} title="Review Your Recent Form" description="Sign in to see your last few matches and analyze your performance." />}
               </TabsContent>
               <TabsContent value="all" forceMount={true}>
-                  {user ? <AllHistory /> : <LoggedOutView />}
+                  {user ? <AllHistory /> : <LoggedOutView icon={BarChart} title="Access Your Career Stats" description="Sign in to view your complete match history and track your long-term progress." />}
               </TabsContent>
               <TabsContent value="perfect" forceMount={true}>
-                  {user ? <PerfectScoresHistory /> : <LoggedOutView />}
+                  {user ? <PerfectScoresHistory /> : <LoggedOutView icon={Trophy} title="See Your Hall of Fame" description="Sign in to view your perfect scores and claim your winner certificates." />}
               </TabsContent>
           </motion.div>
       </Tabs>
