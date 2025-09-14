@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Star, Users, RefreshCw } from 'lucide-react';
+import { WifiOff, ServerCrash, Star, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -66,15 +66,12 @@ const MyNetworkLeaderboard = () => {
   const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const mountedRef = useRef(true);
+  const lastGoodRef = useRef<MyNetworkPlayer[]>([]);
 
   const fetchNetworkData = useCallback(async () => {
     if (!user || !profile || !db) {
-      if (mountedRef.current) {
-        setIsLoading(false);
-        if (!db) setError("Database not available.");
-      }
+      setIsLoading(false);
+      if (!db) setError("Database not available.");
       return;
     }
 
@@ -88,18 +85,16 @@ const MyNetworkLeaderboard = () => {
       }
 
       if (networkIds.length === 0) {
-        if (mountedRef.current) {
-          setNetworkPlayers([]);
-          setIsLoading(false);
-        }
+        setNetworkPlayers([]);
+        setIsLoading(false);
+        lastGoodRef.current = [];
         return;
       }
 
       const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
       const playerDocs = await Promise.all(playerPromises);
 
-      if (mountedRef.current) {
-        const playersData: MyNetworkPlayer[] = playerDocs
+      const playersData: MyNetworkPlayer[] = playerDocs
           .filter(d => d.exists())
           .map(d => {
             const data = d.data();
@@ -112,40 +107,37 @@ const MyNetworkLeaderboard = () => {
             };
           });
 
-        const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
-        setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
-      }
+      const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
+      const finalData = sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 }));
+      setNetworkPlayers(finalData);
+      lastGoodRef.current = finalData;
+      setError(null);
     } catch (e: any) {
       console.error("Error fetching network leaderboard:", e);
-      if (mountedRef.current) {
-        const mapped = mapFirestoreError(e);
-        setError(mapped.userMessage || 'Error fetching network.');
-      }
+      const mapped = mapFirestoreError(e);
+      setError(mapped.userMessage || 'Error fetching network.');
+      setNetworkPlayers(lastGoodRef.current);
     } finally {
-      if (mountedRef.current) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   }, [user, profile]);
 
   useEffect(() => {
-    mountedRef.current = true;
     if (!authLoading) {
       fetchNetworkData();
     }
-    return () => {
-      mountedRef.current = false;
-    };
   }, [authLoading, fetchNetworkData]);
 
   const content = useMemo(() => {
-    if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
+    const dataToShow = networkPlayers;
+
+    if (isLoading && dataToShow.length === 0) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
     
-    if (error && networkPlayers.length === 0) {
+    if (error && dataToShow.length === 0) {
         return <ErrorState title="Error Loading Network" message={error} onRetry={fetchNetworkData} />;
     }
 
-    if (networkPlayers.length === 0) {
+    if (dataToShow.length === 0) {
       return (
         <Card className="bg-card/80 text-center mt-4">
           <CardContent className="p-6">
@@ -161,7 +153,7 @@ const MyNetworkLeaderboard = () => {
     return (
         <>
             {error && <Alert variant="destructive" className="mb-2"><AlertTriangle className="h-4 w-4" /><AlertTitle>Sync Issue</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-            {networkPlayers.map((player) => (
+            {dataToShow.map((player) => (
               <LeaderboardItem key={player.uid} player={player} />
             ))}
         </>

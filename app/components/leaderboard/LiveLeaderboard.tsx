@@ -92,8 +92,7 @@ const LiveLeaderboard = () => {
   
   const listenerRef = useRef<Unsubscribe | null>(null);
   const lastGoodRef = useRef<LivePlayer[]>([]);
-  const mountedRef = useRef(true);
-
+  
   const startListener = useCallback(() => {
     if (listenerRef.current) {
       listenerRef.current();
@@ -103,10 +102,8 @@ const LiveLeaderboard = () => {
     setError(null);
 
     if (!db) {
-        if (mountedRef.current) {
-            setError({ userMessage: "Database not available." });
-            setIsLoading(false);
-        }
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
         return;
     }
 
@@ -119,7 +116,6 @@ const LiveLeaderboard = () => {
     );
 
     listenerRef.current = onSnapshot(q, (snapshot) => {
-      if(!mountedRef.current) return;
       const rows = snapshot.docs.map((d, index) => ({
         ...(d.data() as LivePlayer),
         rank: index + 1,
@@ -129,7 +125,6 @@ const LiveLeaderboard = () => {
       setError(null);
       setIsLoading(false);
     }, (err) => {
-      if(!mountedRef.current) return;
       console.error("Live Leaderboard Error: ", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
@@ -143,12 +138,10 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
-    mountedRef.current = true;
     startListener();
     const slotInterval = setInterval(() => startListener(), 30000); 
 
     return () => {
-        mountedRef.current = false;
         if (listenerRef.current) {
           listenerRef.current();
           listenerRef.current = null;
