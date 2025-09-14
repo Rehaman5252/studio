@@ -180,7 +180,7 @@ const AllTimeLeaderboard = () => {
             />;
     }
 
-    if (dataToShow.length === 0 && !error) return <EmptyState />;
+    if (dataToShow.length === 0 && !isLoading) return <EmptyState />;
 
     return dataToShow.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
   }, [isLoading, authLoading, players, user, error, startListener]);

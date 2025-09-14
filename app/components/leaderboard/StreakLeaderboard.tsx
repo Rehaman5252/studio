@@ -168,7 +168,8 @@ const StreakLeaderboard = () => {
     }, (err: any) => {
       if(!isMounted) return;
       console.error("Streak leaderboard snapshot error:", err);
-      setError(mapFirestoreError(err));
+      const mappedError = mapFirestoreError(err);
+      setError(mappedError);
       setIsLoading(false);
       setPlayers(lastGoodRef.current);
     });
@@ -213,7 +214,7 @@ const StreakLeaderboard = () => {
         />;
     }
     
-    if (dataToRender.length === 0) return <EmptyState />;
+    if (dataToRender.length === 0 && !isLoading) return <EmptyState />;
     
     const currentUserInList = dataToRender.find(p => p.isCurrentUser);
 
