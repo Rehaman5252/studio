@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
@@ -137,11 +138,7 @@ const LiveLeaderboard = () => {
 
     return () => {
         isMounted = false;
-        try {
-          unsubscribe();
-        } catch (e) {
-          console.warn("Error unsubscribing from LiveLeaderboard", e);
-        }
+        unsubscribe();
     }
   }, []);
 
@@ -161,11 +158,7 @@ const LiveLeaderboard = () => {
 
     return () => {
       if (unsubscribe) {
-        try {
-            unsubscribe();
-        } catch (e) {
-            console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
-        }
+        unsubscribe();
       }
       clearInterval(slotInterval);
     };

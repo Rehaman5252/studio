@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -140,11 +141,7 @@ const AllTimeLeaderboard = () => {
 
     return () => {
         isMounted = false;
-        try {
-            unsubscribe();
-        } catch(e) {
-            console.warn("Error unsubscribing from AllTimeLeaderboard", e);
-        }
+        unsubscribe();
     };
   }, [user]);
 
@@ -155,11 +152,7 @@ const AllTimeLeaderboard = () => {
     
     return () => {
       if (unsubscribe) {
-          try {
-              unsubscribe();
-          } catch (e) {
-              console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e);
-          }
+        unsubscribe();
       }
     };
   }, [authLoading, startListener]);

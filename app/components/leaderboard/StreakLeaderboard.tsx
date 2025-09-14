@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -175,11 +176,7 @@ const StreakLeaderboard = () => {
 
     return () => {
         isMounted = false;
-        try {
-            unsubscribe();
-        } catch(e) {
-            console.warn("Error unsubscribing from StreakLeaderboard", e);
-        }
+        unsubscribe();
     };
   }, [user]);
 
@@ -188,11 +185,7 @@ const StreakLeaderboard = () => {
     const unsubscribe = startListener();
     return () => {
         if (unsubscribe) {
-            try {
-                unsubscribe();
-            } catch (e) {
-                console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
-            }
+            unsubscribe();
         }
     };
   }, [authLoading, startListener]);
