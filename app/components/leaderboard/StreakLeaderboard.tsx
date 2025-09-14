@@ -232,7 +232,7 @@ const StreakLeaderboard = () => {
         )}
       </>
     );
-  }, [isLoading, authLoading, error, players, user, startListener]);
+  }, [isLoading, players, user, error, startListener]);
 
   return (
     <Card className="bg-card/80 shadow-lg mt-4">
