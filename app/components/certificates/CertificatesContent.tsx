@@ -129,7 +129,7 @@ export default function CertificatesContent() {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(150, 150, 150);
-    doc.text('Win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 175, { align: 'center' });
+    doc.text('win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 175, { align: 'center' });
     
     doc.save(`indcric_${cert.format}_Certificate.pdf`);
     

@@ -10,7 +10,7 @@ function AuthLayout({ children }: { children: ReactNode }) {
                 indcric
             </h1>
             <p className="mt-3 text-lg text-foreground/80">
-                Win ₹100 for every 100 seconds!
+                win ₹100 for every 100 seconds!
             </p>
         </header>
         <main className="w-full max-w-lg">
