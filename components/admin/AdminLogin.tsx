@@ -14,8 +14,8 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('admin@indcric.app');
-  const [password, setPassword] = useState('indcric@Admin123');
+  const [email, setEmail] = useState('admin@CricBlitz.app');
+  const [password, setPassword] = useState('CricBlitz@Admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -54,7 +54,7 @@ export default function AdminLogin() {
                 <Shield className="h-12 w-12 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold">Third Umpire's Room</CardTitle>
-            <CardDescription>Access restricted to authorized indcric match officials.</CardDescription>
+            <CardDescription>Access restricted to authorized CricBlitz match officials.</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
             <form onSubmit={handleLogin} className="space-y-4">
@@ -63,7 +63,7 @@ export default function AdminLogin() {
                     <Input 
                       id="email" 
                       type="email" 
-                      placeholder="umpire@indcric.app" 
+                      placeholder="umpire@CricBlitz.app" 
                       required 
                       className="h-12"
                       value={email}

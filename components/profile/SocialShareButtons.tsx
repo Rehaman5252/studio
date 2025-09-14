@@ -43,8 +43,8 @@ const SnapchatIcon = () => (
 );
 
 const SocialShareButtonsComponent = ({ referralLink }: { referralLink: string }) => {
-  const text = "Join me on indcric! It's the ultimate cricket quiz challenge. Use my link to sign up and we both get rewarded when you play!";
-  const title = "indcric: The Ultimate Cricket Quiz Challenge!";
+  const text = "Join me on CricBlitz! It's the ultimate cricket quiz challenge. Use my link to sign up and we both get rewarded when you play!";
+  const title = "CricBlitz: The Ultimate Cricket Quiz Challenge!";
 
   const platforms = [
     { name: 'WhatsApp', icon: <WhatsAppIcon />, url: `https://wa.me/?text=${encodeURIComponent(text + ' ' + referralLink)}` },

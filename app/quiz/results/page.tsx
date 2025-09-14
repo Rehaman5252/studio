@@ -18,11 +18,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const AnalysisDialog = dynamic(
-    () => import('@/components/history/AnalysisDialog').catch(() => () => null),
+    () => import('@/components/history/AnalysisDialog'),
     { ssr: false }
 );
 const ReviewDialog = dynamic(
-    () => import('@/components/history/ReviewDialog').catch(() => () => null),
+    () => import('@/components/history/ReviewDialog'),
     { ssr: false }
 );
 

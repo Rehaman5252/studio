@@ -27,7 +27,7 @@ const RewardsSkeleton = () => (
       <section>
         <h2 className="text-xl font-semibold text-foreground">Man of the Match Awards</h2>
         <p className="text-sm text-muted-foreground mb-4">A special award for every match you play. Claim your prize!</p>
-        <Carousel opts={{ align: 'start' }} className="w-full max-w-full px-4">
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
             <CarouselContent className="-ml-4">
                 {[...Array(3)].map((_, index) => (
                     <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
@@ -35,12 +35,10 @@ const RewardsSkeleton = () => (
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
         </Carousel>
       </section>
       <section>
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Sponsor's Pavilion</h2>
+        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
         <div className="space-y-4">
           <Skeleton className="h-[96px] w-full" />
           <Skeleton className="h-[96px] w-full" />
@@ -67,7 +65,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -76,8 +74,8 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
         <Card className={cn(
             "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
             isScratched
-                ? "bg-gradient-to-br from-amber-200 to-yellow-400 text-amber-900"
-                : "bg-gradient-to-br from-yellow-400 to-amber-600 text-white"
+                ? "bg-gradient-to-br from-accent/20 to-accent/40 text-accent-foreground"
+                : "bg-gradient-to-br from-primary to-green-700 text-white"
         )}>
             {!isScratched ? (
                 <button 
@@ -98,7 +96,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
                     <Trophy className="h-10 w-10 mb-2 text-current" />
                     <h3 className="text-lg font-bold text-current">{reward.gift}</h3>
                     <p className="text-xs text-current/80 mt-1">{reward.description}</p>
-                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-white/20 text-white hover:bg-white/30" size="sm" type="button">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
+                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-background/80 text-foreground hover:bg-background" size="sm" type="button">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
                 </div>
             )}
         </Card>
@@ -143,7 +141,7 @@ function RewardsContentComponent() {
     if (typeof window !== 'undefined' && quizHistory.data.length > 0) {
       const initialScratchedState: Record<string, boolean> = {};
       quizHistory.data.forEach(attempt => {
-        const storageKey = `indcric-scratch-card-${attempt.slotId}`;
+        const storageKey = `CricBlitz-scratch-card-${attempt.slotId}`;
         const savedState = window.localStorage.getItem(storageKey);
         if (savedState === 'true') {
           initialScratchedState[attempt.slotId] = true;
@@ -156,7 +154,7 @@ function RewardsContentComponent() {
   const handleScratch = (slotId: string) => {
     setScratchedCards(prev => ({ ...prev, [slotId]: true }));
     if (typeof window !== 'undefined') {
-      const storageKey = `indcric-scratch-card-${slotId}`;
+      const storageKey = `CricBlitz-scratch-card-${slotId}`;
       window.localStorage.setItem(storageKey, 'true');
     }
   };
@@ -203,21 +201,25 @@ function RewardsContentComponent() {
       );
     }
     return (
-        <Carousel opts={{ align: 'start' }} className="w-full max-w-full px-4">
-            <CarouselContent className="-ml-4">
-            {rewardableAttempts.map((attempt, index) => (
-                <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                <ScratchCard 
-                    brand={attempt.brand as string}
-                    isScratched={scratchedCards[attempt.slotId] || false}
-                    onScratch={() => handleScratch(attempt.slotId)}
-                />
-                </CarouselItem>
-            ))}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-        </Carousel>
+        <div className="relative">
+            <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+                <CarouselContent className="-ml-4">
+                {rewardableAttempts.map((attempt, index) => (
+                    <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                    <ScratchCard 
+                        brand={attempt.brand as string}
+                        isScratched={scratchedCards[attempt.slotId] || false}
+                        onScratch={() => handleScratch(attempt.slotId)}
+                    />
+                    </CarouselItem>
+                ))}
+                </CarouselContent>
+                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </div>
+            </Carousel>
+        </div>
     );
   };
 

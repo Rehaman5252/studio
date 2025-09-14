@@ -101,14 +101,13 @@ const AllTimeLeaderboard = () => {
       listenerRef.current();
       listenerRef.current = null;
     }
+
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-      if (mountedRef.current) {
-        setError({ userMessage: "Database connection is not available." });
-        setIsLoading(false);
-      }
+      setError({ userMessage: "Database not available." });
+      setIsLoading(false);
       return;
     }
 
@@ -122,38 +121,41 @@ const AllTimeLeaderboard = () => {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      if (!mountedRef.current) return;
-
-      const playersData = querySnapshot.docs
-        .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
-        .map((doc, index) => {
-          const data = doc.data();
+    const unsubscribe = onSnapshot(q, (qsnap) => {
+      const data = qsnap.docs
+        .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
+        .map((doc, idx) => {
+          const d = doc.data();
           return {
             uid: doc.id,
-            name: data.name || 'Anonymous Player',
-            avatar: data.photoURL,
-            perfectScores: data.perfectScores || 0,
-            totalScore: data.totalScore || 0,
-            quizzesPlayed: data.quizzesPlayed || 0,
+            name: d.name ?? 'Anonymous Player',
+            avatar: d.photoURL ?? undefined,
+            perfectScores: d.perfectScores ?? 0,
+            totalScore: d.totalScore ?? 0,
+            quizzesPlayed: d.quizzesPlayed ?? 0,
             isCurrentUser: user?.uid === doc.id,
-            rank: index + 1
+            rank: idx + 1
           } as AllTimePlayer;
         });
-      
-      setPlayers(playersData);
-      lastGoodRef.current = playersData;
-      setError(null);
-      setIsLoading(false);
 
-    }, (err: any) => {
-      if (!mountedRef.current) return;
-      console.error("All-Time Leaderboard snapshot error: ", err);
+      if (mountedRef.current) {
+        setPlayers(data);
+        lastGoodRef.current = data;
+        setError(null);
+        setIsLoading(false);
+      }
+    }, (err) => {
+      console.error("AllTime onSnapshot error:", err);
       const mapped = mapFirestoreError(err);
-      setError(mapped);
-      setIsLoading(false);
-      if (lastGoodRef.current) {
-        setPlayers(lastGoodRef.current);
+      if (mountedRef.current) {
+        // Keep last good data (do not wipe it). Show non-destructive error.
+        setError(mapped);
+        setIsLoading(false);
+        if (lastGoodRef.current) {
+          setPlayers(lastGoodRef.current);
+        } else {
+          setPlayers([]);
+        }
       }
     });
 
@@ -162,15 +164,10 @@ const AllTimeLeaderboard = () => {
 
   useEffect(() => {
     mountedRef.current = true;
-    if (!authLoading) {
-      startListener();
-    }
+    if (!authLoading) startListener();
     return () => {
       mountedRef.current = false;
-      if (listenerRef.current) {
-        listenerRef.current();
-        listenerRef.current = null;
-      }
+      if (listenerRef.current) listenerRef.current();
     };
   }, [authLoading, startListener]);
 
