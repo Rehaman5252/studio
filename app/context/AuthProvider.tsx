@@ -264,7 +264,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { ...existingData, ...updates };
       }
     },
-    [toast]
+    [toast, db]
   );
 
   /* ------------------------- Primary subscriptions ------------------------ */
@@ -273,7 +273,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     let isMounted = true;
     let unsubs: Unsubscribe[] = [];
 
-    if (firebaseLoading || !firebaseAppReady) {
+    if (firebaseLoading || !firebaseAppReady || !db) {
       if (isMounted) setProfileLoading(true);
       return;
     }
@@ -362,7 +362,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       });
       unsubs = [];
     };
-  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
+  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady, db]);
   
 
   /* -------------------------- Auth convenience --------------------------- */
@@ -487,7 +487,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         throw e;
       }
     },
-    [user, toast]
+    [user, toast, db]
   );
 
   /* --------------------------- Attempt persistence ----------------------- */
@@ -590,7 +590,7 @@ const persistAttemptBatch = useCallback(
             throw new Error(`firestore_commit_failed:${code}:${message}`);
         }
     },
-    [user]
+    [user, db]
 );
 
 
@@ -623,7 +623,7 @@ const persistAttemptBatch = useCallback(
         return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
       }
     },
-    [persistAttemptBatch, toast, user]
+    [persistAttemptBatch, toast, user, db]
   );
 
   // Auto-retry queued attempts when user/db/online becomes available
@@ -684,7 +684,7 @@ const persistAttemptBatch = useCallback(
       setIsOffline(true);
       return newNoBallCount;
     }
-  }, [user, profile]);
+  }, [user, profile, db]);
 
   /* ------------------------------- Reviewed ------------------------------ */
 
