@@ -382,7 +382,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       }
       return null;
     }
-  }, [toast, handleUserDocument]);
+  }, [toast, handleUserDocument, auth]);
 
   const registerWithEmail = useCallback(
     async (
@@ -413,7 +413,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     },
-    [toast, handleUserDocument]
+    [toast, handleUserDocument, auth]
   );
 
   const loginWithEmail = useCallback(
@@ -436,14 +436,14 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     },
-    [toast]
+    [toast, auth]
   );
 
   const logout = useCallback(async () => {
     if (!auth) return;
     await signOut(auth);
     toast({ title: 'Signed Out', description: 'You have been logged out successfully.' });
-  }, [toast]);
+  }, [toast, auth]);
 
   /* ------------------------------ Profile edit --------------------------- */
 
@@ -690,23 +690,35 @@ const persistAttemptBatch = useCallback(
 
   const markAttemptAsReviewed = useCallback(
     async (attemptId: string): Promise<{ success: boolean }> => {
-      if (!user || !db) return { success: false };
-
+      if (!user || !db) {
+        console.log('markAttemptAsReviewed blocked: user or db is missing.', { user, db });
+        return { success: false };
+      }
+      
+      const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
+      
+      // Optimistically update UI
       setQuizHistory((prev) => ({
         ...prev,
         data: prev.data.map((a) => (a.slotId === attemptId ? { ...a, reviewed: true } : a)),
       }));
 
       try {
-        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
+        const docSnap = await getDoc(attemptRef);
+        if (!docSnap.exists()) {
+            throw new Error(`Attempt document with ID ${attemptId} does not exist.`);
+        }
         await updateDoc(attemptRef, { reviewed: true });
         return { success: true };
       } catch (error) {
-        console.error('Failed to mark attempt as reviewed:', error);
+        console.error('Failed to mark attempt as reviewed:', JSON.stringify(error, null, 2));
+        
+        // Revert optimistic update on failure
         setQuizHistory((prev) => ({
           ...prev,
           data: prev.data.map((a) => (a.slotId === attemptId ? { ...a, reviewed: false } : a)),
         }));
+        
         return { success: false };
       }
     },
