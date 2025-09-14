@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 /**
- * @fileOverview Zod schemas for the indcric application.
+ * @fileOverview Zod schemas for the CricBlitz application.
  *
  * This file defines the core data structures used throughout the app,
  * ensuring type safety and consistent data validation. These schemas are kept
@@ -41,9 +41,9 @@ export const QuizAttempt = z.object({
 // This is the single source of truth for the AI Analysis output.
 export const QuizAnalysisOutputSchema = z.object({
   summary: z.string().describe("A concise overall insight into the user's performance, mentioning score and format."),
-  strengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated."),
-  weaknesses: z.array(z.string()).describe("A list of 2-3 specific areas for improvement."),
-  recommendations: z.array(z.string()).describe("A list of 2-3 actionable next steps for the user."),
+  strengths: z.array(z.string()).min(1).max(3).describe("A list of 2-3 key strengths the user demonstrated."),
+  weaknesses: z.array(z.string()).min(1).max(3).describe("A list of 2-3 specific areas for improvement."),
+  recommendations: z.array(z.string()).min(1).max(3).describe("A list of 2-3 actionable next steps for the user."),
   source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 
