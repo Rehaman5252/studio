@@ -134,7 +134,6 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
     let unsubscribe: Unsubscribe | undefined;
 
     if (!authLoading) {
@@ -142,13 +141,11 @@ const LiveLeaderboard = () => {
     }
     
     const slotInterval = setInterval(() => {
-        if(isMounted) {
-            unsubscribe = startListener();
-        }
+      if (unsubscribe) unsubscribe();
+      unsubscribe = startListener();
     }, 30000); 
 
     return () => {
-      isMounted = false;
       try {
         if (unsubscribe) unsubscribe();
       } catch (e) {

@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Star, Users, RefreshCw, AlertTriangle } from 'lucide-react';
+import { WifiOff, ServerCrash, Star, Users, RefreshCw } from 'lucide-react';
 import type { MyNetworkPlayer } from './leaderboardTypes';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -152,7 +152,7 @@ const MyNetworkLeaderboard = () => {
 
     return (
         <>
-            {error && <Alert variant="destructive" className="mb-2"><AlertTriangle className="h-4 w-4" /><AlertTitle>Sync Issue</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+            {error && <Alert variant="destructive" className="mb-2"><WifiOff className="h-4 w-4" /><AlertTitle>Sync Issue</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
             {dataToShow.map((player) => (
               <LeaderboardItem key={player.uid} player={player} />
             ))}

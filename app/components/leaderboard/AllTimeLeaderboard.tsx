@@ -139,11 +139,10 @@ const AllTimeLeaderboard = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    let isMounted = true;
+    
     const unsubscribe = startListener();
     
     return () => {
-        isMounted = false;
         try {
             unsubscribe();
         } catch (e) {
