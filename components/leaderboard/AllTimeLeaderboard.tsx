@@ -106,8 +106,10 @@ const AllTimeLeaderboard = () => {
     setError(null);
 
     if (!db) {
-      setError({ userMessage: "Database not available." });
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
+      }
       return;
     }
 

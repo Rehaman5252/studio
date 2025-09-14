@@ -10,22 +10,18 @@ import { AlertTriangle } from "lucide-react";
 
 
 const ProfilePageContent = dynamic(
-    async () => {
-        try {
-            return await import('@/components/profile/ProfilePageContent');
-        } catch (e) {
-            console.error("Failed to load ProfilePageContent", e);
-            return function ChunkLoadFallback() {
-                 return (
-                     <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>Failed to load profile content. Please refresh the page.</AlertDescription>
-                    </Alert>
-                );
-            }
+    () => import('@/components/profile/ProfilePageContent').catch(e => {
+        console.error("Failed to load ProfilePageContent", e);
+        return function ChunkLoadFallback() {
+             return (
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Failed to load profile content. Please refresh the page.</AlertDescription>
+                </Alert>
+            );
         }
-    },
+    }),
     {
         loading: () => <ProfileSkeleton />,
         ssr: false,

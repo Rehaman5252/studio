@@ -17,7 +17,7 @@ const ChunkLoadError = () => (
         <AlertTitle>Error Loading Component</AlertTitle>
         <AlertDescription>A piece of the leaderboard failed to load. Please refresh the page.</AlertDescription>
     </Alert>
-)
+);
 
 const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard').catch(err => { console.error("Chunk load failed for LiveLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
