@@ -54,7 +54,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
   <Alert variant="destructive" className="mt-4">
-    {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+    {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
     <AlertTitle>{title}</AlertTitle>
     <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
     <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>

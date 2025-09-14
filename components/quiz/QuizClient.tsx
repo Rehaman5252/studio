@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { buildAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { motion } from 'framer-motion';
@@ -113,10 +113,21 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
-      const data: QuizAPIResponse = await response.json();
+      let data: QuizAPIResponse;
+      try {
+        data = await response.json();
+      } catch(parseErr) {
+        console.error('Quiz API returned non-json', parseErr, await response.text());
+        setError('Server returned an unexpected response.');
+        setQuizState('error');
+        return;
+      }
       
       if (!response.ok || !data.ok || !data.quiz) {
-         throw new Error(data.error?.message || "The server returned an unexpected response.");
+         const msg = data.error?.message || "Could not load quiz.";
+         setError(msg);
+         setQuizState('error');
+         return;
       }
 
       setQuizData(data.quiz);
@@ -139,7 +150,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setError(userMessage);
       setQuizState('error');
     }
-  }, [format, user, toast, authLoading, isOffline]);
+  }, [format, user, authLoading, isOffline]);
 
   useEffect(() => {
     if (!authLoading) {
