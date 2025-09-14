@@ -142,7 +142,7 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
-    let unsubscribe: Unsubscribe | undefined;
+    let unsubscribe: Unsubscribe | undefined | (() => void);
 
     if (!authLoading) {
       unsubscribe = startListener();
