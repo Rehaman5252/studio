@@ -190,3 +190,5 @@ const MyNetworkLeaderboard = () => {
     </Card>
   );
 };
+
+export default memo(MyNetworkLeaderboard);

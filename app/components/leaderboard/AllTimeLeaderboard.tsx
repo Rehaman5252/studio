@@ -206,3 +206,5 @@ const AllTimeLeaderboard = () => {
     </Card>
   );
 };
+
+export default memo(AllTimeLeaderboard);

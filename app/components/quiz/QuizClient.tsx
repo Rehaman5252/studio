@@ -232,8 +232,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const endTime = Date.now();
     const timeTaken = (endTime - startTime) / 1000;
     
-    setUserAnswers(prev => [...prev, answer]);
-    setTimePerQuestion(prev => [...prev, parseFloat(timeTaken.toFixed(2))]);
+    const updatedAnswers = [...userAnswers, answer];
+    const updatedTime = [...timePerQuestion, parseFloat(timeTaken.toFixed(2))];
+    
+    setUserAnswers(updatedAnswers);
+    setTimePerQuestion(updatedTime);
     
     if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
         if (interstitialConfig) {
@@ -243,7 +246,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setStartTime(Date.now());
         }
     } else {
-      finishQuiz([...userAnswers, answer], [...timePerQuestion, parseFloat(timeTaken.toFixed(2))]);
+      finishQuiz(updatedAnswers, updatedTime);
     }
   }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);
 

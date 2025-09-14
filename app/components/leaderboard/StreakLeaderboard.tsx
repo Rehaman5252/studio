@@ -254,3 +254,5 @@ const StreakLeaderboard = () => {
     </Card>
   );
 };
+
+export default memo(StreakLeaderboard);

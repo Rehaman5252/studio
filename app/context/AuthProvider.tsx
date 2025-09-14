@@ -271,7 +271,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let isMounted = true;
-    const unsubs: Unsubscribe[] = [];
+    let unsubs: Unsubscribe[] = [];
 
     if (firebaseLoading || !firebaseAppReady) {
       if (isMounted) setProfileLoading(true);
@@ -360,6 +360,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           console.warn("Failed to unsubscribe from listener in AuthProvider", e);
         }
       });
+      unsubs = [];
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
   
