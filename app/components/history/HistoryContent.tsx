@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -69,13 +70,13 @@ export default function HistoryContent() {
               className="mt-4"
           >
               <TabsContent value="recent" forceMount={true}>
-                  {user ? <RecentHistory /> : <LoggedOutView icon={History} title="Review Your Recent Form" description="Sign in to see your last few matches and analyze your performance." />}
+                  {user ? <RecentHistory /> : <LoggedOutView icon={History} title="Review Your Recent Form" description="Just finished a match? Sign in to see your last few innings and analyze your performance." />}
               </TabsContent>
               <TabsContent value="all" forceMount={true}>
-                  {user ? <AllHistory /> : <LoggedOutView icon={BarChart} title="Access Your Career Stats" description="Sign in to view your complete match history and track your long-term progress." />}
+                  {user ? <AllHistory /> : <LoggedOutView icon={BarChart} title="Access Your Career Stats" description="Every match counts. Sign in to view your complete match history and track long-term progress." />}
               </TabsContent>
               <TabsContent value="perfect" forceMount={true}>
-                  {user ? <PerfectScoresHistory /> : <LoggedOutView icon={Trophy} title="See Your Hall of Fame" description="Sign in to view your perfect scores and claim your winner certificates." />}
+                  {user ? <PerfectScoresHistory /> : <LoggedOutView icon={Trophy} title="View Your Honours Board" description="Did you score a century? Sign in to see your perfect scores and claim your winner certificates." />}
               </TabsContent>
           </motion.div>
       </Tabs>
