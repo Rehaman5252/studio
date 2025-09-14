@@ -134,7 +134,8 @@ const LiveLeaderboard = () => {
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
-      if (lastGoodRef.current) {
+      // Fallback to cached data on error
+      if (lastGoodRef.current.length > 0) {
         setPlayers(lastGoodRef.current);
       }
     });
@@ -163,6 +164,7 @@ const LiveLeaderboard = () => {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
     }
     
+    // Only show full-screen error if there's no cached data
     if (error && error.code !== 'INDEX_REQUIRED' && dataToShow.length === 0) {
       return <ErrorState
         title={"Error Loading Leaderboard"}
@@ -191,13 +193,15 @@ const LiveLeaderboard = () => {
         </div>
         <CardDescription>Live standings for this 10-minute slot</CardDescription>
       </CardHeader>
+      
       {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) &&
-        <ErrorState 
-            title={"Error Loading Leaderboard"}
-            message={error.userMessage}
-            onRetry={startListener}
-        />
+        <Alert variant="destructive" className="mx-4 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sync Issue</AlertTitle>
+            <AlertDescription>{error.userMessage}</AlertDescription>
+        </Alert>
       }
+      
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
         <div className="space-y-2">{content}</div>
       </CardContent>

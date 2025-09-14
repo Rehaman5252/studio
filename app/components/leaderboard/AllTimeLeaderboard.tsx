@@ -132,7 +132,8 @@ const AllTimeLeaderboard = () => {
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
-      if (lastGoodRef.current) {
+      // Fallback to cached data on error
+      if (lastGoodRef.current.length > 0) {
         setPlayers(lastGoodRef.current);
       } else {
         setPlayers([]);
@@ -179,11 +180,11 @@ const AllTimeLeaderboard = () => {
       </CardHeader>
 
       {error && !isIndexError && (
-        <ErrorState
-            title={"Error Loading Leaderboard"}
-            message={error.userMessage}
-            onRetry={startListener}
-        />
+        <Alert variant="destructive" className="mx-4 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sync Issue</AlertTitle>
+            <AlertDescription>{error.userMessage}</AlertDescription>
+        </Alert>
       )}
 
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">

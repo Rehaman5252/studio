@@ -163,7 +163,7 @@ const StreakLeaderboard = () => {
       const mappedError = mapFirestoreError(err);
       setError(mappedError);
       setIsLoading(false);
-      if (lastGoodRef.current) {
+      if (lastGoodRef.current.length > 0) {
         setPlayers(lastGoodRef.current);
       }
     });
@@ -229,15 +229,15 @@ const StreakLeaderboard = () => {
         </div>
         <CardDescription>The most consistent players on the pitch.</CardDescription>
       </CardHeader>
+      
       {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) && (
-          <div className="px-4">
-            <ErrorState 
-                title={"Error Loading Leaderboard"} 
-                message={error.userMessage}
-                onRetry={startListener}
-            />
-          </div>
+          <Alert variant="destructive" className="mx-4 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sync Issue</AlertTitle>
+            <AlertDescription>{error.userMessage}</AlertDescription>
+          </Alert>
       )}
+
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
         <div className="space-y-2">{content}</div>
       </CardContent>

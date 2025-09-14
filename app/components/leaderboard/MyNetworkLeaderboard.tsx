@@ -140,7 +140,16 @@ const MyNetworkLeaderboard = () => {
 
   const content = useMemo(() => {
     if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-    if (error) return <ErrorState title="Error Loading Network" message={error} onRetry={fetchNetworkData} />;
+    if (error) {
+        return (
+            <>
+                <ErrorState title="Error Loading Network" message={error} onRetry={fetchNetworkData} />
+                {networkPlayers.length > 0 && networkPlayers.map((player) => (
+                    <LeaderboardItem key={player.uid} player={player} />
+                ))}
+            </>
+        );
+    }
     if (networkPlayers.length === 0) {
       return (
         <Card className="bg-card/80 text-center mt-4">
@@ -173,5 +182,3 @@ const MyNetworkLeaderboard = () => {
 };
 
 export default memo(MyNetworkLeaderboard);
-
-    
