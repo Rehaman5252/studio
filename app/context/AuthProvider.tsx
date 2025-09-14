@@ -329,7 +329,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     ));
 
     // Full history
-    if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true, data: quizHistoryCache.current, error: null }));
+    if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true, error: null }));
     const historyQuery = query(
       collection(db, 'users', user.uid, 'quizAttempts'),
       orderBy('timestamp', 'desc')
