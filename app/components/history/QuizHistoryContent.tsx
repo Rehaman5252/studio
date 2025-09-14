@@ -69,7 +69,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
 
   const handleReviewClick = useCallback(() => {
-    if (isReviewed || isReviewing) return;
+    if (isReviewed || isReviewing || isDisqualified) return;
     
     if (attempt.reviewed) {
         setShowReviewDialog(true);
@@ -194,5 +194,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
+
+    
 
     
