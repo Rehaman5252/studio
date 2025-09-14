@@ -47,7 +47,7 @@ export function CricketLoading() {
           transition={circleTransition}
         />
         <motion.span
-          className="block w-4 h-4 bg-accent rounded-full"
+          className="block w-4 h-4 bg-primary rounded-full"
           variants={circleVariants}
           transition={{ ...circleTransition, delay: 0.1 }}
         />
@@ -57,7 +57,7 @@ export function CricketLoading() {
           transition={{ ...circleTransition, delay: 0.2 }}
         />
          <motion.span
-          className="block w-4 h-4 bg-accent rounded-full"
+          className="block w-4 h-4 bg-primary rounded-full"
           variants={circleVariants}
           transition={{ ...circleTransition, delay: 0.3 }}
         />
