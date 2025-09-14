@@ -15,7 +15,7 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
         const sanitized = sanitizeAttemptData(attempt);
         const jsonString = JSON.stringify(sanitized);
         // This combination correctly handles Unicode characters before base64 encoding.
-        return encodeURIComponent(btoa(unescape(encodeURIComponent(jsonString))));
+        return btoa(unescape(encodeURIComponent(jsonString)));
     } catch (e) {
         console.error("Failed to encode attempt:", e);
         return "";
@@ -28,9 +28,8 @@ export const encodeAttempt = (attempt: QuizAttempt): string => {
  */
 export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
     try {
-        const decodedB64 = decodeURIComponent(encodedAttempt);
         // This combination correctly decodes Unicode characters from base64.
-        const jsonString = decodeURIComponent(escape(atob(decodedB64)));
+        const jsonString = decodeURIComponent(escape(atob(encodedAttempt)));
         return JSON.parse(jsonString);
     } catch (e) {
         console.error("Failed to decode attempt:", e);

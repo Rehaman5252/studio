@@ -79,25 +79,16 @@ const AllTimeLeaderboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-  const listenerRef = useRef<Unsubscribe | null>(null);
-  const lastGoodRef = useRef<AllTimePlayer[] | null>(null);
-  const mountedRef = useRef(true);
-
+  const lastGoodRef = useRef<AllTimePlayer[]>([]);
+  
   const startListener = useCallback(() => {
-    if (listenerRef.current) {
-      listenerRef.current();
-      listenerRef.current = null;
-    }
-
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-      if (mountedRef.current) {
-        setError({ userMessage: "Database not available." });
-        setIsLoading(false);
-      }
-      return;
+      setError({ userMessage: "Database not available." });
+      setIsLoading(false);
+      return () => {};
     }
 
     const usersCollection = collection(db, 'users');
@@ -110,8 +101,9 @@ const AllTimeLeaderboard = () => {
       limit(50)
     );
 
+    let isMounted = true;
     const unsubscribe = onSnapshot(q, (qsnap) => {
-      if (!mountedRef.current) return;
+      if (!isMounted) return;
       const data = qsnap.docs
         .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
         .map((doc, idx) => {
@@ -133,42 +125,56 @@ const AllTimeLeaderboard = () => {
         setError(null);
         setIsLoading(false);
     }, (err) => {
+      if (!isMounted) return;
       console.error("AllTime onSnapshot error:", err);
       const mapped = mapFirestoreError(err);
-      if (mountedRef.current) {
-        setError(mapped);
-        setIsLoading(false);
-        if (lastGoodRef.current) {
-          setPlayers(lastGoodRef.current);
-        } else {
-          setPlayers([]);
-        }
-      }
+      setError(mapped);
+      setIsLoading(false);
+      // Fallback to cache
+      setPlayers(lastGoodRef.current);
     });
 
-    listenerRef.current = unsubscribe;
+    return () => {
+        isMounted = false;
+        try {
+            unsubscribe();
+        } catch(e) {
+            console.warn("Error unsubscribing from AllTimeLeaderboard", e);
+        }
+    };
   }, [user]);
 
   useEffect(() => {
-    mountedRef.current = true;
-    if (!authLoading) startListener();
+    if (authLoading) return;
+    
+    const unsubscribe = startListener();
+    
     return () => {
-      mountedRef.current = false;
-      if (listenerRef.current) listenerRef.current();
+      if (unsubscribe) {
+          try {
+              unsubscribe();
+          } catch (e) {
+              console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e);
+          }
+      }
     };
   }, [authLoading, startListener]);
 
   const contentList = useMemo(() => {
-    const dataToShow = players.length > 0 ? players : lastGoodRef.current || [];
+    const dataToShow = players;
     
     if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
     }
     
-    if (dataToShow.length === 0 && (!error || error.code !== 'INDEX_REQUIRED')) return <EmptyState />;
+    if (dataToShow.length === 0 && !error) return <EmptyState />;
+
+    if (error && dataToShow.length === 0) {
+      return <ErrorState title="Error Loading Leaderboard" message={error.userMessage} onRetry={startListener} />;
+    }
 
     return dataToShow.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
-  }, [isLoading, authLoading, players, user, error]);
+  }, [isLoading, authLoading, players, user, error, startListener]);
 
   const isIndexError = error?.code === 'INDEX_REQUIRED';
 
@@ -186,12 +192,12 @@ const AllTimeLeaderboard = () => {
         <CardDescription>Based on Total Score and Perfect Scores</CardDescription>
       </CardHeader>
 
-      {error && !isIndexError && (
-        <ErrorState
-            title={"Error Loading Leaderboard"}
-            message={error.userMessage}
-            onRetry={startListener}
-        />
+      {error && players.length > 0 && (
+        <Alert variant="destructive" className="mx-4 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sync Issue</AlertTitle>
+            <AlertDescription>{error.userMessage}</AlertDescription>
+        </Alert>
       )}
 
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
@@ -200,5 +206,4 @@ const AllTimeLeaderboard = () => {
     </Card>
   );
 };
-
 export default memo(AllTimeLeaderboard);

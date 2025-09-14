@@ -89,24 +89,17 @@ const LiveLeaderboard = () => {
   const [players, setPlayers] = useState<LivePlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
-  const listenerRef = useRef<Unsubscribe | null>(null);
-  const lastGoodRef = useRef<LivePlayer[] | null>(null);
-  const mountedRef = useRef(true);
-
+  
+  const lastGoodRef = useRef<LivePlayer[]>([]);
+  
   const startListener = useCallback(() => {
-    if (listenerRef.current) {
-      listenerRef.current();
-      listenerRef.current = null;
-    }
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-        if(mountedRef.current) {
-            setError({ userMessage: "Database not available." });
-            setIsLoading(false);
-        }
-        return;
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
+        return () => {};
     }
 
     const slotId = getQuizSlotId();
@@ -117,8 +110,9 @@ const LiveLeaderboard = () => {
       limit(50)
     );
 
+    let isMounted = true;
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      if(!mountedRef.current) return;
+      if (!isMounted) return;
       const rows = snapshot.docs.map((d, index) => ({
         ...(d.data() as LivePlayer),
         rank: index + 1,
@@ -128,38 +122,59 @@ const LiveLeaderboard = () => {
       setError(null);
       setIsLoading(false);
     }, (err) => {
-      if(!mountedRef.current) return;
+      if (!isMounted) return;
       console.error("Live Leaderboard Error: ", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
-      if (lastGoodRef.current) {
-        setPlayers(lastGoodRef.current);
-      }
+      // Fallback to cached data on error
+      setPlayers(lastGoodRef.current);
     });
 
-    listenerRef.current = unsubscribe;
+    return () => {
+        isMounted = false;
+        try {
+          unsubscribe();
+        } catch (e) {
+          console.warn("Error unsubscribing from LiveLeaderboard", e);
+        }
+    }
   }, []);
 
   useEffect(() => {
-    mountedRef.current = true;
-    startListener();
-    const slotInterval = setInterval(() => startListener(), 30000); // Re-subscribe periodically to catch slot change
+    let unsubscribe: Unsubscribe | undefined | (() => void);
+
+    if (!authLoading) {
+      unsubscribe = startListener();
+    }
+    
+    const slotInterval = setInterval(() => {
+      if (unsubscribe) {
+          try { unsubscribe() } catch(e) {}
+      };
+      unsubscribe = startListener();
+    }, 30000); 
+
     return () => {
-        mountedRef.current = false;
-        if (listenerRef.current) listenerRef.current();
-        clearInterval(slotInterval);
+      if (unsubscribe) {
+        try {
+            unsubscribe();
+        } catch (e) {
+            console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
+        }
+      }
+      clearInterval(slotInterval);
     };
-  }, [startListener]);
+  }, [authLoading, startListener]);
 
   const content = useMemo(() => {
-    const dataToShow = players.length > 0 ? players : lastGoodRef.current || [];
+    const dataToShow = players;
 
     if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
     }
     
-    if (error && error.code !== 'INDEX_REQUIRED' && dataToShow.length === 0) {
+    if (error && dataToShow.length === 0) {
       return <ErrorState
         title={"Error Loading Leaderboard"}
         message={error.userMessage}
@@ -187,13 +202,15 @@ const LiveLeaderboard = () => {
         </div>
         <CardDescription>Live standings for this 10-minute slot</CardDescription>
       </CardHeader>
-      {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) &&
-        <ErrorState 
-            title={"Error Loading Leaderboard"}
-            message={error.userMessage}
-            onRetry={startListener}
-        />
+      
+      {error && players.length > 0 &&
+        <Alert variant="destructive" className="mx-4 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sync Issue</AlertTitle>
+            <AlertDescription>{error.userMessage}</AlertDescription>
+        </Alert>
       }
+      
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
         <div className="space-y-2">{content}</div>
       </CardContent>

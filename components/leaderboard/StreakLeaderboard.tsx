@@ -87,33 +87,26 @@ const StreakLeaderboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-  const listenerRef = useRef<Unsubscribe | null>(null);
-  const lastGoodRef = useRef<StreakPlayer[] | null>(null);
-  const mountedRef = useRef(true);
+  const lastGoodRef = useRef<StreakPlayer[]>([]);
 
   const startListener = useCallback(() => {
-    if (listenerRef.current) {
-      listenerRef.current();
-      listenerRef.current = null;
-    }
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-        if (mountedRef.current) {
-            setError({ userMessage: "Database not available." });
-            setIsLoading(false);
-        }
-        return;
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
+        return () => {};
     }
 
     const usersCollection = collection(db, 'users');
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
-
+    
+    let isMounted = true;
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      if (!mountedRef.current) return;
+      if(!isMounted) return;
       try {
-        const playersData = querySnapshot.docs
+        let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
           .map((doc, index) => {
             const data = doc.data();
@@ -132,83 +125,81 @@ const StreakLeaderboard = () => {
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
                 if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        const streak = data.currentStreak || 0;
-                        if (streak > 0) {
-                            const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
-                            const currentUserData: StreakPlayer = {
-                                uid: user.uid,
-                                name: data.name || 'You',
-                                avatar: data.photoURL,
-                                currentStreak: streak,
-                                rank: userRank,
-                                isCurrentUser: true,
-                            };
-                             if (mountedRef.current) {
-                                setPlayers(prev => {
-                                    const final = [...prev.filter(p => p.uid !== user.uid), currentUserData];
-                                    lastGoodRef.current = final;
-                                    return final;
-                                });
-                             }
-                        }
+                    const data = userDoc.data();
+                    const streak = data.currentStreak || 0;
+                    if (streak > 0) {
+                        const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
+                        const currentUserData: StreakPlayer = {
+                            uid: user.uid,
+                            name: data.name || 'You',
+                            avatar: data.photoURL,
+                            currentStreak: streak,
+                            rank: userRank,
+                            isCurrentUser: true,
+                        };
+                        if (isMounted) playersData.push(currentUserData);
+                    }
                 }
            } catch (e) {
-                console.error("Error fetching current user for streak board", e);
+                if (isMounted) console.error("Error fetching current user for streak board", e);
            }
-        } else {
-             if (mountedRef.current) setPlayers(playersData);
         }
-
-        if (mountedRef.current) {
-            lastGoodRef.current = players;
+        
+        if (isMounted) {
+            const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
+            setPlayers(sortedPlayers);
+            lastGoodRef.current = sortedPlayers;
             setError(null);
             setIsLoading(false);
         }
       } catch (e) {
-         if (mountedRef.current) {
+        if (isMounted) {
             console.error("Snapshot processing error:", e);
             setError({ userMessage: "Error processing leaderboard data." });
             setIsLoading(false);
-         }
+        }
       }
     }, (err: any) => {
-      if (!mountedRef.current) return;
+      if(!isMounted) return;
       console.error("Streak leaderboard snapshot error:", err);
-      const mappedError = mapFirestoreError(err);
-      setError(mappedError);
+      setError(mapFirestoreError(err));
       setIsLoading(false);
-      if (lastGoodRef.current) {
-        setPlayers(lastGoodRef.current);
-      }
+      setPlayers(lastGoodRef.current); // fallback to cache
     });
 
-    listenerRef.current = unsubscribe;
-  }, [user, players]);
+    return () => {
+        isMounted = false;
+        try {
+            unsubscribe();
+        } catch(e) {
+            console.warn("Error unsubscribing from StreakLeaderboard", e);
+        }
+    };
+  }, [user]);
 
   useEffect(() => {
-    mountedRef.current = true;
-    if (!authLoading) {
-      startListener();
-    }
+    if (authLoading) return;
+    const unsubscribe = startListener();
     return () => {
-      mountedRef.current = false;
-      if (listenerRef.current) {
-        listenerRef.current();
-        listenerRef.current = null;
-      }
+        if (unsubscribe) {
+            try {
+                unsubscribe();
+            } catch (e) {
+                console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
+            }
+        }
     };
   }, [authLoading, startListener]);
 
 
   const content = useMemo(() => {
-    const dataToRender = players.length > 0 ? players : lastGoodRef.current || [];
+    const dataToRender = players;
     
     if (isLoading && dataToRender.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
     }
     
-    if (error && error.code !== 'INDEX_REQUIRED' && dataToRender.length === 0) {
+    if (error && dataToRender.length === 0) {
         return <ErrorState
             title={"Error Loading Leaderboard"}
             message={error.userMessage}
@@ -218,12 +209,11 @@ const StreakLeaderboard = () => {
     
     if (dataToRender.length === 0) return <EmptyState />;
     
-    const sortedPlayers = [...dataToRender].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
-    const currentUserInList = sortedPlayers.find(p => p.isCurrentUser);
+    const currentUserInList = dataToRender.find(p => p.isCurrentUser);
 
     return (
       <>
-        {sortedPlayers.filter(p => !p.isCurrentUser).map(player => <LeaderboardItem key={player.uid} player={player} />)}
+        {dataToRender.filter(p => !p.isCurrentUser).map(player => <LeaderboardItem key={player.uid} player={player} />)}
         {currentUserInList && (
           <>
             <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
@@ -249,20 +239,19 @@ const StreakLeaderboard = () => {
         </div>
         <CardDescription>The most consistent players on the pitch.</CardDescription>
       </CardHeader>
-      {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) && (
-          <div className="px-4">
-            <ErrorState 
-                title={"Error Loading Leaderboard"} 
-                message={error.userMessage}
-                onRetry={startListener}
-            />
-          </div>
+      
+      {error && players.length > 0 && (
+          <Alert variant="destructive" className="mx-4 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sync Issue</AlertTitle>
+            <AlertDescription>{error.userMessage}</AlertDescription>
+          </Alert>
       )}
+
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
         <div className="space-y-2">{content}</div>
       </CardContent>
     </Card>
   );
 };
-
 export default memo(StreakLeaderboard);
