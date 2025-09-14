@@ -1,19 +1,20 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, HelpCircle, Gift, Banknote, LogOut, Loader2 } from 'lucide-react';
+import { Users, HelpCircle, Gift, Banknote, LogOut, Loader2, Trophy, BarChart } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 
-const StatCard = ({ title, value, icon, description }: { title: string; value: string; icon: React.ReactNode; description: string; }) => (
+const StatCard = ({ title, value, icon, description }: { title: string; value: string; icon: React.ReactNode; description?: string; }) => (
     <Card className="shadow-md hover:shadow-lg transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -21,7 +22,7 @@ const StatCard = ({ title, value, icon, description }: { title: string; value: s
         </CardHeader>
         <CardContent>
             <div className="text-2xl font-bold">{value}</div>
-            <p className="text-xs text-muted-foreground">{description}</p>
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
         </CardContent>
     </Card>
 );
@@ -47,6 +48,22 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading } = useAuth();
+  const [globalStats, setGlobalStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  
+  useEffect(() => {
+    if (!db) return;
+    const statsDocRef = doc(db, 'globals', 'stats');
+    const unsubscribe = onSnapshot(statsDocRef, (doc) => {
+        setGlobalStats(doc.exists() ? doc.data() : {});
+        setStatsLoading(false);
+    }, (error) => {
+        console.error("Failed to listen to global stats:", error);
+        toast({ title: "Error", description: "Could not load platform stats.", variant: "destructive" });
+        setStatsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [toast]);
   
   const handleLogout = async () => {
     if (!auth) return;
@@ -59,7 +76,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading || !user) {
+  if (loading || statsLoading) {
     return <DashboardSkeleton />;
   }
 
@@ -78,16 +95,14 @@ export default function AdminDashboard() {
         <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
                  <StatCard 
-                    title="Total Users" 
-                    value="1,234" 
-                    icon={<Users className="h-4 w-4 text-muted-foreground" />} 
-                    description="+20.1% from last month" 
+                    title="Quizzes Played" 
+                    value={globalStats?.totalQuizzesPlayed?.toLocaleString() || '0'} 
+                    icon={<BarChart className="h-4 w-4 text-muted-foreground" />} 
                 />
                 <StatCard 
-                    title="Pending Payouts" 
-                    value="₹12,500" 
-                    icon={<Banknote className="h-4 w-4 text-muted-foreground" />} 
-                    description="52 pending transactions" 
+                    title="Perfect Scores" 
+                    value={globalStats?.totalPerfectScores?.toLocaleString() || '0'} 
+                    icon={<Trophy className="h-4 w-4 text-muted-foreground" />} 
                 />
                 <StatCard 
                     title="Pending Questions" 
