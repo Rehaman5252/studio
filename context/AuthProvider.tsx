@@ -719,12 +719,13 @@ const persistAttemptBatch = useCallback(
         return { success: true };
       } catch (error: any) {
         console.error('Failed to mark attempt as reviewed:', error);
-        setQuizHistory((prev) => ({
-          ...prev,
-          data: prev.data.map((a) =>
-            a.slotId === attemptId ? { ...a, reviewed: false } : a
-          ),
-        }));
+        // Optionally revert local state on failure
+        // setQuizHistory((prev) => ({
+        //   ...prev,
+        //   data: prev.data.map((a) =>
+        //     a.slotId === attemptId ? { ...a, reviewed: false } : a
+        //   ),
+        // }));
   
         let reason = 'Unknown error';
         if (error.code === 'permission-denied') reason = 'Insufficient permissions';
