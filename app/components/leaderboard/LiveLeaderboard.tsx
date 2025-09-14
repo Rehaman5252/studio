@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
@@ -171,7 +170,7 @@ const LiveLeaderboard = () => {
         console.log(`[LiveLeaderboard] Slot changed from ${slotIdRef.current} to ${newSlotId}. Re-subscribing.`);
         slotIdRef.current = newSlotId;
         setIsLoading(true);
-        // Don't clear players immediately to prevent flashing
+        setPlayers([]); // Clear players for new slot to show loader
         startListener(newSlotId);
       }
     }, 1000);
