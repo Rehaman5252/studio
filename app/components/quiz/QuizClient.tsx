@@ -77,23 +77,23 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const fetchQuiz = useCallback(async () => {
     if (isFinishedRef.current || authLoading) return;
-    if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-    }
+    abortControllerRef.current?.abort();
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
+
+    setQuizState('loading');
+    setError(null);
 
     if (!user) {
         setQuizState('unauthenticated');
         return;
     }
-
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
         setQuizState('error');
         return;
     }
-    
     if (!isFirebaseConfigured) {
         setError("🔥 The app is not connected to the server. Please try again later.");
         setQuizState('error');
@@ -101,9 +101,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
     
     try {
-      setQuizState('loading');
-      setError(null);
-
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -115,6 +112,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       const responseText = await response.text();
       let data: QuizAPIResponse;
+      
       try {
         data = JSON.parse(responseText);
       } catch(parseErr) {
@@ -140,12 +138,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
       
-      if (typeof e.message === 'string') {
-        if(e.message.includes("Failed to fetch")) {
-            userMessage = "📴 You appear to be offline. Please check your connection.";
-        } else {
-            userMessage = e.message;
-        }
+      if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
+          userMessage = "📴 You appear to be offline. Please check your connection.";
+      } else if (typeof e.message === 'string') {
+          userMessage = e.message;
       }
       
       setError(userMessage);
@@ -236,11 +232,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     const endTime = Date.now();
     const timeTaken = (endTime - startTime) / 1000;
     
-    const updatedAnswers = [...userAnswers, answer];
-    const updatedTime = [...timePerQuestion, parseFloat(timeTaken.toFixed(2))];
-    
-    setUserAnswers(updatedAnswers);
-    setTimePerQuestion(updatedTime);
+    setUserAnswers(prev => [...prev, answer]);
+    setTimePerQuestion(prev => [...prev, parseFloat(timeTaken.toFixed(2))]);
     
     if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
         if (interstitialConfig) {
@@ -250,7 +243,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setStartTime(Date.now());
         }
     } else {
-      finishQuiz(updatedAnswers, updatedTime);
+      finishQuiz([...userAnswers, answer], [...timePerQuestion, parseFloat(timeTaken.toFixed(2))]);
     }
   }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);
 
