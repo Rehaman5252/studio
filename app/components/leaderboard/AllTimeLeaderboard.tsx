@@ -127,6 +127,7 @@ const AllTimeLeaderboard = () => {
         console.warn(`[AllTimeLeaderboard] Ignored snapshot for stale subId=${mySubId}`);
         return;
       }
+      console.log(`[AllTimeLeaderboard] Snapshot received for subId=${mySubId} docs=${qsnap.size}`);
       const data = qsnap.docs
         .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
         .map((doc, idx) => {
@@ -152,7 +153,7 @@ const AllTimeLeaderboard = () => {
         console.warn(`[AllTimeLeaderboard] Ignored error for stale subId=${mySubId}`, err);
         return;
       }
-      console.error("AllTime onSnapshot error:", err);
+      console.error(`[AllTimeLeaderboard] Snapshot error subId=${mySubId}`, err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);

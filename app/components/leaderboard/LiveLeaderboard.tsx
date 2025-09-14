@@ -135,6 +135,7 @@ const LiveLeaderboard = () => {
             console.warn(`[LiveLeaderboard] Ignored snapshot for stale subId=${mySubId}`);
             return;
         }
+        console.log(`[LiveLeaderboard] Snapshot received for subId=${mySubId} docs=${snapshot.size}`);
         const rows = snapshot.docs.map((d, index) => ({
           ...(d.data() as LivePlayer),
           rank: index + 1,
@@ -149,9 +150,9 @@ const LiveLeaderboard = () => {
             console.warn(`[LiveLeaderboard] Ignored error for stale subId=${mySubId}`, err);
             return;
         }
-        console.error('Live Leaderboard Error:', err);
+        console.error(`[LiveLeaderboard] Snapshot error subId=${mySubId}`, err);
         setError(mapFirestoreError(err));
-        setPlayers(lastGoodRef.current); // Use cache on error
+        setPlayers(lastGoodRef.current);
         setIsLoading(false);
       }
     );
@@ -171,7 +172,7 @@ const LiveLeaderboard = () => {
         console.log(`[LiveLeaderboard] Slot changed from ${slotIdRef.current} to ${newSlotId}. Re-subscribing.`);
         slotIdRef.current = newSlotId;
         setIsLoading(true);
-        setPlayers([]); // Clear players for new slot to show loader
+        setPlayers([]); 
         startListener(newSlotId);
       }
     }, 1000);

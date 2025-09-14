@@ -128,6 +128,7 @@ const StreakLeaderboard = () => {
         console.warn(`[StreakLeaderboard] Ignored snapshot for stale subId=${mySubId}`);
         return;
       }
+      console.log(`[StreakLeaderboard] Snapshot received for subId=${mySubId} docs=${querySnapshot.size}`);
       try {
         let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
@@ -183,7 +184,7 @@ const StreakLeaderboard = () => {
         console.warn(`[StreakLeaderboard] Ignored error for stale subId=${mySubId}`, err);
         return;
       }
-      console.error("Streak leaderboard snapshot error:", err);
+      console.error(`[StreakLeaderboard] Snapshot error subId=${mySubId}`, err);
       setError(mapFirestoreError(err));
       setIsLoading(false);
       setPlayers(lastGoodRef.current);
