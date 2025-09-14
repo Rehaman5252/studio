@@ -135,46 +135,36 @@ const StreakLeaderboard = () => {
             } as StreakPlayer;
           });
 
-        if (playersData.length > 0) {
-          lastGoodRef.current = playersData;
-          if (mountedRef.current) setPlayers(playersData);
-        } else if (lastGoodRef.current) {
-           if (mountedRef.current) setPlayers(lastGoodRef.current);
-        } else {
-           if (mountedRef.current) setPlayers([]);
-        }
-        
+        let finalPlayers = playersData;
+
         if (user && !playersData.some(p => p.uid === user.uid)) {
            try {
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
                 if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        const streak = data.currentStreak || 0;
-                        if (streak > 0) {
-                            const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
-                            const currentUserData: StreakPlayer = {
-                                uid: user.uid,
-                                name: data.name || 'You',
-                                avatar: data.photoURL,
-                                currentStreak: streak,
-                                rank: userRank,
-                                isCurrentUser: true,
-                            };
-                             if (mountedRef.current) {
-                                setPlayers(prev => {
-                                    const final = [...prev.filter(p => p.uid !== user.uid), currentUserData];
-                                    lastGoodRef.current = final;
-                                    return final;
-                                });
-                             }
-                        }
+                    const data = userDoc.data();
+                    const streak = data.currentStreak || 0;
+                    if (streak > 0) {
+                        const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
+                        const currentUserData: StreakPlayer = {
+                            uid: user.uid,
+                            name: data.name || 'You',
+                            avatar: data.photoURL,
+                            currentStreak: streak,
+                            rank: userRank,
+                            isCurrentUser: true,
+                        };
+                        finalPlayers = [...finalPlayers, currentUserData];
+                    }
                 }
            } catch (e) {
                 console.error("Error fetching current user for streak board", e);
            }
         }
+
         if (mountedRef.current) {
+            setPlayers(finalPlayers);
+            lastGoodRef.current = finalPlayers;
             setError(null);
             setIsLoading(false);
         }
@@ -191,7 +181,7 @@ const StreakLeaderboard = () => {
       const mappedError = mapFirestoreError(err);
       setError(mappedError);
       setIsLoading(false);
-      if (lastGoodRef.current && lastGoodRef.current.length > 0) {
+      if (lastGoodRef.current) {
         setPlayers(lastGoodRef.current);
       }
     });
@@ -215,14 +205,13 @@ const StreakLeaderboard = () => {
 
 
   const content = useMemo(() => {
-    const showSkeletons = isLoading && !lastGoodRef.current;
-    if (showSkeletons) {
+    const dataToRender = players.length > 0 ? players : lastGoodRef.current || [];
+    
+    if (isLoading && dataToRender.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
     }
     
-    const hasData = players && players.length > 0;
-
-    if (!hasData && error) {
+    if (error && dataToRender.length === 0) {
         return <ErrorState
             title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"}
             message={error.userMessage}
@@ -231,9 +220,9 @@ const StreakLeaderboard = () => {
         />;
     }
     
-    if (!hasData) return <EmptyState />;
+    if (dataToRender.length === 0) return <EmptyState />;
     
-    const sortedPlayers = [...players].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
+    const sortedPlayers = [...dataToRender].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
     const currentUserInList = sortedPlayers.find(p => p.isCurrentUser);
 
     return (
@@ -247,7 +236,7 @@ const StreakLeaderboard = () => {
         )}
       </>
     );
-  }, [isLoading, authLoading, error, players, startListener]);
+  }, [isLoading, authLoading, error, players, user, startListener]);
 
 
   return (
@@ -256,14 +245,16 @@ const StreakLeaderboard = () => {
         <CardTitle>Daily Streak Champions</CardTitle>
         <CardDescription>The most consistent players on the pitch.</CardDescription>
       </CardHeader>
-      {error && players.length > 0 && <div className="px-4">
-        <ErrorState 
-            title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
-            message={error.userMessage}
-            isIndexError={error.code === "INDEX_REQUIRED"}
-            onRetry={startListener}
-         />
-      </div>}
+      {error && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) && (
+          <div className="px-4">
+            <ErrorState 
+                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
+                message={error.userMessage}
+                isIndexError={error.code === "INDEX_REQUIRED"}
+                onRetry={startListener}
+            />
+          </div>
+      )}
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
         <div className="space-y-2">{content}</div>
       </CardContent>

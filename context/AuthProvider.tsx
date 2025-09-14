@@ -45,8 +45,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
-import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderboardTypes';
-
 
 /* -------------------------------- Types ------------------------------- */
 
