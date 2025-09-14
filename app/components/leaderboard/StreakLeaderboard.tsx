@@ -91,10 +91,22 @@ const StreakLeaderboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-  const lastGoodRef = useRef<StreakPlayer[]>([]);
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
+  const lastGoodRef = useRef<StreakPlayer[]>([]);
+  const subIdRef = useRef<number | null>(null);
+  const subCounter = useRef(0);
 
   const startListener = useCallback(() => {
+    try {
+        if (unsubscribeRef.current) {
+            console.log(`[StreakLeaderboard] Unsubscribing from previous listener (subId=${subIdRef.current})`);
+            unsubscribeRef.current();
+        }
+    } catch (e) {
+        console.warn('[StreakLeaderboard] Previous unsubscribe failed', e);
+    }
+    unsubscribeRef.current = null;
+
     setIsLoading(true);
     setError(null);
 
@@ -103,11 +115,19 @@ const StreakLeaderboard = () => {
         setIsLoading(false);
         return;
     }
+    
+    const mySubId = ++subCounter.current;
+    subIdRef.current = mySubId;
+    console.log(`[StreakLeaderboard] Subscribing (subId=${mySubId})`);
 
     const usersCollection = collection(db, 'users');
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
     
     unsubscribeRef.current = onSnapshot(q, async (querySnapshot) => {
+      if(subIdRef.current !== mySubId) {
+        console.warn(`[StreakLeaderboard] Ignored snapshot for stale subId=${mySubId}`);
+        return;
+      }
       try {
         let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
@@ -159,9 +179,12 @@ const StreakLeaderboard = () => {
         setIsLoading(false);
       }
     }, (err: any) => {
+      if(subIdRef.current !== mySubId) {
+        console.warn(`[StreakLeaderboard] Ignored error for stale subId=${mySubId}`, err);
+        return;
+      }
       console.error("Streak leaderboard snapshot error:", err);
-      const mappedError = mapFirestoreError(err);
-      setError(mappedError);
+      setError(mapFirestoreError(err));
       setIsLoading(false);
       setPlayers(lastGoodRef.current);
     });
@@ -172,6 +195,7 @@ const StreakLeaderboard = () => {
     startListener();
     return () => {
         if (unsubscribeRef.current) {
+            console.log(`[StreakLeaderboard] Component unmounting. Unsubscribing from subId=${subIdRef.current}`);
             unsubscribeRef.current();
         }
     };

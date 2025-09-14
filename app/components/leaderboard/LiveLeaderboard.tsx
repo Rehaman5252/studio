@@ -97,13 +97,29 @@ const LiveLeaderboard = () => {
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
   const lastGoodRef = useRef<LivePlayer[]>([]);
   const slotIdRef = useRef<string>('');
+  const subIdRef = useRef<number | null>(null);
+  const subCounter = useRef(0);
 
   const startListener = useCallback((slotId: string) => {
+    try {
+      if (unsubscribeRef.current) {
+        console.log(`[LiveLeaderboard] Unsubscribing from previous listener (subId=${subIdRef.current})`);
+        unsubscribeRef.current();
+      }
+    } catch (e) {
+        console.warn('[LiveLeaderboard] Previous unsubscribe failed', e);
+    }
+    unsubscribeRef.current = null;
+    
     if (!db || !slotId) {
       setError({ userMessage: 'Database or slotId not available.' });
       setIsLoading(false);
       return;
     }
+
+    const mySubId = ++subCounter.current;
+    subIdRef.current = mySubId;
+    console.log(`[LiveLeaderboard] Subscribing (subId=${mySubId}) to slot=${slotId}`);
 
     const q = query(
       collection(db, 'leaderboard_live', slotId, 'entries'),
@@ -115,6 +131,10 @@ const LiveLeaderboard = () => {
     unsubscribeRef.current = onSnapshot(
       q,
       (snapshot) => {
+        if (subIdRef.current !== mySubId) {
+            console.warn(`[LiveLeaderboard] Ignored snapshot for stale subId=${mySubId}`);
+            return;
+        }
         const rows = snapshot.docs.map((d, index) => ({
           ...(d.data() as LivePlayer),
           rank: index + 1,
@@ -125,9 +145,13 @@ const LiveLeaderboard = () => {
         setIsLoading(false);
       },
       (err) => {
+        if (subIdRef.current !== mySubId) {
+            console.warn(`[LiveLeaderboard] Ignored error for stale subId=${mySubId}`, err);
+            return;
+        }
         console.error('Live Leaderboard Error:', err);
         setError(mapFirestoreError(err));
-        setPlayers(lastGoodRef.current);
+        setPlayers(lastGoodRef.current); // Use cache on error
         setIsLoading(false);
       }
     );
@@ -144,18 +168,17 @@ const LiveLeaderboard = () => {
     const interval = setInterval(() => {
       const newSlotId = getQuizSlotId();
       if (newSlotId !== slotIdRef.current) {
-        if (unsubscribeRef.current) {
-          unsubscribeRef.current();
-        }
+        console.log(`[LiveLeaderboard] Slot changed from ${slotIdRef.current} to ${newSlotId}. Re-subscribing.`);
         slotIdRef.current = newSlotId;
         setIsLoading(true);
-        setPlayers([]); 
+        // Don't clear players immediately to prevent flashing
         startListener(newSlotId);
       }
     }, 1000);
 
     return () => {
       if (unsubscribeRef.current) {
+        console.log(`[LiveLeaderboard] Component unmounting. Unsubscribing from subId=${subIdRef.current}`);
         unsubscribeRef.current();
       }
       clearInterval(interval);

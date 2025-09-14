@@ -83,10 +83,22 @@ const AllTimeLeaderboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-  const lastGoodRef = useRef<AllTimePlayer[]>([]);
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
+  const lastGoodRef = useRef<AllTimePlayer[]>([]);
+  const subIdRef = useRef<number | null>(null);
+  const subCounter = useRef(0);
   
   const startListener = useCallback(() => {
+    try {
+        if (unsubscribeRef.current) {
+            console.log(`[AllTimeLeaderboard] Unsubscribing from previous listener (subId=${subIdRef.current})`);
+            unsubscribeRef.current();
+        }
+    } catch (e) {
+        console.warn('[AllTimeLeaderboard] Previous unsubscribe failed', e);
+    }
+    unsubscribeRef.current = null;
+
     setIsLoading(true);
     setError(null);
 
@@ -95,6 +107,10 @@ const AllTimeLeaderboard = () => {
       setIsLoading(false);
       return;
     }
+
+    const mySubId = ++subCounter.current;
+    subIdRef.current = mySubId;
+    console.log(`[AllTimeLeaderboard] Subscribing (subId=${mySubId})`);
 
     const usersCollection = collection(db, 'users');
     const q = query(
@@ -107,6 +123,10 @@ const AllTimeLeaderboard = () => {
     );
 
     unsubscribeRef.current = onSnapshot(q, (qsnap) => {
+      if (subIdRef.current !== mySubId) {
+        console.warn(`[AllTimeLeaderboard] Ignored snapshot for stale subId=${mySubId}`);
+        return;
+      }
       const data = qsnap.docs
         .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
         .map((doc, idx) => {
@@ -128,6 +148,10 @@ const AllTimeLeaderboard = () => {
         setError(null);
         setIsLoading(false);
     }, (err) => {
+      if (subIdRef.current !== mySubId) {
+        console.warn(`[AllTimeLeaderboard] Ignored error for stale subId=${mySubId}`, err);
+        return;
+      }
       console.error("AllTime onSnapshot error:", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
@@ -138,11 +162,10 @@ const AllTimeLeaderboard = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    
     startListener();
-    
     return () => {
       if (unsubscribeRef.current) {
+        console.log(`[AllTimeLeaderboard] Component unmounting. Unsubscribing from subId=${subIdRef.current}`);
         unsubscribeRef.current();
       }
     };
