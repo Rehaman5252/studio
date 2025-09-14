@@ -69,10 +69,13 @@ const MyNetworkLeaderboard = () => {
   const lastGoodRef = useRef<MyNetworkPlayer[]>([]);
 
   const fetchNetworkData = useCallback(async () => {
+    let isMounted = true;
     if (!user || !profile || !db) {
-      setIsLoading(false);
-      if (!db) setError("Database not available.");
-      return;
+      if (isMounted) {
+        setIsLoading(false);
+        if (!db) setError("Database not available.");
+      }
+      return () => { isMounted = false };
     }
 
     setIsLoading(true);
@@ -85,46 +88,56 @@ const MyNetworkLeaderboard = () => {
       }
 
       if (networkIds.length === 0) {
-        setNetworkPlayers([]);
-        setIsLoading(false);
-        lastGoodRef.current = [];
-        return;
+        if (isMounted) {
+          setNetworkPlayers([]);
+          setIsLoading(false);
+          lastGoodRef.current = [];
+        }
+        return () => { isMounted = false };
       }
 
       const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
       const playerDocs = await Promise.all(playerPromises);
 
-      const playersData: MyNetworkPlayer[] = playerDocs
-          .filter(d => d.exists())
-          .map(d => {
-            const data = d.data();
-            return {
-              uid: d.id,
-              name: data.name || 'Unknown User',
-              avatar: data.photoURL,
-              perfectScores: data.perfectScores || 0,
-              isReferrer: d.id === profile.referredBy,
-            };
-          });
+      if (isMounted) {
+          const playersData: MyNetworkPlayer[] = playerDocs
+              .filter(d => d.exists())
+              .map(d => {
+                const data = d.data();
+                return {
+                  uid: d.id,
+                  name: data.name || 'Unknown User',
+                  avatar: data.photoURL,
+                  perfectScores: data.perfectScores || 0,
+                  isReferrer: d.id === profile.referredBy,
+                };
+              });
 
-      const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
-      const finalData = sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 }));
-      setNetworkPlayers(finalData);
-      lastGoodRef.current = finalData;
-      setError(null);
+          const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
+          const finalData = sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 }));
+          setNetworkPlayers(finalData);
+          lastGoodRef.current = finalData;
+          setError(null);
+      }
     } catch (e: any) {
-      console.error("Error fetching network leaderboard:", e);
-      const mapped = mapFirestoreError(e);
-      setError(mapped.userMessage || 'Error fetching network.');
-      setNetworkPlayers(lastGoodRef.current);
+      if(isMounted) {
+          console.error("Error fetching network leaderboard:", e);
+          const mapped = mapFirestoreError(e);
+          setError(mapped.userMessage || 'Error fetching network.');
+          setNetworkPlayers(lastGoodRef.current); // Fallback to cache
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted) setIsLoading(false);
     }
+    return () => { isMounted = false };
   }, [user, profile]);
 
   useEffect(() => {
     if (!authLoading) {
-      fetchNetworkData();
+      const cleanup = fetchNetworkData();
+      return () => {
+        if(typeof cleanup === 'function') cleanup();
+      };
     }
   }, [authLoading, fetchNetworkData]);
 

@@ -101,7 +101,9 @@ const AllTimeLeaderboard = () => {
       limit(50)
     );
 
+    let isMounted = true;
     const unsubscribe = onSnapshot(q, (qsnap) => {
+      if (!isMounted) return;
       const data = qsnap.docs
         .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
         .map((doc, idx) => {
@@ -123,18 +125,23 @@ const AllTimeLeaderboard = () => {
         setError(null);
         setIsLoading(false);
     }, (err) => {
+      if (!isMounted) return;
       console.error("AllTime onSnapshot error:", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
-      if (lastGoodRef.current.length > 0) {
-        setPlayers(lastGoodRef.current);
-      } else {
-        setPlayers([]);
-      }
+      // Fallback to cache
+      setPlayers(lastGoodRef.current);
     });
 
-    return unsubscribe;
+    return () => {
+        isMounted = false;
+        try {
+            unsubscribe();
+        } catch(e) {
+            console.warn("Error unsubscribing from AllTimeLeaderboard", e);
+        }
+    };
   }, [user]);
 
   useEffect(() => {

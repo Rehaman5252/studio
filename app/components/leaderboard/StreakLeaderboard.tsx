@@ -101,8 +101,10 @@ const StreakLeaderboard = () => {
 
     const usersCollection = collection(db, 'users');
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
-
+    
+    let isMounted = true;
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      if(!isMounted) return;
       try {
         let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
@@ -135,34 +137,44 @@ const StreakLeaderboard = () => {
                             rank: userRank,
                             isCurrentUser: true,
                         };
-                        playersData.push(currentUserData);
+                        if (isMounted) playersData.push(currentUserData);
                     }
                 }
            } catch (e) {
-                console.error("Error fetching current user for streak board", e);
+                if (isMounted) console.error("Error fetching current user for streak board", e);
            }
         }
         
-        const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
-        setPlayers(sortedPlayers);
-        lastGoodRef.current = sortedPlayers;
-        setError(null);
-        setIsLoading(false);
+        if (isMounted) {
+            const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
+            setPlayers(sortedPlayers);
+            lastGoodRef.current = sortedPlayers;
+            setError(null);
+            setIsLoading(false);
+        }
       } catch (e) {
-        console.error("Snapshot processing error:", e);
-        setError({ userMessage: "Error processing leaderboard data." });
-        setIsLoading(false);
+        if (isMounted) {
+            console.error("Snapshot processing error:", e);
+            setError({ userMessage: "Error processing leaderboard data." });
+            setIsLoading(false);
+        }
       }
     }, (err: any) => {
+      if(!isMounted) return;
       console.error("Streak leaderboard snapshot error:", err);
       setError(mapFirestoreError(err));
       setIsLoading(false);
-      if (lastGoodRef.current.length > 0) {
-        setPlayers(lastGoodRef.current);
-      }
+      setPlayers(lastGoodRef.current); // fallback to cache
     });
 
-    return unsubscribe;
+    return () => {
+        isMounted = false;
+        try {
+            unsubscribe();
+        } catch(e) {
+            console.warn("Error unsubscribing from StreakLeaderboard", e);
+        }
+    };
   }, [user]);
 
   useEffect(() => {

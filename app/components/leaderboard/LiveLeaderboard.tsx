@@ -110,7 +110,9 @@ const LiveLeaderboard = () => {
       limit(50)
     );
 
+    let isMounted = true;
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!isMounted) return;
       const rows = snapshot.docs.map((d, index) => ({
         ...(d.data() as LivePlayer),
         rank: index + 1,
@@ -120,17 +122,23 @@ const LiveLeaderboard = () => {
       setError(null);
       setIsLoading(false);
     }, (err) => {
+      if (!isMounted) return;
       console.error("Live Leaderboard Error: ", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
       // Fallback to cached data on error
-      if (lastGoodRef.current.length > 0) {
-        setPlayers(lastGoodRef.current);
-      }
+      setPlayers(lastGoodRef.current);
     });
 
-    return unsubscribe;
+    return () => {
+        isMounted = false;
+        try {
+          unsubscribe();
+        } catch (e) {
+          console.warn("Error unsubscribing from LiveLeaderboard", e);
+        }
+    }
   }, []);
 
   useEffect(() => {
@@ -141,7 +149,9 @@ const LiveLeaderboard = () => {
     }
     
     const slotInterval = setInterval(() => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribe) {
+          try { unsubscribe() } catch(e) {}
+      };
       unsubscribe = startListener();
     }, 30000); 
 
