@@ -35,12 +35,8 @@ export default function RecentHistory() {
     );
   }
 
-  if (quizHistory.error && recentAttempts.length === 0) {
-    return <ErrorState message={quizHistory.error} />;
-  }
-
-  if (recentAttempts.length === 0) {
-    return (
+  if (!quizHistory.error && recentAttempts.length === 0) {
+     return (
       <Card className="bg-card/80">
         <CardContent className="p-8 text-center text-muted-foreground">
           <Award className="h-12 w-12 mx-auto mb-4 text-primary/50" />
@@ -49,6 +45,10 @@ export default function RecentHistory() {
         </CardContent>
       </Card>
     );
+  }
+
+  if (quizHistory.error && recentAttempts.length === 0) {
+    return <ErrorState message={quizHistory.error} />;
   }
 
   return (

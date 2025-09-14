@@ -31,11 +31,7 @@ export default function AllHistory() {
     );
   }
 
-  if (quizHistory.error && quizHistory.data.length === 0) {
-    return <ErrorState message={quizHistory.error} />;
-  }
-
-  if (quizHistory.data.length === 0) {
+  if (!quizHistory.error && quizHistory.data.length === 0) {
     return (
       <Card className="bg-card/80">
         <CardContent className="p-8 text-center text-muted-foreground">
@@ -45,6 +41,10 @@ export default function AllHistory() {
         </CardContent>
       </Card>
     );
+  }
+
+  if (quizHistory.error && quizHistory.data.length === 0) {
+    return <ErrorState message={quizHistory.error} />;
   }
 
   return (

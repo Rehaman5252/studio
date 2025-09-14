@@ -34,12 +34,8 @@ export default function PerfectScoresHistory() {
       </div>
     );
   }
-
-  if (quizHistory.error && perfectScores.length === 0) {
-    return <ErrorState message={quizHistory.error} />;
-  }
-
-  if (perfectScores.length === 0) {
+  
+  if (!quizHistory.error && perfectScores.length === 0) {
     return (
       <Card className="bg-card/80">
         <CardContent className="p-8 text-center text-muted-foreground">
@@ -49,6 +45,10 @@ export default function PerfectScoresHistory() {
         </CardContent>
       </Card>
     );
+  }
+  
+  if (quizHistory.error && perfectScores.length === 0) {
+    return <ErrorState message={quizHistory.error} />;
   }
 
   return (
