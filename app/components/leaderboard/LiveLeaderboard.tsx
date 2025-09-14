@@ -143,24 +143,18 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
-    let unsubscribe: Unsubscribe | (() => void) | undefined;
+    if (authLoading) return;
 
-    if (!authLoading) {
-      unsubscribe = startListener();
-    }
+    let unsubscribe = startListener();
     
-    const slotInterval = setInterval(() => {
-      if (unsubscribe) {
-          try { unsubscribe() } catch(e) {}
-      };
+    const interval = setInterval(() => {
+      unsubscribe();
       unsubscribe = startListener();
-    }, 30000); 
+    }, 30000); // Re-subscribe every 30 seconds to catch new slots
 
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      clearInterval(slotInterval);
+      unsubscribe();
+      clearInterval(interval);
     };
   }, [authLoading, startListener]);
 
