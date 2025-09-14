@@ -17,14 +17,14 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'), {
-  loading: () => <Skeleton className="h-40 w-full" />,
-  ssr: false,
-});
-const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'), {
-  loading: () => <Skeleton className="h-40 w-full" />,
-  ssr: false,
-});
+const AnalysisDialog = dynamic(
+    () => import('@/components/history/AnalysisDialog').catch(() => () => null),
+    { ssr: false }
+);
+const ReviewDialog = dynamic(
+    () => import('@/components/history/ReviewDialog').catch(() => () => null),
+    { ssr: false }
+);
 
 const LoadingSkeleton = () => (
     <PageWrapper title="Loading Results...">
@@ -54,7 +54,7 @@ const ResultsContent = () => {
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
     useEffect(() => {
-        if (authLoading) return; // Wait until auth state is resolved
+        if (authLoading) return;
 
         if (!user) {
              toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
@@ -77,7 +77,6 @@ const ResultsContent = () => {
             
             setLoading(true);
             try {
-                // The attempt ID is the slot ID, which is the document ID in the subcollection.
                 const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
                 const attemptDoc = await getDoc(attemptDocRef);
 

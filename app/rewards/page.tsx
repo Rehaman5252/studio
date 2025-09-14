@@ -10,23 +10,18 @@ import PageWrapper from '@/components/PageWrapper';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const RewardsContent = dynamic(
-    async () => {
-        try {
-            const mod = await import('@/components/rewards/RewardsContent');
-            return mod.default;
-        } catch (e) {
-            console.error("Failed to load RewardsContent", e);
-            return function ChunkLoadFallback() {
-                 return (
-                     <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>Failed to load rewards. Please refresh the page.</AlertDescription>
-                    </Alert>
-                );
-            }
+    () => import('@/components/rewards/RewardsContent').catch(e => {
+        console.error("Failed to load RewardsContent", e);
+        return function ChunkLoadFallback() {
+             return (
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Failed to load rewards. Please refresh the page.</AlertDescription>
+                </Alert>
+            );
         }
-    },
+    }),
     {
         loading: () => <RewardsSkeleton />,
         ssr: false,
@@ -34,28 +29,19 @@ const RewardsContent = dynamic(
 );
 
 const GenericOffer = dynamic(
-    async () => {
-        try {
-            const mod = await import('@/components/rewards/RewardsContent');
-            return mod.GenericOffer;
-        } catch (e) {
-            console.error("Failed to load GenericOffer", e);
-            return () => <Skeleton className="h-24 w-full" />;
-        }
-    },
+    () => import('@/components/rewards/RewardsContent').then(mod => mod.GenericOffer).catch(e => {
+        console.error("Failed to load GenericOffer", e);
+        return () => <Skeleton className="h-24 w-full" />;
+    }),
     { ssr: false }
 );
 
 
 const LoginPrompt = dynamic(
-    async () => {
-        try {
-            return await import('@/components/auth/LoginPrompt');
-        } catch(e) {
-             console.error("Failed to load LoginPrompt", e);
-            return () => <Skeleton className="h-56 w-full" />;
-        }
-    },
+    () => import('@/components/auth/LoginPrompt').catch(e => {
+         console.error("Failed to load LoginPrompt", e);
+        return () => <Skeleton className="h-56 w-full" />;
+    }),
     {
         loading: () => <Skeleton className="h-56 w-full" />,
         ssr: false,

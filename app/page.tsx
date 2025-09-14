@@ -9,22 +9,18 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 const HomePageClient = dynamic(
-  async () => {
-    try {
-      return await import('@/components/home/HomePageClient');
-    } catch (error) {
-      console.error('Failed to load HomePageClient chunk', error);
-      return function ChunkLoadFallback() {
-        return (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>Failed to load page content. Please refresh the page.</AlertDescription>
-          </Alert>
-        );
-      };
-    }
-  },
+  () => import('@/components/home/HomePageClient').catch(error => {
+    console.error('Failed to load HomePageClient chunk', error);
+    return function ChunkLoadFallback() {
+      return (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Failed to load page content. Please refresh the page.</AlertDescription>
+        </Alert>
+      );
+    };
+  }),
   {
     ssr: false,
     loading: () => <HomeContentSkeleton />,

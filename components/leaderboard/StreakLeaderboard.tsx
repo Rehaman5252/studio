@@ -26,7 +26,10 @@ RankIcon.displayName = 'RankIcon';
 const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: StreakPlayer, isCurrentUser?: boolean }) => (
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback></Avatar>
+    <Avatar className="h-10 w-10 mx-4">
+      <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+      <AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback>
+    </Avatar>
     <p className="font-semibold text-foreground flex-1">{player.name ?? 'Anonymous'}</p>
     <div className="text-right flex items-center gap-1">
       <p className="font-bold text-accent">{player.currentStreak}</p>
@@ -54,7 +57,7 @@ const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string
     </Alert>
   ) : (
     <Alert variant="destructive" className="m-4">
-      {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+      {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
       <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>

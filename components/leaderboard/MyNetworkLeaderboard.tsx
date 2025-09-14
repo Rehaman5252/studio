@@ -27,7 +27,10 @@ RankIcon.displayName = 'RankIcon';
 const LeaderboardItem = memo(({ player }: { player: MyNetworkPlayer }) => (
   <div className="flex items-center p-2 rounded-lg">
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback></Avatar>
+    <Avatar className="h-10 w-10 mx-4">
+      <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+      <AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback>
+    </Avatar>
     <div className="flex-1">
       <p className="font-semibold text-foreground">{player.name ?? 'Anonymous'}</p>
       <p className="text-sm text-muted-foreground">{player.isReferrer ? 'Your Referrer' : 'Your Referral'}</p>
@@ -54,7 +57,7 @@ const LeaderboardItemSkeleton = () => (
 
 const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
   <Alert variant="destructive" className="mt-4">
-    {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+    {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
     <AlertTitle>{title}</AlertTitle>
     <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
     <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>

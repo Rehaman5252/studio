@@ -26,9 +26,12 @@ RankIcon.displayName = 'RankIcon';
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name ?? 'Player'} /><AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback></Avatar>
+    <Avatar className="h-10 w-10 mx-4">
+      <AvatarImage src={player.avatar ?? `https://placehold.co/40x40.png`} alt={player.name ?? 'Player'} />
+      <AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback>
+    </Avatar>
     <div className="flex-1">
-      <p className="font-semibold text-foreground flex-1">{player.name ?? 'Anonymous'}</p>
+      <p className="font-semibold text-foreground">{player.name ?? 'Anonymous'}</p>
       <p className="text-xs text-muted-foreground">Played: {player.quizzesPlayed ?? 0} | Total Score: {player.totalScore ?? 0}</p>
     </div>
     <div className="text-right flex items-center gap-1">
@@ -75,10 +78,10 @@ const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string
     </div>
   ) : (
     <Alert variant="destructive" className="m-4">
-      {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+      {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-      {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>}
+      {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
     </Alert>
   )
 );
