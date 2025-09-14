@@ -245,7 +245,7 @@ const StreakLeaderboard = () => {
       </CardHeader>
       
       {error && players.length > 0 && (
-          <Alert variant={error.code === 'INDEX_REQUIRED' ? 'default' : 'destructive'} className={cn("mx-4 mb-2", error.code === 'INDEX_REQUIRED' && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
+          <Alert variant={error.code === 'INDEX_REQUIRED' ? "default" : "destructive"} className={cn("mx-4 mb-2", error.code === 'INDEX_REQUIRED' && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
             {error.code === 'INDEX_REQUIRED' ? <AlertTriangle className="h-4 w-4 !text-yellow-300" /> : <AlertTriangle className="h-4 w-4" />}
             <AlertTitle>{error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Sync Issue'}</AlertTitle>
             <AlertDescription>{error.userMessage}</AlertDescription>
