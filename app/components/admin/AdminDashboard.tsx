@@ -53,16 +53,28 @@ export default function AdminDashboard() {
   
   useEffect(() => {
     if (!db) return;
+    let isMounted = true;
     const statsDocRef = doc(db, 'globals', 'stats');
+
     const unsubscribe = onSnapshot(statsDocRef, (doc) => {
+        if (!isMounted) return;
         setGlobalStats(doc.exists() ? doc.data() : {});
         setStatsLoading(false);
     }, (error) => {
+        if (!isMounted) return;
         console.error("Failed to listen to global stats:", error);
         toast({ title: "Error", description: "Could not load platform stats.", variant: "destructive" });
         setStatsLoading(false);
     });
-    return () => unsubscribe();
+
+    return () => {
+        isMounted = false;
+        try {
+            unsubscribe();
+        } catch (e) {
+            console.warn("Failed to unsubscribe from AdminDashboard listener", e);
+        }
+    };
   }, [toast]);
   
   const handleLogout = async () => {

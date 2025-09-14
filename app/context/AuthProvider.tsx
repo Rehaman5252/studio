@@ -356,7 +356,15 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       isMounted = false;
-      unsubs.forEach((u) => u && u());
+      unsubs.forEach((unsub) => {
+          if (unsub) {
+              try {
+                  unsub();
+              } catch (e) {
+                  console.warn("Failed to unsubscribe from listener", e);
+              }
+          }
+      });
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
   

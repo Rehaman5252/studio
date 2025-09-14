@@ -140,7 +140,15 @@ const AllTimeLeaderboard = () => {
   useEffect(() => {
     if (authLoading) return;
     const unsubscribe = startListener();
-    return () => unsubscribe();
+    return () => {
+        if (unsubscribe) {
+            try {
+                unsubscribe();
+            } catch (e) {
+                console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e);
+            }
+        }
+    };
   }, [authLoading, startListener]);
 
   const contentList = useMemo(() => {

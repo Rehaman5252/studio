@@ -134,14 +134,23 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = startListener();
+    let unsubscribe: Unsubscribe | undefined;
+    if (!authLoading) {
+      unsubscribe = startListener();
+    }
     const slotInterval = setInterval(startListener, 30000); 
 
     return () => {
-        unsubscribe();
-        clearInterval(slotInterval);
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (e) {
+          console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
+        }
+      }
+      clearInterval(slotInterval);
     };
-  }, [startListener]);
+  }, [authLoading, startListener]);
 
   const content = useMemo(() => {
     const dataToShow = players;

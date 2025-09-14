@@ -169,7 +169,15 @@ const StreakLeaderboard = () => {
   useEffect(() => {
     if (authLoading) return;
     const unsubscribe = startListener();
-    return () => unsubscribe();
+    return () => {
+        if (unsubscribe) {
+            try {
+                unsubscribe();
+            } catch (e) {
+                console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
+            }
+        }
+    };
   }, [authLoading, startListener]);
 
 
