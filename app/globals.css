@@ -116,8 +116,8 @@
 .cube-face:hover {
     background: hsla(var(--primary), 0.9);
     color: hsl(var(--primary-foreground));
-    border-color: hsl(var(--accent));
-    box-shadow: 0 0 20px 7px hsla(var(--accent), 0.6);
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 20px 7px hsla(var(--primary), 0.6);
 }
 
 .cube-face-front { transform: rotateY(0deg) translateZ(80px); }
