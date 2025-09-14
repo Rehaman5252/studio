@@ -150,11 +150,13 @@ const AllTimeLeaderboard = () => {
     const unsubscribe = startListener();
     
     return () => {
-        try {
-            if (unsubscribe) unsubscribe();
-        } catch (e) {
-            console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e);
-        }
+      if (unsubscribe) {
+          try {
+              unsubscribe();
+          } catch (e) {
+              console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e);
+          }
+      }
     };
   }, [authLoading, startListener]);
 

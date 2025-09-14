@@ -134,9 +134,13 @@ const MyNetworkLeaderboard = () => {
 
   useEffect(() => {
     if (!authLoading) {
-      const cleanup = fetchNetworkData();
+      const cleanupPromise = fetchNetworkData();
       return () => {
-        if(typeof cleanup === 'function') cleanup();
+        cleanupPromise.then(cleanup => {
+            if (typeof cleanup === 'function') {
+                cleanup();
+            }
+        });
       };
     }
   }, [authLoading, fetchNetworkData]);

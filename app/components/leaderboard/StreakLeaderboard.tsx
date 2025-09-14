@@ -181,10 +181,12 @@ const StreakLeaderboard = () => {
     if (authLoading) return;
     const unsubscribe = startListener();
     return () => {
-        try {
-            if (unsubscribe) unsubscribe();
-        } catch (e) {
-            console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
+        if (unsubscribe) {
+            try {
+                unsubscribe();
+            } catch (e) {
+                console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
+            }
         }
     };
   }, [authLoading, startListener]);

@@ -37,6 +37,7 @@ import {
   limit,
   getDocs,
   orderBy,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
@@ -45,8 +46,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
-import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderboardTypes';
-
 
 /* -------------------------------- Types ------------------------------- */
 
@@ -159,6 +158,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     loading: true,
     error: null,
   });
+  const quizHistoryCache = useRef<QuizAttempt[]>([]);
   
   const [firebaseAppReady, setFirebaseAppReady] = useState(false);
   useEffect(() => {
@@ -270,27 +270,32 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   /* ------------------------- Primary subscriptions ------------------------ */
 
   useEffect(() => {
-    let unsubs: Array<() => void> = [];
+    let isMounted = true;
+    let unsubs: Unsubscribe[] = [];
 
     if (firebaseLoading || !firebaseAppReady) {
-      setProfileLoading(true);
+      if (isMounted) setProfileLoading(true);
       return;
     }
 
     if (!user) {
-      setProfile(null);
-      setProfileLoading(false);
-      setLastAttemptInSlot(null);
-      setQuizHistory({ data: [], loading: false, error: null });
+      if (isMounted) {
+        setProfile(null);
+        setProfileLoading(false);
+        setLastAttemptInSlot(null);
+        setQuizHistory({ data: [], loading: false, error: null });
+        quizHistoryCache.current = [];
+      }
       return;
     }
 
     // Profile
-    setProfileLoading(true);
+    if (isMounted) setProfileLoading(true);
     const userRef = doc(db, 'users', user.uid);
-    const unsubscribeProfile = onSnapshot(
+    unsubs.push(onSnapshot(
       userRef,
       (docSnap) => {
+        if (!isMounted) return;
         if (docSnap.exists()) {
           setProfile(docSnap.data() as UserProfile);
         } else {
@@ -300,49 +305,62 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfileLoading(false);
       },
       (error) => {
+        if (!isMounted) return;
         console.error('Error fetching profile with onSnapshot:', error);
         setProfile(null);
         setProfileLoading(false);
       }
-    );
-    unsubs.push(unsubscribeProfile);
+    ));
 
     // Last attempt within current slot
     const currentSlotId = getQuizSlotId();
     const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
-    const unsubscribeAttempt = onSnapshot(
+    unsubs.push(onSnapshot(
       attemptDocRef,
       (docSnap) => {
+        if (!isMounted) return;
         setLastAttemptInSlot(docSnap.exists() ? (docSnap.data() as QuizAttempt) : null);
       },
       (error) => {
+        if (!isMounted) return;
         console.warn('Could not listen to slot attempt:', error.message);
         setLastAttemptInSlot(null);
       }
-    );
-    unsubs.push(unsubscribeAttempt);
+    ));
 
     // Full history
-    setQuizHistory((prev) => ({ ...prev, loading: true }));
+    if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true, error: null }));
     const historyQuery = query(
       collection(db, 'users', user.uid, 'quizAttempts'),
       orderBy('timestamp', 'desc')
     );
-    const unsubscribeHistory = onSnapshot(
+    unsubs.push(onSnapshot(
       historyQuery,
       (querySnapshot) => {
+        if (!isMounted) return;
         const historyData = querySnapshot.docs.map((d) => d.data() as QuizAttempt);
+        quizHistoryCache.current = historyData; // Update cache on success
         setQuizHistory({ data: historyData, loading: false, error: null });
       },
       (error) => {
+        if (!isMounted) return;
         console.error('Error fetching quiz history:', error);
-        setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error).userMessage });
+        const mappedError = mapFirestoreError(error);
+        // On error, serve from cache but still surface the error message
+        setQuizHistory({ data: quizHistoryCache.current, loading: false, error: mappedError.userMessage });
       }
-    );
-    unsubs.push(unsubscribeHistory);
+    ));
 
     return () => {
-      unsubs.forEach((u) => u && u());
+      isMounted = false;
+      unsubs.forEach((unsub) => {
+        try {
+          unsub();
+        } catch (e) {
+          console.warn("Failed to unsubscribe from listener in AuthProvider", e);
+        }
+      });
+      unsubs = [];
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
   
@@ -430,7 +448,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   /* ------------------------------ Profile edit --------------------------- */
 
   const updateUserData = useCallback(
-    async (newData: Partial<UserProfile>) => {
+    async (data: Partial<UserProfile>) => {
       if (!user || !db) return;
       const allowedFields = [
         'name',
@@ -447,8 +465,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         'favoriteCricketer',
         'phoneVerified',
       ];
-      const filteredData: Partial<UserProfile> = Object.keys(newData).reduce((acc: any, key) => {
-        if (allowedFields.includes(key)) acc[key] = (newData as any)[key];
+      const filteredData: Partial<UserProfile> = Object.keys(data).reduce((acc: any, key) => {
+        if (allowedFields.includes(key)) acc[key] = (data as any)[key];
         return acc;
       }, {});
 
@@ -541,7 +559,7 @@ const persistAttemptBatch = useCallback(
         batch.update(userDocRef, userStatsUpdate);
         batch.set(statsDocRef, globalStatsUpdate, { merge: true });
 
-        // 5. Quiz Attempt Document
+        // 5. Quiz Attempt Document. Use serverTimestamp for the 'timestamp' field.
         const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId!);
         batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
 

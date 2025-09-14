@@ -156,10 +156,12 @@ const LiveLeaderboard = () => {
     }, 30000); 
 
     return () => {
-      try {
-        if (unsubscribe) unsubscribe();
-      } catch (e) {
-        console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
+      if (unsubscribe) {
+        try {
+            unsubscribe();
+        } catch (e) {
+            console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
+        }
       }
       clearInterval(slotInterval);
     };
