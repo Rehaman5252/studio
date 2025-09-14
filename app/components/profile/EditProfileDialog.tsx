@@ -14,11 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from 'firebase/firestore';
 
 const profileSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format").refine(val => new Date(val) < new Date(), "Date of birth must be in the past."),
   gender: z.string().min(1, "Please select a gender"),
   occupation: z.string().min(1, "Please select an occupation"),
   upi: z.string().min(3, "Please enter a valid UPI ID").regex(/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/, "Please enter a valid UPI ID format (e.g., yourname@bank)"),
@@ -39,9 +39,22 @@ const cricketTeams = [
     "Team Pakistan", "Team Sri Lanka", "Team West Indies", "Team Bangladesh", "Other"
 ];
 
+function toInputDate(value: any): string {
+  if (!value) return "";
+  let date: Date;
+  if (value instanceof (globalThis.Timestamp || Object)) {
+    date = value.toDate();
+  } else {
+    date = new Date(value);
+  }
+  if (isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+
 interface EditProfileDialogProps {
   userProfile: any;
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export function EditProfileDialog({ userProfile, children }: EditProfileDialogProps) {
@@ -49,9 +62,7 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
   const { toast } = useToast();
   const { updateUserData } = useAuth();
   
-  const defaultDob = (userProfile.dob && userProfile.dob.seconds)
-    ? new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]
-    : '';
+  const defaultDob = toInputDate(userProfile.dob);
 
   const { control, handleSubmit, formState: { isSubmitting, errors } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -69,9 +80,11 @@ export function EditProfileDialog({ userProfile, children }: EditProfileDialogPr
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      await updateUserData({
-          ...data,
-      });
+      const payload = {
+        ...data,
+        dob: data.dob ? new Date(data.dob) : null,
+      };
+      await updateUserData(payload);
       toast({ title: 'Success!', description: 'Your profile has been updated.' });
       setOpen(false);
     } catch (error) {
