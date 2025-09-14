@@ -187,7 +187,7 @@ const LiveLeaderboard = () => {
       />;
     }
     
-    if (dataToShow.length === 0) return <WaitingState timeLeft={timeLeft} />;
+    if (dataToShow.length === 0 && !isLoading) return <WaitingState timeLeft={timeLeft} />;
 
     return dataToShow.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
   }, [isLoading, authLoading, error, players, timeLeft, user, startListener]);
