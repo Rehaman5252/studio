@@ -135,10 +135,7 @@ const LiveLeaderboard = () => {
 
   useEffect(() => {
     const unsubscribe = startListener();
-    const slotInterval = setInterval(() => {
-        unsubscribe();
-        startListener();
-    }, 30000); 
+    const slotInterval = setInterval(startListener, 30000); 
 
     return () => {
         unsubscribe();
