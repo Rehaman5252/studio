@@ -98,7 +98,7 @@ interface UserDataContextType {
   addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }>;
   updateUserData: (data: Partial<UserProfile>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
-  markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean }>;
+  markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean, reason?: string }>;
 
   // Connectivity
   isOffline: boolean;
@@ -264,7 +264,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { ...existingData, ...updates };
       }
     },
-    [toast]
+    [toast, db]
   );
 
   /* ------------------------- Primary subscriptions ------------------------ */
@@ -273,7 +273,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     let isMounted = true;
     let unsubs: Unsubscribe[] = [];
 
-    if (firebaseLoading || !firebaseAppReady) {
+    if (firebaseLoading || !firebaseAppReady || !db) {
       if (isMounted) setProfileLoading(true);
       return;
     }
@@ -362,7 +362,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       });
       unsubs = [];
     };
-  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
+  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady, db]);
   
 
   /* -------------------------- Auth convenience --------------------------- */
@@ -382,7 +382,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       }
       return null;
     }
-  }, [toast, handleUserDocument]);
+  }, [toast, handleUserDocument, auth]);
 
   const registerWithEmail = useCallback(
     async (
@@ -413,7 +413,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     },
-    [toast, handleUserDocument]
+    [toast, handleUserDocument, auth]
   );
 
   const loginWithEmail = useCallback(
@@ -436,14 +436,14 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     },
-    [toast]
+    [toast, auth]
   );
 
   const logout = useCallback(async () => {
     if (!auth) return;
     await signOut(auth);
     toast({ title: 'Signed Out', description: 'You have been logged out successfully.' });
-  }, [toast]);
+  }, [toast, auth]);
 
   /* ------------------------------ Profile edit --------------------------- */
 
@@ -487,7 +487,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         throw e;
       }
     },
-    [user, toast]
+    [user, toast, db]
   );
 
   /* --------------------------- Attempt persistence ----------------------- */
@@ -590,7 +590,7 @@ const persistAttemptBatch = useCallback(
             throw new Error(`firestore_commit_failed:${code}:${message}`);
         }
     },
-    [user]
+    [user, db]
 );
 
 
@@ -623,7 +623,7 @@ const persistAttemptBatch = useCallback(
         return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
       }
     },
-    [persistAttemptBatch, toast, user]
+    [persistAttemptBatch, toast, user, db]
   );
 
   // Auto-retry queued attempts when user/db/online becomes available
@@ -684,33 +684,57 @@ const persistAttemptBatch = useCallback(
       setIsOffline(true);
       return newNoBallCount;
     }
-  }, [user, profile]);
+  }, [user, profile, db]);
 
   /* ------------------------------- Reviewed ------------------------------ */
 
   const markAttemptAsReviewed = useCallback(
-    async (attemptId: string): Promise<{ success: boolean }> => {
-      if (!user || !db) return { success: false };
-
-      setQuizHistory((prev) => ({
-        ...prev,
-        data: prev.data.map((a) => (a.slotId === attemptId ? { ...a, reviewed: true } : a)),
-      }));
-
+    async (attemptId: string): Promise<{ success: boolean; reason?: string }> => {
+      if (!user || !db) {
+        console.warn('markAttemptAsReviewed blocked: missing user or db', { user, db });
+        return { success: false, reason: 'User not authenticated or database unavailable' };
+      }
+  
       try {
         const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
+  
+        // Check if the attempt exists
+        const snap = await getDoc(attemptRef);
+        if (!snap.exists()) {
+          console.warn('Attempt document does not exist', { attemptId });
+          return { success: false, reason: 'Attempt document not found' };
+        }
+  
+        // Update the reviewed flag
         await updateDoc(attemptRef, { reviewed: true });
+  
+        // Update local state immediately
+        setQuizHistory((prev) => ({
+          ...prev,
+          data: prev.data.map((a) =>
+            a.slotId === attemptId ? { ...a, reviewed: true } : a
+          ),
+        }));
+  
         return { success: true };
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to mark attempt as reviewed:', error);
         setQuizHistory((prev) => ({
           ...prev,
-          data: prev.data.map((a) => (a.slotId === attemptId ? { ...a, reviewed: false } : a)),
+          data: prev.data.map((a) =>
+            a.slotId === attemptId ? { ...a, reviewed: false } : a
+          ),
         }));
-        return { success: false };
+  
+        let reason = 'Unknown error';
+        if (error.code === 'permission-denied') reason = 'Insufficient permissions';
+        else if (error.code === 'unavailable') reason = 'Network or Firestore unavailable';
+        else if (error.message) reason = error.message;
+  
+        return { success: false, reason };
       }
     },
-    [user]
+    [user, db]
   );
 
   /* ------------------------------ Context val ---------------------------- */
