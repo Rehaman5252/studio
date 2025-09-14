@@ -215,4 +215,3 @@ const LiveLeaderboard = () => {
 };
 
 export default memo(LiveLeaderboard);
-    
