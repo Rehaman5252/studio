@@ -346,8 +346,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       (error) => {
         if (!isMounted) return;
         console.error('Error fetching quiz history:', error);
+        const mappedError = mapFirestoreError(error);
         // On error, serve from cache but still surface the error message
-        setQuizHistory({ data: quizHistoryCache.current, loading: false, error: mapFirestoreError(error).userMessage });
+        setQuizHistory({ data: quizHistoryCache.current, loading: false, error: mappedError.userMessage });
       }
     );
     unsubs.push(unsubscribeHistory);

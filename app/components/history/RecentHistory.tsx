@@ -6,7 +6,6 @@ import { Award, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { HistoryItem, HistoryItemSkeleton, ErrorState } from './QuizHistoryContent';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function RecentHistory() {
