@@ -80,7 +80,7 @@ const AllTimeLeaderboard = () => {
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
   const listenerRef = useRef<Unsubscribe | null>(null);
-  const lastGoodRef = useRef<AllTimePlayer[] | null>(null);
+  const lastGoodRef = useRef<AllTimePlayer[]>([]);
   
   const startListener = useCallback(() => {
     if (listenerRef.current) {
@@ -151,7 +151,7 @@ const AllTimeLeaderboard = () => {
   }, [authLoading, startListener]);
 
   const contentList = useMemo(() => {
-    const dataToShow = players.length > 0 ? players : lastGoodRef.current || [];
+    const dataToShow = players.length > 0 ? players : lastGoodRef.current;
     
     if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
@@ -194,5 +194,3 @@ const AllTimeLeaderboard = () => {
 };
 
 export default memo(AllTimeLeaderboard);
-
-    

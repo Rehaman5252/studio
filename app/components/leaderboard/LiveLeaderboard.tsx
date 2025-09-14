@@ -91,12 +91,12 @@ const LiveLeaderboard = () => {
   const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
   
   const listenerRef = useRef<Unsubscribe | null>(null);
-  const lastGoodRef = useRef<LivePlayer[] | null>(null);
+  const lastGoodRef = useRef<LivePlayer[]>([]);
   const mountedRef = useRef(true);
 
   const startListener = useCallback(() => {
     if (listenerRef.current) {
-      listenerRef.current(); // Detach previous listener
+      listenerRef.current();
     }
     
     setIsLoading(true);
@@ -157,7 +157,7 @@ const LiveLeaderboard = () => {
   }, [startListener]);
 
   const content = useMemo(() => {
-    const dataToShow = players.length > 0 ? players : lastGoodRef.current || [];
+    const dataToShow = players.length > 0 ? players : lastGoodRef.current;
 
     if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
@@ -206,5 +206,3 @@ const LiveLeaderboard = () => {
 };
 
 export default memo(LiveLeaderboard);
-
-    

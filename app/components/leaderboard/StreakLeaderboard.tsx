@@ -88,7 +88,7 @@ const StreakLeaderboard = () => {
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
   const listenerRef = useRef<Unsubscribe | null>(null);
-  const lastGoodRef = useRef<StreakPlayer[] | null>(null);
+  const lastGoodRef = useRef<StreakPlayer[]>([]);
 
   const startListener = useCallback(() => {
     if (listenerRef.current) {
@@ -183,7 +183,7 @@ const StreakLeaderboard = () => {
 
 
   const content = useMemo(() => {
-    const dataToRender = players.length > 0 ? players : lastGoodRef.current || [];
+    const dataToRender = players.length > 0 ? players : lastGoodRef.current;
     
     if (isLoading && dataToRender.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
@@ -246,5 +246,3 @@ const StreakLeaderboard = () => {
 };
 
 export default memo(StreakLeaderboard);
-
-    
