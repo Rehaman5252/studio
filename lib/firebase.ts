@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth as getFirebaseAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
@@ -29,7 +30,9 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
   }
   auth = getFirebaseAuth(app);
   db = getFirestore(app);
-  auth.useDeviceLanguage();
+  if (auth) {
+    auth.useDeviceLanguage();
+  }
 }
 
 export function getAuth() {
