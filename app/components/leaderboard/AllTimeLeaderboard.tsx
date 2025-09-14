@@ -64,14 +64,18 @@ const EmptyState = () => (
   </Card>
 );
 
-const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => (
-    <Alert variant="destructive" className="m-4">
-      {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-      {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
-    </Alert>
-);
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => {
+    const isIndexError = title.includes("Indexing");
+    
+    return (
+        <Alert variant={isIndexError ? "default" : "destructive"} className={cn("m-4", isIndexError && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
+          {isIndexError ? <AlertTriangle className="h-4 w-4 !text-yellow-300" /> : ((message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />) }
+          <AlertTitle>{title}</AlertTitle>
+          <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+          {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
+        </Alert>
+    );
+};
 
 const AllTimeLeaderboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -82,13 +86,16 @@ const AllTimeLeaderboard = () => {
   const lastGoodRef = useRef<AllTimePlayer[]>([]);
   
   const startListener = useCallback(() => {
+    let isMounted = true;
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-      setError({ userMessage: "Database not available." });
-      setIsLoading(false);
-      return () => {};
+      if(isMounted) {
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
+      }
+      return () => { isMounted = false; };
     }
 
     const usersCollection = collection(db, 'users');
@@ -101,7 +108,6 @@ const AllTimeLeaderboard = () => {
       limit(50)
     );
 
-    let isMounted = true;
     const unsubscribe = onSnapshot(q, (qsnap) => {
       if (!isMounted) return;
       const data = qsnap.docs
@@ -130,7 +136,6 @@ const AllTimeLeaderboard = () => {
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
-      // Fallback to cache
       setPlayers(lastGoodRef.current);
     });
 
@@ -167,23 +172,25 @@ const AllTimeLeaderboard = () => {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
     }
     
-    if (dataToShow.length === 0 && !error) return <EmptyState />;
-
     if (error && dataToShow.length === 0) {
-      return <ErrorState title="Error Loading Leaderboard" message={error.userMessage} onRetry={startListener} />;
+      return <ErrorState 
+                title={error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Error Loading Leaderboard'}
+                message={error.userMessage}
+                onRetry={startListener} 
+            />;
     }
+
+    if (dataToShow.length === 0 && !error) return <EmptyState />;
 
     return dataToShow.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
   }, [isLoading, authLoading, players, user, error, startListener]);
-
-  const isIndexError = error?.code === 'INDEX_REQUIRED';
 
   return (
     <Card className="bg-card/80 shadow-lg">
       <CardHeader className="text-center">
         <div className="flex items-center justify-center gap-2">
             <CardTitle>All-Time Honours Board</CardTitle>
-            {isIndexError && (
+            {error && (
                 <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -193,9 +200,9 @@ const AllTimeLeaderboard = () => {
       </CardHeader>
 
       {error && players.length > 0 && (
-        <Alert variant="destructive" className="mx-4 mb-2">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Sync Issue</AlertTitle>
+        <Alert variant={error.code === 'INDEX_REQUIRED' ? 'default' : 'destructive'} className={cn("mx-4 mb-2", error.code === 'INDEX_REQUIRED' && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
+            {error.code === 'INDEX_REQUIRED' ? <AlertTriangle className="h-4 w-4 !text-yellow-300" /> : <AlertTriangle className="h-4 w-4" />}
+            <AlertTitle>{error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Sync Issue'}</AlertTitle>
             <AlertDescription>{error.userMessage}</AlertDescription>
         </Alert>
       )}
@@ -206,5 +213,4 @@ const AllTimeLeaderboard = () => {
     </Card>
   );
 };
-
 export default memo(AllTimeLeaderboard);

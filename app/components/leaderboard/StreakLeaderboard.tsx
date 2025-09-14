@@ -48,14 +48,18 @@ const LeaderboardItemSkeleton = () => (
   </div>
 );
 
-const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
-    <Alert variant="destructive" className="m-4">
-      {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-      <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
-    </Alert>
-);
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => {
+    const isIndexError = title.includes("Indexing");
+    
+    return (
+        <Alert variant={isIndexError ? "default" : "destructive"} className={cn("m-4", isIndexError && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
+          {isIndexError ? <AlertTriangle className="h-4 w-4 !text-yellow-300" /> : ((message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />) }
+          <AlertTitle>{title}</AlertTitle>
+          <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+          {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
+        </Alert>
+    );
+};
 
 const EmptyState = () => (
   <Card className="bg-card/80 text-center mt-4">
@@ -90,19 +94,21 @@ const StreakLeaderboard = () => {
   const lastGoodRef = useRef<StreakPlayer[]>([]);
 
   const startListener = useCallback(() => {
+    let isMounted = true;
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-        setError({ userMessage: "Database not available." });
-        setIsLoading(false);
-        return () => {};
+        if (isMounted) {
+            setError({ userMessage: "Database not available." });
+            setIsLoading(false);
+        }
+        return () => { isMounted = false; };
     }
 
     const usersCollection = collection(db, 'users');
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
     
-    let isMounted = true;
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       if(!isMounted) return;
       try {
@@ -164,7 +170,7 @@ const StreakLeaderboard = () => {
       console.error("Streak leaderboard snapshot error:", err);
       setError(mapFirestoreError(err));
       setIsLoading(false);
-      setPlayers(lastGoodRef.current); // fallback to cache
+      setPlayers(lastGoodRef.current);
     });
 
     return () => {
@@ -201,7 +207,7 @@ const StreakLeaderboard = () => {
     
     if (error && dataToRender.length === 0) {
         return <ErrorState
-            title={"Error Loading Leaderboard"}
+            title={error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Error Loading Leaderboard'} 
             message={error.userMessage}
             onRetry={startListener}
         />;
@@ -224,14 +230,12 @@ const StreakLeaderboard = () => {
     );
   }, [isLoading, authLoading, error, players, user, startListener]);
 
-  const isIndexError = error?.code === 'INDEX_REQUIRED';
-
   return (
     <Card className="bg-card/80 shadow-lg mt-4">
       <CardHeader className="text-center">
         <div className="flex items-center justify-center gap-2">
             <CardTitle>Daily Streak Champions</CardTitle>
-            {isIndexError && (
+             {error && (
                 <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -241,9 +245,9 @@ const StreakLeaderboard = () => {
       </CardHeader>
       
       {error && players.length > 0 && (
-          <Alert variant="destructive" className="mx-4 mb-2">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Sync Issue</AlertTitle>
+          <Alert variant={error.code === 'INDEX_REQUIRED' ? 'default' : 'destructive'} className={cn("mx-4 mb-2", error.code === 'INDEX_REQUIRED' && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
+            {error.code === 'INDEX_REQUIRED' ? <AlertTriangle className="h-4 w-4 !text-yellow-300" /> : <AlertTriangle className="h-4 w-4" />}
+            <AlertTitle>{error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Sync Issue'}</AlertTitle>
             <AlertDescription>{error.userMessage}</AlertDescription>
           </Alert>
       )}
@@ -254,5 +258,4 @@ const StreakLeaderboard = () => {
     </Card>
   );
 };
-
 export default memo(StreakLeaderboard);
