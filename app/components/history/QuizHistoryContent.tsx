@@ -72,11 +72,16 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const handleReviewClick = useCallback(() => {
     if (isDisqualified || isReviewed || isReviewing) return;
     
+    // Immediately set the reviewing state to disable the button
+    setIsReviewing(true);
+    
     if (attempt.reviewed) {
+        // This case should ideally not be hit due to the guard, but as a fallback:
         setIsReviewed(true);
         setShowReviewDialog(true);
+        setIsReviewing(false);
     } else {
-        setIsReviewing(true);
+        // Show the ad. The actual review logic is now in handleAdFinished.
         setShowAdDialog(true);
     }
   }, [isDisqualified, isReviewed, isReviewing, attempt.reviewed]);
@@ -100,12 +105,14 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         });
       }
     } finally {
+      // Always reset the reviewing state, whether it succeeded or failed
       setIsReviewing(false);
     }
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
     if (!open) {
+        // If the user closes the ad dialog manually, reset the reviewing state
         setIsReviewing(false);
     }
     setShowAdDialog(open);
