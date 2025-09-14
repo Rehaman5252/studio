@@ -139,14 +139,15 @@ const AllTimeLeaderboard = () => {
 
   useEffect(() => {
     if (authLoading) return;
+    let isMounted = true;
     const unsubscribe = startListener();
+    
     return () => {
-        if (unsubscribe) {
-            try {
-                unsubscribe();
-            } catch (e) {
-                console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e);
-            }
+        isMounted = false;
+        try {
+            unsubscribe();
+        } catch (e) {
+            console.warn("Failed to unsubscribe from AllTimeLeaderboard listener", e);
         }
     };
   }, [authLoading, startListener]);

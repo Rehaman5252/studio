@@ -134,19 +134,25 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     let unsubscribe: Unsubscribe | undefined;
+
     if (!authLoading) {
       unsubscribe = startListener();
     }
-    const slotInterval = setInterval(startListener, 30000); 
+    
+    const slotInterval = setInterval(() => {
+        if(isMounted) {
+            unsubscribe = startListener();
+        }
+    }, 30000); 
 
     return () => {
-      if (unsubscribe) {
-        try {
-          unsubscribe();
-        } catch (e) {
-          console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
-        }
+      isMounted = false;
+      try {
+        if (unsubscribe) unsubscribe();
+      } catch (e) {
+        console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
       }
       clearInterval(slotInterval);
     };

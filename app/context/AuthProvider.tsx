@@ -270,8 +270,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   /* ------------------------- Primary subscriptions ------------------------ */
 
   useEffect(() => {
-    let unsubs: Unsubscribe[] = [];
     let isMounted = true;
+    const unsubs: Unsubscribe[] = [];
 
     if (firebaseLoading || !firebaseAppReady) {
       if (isMounted) setProfileLoading(true);
@@ -292,7 +292,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     // Profile
     if (isMounted) setProfileLoading(true);
     const userRef = doc(db, 'users', user.uid);
-    const unsubscribeProfile = onSnapshot(
+    unsubs.push(onSnapshot(
       userRef,
       (docSnap) => {
         if (!isMounted) return;
@@ -310,13 +310,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfile(null);
         setProfileLoading(false);
       }
-    );
-    unsubs.push(unsubscribeProfile);
+    ));
 
     // Last attempt within current slot
     const currentSlotId = getQuizSlotId();
     const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
-    const unsubscribeAttempt = onSnapshot(
+    unsubs.push(onSnapshot(
       attemptDocRef,
       (docSnap) => {
         if (!isMounted) return;
@@ -327,8 +326,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         console.warn('Could not listen to slot attempt:', error.message);
         setLastAttemptInSlot(null);
       }
-    );
-    unsubs.push(unsubscribeAttempt);
+    ));
 
     // Full history
     if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true, data: quizHistoryCache.current, error: null }));
@@ -336,7 +334,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       collection(db, 'users', user.uid, 'quizAttempts'),
       orderBy('timestamp', 'desc')
     );
-    const unsubscribeHistory = onSnapshot(
+    unsubs.push(onSnapshot(
       historyQuery,
       (querySnapshot) => {
         if (!isMounted) return;
@@ -351,19 +349,16 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         // On error, serve from cache but still surface the error message
         setQuizHistory({ data: quizHistoryCache.current, loading: false, error: mappedError.userMessage });
       }
-    );
-    unsubs.push(unsubscribeHistory);
+    ));
 
     return () => {
       isMounted = false;
       unsubs.forEach((unsub) => {
-          if (unsub) {
-              try {
-                  unsub();
-              } catch (e) {
-                  console.warn("Failed to unsubscribe from listener", e);
-              }
-          }
+        try {
+          unsub();
+        } catch (e) {
+          console.warn("Failed to unsubscribe from listener in AuthProvider", e);
+        }
       });
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);

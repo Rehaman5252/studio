@@ -103,7 +103,9 @@ const StreakLeaderboard = () => {
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
 
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      let isMounted = true;
       try {
+        if (!isMounted) return;
         let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
           .map((doc, index) => {
@@ -122,7 +124,7 @@ const StreakLeaderboard = () => {
            try {
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
+                if (isMounted && userDoc.exists()) {
                     const data = userDoc.data();
                     const streak = data.currentStreak || 0;
                     if (streak > 0) {
@@ -143,20 +145,23 @@ const StreakLeaderboard = () => {
            }
         }
         
-        const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
-        setPlayers(sortedPlayers);
-        lastGoodRef.current = sortedPlayers;
-        setError(null);
-        setIsLoading(false);
+        if (isMounted) {
+            const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
+            setPlayers(sortedPlayers);
+            lastGoodRef.current = sortedPlayers;
+            setError(null);
+            setIsLoading(false);
+        }
       } catch (e) {
-        console.error("Snapshot processing error:", e);
-        setError({ userMessage: "Error processing leaderboard data." });
-        setIsLoading(false);
+        if (isMounted) {
+            console.error("Snapshot processing error:", e);
+            setError({ userMessage: "Error processing leaderboard data." });
+            setIsLoading(false);
+        }
       }
     }, (err: any) => {
       console.error("Streak leaderboard snapshot error:", err);
-      const mappedError = mapFirestoreError(err);
-      setError(mappedError);
+      setError(mapFirestoreError(err));
       setIsLoading(false);
       if (lastGoodRef.current.length > 0) {
         setPlayers(lastGoodRef.current);
@@ -170,12 +175,10 @@ const StreakLeaderboard = () => {
     if (authLoading) return;
     const unsubscribe = startListener();
     return () => {
-        if (unsubscribe) {
-            try {
-                unsubscribe();
-            } catch (e) {
-                console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
-            }
+        try {
+            unsubscribe();
+        } catch (e) {
+            console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
         }
     };
   }, [authLoading, startListener]);
