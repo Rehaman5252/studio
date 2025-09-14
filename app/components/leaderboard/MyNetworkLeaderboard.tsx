@@ -140,16 +140,11 @@ const MyNetworkLeaderboard = () => {
 
   const content = useMemo(() => {
     if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-    if (error) {
-        return (
-            <>
-                <ErrorState title="Error Loading Network" message={error} onRetry={fetchNetworkData} />
-                {networkPlayers.length > 0 && networkPlayers.map((player) => (
-                    <LeaderboardItem key={player.uid} player={player} />
-                ))}
-            </>
-        );
+    
+    if (error && networkPlayers.length === 0) {
+        return <ErrorState title="Error Loading Network" message={error} onRetry={fetchNetworkData} />;
     }
+
     if (networkPlayers.length === 0) {
       return (
         <Card className="bg-card/80 text-center mt-4">
@@ -163,9 +158,15 @@ const MyNetworkLeaderboard = () => {
       );
     }
 
-    return networkPlayers.map((player) => (
-      <LeaderboardItem key={player.uid} player={player} />
-    ));
+    return (
+        <>
+            {error && <Alert variant="destructive" className="mb-2"><AlertTriangle className="h-4 w-4" /><AlertTitle>Sync Issue</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+            {networkPlayers.map((player) => (
+              <LeaderboardItem key={player.uid} player={player} />
+            ))}
+        </>
+    );
+
   }, [isLoading, authLoading, error, networkPlayers, fetchNetworkData]);
 
   return (

@@ -152,16 +152,20 @@ const AllTimeLeaderboard = () => {
   }, [authLoading, startListener]);
 
   const contentList = useMemo(() => {
-    const dataToShow = players.length > 0 ? players : lastGoodRef.current;
+    const dataToShow = players;
     
     if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
     }
     
-    if (dataToShow.length === 0 && (!error || error.code !== 'INDEX_REQUIRED')) return <EmptyState />;
+    if (dataToShow.length === 0 && !error) return <EmptyState />;
+
+    if (error && dataToShow.length === 0) {
+      return <ErrorState title="Error Loading Leaderboard" message={error.userMessage} onRetry={startListener} />;
+    }
 
     return dataToShow.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
-  }, [isLoading, authLoading, players, user, error]);
+  }, [isLoading, authLoading, players, user, error, startListener]);
 
   const isIndexError = error?.code === 'INDEX_REQUIRED';
 
@@ -179,7 +183,7 @@ const AllTimeLeaderboard = () => {
         <CardDescription>Based on Total Score and Perfect Scores</CardDescription>
       </CardHeader>
 
-      {error && !isIndexError && (
+      {error && players.length > 0 && (
         <Alert variant="destructive" className="mx-4 mb-2">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Sync Issue</AlertTitle>

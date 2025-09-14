@@ -158,14 +158,13 @@ const LiveLeaderboard = () => {
   }, [startListener]);
 
   const content = useMemo(() => {
-    const dataToShow = players.length > 0 ? players : lastGoodRef.current;
+    const dataToShow = players;
 
     if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
     }
     
-    // Only show full-screen error if there's no cached data
-    if (error && error.code !== 'INDEX_REQUIRED' && dataToShow.length === 0) {
+    if (error && dataToShow.length === 0) {
       return <ErrorState
         title={"Error Loading Leaderboard"}
         message={error.userMessage}
@@ -194,7 +193,7 @@ const LiveLeaderboard = () => {
         <CardDescription>Live standings for this 10-minute slot</CardDescription>
       </CardHeader>
       
-      {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) &&
+      {error && players.length > 0 &&
         <Alert variant="destructive" className="mx-4 mb-2">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Sync Issue</AlertTitle>

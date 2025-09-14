@@ -183,13 +183,13 @@ const StreakLeaderboard = () => {
 
 
   const content = useMemo(() => {
-    const dataToRender = players.length > 0 ? players : lastGoodRef.current;
+    const dataToRender = players;
     
     if (isLoading && dataToRender.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
     }
     
-    if (error && error.code !== 'INDEX_REQUIRED' && dataToRender.length === 0) {
+    if (error && dataToRender.length === 0) {
         return <ErrorState
             title={"Error Loading Leaderboard"}
             message={error.userMessage}
@@ -230,7 +230,7 @@ const StreakLeaderboard = () => {
         <CardDescription>The most consistent players on the pitch.</CardDescription>
       </CardHeader>
       
-      {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) && (
+      {error && players.length > 0 && (
           <Alert variant="destructive" className="mx-4 mb-2">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Sync Issue</AlertTitle>
