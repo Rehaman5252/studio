@@ -710,7 +710,7 @@ const persistAttemptBatch = useCallback(
         return { success: false };
       }
     },
-    [user]
+    [user, db]
   );
 
   /* ------------------------------ Context val ---------------------------- */
