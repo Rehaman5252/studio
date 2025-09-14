@@ -4,7 +4,7 @@ import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { mapFirestoreError } from "@/lib/utils";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force_dynamic';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 

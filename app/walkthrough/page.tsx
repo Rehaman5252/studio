@@ -1,8 +1,8 @@
 
 'use client';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/context/AuthProvider';
-import GuidedTour from '@/app/components/home/GuidedTour';
+import { useAuth } from '@/context/AuthProvider';
+import GuidedTour from '@/components/home/GuidedTour';
 
 export default function WalkthroughPage() {
   const { profile, updateUserData } = useAuth();
