@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
@@ -111,7 +112,7 @@ const LiveLeaderboard = () => {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(
+    unsubscribeRef.current = onSnapshot(
       q,
       (snapshot) => {
         const rows = snapshot.docs.map((d, index) => ({
@@ -130,8 +131,6 @@ const LiveLeaderboard = () => {
         setIsLoading(false);
       }
     );
-
-    unsubscribeRef.current = unsubscribe;
   }, []);
 
   useEffect(() => {

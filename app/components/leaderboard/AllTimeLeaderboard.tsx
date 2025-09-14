@@ -84,18 +84,16 @@ const AllTimeLeaderboard = () => {
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
   const lastGoodRef = useRef<AllTimePlayer[]>([]);
+  const unsubscribeRef = useRef<Unsubscribe | null>(null);
   
   const startListener = useCallback(() => {
-    let isMounted = true;
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-      if(isMounted) {
-        setError({ userMessage: "Database not available." });
-        setIsLoading(false);
-      }
-      return () => { isMounted = false; };
+      setError({ userMessage: "Database not available." });
+      setIsLoading(false);
+      return;
     }
 
     const usersCollection = collection(db, 'users');
@@ -108,8 +106,7 @@ const AllTimeLeaderboard = () => {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(q, (qsnap) => {
-      if (!isMounted) return;
+    unsubscribeRef.current = onSnapshot(q, (qsnap) => {
       const data = qsnap.docs
         .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
         .map((doc, idx) => {
@@ -131,28 +128,22 @@ const AllTimeLeaderboard = () => {
         setError(null);
         setIsLoading(false);
     }, (err) => {
-      if (!isMounted) return;
       console.error("AllTime onSnapshot error:", err);
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
       setPlayers(lastGoodRef.current);
     });
-
-    return () => {
-        isMounted = false;
-        unsubscribe();
-    };
   }, [user]);
 
   useEffect(() => {
     if (authLoading) return;
     
-    const unsubscribe = startListener();
+    startListener();
     
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
       }
     };
   }, [authLoading, startListener]);

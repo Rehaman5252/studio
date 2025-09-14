@@ -92,25 +92,22 @@ const StreakLeaderboard = () => {
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
   const lastGoodRef = useRef<StreakPlayer[]>([]);
+  const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
   const startListener = useCallback(() => {
-    let isMounted = true;
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-        if (isMounted) {
-            setError({ userMessage: "Database not available." });
-            setIsLoading(false);
-        }
-        return () => { isMounted = false; };
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
+        return;
     }
 
     const usersCollection = collection(db, 'users');
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
     
-    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      if(!isMounted) return;
+    unsubscribeRef.current = onSnapshot(q, async (querySnapshot) => {
       try {
         let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
@@ -143,49 +140,39 @@ const StreakLeaderboard = () => {
                             rank: userRank,
                             isCurrentUser: true,
                         };
-                        if (isMounted) playersData.push(currentUserData);
+                        playersData.push(currentUserData);
                     }
                 }
            } catch (e) {
-                if (isMounted) console.error("Error fetching current user for streak board", e);
+                console.error("Error fetching current user for streak board", e);
            }
         }
         
-        if (isMounted) {
-            const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
-            setPlayers(sortedPlayers);
-            lastGoodRef.current = sortedPlayers;
-            setError(null);
-            setIsLoading(false);
-        }
+        const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
+        setPlayers(sortedPlayers);
+        lastGoodRef.current = sortedPlayers;
+        setError(null);
+        setIsLoading(false);
       } catch (e) {
-        if (isMounted) {
-            console.error("Snapshot processing error:", e);
-            setError({ userMessage: "Error processing leaderboard data." });
-            setIsLoading(false);
-        }
+        console.error("Snapshot processing error:", e);
+        setError({ userMessage: "Error processing leaderboard data." });
+        setIsLoading(false);
       }
     }, (err: any) => {
-      if(!isMounted) return;
       console.error("Streak leaderboard snapshot error:", err);
       const mappedError = mapFirestoreError(err);
       setError(mappedError);
       setIsLoading(false);
       setPlayers(lastGoodRef.current);
     });
-
-    return () => {
-        isMounted = false;
-        unsubscribe();
-    };
   }, [user]);
 
   useEffect(() => {
     if (authLoading) return;
-    const unsubscribe = startListener();
+    startListener();
     return () => {
-        if (unsubscribe) {
-            unsubscribe();
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
         }
     };
   }, [authLoading, startListener]);
