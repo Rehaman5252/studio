@@ -150,8 +150,8 @@ const LiveLeaderboard = () => {
           unsubscribeRef.current();
         }
         slotIdRef.current = newSlotId;
-        setIsLoading(true); // Show loader for new slot
-        setPlayers([]); // Clear old players
+        setIsLoading(true);
+        setPlayers([]); 
         startListener(newSlotId);
       }
     }, 1000);
