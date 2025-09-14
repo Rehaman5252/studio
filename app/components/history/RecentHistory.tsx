@@ -11,17 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function RecentHistory() {
   const { quizHistory } = useAuth();
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    if (quizHistory.error) {
-      toast({
-        title: 'Network Issue',
-        description: `Could not refresh history. Showing last available data.`,
-        variant: 'destructive',
-      });
-    }
-  }, [quizHistory.error, toast]);
 
   const recentAttempts = useMemo(() => {
     return quizHistory.data.slice(0, 5);
@@ -57,11 +46,11 @@ export default function RecentHistory() {
          <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Sync Issue</AlertTitle>
-            <AlertDescription>Could not refresh history. Displaying cached data.</AlertDescription>
+            <AlertDescription>{quizHistory.error}</AlertDescription>
         </Alert>
       )}
       {recentAttempts.map((attempt) => (
-        <HistoryItem key={attempt.slotId} attempt={attempt} />
+        <HistoryItem key={`${attempt.slotId}-${attempt.format}`} attempt={attempt} />
       ))}
     </div>
   );
