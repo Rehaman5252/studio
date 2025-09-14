@@ -98,7 +98,7 @@ interface UserDataContextType {
   addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }>;
   updateUserData: (data: Partial<UserProfile>) => Promise<void>;
   handleMalpractice: () => Promise<number>;
-  markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean }>;
+  markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean, reason?: string }>;
 
   // Connectivity
   isOffline: boolean;
@@ -689,37 +689,49 @@ const persistAttemptBatch = useCallback(
   /* ------------------------------- Reviewed ------------------------------ */
 
   const markAttemptAsReviewed = useCallback(
-    async (attemptId: string): Promise<{ success: boolean }> => {
+    async (attemptId: string): Promise<{ success: boolean; reason?: string }> => {
       if (!user || !db) {
-        console.log('markAttemptAsReviewed blocked: user or db is missing.', { user, db });
-        return { success: false };
+        console.warn('markAttemptAsReviewed blocked: missing user or db', { user, db });
+        return { success: false, reason: 'User not authenticated or database unavailable' };
       }
-      
-      const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
-      
-      // Optimistically update UI
-      setQuizHistory((prev) => ({
-        ...prev,
-        data: prev.data.map((a) => (a.slotId === attemptId ? { ...a, reviewed: true } : a)),
-      }));
-
+  
       try {
-        const docSnap = await getDoc(attemptRef);
-        if (!docSnap.exists()) {
-            throw new Error(`Attempt document with ID ${attemptId} does not exist.`);
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
+  
+        // Check if the attempt exists
+        const snap = await getDoc(attemptRef);
+        if (!snap.exists()) {
+          console.warn('Attempt document does not exist', { attemptId });
+          return { success: false, reason: 'Attempt document not found' };
         }
+  
+        // Update the reviewed flag
         await updateDoc(attemptRef, { reviewed: true });
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to mark attempt as reviewed:', JSON.stringify(error, null, 2));
-        
-        // Revert optimistic update on failure
+  
+        // Update local state immediately
         setQuizHistory((prev) => ({
           ...prev,
-          data: prev.data.map((a) => (a.slotId === attemptId ? { ...a, reviewed: false } : a)),
+          data: prev.data.map((a) =>
+            a.slotId === attemptId ? { ...a, reviewed: true } : a
+          ),
         }));
-        
-        return { success: false };
+  
+        return { success: true };
+      } catch (error: any) {
+        console.error('Failed to mark attempt as reviewed:', error);
+        setQuizHistory((prev) => ({
+          ...prev,
+          data: prev.data.map((a) =>
+            a.slotId === attemptId ? { ...a, reviewed: false } : a
+          ),
+        }));
+  
+        let reason = 'Unknown error';
+        if (error.code === 'permission-denied') reason = 'Insufficient permissions';
+        else if (error.code === 'unavailable') reason = 'Network or Firestore unavailable';
+        else if (error.message) reason = error.message;
+  
+        return { success: false, reason };
       }
     },
     [user, db]
