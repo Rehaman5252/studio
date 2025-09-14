@@ -25,7 +25,7 @@ const SelectedBrandCardComponent = ({ selectedBrand, onClick }: SelectedBrandCar
                 <h3 className="font-bold text-lg text-primary">{selectedBrand.format} Quiz</h3>
                 <p className="text-sm text-muted-foreground">{selectedBrand.description}</p>
                 <p className="text-xs text-muted-foreground">Sponsored by <span className="font-semibold text-primary">{selectedBrand.brand}</span></p>
-                <p className="font-bold text-accent">win ₹100 for every 100 seconds!</p>
+                <p className="font-bold text-primary">win ₹100 for every 100 seconds!</p>
             </div>
             <div className="relative w-24 h-20 sm:w-28 sm:h-24 flex-shrink-0">
                 <AnimatePresence mode="wait">
