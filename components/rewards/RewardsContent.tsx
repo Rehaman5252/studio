@@ -65,7 +65,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -75,7 +75,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
             "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
             isScratched
                 ? "bg-gradient-to-br from-accent/20 to-accent/40 text-accent-foreground"
-                : "bg-gradient-to-br from-primary to-green-700 text-white"
+                : "bg-gradient-to-br from-primary to-amber-600 text-primary-foreground"
         )}>
             {!isScratched ? (
                 <button 
@@ -92,7 +92,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
                     <p className="text-sm">From {brand}</p>
                 </button>
             ) : (
-                <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-fade-in-up">
+                <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-fade-in-up text-background">
                     <Trophy className="h-10 w-10 mb-2 text-current" />
                     <h3 className="text-lg font-bold text-current">{reward.gift}</h3>
                     <p className="text-xs text-current/80 mt-1">{reward.description}</p>
@@ -141,7 +141,7 @@ function RewardsContentComponent() {
     if (typeof window !== 'undefined' && quizHistory.data.length > 0) {
       const initialScratchedState: Record<string, boolean> = {};
       quizHistory.data.forEach(attempt => {
-        const storageKey = `CricBlitz-scratch-card-${attempt.slotId}`;
+        const storageKey = `indcric-scratch-card-${attempt.slotId}`;
         const savedState = window.localStorage.getItem(storageKey);
         if (savedState === 'true') {
           initialScratchedState[attempt.slotId] = true;
@@ -154,7 +154,7 @@ function RewardsContentComponent() {
   const handleScratch = (slotId: string) => {
     setScratchedCards(prev => ({ ...prev, [slotId]: true }));
     if (typeof window !== 'undefined') {
-      const storageKey = `CricBlitz-scratch-card-${slotId}`;
+      const storageKey = `indcric-scratch-card-${slotId}`;
       window.localStorage.setItem(storageKey, 'true');
     }
   };

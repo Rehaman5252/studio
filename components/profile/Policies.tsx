@@ -14,16 +14,16 @@ export default function Policies() {
           <AccordionTrigger>Platform Mission & Responsible Participation</AccordionTrigger>
           <AccordionContent className="prose dark:prose-invert max-w-none">
             <h4>Our Mission</h4>
-            <p>CricBlitz is dedicated to providing a premier knowledge-based cricket trivia platform. Our mission is to celebrate the passion for cricket by offering a fair, transparent, and secure environment for our users to test and enhance their knowledge of the sport.</p>
+            <p>indcric is dedicated to providing a premier knowledge-based cricket trivia platform. Our mission is to celebrate the passion for cricket by offering a fair, transparent, and secure environment for our users to test and enhance their knowledge of the sport.</p>
             <h4>User Acknowledgment & Responsible Conduct</h4>
-            <p>By participating on this platform, you expressly acknowledge and agree that CricBlitz is designed exclusively for the purpose of testing and improving one's knowledge of cricket. It is not intended for entertainment, financial gain, or as a game of chance or gambling. We expect all users to participate responsibly. Users must be 18 years of age or older. </p>
+            <p>By participating on this platform, you expressly acknowledge and agree that indcric is designed exclusively for the purpose of testing and improving one's knowledge of cricket. It is not intended for entertainment, financial gain, or as a game of chance or gambling. We expect all users to participate responsibly. Users must be 18 years of age or older. </p>
           </AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-2">
           <AccordionTrigger>Legal Framework and Compliance</AccordionTrigger>
           <AccordionContent className="prose dark:prose-invert max-w-none">
             <h4>Adherence to Indian Law</h4>
-            <p>CricBlitz operates in strict compliance with the laws of India. The platform's activities are structured to align with the principles laid down by the Supreme Court of India, which distinguishes between games of chance and competitions of knowledge. Our quizzes are designed as competitions where success depends on a user's pre-existing knowledge of cricket.</p>
+            <p>indcric operates in strict compliance with the laws of India. The platform's activities are structured to align with the principles laid down by the Supreme Court of India, which distinguishes between games of chance and competitions of knowledge. Our quizzes are designed as competitions where success depends on a user's pre-existing knowledge of cricket.</p>
             <h4>Non-Applicability of Gambling Laws</h4>
             <p>The Public Gambling Act, 1867, and various state enactments prohibit games of chance. Our platform, being based on knowledge, does not fall within the definition of gambling. We do not engage in any activity that could be construed as betting or wagering, as defined under applicable laws.</p>
              <h4>Compliance with IT Rules</h4>
@@ -33,18 +33,18 @@ export default function Policies() {
         <AccordionItem value="item-3">
           <AccordionTrigger>Fair Play & Anti-Malpractice Policy</AccordionTrigger>
           <AccordionContent className="prose dark:prose-invert max-w-none">
-            <p>CricBlitz maintains a strict zero-tolerance policy against any form of malpractice to ensure the integrity of our knowledge-based quizzes. Any attempt to undermine the fairness of the platform is a material breach of these terms.</p>
+            <p>indcric maintains a strict zero-tolerance policy against any form of malpractice to ensure the integrity of our knowledge-based quizzes. Any attempt to undermine the fairness of the platform is a material breach of these terms.</p>
             <ul>
                 <li><strong>Prohibited Actions:</strong> Malpractice includes, but is not limited to, the use of multiple accounts, bots, automated scripts, screen sharing, minimizing the app or switching tabs during a live quiz, colluding with other players, or exploiting any bugs or loopholes.</li>
                 <li><strong>"No-Ball" System:</strong> We employ automated and manual systems to detect such actions. Activities like switching tabs during a quiz will result in a "No-Ball" warning. Accumulating three (3) "No-Balls" within a 24-hour period will lead to a temporary suspension from gameplay for that day.</li>
-                <li><strong>Consequences of Violation:</strong> Any user found engaging in malpractice, as determined by CricBlitz in its sole discretion, will face penalties including, but not limited to, immediate disqualification from quizzes, forfeiture of all prizes, and permanent suspension of their account.</li>
+                <li><strong>Consequences of Violation:</strong> Any user found engaging in malpractice, as determined by indcric in its sole discretion, will face penalties including, but not limited to, immediate disqualification from quizzes, forfeiture of all prizes, and permanent suspension of their account.</li>
             </ul>
           </AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-4">
           <AccordionTrigger>Prizes & Payout Policy</AccordionTrigger>
           <AccordionContent className="prose dark:prose-invert max-w-none">
-            <p>Prizes on CricBlitz are granted as a recognition of a user's superior knowledge, demonstrated by achieving a perfect score in a quiz.</p>
+            <p>Prizes on indcric are granted as a recognition of a user's superior knowledge, demonstrated by achieving a perfect score in a quiz.</p>
             <ul>
                 <li><strong>Nature of Prizes:</strong> Prizes are not "winnings" from a wager, but are awards for demonstrating exceptional knowledge.</li>
                 <li><strong>Eligibility:</strong> Users must have a verified account, including a valid UPI ID, and be in full compliance with our terms to be eligible for prizes.</li>
@@ -66,7 +66,7 @@ export default function Policies() {
             <AccordionTrigger>Commentary Box &amp; User Contributions</AccordionTrigger>
             <AccordionContent className="prose dark:prose-invert max-w-none">
               <h4>Content Submission</h4>
-              <p>The "Commentary Box" feature allows users to contribute original cricket-related content, including facts, posts, and quiz questions, to the CricBlitz community.</p>
+              <p>The "Commentary Box" feature allows users to contribute original cricket-related content, including facts, posts, and quiz questions, to the indcric community.</p>
               <h4>Verification Process</h4>
               <p>All user-submitted content is subject to review and verification by our moderation team. Content will not be published on the platform until it has been approved. You can view the status of your submissions (e.g., "Under Verification", "Verified", "Rejected") in your contribution history.</p>
               <h4>Content Guidelines</h4>
@@ -76,9 +76,9 @@ export default function Policies() {
                 <li><strong>Appropriateness:</strong> Content must not be offensive, abusive, defamatory, or contain any inappropriate material.</li>
               </ul>
               <h4>Content Rights &amp; Usage</h4>
-              <p>By submitting content, you grant CricBlitz a perpetual, worldwide, non-exclusive, royalty-free license to use, reproduce, modify, publish, and display the content on our platform and in our marketing materials. You will be credited for your contribution where appropriate.</p>
+              <p>By submitting content, you grant indcric a perpetual, worldwide, non-exclusive, royalty-free license to use, reproduce, modify, publish, and display the content on our platform and in our marketing materials. You will be credited for your contribution where appropriate.</p>
               <h4>Contribution Rewards</h4>
-              <p>Users can earn non-monetary rewards, such as Gift Vouchers, by meeting specific contribution quotas. A reward is only unlocked after the required number of submissions for each content type (facts, posts, questions) has been successfully verified and approved by our moderators. CricBlitz reserves the right to change the reward structure and quotas at any time.</p>
+              <p>Users can earn non-monetary rewards, such as Gift Vouchers, by meeting specific contribution quotas. A reward is only unlocked after the required number of submissions for each content type (facts, posts, questions) has been successfully verified and approved by our moderators. indcric reserves the right to change the reward structure and quotas at any time.</p>
             </AccordionContent>
         </AccordionItem>
          <AccordionItem value="item-6">

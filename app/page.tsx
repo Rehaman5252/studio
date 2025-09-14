@@ -53,7 +53,7 @@ function HomePage() {
   const headerContent = (
       <div className="text-center">
         <h1 className="text-6xl font-extrabold tracking-tighter animate-shimmer">
-          CricBlitz
+          indcric
         </h1>
         <p className="mt-1 text-sm font-normal text-foreground/80">
           win ₹100 for every 100 seconds!

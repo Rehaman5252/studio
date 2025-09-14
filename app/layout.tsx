@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} antialiased prevent-select`}>
+      <body className={`${inter.variable} antialiased prevent-select dark`}>
         <Providers>
           <div className="relative flex flex-col min-h-screen">
             <main className="flex-1 pb-20">{children}</main>

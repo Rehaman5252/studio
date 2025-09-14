@@ -125,13 +125,13 @@ export default function CertificatesContent() {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(34, 139, 34);
-    doc.text('CricBlitz', doc.internal.pageSize.width / 2, 170, { align: 'center' });
+    doc.text('indcric', doc.internal.pageSize.width / 2, 170, { align: 'center' });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(150, 150, 150);
     doc.text('win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 175, { align: 'center' });
     
-    doc.save(`CricBlitz_${cert.format}_Certificate.pdf`);
+    doc.save(`indcric_${cert.format}_Certificate.pdf`);
     
     toast({
         title: "Download Started",
@@ -145,8 +145,8 @@ export default function CertificatesContent() {
     const starText = stars > 0 ? ` I now have ${stars} star(s) on my profile! ⭐` : '';
 
     const shareData = {
-        title: `I aced a quiz on CricBlitz!`,
-        text: `I just hit a century with a perfect score in the ${cert.format} quiz on CricBlitz!${starText} Think you can match my score?`,
+        title: `I aced a quiz on indcric!`,
+        text: `I just hit a century with a perfect score in the ${cert.format} quiz on indcric!${starText} Think you can match my score?`,
         url: window.location.origin,
     };
     try {

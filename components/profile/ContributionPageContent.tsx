@@ -22,7 +22,7 @@ export default function ContributionPageContent() {
         <CardHeader>
             <CardTitle className="text-lg">Contribute & Earn</CardTitle>
             <CardDescription>
-                Contribute to the CricBlitz community and earn rewards! Submit facts, posts, or questions.
+                Contribute to the indcric community and earn rewards! Submit facts, posts, or questions.
             </CardDescription>
         </CardHeader>
         <CardContent>

@@ -28,7 +28,7 @@ const steps: Step[] = [
 ];
 
 export default function GuidedTour({ run, onFinish }: GuidedTourProps) {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status } = data;
@@ -53,10 +53,10 @@ export default function GuidedTour({ run, onFinish }: GuidedTourProps) {
       callback={handleJoyrideCallback}
       styles={{
         options: {
-          arrowColor: theme === 'dark' ? '#393E46' : '#FFFFFF',
-          backgroundColor: theme === 'dark' ? '#393E46' : '#FFFFFF',
-          primaryColor: '#D4AF37', // Gold
-          textColor: theme === 'dark' ? '#FFFFFF' : '#222831',
+          arrowColor: resolvedTheme === 'dark' ? '#111827' : '#FFFFFF',
+          backgroundColor: resolvedTheme === 'dark' ? '#111827' : '#FFFFFF',
+          primaryColor: '#F59E0B',
+          textColor: resolvedTheme === 'dark' ? '#FFFFFF' : '#111827',
           zIndex: 1000,
         },
       }}
