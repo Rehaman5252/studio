@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
@@ -58,14 +57,18 @@ const LeaderboardItemSkeleton = () => (
   </div>
 );
 
-const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => (
-    <Alert variant="destructive" className="m-4">
-      {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-      {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>}
-    </Alert>
-);
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => {
+    const isIndexError = title.includes("Indexing");
+    
+    return (
+        <Alert variant={isIndexError ? "default" : "destructive"} className={cn("m-4", isIndexError && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
+          {isIndexError ? <AlertTriangle className="h-4 w-4 !text-yellow-300" /> : ((message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />) }
+          <AlertTitle>{title}</AlertTitle>
+          <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+          {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>}
+        </Alert>
+    );
+};
 
 const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: number }}) => (
   <Card className="bg-card/80 text-center mt-4">
@@ -89,20 +92,22 @@ const LiveLeaderboard = () => {
   const [players, setPlayers] = useState<LivePlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
-  
   const lastGoodRef = useRef<LivePlayer[]>([]);
-  
+
   const startListener = useCallback(() => {
+    let isMounted = true;
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-        setError({ userMessage: "Database not available." });
-        setIsLoading(false);
-        return () => {};
+        if (isMounted) {
+            setError({ userMessage: "Database not available." });
+            setIsLoading(false);
+        }
+        return () => { isMounted = false; };
     }
 
-    const slotId = getQuizSlotId();
+    const slotId = getQuizSlotId(); // real slotId
     const q = query(
       collection(db, 'leaderboard_live', slotId, 'entries'),
       orderBy('score', 'desc'),
@@ -110,7 +115,6 @@ const LiveLeaderboard = () => {
       limit(50)
     );
 
-    let isMounted = true;
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!isMounted) return;
       const rows = snapshot.docs.map((d, index) => ({
@@ -127,74 +131,39 @@ const LiveLeaderboard = () => {
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
-      // Fallback to cached data on error
       setPlayers(lastGoodRef.current);
     });
 
-    return () => {
-        isMounted = false;
-        try {
-          unsubscribe();
-        } catch (e) {
-          console.warn("Error unsubscribing from LiveLeaderboard", e);
-        }
-    }
+    return () => { isMounted = false; try { unsubscribe(); } catch {} };
   }, []);
 
   useEffect(() => {
-    let unsubscribe: Unsubscribe | undefined | (() => void);
+    let unsubscribe: Unsubscribe | (() => void) | undefined;
 
-    if (!authLoading) {
-      unsubscribe = startListener();
-    }
-    
+    if (!authLoading) unsubscribe = startListener();
+
     const slotInterval = setInterval(() => {
-      if (unsubscribe) {
-          try { unsubscribe() } catch(e) {}
-      };
+      if (unsubscribe) try { unsubscribe() } catch {}
       unsubscribe = startListener();
-    }, 30000); 
+    }, 30000);
 
-    return () => {
-      if (unsubscribe) {
-        try {
-            unsubscribe();
-        } catch (e) {
-            console.warn("Failed to unsubscribe from LiveLeaderboard listener", e);
-        }
-      }
-      clearInterval(slotInterval);
-    };
+    return () => { if (unsubscribe) try { unsubscribe() } catch {}; clearInterval(slotInterval); };
   }, [authLoading, startListener]);
 
   const content = useMemo(() => {
     const dataToShow = players;
-
-    if (isLoading && dataToShow.length === 0) {
-      return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
-    }
-    
-    if (error && dataToShow.length === 0) {
-      return <ErrorState
-        title={"Error Loading Leaderboard"}
-        message={error.userMessage}
-        onRetry={startListener}
-      />;
-    }
-    
-    if (dataToShow.length === 0) return <WaitingState timeLeft={timeLeft} />;
-
+    if (isLoading && dataToShow.length === 0) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
+    if (error && dataToShow.length === 0) return <ErrorState title={error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Error Loading Leaderboard'} message={error.userMessage} onRetry={startListener} />;
+    if (dataToShow.length === 0 && !isLoading) return <WaitingState timeLeft={timeLeft} />;
     return dataToShow.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
-  }, [isLoading, authLoading, error, players, timeLeft, user, startListener]);
-
-  const isIndexError = error?.code === 'INDEX_REQUIRED';
+  }, [isLoading, authLoading, players, error, timeLeft, user, startListener]);
 
   return (
     <Card className="bg-card/80 shadow-lg">
       <CardHeader className="text-center">
         <div className="flex items-center justify-center gap-2">
             <CardTitle>Current Match</CardTitle>
-            {isIndexError && (
+            {error && (
                 <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -204,9 +173,9 @@ const LiveLeaderboard = () => {
       </CardHeader>
       
       {error && players.length > 0 &&
-        <Alert variant="destructive" className="mx-4 mb-2">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Sync Issue</AlertTitle>
+        <Alert variant={error.code === 'INDEX_REQUIRED' ? "default" : "destructive"} className={cn("mx-4 mb-2", error.code === 'INDEX_REQUIRED' && "bg-yellow-900/50 text-yellow-300 border-yellow-700")}>
+            {error.code === 'INDEX_REQUIRED' ? <AlertTriangle className="h-4 w-4 !text-yellow-300" /> : <AlertTriangle className="h-4 w-4" />}
+            <AlertTitle>{error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Sync Issue'}</AlertTitle>
             <AlertDescription>{error.userMessage}</AlertDescription>
         </Alert>
       }
