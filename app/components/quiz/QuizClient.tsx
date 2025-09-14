@@ -113,10 +113,22 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
-      const data: QuizAPIResponse = await response.json();
+      const responseText = await response.text();
+      let data: QuizAPIResponse;
+      try {
+        data = JSON.parse(responseText);
+      } catch(parseErr) {
+        console.error('Quiz API returned non-json', parseErr, responseText);
+        setError('Server returned an unexpected response.');
+        setQuizState('error');
+        return;
+      }
       
       if (!response.ok || !data.ok || !data.quiz) {
-         throw new Error(data.error?.message || "The server returned an unexpected response.");
+         const msg = data.error?.message || "Could not load quiz.";
+         setError(msg);
+         setQuizState('error');
+         return;
       }
 
       setQuizData(data.quiz);
@@ -139,7 +151,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setError(userMessage);
       setQuizState('error');
     }
-  }, [format, user, toast, authLoading, isOffline]);
+  }, [format, user, authLoading, isOffline]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -178,8 +190,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         router.replace(`/quiz/results?attemptId=${attemptId}`);
     } else {
         toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
-        // Fallback to old method if ID is not returned, though this shouldn't happen
-        router.replace('/'); 
+        router.replace('/');
     }
 
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
