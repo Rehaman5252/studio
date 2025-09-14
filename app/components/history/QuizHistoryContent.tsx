@@ -4,7 +4,7 @@
 import React, { useState, memo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check } from 'lucide-react';
+import { Award, Ban, Sparkles, Calendar, CheckCircle, Clock, Eye, ServerCrash, WifiOff, Check, Loader2 } from 'lucide-react';
 import type { QuizAttempt } from '@/ai/schemas';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AdDialog } from '@/components/AdDialog';
@@ -65,34 +65,50 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [isReviewed, setIsReviewed] = useState(attempt.reviewed || false);
+  const [isReviewing, setIsReviewing] = useState(false);
 
 
   const handleReviewClick = useCallback(() => {
-    if (isReviewed) {
+    if (isReviewed || isReviewing) return;
+    
+    if (attempt.reviewed) {
         setShowReviewDialog(true);
     } else {
+        setIsReviewing(true);
         setShowAdDialog(true);
     }
-  }, [isReviewed]);
+  }, [isReviewed, isReviewing, attempt.reviewed]);
 
   const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
-    const { success } = await markAttemptAsReviewed(attempt.slotId);
-    if (success) {
-      setIsReviewed(true);
-      toast({
-        title: "Success",
-        description: "You can now review your answers."
-      });
-    } else {
-      toast({
-        title: "Update Failed",
-        description: "Could not save the reviewed state. Please check your connection.",
-        variant: "destructive"
-      });
+    try {
+      const { success, reason } = await markAttemptAsReviewed(attempt.slotId);
+      if (success) {
+        setIsReviewed(true);
+        toast({
+          title: "Success",
+          description: "You can now review your answers."
+        });
+        setShowReviewDialog(true);
+      } else {
+        toast({
+          title: "Update Failed",
+          description: `Could not save review state: ${reason || 'Please check connection.'}`,
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsReviewing(false);
     }
-    setShowReviewDialog(true);
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
+
+  const handleAdDialogClose = (open: boolean) => {
+    if (!open) {
+        // If user closes the ad dialog manually, stop the reviewing process.
+        setIsReviewing(false);
+    }
+    setShowAdDialog(open);
+  }
   
   const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
@@ -135,9 +151,9 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified}>
-                        {isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />}
-                        {isReviewed ? 'Reviewed' : 'Review'}
+                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed || isReviewing}>
+                        {isReviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />)}
+                        {isReviewing ? 'Processing...' : (isReviewed ? 'Reviewed' : 'Review')}
                     </Button>
                     
                     <Button variant="secondary" size="sm" onClick={() => setIsAnalysisOpen(true)} disabled={isDisqualified}>
@@ -151,7 +167,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         {showAdDialog && (
             <AdDialog
                 open={showAdDialog}
-                onOpenChange={setShowAdDialog}
+                onOpenChange={handleAdDialogClose}
                 onAdFinished={handleAdFinished}
                 {...adLibrary.resultsAd}
             >
@@ -179,3 +195,4 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 };
 export const HistoryItem = memo(HistoryItemComponent);
 
+    
