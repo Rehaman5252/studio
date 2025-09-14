@@ -341,7 +341,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       (querySnapshot) => {
         if (!isMounted) return;
         const historyData = querySnapshot.docs.map((d) => d.data() as QuizAttempt);
-        quizHistoryCache.current = historyData; // Update cache
+        quizHistoryCache.current = historyData; // Update cache on success
         setQuizHistory({ data: historyData, loading: false, error: null });
       },
       (error) => {
