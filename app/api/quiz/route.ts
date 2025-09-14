@@ -1,7 +1,7 @@
 
 import { NextResponse } from "next/server";
-import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow"; 
-import { getFallbackQuiz } from "@/lib/fallback-quiz"; 
+import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
+import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { mapFirestoreError } from "@/lib/utils";
 
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,10 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 function isValidQuizShape(candidate: any): boolean {
   if (!candidate || typeof candidate !== "object") return false;
   if (!Array.isArray(candidate.questions) || candidate.questions.length !== 5) return false;
-  
-  return candidate.questions.every((q: any) => 
+
+  return candidate.questions.every((q: any) =>
     typeof q?.question === "string" && q.question.length > 0 &&
-    Array.isArray(q?.options) && 
+    Array.isArray(q?.options) &&
     q.options.length === 4 &&
     q.options.every((opt: any) => typeof opt === 'string' && opt.length > 0) &&
     typeof q?.correctAnswer === 'string' && q.options.includes(q.correctAnswer) &&

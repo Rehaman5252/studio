@@ -178,7 +178,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         router.replace(`/quiz/results?attemptId=${attemptId}`);
     } else {
         toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
-        // Fallback to old method if ID is not returned, though this shouldn't happen
         router.replace('/'); 
     }
 

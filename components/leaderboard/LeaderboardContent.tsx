@@ -50,7 +50,7 @@ function LeaderboardContentComponent() {
   }
   
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs defaultValue="live" className="w-full" onValueChange={setActiveTab}>
         <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             <TabsTrigger value="all-time">All-Time</TabsTrigger>
@@ -65,23 +65,23 @@ function LeaderboardContentComponent() {
               transition={{ duration: 0.3 }}
               className="mt-4"
           >
-            <TabsContent value="live" forceMount={activeTab === 'live'}>
+            <TabsContent value="live" forceMount={true} hidden={activeTab !== 'live'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <LiveLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
+            <TabsContent value="all-time" forceMount={true} hidden={activeTab !== 'all-time'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
+            <TabsContent value="streaks" forceMount={true} hidden={activeTab !== 'streaks'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <StreakLeaderboard />
                 </Suspense>
             </TabsContent>
             {user && (
-            <TabsContent value="network" forceMount={activeTab === 'network'}>
+            <TabsContent value="network" forceMount={true} hidden={activeTab !== 'network'}>
                 <Suspense fallback={<LeaderboardSkeleton count={3} />}>
                     <MyNetworkLeaderboard />
                 </Suspense>

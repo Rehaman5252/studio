@@ -10,9 +10,8 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, mapFirestoreError } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
-import { mapFirestoreError } from '@/lib/utils';
 import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank?: number }) => {
