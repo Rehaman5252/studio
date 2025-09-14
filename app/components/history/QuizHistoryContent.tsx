@@ -72,13 +72,12 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const handleReviewClick = useCallback(() => {
     if (isDisqualified || isReviewed || isReviewing) return;
     
-    // If already marked as reviewed in the database but local state is out of sync
     if (attempt.reviewed) {
         setIsReviewed(true);
         setShowReviewDialog(true);
     } else {
-        setIsReviewing(true); // Disable button immediately
-        setShowAdDialog(true); // Show the ad
+        setIsReviewing(true);
+        setShowAdDialog(true);
     }
   }, [isDisqualified, isReviewed, isReviewing, attempt.reviewed]);
 
@@ -101,13 +100,12 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         });
       }
     } finally {
-      setIsReviewing(false); // End the "reviewing" process
+      setIsReviewing(false);
     }
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
     if (!open) {
-        // If user closes the ad dialog manually, stop the "reviewing" process.
         setIsReviewing(false);
     }
     setShowAdDialog(open);
