@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { mapFirestoreError } from "@/lib/utils";
+import type { QuizData } from "@/ai/schemas";
 
 export const dynamic = 'force_dynamic';
 
@@ -14,7 +15,7 @@ const IS_DEV = process.env.NODE_ENV !== "production";
  * @param candidate - The quiz data object to validate.
  * @returns `true` if the shape is valid, `false` otherwise.
  */
-function isValidQuizShape(candidate: any): boolean {
+function isValidQuizShape(candidate: any): candidate is QuizData {
   if (!candidate || typeof candidate !== "object" || !Array.isArray(candidate.questions) || candidate.questions.length < 5) {
     return false;
   }
