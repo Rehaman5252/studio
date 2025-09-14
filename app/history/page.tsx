@@ -3,7 +3,6 @@
 
 import React from 'react';
 import PageWrapper from '@/components/PageWrapper';
-import AuthGuard from '@/components/auth/AuthGuard';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -38,9 +37,7 @@ const HistoryContent = dynamic(
 export default function HistoryPage() {
   return (
     <PageWrapper title="My Innings" showBackButton>
-        <AuthGuard>
-            <HistoryContent />
-        </AuthGuard>
+        <HistoryContent />
     </PageWrapper>
   );
 }

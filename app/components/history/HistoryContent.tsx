@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -5,6 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthProvider';
+import LoginPrompt from '../auth/LoginPrompt';
+import { History } from 'lucide-react';
 
 const RecentHistory = dynamic(() => import('@/components/history/RecentHistory'), {
     loading: () => <HistorySkeleton count={3} />,
@@ -27,9 +31,29 @@ const HistorySkeleton = ({ count = 3 }: { count?: number}) => (
     </div>
 );
 
+const LoggedOutView = () => (
+    <div className="pt-8">
+        <LoginPrompt 
+            icon={History} 
+            title="Review Your Past Innings" 
+            description="Sign in to analyze your stats, review your match performances, and track your progress on the pitch." 
+        />
+    </div>
+);
+
 export default function HistoryContent() {
   const [activeTab, setActiveTab] = useState('recent');
+  const { user, loading } = useAuth();
   
+  if (loading) {
+      return (
+        <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <HistorySkeleton />
+        </div>
+      );
+  }
+
   return (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -45,14 +69,14 @@ export default function HistoryContent() {
               transition={{ duration: 0.3 }}
               className="mt-4"
           >
-              <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                  <RecentHistory />
+              <TabsContent value="recent" forceMount={true}>
+                  {user ? <RecentHistory /> : <LoggedOutView />}
               </TabsContent>
-              <TabsContent value="all" forceMount={activeTab === 'all'}>
-                  <AllHistory />
+              <TabsContent value="all" forceMount={true}>
+                  {user ? <AllHistory /> : <LoggedOutView />}
               </TabsContent>
-              <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                  <PerfectScoresHistory />
+              <TabsContent value="perfect" forceMount={true}>
+                  {user ? <PerfectScoresHistory /> : <LoggedOutView />}
               </TabsContent>
           </motion.div>
       </Tabs>
