@@ -113,7 +113,7 @@ const StreakLeaderboard = () => {
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       if (!mountedRef.current) return;
       try {
-        let playersData = querySnapshot.docs
+        const playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
           .map((doc, index) => {
             const data = doc.data();
@@ -144,17 +144,24 @@ const StreakLeaderboard = () => {
                                 rank: userRank,
                                 isCurrentUser: true,
                             };
-                            playersData.push(currentUserData);
+                             if (mountedRef.current) {
+                                setPlayers(prev => {
+                                    const final = [...prev.filter(p => p.uid !== user.uid), currentUserData];
+                                    lastGoodRef.current = final;
+                                    return final;
+                                });
+                             }
                         }
                 }
            } catch (e) {
                 console.error("Error fetching current user for streak board", e);
            }
+        } else {
+             if (mountedRef.current) setPlayers(playersData);
         }
-        
+
         if (mountedRef.current) {
-            setPlayers(playersData);
-            lastGoodRef.current = playersData;
+            lastGoodRef.current = players;
             setError(null);
             setIsLoading(false);
         }
@@ -177,7 +184,7 @@ const StreakLeaderboard = () => {
     });
 
     listenerRef.current = unsubscribe;
-  }, [user]);
+  }, [user, players]);
 
   useEffect(() => {
     mountedRef.current = true;

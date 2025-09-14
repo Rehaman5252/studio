@@ -5,13 +5,15 @@
  * @fileOverview A flow that generates an AI-powered analysis of a user's quiz attempt.
  *
  * - generateQuizAnalysis - A function that provides a detailed performance breakdown.
+ * This flow is hardened to never throw an error for AI failures. It validates its own
+ * output and returns a high-quality fallback analysis if the AI fails or produces
+ * an invalid response.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { QuizAttempt, QuizAnalysisOutputSchema } from '@/ai/schemas';
+import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
-import type { QuizAnalysisOutput } from '@/ai/schemas';
 
 
 /**
