@@ -113,7 +113,7 @@ const StreakLeaderboard = () => {
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       if (!mountedRef.current) return;
       try {
-        const playersData = querySnapshot.docs
+        let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
           .map((doc, index) => {
             const data = doc.data();
@@ -144,24 +144,18 @@ const StreakLeaderboard = () => {
                                 rank: userRank,
                                 isCurrentUser: true,
                             };
-                             if (mountedRef.current) {
-                                setPlayers(prev => {
-                                    const final = [...prev.filter(p => p.uid !== user.uid), currentUserData];
-                                    lastGoodRef.current = final;
-                                    return final;
-                                });
-                             }
+                            playersData.push(currentUserData);
                         }
                 }
            } catch (e) {
                 console.error("Error fetching current user for streak board", e);
            }
-        } else {
-             if (mountedRef.current) setPlayers(playersData);
         }
-
+        
         if (mountedRef.current) {
-            lastGoodRef.current = players;
+            const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
+            setPlayers(sortedPlayers);
+            lastGoodRef.current = sortedPlayers;
             setError(null);
             setIsLoading(false);
         }
@@ -184,7 +178,7 @@ const StreakLeaderboard = () => {
     });
 
     listenerRef.current = unsubscribe;
-  }, [user, players]);
+  }, [user]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -218,12 +212,11 @@ const StreakLeaderboard = () => {
     
     if (dataToRender.length === 0) return <EmptyState />;
     
-    const sortedPlayers = [...dataToRender].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
-    const currentUserInList = sortedPlayers.find(p => p.isCurrentUser);
+    const currentUserInList = dataToRender.find(p => p.isCurrentUser);
 
     return (
       <>
-        {sortedPlayers.filter(p => !p.isCurrentUser).map(player => <LeaderboardItem key={player.uid} player={player} />)}
+        {dataToRender.filter(p => !p.isCurrentUser).map(player => <LeaderboardItem key={player.uid} player={player} />)}
         {currentUserInList && (
           <>
             <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
