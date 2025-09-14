@@ -158,6 +158,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     loading: true,
     error: null,
   });
+  const quizHistoryCache = useRef<QuizAttempt[]>([]);
   
   const [firebaseAppReady, setFirebaseAppReady] = useState(false);
   useEffect(() => {
@@ -339,12 +340,14 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       (querySnapshot) => {
         if (!isMounted) return;
         const historyData = querySnapshot.docs.map((d) => d.data() as QuizAttempt);
+        quizHistoryCache.current = historyData; // Update cache
         setQuizHistory({ data: historyData, loading: false, error: null });
       },
       (error) => {
         if (!isMounted) return;
         console.error('Error fetching quiz history:', error);
-        setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error).userMessage });
+        // On error, serve from cache but still surface the error message
+        setQuizHistory({ data: quizHistoryCache.current, loading: false, error: mapFirestoreError(error).userMessage });
       }
     );
     unsubs.push(unsubscribeHistory);
