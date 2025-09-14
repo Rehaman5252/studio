@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -9,9 +10,8 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, mapFirestoreError } from '@/lib/utils';
 import type { AllTimePlayer } from './leaderboardTypes';
-import { mapFirestoreError } from '@/lib/utils';
 import { Button } from '../ui/button';
 
 const RankIcon = memo(({ rank }: { rank?: number }) => {
@@ -26,13 +26,16 @@ RankIcon.displayName = 'RankIcon';
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback></Avatar>
+    <Avatar className="h-10 w-10 mx-4">
+      <AvatarImage src={player.avatar ?? `https://placehold.co/40x40.png`} alt={player.name ?? 'Player'} />
+      <AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback>
+    </Avatar>
     <div className="flex-1">
-      <p className="font-semibold text-foreground flex-1">{player.name ?? 'Anonymous'}</p>
-      <p className="text-xs text-muted-foreground">Played: {player.quizzesPlayed} | Total Score: {player.totalScore}</p>
+      <p className="font-semibold text-foreground">{player.name ?? 'Anonymous'}</p>
+      <p className="text-xs text-muted-foreground">Played: {player.quizzesPlayed ?? 0} | Total Score: {player.totalScore ?? 0}</p>
     </div>
     <div className="text-right flex items-center gap-1">
-      <p className="font-bold text-primary">{player.perfectScores}</p>
+      <p className="font-bold text-primary">{player.perfectScores ?? 0}</p>
       <Star className="h-4 w-4 text-primary" />
     </div>
   </div>
@@ -61,21 +64,13 @@ const EmptyState = () => (
   </Card>
 );
 
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
-  isIndexError ? (
-    <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-      <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  ) : (
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => (
     <Alert variant="destructive" className="m-4">
-      {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+      {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-      <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
+      {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
     </Alert>
-  )
 );
 
 const AllTimeLeaderboard = () => {
@@ -93,12 +88,13 @@ const AllTimeLeaderboard = () => {
       listenerRef.current();
       listenerRef.current = null;
     }
+
     setIsLoading(true);
     setError(null);
 
     if (!db) {
       if (mountedRef.current) {
-        setError({ userMessage: "Database connection is not available." });
+        setError({ userMessage: "Database not available." });
         setIsLoading(false);
       }
       return;
@@ -114,46 +110,39 @@ const AllTimeLeaderboard = () => {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, (qsnap) => {
       if (!mountedRef.current) return;
-
-      const playersData = querySnapshot.docs
-        .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
-        .map((doc, index) => {
-          const data = doc.data();
+      const data = qsnap.docs
+        .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
+        .map((doc, idx) => {
+          const d = doc.data();
           return {
             uid: doc.id,
-            name: data.name || 'Anonymous Player',
-            avatar: data.photoURL,
-            perfectScores: data.perfectScores || 0,
-            totalScore: data.totalScore || 0,
-            quizzesPlayed: data.quizzesPlayed || 0,
+            name: d.name ?? 'Anonymous Player',
+            avatar: d.photoURL ?? undefined,
+            perfectScores: d.perfectScores ?? 0,
+            totalScore: d.totalScore ?? 0,
+            quizzesPlayed: d.quizzesPlayed ?? 0,
             isCurrentUser: user?.uid === doc.id,
-            rank: index + 1
+            rank: idx + 1
           } as AllTimePlayer;
         });
 
-      if (playersData.length > 0) {
-        lastGoodRef.current = playersData;
-        setPlayers(playersData);
-      } else if (lastGoodRef.current) {
-        setPlayers(lastGoodRef.current);
-      } else {
-        setPlayers([]);
-      }
-      
-      setError(null);
-      setIsLoading(false);
-
-    }, (err: any) => {
-      if (!mountedRef.current) return;
-      console.error("All-Time Leaderboard snapshot error: ", err);
+        setPlayers(data);
+        lastGoodRef.current = data;
+        setError(null);
+        setIsLoading(false);
+    }, (err) => {
+      console.error("AllTime onSnapshot error:", err);
       const mapped = mapFirestoreError(err);
-      setError(mapped);
-      setIsLoading(false);
-      // Do not wipe data if we have some from cache
-      if (lastGoodRef.current && lastGoodRef.current.length > 0) {
-        setPlayers(lastGoodRef.current);
+      if (mountedRef.current) {
+        setError(mapped);
+        setIsLoading(false);
+        if (lastGoodRef.current) {
+          setPlayers(lastGoodRef.current);
+        } else {
+          setPlayers([]);
+        }
       }
     });
 
@@ -162,45 +151,47 @@ const AllTimeLeaderboard = () => {
 
   useEffect(() => {
     mountedRef.current = true;
-    if (!authLoading) {
-      startListener();
-    }
+    if (!authLoading) startListener();
     return () => {
       mountedRef.current = false;
-      if (listenerRef.current) {
-        listenerRef.current();
-        listenerRef.current = null;
-      }
+      if (listenerRef.current) listenerRef.current();
     };
   }, [authLoading, startListener]);
 
   const contentList = useMemo(() => {
-    const showSkeletons = isLoading && !lastGoodRef.current;
-    if (showSkeletons) {
+    const dataToShow = players.length > 0 ? players : lastGoodRef.current || [];
+    
+    if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
     }
     
-    if (players.length === 0 && !error) return <EmptyState />;
+    if (dataToShow.length === 0 && (!error || error.code !== 'INDEX_REQUIRED')) return <EmptyState />;
 
-    return players.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
+    return dataToShow.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
   }, [isLoading, authLoading, players, user, error]);
+
+  const isIndexError = error?.code === 'INDEX_REQUIRED';
 
   return (
     <Card className="bg-card/80 shadow-lg">
       <CardHeader className="text-center">
-        <CardTitle>All-Time Honours Board</CardTitle>
+        <div className="flex items-center justify-center gap-2">
+            <CardTitle>All-Time Honours Board</CardTitle>
+            {isIndexError && (
+                <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
+                    <RefreshCw className="h-4 w-4" />
+                </Button>
+            )}
+        </div>
         <CardDescription>Based on Total Score and Perfect Scores</CardDescription>
       </CardHeader>
 
-      {error && (
-        <div className="px-4">
-          <ErrorState
-            title={error.code === "INDEX_REQUIRED" ? "Database Indexing" : "Error Loading Leaderboard"}
+      {error && !isIndexError && (
+        <ErrorState
+            title={"Error Loading Leaderboard"}
             message={error.userMessage}
-            isIndexError={error.code === "INDEX_REQUIRED"}
             onRetry={startListener}
-          />
-        </div>
+        />
       )}
 
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
