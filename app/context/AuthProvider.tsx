@@ -443,7 +443,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   /* ------------------------------ Profile edit --------------------------- */
 
   const updateUserData = useCallback(
-    async (newData: Partial<UserProfile>) => {
+    async (data: Partial<UserProfile>) => {
       if (!user || !db) return;
       const allowedFields = [
         'name',
@@ -460,8 +460,8 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         'favoriteCricketer',
         'phoneVerified',
       ];
-      const filteredData: Partial<UserProfile> = Object.keys(newData).reduce((acc: any, key) => {
-        if (allowedFields.includes(key)) acc[key] = (newData as any)[key];
+      const filteredData: Partial<UserProfile> = Object.keys(data).reduce((acc: any, key) => {
+        if (allowedFields.includes(key)) acc[key] = (data as any)[key];
         return acc;
       }, {});
 
