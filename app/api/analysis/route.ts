@@ -5,10 +5,12 @@ import { QuizAnalysisOutputSchema } from "@/ai/schemas";
 import type { QuizAnalysisOutput } from "@/ai/schemas";
 
 const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
-    const accuracy = attempt.totalQuestions > 0 ? (attempt.score / attempt.totalQuestions) * 100 : 0;
-    
+    const format = attempt?.format || "cricket";
+    const score = attempt?.score ?? "a good";
+    const total = attempt?.totalQuestions ?? "your";
+
     return {
-        summary: `A solid effort on the ${attempt.format} quiz! You scored ${attempt.score} out of ${attempt.totalQuestions}. We're showing general feedback as the AI coach is unavailable.`,
+        summary: `A solid effort on the ${format} quiz! You scored ${score} out of ${total}. We're showing general feedback as the AI coach is unavailable.`,
         strengths: ["Consistency in completing quizzes.", "Willingness to learn and improve."],
         weaknesses: ["Potential gaps in specific eras or player stats.", "Time management on difficult questions."],
         recommendations: ["Review questions you were unsure about.", "Focus on one cricket format to build deep knowledge.", "Try to answer questions you're confident about more quickly."],
@@ -22,9 +24,9 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => null);
     attemptBody = body?.attempt;
 
-    if (!attemptBody) {
+    if (!attemptBody || typeof attemptBody !== 'object') {
       return NextResponse.json(
-        { error: "Missing 'attempt' in request body" },
+        { ok: false, error: { message: "Invalid or missing 'attempt' in request body" } },
         { status: 400 }
       );
     }
@@ -34,17 +36,23 @@ export async function POST(req: Request) {
     const result: QuizAnalysisOutput = await generateQuizAnalysis(attemptBody);
 
     // Even though the flow is hardened, a final validation is good practice.
+    // If parsing fails, it means the hardened flow itself has a bug.
+    // In this case, we return a last-resort, ultra-stable fallback.
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
     if (!parsed.success) {
-      console.error("[Analysis API] Output validation failed despite hardened flow:", parsed.error);
-      return NextResponse.json(getFallbackAnalysisForApi(attemptBody), { status: 200 }); // Return a valid fallback
+      console.error("[Analysis API] FATAL: Output from hardened flow failed validation. This should not happen.", parsed.error);
+      const fallback = getFallbackAnalysisForApi(attemptBody);
+      return NextResponse.json({ ok: true, analysis: fallback, source: "fallback" }, { status: 200 }); 
     }
 
-    return NextResponse.json(parsed.data, { status: 200 });
-  } catch (err) {
-    console.error("[Analysis API] Unhandled error:", err);
+    return NextResponse.json({ ok: true, analysis: parsed.data, source: parsed.data.source }, { status: 200 });
+
+  } catch (err: any) {
+    console.error("[Analysis API] A critical unhandled error occurred:", err);
+    // This catches errors like invalid JSON in the request itself or other unexpected server issues.
+    const fallback = getFallbackAnalysisForApi(attemptBody || {});
     return NextResponse.json(
-      getFallbackAnalysisForApi(attemptBody || {}),
+      { ok: false, error: { message: "An internal server error occurred." }, analysis: fallback, source: 'fallback' },
       { status: 500 }
     );
   }
