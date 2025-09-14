@@ -87,11 +87,11 @@ const prompt = ai.definePrompt({
       {{/each}}
 
     Based on this data, generate a comprehensive analysis. Follow these steps:
-    1.  **Summary:** Write a brief, encouraging summary of the user's performance.
-    2.  **Strengths:** Based on the questions answered correctly and quickly, identify 2-3 key strengths.
-    3.  **Weaknesses:** Based on the questions where answers were incorrect or slow, identify 2-3 areas for improvement.
-    4.  **Recommendations:** Provide 2-3 concrete, actionable recommendations for the user to focus on.
-    5.  **Source**: Set the source to "ai".
+    1.  **summary:** Write a brief, encouraging summary of the user's performance.
+    2.  **strengths:** Based on the questions answered correctly and quickly, identify 2-3 key strengths.
+    3.  **weaknesses:** Based on the questions where answers were incorrect or slow, identify 2-3 areas for improvement.
+    4.  **recommendations:** Provide 2-3 concrete, actionable recommendations for the user to focus on.
+    5.  **source**: Set the source to "ai".
   `,
 });
 
