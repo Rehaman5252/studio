@@ -58,26 +58,13 @@ const LeaderboardItemSkeleton = () => (
   </div>
 );
 
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry?: () => void }) => (
-  isIndexError ? (
-     <div className="m-4">
-      <Alert variant="default" className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
-        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-      </Alert>
-       <div className="text-center mt-2">
-        {onRetry && <Button size="sm" variant="ghost" onClick={onRetry}><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
-      </div>
-    </div>
-  ) : (
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => (
     <Alert variant="destructive" className="m-4">
       {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
       {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>}
     </Alert>
-  )
 );
 
 const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: number }}) => (
@@ -172,11 +159,10 @@ const LiveLeaderboard = () => {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
     }
     
-    if (error && dataToShow.length === 0) {
+    if (error && error.code !== 'INDEX_REQUIRED' && dataToShow.length === 0) {
       return <ErrorState
-        title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"}
+        title={"Error Loading Leaderboard"}
         message={error.userMessage}
-        isIndexError={error.code === "INDEX_REQUIRED"}
         onRetry={startListener}
       />;
     }
@@ -186,17 +172,25 @@ const LiveLeaderboard = () => {
     return dataToShow.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
   }, [isLoading, authLoading, error, players, timeLeft, user, startListener]);
 
+  const isIndexError = error?.code === 'INDEX_REQUIRED';
+
   return (
     <Card className="bg-card/80 shadow-lg">
       <CardHeader className="text-center">
-        <CardTitle>Current Match</CardTitle>
+        <div className="flex items-center justify-center gap-2">
+            <CardTitle>Current Match</CardTitle>
+            {isIndexError && (
+                <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
+                    <RefreshCw className="h-4 w-4" />
+                </Button>
+            )}
+        </div>
         <CardDescription>Live standings for this 10-minute slot</CardDescription>
       </CardHeader>
-      {error && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) &&
+      {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) &&
         <ErrorState 
-            title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"}
+            title={"Error Loading Leaderboard"}
             message={error.userMessage}
-            isIndexError={error.code === "INDEX_REQUIRED"}
             onRetry={startListener}
         />
       }

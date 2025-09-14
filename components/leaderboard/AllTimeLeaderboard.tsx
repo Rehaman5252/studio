@@ -64,26 +64,13 @@ const EmptyState = () => (
   </Card>
 );
 
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry?: () => void }) => (
-  isIndexError ? (
-    <div className="m-4">
-      <Alert variant="default" className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
-        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-      </Alert>
-      <div className="text-center mt-2">
-        {onRetry && <Button size="sm" variant="ghost" onClick={onRetry}><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
-      </div>
-    </div>
-  ) : (
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry?: () => void }) => (
     <Alert variant="destructive" className="m-4">
       {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
       {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
     </Alert>
-  )
 );
 
 const AllTimeLeaderboard = () => {
@@ -124,6 +111,7 @@ const AllTimeLeaderboard = () => {
     );
 
     const unsubscribe = onSnapshot(q, (qsnap) => {
+      if (!mountedRef.current) return;
       const data = qsnap.docs
         .filter(doc => (doc.data().quizzesPlayed ?? 0) > 0)
         .map((doc, idx) => {
@@ -140,17 +128,14 @@ const AllTimeLeaderboard = () => {
           } as AllTimePlayer;
         });
 
-      if (mountedRef.current) {
         setPlayers(data);
         lastGoodRef.current = data;
         setError(null);
         setIsLoading(false);
-      }
     }, (err) => {
       console.error("AllTime onSnapshot error:", err);
       const mapped = mapFirestoreError(err);
       if (mountedRef.current) {
-        // Keep last good data (do not wipe it). Show non-destructive error.
         setError(mapped);
         setIsLoading(false);
         if (lastGoodRef.current) {
@@ -180,23 +165,31 @@ const AllTimeLeaderboard = () => {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
     }
     
-    if (dataToShow.length === 0 && !error) return <EmptyState />;
+    if (dataToShow.length === 0 && (!error || error.code !== 'INDEX_REQUIRED')) return <EmptyState />;
 
     return dataToShow.map(player => <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid} />);
   }, [isLoading, authLoading, players, user, error]);
 
+  const isIndexError = error?.code === 'INDEX_REQUIRED';
+
   return (
     <Card className="bg-card/80 shadow-lg">
       <CardHeader className="text-center">
-        <CardTitle>All-Time Honours Board</CardTitle>
+        <div className="flex items-center justify-center gap-2">
+            <CardTitle>All-Time Honours Board</CardTitle>
+            {isIndexError && (
+                <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
+                    <RefreshCw className="h-4 w-4" />
+                </Button>
+            )}
+        </div>
         <CardDescription>Based on Total Score and Perfect Scores</CardDescription>
       </CardHeader>
 
-      {error && (
+      {error && !isIndexError && (
         <ErrorState
-            title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"}
+            title={"Error Loading Leaderboard"}
             message={error.userMessage}
-            isIndexError={error.code === "INDEX_REQUIRED"}
             onRetry={startListener}
         />
       )}

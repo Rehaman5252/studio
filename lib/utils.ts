@@ -80,10 +80,10 @@ export function mapFirestoreError(error: any): { code?: string; userMessage: str
     const msg = String(error.message || error).toLowerCase();
 
     // Specific check for Firestore index errors
-    if (/index|failed-precondition/i.test(msg) && msg.includes('query requires an index')) {
+    if (/index|failed-precondition/i.test(msg) && (msg.includes('query requires an index') || msg.includes('index is required'))) {
         return {
           code: "INDEX_REQUIRED",
-          userMessage: "This leaderboard is being prepared. Please check back shortly.",
+          userMessage: "The leaderboard database is being indexed. This can take a few minutes. Please check back shortly.",
           technical: msg
         };
     }

@@ -48,21 +48,13 @@ const LeaderboardItemSkeleton = () => (
   </div>
 );
 
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
-  isIndexError ? (
-    <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-      <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  ) : (
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
     <Alert variant="destructive" className="m-4">
       {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
       <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
     </Alert>
-  )
 );
 
 const EmptyState = () => (
@@ -121,7 +113,7 @@ const StreakLeaderboard = () => {
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       if (!mountedRef.current) return;
       try {
-        const playersData = querySnapshot.docs
+        let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
           .map((doc, index) => {
             const data = doc.data();
@@ -135,36 +127,34 @@ const StreakLeaderboard = () => {
             } as StreakPlayer;
           });
 
-        let finalPlayers = playersData;
-
         if (user && !playersData.some(p => p.uid === user.uid)) {
            try {
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
                 if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const streak = data.currentStreak || 0;
-                    if (streak > 0) {
-                        const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
-                        const currentUserData: StreakPlayer = {
-                            uid: user.uid,
-                            name: data.name || 'You',
-                            avatar: data.photoURL,
-                            currentStreak: streak,
-                            rank: userRank,
-                            isCurrentUser: true,
-                        };
-                        finalPlayers = [...finalPlayers, currentUserData];
-                    }
+                        const data = userDoc.data();
+                        const streak = data.currentStreak || 0;
+                        if (streak > 0) {
+                            const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
+                            const currentUserData: StreakPlayer = {
+                                uid: user.uid,
+                                name: data.name || 'You',
+                                avatar: data.photoURL,
+                                currentStreak: streak,
+                                rank: userRank,
+                                isCurrentUser: true,
+                            };
+                            playersData.push(currentUserData);
+                        }
                 }
            } catch (e) {
                 console.error("Error fetching current user for streak board", e);
            }
         }
-
+        
         if (mountedRef.current) {
-            setPlayers(finalPlayers);
-            lastGoodRef.current = finalPlayers;
+            setPlayers(playersData);
+            lastGoodRef.current = playersData;
             setError(null);
             setIsLoading(false);
         }
@@ -211,11 +201,10 @@ const StreakLeaderboard = () => {
       return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
     }
     
-    if (error && dataToRender.length === 0) {
+    if (error && error.code !== 'INDEX_REQUIRED' && dataToRender.length === 0) {
         return <ErrorState
-            title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"}
+            title={"Error Loading Leaderboard"}
             message={error.userMessage}
-            isIndexError={error.code === "INDEX_REQUIRED"}
             onRetry={startListener}
         />;
     }
@@ -238,19 +227,26 @@ const StreakLeaderboard = () => {
     );
   }, [isLoading, authLoading, error, players, user, startListener]);
 
+  const isIndexError = error?.code === 'INDEX_REQUIRED';
 
   return (
     <Card className="bg-card/80 shadow-lg mt-4">
       <CardHeader className="text-center">
-        <CardTitle>Daily Streak Champions</CardTitle>
+        <div className="flex items-center justify-center gap-2">
+            <CardTitle>Daily Streak Champions</CardTitle>
+            {isIndexError && (
+                <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
+                    <RefreshCw className="h-4 w-4" />
+                </Button>
+            )}
+        </div>
         <CardDescription>The most consistent players on the pitch.</CardDescription>
       </CardHeader>
-      {error && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) && (
+      {error && !isIndexError && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) && (
           <div className="px-4">
             <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
+                title={"Error Loading Leaderboard"} 
                 message={error.userMessage}
-                isIndexError={error.code === "INDEX_REQUIRED"}
                 onRetry={startListener}
             />
           </div>
