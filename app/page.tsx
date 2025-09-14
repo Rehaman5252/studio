@@ -52,7 +52,7 @@ const HomeContentSkeleton = () => (
 function HomePage() {
   const headerContent = (
       <div className="text-center">
-        <h1 className="text-6xl font-extrabold tracking-tighter animate-shimmer">
+        <h1 className="text-6xl font-extrabold tracking-tighter text-primary">
           indcric
         </h1>
         <p className="mt-1 text-sm font-normal text-foreground/80">
