@@ -27,7 +27,7 @@ RankIcon.displayName = 'RankIcon';
 const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
   <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
     <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) ?? "A"}</AvatarFallback></Avatar>
+    <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name ?? "Player"} /><AvatarFallback>{player.name?.charAt(0) ?? "A"}</AvatarFallback></Avatar>
     <p className="font-semibold text-foreground flex-1">{player.name ?? 'Anonymous'}</p>
     {player.disqualified ? (
       <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
@@ -36,7 +36,7 @@ const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, i
     ) : (
       <div className="text-right">
         <p className="font-bold text-primary">{player.score}</p>
-        <p className="text-xs text-muted-foreground">{player.time.toFixed(2)}s</p>
+        <p className="text-xs text-muted-foreground">{(player.time ?? 0).toFixed(2)}s</p>
       </div>
     )}
   </div>
@@ -55,19 +55,24 @@ const LeaderboardItemSkeleton = () => (
   </div>
 );
 
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
+const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry?: () => void }) => (
   isIndexError ? (
-    <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-      <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
+     <div className="m-4">
+      <Alert variant="default" className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
+        <AlertTriangle className="h-4 w-4 !text-yellow-300" />
+        <AlertTitle>{title}</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+      </Alert>
+       <div className="text-center mt-2">
+        {onRetry && <Button size="sm" variant="ghost" onClick={onRetry}><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>}
+      </div>
+    </div>
   ) : (
     <Alert variant="destructive" className="m-4">
       {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-      <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
+      {onRetry && <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>}
     </Alert>
   )
 );
@@ -128,14 +133,8 @@ const LiveLeaderboard = () => {
         ...(d.data() as LivePlayer),
         rank: index + 1,
       }));
-      if (rows.length > 0) {
-        lastGoodRef.current = rows;
-        setPlayers(rows);
-      } else if (lastGoodRef.current) {
-        setPlayers(lastGoodRef.current);
-      } else {
-        setPlayers([]);
-      }
+      setPlayers(rows);
+      lastGoodRef.current = rows;
       setError(null);
       setIsLoading(false);
     }, (err) => {
@@ -144,7 +143,7 @@ const LiveLeaderboard = () => {
       const mapped = mapFirestoreError(err);
       setError(mapped);
       setIsLoading(false);
-      if (lastGoodRef.current && lastGoodRef.current.length > 0) {
+      if (lastGoodRef.current) {
         setPlayers(lastGoodRef.current);
       }
     });
@@ -164,24 +163,24 @@ const LiveLeaderboard = () => {
   }, [startListener]);
 
   const content = useMemo(() => {
-    const showSkeletons = isLoading && !lastGoodRef.current;
-    if (showSkeletons) {
+    const dataToShow = players.length > 0 ? players : lastGoodRef.current || [];
+
+    if (isLoading && dataToShow.length === 0) {
       return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
     }
     
-    if (players.length === 0 && !error) return <WaitingState timeLeft={timeLeft} />;
-    
-    // Do not render error state if we have players to show
-    if (error && players.length === 0) {
+    if (error && dataToShow.length === 0) {
       return <ErrorState
-        title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"}
+        title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"}
         message={error.userMessage}
         isIndexError={error.code === "INDEX_REQUIRED"}
         onRetry={startListener}
       />;
     }
+    
+    if (dataToShow.length === 0) return <WaitingState timeLeft={timeLeft} />;
 
-    return players.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
+    return dataToShow.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
   }, [isLoading, authLoading, error, players, timeLeft, user, startListener]);
 
   return (
@@ -190,15 +189,13 @@ const LiveLeaderboard = () => {
         <CardTitle>Current Match</CardTitle>
         <CardDescription>Live standings for this 10-minute slot</CardDescription>
       </CardHeader>
-      {error && players.length > 0 && 
-        <div className="px-4">
-            <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"}
-                message={error.userMessage}
-                isIndexError={error.code === "INDEX_REQUIRED"}
-                onRetry={startListener}
-            />
-        </div>
+      {error && (players.length > 0 || (lastGoodRef.current && lastGoodRef.current.length > 0)) &&
+        <ErrorState 
+            title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"}
+            message={error.userMessage}
+            isIndexError={error.code === "INDEX_REQUIRED"}
+            onRetry={startListener}
+        />
       }
       <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
         <div className="space-y-2">{content}</div>

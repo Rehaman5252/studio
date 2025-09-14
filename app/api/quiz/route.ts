@@ -62,21 +62,19 @@ export async function POST(req: Request) {
       
       const mappedError = mapFirestoreError(err);
       
-      // If it's an index error, the frontend can handle it gracefully.
-      if (mappedError.code === "INDEX_REQUIRED") {
+      if (mappedError && mappedError.code === "INDEX_REQUIRED") {
           return NextResponse.json({ ok: false, error: mappedError, reqId }, { status: 500 });
       }
       
-      // For other errors, serve a fallback quiz.
       try {
           console.warn(`[quiz][${reqId}] AI failed, serving fallback for format=${format}`);
           const fallbackQuiz = getFallbackQuiz(format);
           return NextResponse.json({ 
-              ok: true, // Still a success from the user's perspective
+              ok: true,
               quiz: fallbackQuiz, 
               source: "fallback", 
               reqId,
-              error: IS_DEV ? mappedError.userMessage : "The AI is busy, here's a standard quiz."
+              error: IS_DEV ? mappedError?.userMessage : "The AI is busy, here's a standard quiz."
           }, { status: 200 });
       } catch (fallbackErr) {
           console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fallbackErr);
