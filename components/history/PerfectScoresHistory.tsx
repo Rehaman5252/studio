@@ -41,10 +41,8 @@ export default function PerfectScoresHistory() {
   return (
       <div className="space-y-4">
         {perfectScores.map((attempt) => (
-          <HistoryItem key={attempt.slotId} attempt={attempt} />
+          <HistoryItem key={`${attempt.slotId}-${attempt.userId}`} attempt={attempt} />
         ))}
       </div>
   );
 }
-
-    

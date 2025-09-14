@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Award } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { HistoryItem, HistoryItemSkeleton, ErrorState } from './QuizHistoryContent';
@@ -37,10 +37,8 @@ export default function AllHistory() {
   return (
       <div className="space-y-4">
         {quizHistory.data.map((attempt) => (
-          <HistoryItem key={attempt.slotId} attempt={attempt} />
+          <HistoryItem key={`${attempt.slotId}-${attempt.userId}`} attempt={attempt} />
         ))}
       </div>
   );
 }
-
-    

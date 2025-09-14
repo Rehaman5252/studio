@@ -27,7 +27,7 @@ const RewardsSkeleton = () => (
       <section>
         <h2 className="text-xl font-semibold text-foreground">Man of the Match Awards</h2>
         <p className="text-sm text-muted-foreground mb-4">A special award for every match you play. Claim your prize!</p>
-        <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full px-4">
             <CarouselContent className="-ml-4">
                 {[...Array(3)].map((_, index) => (
                     <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
@@ -35,10 +35,12 @@ const RewardsSkeleton = () => (
                     </CarouselItem>
                 ))}
             </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
         </Carousel>
       </section>
       <section>
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
+        <h2 className="text-xl font-semibold mb-4 text-foreground">Sponsor's Pavilion</h2>
         <div className="space-y-4">
           <Skeleton className="h-[96px] w-full" />
           <Skeleton className="h-[96px] w-full" />
@@ -201,25 +203,21 @@ function RewardsContentComponent() {
       );
     }
     return (
-        <div className="relative">
-            <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
-                <CarouselContent className="-ml-4">
-                {rewardableAttempts.map((attempt, index) => (
-                    <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                    <ScratchCard 
-                        brand={attempt.brand as string}
-                        isScratched={scratchedCards[attempt.slotId] || false}
-                        onScratch={() => handleScratch(attempt.slotId)}
-                    />
-                    </CarouselItem>
-                ))}
-                </CarouselContent>
-                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
-                    <CarouselPrevious />
-                    <CarouselNext />
-                </div>
-            </Carousel>
-        </div>
+        <Carousel opts={{ align: 'start' }} className="w-full max-w-full px-4">
+            <CarouselContent className="-ml-4">
+            {rewardableAttempts.map((attempt, index) => (
+                <CarouselItem key={`${attempt.slotId}-${index}`} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                <ScratchCard 
+                    brand={attempt.brand as string}
+                    isScratched={scratchedCards[attempt.slotId] || false}
+                    onScratch={() => handleScratch(attempt.slotId)}
+                />
+                </CarouselItem>
+            ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+        </Carousel>
     );
   };
 

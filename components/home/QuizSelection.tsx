@@ -57,6 +57,7 @@ const QuizSelectionComponent = ({ selectedBrand, setSelectedBrand, handleStartQu
 
     useEffect(() => {
         if (user?.uid) {
+            // Pre-fetch quiz data in the background to make quiz start faster
             fetch('/api/quiz', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
 
 const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
     loading: () => <LeaderboardSkeleton count={5} />,
@@ -42,13 +43,14 @@ const FullPageSkeleton = () => (
 
 function LeaderboardContentComponent() {
   const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState('live');
   
   if (loading) {
     return <FullPageSkeleton />;
   }
   
   return (
-    <Tabs defaultValue="live" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             <TabsTrigger value="all-time">All-Time</TabsTrigger>
@@ -56,30 +58,36 @@ function LeaderboardContentComponent() {
             {user && <TabsTrigger value="network">My Network</TabsTrigger>}
         </TabsList>
         
-        <div className="mt-4">
-            <TabsContent value="live">
+        <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4"
+          >
+            <TabsContent value="live" forceMount={activeTab === 'live'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <LiveLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="all-time">
+            <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="streaks">
+            <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <StreakLeaderboard />
                 </Suspense>
             </TabsContent>
             {user && (
-            <TabsContent value="network">
+            <TabsContent value="network" forceMount={activeTab === 'network'}>
                 <Suspense fallback={<LeaderboardSkeleton count={3} />}>
                     <MyNetworkLeaderboard />
                 </Suspense>
             </TabsContent>
             )}
-        </div>
+        </motion.div>
     </Tabs>
   );
 }
