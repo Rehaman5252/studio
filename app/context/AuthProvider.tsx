@@ -284,6 +284,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfileLoading(false);
         setLastAttemptInSlot(null);
         setQuizHistory({ data: [], loading: false, error: null });
+        quizHistoryCache.current = [];
       }
       return;
     }
@@ -330,7 +331,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     unsubs.push(unsubscribeAttempt);
 
     // Full history
-    if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true, data: quizHistoryCache.current }));
+    if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true, data: quizHistoryCache.current, error: null }));
     const historyQuery = query(
       collection(db, 'users', user.uid, 'quizAttempts'),
       orderBy('timestamp', 'desc')

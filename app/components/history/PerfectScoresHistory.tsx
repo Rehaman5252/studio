@@ -18,7 +18,7 @@ export default function PerfectScoresHistory() {
   if (quizHistory.loading && perfectScores.length === 0) {
     return (
       <div className="space-y-4">
-        {[...Array(3)].map((_, i) => <HistoryItemSkeleton key={i} />)}
+        {[...Array(3)].map((_, i) => <HistoryItemSkeleton key={i} />}
       </div>
     );
   }

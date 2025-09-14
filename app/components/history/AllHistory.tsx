@@ -14,7 +14,7 @@ export default function AllHistory() {
   if (quizHistory.loading && quizHistory.data.length === 0) {
     return (
       <div className="space-y-4">
-        {[...Array(5)].map((_, i) => <HistoryItemSkeleton key={i} />)}
+        {[...Array(5)].map((_, i) => <HistoryItemSkeleton key={i} />}
       </div>
     );
   }
@@ -31,6 +31,7 @@ export default function AllHistory() {
     );
   }
 
+  // Handle case where there's an error but no cached data
   if (quizHistory.error && quizHistory.data.length === 0) {
     return <ErrorState message={quizHistory.error} />;
   }
