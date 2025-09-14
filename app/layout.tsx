@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import ClientOnly from '@/app/components/ClientOnly';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -52,13 +53,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased prevent-select dark`}>
-        <Providers>
-          <div className="relative flex flex-col min-h-screen">
-            <main className="flex-1 pb-20">{children}</main>
-            <BottomNav />
-          </div>
-          <Toaster />
-        </Providers>
+        <ClientOnly>
+          <Providers>
+            <div className="relative flex flex-col min-h-screen">
+              <main className="flex-1 pb-20">{children}</main>
+              <BottomNav />
+            </div>
+            <Toaster />
+          </Providers>
+        </ClientOnly>
       </body>
     </html>
   );
