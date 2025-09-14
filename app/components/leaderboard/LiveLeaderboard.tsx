@@ -93,23 +93,18 @@ const LiveLeaderboard = () => {
   const [players, setPlayers] = useState<LivePlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
-  
-  const lastGoodRef = useRef<LivePlayer[]>([]);
-  
-  const startListener = useCallback(() => {
-    let isMounted = true;
-    setIsLoading(true);
-    setError(null);
 
-    if (!db) {
-        if(isMounted) {
-            setError({ userMessage: "Database not available." });
-            setIsLoading(false);
-        }
-        return () => { isMounted = false };
+  const unsubscribeRef = useRef<Unsubscribe | null>(null);
+  const lastGoodRef = useRef<LivePlayer[]>([]);
+  const slotIdRef = useRef<string>('');
+
+  const startListener = useCallback((slotId: string) => {
+    if (!db || !slotId) {
+      setError({ userMessage: 'Database or slotId not available.' });
+      setIsLoading(false);
+      return;
     }
 
-    const slotId = getQuizSlotId();
     const q = query(
       collection(db, 'leaderboard_live', slotId, 'entries'),
       orderBy('score', 'desc'),
@@ -117,67 +112,65 @@ const LiveLeaderboard = () => {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!isMounted) return;
-      const rows = snapshot.docs.map((d, index) => ({
-        ...(d.data() as LivePlayer),
-        rank: index + 1,
-      }));
-      setPlayers(rows);
-      lastGoodRef.current = rows;
-      setError(null);
-      setIsLoading(false);
-    }, (err) => {
-      if (!isMounted) return;
-      console.error("Live Leaderboard Error: ", err);
-      const mapped = mapFirestoreError(err);
-      setError(mapped);
-      setIsLoading(false);
-      setPlayers(lastGoodRef.current);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const rows = snapshot.docs.map((d, index) => ({
+          ...(d.data() as LivePlayer),
+          rank: index + 1,
+        }));
+        setPlayers(rows);
+        lastGoodRef.current = rows;
+        setError(null);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error('Live Leaderboard Error:', err);
+        setError(mapFirestoreError(err));
+        setPlayers(lastGoodRef.current);
+        setIsLoading(false);
+      }
+    );
 
-    return () => {
-        isMounted = false;
-        unsubscribe();
-    }
+    unsubscribeRef.current = unsubscribe;
   }, []);
 
   useEffect(() => {
     if (authLoading) return;
 
-    let unsubscribe = startListener();
-    
+    setIsLoading(true);
+    const initialSlotId = getQuizSlotId();
+    slotIdRef.current = initialSlotId;
+    startListener(initialSlotId);
+
     const interval = setInterval(() => {
-      unsubscribe();
-      unsubscribe = startListener();
-    }, 30000); // Re-subscribe every 30 seconds to catch new slots
+      const newSlotId = getQuizSlotId();
+      if (newSlotId !== slotIdRef.current) {
+        if (unsubscribeRef.current) {
+          unsubscribeRef.current();
+        }
+        slotIdRef.current = newSlotId;
+        setIsLoading(true); // Show loader for new slot
+        setPlayers([]); // Clear old players
+        startListener(newSlotId);
+      }
+    }, 1000);
 
     return () => {
-      unsubscribe();
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
       clearInterval(interval);
     };
   }, [authLoading, startListener]);
 
   const content = useMemo(() => {
-    const dataToShow = players;
-
-    if (isLoading && dataToShow.length === 0) {
-      return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
-    }
+    if (isLoading && players.length === 0) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
+    if (error && players.length === 0) return <ErrorState title={error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Error Loading Leaderboard'} message={error.userMessage} onRetry={() => startListener(getQuizSlotId())} />;
+    if (!isLoading && players.length === 0) return <WaitingState timeLeft={timeLeft} />;
     
-    if (error && dataToShow.length === 0) {
-      return <ErrorState
-        title={error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Error Loading Leaderboard'}
-        message={error.userMessage}
-        onRetry={startListener}
-      />;
-    }
-    
-    if (dataToShow.length === 0 && !isLoading) return <WaitingState timeLeft={timeLeft} />;
-
-    return dataToShow.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
-  }, [isLoading, authLoading, error, players, timeLeft, user, startListener]);
-
+    return players.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
+  }, [isLoading, players, error, timeLeft, user, startListener]);
 
   return (
     <Card className="bg-card/80 shadow-lg">
@@ -185,7 +178,7 @@ const LiveLeaderboard = () => {
         <div className="flex items-center justify-center gap-2">
             <CardTitle>Current Match</CardTitle>
             {error && (
-                <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
+                <Button size="sm" variant="ghost" onClick={() => startListener(getQuizSlotId())} className="text-muted-foreground hover:text-primary">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
             )}
