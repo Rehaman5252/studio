@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
@@ -136,6 +135,8 @@ const LiveLeaderboard = () => {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+
     setIsLoading(true);
     const initialSlotId = getQuizSlotId();
     slotIdRef.current = initialSlotId;
@@ -160,7 +161,7 @@ const LiveLeaderboard = () => {
       }
       clearInterval(interval);
     };
-  }, [startListener]);
+  }, [authLoading, startListener]);
 
   const content = useMemo(() => {
     const dataToShow = players;
