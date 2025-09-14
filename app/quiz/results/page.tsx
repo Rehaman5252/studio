@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { Suspense, useEffect, useState, memo } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,29 +17,14 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-
-const AnalysisDialog = dynamic(
-    async () => {
-        try {
-            return await import('@/components/history/AnalysisDialog');
-        } catch(e) {
-            console.error("Failed to load AnalysisDialog", e);
-            return function ChunkLoadError() { return <div className="p-4 text-destructive">Failed to load analysis. Please refresh.</div> };
-        }
-    }, 
-    { ssr: false, loading: () => <Skeleton className="h-40 w-full" /> }
-);
-const ReviewDialog = dynamic(
-    async () => {
-        try {
-            return await import('@/components/history/ReviewDialog');
-        } catch (e) {
-            console.error("Failed to load ReviewDialog", e);
-            return function ChunkLoadError() { return <div className="p-4 text-destructive">Failed to load review. Please refresh.</div> };
-        }
-    }, 
-    { ssr: false, loading: () => <Skeleton className="h-40 w-full" /> }
-);
+const AnalysisDialog = dynamic(() => import('@/components/history/AnalysisDialog'), {
+  loading: () => <Skeleton className="h-40 w-full" />,
+  ssr: false,
+});
+const ReviewDialog = dynamic(() => import('@/components/history/ReviewDialog'), {
+  loading: () => <Skeleton className="h-40 w-full" />,
+  ssr: false,
+});
 
 const LoadingSkeleton = () => (
     <PageWrapper title="Loading Results...">

@@ -45,6 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
+import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderboardTypes';
 
 
 /* -------------------------------- Types ------------------------------- */
@@ -476,7 +477,7 @@ const persistAttemptBatch = useCallback(
         if (!user || !db) throw new Error('Missing user/db');
         
         const sanitizedAttempt = sanitizeQuizAttempt(attempt);
-        if (!sanitizedAttempt) throw new Error("Attempt sanitization failed");
+        if (!sanitizedAttempt || !sanitizedAttempt.slotId) throw new Error("Attempt sanitization failed or missing slotId");
 
         const batch = writeBatch(db);
         const userDocRef = doc(db, 'users', user.uid);
@@ -533,17 +534,15 @@ const persistAttemptBatch = useCallback(
             // If daysDiff is 0, do nothing (already played today).
         }
         
-
-        // 4. Add updates to batch
         batch.update(userDocRef, userStatsUpdate);
         batch.set(statsDocRef, globalStatsUpdate, { merge: true });
 
-        // 5. Quiz Attempt Document
-        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId!);
+        // 4. Quiz Attempt Document
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId);
         batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
 
-        // 6. Live Leaderboard Entry
-        const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId!, 'entries', user.uid);
+        // 5. Live Leaderboard Entry
+        const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId, 'entries', user.uid);
         const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
         batch.set(
             liveEntryRef,
@@ -557,7 +556,6 @@ const persistAttemptBatch = useCallback(
             },
             { merge: true }
         );
-        
 
         try {
             await batch.commit();
@@ -565,15 +563,12 @@ const persistAttemptBatch = useCallback(
             console.error("Batch commit failed:", err);
             const code = err?.code || 'unknown';
             const message = err?.message || String(err);
-            // Throw a more descriptive error to be caught by the calling function
             throw new Error(`firestore_commit_failed:${code}:${message}`);
         }
     },
     [user]
 );
 
-
-  // Public API
   const addQuizAttempt = useCallback(
     async (attempt: QuizAttempt): Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }> => {
       if (!user || !db) {
@@ -581,6 +576,12 @@ const persistAttemptBatch = useCallback(
         toast({ title: 'Save Failed', description: msg, variant: 'destructive' });
         pushPending(attempt);
         return { success: false, error: msg, queued: true };
+      }
+
+      if (!attempt.slotId) {
+        const msg = 'Invalid attempt data: slotId is missing.';
+        toast({ title: 'Save Failed', description: msg, variant: 'destructive' });
+        return { success: false, error: msg };
       }
 
       try {
@@ -618,6 +619,7 @@ const persistAttemptBatch = useCallback(
       });
 
       for (const a of list) {
+        if (!a.slotId) continue;
         try {
           await persistAttemptBatch(a);
           popPending(a.slotId);

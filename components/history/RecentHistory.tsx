@@ -41,7 +41,7 @@ export default function RecentHistory() {
   return (
       <div className="space-y-4">
         {recentAttempts.map((attempt) => (
-          <HistoryItem key={`${attempt.slotId}-${attempt.userId}`} attempt={attempt} />
+          <HistoryItem key={attempt.slotId} attempt={attempt} />
         ))}
       </div>
   );

@@ -37,7 +37,7 @@ export default function AllHistory() {
   return (
       <div className="space-y-4">
         {quizHistory.data.map((attempt) => (
-          <HistoryItem key={`${attempt.slotId}-${attempt.userId}`} attempt={attempt} />
+          <HistoryItem key={attempt.slotId} attempt={attempt} />
         ))}
       </div>
   );

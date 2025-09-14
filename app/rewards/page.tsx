@@ -6,18 +6,18 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { Trophy, AlertTriangle } from 'lucide-react';
-import { GenericOffer } from '@/components/rewards/RewardsContent';
 import PageWrapper from '@/components/PageWrapper';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const RewardsContent = dynamic(
     async () => {
         try {
-            return await import('@/components/rewards/RewardsContent');
+            const mod = await import('@/components/rewards/RewardsContent');
+            return mod.default;
         } catch (e) {
             console.error("Failed to load RewardsContent", e);
             return function ChunkLoadFallback() {
-                return (
+                 return (
                      <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>Error</AlertTitle>
@@ -32,6 +32,20 @@ const RewardsContent = dynamic(
         ssr: false,
     }
 );
+
+const GenericOffer = dynamic(
+    async () => {
+        try {
+            const mod = await import('@/components/rewards/RewardsContent');
+            return mod.GenericOffer;
+        } catch (e) {
+            console.error("Failed to load GenericOffer", e);
+            return () => <Skeleton className="h-24 w-full" />;
+        }
+    },
+    { ssr: false }
+);
+
 
 const LoginPrompt = dynamic(
     async () => {

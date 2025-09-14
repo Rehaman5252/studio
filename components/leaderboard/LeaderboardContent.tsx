@@ -11,6 +11,14 @@ import { motion } from 'framer-motion';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
+const ChunkLoadError = () => (
+    <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error Loading Component</AlertTitle>
+        <AlertDescription>A piece of the leaderboard failed to load. Please refresh the page.</AlertDescription>
+    </Alert>
+)
+
 const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard').catch(err => { console.error("Chunk load failed for LiveLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
@@ -42,14 +50,6 @@ const FullPageSkeleton = () => (
       <LeaderboardSkeleton />
     </div>
 );
-
-const ChunkLoadError = () => (
-    <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error Loading Component</AlertTitle>
-        <AlertDescription>A piece of the leaderboard failed to load. Please refresh the page.</AlertDescription>
-    </Alert>
-)
 
 function LeaderboardContentComponent() {
   const { user, loading } = useAuth();

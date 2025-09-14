@@ -14,8 +14,7 @@ function isValidQuizShape(candidate: any): boolean {
 
   return candidate.questions.every((q: any) =>
     typeof q?.question === "string" && q.question.length > 0 &&
-    Array.isArray(q?.options) &&
-    q.options.length === 4 &&
+    Array.isArray(q?.options) && q.options.length === 4 &&
     q.options.every((opt: any) => typeof opt === 'string' && opt.length > 0) &&
     typeof q?.correctAnswer === 'string' && q.options.includes(q.correctAnswer) &&
     typeof q?.explanation === 'string' && q.explanation.length > 0
