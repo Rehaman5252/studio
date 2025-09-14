@@ -67,17 +67,20 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const [isReviewed, setIsReviewed] = useState(attempt.reviewed || false);
   const [isReviewing, setIsReviewing] = useState(false);
 
+  const isDisqualified = !!attempt.reason;
 
   const handleReviewClick = useCallback(() => {
-    if (isReviewed || isReviewing || isDisqualified) return;
+    if (isDisqualified || isReviewed || isReviewing) return;
     
+    // If already marked as reviewed in the database but local state is out of sync
     if (attempt.reviewed) {
+        setIsReviewed(true);
         setShowReviewDialog(true);
     } else {
-        setIsReviewing(true);
-        setShowAdDialog(true);
+        setIsReviewing(true); // Disable button immediately
+        setShowAdDialog(true); // Show the ad
     }
-  }, [isReviewed, isReviewing, attempt.reviewed]);
+  }, [isDisqualified, isReviewed, isReviewing, attempt.reviewed]);
 
   const handleAdFinished = useCallback(async () => {
     setShowAdDialog(false);
@@ -98,13 +101,13 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         });
       }
     } finally {
-      setIsReviewing(false);
+      setIsReviewing(false); // End the "reviewing" process
     }
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
     if (!open) {
-        // If user closes the ad dialog manually, stop the reviewing process.
+        // If user closes the ad dialog manually, stop the "reviewing" process.
         setIsReviewing(false);
     }
     setShowAdDialog(open);
@@ -112,7 +115,6 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   
   const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
-  const isDisqualified = !!attempt.reason;
   const slotTiming = getSlotTimings(attempt.timestamp);
 
   const formattedDate = !isNaN(attemptDate.getTime()) 
@@ -194,7 +196,3 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
-
-    
-
-    
