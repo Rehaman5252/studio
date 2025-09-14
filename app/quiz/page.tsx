@@ -7,7 +7,8 @@ import { CricketLoading } from '@/components/CricketLoading';
 import dynamic from 'next/dynamic';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const QuizClient = dynamic(
   () => import('@/components/quiz/QuizClient').catch(err => {
@@ -18,7 +19,11 @@ const QuizClient = dynamic(
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error Loading Quiz</AlertTitle>
           <AlertDescription>
-            A component failed to load. Please refresh the page to try again.
+            A component failed to load. Please check your connection and try again.
+             <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+            </Button>
           </AlertDescription>
         </Alert>
       </div>

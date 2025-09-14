@@ -7,7 +7,8 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const ContributionPageContent = dynamic(
     () => import('@/components/profile/ContributionPageContent').catch(e => {
@@ -16,8 +17,14 @@ const ContributionPageContent = dynamic(
             return (
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Failed to load content. Please refresh the page.</AlertDescription>
+                    <AlertTitle>Error Loading Content</AlertTitle>
+                    <AlertDescription>
+                        There was a problem loading this feature. Please check your connection and try again.
+                         <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Refresh
+                        </Button>
+                    </AlertDescription>
                 </Alert>
             );
         }

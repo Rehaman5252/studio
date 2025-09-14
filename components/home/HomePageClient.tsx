@@ -8,17 +8,35 @@ import { useQuizStatus } from '@/context/QuizStatusProvider';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { memo, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { Button } from '@/components/ui/button';
 
 const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
     loading: () => <Skeleton className="h-40 w-full" />,
 });
 
-const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent'), { 
+const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent').catch(e => {
+    console.error("Failed to load HomeClientContent chunk", e);
+    return function ChunkLoadFallback() {
+        return (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error Loading Content</AlertTitle>
+                <AlertDescription>
+                    There was a problem loading this feature. Please check your connection and try again.
+                     <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        );
+    }
+}), { 
     loading: () => <HomeContentSkeleton />,
     ssr: false 
 });

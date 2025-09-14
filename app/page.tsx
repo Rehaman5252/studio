@@ -6,7 +6,8 @@ import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const HomePageClient = dynamic(
   () => import('@/components/home/HomePageClient').catch(error => {
@@ -15,8 +16,14 @@ const HomePageClient = dynamic(
       return (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>Failed to load page content. Please refresh the page.</AlertDescription>
+          <AlertTitle>Error Loading Page</AlertTitle>
+          <AlertDescription>
+            There was a problem loading content. Please check your connection and try again.
+             <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+            </Button>
+          </AlertDescription>
         </Alert>
       );
     };
@@ -53,7 +60,7 @@ function HomePage() {
   const headerContent = (
       <div className="text-center">
         <h1 className="text-6xl font-extrabold tracking-tighter animate-shimmer">
-          indcric
+          CricBlitz
         </h1>
         <p className="mt-1 text-sm font-normal text-foreground/80">
           win ₹100 for every 100 seconds!

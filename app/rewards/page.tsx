@@ -5,9 +5,10 @@ import React, { memo } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { Trophy, AlertTriangle } from 'lucide-react';
+import { Trophy, AlertTriangle, RefreshCw } from 'lucide-react';
 import PageWrapper from '@/components/PageWrapper';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 const RewardsContent = dynamic(
     () => import('@/components/rewards/RewardsContent').catch(e => {
@@ -16,8 +17,14 @@ const RewardsContent = dynamic(
              return (
                  <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Failed to load rewards. Please refresh the page.</AlertDescription>
+                    <AlertTitle>Error Loading Rewards</AlertTitle>
+                    <AlertDescription>
+                        There was a problem loading your rewards. Please check your connection and try again.
+                         <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Refresh
+                        </Button>
+                    </AlertDescription>
                 </Alert>
             );
         }

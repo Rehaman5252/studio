@@ -6,7 +6,8 @@ import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import PageWrapper from "@/components/PageWrapper";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 
 const ProfilePageContent = dynamic(
@@ -16,8 +17,14 @@ const ProfilePageContent = dynamic(
              return (
                  <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Failed to load profile content. Please refresh the page.</AlertDescription>
+                    <AlertTitle>Error Loading Profile</AlertTitle>
+                    <AlertDescription>
+                        There was a problem loading your profile. Please check your connection and try again.
+                         <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Refresh
+                        </Button>
+                    </AlertDescription>
                 </Alert>
             );
         }
