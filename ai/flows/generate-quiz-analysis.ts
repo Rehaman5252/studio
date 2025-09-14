@@ -91,8 +91,7 @@ const prompt = ai.definePrompt({
     2.  **Strengths:** Based on the questions answered correctly and quickly, identify 2-3 key strengths.
     3.  **Weaknesses:** Based on the questions where answers were incorrect or slow, identify 2-3 areas for improvement.
     4.  **Recommendations:** Provide 2-3 concrete, actionable recommendations for the user to focus on.
-    5.  **Format Output:** Compile all this information into the required JSON format.
-    6. **Source**: Set the source to "ai".
+    5.  **Source**: Set the source to "ai".
   `,
 });
 

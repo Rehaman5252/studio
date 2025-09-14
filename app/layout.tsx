@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   title: 'indcric - The Ultimate Cricket Quiz',
   description: 'Test your cricket knowledge and win rewards!',
   manifest: '/manifest.json',
-  themeColor: '#D4AF37',
+  themeColor: '#D4AF37', // Gold color
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

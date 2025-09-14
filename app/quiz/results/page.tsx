@@ -245,7 +245,7 @@ const ResultsContent = () => {
   };
   
   
-export default function QuizResultsPage() {
+export default function QuizResultsWrapperPage() {
     return (
         <Suspense fallback={<LoadingSkeleton />}>
             <ResultsContent />

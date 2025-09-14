@@ -38,8 +38,9 @@ export const QuizAttempt = z.object({
   reviewed: z.boolean().optional().default(false).describe("Whether the user has reviewed the answers."),
 });
 
+// This is the single source of truth for the AI Analysis output.
 export const QuizAnalysisOutputSchema = z.object({
-  summary: z.string().describe("A concise overall insight into the user's performance."),
+  summary: z.string().describe("A concise overall insight into the user's performance, mentioning score and format."),
   strengths: z.array(z.string()).describe("A list of 2-3 key strengths the user demonstrated."),
   weaknesses: z.array(z.string()).describe("A list of 2-3 specific areas for improvement."),
   recommendations: z.array(z.string()).describe("A list of 2-3 actionable next steps for the user."),

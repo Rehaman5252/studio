@@ -74,8 +74,8 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
         <Card className={cn(
             "p-0 overflow-hidden shadow-lg relative w-full h-full rounded-2xl transition-all duration-500",
             isScratched
-                ? "bg-gradient-to-br from-accent/20 to-accent/40 text-accent-foreground"
-                : "bg-gradient-to-br from-primary to-amber-600 text-primary-foreground"
+                ? "bg-gradient-to-br from-amber-200 to-yellow-400 text-amber-900"
+                : "bg-gradient-to-br from-yellow-400 to-amber-600 text-white"
         )}>
             {!isScratched ? (
                 <button 
@@ -92,11 +92,11 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
                     <p className="text-sm">From {brand}</p>
                 </button>
             ) : (
-                <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-fade-in-up text-background">
+                <div className="h-full flex flex-col items-center justify-center p-4 text-center animate-fade-in-up">
                     <Trophy className="h-10 w-10 mb-2 text-current" />
                     <h3 className="text-lg font-bold text-current">{reward.gift}</h3>
                     <p className="text-xs text-current/80 mt-1">{reward.description}</p>
-                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-background/80 text-foreground hover:bg-background" size="sm" type="button">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
+                    <Button onClick={() => window.open(reward.link, '_blank')} className="mt-4 bg-white/20 text-white hover:bg-white/30" size="sm" type="button">Claim Now <ExternalLink className="ml-2 h-4 w-4" /></Button>
                 </div>
             )}
         </Card>
