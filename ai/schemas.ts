@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 /**
- * @fileOverview Zod schemas for the CricBlitz application.
+ * @fileOverview Zod schemas for the indcric application.
  *
  * This file defines the core data structures used throughout the app,
  * ensuring type safety and consistent data validation. These schemas are kept

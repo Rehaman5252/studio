@@ -10,7 +10,7 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 
 function isValidQuizShape(candidate: any): boolean {
   if (!candidate || typeof candidate !== "object") return false;
-  if (!Array.isArray(candidate.questions) || candidate.questions.length !== 5) return false;
+  if (!Array.isArray(candidate.questions) || candidate.questions.length < 1) return false;
 
   return candidate.questions.every((q: any) =>
     typeof q?.question === "string" && q.question.length > 0 &&
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       const aiResult = await generateQuizFlow({ format, userId });
 
       if (!isValidQuizShape(aiResult)) {
-        console.warn(`[quiz][${reqId}] AI returned invalid shape`, {
+        console.warn(`[quiz][${reqId}] AI returned invalid shape, using fallback`, {
           aiSample: aiResult?.questions?.slice(0, 1),
         });
         throw new Error('AI returned an invalid quiz structure.');
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
               quiz: fallbackQuiz, 
               source: "fallback", 
               reqId,
-              error: IS_DEV ? mappedError?.userMessage : "The AI is busy, here's a standard quiz."
+              error: IS_DEV ? { message: mappedError?.userMessage || "The AI is busy, here's a standard quiz." } : { message: "The AI is busy, here's a standard quiz." }
           }, { status: 200 });
       } catch (fallbackErr) {
           console.error(`[quiz][${reqId}] FATAL: Fallback failed too`, fallbackErr);
