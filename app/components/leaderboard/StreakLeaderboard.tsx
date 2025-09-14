@@ -87,27 +87,22 @@ const StreakLeaderboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-  const listenerRef = useRef<Unsubscribe | null>(null);
   const lastGoodRef = useRef<StreakPlayer[]>([]);
 
   const startListener = useCallback(() => {
-    if (listenerRef.current) {
-      listenerRef.current();
-    }
-    
     setIsLoading(true);
     setError(null);
 
     if (!db) {
         setError({ userMessage: "Database not available." });
         setIsLoading(false);
-        return;
+        return () => {};
     }
 
     const usersCollection = collection(db, 'users');
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
 
-    listenerRef.current = onSnapshot(q, async (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       try {
         let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
@@ -167,18 +162,14 @@ const StreakLeaderboard = () => {
         setPlayers(lastGoodRef.current);
       }
     });
+
+    return unsubscribe;
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading) {
-      startListener();
-    }
-    return () => {
-      if (listenerRef.current) {
-        listenerRef.current();
-        listenerRef.current = null;
-      }
-    };
+    if (authLoading) return;
+    const unsubscribe = startListener();
+    return () => unsubscribe();
   }, [authLoading, startListener]);
 
 

@@ -90,21 +90,16 @@ const LiveLeaderboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
   
-  const listenerRef = useRef<Unsubscribe | null>(null);
   const lastGoodRef = useRef<LivePlayer[]>([]);
   
   const startListener = useCallback(() => {
-    if (listenerRef.current) {
-      listenerRef.current();
-    }
-    
     setIsLoading(true);
     setError(null);
 
     if (!db) {
         setError({ userMessage: "Database not available." });
         setIsLoading(false);
-        return;
+        return () => {};
     }
 
     const slotId = getQuizSlotId();
@@ -115,7 +110,7 @@ const LiveLeaderboard = () => {
       limit(50)
     );
 
-    listenerRef.current = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const rows = snapshot.docs.map((d, index) => ({
         ...(d.data() as LivePlayer),
         rank: index + 1,
@@ -135,17 +130,18 @@ const LiveLeaderboard = () => {
       }
     });
 
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    startListener();
-    const slotInterval = setInterval(() => startListener(), 30000); 
+    const unsubscribe = startListener();
+    const slotInterval = setInterval(() => {
+        unsubscribe();
+        startListener();
+    }, 30000); 
 
     return () => {
-        if (listenerRef.current) {
-          listenerRef.current();
-          listenerRef.current = null;
-        }
+        unsubscribe();
         clearInterval(slotInterval);
     };
   }, [startListener]);
