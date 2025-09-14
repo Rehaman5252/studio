@@ -2,7 +2,6 @@
 'use client';
 
 import type { CubeBrand } from '@/components/home/brandData';
-import type { QuizAttempt } from '@/ai/schemas';
 import { useAuth } from '@/context/AuthProvider';
 import { brandData } from '@/components/home/brandData';
 import { useQuizStatus } from '@/context/QuizStatusProvider';
@@ -148,7 +147,7 @@ function HomePageClient() {
             
              <div className="mt-6">
                 <StartQuizButton
-                    brandFormat={hasPlayedInCurrentSlot ? (lastAttemptInSlot as QuizAttempt).format : selectedBrand.format}
+                    brandFormat={hasPlayedInCurrentSlot && lastAttemptInSlot ? lastAttemptInSlot.format : selectedBrand.format}
                     onClick={() => handleStartQuiz()}
                     isDisabled={isQuizStatusLoading}
                     hasPlayed={hasPlayedInCurrentSlot}

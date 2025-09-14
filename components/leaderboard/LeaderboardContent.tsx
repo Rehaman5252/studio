@@ -8,20 +8,22 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
-const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
+const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard').catch(err => { console.error("Chunk load failed for LiveLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
-const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard'), {
+const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard').catch(err => { console.error("Chunk load failed for AllTimeLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
-const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard'), {
+const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard').catch(err => { console.error("Chunk load failed for MyNetworkLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={3} />,
     ssr: false,
 });
-const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakLeaderboard'), {
+const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakLeaderboard').catch(err => { console.error("Chunk load failed for StreakLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
@@ -40,6 +42,14 @@ const FullPageSkeleton = () => (
       <LeaderboardSkeleton />
     </div>
 );
+
+const ChunkLoadError = () => (
+    <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error Loading Component</AlertTitle>
+        <AlertDescription>A piece of the leaderboard failed to load. Please refresh the page.</AlertDescription>
+    </Alert>
+)
 
 function LeaderboardContentComponent() {
   const { user, loading } = useAuth();

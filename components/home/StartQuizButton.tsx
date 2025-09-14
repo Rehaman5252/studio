@@ -3,7 +3,7 @@
 
 import { memo } from 'react';
 import { Button } from '@/components/ui/button';
-import { BarChart } from 'lucide-react';
+import { BarChart, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface StartQuizButtonProps {
@@ -23,7 +23,7 @@ const StartQuizButtonComponent = ({ brandFormat, onClick, isDisabled, hasPlayed 
              <Button 
                 size="lg" 
                 variant="default"
-                className="w-full h-12 rounded-full text-xl font-bold shadow-lg transition-all duration-300 ease-in-out"
+                className="w-full h-14 rounded-full text-xl font-bold shadow-lg shadow-primary/20 transition-all duration-300 ease-in-out animate-glow"
                 onClick={onClick}
                 disabled={isDisabled}
              >
@@ -33,7 +33,7 @@ const StartQuizButtonComponent = ({ brandFormat, onClick, isDisabled, hasPlayed 
                     </>
                 ) : (
                     <>
-                        Start {brandFormat} Quiz
+                       <Play className="mr-2 fill-current" /> Start {brandFormat} Quiz
                     </>
                 )}
             </Button>

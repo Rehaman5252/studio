@@ -6,7 +6,7 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 0 0% 2%;
+    --background: 0 0% 2%; /* Black */
     --foreground: 0 0% 98%;
     
     --card: 0 0% 5%;
@@ -15,7 +15,7 @@
     --popover: 0 0% 2%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 45 90% 55%;
+    --primary: 45 90% 55%; /* Gold */
     --primary-foreground: 0 0% 10%;
 
     --secondary: 0 0% 10%;
@@ -24,7 +24,7 @@
     --muted: 0 0% 10%;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 45 80% 50%;
+    --accent: 45 80% 50%; /* Gold */
     --accent-foreground: 0 0% 10%;
 
     --destructive: 0 62.8% 30.6%;
@@ -32,7 +32,7 @@
     
     --border: 0 0% 12%;
     --input: 0 0% 12%;
-    --ring: 45 90% 55%;
+    --ring: 45 90% 55%; /* Gold */
 
     --radius: 0.5rem;
     --font-inter: 'Inter', sans-serif;
