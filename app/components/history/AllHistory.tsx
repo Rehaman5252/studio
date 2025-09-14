@@ -14,7 +14,7 @@ export default function AllHistory() {
   if (quizHistory.loading && quizHistory.data.length === 0) {
     return (
       <div className="space-y-4">
-        {[...Array(5)].map((_, i) => <HistoryItemSkeleton key={i} />}
+        {[...Array(5)].map((_, i) => <HistoryItemSkeleton key={i} />)}
       </div>
     );
   }
