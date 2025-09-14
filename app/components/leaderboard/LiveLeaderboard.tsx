@@ -89,20 +89,21 @@ const LiveLeaderboard = () => {
   const [players, setPlayers] = useState<LivePlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ code?: string, userMessage: string } | null>(null);
+  
   const listenerRef = useRef<Unsubscribe | null>(null);
   const lastGoodRef = useRef<LivePlayer[] | null>(null);
   const mountedRef = useRef(true);
 
   const startListener = useCallback(() => {
     if (listenerRef.current) {
-      listenerRef.current();
-      listenerRef.current = null;
+      listenerRef.current(); // Detach previous listener
     }
+    
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-        if(mountedRef.current) {
+        if (mountedRef.current) {
             setError({ userMessage: "Database not available." });
             setIsLoading(false);
         }
@@ -117,7 +118,7 @@ const LiveLeaderboard = () => {
       limit(50)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    listenerRef.current = onSnapshot(q, (snapshot) => {
       if(!mountedRef.current) return;
       const rows = snapshot.docs.map((d, index) => ({
         ...(d.data() as LivePlayer),
@@ -138,16 +139,19 @@ const LiveLeaderboard = () => {
       }
     });
 
-    listenerRef.current = unsubscribe;
   }, []);
 
   useEffect(() => {
     mountedRef.current = true;
     startListener();
-    const slotInterval = setInterval(() => startListener(), 30000); // Re-subscribe periodically to catch slot change
+    const slotInterval = setInterval(() => startListener(), 30000); 
+
     return () => {
         mountedRef.current = false;
-        if (listenerRef.current) listenerRef.current();
+        if (listenerRef.current) {
+          listenerRef.current();
+          listenerRef.current = null;
+        }
         clearInterval(slotInterval);
     };
   }, [startListener]);

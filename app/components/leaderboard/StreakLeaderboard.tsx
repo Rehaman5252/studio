@@ -89,29 +89,25 @@ const StreakLeaderboard = () => {
 
   const listenerRef = useRef<Unsubscribe | null>(null);
   const lastGoodRef = useRef<StreakPlayer[] | null>(null);
-  const mountedRef = useRef(true);
 
   const startListener = useCallback(() => {
     if (listenerRef.current) {
       listenerRef.current();
-      listenerRef.current = null;
     }
+    
     setIsLoading(true);
     setError(null);
 
     if (!db) {
-        if (mountedRef.current) {
-            setError({ userMessage: "Database not available." });
-            setIsLoading(false);
-        }
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
         return;
     }
 
     const usersCollection = collection(db, 'users');
     const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
 
-    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      if (!mountedRef.current) return;
+    listenerRef.current = onSnapshot(q, async (querySnapshot) => {
       try {
         let playersData = querySnapshot.docs
           .filter(doc => (doc.data().currentStreak || 0) > 0)
@@ -132,42 +128,37 @@ const StreakLeaderboard = () => {
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
                 if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        const streak = data.currentStreak || 0;
-                        if (streak > 0) {
-                            const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
-                            const currentUserData: StreakPlayer = {
-                                uid: user.uid,
-                                name: data.name || 'You',
-                                avatar: data.photoURL,
-                                currentStreak: streak,
-                                rank: userRank,
-                                isCurrentUser: true,
-                            };
-                            playersData.push(currentUserData);
-                        }
+                    const data = userDoc.data();
+                    const streak = data.currentStreak || 0;
+                    if (streak > 0) {
+                        const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
+                        const currentUserData: StreakPlayer = {
+                            uid: user.uid,
+                            name: data.name || 'You',
+                            avatar: data.photoURL,
+                            currentStreak: streak,
+                            rank: userRank,
+                            isCurrentUser: true,
+                        };
+                        playersData.push(currentUserData);
+                    }
                 }
            } catch (e) {
                 console.error("Error fetching current user for streak board", e);
            }
         }
         
-        if (mountedRef.current) {
-            const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
-            setPlayers(sortedPlayers);
-            lastGoodRef.current = sortedPlayers;
-            setError(null);
-            setIsLoading(false);
-        }
+        const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
+        setPlayers(sortedPlayers);
+        lastGoodRef.current = sortedPlayers;
+        setError(null);
+        setIsLoading(false);
       } catch (e) {
-         if (mountedRef.current) {
-            console.error("Snapshot processing error:", e);
-            setError({ userMessage: "Error processing leaderboard data." });
-            setIsLoading(false);
-         }
+        console.error("Snapshot processing error:", e);
+        setError({ userMessage: "Error processing leaderboard data." });
+        setIsLoading(false);
       }
     }, (err: any) => {
-      if (!mountedRef.current) return;
       console.error("Streak leaderboard snapshot error:", err);
       const mappedError = mapFirestoreError(err);
       setError(mappedError);
@@ -176,17 +167,13 @@ const StreakLeaderboard = () => {
         setPlayers(lastGoodRef.current);
       }
     });
-
-    listenerRef.current = unsubscribe;
   }, [user]);
 
   useEffect(() => {
-    mountedRef.current = true;
     if (!authLoading) {
       startListener();
     }
     return () => {
-      mountedRef.current = false;
       if (listenerRef.current) {
         listenerRef.current();
         listenerRef.current = null;

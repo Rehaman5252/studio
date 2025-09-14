@@ -37,6 +37,7 @@ import {
   limit,
   getDocs,
   orderBy,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
@@ -45,8 +46,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
-import type { AllTimePlayer, LivePlayer } from '@/components/leaderboard/leaderboardTypes';
-
 
 /* -------------------------------- Types ------------------------------- */
 
@@ -270,27 +269,31 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   /* ------------------------- Primary subscriptions ------------------------ */
 
   useEffect(() => {
-    let unsubs: Array<() => void> = [];
+    let unsubs: Unsubscribe[] = [];
+    let isMounted = true;
 
     if (firebaseLoading || !firebaseAppReady) {
-      setProfileLoading(true);
+      if (isMounted) setProfileLoading(true);
       return;
     }
 
     if (!user) {
-      setProfile(null);
-      setProfileLoading(false);
-      setLastAttemptInSlot(null);
-      setQuizHistory({ data: [], loading: false, error: null });
+      if (isMounted) {
+        setProfile(null);
+        setProfileLoading(false);
+        setLastAttemptInSlot(null);
+        setQuizHistory({ data: [], loading: false, error: null });
+      }
       return;
     }
 
     // Profile
-    setProfileLoading(true);
+    if (isMounted) setProfileLoading(true);
     const userRef = doc(db, 'users', user.uid);
     const unsubscribeProfile = onSnapshot(
       userRef,
       (docSnap) => {
+        if (!isMounted) return;
         if (docSnap.exists()) {
           setProfile(docSnap.data() as UserProfile);
         } else {
@@ -300,6 +303,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         setProfileLoading(false);
       },
       (error) => {
+        if (!isMounted) return;
         console.error('Error fetching profile with onSnapshot:', error);
         setProfile(null);
         setProfileLoading(false);
@@ -313,9 +317,11 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAttempt = onSnapshot(
       attemptDocRef,
       (docSnap) => {
+        if (!isMounted) return;
         setLastAttemptInSlot(docSnap.exists() ? (docSnap.data() as QuizAttempt) : null);
       },
       (error) => {
+        if (!isMounted) return;
         console.warn('Could not listen to slot attempt:', error.message);
         setLastAttemptInSlot(null);
       }
@@ -323,7 +329,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     unsubs.push(unsubscribeAttempt);
 
     // Full history
-    setQuizHistory((prev) => ({ ...prev, loading: true }));
+    if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true }));
     const historyQuery = query(
       collection(db, 'users', user.uid, 'quizAttempts'),
       orderBy('timestamp', 'desc')
@@ -331,10 +337,12 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeHistory = onSnapshot(
       historyQuery,
       (querySnapshot) => {
+        if (!isMounted) return;
         const historyData = querySnapshot.docs.map((d) => d.data() as QuizAttempt);
         setQuizHistory({ data: historyData, loading: false, error: null });
       },
       (error) => {
+        if (!isMounted) return;
         console.error('Error fetching quiz history:', error);
         setQuizHistory({ data: [], loading: false, error: mapFirestoreError(error).userMessage });
       }
@@ -342,6 +350,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     unsubs.push(unsubscribeHistory);
 
     return () => {
+      isMounted = false;
       unsubs.forEach((u) => u && u());
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);

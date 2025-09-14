@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getCountFromServer, onSnapshot } from 'firebase/firestore';
+import { doc, collection, getCountFromServer, onSnapshot, Unsubscribe } from 'firebase/firestore';
 
 interface QuizStatusContextType {
   timeLeft: { minutes: number; seconds: number };
@@ -25,6 +25,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  const listenersRef = useRef<Unsubscribe[]>([]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -46,11 +48,18 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   }, [calculateTimeLeft]);
 
   useEffect(() => {
-    if (!db) return;
+    if (!db) {
+        setIsLoading(false);
+        return;
+    }
+    
+    let isMounted = true;
     setIsLoading(true);
 
+    // Global stats listener
     const statsDocRef = doc(db, 'globals', 'stats');
     const unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
+        if (!isMounted) return;
         if (doc.exists()) {
             const data = doc.data();
             setPlayersPlayed(data.totalQuizzesPlayed || 0);
@@ -59,26 +68,31 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
     }, (error) => {
         console.error("Failed to listen to global stats:", error);
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
     });
+    listenersRef.current.push(unsubscribeStats);
 
+    // Live player count
     const fetchLivePlayers = async () => {
+        if (!isMounted || !db) return;
         try {
             const currentSlotId = getQuizSlotId();
             const liveEntriesRef = collection(db, 'leaderboard_live', currentSlotId, 'entries');
             const snapshot = await getCountFromServer(liveEntriesRef);
-            setPlayersPlaying(snapshot.data().count);
+            if (isMounted) setPlayersPlaying(snapshot.data().count);
         } catch (error) {
             console.warn("Could not fetch live player count:", error);
         }
     };
     
     fetchLivePlayers();
-    const interval = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
+    const interval = setInterval(fetchLivePlayers, 15000); 
 
     return () => {
-        unsubscribeStats();
+        isMounted = false;
         clearInterval(interval);
+        listenersRef.current.forEach(unsub => unsub());
+        listenersRef.current = [];
     };
   }, []);
 
