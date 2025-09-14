@@ -6,32 +6,32 @@
 /* Theme variables */
 @layer base {
   :root {
-    --background: 100 12% 5%; /* Very Dark Green/Almost Black */
+    --background: 80 5% 5%; /* Very Dark Green/Almost Black */
     --foreground: 45 93% 90%; /* Pale Gold */
 
-    --card: 100 12% 8%;
+    --card: 80 5% 8%;
     --card-foreground: 45 93% 90%;
 
-    --popover: 100 12% 5%;
+    --popover: 80 5% 5%;
     --popover-foreground: 45 93% 90%;
 
     --primary: 45 93% 47%; /* Gold */
-    --primary-foreground: 100 12% 5%;
+    --primary-foreground: 80 5% 5%;
 
-    --secondary: 100 10% 15%;
+    --secondary: 80 5% 15%;
     --secondary-foreground: 45 93% 90%;
 
-    --muted: 100 10% 15%;
+    --muted: 80 5% 15%;
     --muted-foreground: 45 30% 70%;
 
     --accent: 14 80% 55%; /* Sunset Orange */
-    --accent-foreground: 100 12% 5%;
+    --accent-foreground: 80 5% 5%;
 
-    --destructive: 38 92% 50%; /* Changed from Red to a rich Gold/Amber */
-    --destructive-foreground: 100 12% 5%; /* Changed to dark text for contrast */
+    --destructive: 38 92% 50%; /* Rich Gold/Amber */
+    --destructive-foreground: 80 5% 5%; 
 
-    --border: 100 10% 15%;
-    --input: 100 10% 15%;
+    --border: 80 5% 15%;
+    --input: 80 5% 15%;
     --ring: 45 93% 47%;
 
     --radius: 0.5rem;
@@ -39,32 +39,32 @@
   }
 
   .dark {
-    --background: 100 12% 5%; /* Very Dark Green/Almost Black */
+    --background: 80 5% 5%; /* Very Dark Green/Almost Black */
     --foreground: 45 93% 90%; /* Pale Gold */
 
-    --card: 100 12% 8%;
+    --card: 80 5% 8%;
     --card-foreground: 45 93% 90%;
 
-    --popover: 100 12% 5%;
+    --popover: 80 5% 5%;
     --popover-foreground: 45 93% 90%;
 
     --primary: 45 93% 47%; /* Gold */
-    --primary-foreground: 100 12% 5%;
+    --primary-foreground: 80 5% 5%;
 
-    --secondary: 100 10% 15%;
+    --secondary: 80 5% 15%;
     --secondary-foreground: 45 93% 90%;
 
-    --muted: 100 10% 15%;
+    --muted: 80 5% 15%;
     --muted-foreground: 45 30% 70%;
 
     --accent: 14 80% 55%; /* Sunset Orange */
-    --accent-foreground: 100 12% 5%;
+    --accent-foreground: 80 5% 5%;
 
-    --destructive: 38 92% 50%; /* Changed from Red to a rich Gold/Amber */
-    --destructive-foreground: 100 12% 5%; /* Changed to dark text for contrast */
+    --destructive: 38 92% 50%; /* Rich Gold/Amber */
+    --destructive-foreground: 80 5% 5%; 
 
-    --border: 100 10% 15%;
-    --input: 100 10% 15%;
+    --border: 80 5% 15%;
+    --input: 80 5% 15%;
     --ring: 45 93% 47%;
   }
 }
