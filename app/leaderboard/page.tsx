@@ -14,13 +14,15 @@ const LeaderboardContent = dynamic(
             return await import('@/components/leaderboard/LeaderboardContent');
         } catch(e) {
             console.error("Failed to load LeaderboardContent chunk", e);
-            return () => (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Failed to load leaderboards. Please refresh the page.</AlertDescription>
-                </Alert>
-            )
+            return function ChunkLoadFallback() {
+                 return (
+                     <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load leaderboards. Please refresh the page.</AlertDescription>
+                    </Alert>
+                );
+            }
         }
     },
     {

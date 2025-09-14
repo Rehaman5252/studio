@@ -83,20 +83,6 @@ interface UserDataContextType {
     error: string | null;
   };
 
-  // Leaderboards
-  leaderboardLive: {
-    slotId: string;
-    rows: LivePlayer[];
-    loading: boolean;
-    error: string | null;
-  };
-  leaderboardAllTime: {
-    rows: AllTimePlayer[];
-    loading: boolean;
-    error: string | null;
-  };
-
-
   // Auth & actions
   logout: () => Promise<void>;
   signInWithGoogle: () => Promise<User | null>;
@@ -178,24 +164,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setFirebaseAppReady(isFirebaseConfigured);
   }, []);
-
-  const [leaderboardLive, setLeaderboardLive] = useState<{
-    slotId: string;
-    rows: LivePlayer[];
-    loading: boolean;
-    error: string | null;
-  }>({
-    slotId: getQuizSlotId(),
-    rows: [],
-    loading: true,
-    error: null,
-  });
-
-  const [leaderboardAllTime, setLeaderboardAllTime] = useState<{
-    rows: AllTimePlayer[];
-    loading: boolean;
-    error: string | null;
-  }>({ rows: [], loading: true, error: null });
 
   /* ---------------------------- Online/offline ---------------------------- */
 
@@ -376,55 +344,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       unsubs.forEach((u) => u && u());
     };
   }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
-
-  /* ------------------------ Leaderboard Subscriptions ----------------------- */
-  useEffect(() => {
-    if (!db) return;
-  
-    // Live Leaderboard Listener
-    const setupLiveLeaderboardListener = () => {
-      const slotId = getQuizSlotId();
-      setLeaderboardLive((prev) => ({ ...prev, slotId, loading: true, rows: [] }));
-  
-      const q = query(
-        collection(db, 'leaderboard_live', slotId, 'entries'),
-        orderBy('score', 'desc'),
-        orderBy('time', 'asc'),
-        limit(50)
-      );
-  
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const rows = snapshot.docs.map(d => d.data() as LivePlayer);
-        setLeaderboardLive({ slotId, rows, loading: false, error: null });
-      }, (error) => {
-        console.error("Live Leaderboard Error: ", error);
-        setLeaderboardLive({ slotId, rows: [], loading: false, error: mapFirestoreError(error).userMessage });
-      });
-  
-      return unsubscribe;
-    };
-  
-    let liveUnsubscribe = setupLiveLeaderboardListener();
-  
-    // This interval checks if the slot has changed and re-subscribes if it has.
-    const slotCheckInterval = setInterval(() => {
-      const newSlotId = getQuizSlotId();
-      setLeaderboardLive(prev => {
-        if (newSlotId !== prev.slotId) {
-            if (liveUnsubscribe) liveUnsubscribe();
-            liveUnsubscribe = setupLiveLeaderboardListener();
-            return { ...prev, slotId: newSlotId }; // This will trigger the re-render if needed
-        }
-        return prev;
-      });
-    }, 5000); // Check every 5 seconds
-  
-    return () => {
-      if (liveUnsubscribe) liveUnsubscribe();
-      clearInterval(slotCheckInterval);
-    };
-  }, []); // Rerun only when db becomes available
-  
 
   /* -------------------------- Auth convenience --------------------------- */
 
@@ -669,7 +588,6 @@ const persistAttemptBatch = useCallback(
         await persistAttemptBatch(attempt);
         popPending(attempt.slotId);
         setIsOffline(false);
-        // The slotId is the unique identifier for this attempt in this context.
         return { success: true, attemptId: attempt.slotId };
       } catch (e: any) {
         console.error('addQuizAttempt failed:', e);
@@ -682,7 +600,6 @@ const persistAttemptBatch = useCallback(
         });
         pushPending(attempt);
         setIsOffline(true);
-        // Still return the ID so the user can be redirected to the results page, even if data is just local for now.
         return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
       }
     },
@@ -786,8 +703,6 @@ const persistAttemptBatch = useCallback(
     firebaseAppReady,
     quizHistory,
     lastAttemptInSlot,
-    leaderboardLive,
-    leaderboardAllTime,
     logout,
     signInWithGoogle,
     registerWithEmail,

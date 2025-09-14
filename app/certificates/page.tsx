@@ -15,13 +15,15 @@ const CertificatesContent = dynamic(
             return await import('@/components/certificates/CertificatesContent');
         } catch (e) {
             console.error("Failed to load CertificatesContent", e);
-            return () => (
-                <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Failed to load certificates. Please refresh the page.</AlertDescription>
-                </Alert>
-            )
+            return function ChunkLoadFallback() {
+                return (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load certificates. Please refresh the page.</AlertDescription>
+                    </Alert>
+                );
+            }
         }
     },
     {

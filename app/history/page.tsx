@@ -15,13 +15,15 @@ const HistoryContent = dynamic(
             return await import('@/components/history/HistoryContent');
         } catch(e) {
             console.error("Failed to load HistoryContent chunk", e);
-            return () => (
-                <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Failed to load history. Please refresh the page.</AlertDescription>
-                </Alert>
-            )
+            return function ChunkLoadFallback() {
+                return (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load history. Please refresh the page.</AlertDescription>
+                    </Alert>
+                );
+            }
         }
     },
     {

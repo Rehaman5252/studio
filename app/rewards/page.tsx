@@ -16,13 +16,15 @@ const RewardsContent = dynamic(
             return await import('@/components/rewards/RewardsContent');
         } catch (e) {
             console.error("Failed to load RewardsContent", e);
-            return () => (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Failed to load rewards. Please refresh the page.</AlertDescription>
-                </Alert>
-            )
+            return function ChunkLoadFallback() {
+                return (
+                     <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load rewards. Please refresh the page.</AlertDescription>
+                    </Alert>
+                );
+            }
         }
     },
     {

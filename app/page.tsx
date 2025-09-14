@@ -14,13 +14,15 @@ const HomePageClient = dynamic(
       return await import('@/components/home/HomePageClient');
     } catch (error) {
       console.error('Failed to load HomePageClient chunk', error);
-      return () => (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>Failed to load page content. Please refresh the page.</AlertDescription>
-        </Alert>
-      );
+      return function ChunkLoadFallback() {
+        return (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>Failed to load page content. Please refresh the page.</AlertDescription>
+          </Alert>
+        );
+      };
     }
   },
   {
@@ -58,7 +60,7 @@ function HomePage() {
           indcric
         </h1>
         <p className="mt-1 text-sm font-normal text-foreground/80">
-          Win ₹100 for every 100 seconds!
+          The Ultimate Cricket Quiz Challenge
         </p>
       </div>
     );
