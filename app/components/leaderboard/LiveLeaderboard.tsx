@@ -164,25 +164,11 @@ const LiveLeaderboard = () => {
   }, [authLoading, startListener]);
 
   const content = useMemo(() => {
-    const dataToShow = players;
+    if (isLoading && players.length === 0) return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
+    if (error && players.length === 0) return <ErrorState title={error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Error Loading Leaderboard'} message={error.userMessage} onRetry={() => startListener(getQuizSlotId())} />;
+    if (!isLoading && players.length === 0) return <WaitingState timeLeft={timeLeft} />;
     
-    if (isLoading && dataToShow.length === 0) {
-      return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
-    }
-    
-    if (error && dataToShow.length === 0) {
-      return <ErrorState 
-                title={error.code === 'INDEX_REQUIRED' ? 'Database Indexing' : 'Error Loading Leaderboard'}
-                message={error.userMessage}
-                onRetry={() => startListener(getQuizSlotId())} 
-            />;
-    }
-    
-    if (!isLoading && dataToShow.length === 0) {
-      return <WaitingState timeLeft={timeLeft} />;
-    }
-    
-    return dataToShow.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
+    return players.map(player => <LeaderboardItem key={player.userId} player={player} isCurrentUser={user?.uid === player.userId} />);
   }, [isLoading, players, error, timeLeft, user, startListener]);
 
   return (
