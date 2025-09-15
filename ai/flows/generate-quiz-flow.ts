@@ -1,14 +1,6 @@
 
 'use server';
 
-/**
- * @fileOverview Generates a 5-question cricket quiz for a specific format.
- *
- * This flow creates a unique quiz with questions, options, correct answers, and explanations.
- * It ensures questions are not repeated for the same user and follows a strict, progressive
- * difficulty curve from easy to extremely hard, covering a balanced range of topics.
- */
-
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { QuizData } from '@/ai/schemas';
@@ -29,7 +21,7 @@ const getRecentQuestions = async (userId: string): Promise<string[]> => {
         const q = query(
             collection(db, 'users', userId, 'quizAttempts'),
             orderBy('timestamp', 'desc'),
-            limit(5) // Look at last 5 attempts to avoid recent repeats
+            limit(5)
         );
         const querySnapshot = await getDocs(q);
         const seenQuestions = new Set<string>();
@@ -99,7 +91,6 @@ const prompt = ai.definePrompt({
     Now, generate the 5-question quiz based on all these rules for the "{{format}}" format.
   `,
     config: {
-        // Set extremely permissive safety settings to prevent the model from blocking valid responses.
         safetySettings: [
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -132,7 +123,6 @@ export const generateQuizFlow = ai.defineFlow(
             return validation.data;
         } catch (error) {
             console.error("Error in generateQuizFlow, re-throwing to be handled by API route:", error);
-            // Re-throw the error so the robust API route can catch it and serve its own fallback.
             throw error;
         }
     }

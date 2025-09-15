@@ -55,12 +55,10 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
         const validatedAttempt = QuizAttempt.parse(sanitized as z.infer<typeof QuizAttempt>);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
-        // Use safeParse to validate the final output from the flow.
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
             console.error("[generateQuizAnalysis] AI output from flow failed validation, returning fallback.", parsed.error.format());
-            // This is a critical fallback. If our own hardened flow produces invalid data, we catch it.
             return getFallbackAnalysis(validatedAttempt);
         }
         
@@ -68,7 +66,6 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
     } catch (error: any) {
         console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
-        // Sanitize again for the fallback just in case the initial one was part of the problem.
         const sanitizedForFallback = sanitizeQuizAttempt(rawAttempt);
         return getFallbackAnalysis(sanitizedForFallback as z.infer<typeof QuizAttempt>);
     }
@@ -110,18 +107,13 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     async (input) => {
         try {
             const { output } = await prompt(input);
-            // Basic check to see if AI returned *anything*
             if (!output) {
                 throw new Error("AI analysis returned a null or empty response.");
             }
-            // Ensure the source is correctly marked as 'ai'
             return { ...output, source: "ai" };
         } catch (error) {
              console.error("Error during AI analysis flow execution. Returning fallback.", error);
-             // If anything in the prompt call fails, return the robust fallback.
              return getFallbackAnalysis(input);
         }
     }
 );
-
-

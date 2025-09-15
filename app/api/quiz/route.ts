@@ -9,14 +9,6 @@ export const dynamic = 'force_dynamic';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-/**
- * Creates a structured JSON error response.
- * @param message - The error message.
- * @param status - The HTTP status code.
- * @param reqId - The request ID for tracing.
- * @param code - An optional error code.
- * @returns A NextResponse object.
- */
 function createErrorResponse(message: string, status: number, reqId: string, code?: string) {
   return NextResponse.json(
     { ok: false, error: { code, message }, reqId },
@@ -44,13 +36,12 @@ export async function POST(req: Request) {
       console.info(`[quiz][${reqId}] Starting AI quiz generation for format=${format} user=${userId}`);
       const aiResult = await generateQuizFlow({ format, userId });
 
-      // Use Zod's safeParse for robust validation
       const validation = QuizDataSchema.safeParse(aiResult);
 
       if (!validation.success) {
         console.warn(`[quiz][${reqId}] AI returned invalid quiz shape, using fallback.`, {
           error: validation.error.format(),
-          aiSample: aiResult?.questions?.slice(0, 1),
+          aiSample: JSON.stringify(aiResult)?.slice(0, 200),
         });
         throw new Error('AI returned an invalid quiz structure.');
       }
@@ -63,7 +54,6 @@ export async function POST(req: Request) {
       
       const mappedError = mapFirestoreError(err);
       if (mappedError?.code === "INDEX_REQUIRED") {
-        // If a required Firestore index is missing, it's a fatal server config issue.
         return createErrorResponse(mappedError.userMessage, 500, reqId, mappedError.code);
       }
       
@@ -78,7 +68,6 @@ export async function POST(req: Request) {
             reqId,
         };
         
-        // Add debug error info in development environments
         if (IS_DEV) {
             fallbackResponsePayload.error = { 
                 message: "The AI is busy or failed, so here's a standard quiz instead.",
@@ -99,7 +88,6 @@ export async function POST(req: Request) {
       }
     }
   } catch (globalError: any) {
-    // Catches errors like invalid JSON in the request body.
     console.error(`[quiz][${reqId}] A critical unhandled error occurred in the API route.`, globalError);
     return createErrorResponse(
       "An internal server error occurred. Please try again.",

@@ -31,14 +31,9 @@ export async function POST(req: Request) {
       );
     }
     
-    // The generateQuizAnalysis flow is already hardened to return a fallback,
-    // so we can be confident it will always return a valid analysis object.
     const result: QuizAnalysisOutput = await generateQuizAnalysis(attemptBody);
-
-    // Even though the flow is hardened, a final validation is good practice.
-    // If parsing fails, it means the hardened flow itself has a bug.
-    // In this case, we return a last-resort, ultra-stable fallback.
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
+
     if (!parsed.success) {
       console.error("[Analysis API] FATAL: Output from hardened flow failed validation. This should not happen.", parsed.error);
       const fallback = getFallbackAnalysisForApi(attemptBody);
@@ -49,7 +44,6 @@ export async function POST(req: Request) {
 
   } catch (err: any) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
-    // This catches errors like invalid JSON in the request itself or other unexpected server issues.
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
     return NextResponse.json(
       { ok: false, error: { message: "An internal server error occurred." }, analysis: fallback, source: 'fallback' },
