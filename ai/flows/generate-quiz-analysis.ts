@@ -100,8 +100,8 @@ const prompt = ai.definePrompt({
 
     Based on this data, generate a comprehensive analysis. Follow these steps precisely:
     1.  **summary:** Write a brief, encouraging summary (1-2 sentences) of the user's performance, mentioning their score.
-    2.  **strengths:** Based on the questions answered correctly and quickly, identify 2 key strengths. Examples: "Quick recall of player stats," "Strong knowledge of IPL history."
-    3.  **weaknesses:** Based on the questions where answers were incorrect or slow, identify 2 areas for improvement. Examples: "Hesitation on questions about older Test matches," "Difficulty with obscure rule terminology."
+    2.  **strengths:** Based on the questions answered correctly and quickly, identify 1-2 key strengths. Examples: "Quick recall of player stats," "Strong knowledge of IPL history."
+    3.  **weaknesses:** Based on the questions where answers were incorrect or slow, identify 1-2 areas for improvement. Examples: "Hesitation on questions about older Test matches," "Difficulty with obscure rule terminology."
     4.  **recommendations:** Provide 3 concrete, actionable recommendations for the user to focus on. Examples: "Review the highlights from the 1983 World Cup," "Take a few practice quizzes on the 'T20' format to improve speed."
     5.  **source**: Set this field to "ai".
   `,

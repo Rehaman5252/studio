@@ -60,7 +60,7 @@ const prompt = ai.definePrompt({
     The five questions MUST have an escalating difficulty. Adhere to this structure precisely:
     - **Question 1 (Easy):** A straightforward question that a casual cricket fan would likely know.
     - **Question 2 (Medium):** A question that requires a bit more than surface-level knowledge.
-    - **Question 3 (Difficult):** A challenging question about a specific record, event, or player stat that requires deeper knowledge.
+    - **Question 3 (Difficult):** A question about a specific record, event, or player stat that requires deeper knowledge.
     - **Question 4 (Very Hard):** A question about an obscure or less-known fact, rule, or historical event.
     - **Question 5 (Extremely Hard / "The GOAT Question"):** A truly expert-level question. This should be a very specific, almost unanswerable piece of trivia that only a cricket historian or statistician might know.
 

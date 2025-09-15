@@ -42,9 +42,9 @@ export const QuizAttempt = z.object({
 // It is now aligned with the prompt in `generate-quiz-analysis.ts`.
 export const QuizAnalysisOutputSchema = z.object({
   summary: z.string().describe("A concise overall insight into the user's performance, mentioning score and format."),
-  strengths: z.array(z.string()).min(1).max(3).describe("A list of 2-3 key strengths the user demonstrated."),
-  weaknesses: z.array(z.string()).min(1).max(3).describe("A list of 2-3 specific areas for improvement."),
-  recommendations: z.array(z.string()).min(1).max(3).describe("A list of 2-3 actionable next steps for the user."),
+  strengths: z.array(z.string()).min(1).max(3).describe("A list of 1-3 key strengths the user demonstrated."),
+  weaknesses: z.array(z.string()).min(1).max(3).describe("A list of 1-3 specific areas for improvement."),
+  recommendations: z.array(z.string()).min(1).max(3).describe("A list of 1-3 actionable next steps for the user."),
   source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 
