@@ -1,6 +1,7 @@
+
 import type { ReactNode } from 'react';
 import { memo } from 'react';
-import AdminNav from '@/components/admin/AdminNav';
+import AdminNav from '@/app/components/admin/AdminNav';
 import { Card } from '@/components/ui/card';
 
 function AdminLayout({ children }: { children: ReactNode }) {
