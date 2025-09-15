@@ -11,10 +11,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { QuizQuestion, QuizData } from '@/ai/schemas';
+import { QuizData } from '@/ai/schemas';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { getFallbackQuiz } from '@/lib/fallback-quiz';
 
 
 const GenerateQuizInputSchema = z.object({
@@ -124,15 +123,15 @@ export const generateQuizFlow = ai.defineFlow(
 
             const { output } = await prompt({ format: input.format, seenQuestions });
             
-            // Basic validation to ensure the AI returns something valid
-            if (!output || !Array.isArray(output.questions) || output.questions.length < 5) {
-                 console.error("AI failed to generate a valid quiz. Using fallback.");
+            const validation = QuizData.safeParse(output);
+            if (!validation.success) {
+                 console.error("AI failed to generate a valid quiz shape. Full output:", JSON.stringify(output, null, 2));
                  throw new Error("AI returned incomplete or invalid quiz data.");
             }
     
-            return output;
+            return validation.data;
         } catch (error) {
-            console.error("Error in generateQuizFlow, throwing to be handled by API route:", error);
+            console.error("Error in generateQuizFlow, re-throwing to be handled by API route:", error);
             // Re-throw the error so the robust API route can catch it and serve its own fallback.
             throw error;
         }

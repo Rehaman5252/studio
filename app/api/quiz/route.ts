@@ -3,33 +3,11 @@ import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { mapFirestoreError } from "@/lib/utils";
-import type { QuizData } from "@/ai/schemas";
+import { QuizData as QuizDataSchema } from "@/ai/schemas";
 
 export const dynamic = 'force_dynamic';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
-
-/**
- * Validates the shape of the quiz data returned by the AI.
- * Ensures all required fields are present and correctly typed.
- * @param candidate - The quiz data object to validate.
- * @returns `true` if the shape is valid, `false` otherwise.
- */
-function isValidQuizShape(candidate: any): candidate is QuizData {
-  if (!candidate || typeof candidate !== "object" || !Array.isArray(candidate.questions) || candidate.questions.length < 5) {
-    return false;
-  }
-
-  return candidate.questions.every((q: any) =>
-    q &&
-    typeof q.id === 'string' &&
-    typeof q.question === 'string' && q.question.length > 0 &&
-    Array.isArray(q.options) && q.options.length === 4 &&
-    q.options.every((opt: any) => typeof opt === 'string' && opt.length > 0) &&
-    typeof q.correctAnswer === 'string' && q.options.includes(q.correctAnswer) &&
-    typeof q.explanation === 'string' && q.explanation.length > 0
-  );
-}
 
 /**
  * Creates a structured JSON error response.
@@ -66,15 +44,19 @@ export async function POST(req: Request) {
       console.info(`[quiz][${reqId}] Starting AI quiz generation for format=${format} user=${userId}`);
       const aiResult = await generateQuizFlow({ format, userId });
 
-      if (!isValidQuizShape(aiResult)) {
+      // Use Zod's safeParse for robust validation
+      const validation = QuizDataSchema.safeParse(aiResult);
+
+      if (!validation.success) {
         console.warn(`[quiz][${reqId}] AI returned invalid quiz shape, using fallback.`, {
+          error: validation.error.format(),
           aiSample: aiResult?.questions?.slice(0, 1),
         });
         throw new Error('AI returned an invalid quiz structure.');
       }
 
       console.info(`[quiz][${reqId}] AI generation succeeded.`);
-      return NextResponse.json({ ok: true, quiz: aiResult, source: "ai", reqId });
+      return NextResponse.json({ ok: true, quiz: validation.data, source: "ai", reqId });
 
     } catch (err: any) {
       console.error(`[quiz][${reqId}] AI generation failed, serving fallback. Error:`, err.message);
@@ -99,7 +81,7 @@ export async function POST(req: Request) {
         // Add debug error info in development environments
         if (IS_DEV) {
             fallbackResponsePayload.error = { 
-                message: "The AI is busy or failed, here's a standard quiz instead.",
+                message: "The AI is busy or failed, so here's a standard quiz instead.",
                 details: err.message 
             };
         }
