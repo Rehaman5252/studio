@@ -13,7 +13,7 @@ import AnalysisDialog from '@/components/history/AnalysisDialog';
 import ReviewDialog from '@/components/history/ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
-import { Timestamp } from 'firebase/firestore';
+import { normalizeTimestamp } from '@/lib/dates';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -40,14 +40,6 @@ export const ErrorState = ({ message }: { message: string }) => (
         <AlertDescription>{message}</AlertDescription>
     </Alert>
 );
-
-const normalizeTimestamp = (timestamp: any): Date | null => {
-    if (!timestamp) return null;
-    if (timestamp?.toDate) return timestamp.toDate(); // Firestore Timestamp
-    if (timestamp instanceof Date) return timestamp; // JavaScript Date
-    const date = new Date(timestamp); // Number (milliseconds) or String
-    return isNaN(date.getTime()) ? null : date;
-};
 
 const getSlotTimings = (date: Date | null): string => {
     if (!date) return 'Invalid Time';

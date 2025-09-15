@@ -10,6 +10,7 @@ import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
+import { normalizeTimestamp } from '@/lib/dates';
 
 interface ReviewDialogProps {
   open: boolean;
@@ -26,6 +27,9 @@ const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProp
         setReportingQuestion(question);
     };
 
+    const attemptDate = normalizeTimestamp(attempt.timestamp);
+    const formattedDate = attemptDate ? attemptDate.toLocaleDateString() : 'Date unavailable';
+
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,7 +37,7 @@ const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProp
                     <DialogHeader>
                         <DialogTitle className="text-center text-2xl font-bold">Answer Review</DialogTitle>
                         <DialogDescription className="text-center">
-                            For the {attempt.format} quiz on {new Date(attempt.timestamp).toLocaleDateString()}.
+                            For the {attempt.format} quiz on {formattedDate}.
                         </DialogDescription>
                     </DialogHeader>
 
