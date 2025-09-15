@@ -98,6 +98,7 @@ const prompt = ai.definePrompt({
           { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
           { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
         ],
+        retries: 2, // Add retries to make the flow more resilient
     }
 });
 
@@ -113,9 +114,12 @@ export const generateQuizFlow = ai.defineFlow(
 
         const { output } = await prompt({ format: input.format, seenQuestions });
         
+        // Use safeParse for tolerant validation. If it fails, this will throw an error
+        // which will be caught by the API route's try...catch block, leading to a fallback.
         const validation = QuizData.safeParse(output);
         if (!validation.success) {
              console.error("AI failed to generate a valid quiz shape. Full output:", JSON.stringify(output, null, 2));
+             // Throwing an error here is crucial. It signals the API route to use the fallback.
              throw new Error("AI returned incomplete or invalid quiz data.");
         }
 

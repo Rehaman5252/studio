@@ -24,14 +24,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') {
-      return NextResponse.json({ ok: false, error: { message: "Invalid request body." } }, { status: 400 });
+      return NextResponse.json({ ok: false, analysis: getFallbackAnalysisForApi({}) }, { status: 400 });
     }
 
     attemptBody = body.attempt;
 
     if (!attemptBody || typeof attemptBody !== 'object') {
       return NextResponse.json(
-        { ok: false, error: { message: "Invalid or missing 'attempt' in request body" } },
+        { ok: false, analysis: getFallbackAnalysisForApi({}) },
         { status: 400 }
       );
     }
@@ -45,17 +45,17 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       console.error("[Analysis API] FATAL: Output from hardened flow failed validation. This should not happen.", parsed.error);
       const fallback = getFallbackAnalysisForApi(attemptBody);
-      return NextResponse.json({ ok: true, analysis: fallback }, { status: 200 }); 
+      return NextResponse.json({ ok: true, analysis: fallback }); 
     }
 
-    return NextResponse.json({ ok: true, analysis: parsed.data }, { status: 200 });
+    return NextResponse.json({ ok: true, analysis: parsed.data });
 
   } catch (err: any) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
     // ALWAYS return a 200 with a valid fallback structure so the client doesn't break.
     return NextResponse.json(
-      { ok: true, analysis: fallback, error: { message: "An internal server error occurred." } },
+      { ok: true, analysis: fallback },
       { status: 200 }
     );
   }

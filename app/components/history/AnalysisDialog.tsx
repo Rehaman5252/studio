@@ -47,7 +47,16 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
           body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
         
-        const data = await res.json().catch(() => null);
+        // Read the response as text ONCE.
+        const responseText = await res.text();
+        let data;
+
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          console.error("Failed to parse analysis JSON:", responseText);
+          throw new Error("Server returned an invalid response for analysis.");
+        }
 
         if (!res.ok || !data?.ok) {
            throw new Error(data?.error?.message || "Failed to fetch analysis from server.");

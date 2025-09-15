@@ -118,6 +118,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         try {
             const { output } = await prompt(input);
             
+            // Use safeParse for tolerant validation of the AI's output
             const parsed = QuizAnalysisOutputSchema.safeParse(output);
             if (!parsed.success) {
                  console.error("[generateQuizAnalysisFlow] AI output schema validation failed. Full output:", JSON.stringify(output, null, 2));
@@ -128,6 +129,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
 
         } catch (error) {
              console.error("Error during AI analysis flow execution. Returning fallback.", error);
+             // Always return a valid fallback on any error.
              return getFallbackAnalysis(input);
         }
     }
