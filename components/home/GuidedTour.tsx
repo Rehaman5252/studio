@@ -13,7 +13,7 @@ interface GuidedTourProps {
 const steps: Step[] = [
   {
     target: '#tour-step-1',
-    content: 'Welcome to indcric! This is the main screen where you can select a quiz format. The cube will rotate through different formats.',
+    content: 'Welcome to CricBlitz! This is the main screen where you can select a quiz format. The cube will rotate through different formats.',
     disableBeacon: true,
   },
   {
@@ -53,10 +53,10 @@ export default function GuidedTour({ run, onFinish }: GuidedTourProps) {
       callback={handleJoyrideCallback}
       styles={{
         options: {
-          arrowColor: resolvedTheme === 'dark' ? '#111827' : '#FFFFFF',
-          backgroundColor: resolvedTheme === 'dark' ? '#111827' : '#FFFFFF',
-          primaryColor: '#F59E0B',
-          textColor: resolvedTheme === 'dark' ? '#FFFFFF' : '#111827',
+          arrowColor: resolvedTheme === 'dark' ? 'hsl(var(--card))' : '#FFFFFF',
+          backgroundColor: resolvedTheme === 'dark' ? 'hsl(var(--card))' : '#FFFFFF',
+          primaryColor: 'hsl(var(--primary))',
+          textColor: resolvedTheme === 'dark' ? 'hsl(var(--card-foreground))' : '#111827',
           zIndex: 1000,
         },
       }}

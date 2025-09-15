@@ -65,7 +65,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
     'Mastercard': { gift: '₹250 Myntra Voucher', description: 'Valid on spends over ₹1000.', link: 'https://www.myntra.com/' },
     'ICICI': { gift: '₹100 Cashback', description: 'On your next credit card bill.', link: 'https://www.icicibank.com/' },
     'Gucci': { gift: 'Exclusive 10% Off', description: 'On select luxury items.', link: 'https://www.gucci.com/us/en/' },
-    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from indcric.', link: '#' },
+    'Default Brand': { gift: 'Surprise Gift!', description: 'A special reward from CricBlitz.', link: '#' },
   };
   const reward = rewardsByBrand[brand] || rewardsByBrand['Default Brand'];
 
@@ -142,7 +142,7 @@ function RewardsContentComponent() {
     if (typeof window !== 'undefined' && quizHistory.data.length > 0) {
       const initialScratchedState: Record<string, boolean> = {};
       quizHistory.data.forEach(attempt => {
-        const storageKey = `indcric-scratch-card-${attempt.slotId}`;
+        const storageKey = `CricBlitz-scratch-card-${attempt.slotId}`;
         const savedState = window.localStorage.getItem(storageKey);
         if (savedState === 'true') {
           initialScratchedState[attempt.slotId] = true;
@@ -155,7 +155,7 @@ function RewardsContentComponent() {
   const handleScratch = (slotId: string) => {
     setScratchedCards(prev => ({ ...prev, [slotId]: true }));
     if (typeof window !== 'undefined') {
-      const storageKey = `indcric-scratch-card-${slotId}`;
+      const storageKey = `CricBlitz-scratch-card-${slotId}`;
       window.localStorage.setItem(storageKey, 'true');
     }
   };
