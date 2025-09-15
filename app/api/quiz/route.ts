@@ -33,7 +33,8 @@ export async function POST(req: Request) {
 
   let body: any;
   try {
-    body = await req.json();
+    const rawBody = await req.text();
+    body = JSON.parse(rawBody);
   } catch (e) {
     console.error(`[quiz][${reqId}] Invalid JSON body.`);
     return createErrorResponse("Invalid JSON body.", reqId, 400, "INVALID_JSON");
