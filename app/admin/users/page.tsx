@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import AdminDashboard from '@/components/admin/AdminDashboard';
+import UserManagement from '@/components/admin/UserManagement';
 import AuthGuard from '@/components/auth/AuthGuard';
 
-export default function AdminDashboardPage() {
+export default function UsersPage() {
   return (
     <AuthGuard>
-      <AdminDashboard />
+      <UserManagement />
     </AuthGuard>
   );
 }

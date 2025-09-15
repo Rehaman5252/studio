@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import AdminDashboard from '@/components/admin/AdminDashboard';
+import PayoutManagement from '@/components/admin/PayoutManagement';
 import AuthGuard from '@/components/auth/AuthGuard';
 
-export default function AdminDashboardPage() {
+export default function PayoutsPage() {
   return (
     <AuthGuard>
-      <AdminDashboard />
+        <PayoutManagement />
     </AuthGuard>
   );
 }
