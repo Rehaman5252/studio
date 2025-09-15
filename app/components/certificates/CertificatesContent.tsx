@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Timestamp } from 'firebase/firestore';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -45,8 +46,10 @@ export default function CertificatesContent() {
   const { profile, quizHistory } = useAuth();
   const { toast } = useToast();
   
-  const getSlotTimings = (timestamp: number) => {
-    const attemptDate = new Date(timestamp);
+  const getSlotTimings = (timestamp: number | Timestamp) => {
+    const attemptDate = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+    if (isNaN(attemptDate.getTime())) return 'Invalid Time';
+    
     const minutes = attemptDate.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
     
@@ -63,14 +66,17 @@ export default function CertificatesContent() {
   const certificates = useMemo(() => {
     return quizHistory.data
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
-      .map(attempt => ({
-        id: attempt.slotId + attempt.format,
-        title: `${attempt.format} Masterclass Certificate`,
-        date: new Date(attempt.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        slot: getSlotTimings(attempt.timestamp),
-        brand: attempt.brand,
-        format: attempt.format,
-      }));
+      .map(attempt => {
+          const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
+          return {
+            id: attempt.slotId + attempt.format,
+            title: `${attempt.format} Masterclass Certificate`,
+            date: !isNaN(attemptDate.getTime()) ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date Unavailable',
+            slot: getSlotTimings(attempt.timestamp),
+            brand: attempt.brand,
+            format: attempt.format,
+          }
+      });
   }, [quizHistory.data]);
 
   const handleDownload = (cert: typeof certificates[0]) => {
