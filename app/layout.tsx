@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import ClientOnly from '@/app/components/ClientOnly';
+import ClientOnly from '@/components/ClientOnly';
 
 const inter = Inter({
   subsets: ['latin'],
