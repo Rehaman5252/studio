@@ -109,21 +109,20 @@ export const generateQuizFlow = ai.defineFlow(
         outputSchema: QuizData,
     },
     async (input) => {
-        try {
-            const seenQuestions = await getRecentQuestions(input.userId);
+        // No top-level try/catch here. Let errors propagate to the API route
+        // so it can decide whether to serve a fallback. This flow's job is to succeed or fail.
+        const seenQuestions = await getRecentQuestions(input.userId);
 
-            const { output } = await prompt({ format: input.format, seenQuestions });
-            
-            const validation = QuizData.safeParse(output);
-            if (!validation.success) {
-                 console.error("AI failed to generate a valid quiz shape. Full output:", JSON.stringify(output, null, 2));
-                 throw new Error("AI returned incomplete or invalid quiz data.");
-            }
-    
-            return validation.data;
-        } catch (error) {
-            console.error("Error in generateQuizFlow, re-throwing to be handled by API route:", error);
-            throw error;
+        const { output } = await prompt({ format: input.format, seenQuestions });
+        
+        // Use safeParse for robust validation. If it fails, an error will be thrown.
+        const validation = QuizData.safeParse(output);
+        if (!validation.success) {
+             console.error("AI failed to generate a valid quiz shape. Full output:", JSON.stringify(output, null, 2));
+             // Throwing an error here is INTENTIONAL. It allows the API route to catch it and serve a fallback.
+             throw new Error("AI returned incomplete or invalid quiz data.");
         }
+
+        return validation.data;
     }
 );

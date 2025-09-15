@@ -31,8 +31,10 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
     const incorrectQuestions = attempt.questions.filter((q, i) => q.correctAnswer !== attempt.userAnswers[i]);
     if (incorrectQuestions.length > 0) {
         weaknesses.push(`Struggled with topics related to: "${incorrectQuestions[0].question.slice(0, 30)}..."`);
-    } else {
+    } else if (attempt.totalQuestions > 0) {
         weaknesses.push("Time management on tougher questions could be improved.");
+    } else {
+        weaknesses.push("No questions were answered to analyze weaknesses.");
     }
     
     return {
@@ -50,11 +52,20 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
 
 
 export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
+    const sanitized = sanitizeQuizAttempt(rawAttempt);
+
+    if (!sanitized || !sanitized.userId) {
+        console.error("[generateQuizAnalysis] Sanitization failed or missing userId, returning fallback.", { rawAttempt });
+        // Create a dummy attempt for fallback if sanitization fails completely
+        const dummyAttempt = { format: 'cricket', score: 0, totalQuestions: 5, questions: [], userAnswers: [] } as any;
+        return getFallbackAnalysis(dummyAttempt);
+    }
+    
     try {
-        const sanitized = sanitizeQuizAttempt(rawAttempt);
         const validatedAttempt = QuizAttempt.parse(sanitized as z.infer<typeof QuizAttempt>);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
+        // Use safeParse to be absolutely sure the final output is valid
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
@@ -66,8 +77,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
     } catch (error: any) {
         console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
-        const sanitizedForFallback = sanitizeQuizAttempt(rawAttempt);
-        return getFallbackAnalysis(sanitizedForFallback as z.infer<typeof QuizAttempt>);
+        return getFallbackAnalysis(sanitized as z.infer<typeof QuizAttempt>);
     }
 }
 
@@ -107,10 +117,16 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     async (input) => {
         try {
             const { output } = await prompt(input);
-            if (!output) {
-                throw new Error("AI analysis returned a null or empty response.");
+            
+            // Validate the AI output. If it's invalid, throw to trigger fallback.
+            const parsed = QuizAnalysisOutputSchema.safeParse(output);
+            if (!parsed.success) {
+                 console.error("[generateQuizAnalysisFlow] AI output schema validation failed. Full output:", JSON.stringify(output, null, 2));
+                 throw new Error("AI returned incomplete or invalid analysis data.");
             }
-            return { ...output, source: "ai" };
+    
+            return { ...parsed.data, source: "ai" };
+
         } catch (error) {
              console.error("Error during AI analysis flow execution. Returning fallback.", error);
              return getFallbackAnalysis(input);

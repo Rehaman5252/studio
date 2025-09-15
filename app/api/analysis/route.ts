@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 import { generateQuizAnalysis } from "@/ai/flows/generate-quiz-analysis";
 import { QuizAnalysisOutputSchema } from "@/ai/schemas";
 import type { QuizAnalysisOutput } from "@/ai/schemas";
+import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
+// This is a high-quality, deterministic fallback that is returned if the AI fails.
+// It is NOT the primary response.
 const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
     const format = attempt?.format || "cricket";
     const score = attempt?.score ?? "a good";
@@ -22,7 +25,11 @@ export async function POST(req: Request) {
   let attemptBody: any;
   try {
     const body = await req.json().catch(() => null);
-    attemptBody = body?.attempt;
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ ok: false, error: { message: "Invalid request body." } }, { status: 400 });
+    }
+
+    attemptBody = body.attempt;
 
     if (!attemptBody || typeof attemptBody !== 'object') {
       return NextResponse.json(
@@ -31,7 +38,10 @@ export async function POST(req: Request) {
       );
     }
     
-    const result: QuizAnalysisOutput = await generateQuizAnalysis(attemptBody);
+    // The generateQuizAnalysis flow is hardened and will *always* return a valid analysis or a high-quality fallback.
+    const result = await generateQuizAnalysis(attemptBody);
+    
+    // Final validation before sending to client, just in case.
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
 
     if (!parsed.success) {
@@ -46,8 +56,8 @@ export async function POST(req: Request) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
     return NextResponse.json(
-      { ok: false, analysis: fallback, error: { message: "An internal server error occurred." } },
-      { status: 500 }
+      { ok: true, analysis: fallback, error: { message: "An internal server error occurred." } }, // Send ok:true with fallback
+      { status: 200 } // Send 200 so client can display fallback
     );
   }
 }

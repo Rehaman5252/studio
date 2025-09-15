@@ -123,15 +123,16 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         return;
       }
       
-      if (!response.ok || !data.ok || !data.quiz) {
+      if (!response.ok || !data.ok) {
          const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz.";
          setError(msg);
          setQuizState('error');
          return;
       }
-
+      
+      // The API now *always* returns a quiz, even on fallback, so we can set it.
       setQuizData(data.quiz);
-      setQuizSource(data.source || 'ai');
+      setQuizSource(data.source || 'fallback');
       setQuizState('pre-quiz');
       
     } catch (e: any) {
