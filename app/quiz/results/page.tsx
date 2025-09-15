@@ -15,7 +15,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
-import { normalizeTimestamp } from '@/lib/dates';
 
 const AnalysisDialog = dynamic(
     () => import('@/components/history/AnalysisDialog'),
