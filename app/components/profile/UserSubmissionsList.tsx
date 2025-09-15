@@ -84,10 +84,10 @@ export default function UserSubmissionsList() {
                 setSubmissions(fetchedSubmissions);
             } catch (e: any) {
                 console.error("Failed to fetch user submissions:", e);
-                if (e.code === 'unavailable') {
+                if (e.code === 'unavailable' || e.message.includes('offline')) {
                     setError("Bad connection has stopped play. Please check your network and try again.");
                 } else if (e.code === 'failed-precondition') {
-                    setError("The required data is still being indexed. Please check back in a few moments.");
+                    setError("The required database index is still being built. Please check back in a few moments.");
                 } else {
                     setError("A technical fault has interrupted play. We're working to get it fixed.");
                 }
