@@ -86,7 +86,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
                     aria-label={`Scratch to reveal gift from ${brand}`}
                 >
                     <div className="w-16 h-16 relative mb-3">
-                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} />
+                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} priority={false} loading="lazy" />
                     </div>
                     <p className="font-bold text-lg">Unpack Your Reward</p>
                     <p className="text-sm">From {brand}</p>
@@ -105,12 +105,12 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
 });
 ScratchCard.displayName = 'ScratchCard';
 
-export const GenericOffer = memo(({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
+const GenericOfferComponent = ({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
     <a href={link} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-103 animate-fade-in-up block">
         <Card className="bg-card/80 shadow-lg hover:border-primary/30">
             <CardContent className="p-4 flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center p-2 shadow-inner bg-white relative overflow-hidden flex-shrink-0">
-                    <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} />
+                    <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} priority={false} loading="lazy" />
                 </div>
                 <div className="flex-grow">
                     <h4 className="font-bold text-foreground">{title}</h4>
@@ -120,7 +120,8 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
             </CardContent>
         </Card>
     </a>
-));
+);
+export const GenericOffer = memo(GenericOfferComponent);
 GenericOffer.displayName = 'GenericOffer';
 
 const getStartOfWeek = (timestamp: number | Timestamp): number => {

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, HelpCircle, Gift, Banknote, LogOut, Loader2, Trophy, BarChart } from 'lucide-react';
@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 
-const StatCard = ({ title, value, icon, description }: { title: string; value: string; icon: React.ReactNode; description?: string; }) => (
+const StatCard = memo(({ title, value, icon, description }: { title: string; value: string; icon: React.ReactNode; description?: string; }) => (
     <Card className="shadow-md hover:shadow-lg transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -25,7 +25,8 @@ const StatCard = ({ title, value, icon, description }: { title: string; value: s
             {description && <p className="text-xs text-muted-foreground">{description}</p>}
         </CardContent>
     </Card>
-);
+));
+StatCard.displayName = 'StatCard';
 
 const DashboardSkeleton = () => (
     <Card>

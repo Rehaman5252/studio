@@ -7,20 +7,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
+const ChunkLoadError = () => (
+    <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error Loading Component</AlertTitle>
+        <AlertDescription>A piece of the leaderboard failed to load. Please refresh the page.</AlertDescription>
+    </Alert>
+);
+
+const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard').catch(err => { console.error("Chunk load failed for LiveLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
-const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard'), {
+const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard').catch(err => { console.error("Chunk load failed for AllTimeLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
-const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard'), {
+const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard').catch(err => { console.error("Chunk load failed for MyNetworkLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={3} />,
     ssr: false,
 });
-const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakLeaderboard'), {
+const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakLeaderboard').catch(err => { console.error("Chunk load failed for StreakLeaderboard:", err); return () => <ChunkLoadError /> }), {
     loading: () => <LeaderboardSkeleton count={5} />,
     ssr: false,
 });
@@ -42,13 +53,14 @@ const FullPageSkeleton = () => (
 
 function LeaderboardContentComponent() {
   const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState('live');
   
   if (loading) {
     return <FullPageSkeleton />;
   }
   
   return (
-    <Tabs defaultValue="live" className="w-full">
+    <Tabs defaultValue="live" className="w-full" onValueChange={setActiveTab}>
         <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger value="live">Current</TabsTrigger>
             <TabsTrigger value="all-time">All-Time</TabsTrigger>
@@ -56,30 +68,36 @@ function LeaderboardContentComponent() {
             {user && <TabsTrigger value="network">My Network</TabsTrigger>}
         </TabsList>
         
-        <div className="mt-4">
-            <TabsContent value="live">
+        <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4"
+          >
+            <TabsContent value="live" forceMount={activeTab === 'live'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <LiveLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="all-time">
+            <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="streaks">
+            <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <StreakLeaderboard />
                 </Suspense>
             </TabsContent>
             {user && (
-            <TabsContent value="network">
+            <TabsContent value="network" forceMount={activeTab === 'network'}>
                 <Suspense fallback={<LeaderboardSkeleton count={3} />}>
                     <MyNetworkLeaderboard />
                 </Suspense>
             </TabsContent>
             )}
-        </div>
+        </motion.div>
     </Tabs>
   );
 }
