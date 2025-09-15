@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
-import { Timestamp } from 'firebase/firestore';
+import { normalizeTimestamp } from '@/lib/dates';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -124,8 +124,10 @@ const GenericOfferComponent = ({ title, description, image, hint, link }: { titl
 export const GenericOffer = memo(GenericOfferComponent);
 GenericOffer.displayName = 'GenericOffer';
 
-const getStartOfWeek = (timestamp: number | Timestamp): number => {
-    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+
+const getStartOfWeek = (timestamp: any): number => {
+    const date = normalizeTimestamp(timestamp);
+    if (!date) return 0;
     const day = date.getDay();
     // Adjust to Monday as the start of the week (Sunday is 0)
     const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
@@ -163,8 +165,8 @@ function RewardsContentComponent() {
   const rewardableAttempts = useMemo(() => {
     // Sort all attempts newest first to ensure we process the most recent ones
     const sortedAttempts = [...quizHistory.data].sort((a, b) => {
-      const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
-      const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
+      const timeA = normalizeTimestamp(a.timestamp)?.getTime() || 0;
+      const timeB = normalizeTimestamp(b.timestamp)?.getTime() || 0;
       return timeB - timeA;
     });
 
