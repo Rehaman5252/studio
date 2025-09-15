@@ -15,29 +15,41 @@ import { Timestamp } from 'firebase/firestore';
  * @returns A valid Date object or null if the input is invalid.
  */
 export function normalizeTimestamp(timestamp: any): Date | null {
-    if (!timestamp) return null;
+    if (timestamp === null || timestamp === undefined) return null;
     
-    // Firestore Timestamp (from server) or already a Date object
-    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
-        return timestamp.toDate();
-    }
-    
-    // Already a JavaScript Date
-    if (timestamp instanceof Date) {
-        return timestamp;
-    }
-    
-    // Firestore Timestamp (from client-side representation, e.g., after JSON serialization)
-    if (typeof timestamp === 'object' && 'seconds' in timestamp && 'nanoseconds' in timestamp) {
-        return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
-    }
-    
-    // Number (milliseconds) or String
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
+    try {
+        let date: Date;
+
+        if (timestamp instanceof Date) {
+            date = timestamp;
+        } else if (timestamp instanceof Timestamp) { // Firestore Timestamp from server
+            date = timestamp.toDate();
+        } else if (typeof timestamp === 'object' && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
+            // Firestore Timestamp from client (after JSON serialization)
+            date = new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
+        } else if (typeof timestamp === 'number') { // Unix timestamp in ms
+            date = new Date(timestamp);
+        } else if (typeof timestamp === 'string') {
+            date = new Date(timestamp);
+        } else {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn("normalizeTimestamp: unsupported value", timestamp);
+            }
+            return null;
+        }
+
+        if (isNaN(date.getTime())) {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn("normalizeTimestamp: created an invalid date from", timestamp);
+            }
+            return null;
+        };
+
         return date;
+    } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+            console.error("normalizeTimestamp: caught an error", error);
+        }
+        return null;
     }
-    
-    console.warn("normalizeTimestamp: unsupported value", timestamp);
-    return null;
 };
