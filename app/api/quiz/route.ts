@@ -69,9 +69,9 @@ export async function POST(req: Request) {
         };
         
         if (IS_DEV) {
-            fallbackResponsePayload.error = { 
+            fallbackResponsePayload.errorDetails = { 
                 message: "The AI is busy or failed, so here's a standard quiz instead.",
-                details: err.message 
+                originalError: err.message 
             };
         }
 

@@ -36,6 +36,7 @@ type QuizAPIResponse = {
   source?: 'ai' | 'fallback';
   reqId?: string;
   error?: { message: string };
+  errorDetails?: { message: string, originalError: string };
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
@@ -123,7 +124,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
       
       if (!response.ok || !data.ok || !data.quiz) {
-         const msg = data.error?.message || "Could not load quiz.";
+         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz.";
          setError(msg);
          setQuizState('error');
          return;

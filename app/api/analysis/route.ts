@@ -37,16 +37,16 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       console.error("[Analysis API] FATAL: Output from hardened flow failed validation. This should not happen.", parsed.error);
       const fallback = getFallbackAnalysisForApi(attemptBody);
-      return NextResponse.json({ ok: true, analysis: fallback, source: "fallback" }, { status: 200 }); 
+      return NextResponse.json({ ok: true, analysis: fallback }, { status: 200 }); 
     }
 
-    return NextResponse.json({ ok: true, analysis: parsed.data, source: parsed.data.source }, { status: 200 });
+    return NextResponse.json({ ok: true, analysis: parsed.data }, { status: 200 });
 
   } catch (err: any) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
     return NextResponse.json(
-      { ok: false, error: { message: "An internal server error occurred." }, analysis: fallback, source: 'fallback' },
+      { ok: false, error: { message: "An internal server error occurred." }, analysis: fallback },
       { status: 500 }
     );
   }
