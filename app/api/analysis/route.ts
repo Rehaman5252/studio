@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
     return NextResponse.json(
-      { ok: false, error: { message: "An internal server error occurred." }, analysis: fallback },
+      { ok: false, analysis: fallback, error: { message: "An internal server error occurred." } },
       { status: 500 }
     );
   }

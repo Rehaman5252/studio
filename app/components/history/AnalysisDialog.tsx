@@ -47,12 +47,12 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
           body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
         
-        if (!res.ok) {
-           const data = await res.json().catch(() => null);
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.ok) {
            throw new Error(data?.error?.message || "Failed to fetch analysis from server.");
         }
 
-        const data = await res.json();
         setAnalysis(data.analysis);
 
       } catch (err: any) {
