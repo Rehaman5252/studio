@@ -24,11 +24,11 @@
     --muted: 0 0% 15%;
     --muted-foreground: 45 30% 70%;
 
-    --accent: 45 93% 67%; /* Gold */
+    --accent: 14 80% 55%; /* Sunset Orange */
     --accent-foreground: 0 0% 5%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive: 38 92% 50%; /* Rich Gold/Amber for destructive actions */
+    --destructive-foreground: 0 0% 5%; 
 
     --border: 0 0% 15%;
     --input: 0 0% 15%;
@@ -57,11 +57,11 @@
     --muted: 0 0% 15%;
     --muted-foreground: 45 30% 70%;
 
-    --accent: 45 93% 67%;
+    --accent: 14 80% 55%;
     --accent-foreground: 0 0% 5%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive: 38 92% 50%; 
+    --destructive-foreground: 0 0% 5%; 
 
     --border: 0 0% 15%;
     --input: 0 0% 15%;
