@@ -119,13 +119,25 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
     setShowAdDialog(open);
   }
   
-  const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.timestamp.toDate() : new Date(attempt.timestamp);
+  const getFormattedDate = (timestamp: any): string => {
+    if (timestamp?.toDate) { // Firestore Timestamp
+        return new Date(timestamp.toDate()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    if (timestamp instanceof Date) { // JavaScript Date
+        return new Date(timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    if (typeof timestamp === 'number' || typeof timestamp === 'string') { // Milliseconds or string
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+    }
+    return 'Invalid Date';
+  };
+  
   const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
   const slotTiming = getSlotTimings(attempt.timestamp);
-
-  const formattedDate = !isNaN(attemptDate.getTime()) 
-    ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    : 'Invalid Date';
+  const formattedDate = getFormattedDate(attempt.timestamp);
 
   return (
     <>
