@@ -71,13 +71,8 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
   const handleReviewClick = useCallback(() => {
     if (isDisqualified || isReviewed || isReviewing) return;
-
-    if (isReviewed) {
-        setShowReviewDialog(true);
-    } else {
-        setIsReviewing(true);
-        setShowAdDialog(true);
-    }
+    setIsReviewing(true);
+    setShowAdDialog(true);
   }, [isDisqualified, isReviewed, isReviewing]);
 
   const handleAdFinished = useCallback(async () => {
@@ -104,7 +99,9 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
-    if (!open) {
+    // Only set isReviewing to false if the ad dialog is closed *before* the ad finishes.
+    // The main flow is handled by handleAdFinished.
+    if (!open && isReviewing && !showReviewDialog) {
         setIsReviewing(false);
     }
     setShowAdDialog(open);
@@ -193,3 +190,4 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
+
