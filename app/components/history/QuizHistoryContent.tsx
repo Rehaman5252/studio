@@ -76,11 +76,11 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
   const handleReviewClick = useCallback(() => {
     // This check prevents any action if the process is already running or completed.
-    if (isDisqualified || isReviewing || isReviewed) {
-        // If already reviewed, just open the dialog directly. This handles out-of-sync UI.
-        if (isReviewed) {
-            setShowReviewDialog(true);
-        }
+    if (isDisqualified || isReviewing) return;
+    
+    // If already reviewed, just open the dialog directly. This handles out-of-sync UI.
+    if (isReviewed) {
+        setShowReviewDialog(true);
         return;
     }
     
