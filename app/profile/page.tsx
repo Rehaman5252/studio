@@ -12,6 +12,7 @@ import LoginPrompt from "@/components/auth/LoginPrompt";
 import SupportCard from "@/components/profile/SupportCard";
 import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import Link from "next/link";
+import ClientOnly from "@/components/ClientOnly";
 
 
 const ProfilePageContent = dynamic(
@@ -78,7 +79,7 @@ export default function ProfilePage() {
             return <ProfileSkeleton />;
         }
         if (user) {
-            return <ProfilePageContent />;
+            return <ClientOnly><ProfilePageContent /></ClientOnly>;
         }
         return <LoggedOutProfileView />;
     }
