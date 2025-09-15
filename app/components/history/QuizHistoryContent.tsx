@@ -70,14 +70,16 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const isDisqualified = !!attempt.reason;
 
   const handleReviewClick = useCallback(() => {
+    // This check prevents any action if the process is already running or completed.
     if (isDisqualified || isReviewed || isReviewing) {
-        // If already reviewed, just open the dialog directly.
+        // If already reviewed, just open the dialog directly. This handles out-of-sync UI.
         if (isReviewed) {
             setShowReviewDialog(true);
         }
         return;
     }
     
+    // Start the review process: disable button and show ad.
     setIsReviewing(true);
     setShowAdDialog(true);
   }, [isDisqualified, isReviewed, isReviewing]);
@@ -101,15 +103,18 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         });
       }
     } finally {
+      // Whether success or fail, the "reviewing" process is over.
       setIsReviewing(false);
     }
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
-    // Only reset isReviewing if the ad dialog is closed *before* the ad finishes.
-    // This handles the user abandoning the review process.
-    if (!open && isReviewing && !showReviewDialog) {
-        setIsReviewing(false);
+    if (!open) {
+        // Only reset isReviewing if the user closes the ad dialog *before* the ad finishes.
+        // This handles the user abandoning the review process.
+        if (isReviewing && !showReviewDialog) {
+            setIsReviewing(false);
+        }
     }
     setShowAdDialog(open);
   }
@@ -154,14 +159,20 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleReviewClick} 
-                        disabled={isDisqualified || isReviewed || isReviewing}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReviewClick}
+                      disabled={isDisqualified || isReviewing || isReviewed}
                     >
-                        {isReviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />)}
-                        {isReviewing ? 'Processing...' : (isReviewed ? 'Reviewed' : 'Review')}
+                      {isReviewing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : isReviewed ? (
+                        <Check className="mr-2 h-4 w-4 text-green-500" />
+                      ) : (
+                        <Eye className="mr-2 h-4 w-4 text-primary" />
+                      )}
+                      {isReviewing ? 'Processing...' : isReviewed ? 'Reviewed' : 'Review'}
                     </Button>
                     
                     <Button variant="secondary" size="sm" onClick={() => setIsAnalysisOpen(true)} disabled={isDisqualified}>
