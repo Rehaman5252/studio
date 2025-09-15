@@ -54,9 +54,10 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
+    // ALWAYS return a 200 with a valid fallback structure so the client doesn't break.
     return NextResponse.json(
-      { ok: true, analysis: fallback, error: { message: "An internal server error occurred." } }, // Send ok:true with fallback
-      { status: 200 } // Send 200 so client can display fallback
+      { ok: true, analysis: fallback, error: { message: "An internal server error occurred." } },
+      { status: 200 }
     );
   }
 }

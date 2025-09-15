@@ -111,6 +111,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
+      // Read the body as text ONCE to avoid "body stream already read" error.
       const responseText = await response.text();
       let data: QuizAPIResponse;
       
@@ -118,13 +119,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         data = JSON.parse(responseText);
       } catch(parseErr) {
         console.error('Quiz API returned non-json', parseErr, responseText);
-        setError('Server returned an unexpected response.');
+        setError('Server returned an unexpected response. Please try again.');
         setQuizState('error');
         return;
       }
       
-      if (!response.ok || !data.ok) {
-         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz.";
+      // Check for application-level errors from the API
+      if (!data.ok) {
+         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
          setError(msg);
          setQuizState('error');
          return;
@@ -136,7 +138,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setQuizState('pre-quiz');
       
     } catch (e: any) {
-      if (e.name === 'AbortError') return;
+      if (e.name === 'AbortError') return; // Ignore abort errors
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
       
