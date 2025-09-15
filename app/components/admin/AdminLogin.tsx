@@ -13,9 +13,12 @@ import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
+const ADMIN_EMAIL = "rehamansyed07@gmail.com";
+const ADMIN_PASSWORD = "Indcric@100";
+
 export default function AdminLogin() {
-  const [email, setEmail] = useState('rehamansyed07@gmail.com');
-  const [password, setPassword] = useState('Indcric@100');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -23,18 +26,35 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
     setIsLoading(true);
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        if (!auth) {
+            toast({ title: 'Error', description: 'Firebase auth not configured.', variant: 'destructive'});
+            setIsLoading(false);
+            return;
+        };
+        try {
+            // We still sign in with Firebase to establish a session, 
+            // even though we've manually checked the password.
+            // This is for potential future use with Firebase rules.
+            await signInWithEmailAndPassword(auth, email, password);
+            toast({
+                title: 'Authentication Successful',
+                description: 'Welcome, Admin. Redirecting to the Third Umpire\'s room...',
+            });
+            router.push('/admin/dashboard');
+        } catch (error: any) {
+            // This will catch Firebase errors if the user doesn't exist or is disabled
+            toast({
+                title: 'Authentication Failed',
+                description: 'The admin user may not be set up in Firebase correctly.',
+                variant: 'destructive',
+            });
+            setIsLoading(false);
+        }
+    } else {
       toast({
-        title: 'Authentication Successful',
-        description: 'Welcome, Admin. Redirecting to dashboard...',
-      });
-      router.push('/admin/dashboard');
-    } catch (error: any) {
-       toast({
         title: 'Authentication Failed',
         description: 'Invalid credentials. Please try again.',
         variant: 'destructive',
@@ -54,7 +74,7 @@ export default function AdminLogin() {
                 <Shield className="h-12 w-12 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold">Third Umpire's Room</CardTitle>
-            <CardDescription>Access restricted to authorized indcric match officials.</CardDescription>
+            <CardDescription>Access restricted to authorized match officials.</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
             <form onSubmit={handleLogin} className="space-y-4">
@@ -63,7 +83,7 @@ export default function AdminLogin() {
                     <Input 
                       id="email" 
                       type="email" 
-                      placeholder="rehamansyed07@gmail.com" 
+                      placeholder="Enter your official email" 
                       required 
                       className="h-12"
                       value={email}
@@ -97,7 +117,7 @@ export default function AdminLogin() {
                 </div>
                 <Button type="submit" className="w-full h-12 text-base font-bold" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? 'Checking Credentials...' : 'Proceed to Review'}
+                    {isLoading ? 'Checking Credentials...' : 'Enter the Third Umpire\'s Room'}
                 </Button>
                 <div className="text-center">
                     <Button variant="link" asChild className="text-xs text-muted-foreground">
