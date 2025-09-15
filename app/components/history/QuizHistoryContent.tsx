@@ -41,22 +41,35 @@ export const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
-const getSlotTimings = (timestamp: number | Timestamp) => {
-    const attemptDate = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
-    if (isNaN(attemptDate.getTime())) return 'Invalid Time';
+const normalizeTimestamp = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    if (timestamp?.toDate) return timestamp.toDate(); // Firestore Timestamp
+    if (timestamp instanceof Date) return timestamp; // JavaScript Date
+    const date = new Date(timestamp); // Number (milliseconds) or String
+    return isNaN(date.getTime()) ? null : date;
+};
 
-    const minutes = attemptDate.getMinutes();
+const getSlotTimings = (date: Date | null): string => {
+    if (!date) return 'Invalid Time';
+
+    const minutes = date.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
     
-    const slotStartTime = new Date(attemptDate);
+    const slotStartTime = new Date(date);
     slotStartTime.setMinutes(slotStartMinute, 0, 0);
     
     const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
 
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const formatTime = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
 };
+
+const getFormattedDate = (date: Date | null): string => {
+    if (!date) return 'Invalid Date';
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
 
 const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const { markAttemptAsReviewed } = useAuth();
@@ -119,25 +132,10 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
     setShowAdDialog(open);
   }
   
-  const getFormattedDate = (timestamp: any): string => {
-    if (timestamp?.toDate) { // Firestore Timestamp
-        return new Date(timestamp.toDate()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    }
-    if (timestamp instanceof Date) { // JavaScript Date
-        return new Date(timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    }
-    if (typeof timestamp === 'number' || typeof timestamp === 'string') { // Milliseconds or string
-        const date = new Date(timestamp);
-        if (!isNaN(date.getTime())) {
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        }
-    }
-    return 'Invalid Date';
-  };
-  
+  const normalizedDate = normalizeTimestamp(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
-  const slotTiming = getSlotTimings(attempt.timestamp);
-  const formattedDate = getFormattedDate(attempt.timestamp);
+  const slotTiming = getSlotTimings(normalizedDate);
+  const formattedDate = getFormattedDate(normalizedDate);
 
   return (
     <>
