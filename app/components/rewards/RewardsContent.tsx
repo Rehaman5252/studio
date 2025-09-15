@@ -128,7 +128,7 @@ GenericOffer.displayName = 'GenericOffer';
 const getStartOfWeek = (timestamp: any): number => {
     const date = normalizeTimestamp(timestamp);
     if (!date) return 0;
-    const copiedDate = new Date(date.getTime());
+    const copiedDate = new Date(date.getTime()); // Create a copy
     const day = copiedDate.getDay();
     // Adjust to Monday as the start of the week (Sunday is 0)
     const diff = copiedDate.getDate() - day + (day === 0 ? -6 : 1); 
