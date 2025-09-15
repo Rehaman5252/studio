@@ -6,6 +6,7 @@ import { Inter } from 'next/font/google';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import ClientOnly from '@/components/ClientOnly';
+import Providers from '@/context/Providers';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,11 +24,6 @@ export const metadata: Metadata = {
     title: 'indcric',
   },
 };
-
-const Providers = dynamic(() => import('@/context/Providers'), {
-  ssr: false,
-  loading: () => <div className="flex-1" />, // Render nothing while loading providers
-});
 
 const BottomNav = dynamic(() => import('@/components/BottomNav'), {
   ssr: false,
