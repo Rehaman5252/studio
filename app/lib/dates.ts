@@ -17,7 +17,7 @@ import { Timestamp } from 'firebase/firestore';
 export function normalizeTimestamp(timestamp: any): Date | null {
     if (!timestamp) return null;
     
-    // Firestore Timestamp
+    // Firestore Timestamp (from server)
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
         return timestamp.toDate();
     }
@@ -25,6 +25,11 @@ export function normalizeTimestamp(timestamp: any): Date | null {
     // Already a JavaScript Date
     if (timestamp instanceof Date) {
         return timestamp;
+    }
+    
+    // Firestore Timestamp (from client-side representation)
+    if (typeof timestamp === 'object' && 'seconds' in timestamp && 'nanoseconds' in timestamp) {
+        return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
     }
     
     // Number (milliseconds) or String
