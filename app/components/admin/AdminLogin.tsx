@@ -10,11 +10,18 @@ import { Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 const ADMIN_EMAIL = "rehamansyed07@gmail.com";
 const ADMIN_PASSWORD = "Indcric@100";
+
+const GoogleIcon = () => (
+    <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+        <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512S0 403.3 0 261.8C0 120.3 106.5 8 244 8s244 112.3 244 253.8zM138.3 336.7c-21.7-21.7-33.2-50.2-33.2-80.1s11.5-58.4 33.2-80.1c21.7-21.7 50.2-33.2 80.1-33.2s58.4 11.5 80.1 33.2c21.7 21.7 33.2 50.2 33.2 80.1s-11.5 58.4-33.2 80.1c-21.7-21.7-50.2-33.2-80.1-33.2s-58.4 11.5-80.1-33.2z"></path>
+    </svg>
+);
+
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -28,13 +35,11 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsLoading(true);
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    if (email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
         toast({
             title: 'Authentication Successful',
             description: 'Welcome, Admin. Redirecting to the Third Umpire\'s room...',
         });
-        // We will just redirect to the dashboard without a full Firebase sign-in
-        // This guarantees access as long as the credentials match.
         router.push('/admin/dashboard');
     } else {
       toast({
@@ -43,6 +48,32 @@ export default function AdminLogin() {
         variant: 'destructive',
       });
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) {
+        toast({ title: "Error", description: "Authentication service not available.", variant: "destructive" });
+        return;
+    }
+    setIsLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        if (result.user.email?.toLowerCase() === ADMIN_EMAIL) {
+            toast({ title: 'Authentication Successful', description: 'Welcome, Admin.' });
+            router.push('/admin/dashboard');
+        } else {
+            await signOut(auth);
+            toast({ title: 'Unauthorized', description: 'This Google account is not authorized for admin access.', variant: 'destructive' });
+        }
+    } catch (error: any) {
+        if (error.code !== 'auth/popup-closed-by-user') {
+            console.error('Admin Google Sign-In Error:', error);
+            toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
+        }
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -102,14 +133,26 @@ export default function AdminLogin() {
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? 'Checking Credentials...' : 'Enter the Third Umpire\'s Room'}
                 </Button>
-                <div className="text-center">
-                    <Button variant="link" asChild className="text-xs text-muted-foreground">
-                        <Link href="/">
-                            Return to the Pitch
-                        </Link>
-                    </Button>
-                </div>
             </form>
+             <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+            </div>
+             <Button variant="outline" className="w-full h-12 text-base" onClick={handleGoogleSignIn} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                Continue with Google
+            </Button>
+            <div className="text-center mt-4">
+                <Button variant="link" asChild className="text-xs text-muted-foreground">
+                    <Link href="/">
+                        Return to the Pitch
+                    </Link>
+                </Button>
+            </div>
         </CardContent>
     </Card>
   );
