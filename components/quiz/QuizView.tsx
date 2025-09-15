@@ -71,18 +71,7 @@ export default function QuizView({
      useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
-                malpracticeRef.current.tabSwitchCount += 1;
-                // If hidden for >1 second, or it's the 2nd switch, disqualify.
-                malpracticeRef.current.hiddenTimer = setTimeout(() => {
-                    if (malpracticeRef.current.tabSwitchCount >= 2) {
-                        onNoBall('no-ball');
-                    }
-                }, 1000); 
-            } else {
-                if (malpracticeRef.current.hiddenTimer) {
-                    clearTimeout(malpracticeRef.current.hiddenTimer);
-                    malpracticeRef.current.hiddenTimer = null;
-                }
+                onNoBall('no-ball');
             }
         };
 
@@ -90,9 +79,6 @@ export default function QuizView({
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            if (malpracticeRef.current.hiddenTimer) {
-                clearTimeout(malpracticeRef.current.hiddenTimer);
-            }
         };
     }, [onNoBall]);
     

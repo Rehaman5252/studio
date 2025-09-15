@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
-import { Timestamp } from 'firebase/firestore';
+import { normalizeTimestamp } from '@/lib/dates';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -86,7 +86,7 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
                     aria-label={`Scratch to reveal gift from ${brand}`}
                 >
                     <div className="w-16 h-16 relative mb-3">
-                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} />
+                         <Image src={brandInfo.logoUrl} alt={`${brand} logo`} fill className="object-contain" data-ai-hint={`${brand} logo`} priority={false} loading="lazy" />
                     </div>
                     <p className="font-bold text-lg">Unpack Your Reward</p>
                     <p className="text-sm">From {brand}</p>
@@ -105,12 +105,12 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
 });
 ScratchCard.displayName = 'ScratchCard';
 
-export const GenericOffer = memo(({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
+const GenericOfferComponent = ({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
     <a href={link} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-103 animate-fade-in-up block">
         <Card className="bg-card/80 shadow-lg hover:border-primary/30">
             <CardContent className="p-4 flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center p-2 shadow-inner bg-white relative overflow-hidden flex-shrink-0">
-                    <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} />
+                    <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} priority={false} loading="lazy" />
                 </div>
                 <div className="flex-grow">
                     <h4 className="font-bold text-foreground">{title}</h4>
@@ -120,16 +120,21 @@ export const GenericOffer = memo(({ title, description, image, hint, link }: { t
             </CardContent>
         </Card>
     </a>
-));
+);
+export const GenericOffer = memo(GenericOfferComponent);
 GenericOffer.displayName = 'GenericOffer';
 
-const getStartOfWeek = (timestamp: number | Timestamp): number => {
-    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
-    const day = date.getDay();
+
+const getStartOfWeek = (timestamp: any): number => {
+    const date = normalizeTimestamp(timestamp);
+    if (!date) return 0;
+    const copiedDate = new Date(date.getTime()); // Create a copy
+    const day = copiedDate.getDay();
     // Adjust to Monday as the start of the week (Sunday is 0)
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
-    const startOfWeek = new Date(date.setDate(diff));
-    return startOfWeek.setHours(0, 0, 0, 0);
+    const diff = copiedDate.getDate() - day + (day === 0 ? -6 : 1); 
+    copiedDate.setDate(diff);
+    copiedDate.setHours(0, 0, 0, 0);
+    return copiedDate.getTime();
 };
 
 
@@ -162,8 +167,8 @@ function RewardsContentComponent() {
   const rewardableAttempts = useMemo(() => {
     // Sort all attempts newest first to ensure we process the most recent ones
     const sortedAttempts = [...quizHistory.data].sort((a, b) => {
-      const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : a.timestamp;
-      const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : b.timestamp;
+      const timeA = normalizeTimestamp(a.timestamp)?.getTime() || 0;
+      const timeB = normalizeTimestamp(b.timestamp)?.getTime() || 0;
       return timeB - timeA;
     });
 

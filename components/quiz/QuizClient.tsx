@@ -36,6 +36,7 @@ type QuizAPIResponse = {
   source?: 'ai' | 'fallback';
   reqId?: string;
   error?: { message: string };
+  errorDetails?: { message: string, originalError: string };
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
@@ -77,23 +78,23 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const fetchQuiz = useCallback(async () => {
     if (isFinishedRef.current || authLoading) return;
-    if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-    }
+    abortControllerRef.current?.abort();
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
+
+    setQuizState('loading');
+    setError(null);
 
     if (!user) {
         setQuizState('unauthenticated');
         return;
     }
-
     if (isOffline) {
         setError("You appear to be offline. Please check your connection.");
         setQuizState('error');
         return;
     }
-    
     if (!isFirebaseConfigured) {
         setError("🔥 The app is not connected to the server. Please try again later.");
         setQuizState('error');
@@ -101,56 +102,58 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     }
     
     try {
-      setQuizState('loading');
-      setError(null);
-
       const response = await fetch('/api/quiz', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ format, userId: user.uid }),
         signal: controller.signal,
       });
 
       if (controller.signal.aborted) return;
       
+      const responseText = await response.text();
       let data: QuizAPIResponse;
+      
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
       } catch(parseErr) {
-        console.error('Quiz API returned non-json', parseErr, await response.text());
-        setError('Server returned an unexpected response.');
-        setQuizState('error');
-        return;
+        console.error('Quiz API returned non-json:', responseText);
+        throw new Error('Server returned an unexpected response. Please try again.');
       }
       
-      if (!response.ok || !data.ok || !data.quiz) {
-         const msg = data.error?.message || "Could not load quiz.";
-         setError(msg);
-         setQuizState('error');
+      if (!data.ok || !data.quiz) {
+         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
+         if (data.quiz) {
+            setQuizData(data.quiz);
+            setQuizSource(data.source || 'fallback');
+            setQuizState('pre-quiz');
+            if (msg) toast({ title: 'Heads up!', description: msg, variant: 'destructive' });
+         } else {
+            setError(msg);
+            setQuizState('error');
+         }
          return;
       }
-
+      
       setQuizData(data.quiz);
       setQuizSource(data.source || 'ai');
       setQuizState('pre-quiz');
       
     } catch (e: any) {
-      if (e.name === 'AbortError') return;
+      if (e.name === 'AbortError') return; // Ignore abort errors
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
       
-      if (typeof e.message === 'string') {
-        if(e.message.includes("Failed to fetch")) {
-            userMessage = "📴 You appear to be offline. Please check your connection.";
-        } else {
-            userMessage = e.message;
-        }
+      if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
+          userMessage = "📴 You appear to be offline. Please check your connection.";
+      } else if (typeof e.message === 'string') {
+          userMessage = e.message;
       }
       
       setError(userMessage);
       setQuizState('error');
     }
-  }, [format, user, authLoading, isOffline]);
+  }, [format, user, authLoading, isOffline, toast]);
 
   useEffect(() => {
     if (!authLoading) {
