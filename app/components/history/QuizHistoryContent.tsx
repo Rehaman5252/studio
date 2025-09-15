@@ -70,15 +70,14 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const isDisqualified = !!attempt.reason;
 
   const handleReviewClick = useCallback(() => {
-    if (isDisqualified || isReviewed || isReviewing) return;
-    
-    // If it's already reviewed (somehow state is out of sync), just show the dialog.
-    if (isReviewed) {
-        setShowReviewDialog(true);
+    if (isDisqualified || isReviewed || isReviewing) {
+        // If already reviewed, just open the dialog directly.
+        if (isReviewed) {
+            setShowReviewDialog(true);
+        }
         return;
     }
-
-    // Immediately set isReviewing to true to disable the button
+    
     setIsReviewing(true);
     setShowAdDialog(true);
   }, [isDisqualified, isReviewed, isReviewing]);
@@ -102,14 +101,13 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         });
       }
     } finally {
-      // This is crucial: only set isReviewing to false after the entire process is done.
       setIsReviewing(false);
     }
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
-    // Only set isReviewing to false if the ad dialog is closed *before* the ad finishes.
-    // This prevents the button from becoming clickable again while the DB call is in flight.
+    // Only reset isReviewing if the ad dialog is closed *before* the ad finishes.
+    // This handles the user abandoning the review process.
     if (!open && isReviewing && !showReviewDialog) {
         setIsReviewing(false);
     }
@@ -156,7 +154,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed || isReviewing}>
+                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewing}>
                         {isReviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />)}
                         {isReviewing ? 'Processing...' : (isReviewed ? 'Reviewed' : 'Review')}
                     </Button>
