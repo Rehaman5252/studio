@@ -104,36 +104,31 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     try {
       const response = await fetch('/api/quiz', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, // Do not set 'Accept' header
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ format, userId: user.uid }),
         signal: controller.signal,
       });
 
       if (controller.signal.aborted) return;
       
-      // Read the response body as text ONCE. This is the key fix.
       const responseText = await response.text();
       let data: QuizAPIResponse;
       
       try {
-        // Attempt to parse the text as JSON
         data = JSON.parse(responseText);
       } catch(parseErr) {
         console.error('Quiz API returned non-json:', responseText);
-        // If parsing fails, the response was not valid JSON. Treat the text as the error.
         throw new Error('Server returned an unexpected response. Please try again.');
       }
       
-      // Now that we have valid JSON, check the 'ok' status from our API's payload
       if (!data.ok || !data.quiz) {
          const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
-         setError(msg);
-         // Even on error, the API might provide a fallback quiz
          if (data.quiz) {
             setQuizData(data.quiz);
             setQuizSource(data.source || 'fallback');
             setQuizState('pre-quiz');
          } else {
+            setError(msg);
             setQuizState('error');
          }
          return;

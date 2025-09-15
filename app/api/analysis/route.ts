@@ -4,7 +4,6 @@ import { generateQuizAnalysis } from "@/ai/flows/generate-quiz-analysis";
 import { QuizAnalysisOutputSchema } from "@/ai/schemas";
 import type { QuizAnalysisOutput } from "@/ai/schemas";
 
-// This is a high-quality, deterministic fallback that is returned if the AI fails.
 const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
     const format = attempt?.format || "cricket";
     const score = attempt?.score ?? "a good";
@@ -36,10 +35,8 @@ export async function POST(req: Request) {
       );
     }
     
-    // The generateQuizAnalysis flow is hardened and will *always* return a valid analysis or a high-quality fallback.
     const result = await generateQuizAnalysis(attemptBody);
     
-    // Final validation before sending to client, just in case.
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
 
     if (!parsed.success) {
@@ -53,7 +50,6 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
-    // ALWAYS return a 200 with a valid fallback structure so the client doesn't break.
     return NextResponse.json(
       { ok: true, analysis: fallback },
       { status: 200 }

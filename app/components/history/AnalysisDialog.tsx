@@ -47,7 +47,6 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
           body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
         
-        // Read the response as text ONCE.
         const responseText = await res.text();
         let data;
 

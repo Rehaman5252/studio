@@ -15,12 +15,6 @@ import { z } from 'zod';
 import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 
-
-/**
- * Generates a deterministic, rules-based fallback analysis if the AI fails.
- * @param attempt - The sanitized quiz attempt data.
- * @returns A complete QuizAnalysisOutput object.
- */
 const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
     const accuracy = attempt.totalQuestions > 0 ? (attempt.score / attempt.totalQuestions) * 100 : 0;
     
@@ -56,7 +50,6 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
     if (!sanitized || !sanitized.userId) {
         console.error("[generateQuizAnalysis] Sanitization failed or missing userId, returning fallback.", { rawAttempt });
-        // Create a dummy attempt for fallback if sanitization fails completely
         const dummyAttempt = { format: 'cricket', score: 0, totalQuestions: 5, questions: [], userAnswers: [] } as any;
         return getFallbackAnalysis(dummyAttempt);
     }
@@ -65,7 +58,6 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
         const validatedAttempt = QuizAttempt.parse(sanitized as z.infer<typeof QuizAttempt>);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
-        // Use safeParse to be absolutely sure the final output is valid
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
@@ -100,9 +92,9 @@ const prompt = ai.definePrompt({
 
     Based on this data, generate a comprehensive analysis. Follow these steps precisely:
     1.  **summary:** Write a brief, encouraging summary (1-2 sentences) of the user's performance, mentioning their score.
-    2.  **strengths:** Based on the questions answered correctly and quickly, identify 1-2 key strengths. Examples: "Quick recall of player stats," "Strong knowledge of IPL history."
-    3.  **weaknesses:** Based on the questions where answers were incorrect or slow, identify 1-2 areas for improvement. Examples: "Hesitation on questions about older Test matches," "Difficulty with obscure rule terminology."
-    4.  **recommendations:** Provide 3 concrete, actionable recommendations for the user to focus on. Examples: "Review the highlights from the 1983 World Cup," "Take a few practice quizzes on the 'T20' format to improve speed."
+    2.  **strengths:** Based on the questions answered correctly and quickly, identify 1-2 key strengths.
+    3.  **weaknesses:** Based on the questions where answers were incorrect or slow, identify 1-2 areas for improvement.
+    4.  **recommendations:** Provide 3 concrete, actionable recommendations for the user to focus on.
     5.  **source**: Set this field to "ai".
   `,
 });
@@ -118,7 +110,6 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         try {
             const { output } = await prompt(input);
             
-            // Use safeParse for tolerant validation of the AI's output
             const parsed = QuizAnalysisOutputSchema.safeParse(output);
             if (!parsed.success) {
                  console.error("[generateQuizAnalysisFlow] AI output schema validation failed. Full output:", JSON.stringify(output, null, 2));
@@ -129,7 +120,6 @@ const generateQuizAnalysisFlow = ai.defineFlow(
 
         } catch (error) {
              console.error("Error during AI analysis flow execution. Returning fallback.", error);
-             // Always return a valid fallback on any error.
              return getFallbackAnalysis(input);
         }
     }

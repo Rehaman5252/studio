@@ -9,11 +9,10 @@ export const dynamic = 'force_dynamic';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-// This function now returns a standard Response object, not a NextResponse
 function createErrorResponse(message: string, reqId: string, status = 500, code?: string) {
   const fallbackQuiz = getFallbackQuiz("mixed");
   const errorPayload: any = {
-    ok: true, // Send ok: true so client can render fallback
+    ok: true,
     quiz: fallbackQuiz,
     source: "fallback",
     reqId,
@@ -24,17 +23,21 @@ function createErrorResponse(message: string, reqId: string, status = 500, code?
   };
 
   return new Response(JSON.stringify(errorPayload), {
-    status: 200, // Always return 200 so client can parse the body for the fallback
+    status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 export async function POST(req: Request) {
   const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
   let body: any;
+
   try {
     const rawBody = await req.text();
+    if (!rawBody) {
+        console.warn(`[quiz][${reqId}] Empty request body`);
+        return createErrorResponse("Empty request body.", reqId, 400, "EMPTY_BODY");
+    }
     body = JSON.parse(rawBody);
   } catch (e) {
     console.error(`[quiz][${reqId}] Invalid JSON body.`);
@@ -56,7 +59,6 @@ export async function POST(req: Request) {
   try {
     console.info(`[quiz][${reqId}] Starting AI quiz generation for format=${format} user=${userId}`);
     
-    // AI-first: attempt to generate the quiz. The flow is hardened to be resilient.
     const aiResult = await generateQuizFlow({ format, userId });
     
     console.info(`[quiz][${reqId}] AI generation succeeded.`);
@@ -67,7 +69,6 @@ export async function POST(req: Request) {
     
     const mappedError = mapFirestoreError(err);
     if (mappedError?.code === "INDEX_REQUIRED") {
-      // This is a developer-facing error, so we can return a 500
       return NextResponse.json({
         ok: false, 
         error: { code: mappedError.code, message: mappedError.userMessage },

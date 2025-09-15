@@ -54,8 +54,6 @@ const prompt = ai.definePrompt({
     prompt: `
     You are a world-class cricket expert and quizmaster. Your task is to generate a completely new and unique 5-question multiple-choice quiz about "{{format}}" cricket.
 
-    This quiz must follow a strict and specific structure for difficulty and topic balance.
-
     ## Rule 1: Progressive Difficulty Curve
     The five questions MUST have an escalating difficulty. Adhere to this structure precisely:
     - **Question 1 (Easy):** A straightforward question that a casual cricket fan would likely know.
@@ -65,12 +63,7 @@ const prompt = ai.definePrompt({
     - **Question 5 (Extremely Hard / "The GOAT Question"):** A truly expert-level question. This should be a very specific, almost unanswerable piece of trivia that only a cricket historian or statistician might know.
 
     ## Rule 2: Balanced Topic Coverage
-    You must pull questions from a variety of topics to ensure the quiz is well-rounded. Do not ask multiple questions about the same player or team. Use the following topic blueprint:
-    - **Topic Pool 1: IPL & Domestic T20:** Team stats (CSK, MI, etc.), cap winners, finals history, records, iconic matches, BBL, PSL, CPL, The Hundred, SA20.
-    - **Topic Pool 2: Indian Cricket:** World Cup wins (1983, 2011, 2007), famous partnerships, legendary captains, player milestones (Sachin, Kohli, etc.), Ranji Trophy.
-    - **Topic Pool 3: International Cricket (Specific Nations):** Focus on history, key players, and achievements of Australia, England, West Indies, Pakistan, Sri Lanka, South Africa, and New Zealand.
-    - **Topic Pool 4: Cricket Records & Terminology:** General stats (highest scores, best bowling), rare dismissals (Mankading), rules (DRS, Powerplay), umpire signals.
-    - **Topic Pool 5: Legends, Personalities & Current Affairs:** Questions about legends (Lara, Warne), current stars (Bumrah, Babar), coaches, commentators, or very recent records and series results from your knowledge cutoff date.
+    You must pull questions from a variety of topics to ensure the quiz is well-rounded. Do not ask multiple questions about the same player or team.
 
     ## Rule 3: Output Format & Uniqueness
     Each question must include:
@@ -91,14 +84,7 @@ const prompt = ai.definePrompt({
     Now, generate the 5-question quiz based on all these rules for the "{{format}}" format.
   `,
     config: {
-        safetySettings: [
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
-        ],
-        retries: 2, // Add retries to make the flow more resilient
+        retries: 2,
     }
 });
 
@@ -114,12 +100,9 @@ export const generateQuizFlow = ai.defineFlow(
 
         const { output } = await prompt({ format: input.format, seenQuestions });
         
-        // Use safeParse for tolerant validation. If it fails, this will throw an error
-        // which will be caught by the API route's try...catch block, leading to a fallback.
         const validation = QuizData.safeParse(output);
         if (!validation.success) {
              console.error("AI failed to generate a valid quiz shape. Full output:", JSON.stringify(output, null, 2));
-             // Throwing an error here is crucial. It signals the API route to use the fallback.
              throw new Error("AI returned incomplete or invalid quiz data.");
         }
 
