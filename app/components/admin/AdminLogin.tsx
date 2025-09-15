@@ -29,30 +29,13 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        if (!auth) {
-            toast({ title: 'Error', description: 'Firebase auth not configured.', variant: 'destructive'});
-            setIsLoading(false);
-            return;
-        };
-        try {
-            // We still sign in with Firebase to establish a session, 
-            // even though we've manually checked the password.
-            // This is for potential future use with Firebase rules.
-            await signInWithEmailAndPassword(auth, email, password);
-            toast({
-                title: 'Authentication Successful',
-                description: 'Welcome, Admin. Redirecting to the Third Umpire\'s room...',
-            });
-            router.push('/admin/dashboard');
-        } catch (error: any) {
-            // This will catch Firebase errors if the user doesn't exist or is disabled
-            toast({
-                title: 'Authentication Failed',
-                description: 'The admin user may not be set up in Firebase correctly.',
-                variant: 'destructive',
-            });
-            setIsLoading(false);
-        }
+        toast({
+            title: 'Authentication Successful',
+            description: 'Welcome, Admin. Redirecting to the Third Umpire\'s room...',
+        });
+        // We will just redirect to the dashboard without a full Firebase sign-in
+        // This guarantees access as long as the credentials match.
+        router.push('/admin/dashboard');
     } else {
       toast({
         title: 'Authentication Failed',
