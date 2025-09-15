@@ -111,7 +111,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (controller.signal.aborted) return;
       
-      // Read the body as text ONCE to avoid "body stream already read" error.
       const responseText = await response.text();
       let data: QuizAPIResponse;
       
@@ -124,15 +123,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         return;
       }
       
-      // Check for application-level errors from the API
-      if (!data.ok) {
+      if (!data.ok || !data.quiz) {
          const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
          setError(msg);
          setQuizState('error');
          return;
       }
       
-      // The API now *always* returns a quiz, even on fallback, so we can set it.
       setQuizData(data.quiz);
       setQuizSource(data.source || 'fallback');
       setQuizState('pre-quiz');

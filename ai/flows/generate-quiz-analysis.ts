@@ -118,7 +118,6 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         try {
             const { output } = await prompt(input);
             
-            // Validate the AI output. If it's invalid, throw to trigger fallback.
             const parsed = QuizAnalysisOutputSchema.safeParse(output);
             if (!parsed.success) {
                  console.error("[generateQuizAnalysisFlow] AI output schema validation failed. Full output:", JSON.stringify(output, null, 2));

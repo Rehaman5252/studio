@@ -5,7 +5,6 @@ import { QuizAnalysisOutputSchema } from "@/ai/schemas";
 import type { QuizAnalysisOutput } from "@/ai/schemas";
 
 // This is a high-quality, deterministic fallback that is returned if the AI fails.
-// It is NOT the primary response.
 const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
     const format = attempt?.format || "cricket";
     const score = attempt?.score ?? "a good";
