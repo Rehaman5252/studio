@@ -118,8 +118,8 @@ export default function AdminDashboard() {
                     icon={<Trophy className="h-4 w-4 text-muted-foreground" />} 
                 />
                 <StatCard 
-                    title="Pending Questions" 
-                    value="89" 
+                    title="Pending Submissions" 
+                    value={globalStats?.pendingSubmissions?.toLocaleString() || '0'} 
                     icon={<HelpCircle className="h-4 w-4 text-muted-foreground" />} 
                     description="In moderation queue" 
                 />

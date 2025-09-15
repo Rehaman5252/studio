@@ -7,7 +7,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, runTransaction, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, runTransaction, doc, increment } from 'firebase/firestore';
 
 // Schemas for different contribution types
 const FactSchema = z.object({
@@ -61,6 +61,7 @@ const submitContributionFlow = ai.defineFlow(
             const { userId, ...contributionData } = input;
             const userRef = doc(db, 'users', userId);
             const contributionsCollection = collection(db, 'userContributions');
+            const globalStatsRef = doc(db, 'globals', 'stats');
 
             const contributionDoc = {
                 ...contributionData,
@@ -81,11 +82,15 @@ const submitContributionFlow = ai.defineFlow(
                 transaction.set(newContributionRef, contributionDoc);
 
                 // Update user's contribution counts
-                const updateData: { [key: string]: any } = {};
+                const userUpdate: { [key: string]: any } = {};
                 const countField = `${input.type}sSubmitted`; // e.g., factsSubmitted, postsSubmitted
-                updateData[countField] = (userData[countField] || 0) + 1;
-                
-                transaction.update(userRef, updateData);
+                userUpdate[countField] = (userData[countField] || 0) + 1;
+                transaction.update(userRef, userUpdate);
+
+                // Update global pending submissions count
+                transaction.set(globalStatsRef, {
+                    pendingSubmissions: increment(1)
+                }, { merge: true });
             });
             
             return {
