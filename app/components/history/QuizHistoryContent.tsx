@@ -154,7 +154,12 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleReviewClick} disabled={isDisqualified || isReviewed || isReviewing}>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleReviewClick} 
+                        disabled={isDisqualified || isReviewed || isReviewing}
+                    >
                         {isReviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isReviewed ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Eye className="mr-2 h-4 w-4 text-primary" />)}
                         {isReviewing ? 'Processing...' : (isReviewed ? 'Reviewed' : 'Review')}
                     </Button>
