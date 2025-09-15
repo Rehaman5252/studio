@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       console.error("[Analysis API] FATAL: Output from hardened flow failed validation. This should not happen.", parsed.error);
       const fallback = getFallbackAnalysisForApi(attemptBody);
+      // Still return OK: true so client can display the fallback analysis
       return NextResponse.json({ ok: true, analysis: fallback }); 
     }
 
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("[Analysis API] A critical unhandled error occurred:", err);
     const fallback = getFallbackAnalysisForApi(attemptBody || {});
+    // Always return ok:true with a fallback so the client doesn't show a hard error.
     return NextResponse.json(
       { ok: true, analysis: fallback },
       { status: 200 }

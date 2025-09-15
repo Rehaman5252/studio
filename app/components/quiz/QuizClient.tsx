@@ -127,6 +127,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setQuizData(data.quiz);
             setQuizSource(data.source || 'fallback');
             setQuizState('pre-quiz');
+            if (msg) toast({ title: 'Heads up!', description: msg, variant: 'destructive' });
          } else {
             setError(msg);
             setQuizState('error');
@@ -135,7 +136,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
       
       setQuizData(data.quiz);
-      setQuizSource(data.source || 'fallback');
+      setQuizSource(data.source || 'ai');
       setQuizState('pre-quiz');
       
     } catch (e: any) {
@@ -152,7 +153,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setError(userMessage);
       setQuizState('error');
     }
-  }, [format, user, authLoading, isOffline]);
+  }, [format, user, authLoading, isOffline, toast]);
 
   useEffect(() => {
     if (!authLoading) {

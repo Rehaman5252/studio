@@ -12,7 +12,7 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 function createErrorResponse(message: string, reqId: string, status = 500, code?: string) {
   const fallbackQuiz = getFallbackQuiz("mixed");
   const errorPayload: any = {
-    ok: true,
+    ok: true, // Always true so client can display fallback
     quiz: fallbackQuiz,
     source: "fallback",
     reqId,
@@ -23,7 +23,7 @@ function createErrorResponse(message: string, reqId: string, status = 500, code?
   };
 
   return new Response(JSON.stringify(errorPayload), {
-    status: 200,
+    status: 200, // Return 200 so the client can parse the fallback
     headers: { 'Content-Type': 'application/json' },
   });
 }
@@ -69,6 +69,7 @@ export async function POST(req: Request) {
     
     const mappedError = mapFirestoreError(err);
     if (mappedError?.code === "INDEX_REQUIRED") {
+      // This is a fatal configuration error, so we return a 500 to the client
       return NextResponse.json({
         ok: false, 
         error: { code: mappedError.code, message: mappedError.userMessage },
@@ -76,6 +77,7 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
     
+    // For all other errors, we serve a fallback quiz
     return createErrorResponse(
         err instanceof ZodError ? JSON.stringify(err.format()) : err.message,
         reqId,

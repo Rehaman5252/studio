@@ -103,6 +103,7 @@ export const generateQuizFlow = ai.defineFlow(
         const validation = QuizData.safeParse(output);
         if (!validation.success) {
              console.error("AI failed to generate a valid quiz shape. Full output:", JSON.stringify(output, null, 2));
+             // Throwing an error here will be caught by the API route and trigger the fallback.
              throw new Error("AI returned incomplete or invalid quiz data.");
         }
 
