@@ -9,6 +9,7 @@ import { Trophy, AlertTriangle, RefreshCw } from 'lucide-react';
 import PageWrapper from '@/components/PageWrapper';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import ClientOnly from '@/components/ClientOnly';
 
 const RewardsContent = dynamic(
     () => import('@/components/rewards/RewardsContent').catch(e => {
@@ -95,7 +96,11 @@ function RewardsPage() {
       );
     }
     
-    return <RewardsContent />;
+    return (
+        <ClientOnly>
+            <RewardsContent />
+        </ClientOnly>
+    );
   };
 
   return (

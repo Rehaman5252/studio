@@ -57,15 +57,15 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.variable} antialiased prevent-select dark`}>
-        <ClientOnly>
           <Providers>
             <div className="relative flex flex-col min-h-screen">
               <main className="flex-1 pb-20">{children}</main>
-              <BottomNav />
+              <ClientOnly>
+                <BottomNav />
+              </ClientOnly>
             </div>
             <Toaster />
           </Providers>
-        </ClientOnly>
       </body>
     </html>
   );

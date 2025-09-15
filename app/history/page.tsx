@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -7,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ClientOnly from '@/components/ClientOnly';
 
 const HistoryContent = dynamic(
     () => import('@/components/history/HistoryContent').catch(e => {
@@ -36,7 +38,9 @@ const HistoryContent = dynamic(
 export default function HistoryPage() {
   return (
     <PageWrapper title="My Innings" showBackButton>
-        <HistoryContent />
+        <ClientOnly>
+            <HistoryContent />
+        </ClientOnly>
     </PageWrapper>
   );
 }

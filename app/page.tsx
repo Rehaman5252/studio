@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ClientOnly from '@/components/ClientOnly';
 
 const HomePageClient = dynamic(
   () => import('@/components/home/HomePageClient').catch(error => {
@@ -60,17 +61,19 @@ function HomePage() {
   const headerContent = (
       <div className="text-center">
         <h1 className="text-6xl font-extrabold tracking-tighter animate-shimmer">
-          indcric
+          CricBlitz
         </h1>
         <p className="mt-1 text-sm font-normal text-foreground/80">
-          win ₹100 for every 100 seconds!
+          The Ultimate Cricket Quiz Challenge!
         </p>
       </div>
     );
   
   return (
     <PageWrapper title={headerContent} hideBorder>
-      <HomePageClient/>
+        <ClientOnly>
+            <HomePageClient/>
+        </ClientOnly>
     </PageWrapper>
   );
 }

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ClientOnly from '@/components/ClientOnly';
 
 const LeaderboardContent = dynamic(
     () => import('@/components/leaderboard/LeaderboardContent').catch(e => {
@@ -38,7 +39,9 @@ const LeaderboardContent = dynamic(
 export default function LeaderboardPage() {
   return (
     <PageWrapper title="Hall of Fame">
-        <LeaderboardContent />
+        <ClientOnly>
+            <LeaderboardContent />
+        </ClientOnly>
     </PageWrapper>
   );
 }

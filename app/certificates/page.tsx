@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ClientOnly from '@/components/ClientOnly';
 
 
 const CertificatesContent = dynamic(
@@ -46,7 +47,9 @@ export default function CertificatesPage() {
   return (
     <PageWrapper title="My Certificates" showBackButton>
         <AuthGuard>
-            <CertificatesContent />
+            <ClientOnly>
+                <CertificatesContent />
+            </ClientOnly>
         </AuthGuard>
     </PageWrapper>
   );
