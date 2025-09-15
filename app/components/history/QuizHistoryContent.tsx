@@ -71,6 +71,14 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
   const handleReviewClick = useCallback(() => {
     if (isDisqualified || isReviewed || isReviewing) return;
+    
+    // If it's already reviewed (somehow state is out of sync), just show the dialog.
+    if (isReviewed) {
+        setShowReviewDialog(true);
+        return;
+    }
+
+    // Immediately set isReviewing to true to disable the button
     setIsReviewing(true);
     setShowAdDialog(true);
   }, [isDisqualified, isReviewed, isReviewing]);
@@ -94,13 +102,14 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         });
       }
     } finally {
+      // This is crucial: only set isReviewing to false after the entire process is done.
       setIsReviewing(false);
     }
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
     // Only set isReviewing to false if the ad dialog is closed *before* the ad finishes.
-    // The main flow is handled by handleAdFinished.
+    // This prevents the button from becoming clickable again while the DB call is in flight.
     if (!open && isReviewing && !showReviewDialog) {
         setIsReviewing(false);
     }
@@ -190,4 +199,3 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
-
