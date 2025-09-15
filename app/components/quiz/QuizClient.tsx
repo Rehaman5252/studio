@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -404,5 +403,4 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
-
-  
+    

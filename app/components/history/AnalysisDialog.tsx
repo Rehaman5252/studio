@@ -184,5 +184,4 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
 }
 
 export default memo(AnalysisDialogComponent);
-
-  
+    
