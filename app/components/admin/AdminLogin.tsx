@@ -14,8 +14,8 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('admin@indcric.app');
-  const [password, setPassword] = useState('indcric@Admin123');
+  const [email, setEmail] = useState('rehamansyed07@gmail.com');
+  const [password, setPassword] = useState('Indcric@100');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -63,7 +63,7 @@ export default function AdminLogin() {
                     <Input 
                       id="email" 
                       type="email" 
-                      placeholder="umpire@indcric.app" 
+                      placeholder="rehamansyed07@gmail.com" 
                       required 
                       className="h-12"
                       value={email}
