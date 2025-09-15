@@ -33,5 +33,6 @@ export function normalizeTimestamp(timestamp: any): Date | null {
         return date;
     }
     
+    console.warn("normalizeTimestamp: unsupported value", timestamp);
     return null;
 };
