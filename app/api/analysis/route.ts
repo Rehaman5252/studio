@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { generateQuizAnalysis } from "@/ai/flows/generate-quiz-analysis";
 import { QuizAnalysisOutputSchema } from "@/ai/schemas";
 import type { QuizAnalysisOutput } from "@/ai/schemas";
-import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
 // This is a high-quality, deterministic fallback that is returned if the AI fails.
 // It is NOT the primary response.

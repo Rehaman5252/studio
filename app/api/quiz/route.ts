@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { mapFirestoreError } from "@/lib/utils";
-import { QuizData as QuizDataSchema } from "@/ai/schemas";
 import { ZodError } from "zod";
 
 export const dynamic = 'force_dynamic';
