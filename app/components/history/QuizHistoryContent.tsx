@@ -52,14 +52,17 @@ const getSlotTimings = (date: Date | null): string => {
     
     const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
 
-    const formatTime = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const formatTime = (d: Date) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
 };
 
 const getFormattedDate = (date: Date | null): string => {
     if (!date) return 'Invalid Date';
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}${month}${year}`;
 };
 
 

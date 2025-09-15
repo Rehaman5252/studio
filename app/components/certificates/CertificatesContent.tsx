@@ -58,9 +58,18 @@ export default function CertificatesContent() {
     
     const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
 
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+  };
+  
+  const getFormattedDate = (timestamp: any): string => {
+    const date = normalizeTimestamp(timestamp);
+    if (!date) return 'Invalid Date';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}${month}${year}`;
   };
   
   const certificates = useMemo(() => {
@@ -71,7 +80,8 @@ export default function CertificatesContent() {
           return {
             id: attempt.slotId + attempt.format,
             title: `${attempt.format} Masterclass Certificate`,
-            date: attemptDate ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date Unavailable',
+            date: getFormattedDate(attempt.timestamp),
+            displayDate: attemptDate ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date Unavailable',
             slot: getSlotTimings(attempt.timestamp),
             brand: attempt.brand,
             format: attempt.format,
@@ -120,7 +130,7 @@ export default function CertificatesContent() {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 100, 100);
-    doc.text(`Date of Innings: ${cert.date}`, 30, 140);
+    doc.text(`Date of Innings: ${cert.displayDate}`, 30, 140);
     doc.text(`Match Slot: ${cert.slot}`, 30, 147);
 
     doc.setLineWidth(0.5);

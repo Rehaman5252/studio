@@ -28,7 +28,14 @@ const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProp
     };
 
     const attemptDate = normalizeTimestamp(attempt.timestamp);
-    const formattedDate = attemptDate ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date unavailable';
+    const getFormattedDate = (date: Date | null): string => {
+        if (!date) return 'Invalid Date';
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}${month}${year}`;
+    };
+    const formattedDate = getFormattedDate(attemptDate);
 
     return (
         <>
