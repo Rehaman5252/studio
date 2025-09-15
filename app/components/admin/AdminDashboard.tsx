@@ -4,14 +4,14 @@
 import React, { useEffect, useState, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, HelpCircle, Gift, Banknote, LogOut, Loader2, Trophy, BarChart } from 'lucide-react';
+import { Users, HelpCircle, Gift, LogOut, Trophy, BarChart, FileCheck, ShieldQuestion } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, onSnapshot } from 'firebase/firestore';
+import Link from 'next/link';
 
 
 const StatCard = memo(({ title, value, icon, description }: { title: string; value: string; icon: React.ReactNode; description?: string; }) => (
@@ -41,6 +41,7 @@ const DashboardSkeleton = () => (
                 <Skeleton className="h-24 w-full" />
                 <Skeleton className="h-24 w-full" />
              </div>
+             <Skeleton className="h-10 w-full" />
         </CardContent>
     </Card>
 )
@@ -48,7 +49,6 @@ const DashboardSkeleton = () => (
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading } = useAuth();
   const [globalStats, setGlobalStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading || statsLoading) {
+  if (statsLoading) {
     return <DashboardSkeleton />;
   }
 
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
             </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-2">
                  <StatCard 
                     title="Quizzes Played" 
                     value={globalStats?.totalQuizzesPlayed?.toLocaleString() || '0'} 
@@ -124,13 +124,27 @@ export default function AdminDashboard() {
                     description="In moderation queue" 
                 />
                 <StatCard 
-                    title="Active Ad Campaigns" 
-                    value="12" 
-                    icon={<Gift className="h-4 w-4 text-muted-foreground" />} 
-                    description="Across all formats" 
+                    title="Reported Questions" 
+                    value={globalStats?.reportedQuestions?.toLocaleString() || '0'} 
+                    icon={<ShieldQuestion className="h-4 w-4 text-muted-foreground" />} 
+                    description="Issues to review"
                 />
             </div>
-            {/* Additional charts and tables will go here */}
+            
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Moderation Tools</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <Button asChild className="w-full">
+                        <Link href="/admin/submissions">
+                            <FileCheck className="mr-2 h-4 w-4" />
+                            Review User Submissions
+                        </Link>
+                     </Button>
+                </CardContent>
+            </Card>
+
         </CardContent>
     </Card>
   );
