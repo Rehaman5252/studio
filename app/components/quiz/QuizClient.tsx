@@ -381,7 +381,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             brand={brand}
             format={format}
             onHintRequest={handleHintRequest}
-            hint={hints[currentQuestionIndex] || null}
+            hint={hints[currentQuestionIndex]}
             isHintLoading={isHintLoading}
             soundEnabled={settings.sound}
           />
@@ -404,4 +404,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+    
+
     
