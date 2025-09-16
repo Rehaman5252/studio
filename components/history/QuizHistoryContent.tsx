@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, memo, useCallback } from 'react';
@@ -117,7 +118,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const slotTiming = getSlotTimings(attempt.timestamp);
 
   const formattedDate = attemptDate
-    ? attemptDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '')
+    ? attemptDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
     : 'Invalid Date';
 
   return (
@@ -206,3 +207,4 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
+
