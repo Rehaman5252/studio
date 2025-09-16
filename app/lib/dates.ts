@@ -1,4 +1,3 @@
-
 import { Timestamp } from 'firebase/firestore';
 
 /**
@@ -15,41 +14,45 @@ import { Timestamp } from 'firebase/firestore';
  * @returns A valid Date object or null if the input is invalid.
  */
 export function normalizeTimestamp(timestamp: any): Date | null {
+  try {
     if (timestamp === null || timestamp === undefined) return null;
-    
-    try {
-        let date: Date;
 
-        if (timestamp instanceof Date) {
-            date = timestamp;
-        } else if (timestamp instanceof Timestamp) { // Firestore Timestamp from server
-            date = timestamp.toDate();
-        } else if (typeof timestamp === 'object' && 'seconds' in timestamp && typeof timestamp.seconds === 'number' && 'nanoseconds' in timestamp && typeof timestamp.nanoseconds === 'number') {
-            // Firestore Timestamp from client (after JSON serialization)
-            date = new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
-        } else if (typeof timestamp === 'number') { // Unix timestamp in ms
-            date = new Date(timestamp);
-        } else if (typeof timestamp === 'string') {
-            date = new Date(timestamp);
-        } else {
-            if (process.env.NODE_ENV === 'development') {
-                console.warn("normalizeTimestamp: unsupported value", timestamp);
-            }
-            return null;
-        }
-
-        if (isNaN(date.getTime())) {
-            if (process.env.NODE_ENV === 'development') {
-                console.warn("normalizeTimestamp: created an invalid date from", timestamp);
-            }
-            return null;
-        };
-
-        return date;
-    } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-            console.error("normalizeTimestamp: caught an error", error);
-        }
-        return null;
+    // Firestore Timestamp (server-side)
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate();
     }
-};
+    
+    // Firestore Timestamp (client-side, after JSON serialization)
+    if (typeof timestamp === 'object' && 'seconds' in timestamp && 'nanoseconds' in timestamp) {
+      return new Date(timestamp.seconds * 1000);
+    }
+
+    // Already a Date object
+    if (timestamp instanceof Date) {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return null;
+      return date;
+    }
+
+    // Number (milliseconds)
+    if (typeof timestamp === 'number') {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return null;
+      return date;
+    }
+
+    // String (ISO or other parseable format)
+    if (typeof timestamp === 'string') {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return null;
+      return date;
+    }
+    
+    console.warn("normalizeTimestamp: unsupported value", timestamp);
+    return null;
+
+  } catch (err) {
+    console.error('normalizeTimestamp error:', err, 'with input:', timestamp);
+    return null;
+  }
+}
