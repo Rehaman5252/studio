@@ -2,7 +2,8 @@
 import { NextResponse } from "next/server";
 import { generateQuizAnalysis } from "@/ai/flows/generate-quiz-analysis";
 import { QuizAnalysisOutputSchema } from "@/ai/schemas";
-import type { QuizAnalysisOutput } from "@/ai/schemas";
+import type { QuizAnalysisOutput, QuizAttempt } from "@/ai/schemas";
+import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
 const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
     const format = attempt?.format || "cricket";
@@ -22,26 +23,19 @@ export async function POST(req: Request) {
   let attemptBody: any;
   try {
     const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
+    if (!body || typeof body !== 'object' || !body.attempt) {
       return NextResponse.json({ ok: false, analysis: getFallbackAnalysisForApi({}) }, { status: 400 });
     }
 
-    attemptBody = body.attempt;
-
-    if (!attemptBody || typeof attemptBody !== 'object') {
-      return NextResponse.json(
-        { ok: false, analysis: getFallbackAnalysisForApi({}) },
-        { status: 400 }
-      );
-    }
+    const sanitizedAttempt = sanitizeQuizAttempt(body.attempt) as QuizAttempt;
     
-    const result = await generateQuizAnalysis(attemptBody);
+    const result = await generateQuizAnalysis(sanitizedAttempt);
     
     const parsed = QuizAnalysisOutputSchema.safeParse(result);
 
     if (!parsed.success) {
       console.error("[Analysis API] FATAL: Output from hardened flow failed validation. This should not happen.", parsed.error);
-      const fallback = getFallbackAnalysisForApi(attemptBody);
+      const fallback = getFallbackAnalysisForApi(sanitizedAttempt);
       // Still return OK: true so client can display the fallback analysis
       return NextResponse.json({ ok: true, analysis: fallback }); 
     }

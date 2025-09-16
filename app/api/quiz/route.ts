@@ -4,6 +4,7 @@ import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { mapFirestoreError } from "@/lib/utils";
 import { z, ZodError } from "zod";
+import type { QuizData } from "@/ai/schemas";
 
 export const dynamic = 'force_dynamic';
 
@@ -15,11 +16,11 @@ const ApiQuizInputSchema = z.object({
 });
 
 function createErrorResponse(message: string, reqId: string, status = 500, code?: string) {
-  const fallbackQuiz = getFallbackQuiz("mixed");
-  const errorPayload: any = {
+  const fallbackQuiz: QuizData = getFallbackQuiz("mixed");
+  const errorPayload = {
     ok: true, // Always true so client can display fallback
     quiz: fallbackQuiz,
-    source: "fallback",
+    source: "fallback" as const,
     reqId,
     errorDetails: {
       message: `The AI quiz could not be generated (${code || 'UNKNOWN'}). Displaying a standard quiz instead.`,
@@ -38,12 +39,7 @@ export async function POST(req: Request) {
   let body: any;
 
   try {
-    const rawBody = await req.text();
-    if (!rawBody) {
-      console.warn(`[quiz][${reqId}] Empty request body`);
-      return createErrorResponse("Empty request body.", reqId, 400, "EMPTY_BODY");
-    }
-    body = JSON.parse(rawBody);
+    body = await req.json();
   } catch (e) {
     console.error(`[quiz][${reqId}] Invalid JSON body.`);
     return createErrorResponse("Invalid JSON body.", reqId, 400, "INVALID_JSON");
@@ -89,4 +85,3 @@ export async function POST(req: Request) {
     );
   }
 }
-    

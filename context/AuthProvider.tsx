@@ -41,11 +41,12 @@ import {
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
-import type { QuizAttempt } from '@/ai/schemas';
+import { QuizAttempt, QuizAttempt as QuizAttemptSchema } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
+import { z } from 'zod';
 
 /* -------------------------------- Types ------------------------------- */
 
@@ -264,7 +265,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return { ...existingData, ...updates };
       }
     },
-    [toast, db]
+    [toast]
   );
 
   /* ------------------------- Primary subscriptions ------------------------ */
@@ -362,7 +363,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       });
       unsubs = [];
     };
-  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady, db]);
+  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
   
 
   /* -------------------------- Auth convenience --------------------------- */
@@ -382,7 +383,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       }
       return null;
     }
-  }, [toast, handleUserDocument, auth]);
+  }, [toast, handleUserDocument]);
 
   const registerWithEmail = useCallback(
     async (
@@ -413,7 +414,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     },
-    [toast, handleUserDocument, auth]
+    [toast, handleUserDocument]
   );
 
   const loginWithEmail = useCallback(
@@ -436,14 +437,14 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     },
-    [toast, auth]
+    [toast]
   );
 
   const logout = useCallback(async () => {
     if (!auth) return;
     await signOut(auth);
     toast({ title: 'Signed Out', description: 'You have been logged out successfully.' });
-  }, [toast, auth]);
+  }, [toast]);
 
   /* ------------------------------ Profile edit --------------------------- */
 
@@ -487,7 +488,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         throw e;
       }
     },
-    [user, toast, db]
+    [user, toast]
   );
 
   /* --------------------------- Attempt persistence ----------------------- */
@@ -496,8 +497,7 @@ const persistAttemptBatch = useCallback(
     async (attempt: QuizAttempt) => {
         if (!user || !db) throw new Error('Missing user/db');
         
-        const sanitizedAttempt = sanitizeQuizAttempt(attempt);
-        if (!sanitizedAttempt) throw new Error("Attempt sanitization failed");
+        const validatedAttempt = QuizAttemptSchema.parse(sanitizeQuizAttempt(attempt));
 
         const batch = writeBatch(db);
         const userDocRef = doc(db, 'users', user.uid);
@@ -511,10 +511,10 @@ const persistAttemptBatch = useCallback(
         const userData = userSnap.data() as UserProfile;
 
         // 2. Base User & Global Stats Update
-        const isPerfectScore = (sanitizedAttempt.score || 0) === sanitizedAttempt.totalQuestions && !sanitizedAttempt.reason;
+        const isPerfectScore = validatedAttempt.score === validatedAttempt.totalQuestions && !validatedAttempt.reason;
         const userStatsUpdate: Record<string, any> = {
             quizzesPlayed: increment(1),
-            totalScore: increment(sanitizedAttempt.score || 0),
+            totalScore: increment(validatedAttempt.score || 0),
             perfectScores: increment(isPerfectScore ? 1 : 0),
             lastPlayedAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -560,37 +560,28 @@ const persistAttemptBatch = useCallback(
         batch.set(statsDocRef, globalStatsUpdate, { merge: true });
 
         // 5. Quiz Attempt Document. Use serverTimestamp for the 'timestamp' field.
-        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', sanitizedAttempt.slotId!);
-        batch.set(attemptRef, { ...sanitizedAttempt, timestamp: serverTimestamp() });
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', validatedAttempt.slotId!);
+        batch.set(attemptRef, { ...validatedAttempt, timestamp: serverTimestamp() });
 
         // 6. Live Leaderboard Entry
-        const liveEntryRef = doc(db, 'leaderboard_live', sanitizedAttempt.slotId!, 'entries', user.uid);
-        const totalTime = sanitizedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
+        const liveEntryRef = doc(db, 'leaderboard_live', validatedAttempt.slotId!, 'entries', user.uid);
+        const totalTime = validatedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
         batch.set(
             liveEntryRef,
             {
                 userId: user.uid,
                 name: userData.name || "Anonymous",
                 avatar: userData.photoURL || '',
-                score: sanitizedAttempt.score,
+                score: validatedAttempt.score,
                 time: totalTime,
-                disqualified: !!sanitizedAttempt.reason,
+                disqualified: !!validatedAttempt.reason,
             },
             { merge: true }
         );
         
-
-        try {
-            await batch.commit();
-        } catch (err: any) {
-            console.error("Batch commit failed:", err);
-            const code = err?.code || 'unknown';
-            const message = err?.message || String(err);
-            // Throw a more descriptive error to be caught by the calling function
-            throw new Error(`firestore_commit_failed:${code}:${message}`);
-        }
+        await batch.commit();
     },
-    [user, db]
+    [user]
 );
 
 
@@ -611,10 +602,17 @@ const persistAttemptBatch = useCallback(
         return { success: true, attemptId: attempt.slotId };
       } catch (e: any) {
         console.error('addQuizAttempt failed:', e);
-        const errMsg = String(e?.message || e);
+        let errMsg = "An unexpected error occurred during submission.";
+        if (e instanceof z.ZodError) {
+          errMsg = "Your quiz data was invalid. Please try again.";
+          console.error("Zod validation failed:", e.format());
+        } else if (e.message) {
+          errMsg = `Could not save your quiz result now. (${e.message}) It will auto-sync when you are back online.`;
+        }
+        
         toast({
           title: 'Sync Error',
-          description: `Could not save your quiz result now. (${errMsg}) It will auto-sync when you are back online.`,
+          description: errMsg,
           variant: 'destructive',
           duration: 10000,
         });
@@ -623,7 +621,7 @@ const persistAttemptBatch = useCallback(
         return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
       }
     },
-    [persistAttemptBatch, toast, user, db]
+    [persistAttemptBatch, toast, user]
   );
 
   // Auto-retry queued attempts when user/db/online becomes available
@@ -684,7 +682,7 @@ const persistAttemptBatch = useCallback(
       setIsOffline(true);
       return newNoBallCount;
     }
-  }, [user, profile, db]);
+  }, [user, profile]);
 
   /* ------------------------------- Reviewed ------------------------------ */
 
@@ -719,13 +717,6 @@ const persistAttemptBatch = useCallback(
         return { success: true };
       } catch (error: any) {
         console.error('Failed to mark attempt as reviewed:', error);
-        // Optionally revert local state on failure
-        // setQuizHistory((prev) => ({
-        //   ...prev,
-        //   data: prev.data.map((a) =>
-        //     a.slotId === attemptId ? { ...a, reviewed: false } : a
-        //   ),
-        // }));
   
         let reason = 'Unknown error';
         if (error.code === 'permission-denied') reason = 'Insufficient permissions';
@@ -735,7 +726,7 @@ const persistAttemptBatch = useCallback(
         return { success: false, reason };
       }
     },
-    [user, db]
+    [user]
   );
 
   /* ------------------------------ Context val ---------------------------- */
