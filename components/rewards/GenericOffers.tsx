@@ -49,10 +49,11 @@ const GenericOffersComponent = () => {
                 <Button 
                     onClick={() => window.open(offer.link, '_blank')} 
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     className="shrink-0"
+                    aria-label={`Claim offer for ${offer.title}`}
                 >
-                    Claim <ExternalLink className="ml-2 h-4 w-4" />
+                    <ExternalLink className="h-5 w-5" />
                 </Button>
             </CardContent>
           </Card>
