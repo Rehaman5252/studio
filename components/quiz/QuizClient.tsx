@@ -381,7 +381,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             brand={brand}
             format={format}
             onHintRequest={handleHintRequest}
-            hint={hints[currentQuestionIndex]?.hint || null}
+            hint={hints[currentQuestionIndex]}
             isHintLoading={isHintLoading}
             soundEnabled={settings.sound}
           />
