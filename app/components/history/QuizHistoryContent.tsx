@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, memo, useCallback } from 'react';
@@ -20,16 +21,17 @@ export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
         <CardHeader>
             <div className="flex items-start gap-4">
-                <div className="animate-pulse bg-muted rounded-md h-8 w-8 mt-1 flex-shrink-0" />
+                <Skeleton className="h-8 w-8 rounded-md mt-1 flex-shrink-0" />
                 <div className="flex-grow space-y-2">
-                    <div className="animate-pulse bg-muted h-5 w-3/4 rounded-md" />
-                    <div className="animate-pulse bg-muted h-4 w-1/2 rounded-md" />
-                    <div className="animate-pulse bg-muted h-3 w-5/6 rounded-md" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-3 w-5/6" />
                 </div>
             </div>
         </CardHeader>
         <CardContent className="flex justify-end gap-2">
-            <div className="animate-pulse bg-muted h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
         </CardContent>
     </Card>
 );

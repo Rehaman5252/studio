@@ -1,16 +1,16 @@
+
 'use client';
 
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
 import { normalizeTimestamp } from '@/lib/dates';
@@ -36,13 +36,6 @@ const RewardsSkeleton = () => (
                 ))}
             </CarouselContent>
         </Carousel>
-      </section>
-      <section>
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-        <div className="space-y-4">
-          <Skeleton className="h-[96px] w-full" />
-          <Skeleton className="h-[96px] w-full" />
-        </div>
       </section>
   </div>
 );
@@ -105,26 +98,6 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
 });
 ScratchCard.displayName = 'ScratchCard';
 
-const GenericOfferComponent = ({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
-    <a href={link} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-103 animate-fade-in-up block">
-        <Card className="bg-card/80 shadow-lg hover:border-primary/30">
-            <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center p-2 shadow-inner bg-white relative overflow-hidden flex-shrink-0">
-                    <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} priority={false} loading="lazy" />
-                </div>
-                <div className="flex-grow">
-                    <h4 className="font-bold text-foreground">{title}</h4>
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink className="h-4 w-4 text-primary" /></Button>
-            </CardContent>
-        </Card>
-    </a>
-);
-export const GenericOffer = memo(GenericOfferComponent);
-GenericOffer.displayName = 'GenericOffer';
-
-
 const getStartOfWeek = (timestamp: any): number => {
     const date = normalizeTimestamp(timestamp);
     if (!date) return 0;
@@ -139,7 +112,7 @@ const getStartOfWeek = (timestamp: any): number => {
 
 
 function RewardsContentComponent() {
-  const { user, quizHistory, loading } = useAuth();
+  const { quizHistory } = useAuth();
   const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -193,7 +166,7 @@ function RewardsContentComponent() {
   }, [quizHistory.data]);
 
   const BrandGifts = () => {
-    if (loading || quizHistory.loading) return <RewardsSkeleton />;
+    if (quizHistory.loading) return <RewardsSkeleton />;
     if (quizHistory.error) return <ErrorStateDisplay message={quizHistory.error} />;
     
     if (rewardableAttempts.length === 0) {

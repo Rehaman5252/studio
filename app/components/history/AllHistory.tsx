@@ -1,10 +1,10 @@
+
 'use client';
 
 import React from 'react';
-import { Award, AlertTriangle } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { HistoryItem, HistoryItemSkeleton, ErrorStateDisplay } from './QuizHistoryContent';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { EmptyState } from '../EmptyState';
 
 export default function AllHistory() {
