@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo } from 'react';
@@ -32,6 +31,17 @@ const RewardsContent = dynamic(
     }),
     {
         loading: () => <RewardsSkeleton />,
+        ssr: false,
+    }
+);
+
+const GenericOffers = dynamic(
+    () => import('@/components/rewards/GenericOffers').catch(e => {
+        console.error("Failed to load GenericOffers", e);
+        return () => <Skeleton className="h-56 w-full" />;
+    }),
+    {
+        loading: () => <Skeleton className="h-56 w-full" />,
         ssr: false,
     }
 );
@@ -90,6 +100,7 @@ function RewardsPage() {
     return (
         <ClientOnly>
             <RewardsContent />
+            <GenericOffers />
         </ClientOnly>
     );
   };
