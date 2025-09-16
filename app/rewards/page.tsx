@@ -36,15 +36,6 @@ const RewardsContent = dynamic(
     }
 );
 
-const GenericOffer = dynamic(
-    () => import('@/components/rewards/RewardsContent').then(mod => mod.GenericOffer).catch(e => {
-        console.error("Failed to load GenericOffer", e);
-        return () => <Skeleton className="h-24 w-full" />;
-    }),
-    { ssr: false }
-);
-
-
 const LoginPrompt = dynamic(
     () => import('@/components/auth/LoginPrompt').catch(e => {
          console.error("Failed to load LoginPrompt", e);
@@ -106,15 +97,6 @@ function RewardsPage() {
   return (
     <PageWrapper title="Trophy Cabinet">
          {renderContent()}
-         <section className="pt-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Sponsor's Pavilion</h2>
-            <div className="space-y-4">
-                <GenericOffer title="20% off on Puma Shoes" description="Use code: indcric20" image="https://www.freepnglogos.com/uploads/puma-logo-png-1.png" hint="shoes sport" link="https://in.puma.com/" />
-                <GenericOffer title="Flat 15% on Swiggy" description="First order for new users" image="https://cdn.icon-icons.com/icons2/2803/PNG/512/swiggy_logo_icon_178723.png" hint="food delivery" link="https://www.swiggy.com/" />
-                <GenericOffer title="HDFC Credit Card Offer" description="5% cashback on all spends over ₹5000." image="https://www.pngkey.com/png/full/223-2231200_hdfc-bank-hdfc-bank-logo-png.png" hint="finance bank" link="https://www.hdfcbank.com/" />
-                <GenericOffer title="₹200 Off on Flipkart" description="On electronics and accessories. Min. spend ₹2000." image="https://logolook.net/wp-content/uploads/2021/07/Flipkart-logo.png" hint="shopping cart" link="https://www.flipkart.com/" />
-            </div>
-        </section>
       </PageWrapper>
   );
 }
