@@ -15,8 +15,8 @@ const ApiQuizInputSchema = z.object({
   userId: z.string().min(1, { message: "User ID cannot be empty." }),
 });
 
-function createErrorResponse(message: string, reqId: string, status = 500, code?: string) {
-  const fallbackQuiz: QuizData = getFallbackQuiz("mixed");
+function createErrorResponse(message: string, format: string, reqId: string, status = 500, code?: string) {
+  const fallbackQuiz: QuizData = getFallbackQuiz(format);
   const errorPayload = {
     ok: true, // Always true so client can display fallback
     quiz: fallbackQuiz,
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch (e) {
     console.error(`[quiz][${reqId}] Invalid JSON body.`);
-    return createErrorResponse("Invalid JSON body.", reqId, 400, "INVALID_JSON");
+    return createErrorResponse("Invalid JSON body.", "mixed", reqId, 400, "INVALID_JSON");
   }
 
   const validationResult = ApiQuizInputSchema.safeParse(body);
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   if (!validationResult.success) {
     const formattedErrors = validationResult.error.format();
     console.warn(`[quiz][${reqId}] Invalid request body:`, formattedErrors);
-    return createErrorResponse(JSON.stringify(formattedErrors), reqId, 400, "INVALID_PAYLOAD");
+    return createErrorResponse(JSON.stringify(formattedErrors), "mixed", reqId, 400, "INVALID_PAYLOAD");
   }
 
   const { format, userId } = validationResult.data;
@@ -79,6 +79,7 @@ export async function POST(req: Request) {
     // For all other errors, we serve a fallback quiz
     return createErrorResponse(
         err instanceof ZodError ? JSON.stringify(err.format()) : err.message,
+        format,
         reqId,
         500,
         "AI_FLOW_FAILED"

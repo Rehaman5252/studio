@@ -123,11 +123,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       if (!data.ok || !data.quiz) {
          const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
-         if (data.quiz) {
+         if (data.quiz && data.source === 'fallback') {
             setQuizData(data.quiz);
-            setQuizSource(data.source || 'fallback');
+            setQuizSource('fallback');
             setQuizState('pre-quiz');
-            if (msg) toast({ title: 'Heads up!', description: msg, variant: 'destructive' });
+            toast({ title: 'Heads up!', description: msg, variant: 'default' });
          } else {
             setError(msg);
             setQuizState('error');
@@ -135,6 +135,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
          return;
       }
       
+      if (data.source === 'fallback' && data.errorDetails?.message) {
+          toast({
+              title: "Standard Quiz Loaded",
+              description: data.errorDetails.message,
+              duration: 5000,
+          });
+      }
+
       setQuizData(data.quiz);
       setQuizSource(data.source || 'ai');
       setQuizState('pre-quiz');
