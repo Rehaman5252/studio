@@ -14,6 +14,7 @@ import ReviewDialog from '@/components/history/ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeTimestamp } from '@/lib/dates';
+import { Skeleton } from '../ui/skeleton';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -118,7 +119,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const slotTiming = getSlotTimings(attempt.timestamp);
 
   const formattedDate = attemptDate
-    ? attemptDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '')
+    ? attemptDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
     : 'Invalid Date';
 
   return (
@@ -207,4 +208,3 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
-
