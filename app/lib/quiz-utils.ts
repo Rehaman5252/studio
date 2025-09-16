@@ -4,14 +4,14 @@
 import type { QuizAttempt, QuizData } from '@/ai/schemas';
 import type { User } from 'firebase/auth';
 import { getQuizSlotId } from '@/lib/utils';
-import { sanitizeQuizAttempt } from './sanitizeUserProfile';
+import { sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfile';
 
 /**
  * Encodes a QuizAttempt object into a Base64 string for URL transport.
  */
 export const encodeAttempt = (attempt: QuizAttempt): string => {
     try {
-        const sanitized = sanitizeQuizAttempt(attempt);
+        const sanitized = sanitizeAttemptData(attempt);
         // Using native btoa for browser environments.
         return encodeURIComponent(btoa(JSON.stringify(sanitized)));
     } catch (e) {
@@ -80,5 +80,5 @@ export const buildAttempt = ({
     };
 
     // Sanitize before returning to ensure no undefined fields are ever present.
-    return sanitizeQuizAttempt(attemptObject) as QuizAttempt;
+    return sanitizeAttemptData(attemptObject) as QuizAttempt;
 };
