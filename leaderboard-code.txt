@@ -1,886 +1,3710 @@
 
+
+// =================================================================================
+// FILE: app/quiz/page.tsx
+// =================================================================================
 'use client';
 
-import React from 'react';
-import LeaderboardContent from '@/components/leaderboard/LeaderboardContent';
-import PageWrapper from '@/components/PageWrapper';
+import React, { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { CricketLoading } from '@/components/CricketLoading';
+import dynamic from 'next/dynamic';
+import AuthGuard from '@/components/auth/AuthGuard';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-export default function LeaderboardPage() {
+const QuizClient = dynamic(
+  () => import('@/components/quiz/QuizClient').catch(err => {
+    console.error("Failed to load QuizClient chunk", err);
+    return () => (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Quiz</AlertTitle>
+          <AlertDescription>
+            A component failed to load. Please check your connection and try again.
+             <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }),
+  {
+    loading: () => <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>,
+    ssr: false,
+  }
+);
+
+
+function QuizPageContent() {
+  const searchParams = useSearchParams();
+  const brand = searchParams.get('brand') || 'Default Brand';
+  const format = searchParams.get('format') || 'Mixed';
+
+  if (!brand || !format) {
+    return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>
+  }
+
+  return <QuizClient brand={brand} format={format} />;
+}
+
+export default function QuizPage() {
   return (
-    <PageWrapper title="Hall of Fame">
-        <LeaderboardContent />
-    </PageWrapper>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>}>
+      <AuthGuard>
+        <QuizPageContent />
+      </AuthGuard>
+    </Suspense>
   );
 }
 
-// =================================================================================
-// FILE: components/leaderboard/LeaderboardContent.tsx
-// =================================================================================
 
+// =================================================================================
+// FILE: app/quiz/results/page.tsx
+// =================================================================================
+"use client";
+
+import React, { Suspense, useEffect, useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Home, Sparkles, Eye, Ban, BadgeCheck, AlertTriangle } from 'lucide-react';
+import type { QuizAttempt } from '@/ai/schemas';
+import PageWrapper from '@/components/PageWrapper';
+import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { decodeAttempt } from '@/lib/quiz-utils';
+
+const AnalysisDialog = dynamic(
+    () => import('@/components/history/AnalysisDialog'),
+    { ssr: false }
+);
+const ReviewDialog = dynamic(
+    () => import('@/components/history/ReviewDialog'),
+    { ssr: false }
+);
+
+const LoadingSkeleton = () => (
+    <PageWrapper title="Loading Results...">
+        <div className="space-y-4 animate-pulse">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-40 w-full" />
+            <div className="space-y-3 pt-4">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+            </div>
+        </div>
+    </PageWrapper>
+)
+
+const ResultsContent = () => {
+    const router = useRouter();
+    const { toast } = useToast();
+    const searchParams = useSearchParams();
+    
+    const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
+    const [showReviewDialog, setShowReviewDialog] = useState(false);
+
+    const attempt: QuizAttempt | null = useMemo(() => {
+        const attemptData = searchParams.get('attempt');
+        if (!attemptData) return null;
+        try {
+            return decodeAttempt(attemptData);
+        } catch (e) {
+            console.error("Failed to decode attempt from URL", e);
+            return null;
+        }
+    }, [searchParams]);
+
+    const handleViewAnswers = () => {
+        if (attempt?.reviewed) {
+            setShowReviewDialog(true);
+        } else {
+            toast({
+                title: "Answers Not Available Yet",
+                description: "You must watch an ad to review your answers. You can do this from the History page.",
+                variant: 'default',
+            });
+        }
+    };
+    
+    if (!attempt) {
+        return (
+            <PageWrapper title="Error">
+                <Card className="text-center">
+                    <CardHeader>
+                        <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                        <CardTitle className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground mb-6">There was an error decoding your results from the link. It might be invalid or expired.</p>
+                        <Button onClick={() => router.push('/')}>
+                            <Home className="mr-2 h-4 w-4" />
+                            Return to Home
+                        </Button>
+                    </CardContent>
+                </Card>
+            </PageWrapper>
+        );
+    }
+  
+    const isPerfectScore = attempt.score === attempt.totalQuestions;
+    const isDisqualified = !!attempt.reason;
+  
+    const getMotivationalLine = () => {
+        if(isDisqualified) return { text: "Fair play is key to the spirit of cricket.", emoji: "🤝"};
+        if(isPerfectScore) return { text: "Flawless century! You're a true champion.", emoji: "🏆" };
+        if(attempt.score >= 3) return { text: "Good effort! Keep practicing.", emoji: "💪" };
+        return { text: "Tough match, but every game is a learning experience!", emoji: "👍" };
+    }
+    const motivationalLine = getMotivationalLine();
+    const pageTitle = isDisqualified ? "Disqualified" : isPerfectScore ? "Perfect Score!" : "Quiz Complete!";
+  
+    return (
+      <PageWrapper title="Quiz Scorecard" showBackButton>
+          <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, type: 'spring' }}
+              className="space-y-6"
+          >
+              <Card className="text-center shadow-lg bg-card/80 overflow-hidden border-none">
+                  <CardContent className="p-6 space-y-6">
+                      <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                          className="mx-auto bg-primary/10 p-4 rounded-full w-fit"
+                      >
+                          {isDisqualified ? (
+                              <Ban className="h-12 w-12 text-destructive" />
+                           ) : (
+                              <span className="text-5xl">🏆</span>
+                          )}
+                      </motion.div>
+                      
+                      <div className="space-y-1">
+                          <h1 className="text-3xl font-bold">{pageTitle}</h1>
+                          <p className="text-muted-foreground">{attempt.format} Quiz - Sponsored by {attempt.brand}</p>
+                      </div>
+                      
+                      {!isDisqualified && (
+                          <>
+                              <div className="flex justify-around items-center">
+                                  <div className="text-center">
+                                      <BadgeCheck className="h-8 w-8 text-primary mx-auto mb-1" />
+                                      <p className="text-muted-foreground text-sm">You Scored</p>
+                                      <p className="text-5xl font-bold tracking-tighter">
+                                          <span className="text-primary">{attempt.score}</span>/{attempt.totalQuestions}
+                                      </p>
+                                  </div>
+                              </div>
+                              <p className="text-lg font-semibold text-primary">{motivationalLine.text}</p>
+                          </>
+                      )}
+  
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+                          <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
+                              <Home className="mr-2 h-4 w-4" /> Go Home
+                          </Button>
+                          {!isDisqualified && (
+                              <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
+                                  <Eye className="mr-2 h-5 w-5" /> View Answers
+                              </Button>
+                          )}
+                      </div>
+                  </CardContent>
+              </Card>
+  
+              {!isDisqualified && (
+                <Card className="bg-card/80">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary" /> AI Performance Analysis</CardTitle>
+                        <CardDescription>Want to improve? Get a personalized analysis of your performance from our AI coach.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button size="lg" className="w-full" onClick={() => setIsAnalysisOpen(true)}>Generate Free Analysis</Button>
+                    </CardContent>
+                </Card>
+              )}
+          </motion.div>
+
+        {attempt && (
+          <AnalysisDialog
+            open={isAnalysisOpen}
+            onOpenChange={setIsAnalysisOpen}
+            attempt={attempt}
+          />
+        )}
+        
+        {attempt && (
+          <ReviewDialog
+            open={showReviewDialog}
+            onOpenChange={setShowReviewDialog}
+            attempt={attempt}
+          />
+        )}
+
+      </PageWrapper>
+    );
+  };
+  
+  
+export default function QuizResultsWrapperPage() {
+    return (
+        <Suspense fallback={<LoadingSkeleton />}>
+            <ResultsContent />
+        </Suspense>
+    )
+}
+
+
+
+// =================================================================================
+// FILE: components/quiz/QuizClient.tsx
+// =================================================================================
 'use client';
 
-import React, { memo, useState, Suspense } from 'react';
-import dynamic from 'next/dynamic';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
+import type { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
+import { CricketLoading } from '@/components/CricketLoading';
+import QuizView from '@/components/quiz/QuizView';
+import InterstitialLoader from '@/components/InterstitialLoader';
+import { AdDialog } from '@/components/AdDialog';
+import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
+import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
+import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/use-settings';
+import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
+import PreQuizLoader from './PreQuizLoader';
+import { Button } from '../ui/button';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { motion } from 'framer-motion';
+import { getQuizSlotId } from '@/lib/utils';
+import LoginPrompt from '../auth/LoginPrompt';
 
-const LiveLeaderboard = dynamic(() => import('@/components/leaderboard/LiveLeaderboard'), {
-    loading: () => <LeaderboardSkeleton count={5} />,
-    ssr: false,
-});
-const AllTimeLeaderboard = dynamic(() => import('@/components/leaderboard/AllTimeLeaderboard'), {
-    loading: () => <LeaderboardSkeleton count={5} />,
-    ssr: false,
-});
-const MyNetworkLeaderboard = dynamic(() => import('@/components/leaderboard/MyNetworkLeaderboard'), {
-    loading: () => <LeaderboardSkeleton count={3} />,
-    ssr: false,
-});
-const StreakLeaderboard = dynamic(() => import('@/components/leaderboard/StreakLeaderboard'), {
-    loading: () => <LeaderboardSkeleton count={5} />,
-    ssr: false,
-});
 
-const LeaderboardSkeleton = ({ count = 5 }: { count?: number }) => (
-    <div className="pt-4 space-y-2">
-        {Array.from({ length: count }).map((_, i) => (
-            <Skeleton key={`leaderboard-skel-${i}`} className="h-[60px] w-full animate-pulse" />
-        ))}
-    </div>
-);
+interface QuizClientProps {
+  brand: string;
+  format: string;
+}
 
-const FullPageSkeleton = () => (
-    <div className="space-y-4">
-      <Skeleton className="h-10 w-full" />
-      <LeaderboardSkeleton />
-    </div>
-);
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'unauthenticated';
 
-function LeaderboardContentComponent() {
-  const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('live');
+type QuizAPIResponse = {
+  ok: boolean;
+  quiz: QuizData;
+  source?: 'ai' | 'fallback';
+  reqId?: string;
+  error?: { message: string };
+  errorDetails?: { message: string, originalError: string, code: string };
+};
 
-  if (loading) {
-    return <FullPageSkeleton />;
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+
+export default function QuizClient({ brand, format }: QuizClientProps) {
+  const [quizState, setQuizState] = useState<QuizState>('loading');
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
+  const [startTime, setStartTime] = useState<number>(0);
+  const [showInterstitial, setShowInterstitial] = useState(false);
+  const [quizSource, setQuizSource] = useState<'ai' | 'fallback'>('ai');
+  const [showAdDialog, setShowAdDialog] = useState(false);
+  const [adForHint, setAdForHint] = useState<InterstitialAdConfig | null>(null);
+  const [hints, setHints] = useState<Record<number, HintOutput>>({});
+  const [isHintLoading, setIsHintLoading] = useState(false);
+  const router = useRouter();
+  const { user, addQuizAttempt, handleMalpractice, loading: authLoading, isOffline } = useAuth();
+  const { toast } = useToast();
+  const { settings } = useSettings();
+  
+  const isFinishedRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const slotId = getQuizSlotId();
+        if (sessionStorage.getItem(`quiz-finished-${slotId}`)) {
+          isFinishedRef.current = true;
+          router.replace('/'); 
+        }
+    }
+  }, [router]);
+
+
+  const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
+    return interstitialAds[currentQuestionIndex] || null;
+  }, [currentQuestionIndex]);
+
+  const fetchQuiz = useCallback(async () => {
+    if (isFinishedRef.current || authLoading) return;
+    abortControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setQuizState('loading');
+    setError(null);
+
+    if (!user) {
+        setQuizState('unauthenticated');
+        return;
+    }
+    if (isOffline) {
+        setError("You appear to be offline. Please check your connection.");
+        setQuizState('error');
+        return;
+    }
+    if (!isFirebaseConfigured) {
+        setError("🔥 The app is not connected to the server. Please try again later.");
+        setQuizState('error');
+        return;
+    }
+    
+    try {
+      const response = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format, userId: user.uid }),
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted) return;
+      
+      const responseText = await response.text();
+      let data: QuizAPIResponse;
+      
+      try {
+        data = JSON.parse(responseText);
+      } catch(parseErr) {
+        console.error('Quiz API returned non-json:', responseText);
+        throw new Error('Server returned an unexpected response. Please try again.');
+      }
+      
+      if (!data.ok || !data.quiz) {
+         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
+         if (data.quiz && data.source === 'fallback') {
+            setQuizData(data.quiz);
+            setQuizSource('fallback');
+            setQuizState('pre-quiz');
+            toast({ title: 'Heads up!', description: msg, variant: 'default' });
+         } else {
+            setError(msg);
+            setQuizState('error');
+         }
+         return;
+      }
+      
+      if (data.source === 'fallback' && data.errorDetails) {
+          let friendlyTitle = "Standard Quiz Loaded";
+          let friendlyDesc = "The AI is warming up, so here's a ready-made quiz for you.";
+
+          switch (data.errorDetails.code) {
+            case "INVALID_JSON":
+              friendlyTitle = "⚠️ Bad Request Fixed";
+              friendlyDesc = "We couldn't read your request, but a quiz is ready anyway.";
+              break;
+            case "INVALID_PAYLOAD":
+              friendlyTitle = "⚠️ Invalid Request";
+              friendlyDesc = "Some data was missing, but we generated a quiz for you.";
+              break;
+            case "AI_FLOW_FAILED":
+              friendlyTitle = "🤖 AI Unavailable";
+              friendlyDesc = "The AI engine stumbled, so a standard quiz is here for you.";
+              break;
+            case "FATAL":
+              friendlyTitle = "🔥 Unexpected Error";
+              friendlyDesc = "Something went wrong, but you're not blocked—here's a quiz.";
+              break;
+          }
+
+          if (IS_DEV) {
+            friendlyDesc += ` (Dev: ${data.reqId} - ${data.errorDetails.originalError})`;
+          }
+
+          toast({
+              title: friendlyTitle,
+              description: friendlyDesc,
+              duration: 7000,
+          });
+      }
+
+      setQuizData(data.quiz);
+      setQuizSource(data.source || 'ai');
+      setQuizState('pre-quiz');
+      
+    } catch (e: any) {
+      if (e.name === 'AbortError') return; // Ignore abort errors
+      console.error("Quiz fetch failed:", e);
+      let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
+      
+      if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
+          userMessage = "📴 You appear to be offline. Please check your connection.";
+      } else if (typeof e.message === 'string') {
+          userMessage = e.message;
+      }
+      
+      setError(userMessage);
+      setQuizState('error');
+    }
+  }, [format, user, authLoading, isOffline, toast]);
+
+  useEffect(() => {
+    if (!authLoading) {
+        fetchQuiz();
+    }
+    return () => {
+        abortControllerRef.current?.abort();
+    };
+  }, [fetchQuiz, authLoading]);
+
+  const handlePreQuizFinish = useCallback(() => {
+    if (isFinishedRef.current) return;
+    setQuizState('playing');
+    setStartTime(Date.now());
+  }, []);
+
+  const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
+    if (isFinishedRef.current || !quizData || !user) return;
+    isFinishedRef.current = true; 
+    setQuizState('submitting');
+    
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers: finalAnswers,
+      timePerQuestion: finalTimePerQuestion,
+      source: quizSource,
+    });
+    
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+    addQuizAttempt(attempt);
+
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
+
+  const handleNoBall = useCallback(async (reason: 'no-ball') => {
+    if (isFinishedRef.current || !quizData || !user) return;
+    isFinishedRef.current = true;
+    setQuizState('submitting');
+
+    const noBallCount = await handleMalpractice();
+    toast({
+        title: "No Ball!",
+        description: `Malpractice detected. You have ${noBallCount} no-ball(s). 3 no-balls and you're out!`,
+        variant: "destructive"
+    });
+    
+    const attempt = buildAttempt({
+      user,
+      quizData,
+      brand,
+      format,
+      userAnswers,
+      timePerQuestion,
+      overrides: { reason, score: 0 },
+      source: quizSource,
+    });
+    sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
+    
+    addQuizAttempt(attempt);
+
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+
+  }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
+
+  const handleNextQuestion = useCallback((answer: string) => {
+    if (isFinishedRef.current) return;
+
+    const endTime = Date.now();
+    const timeTaken = (endTime - startTime) / 1000;
+    
+    const updatedAnswers = [...userAnswers, answer];
+    const updatedTime = [...timePerQuestion, parseFloat(timeTaken.toFixed(2))];
+    
+    setUserAnswers(updatedAnswers);
+    setTimePerQuestion(updatedTime);
+    
+    if (quizData && currentQuestionIndex < quizData.questions.length - 1) {
+        if (interstitialConfig) {
+            setShowInterstitial(true);
+        } else {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setStartTime(Date.now());
+        }
+    } else {
+      finishQuiz(updatedAnswers, updatedTime);
+    }
+  }, [startTime, currentQuestionIndex, quizData, finishQuiz, interstitialConfig, userAnswers, timePerQuestion]);
+
+  const onInterstitialComplete = useCallback(() => {
+    setShowInterstitial(false);
+    setCurrentQuestionIndex(prev => prev + 1);
+    setStartTime(Date.now());
+  }, []);
+
+  const handleHintRequest = useCallback(async () => {
+    if (!quizData || isHintLoading) return;
+    const adConfig = adLibrary.hintAds[currentQuestionIndex];
+    if (adConfig) {
+      setAdForHint(adConfig);
+      setShowAdDialog(true);
+    }
+  }, [quizData, currentQuestionIndex, isHintLoading]);
+
+  const handleAdFinished = useCallback(async () => {
+    setShowAdDialog(false);
+    if (!adForHint || !quizData) return;
+    
+    setIsHintLoading(true);
+    try {
+      const currentQ = quizData.questions[currentQuestionIndex];
+      const hintResult = await getAIPoweredHint({ question: currentQ });
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
+    } catch (e) {
+      console.error("Failed to get AI hint:", e);
+      setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
+    } finally {
+      setIsHintLoading(false);
+    }
+    setAdForHint(null);
+  }, [adForHint, quizData, currentQuestionIndex]);
+  
+  if (quizState === 'loading' || authLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+             <CricketLoading />
+            <p className="mb-4 mt-4">Warming up...</p>
+        </div>
+    );
+  }
+
+  if (quizState === 'unauthenticated') {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4">
+            <LoginPrompt 
+                icon={AlertTriangle}
+                title="Authentication Required"
+                description="Please sign in to play a quiz."
+            />
+        </div>
+    );
   }
   
-  const tabContentVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  if (quizState === 'pre-quiz' && quizData) {
+      return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
+  }
+
+  if (quizState === 'error') {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
+            <AlertTriangle className="h-12 w-12 mb-4" />
+            <p className="font-semibold mb-4">{error}</p>
+            <Button onClick={fetchQuiz}>Try Again</Button>
+        </div>
+    );
+  }
+  
+  if (quizState === 'submitting') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-muted-foreground p-4 text-center">
+        <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            className="flex flex-col items-center gap-4"
+        >
+            <ShieldCheck className="h-16 w-16 text-primary animate-pulse" />
+            <h2 className="text-2xl font-bold text-foreground">Third Umpire Review...</h2>
+            <p>Sending your scorecard for verification.</p>
+            <CricketLoading />
+        </motion.div>
+      </div>
+    );
+  }
+  
+  if (showInterstitial && interstitialConfig) {
+    if (interstitialConfig.type === 'static' && interstitialConfig.logoUrl) {
+      return (
+        <InterstitialLoader
+          logoUrl={interstitialConfig.logoUrl}
+          logoHint={interstitialConfig.logoHint || 'brand logo'}
+          duration={interstitialConfig.durationMs}
+          onComplete={onInterstitialComplete}
+        />
+      );
+    }
+    if (interstitialConfig.type === 'video' && interstitialConfig.videoUrl) {
+      return (
+        <AdDialog 
+            open={true}
+            onOpenChange={()=>{}}
+            onAdFinished={onInterstitialComplete}
+            duration={interstitialConfig.durationSec!}
+            skippableAfter={interstitialConfig.skippableAfterSec!}
+            adTitle={interstitialConfig.videoTitle!}
+            adType='video'
+            adUrl={interstitialConfig.videoUrl!}
+        />
+      )
+    }
+  }
+
+  if (quizState === 'playing' && quizData) {
+    return (
+        <>
+          <QuizView
+            question={quizData.questions[currentQuestionIndex]}
+            questionNumber={currentQuestionIndex + 1}
+            totalQuestions={quizData.questions.length}
+            onAnswer={handleNextQuestion}
+            onNoBall={handleNoBall}
+            brand={brand}
+            format={format}
+            onHintRequest={handleHintRequest}
+            hint={hints[currentQuestionIndex]}
+            isHintLoading={isHintLoading}
+            soundEnabled={settings.sound}
+            quizSource={quizSource}
+          />
+          {adForHint && (
+            <AdDialog
+              open={showAdDialog}
+              onOpenChange={setShowAdDialog}
+              onAdFinished={handleAdFinished}
+              duration={adForHint.duration}
+              skippableAfter={adForHint.skippableAfter}
+              adTitle={adForHint.title}
+              adType={adForHint.type}
+              adUrl={adForHint.url}
+              adHint={adForHint.hint}
+            />
+          )}
+        </>
+    );
+  }
+
+  return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
+}
+
+
+// =================================================================================
+// FILE: components/quiz/QuizView.tsx
+// =================================================================================
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Lightbulb, Volume2, VolumeX, Loader2, ShieldAlert } from 'lucide-react';
+import type { QuizQuestion, HintOutput } from '@/ai/schemas';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
+import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+
+const QUESTION_TIME_LIMIT = 20; // seconds
+
+interface QuizViewProps {
+    question: QuizQuestion;
+    questionNumber: number;
+    totalQuestions: number;
+    onAnswer: (answer: string) => void;
+    onNoBall: (reason: 'no-ball') => void;
+    brand: string;
+    format: string;
+    onHintRequest: () => void;
+    hint: HintOutput | null;
+    isHintLoading: boolean;
+    soundEnabled: boolean;
+    quizSource: 'ai' | 'fallback';
+}
+
+export default function QuizView({
+    question,
+    questionNumber,
+    totalQuestions,
+    onAnswer,
+    onNoBall,
+    brand,
+    format,
+    onHintRequest,
+    hint,
+    isHintLoading,
+    soundEnabled,
+    quizSource,
+}: QuizViewProps) {
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
+    
+    const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({
+        tick: null
+    });
+    
+    const malpracticeRef = useRef({
+      hiddenTimer: null as NodeJS.Timeout | null,
+      tabSwitchCount: 0,
+    });
+
+
+    // Auto-advance logic
+    const handleSelectOption = (option: string) => {
+        if (isAnswered) return; // Prevent changing answer
+        
+        setIsAnswered(true);
+        setSelectedOption(option);
+        
+        // Wait a moment to show selection, then advance
+        setTimeout(() => {
+            onAnswer(option);
+        }, 800);
+    };
+
+     useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                onNoBall('no-ball');
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [onNoBall]);
+    
+    useEffect(() => {
+        // Reset state for the new question
+        setTimeLeft(QUESTION_TIME_LIMIT);
+        setSelectedOption(null);
+        setIsAnswered(false);
+        malpracticeRef.current.tabSwitchCount = 0; // Reset counter for new question
+        
+        if (malpracticeRef.current.hiddenTimer) {
+            clearTimeout(malpracticeRef.current.hiddenTimer);
+            malpracticeRef.current.hiddenTimer = null;
+        }
+        
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    // Time's up, advance with no answer
+                    setTimeout(() => onAnswer(""), 100);
+                    return 0;
+                }
+                if(prev <= 6 && soundEnabled) {
+                    audioRefs.current.tick?.play().catch(e => console.log("Audio play failed", e));
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [question, onAnswer, soundEnabled]);
+    
+    const progressValue = (questionNumber / totalQuestions) * 100;
+
+    return (
+        <div className="flex flex-col h-screen bg-gradient-to-br from-background to-secondary/50 text-foreground p-4 overflow-hidden">
+            {typeof window !== 'undefined' && (
+                <>
+                    <audio ref={el => audioRefs.current.tick = el} src="/sounds/tick.mp3" preload="auto" />
+                </>
+            )}
+
+            {/* Header */}
+            <header className="flex flex-col gap-4 mb-4 shrink-0">
+                 <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                             {quizSource === 'fallback' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <motion.div
+                                              animate={{
+                                                scale: [1, 1.05, 1],
+                                                opacity: [1, 0.7, 1],
+                                              }}
+                                              transition={{
+                                                duration: 2,
+                                                ease: [0.4, 0, 0.2, 1],
+                                                repeat: Infinity,
+                                                repeatType: "reverse",
+                                              }}
+                                            >
+                                                <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default">Standard</Badge>
+                                            </motion.div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>This is a standard quiz, provided when the AI was unavailable.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+                        </motion.div>
+                    </div>
+                    <div className="relative h-16 w-16">
+                         <CircularProgressbar
+                            value={timeLeft}
+                            maxValue={QUESTION_TIME_LIMIT}
+                            text={`${timeLeft}`}
+                            styles={buildStyles({
+                                textColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                                pathColor: timeLeft <= 5 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                                trailColor: 'hsl(var(--muted))',
+                                textSize: '28px',
+                            })}
+                         />
+                    </div>
+                </div>
+                 <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <h1 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Progress</h1>
+                        <span className="text-sm font-semibold text-muted-foreground">{questionNumber}/{totalQuestions}</span>
+                    </div>
+                    <Progress value={progressValue} className="h-2 w-full" />
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col justify-center items-center">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -30, scale: 0.95 }}
+                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                        className="w-full max-w-2xl space-y-6"
+                    >
+                        <Card className="shadow-lg bg-transparent border-0 text-center">
+                            <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight">{question.question}</h2>
+                        </Card>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {question.options.map((option) => {
+                                const isSelected = selectedOption === option;
+
+                                return (
+                                <motion.div 
+                                    key={option}
+                                    whileHover={{ scale: isAnswered ? 1 : 1.03 }}
+                                    whileTap={{ scale: isAnswered ? 1 : 0.98 }}
+                                >
+                                    <button
+                                        onClick={() => handleSelectOption(option)}
+                                        disabled={isAnswered}
+                                        className={cn(
+                                            "w-full text-left p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2 text-lg font-semibold",
+                                            "bg-card shadow-md disabled:cursor-not-allowed",
+                                            isAnswered ? "opacity-50" : "hover:border-primary/50 hover:shadow-primary/20",
+                                            isSelected && 'border-primary shadow-lg shadow-primary/30 opacity-100'
+                                        )}
+                                    >
+                                        {option}
+                                    </button>
+                                </motion.div>
+                            )})}
+                        </div>
+                    </motion.div>
+                </AnimatePresence>
+            </main>
+
+            {/* Footer */}
+            <footer className="shrink-0 mt-auto pt-4 pb-12 text-center space-y-2">
+                 {isHintLoading ? (
+                    <div className="flex items-center justify-center gap-2 text-primary">
+                        <Loader2 className="animate-spin" /> Fetching hint...
+                    </div>
+                 ) : hint ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="mt-4 p-3 bg-accent/20 rounded-lg text-sm text-center flex items-center justify-center gap-2"
+                    >
+                        {hint.source === 'fallback' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>This is a generic hint as the AI could not generate one.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                       <span className="font-bold">Hint:</span> {hint.hint}
+                    </motion.div>
+                ) : (
+                    <Button variant="outline" size="lg" onClick={onHintRequest} disabled={isAnswered}>
+                        <Lightbulb className="text-primary mr-2" />
+                        <span>Get a Hint</span>
+                    </Button>
+                )}
+            </footer>
+        </div>
+    );
+}
+
+
+
+// =================================================================================
+// FILE: context/AuthProvider.tsx
+// =================================================================================
+'use client';
+
+import type { User } from 'firebase/auth';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+  useRef,
+} from 'react';
+import {
+  signOut,
+  signInWithPopup,
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+  signInWithEmailAndPassword as firebaseSignInWithEmail,
+} from 'firebase/auth';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  increment,
+  serverTimestamp,
+  onSnapshot,
+  writeBatch,
+  arrayUnion,
+  Timestamp,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+  orderBy,
+  Unsubscribe,
+} from 'firebase/firestore';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
+import type { QuizAttempt } from '@/ai/schemas';
+import { QuizAttempt as QuizAttemptSchema } from '@/ai/schemas';
+import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/providers/FirebaseProvider';
+import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
+import { isProfileConsideredComplete } from '@/lib/profile-utils';
+import { z } from 'zod';
+
+/* -------------------------------- Types ------------------------------- */
+
+export interface UserProfile {
+  uid: string;
+  name: string;
+  photoURL?: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastPlayedAt?: Timestamp;
+  referredBy?: string;
+  noBallCount: number;
+  lastNoBallTimestamp?: Timestamp;
+  quizzesPlayed?: number;
+  perfectScores?: number;
+  totalRewards?: number;
+  totalScore?: number;
+  [key: string]: any;
+}
+
+
+interface UserDataContextType {
+  user: User | null;
+  profile: UserProfile | null;
+  isProfileComplete: boolean;
+  loading: boolean;
+  firebaseAppReady: boolean; // Expose firebase readiness
+
+  // Attempt data
+  lastAttemptInSlot: QuizAttempt | null;
+  quizHistory: {
+    data: QuizAttempt[];
+    loading: boolean;
+    error: string | null;
+  };
+
+  // Auth & actions
+  logout: () => Promise<void>;
+  signInWithGoogle: () => Promise<User | null>;
+  registerWithEmail: (
+    name: string,
+    email: string,
+    phone: string,
+    password: string,
+    referralCode?: string
+  ) => Promise<User | null>;
+  loginWithEmail: (email: string, password: string) => Promise<User | null>;
+
+  // Writes
+  addQuizAttempt: (attempt: QuizAttempt) => Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }>;
+  updateUserData: (data: Partial<UserProfile>) => Promise<void>;
+  handleMalpractice: () => Promise<number>;
+  markAttemptAsReviewed: (attemptId: string) => Promise<{ success: boolean, reason?: string }>;
+
+  // Connectivity
+  isOffline: boolean;
+}
+
+/* --------------------------- Context bootstrap -------------------------- */
+
+const AuthContext = createContext<UserDataContextType | undefined>(undefined);
+
+/* --------------------------- Offline queue utils ------------------------ */
+
+const PENDING_KEY = 'quiz-pending-attempts';
+
+function readPending(): QuizAttempt[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    return raw ? (JSON.parse(raw) as QuizAttempt[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePending(list: QuizAttempt[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+function pushPending(attempt: QuizAttempt) {
+  const list = readPending();
+  const next = [attempt, ...list.filter((a) => a.slotId !== attempt.slotId)];
+  writePending(next);
+}
+
+function popPending(slotId: string) {
+  const list = readPending().filter((a) => a.slotId !== slotId);
+  writePending(list);
+}
+
+/* ------------------------------- Provider ------------------------------- */
+
+export const UserDataProvider = ({ children }: { children: ReactNode }) => {
+  const { user, loading: firebaseLoading } = useFirebase();
+  const { toast } = useToast();
+
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+
+  const [lastAttemptInSlot, setLastAttemptInSlot] = useState<QuizAttempt | null>(null);
+  const [quizHistory, setQuizHistory] = useState<{ data: QuizAttempt[]; loading: boolean; error: string | null }>({
+    data: [],
+    loading: true,
+    error: null,
+  });
+  const quizHistoryCache = useRef<QuizAttempt[]>([]);
+  
+  const [firebaseAppReady, setFirebaseAppReady] = useState(false);
+  useEffect(() => {
+    setFirebaseAppReady(isFirebaseConfigured);
+  }, []);
+
+
+  /* ---------------------------- Online/offline ---------------------------- */
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOffline(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  /* ----------------------- Create/maintain user doc ----------------------- */
+
+  const handleUserDocument = useCallback(
+    async (u: User, additionalData: Record<string, any> = {}) => {
+      if (!db) {
+        toast({
+          title: 'Connection Error',
+          description: 'Database not available. You might be offline.',
+          variant: 'destructive',
+        });
+        throw new Error('Database not available');
+      }
+      const userRef = doc(db, 'users', u.uid);
+      let referredBy = '';
+
+      if (additionalData.referralCode) {
+        const usersCol = collection(db, 'users');
+        const q = query(usersCol, where('referralCode', '==', additionalData.referralCode), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          referredBy = querySnapshot.docs[0].id;
+        } else {
+          console.warn(`Referral code "${additionalData.referralCode}" not found.`);
+        }
+      }
+
+      const docSnap = await getDoc(userRef);
+
+      if (!docSnap.exists()) {
+        const name = additionalData.name || u.displayName || 'New User';
+        const newUserProfile: UserProfile = {
+          uid: u.uid,
+          name,
+          email: u.email,
+          phone: additionalData.phone || '',
+          photoURL: u.photoURL || `https://placehold.co/100x100.png`,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastPlayedAt: null,
+          emailVerified: u.emailVerified,
+          referredBy,
+          referralBonusPaid: false,
+          quizzesPlayed: 0,
+          perfectScores: 0,
+          totalRewards: 0,
+          totalScore: 0,
+          profileCompleted: false,
+          guidedTourCompleted: false,
+          phoneVerified: false,
+          referralCode: `ref${u.uid.substring(0, 4)}`,
+          referralEarnings: 0,
+          noBallCount: 0,
+          lastNoBallTimestamp: null,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastStreakTimestamp: null,
+        } as any;
+
+        await setDoc(userRef, sanitizeUserProfile(newUserProfile));
+
+        if (referredBy) {
+          const referrerRef = doc(db, 'users', referredBy);
+          await updateDoc(referrerRef, {
+            referrals: arrayUnion(u.uid),
+          });
+        }
+
+        return newUserProfile;
+      } else {
+        const existingData = docSnap.data() as UserProfile;
+        const updates: Record<string, any> = {};
+        if (u.photoURL && u.photoURL !== existingData.photoURL) {
+          updates.photoURL = u.photoURL;
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateDoc(userRef, updates);
+        }
+        return { ...existingData, ...updates };
+      }
+    },
+    [toast]
+  );
+
+  /* ------------------------- Primary subscriptions ------------------------ */
+
+  useEffect(() => {
+    let isMounted = true;
+    let unsubs: Unsubscribe[] = [];
+
+    if (firebaseLoading || !firebaseAppReady || !db) {
+      if (isMounted) setProfileLoading(true);
+      return;
+    }
+
+    if (!user) {
+      if (isMounted) {
+        setProfile(null);
+        setProfileLoading(false);
+        setLastAttemptInSlot(null);
+        setQuizHistory({ data: [], loading: false, error: null });
+        quizHistoryCache.current = [];
+      }
+      return;
+    }
+
+    // Profile
+    if (isMounted) setProfileLoading(true);
+    const userRef = doc(db, 'users', user.uid);
+    unsubs.push(onSnapshot(
+      userRef,
+      (docSnap) => {
+        if (!isMounted) return;
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as UserProfile);
+        } else {
+          handleUserDocument(user).catch(console.error);
+          setProfile(null);
+        }
+        setProfileLoading(false);
+      },
+      (error) => {
+        if (!isMounted) return;
+        console.error('Error fetching profile with onSnapshot:', error);
+        setProfile(null);
+        setProfileLoading(false);
+      }
+    ));
+
+    // Last attempt within current slot
+    const currentSlotId = getQuizSlotId();
+    const attemptDocRef = doc(collection(db, 'users', user.uid, 'quizAttempts'), currentSlotId);
+    unsubs.push(onSnapshot(
+      attemptDocRef,
+      (docSnap) => {
+        if (!isMounted) return;
+        setLastAttemptInSlot(docSnap.exists() ? (docSnap.data() as QuizAttempt) : null);
+      },
+      (error) => {
+        if (!isMounted) return;
+        console.warn('Could not listen to slot attempt:', error.message);
+        setLastAttemptInSlot(null);
+      }
+    ));
+
+    // Full history
+    if (isMounted) setQuizHistory((prev) => ({ ...prev, loading: true, error: null }));
+    const historyQuery = query(
+      collection(db, 'users', user.uid, 'quizAttempts'),
+      orderBy('timestamp', 'desc')
+    );
+    unsubs.push(
+      onSnapshot(
+        historyQuery,
+        (querySnapshot) => {
+          if (!isMounted) return;
+
+          const historyData: QuizAttempt[] = [];
+          querySnapshot.forEach((docSnap) => {
+            const raw = docSnap.data();
+            const sanitized = sanitizeQuizAttempt(raw);
+            const parsed = QuizAttemptSchema.safeParse(sanitized);
+
+            if (parsed.success) {
+              historyData.push(parsed.data);
+            } else {
+              console.warn(
+                `⚠️ Skipped invalid quiz attempt [${docSnap.id}] from Firestore:`,
+                parsed.error.flatten()
+              );
+            }
+          });
+
+          quizHistoryCache.current = historyData;
+          setQuizHistory({ data: historyData, loading: false, error: null });
+        },
+        (error) => {
+          if (!isMounted) return;
+          console.error('Error fetching quiz history:', error);
+          const mappedError = mapFirestoreError(error);
+          // On error, serve from cache but still surface the error message
+          setQuizHistory({
+            data: quizHistoryCache.current,
+            loading: false,
+            error: mappedError.userMessage,
+          });
+        }
+      )
+    );
+
+    return () => {
+      isMounted = false;
+      unsubs.forEach((unsub) => {
+        try {
+          unsub();
+        } catch (e) {
+          console.warn("Failed to unsubscribe from listener in AuthProvider", e);
+        }
+      });
+      unsubs = [];
+    };
+  }, [user, firebaseLoading, handleUserDocument, firebaseAppReady]);
+  
+
+  /* -------------------------- Auth convenience --------------------------- */
+
+  const signInWithGoogle = useCallback(async (): Promise<User | null> => {
+    if (!auth) return null;
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      await handleUserDocument(result.user);
+      toast({ title: 'Signed In', description: 'Welcome back!' });
+      return result.user;
+    } catch (error: any) {
+      if (error.code !== 'auth/popup-closed-by-user') {
+        console.error('Google Sign-In Error:', error);
+        toast({ title: 'Sign-in Error', description: 'Could not sign in with Google.', variant: 'destructive' });
+      }
+      return null;
+    }
+  }, [toast, handleUserDocument]);
+
+  const registerWithEmail = useCallback(
+    async (
+      name: string,
+      email: string,
+      phone: string,
+      password: string,
+      referralCode?: string
+    ): Promise<User | null> => {
+      if (!auth) return null;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const { user: userCredentialUser } = userCredential;
+        await updateProfile(userCredentialUser, { displayName: name });
+        await handleUserDocument(userCredentialUser, { name, phone, referralCode });
+        await sendEmailVerification(userCredentialUser);
+        toast({ title: 'Account created', description: 'Verification email sent.' });
+        return userCredentialUser;
+      } catch (error: any) {
+        let description = 'An unexpected error occurred. Please try again.';
+        if (error.code === 'auth/email-already-in-use') {
+          description = 'This email is already registered. Please log in instead.';
+        } else if (error.code === 'auth/weak-password') {
+          description = 'The password is too weak. Please use at least 8 characters.';
+        }
+        console.error('Registration Error: ', error);
+        toast({ title: 'Sign Up Failed', description, variant: 'destructive' });
+        return null;
+      }
+    },
+    [toast, handleUserDocument]
+  );
+
+  const loginWithEmail = useCallback(
+    async (email: string, password: string): Promise<User | null> => {
+      if (!auth) return null;
+      try {
+        const userCredential = await firebaseSignInWithEmail(auth, email, password);
+        toast({ title: 'Signed In', description: 'Welcome back!' });
+        return userCredential.user;
+      } catch (error: any) {
+        let description = 'An unexpected error occurred.';
+        if (
+          error.code === 'auth/invalid-credential' ||
+          error.code === 'auth/user-not-found' ||
+          error.code === 'auth/wrong-password'
+        ) {
+          description = 'Invalid credentials. Please check your email and password.';
+        }
+        toast({ title: 'Login Failed', description, variant: 'destructive' });
+        return null;
+      }
+    },
+    [toast]
+  );
+
+  const logout = useCallback(async () => {
+    if (!auth) return;
+    await signOut(auth);
+    toast({ title: 'Signed Out', description: 'You have been logged out successfully.' });
+  }, [toast]);
+
+  /* ------------------------------ Profile edit --------------------------- */
+
+  const updateUserData = useCallback(
+    async (data: Partial<UserProfile>) => {
+      if (!user || !db) return;
+      const allowedFields = [
+        'name',
+        'phone',
+        'photoURL',
+        'profileCompleted',
+        'guidedTourCompleted',
+        'dob',
+        'gender',
+        'occupation',
+        'upi',
+        'favoriteFormat',
+        'favoriteTeam',
+        'favoriteCricketer',
+        'phoneVerified',
+      ];
+      const filteredData: Partial<UserProfile> = Object.keys(data).reduce((acc: any, key) => {
+        if (allowedFields.includes(key)) acc[key] = (data as any)[key];
+        return acc;
+      }, {});
+
+      if (Object.keys(filteredData).length === 0) return;
+
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { ...sanitizeUserProfile(filteredData), updatedAt: serverTimestamp() });
+        setIsOffline(false);
+      } catch (e) {
+        console.error('updateUserData failed:', e);
+        toast({
+          title: 'Update Failed',
+          description: 'Your changes could not be saved. You might be offline.',
+          variant: 'destructive',
+        });
+        setIsOffline(true);
+        throw e;
+      }
+    },
+    [user, toast]
+  );
+
+  /* --------------------------- Attempt persistence ----------------------- */
+
+const persistAttemptBatch = useCallback(
+    async (attempt: QuizAttempt) => {
+        if (!user || !db) throw new Error('Missing user/db');
+        
+        const validatedAttempt = QuizAttemptSchema.parse(sanitizeQuizAttempt(attempt));
+
+        const batch = writeBatch(db);
+        const userDocRef = doc(db, 'users', user.uid);
+        const statsDocRef = doc(db, 'globals', 'stats');
+
+        // 1. Get current user stats for streak calculation
+        const userSnap = await getDoc(userDocRef);
+        if (!userSnap.exists()) {
+            throw new Error("User document does not exist, cannot update stats.");
+        }
+        const userData = userSnap.data() as UserProfile;
+
+        // 2. Base User & Global Stats Update
+        const isPerfectScore = validatedAttempt.score === validatedAttempt.totalQuestions && !validatedAttempt.reason;
+        const userStatsUpdate: Record<string, any> = {
+            quizzesPlayed: increment(1),
+            totalScore: increment(validatedAttempt.score || 0),
+            perfectScores: increment(isPerfectScore ? 1 : 0),
+            lastPlayedAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+
+        const globalStatsUpdate: Record<string, any> = {
+             totalQuizzesPlayed: increment(1) 
+        };
+        if (isPerfectScore) {
+            globalStatsUpdate.totalPerfectScores = increment(1);
+        }
+
+        // 3. Streak Logic
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const lastPlayed = userData.lastPlayedAt ? userData.lastPlayedAt.toDate() : null;
+        if (!lastPlayed) {
+            // First quiz ever
+            userStatsUpdate.currentStreak = 1;
+            userStatsUpdate.longestStreak = 1;
+        } else {
+            const lastPlayedDay = new Date(lastPlayed);
+            lastPlayedDay.setHours(0, 0, 0, 0);
+            
+            const daysDiff = (today.getTime() - lastPlayedDay.getTime()) / (1000 * 60 * 60 * 24);
+
+            if (daysDiff === 1) { // Continued streak
+                const newStreak = (userData.currentStreak || 0) + 1;
+                userStatsUpdate.currentStreak = newStreak;
+                if (newStreak > (userData.longestStreak || 0)) {
+                    userStatsUpdate.longestStreak = newStreak;
+                }
+            } else if (daysDiff > 1) { // Reset streak
+                userStatsUpdate.currentStreak = 1;
+            }
+            // If daysDiff is 0, do nothing (already played today).
+        }
+        
+
+        // 4. Add updates to batch
+        batch.update(userDocRef, userStatsUpdate);
+        batch.set(statsDocRef, globalStatsUpdate, { merge: true });
+
+        // 5. Quiz Attempt Document. Use serverTimestamp for the 'timestamp' field.
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', validatedAttempt.slotId!);
+        batch.set(attemptRef, { ...validatedAttempt, timestamp: serverTimestamp() });
+
+        // 6. Live Leaderboard Entry
+        const liveEntryRef = doc(db, 'leaderboard_live', validatedAttempt.slotId!, 'entries', user.uid);
+        const totalTime = validatedAttempt.timePerQuestion?.reduce((a: number, b: number) => a + b, 0) || 0;
+        batch.set(
+            liveEntryRef,
+            {
+                userId: user.uid,
+                name: userData.name || "Anonymous",
+                avatar: userData.photoURL || '',
+                score: validatedAttempt.score,
+                time: totalTime,
+                disqualified: !!validatedAttempt.reason,
+            },
+            { merge: true }
+        );
+        
+        await batch.commit();
+    },
+    [user]
+);
+
+
+  // Public API
+  const addQuizAttempt = useCallback(
+    async (attempt: QuizAttempt): Promise<{ success: boolean; attemptId?: string; error?: string; queued?: boolean }> => {
+      if (!user || !db) {
+        const msg = 'User not authenticated or database unavailable.';
+        toast({ title: 'Save Failed', description: msg, variant: 'destructive' });
+        pushPending(attempt);
+        return { success: false, error: msg, queued: true };
+      }
+
+      try {
+        await persistAttemptBatch(attempt);
+        popPending(attempt.slotId);
+        setIsOffline(false);
+        return { success: true, attemptId: attempt.slotId };
+      } catch (e: any) {
+        console.error('addQuizAttempt failed:', e);
+        let errMsg = "An unexpected error occurred during submission.";
+        if (e instanceof z.ZodError) {
+          errMsg = "Your quiz data was invalid. Please try again.";
+          console.error("Zod validation failed:", e.format());
+        } else if (e.message) {
+          errMsg = `Could not save your quiz result now. (${e.message}) It will auto-sync when you are back online.`;
+        }
+        
+        toast({
+          title: 'Sync Error',
+          description: errMsg,
+          variant: 'destructive',
+          duration: 10000,
+        });
+        pushPending(attempt);
+        setIsOffline(true);
+        return { success: false, error: e.message, queued: true, attemptId: attempt.slotId };
+      }
+    },
+    [persistAttemptBatch, toast, user]
+  );
+
+  // Auto-retry queued attempts when user/db/online becomes available
+  useEffect(() => {
+    const tryFlush = async () => {
+      if (!user || !db || isOffline) return;
+      const list = readPending();
+      if (!list.length) return;
+
+      toast({
+        title: 'Reconnecting...',
+        description: `Syncing ${list.length} pending quiz attempt(s).`,
+      });
+
+      for (const a of list) {
+        try {
+          await persistAttemptBatch(a);
+          popPending(a.slotId);
+        } catch (e) {
+          console.warn('Retry persist failed for', a.slotId, e);
+          break;
+        }
+      }
+    };
+    tryFlush();
+  }, [user, db, isOffline, persistAttemptBatch, toast]);
+
+  /* ------------------------------ Malpractice ---------------------------- */
+
+  const handleMalpractice = useCallback(async (): Promise<number> => {
+    if (!user || !profile || !db) return profile?.noBallCount ?? 0;
+
+    let newNoBallCount = profile.noBallCount || 0;
+
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const lastNoBallDay = profile.lastNoBallTimestamp
+        ? new Date((profile.lastNoBallTimestamp as Timestamp).toMillis())
+        : null;
+      if (lastNoBallDay) lastNoBallDay.setHours(0, 0, 0, 0);
+
+      if (!lastNoBallDay || lastNoBallDay.getTime() !== today.getTime()) {
+        newNoBallCount = 1;
+      } else {
+        newNoBallCount++;
+      }
+
+      await updateDoc(userDocRef, {
+        noBallCount: newNoBallCount,
+        lastNoBallTimestamp: serverTimestamp(),
+      });
+      setIsOffline(false);
+      return newNoBallCount;
+    } catch (e) {
+      console.error('handleMalpractice failed:', e);
+      setIsOffline(true);
+      return newNoBallCount;
+    }
+  }, [user, profile]);
+
+  /* ------------------------------- Reviewed ------------------------------ */
+
+  const markAttemptAsReviewed = useCallback(
+    async (attemptId: string): Promise<{ success: boolean; reason?: string }> => {
+      if (!user || !db) {
+        console.warn('markAttemptAsReviewed blocked: missing user or db', { user, db });
+        return { success: false, reason: 'User not authenticated or database unavailable' };
+      }
+  
+      try {
+        const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
+  
+        // Check if the attempt exists
+        const snap = await getDoc(attemptRef);
+        if (!snap.exists()) {
+          console.warn('Attempt document does not exist', { attemptId });
+          return { success: false, reason: 'Attempt document not found' };
+        }
+  
+        // Update the reviewed flag
+        await updateDoc(attemptRef, { reviewed: true });
+  
+        // Update local state immediately
+        setQuizHistory((prev) => ({
+          ...prev,
+          data: prev.data.map((a) =>
+            a.slotId === attemptId ? { ...a, reviewed: true } : a
+          ),
+        }));
+  
+        return { success: true };
+      } catch (error: any) {
+        console.error('Failed to mark attempt as reviewed:', error);
+  
+        let reason = 'Unknown error';
+        if (error.code === 'permission-denied') reason = 'Insufficient permissions';
+        else if (error.code === 'unavailable') reason = 'Network or Firestore unavailable';
+        else if (error.message) reason = error.message;
+  
+        return { success: false, reason };
+      }
+    },
+    [user]
+  );
+
+  /* ------------------------------ Context val ---------------------------- */
+
+  const value: UserDataContextType = {
+    user,
+    loading: firebaseLoading || profileLoading,
+    profile,
+    isProfileComplete: isProfileConsideredComplete(profile),
+    firebaseAppReady,
+    quizHistory,
+    lastAttemptInSlot,
+    logout,
+    signInWithGoogle,
+    registerWithEmail,
+    loginWithEmail,
+    updateUserData,
+    addQuizAttempt,
+    handleMalpractice,
+    markAttemptAsReviewed,
+    isOffline,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+/* ---------------------------------- Hook --------------------------------- */
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within a UserDataProvider');
+  }
+  return context;
+}
+
+
+
+// =================================================================================
+// FILE: components/auth/AuthGuard.tsx
+// =================================================================================
+'use client';
+
+import { ReactNode, useEffect } from "react";
+import { useFirebase } from "@/providers/FirebaseProvider";
+import { usePathname, useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface AuthGuardProps {
+  children: ReactNode;
+}
+
+export default function AuthGuard({ children }: AuthGuardProps) {
+  const { user, loading } = useFirebase();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      const from = pathname;
+      router.replace(`/auth/login?from=${from}`);
+    }
+  }, [user, loading, router, pathname]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex flex-col gap-4 p-6">
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+
+
+// =================================================================================
+// FILE: components/auth/LoginPrompt.tsx
+// =================================================================================
+'use client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import Link from 'next/link';
+import { LucideIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
+
+interface LoginPromptProps {
+    icon: LucideIcon;
+    title: string;
+    description: string;
+}
+
+export default function LoginPrompt({ icon: Icon, title, description }: LoginPromptProps) {
+    const pathname = usePathname();
+
+    return (
+        <Card className="bg-card/80 animate-fade-in-up">
+            <CardHeader className="text-center">
+                <div className="mx-auto bg-primary/20 p-4 rounded-full w-fit mb-4">
+                    <Icon className="h-12 w-12 text-primary" />
+                </div>
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+                <Button asChild>
+                    <Link href={`/auth/login?from=${pathname}`}>
+                        Sign In / Sign Up
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
+    )
+}
+
+
+
+// =================================================================================
+// FILE: ai/schemas.ts
+// =================================================================================
+import { z } from 'zod';
+
+/**
+ * @fileOverview Zod schemas for the indcric application.
+ *
+ * This file defines the core data structures used throughout the app,
+ * ensuring type safety and consistent data validation. These schemas are kept
+ * strict; any malformed input should be fixed by a sanitizer before validation.
+ */
+
+export const QuizQuestion = z.object({
+  id: z.string().describe('A unique identifier for the question.'),
+  question: z.string().describe('The text of the quiz question.'),
+  options: z.array(z.string()).length(4).describe('An array of exactly four multiple-choice options.'),
+  correctAnswer: z.string().describe('The correct answer, which must match one of the options.'),
+  explanation: z.string().describe('A brief explanation of the correct answer.'),
+});
+
+export const QuizData = z.object({
+  questions: z.array(QuizQuestion).length(5).describe('An array of exactly five quiz questions.'),
+});
+
+export const QuizAttempt = z.object({
+  userId: z.string().min(1).describe("The user's unique ID."),
+  slotId: z.string().describe("The ID of the 10-minute quiz slot."),
+  brand: z.string().optional().default("unknown").describe("The brand associated with the quiz."),
+  format: z.string().min(1).describe("The cricket format of the quiz."),
+  questions: z.array(QuizQuestion).min(1).describe("The array of questions that were in the quiz."),
+  userAnswers: z.array(z.string()).describe("The answers provided by the user (padded with empty strings for unanswered)."),
+  score: z.number().int().describe("The final score of the user."),
+  totalQuestions: z.number().int().describe("The total number of questions in the quiz."),
+  timestamp: z.number().describe("The Unix timestamp (in milliseconds) when the quiz was completed."),
+  timePerQuestion: z.optional(z.array(z.number())).describe("Time taken in seconds for each question."),
+  unanswered: z.optional(z.number().int()).describe("The number of questions the user did not answer."),
+  reason: z.optional(z.string().nullable()).describe("Reason for disqualification, if any (e.g., 'no-ball')."),
+  source: z.enum(['ai', 'fallback']).optional().describe("The source of the quiz data."),
+  reviewed: z.boolean().optional().default(false).describe("Whether the user has reviewed the answers."),
+});
+
+export const QuizAnalysisOutputSchema = z.object({
+  summary: z.string().describe("A concise overall insight into the user's performance, mentioning score and format."),
+  strengths: z.array(z.string()).min(1).max(3).describe("A list of 1-3 key strengths the user demonstrated."),
+  weaknesses: z.array(z.string()).min(1).max(3).describe("A list of 1-3 specific areas for improvement."),
+  recommendations: z.array(z.string()).min(1).max(3).describe("A list of 1-3 actionable next steps for the user."),
+  source: z.enum(["ai", "fallback"]).default("fallback"),
+});
+
+
+export type QuizQuestion = z.infer<typeof QuizQuestion>;
+export type QuizData = z.infer<typeof QuizData>;
+export type QuizAttempt = z.infer<typeof QuizAttempt>;
+export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
+export type HintOutput = import('./flows/ai-powered-hints').HintOutput;
+
+
+
+// =================================================================================
+// FILE: ai/flows/ai-powered-hints.ts
+// =================================================================================
+
+'use server';
+
+/**
+ * @fileOverview Provides AI-powered hints for quiz questions.
+ *
+ * This flow generates a contextual hint for a given quiz question, helping the user
+ * without giving away the answer directly. It includes robust error handling to provide
+ * a helpful fallback hint if the AI generation fails.
+ */
+
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import type { QuizQuestion as QuizQuestionType } from '@/ai/schemas';
+import { QuizQuestion as QuestionSchema } from '@/ai/schemas';
+
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+const HintInputSchema = z.object({
+  question: QuestionSchema,
+});
+export type HintInput = z.infer<typeof HintInputSchema>;
+
+export const HintOutputSchema = z.object({
+  hint: z.string().min(1),
+  source: z.enum(["ai", "fallback"]),
+  debug: z.string().optional(),
+});
+export type HintOutput = z.infer<typeof HintOutputSchema>;
+
+// The main function exported to the client. It wraps the Genkit flow.
+export async function getAIPoweredHint(input: HintInput): Promise<HintOutput> {
+  return getAIPoweredHintFlow(input);
+}
+
+
+function fallbackHintForQuestion(q?: QuizQuestionType): string {
+    if (!q) return "Review the topic related to this question and try eliminating obviously incorrect options.";
+    if (q.correctAnswer) {
+      return "Think about which option directly answers the question. Eliminate options that are clearly unrelated and choose the best match.";
+    }
+    if (Array.isArray(q.options) && q.options.length) {
+      return "Try eliminating choices that are factually incorrect or irrelevant to the question. Trust the option that directly addresses the question stem.";
+    }
+    return "Review the basics for this topic, then try answering by eliminating unlikely options.";
+}
+
+
+const prompt = ai.definePrompt({
+    name: 'getAIPoweredHintPrompt',
+    input: { schema: HintInputSchema },
+    output: { schema: z.object({ hint: z.string() }) },
+    prompt: `
+    You are a helpful cricket quiz assistant. Your goal is to provide a single, smart, and indirect hint for the following cricket question.
+
+    The hint MUST NOT give away the correct answer ("{{question.correctAnswer}}").
+    Instead, it should guide the user by providing context, a related fact, or helping them eliminate one or two incorrect options.
+    Be creative and encouraging. The hint should be a single sentence.
+
+    Question: "{{question.question}}"
+
+    Options:
+    {{#each question.options}}
+    - {{this}}
+    {{/each}}
+
+    Correct Answer: {{question.correctAnswer}}
+
+    Generate one single, smart, and indirect hint.
+    `,
+    config: {
+        retries: 2,
+    },
+});
+
+// Defines the full Genkit flow with robust error handling.
+const getAIPoweredHintFlow = ai.defineFlow(
+    {
+        name: 'getAIPoweredHintFlow',
+        inputSchema: HintInputSchema,
+        outputSchema: HintOutputSchema,
+    },
+    async (input) => {
+        const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        
+        const validatedInput = HintInputSchema.safeParse(input);
+
+        if (!validatedInput.success) {
+            console.warn(`[hints][${reqId}] invalid question shape, returning fallback hint`, validatedInput.error.format());
+            return { hint: fallbackHintForQuestion(), source: "fallback", debug: IS_DEV ? "invalid_question_shape" : undefined };
+        }
+
+        try {
+            console.info(`[hints][${reqId}] calling AI for hint`);
+            const { output } = await prompt(validatedInput.data);
+            
+            if (!output || !output.hint || output.hint.trim().length < 5) {
+                throw new Error("AI returned an empty or invalid hint.");
+            }
+
+            console.info(`[hints][${reqId}] AI hint generated`);
+            return { hint: output.hint.trim(), source: "ai" };
+
+        } catch (error: any) {
+            console.error(`[hints][${reqId}] AI hint failed:`, error?.message ?? error);
+            const fbHint = fallbackHintForQuestion(validatedInput.data.question);
+            return {
+                hint: fbHint,
+                source: "fallback",
+                debug: IS_DEV ? String(error?.message ?? error) : undefined,
+            };
+        }
+    }
+);
+
+
+
+// =================================================================================
+// FILE: lib/quiz-utils.ts
+// =================================================================================
+'use client';
+
+import type { QuizAttempt, QuizData } from '@/ai/schemas';
+import type { User } from 'firebase/auth';
+import { getQuizSlotId } from '@/lib/utils';
+import { sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfile';
+
+/**
+ * Encodes a QuizAttempt object into a Base64 string for URL transport.
+ */
+export const encodeAttempt = (attempt: QuizAttempt): string => {
+    try {
+        const sanitized = sanitizeAttemptData(attempt);
+        // Using native btoa for browser environments.
+        return encodeURIComponent(btoa(JSON.stringify(sanitized)));
+    } catch (e) {
+        console.error("Failed to encode attempt:", e);
+        return "";
+    }
+}
+
+/**
+ * Decodes a Base64 string from a URL into a QuizAttempt object.
+ */
+export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
+    try {
+        // Using native atob for browser environments.
+        return JSON.parse(atob(decodeURIComponent(encodedAttempt)));
+    } catch (e) {
+        console.error("Failed to decode attempt:", e);
+        return null;
+    }
+}
+
+
+interface BuildAttemptArgs {
+    user: User;
+    quizData: QuizData;
+    brand: string;
+    format: string;
+    userAnswers: string[];
+    timePerQuestion: number[];
+    overrides?: Partial<QuizAttempt>;
+    source: 'ai' | 'fallback';
+}
+
+/**
+ * Constructs a fully-formed QuizAttempt object.
+ */
+export const buildAttempt = ({
+    user,
+    quizData,
+    brand,
+    format,
+    userAnswers,
+    timePerQuestion,
+    overrides = {},
+    source,
+}: BuildAttemptArgs): QuizAttempt => {
+    const score = overrides.score ?? quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
+    
+    const unansweredCount = userAnswers.filter(a => a === "").length;
+
+    const attemptObject: QuizAttempt = {
+        userId: user.uid,
+        slotId: getQuizSlotId(),
+        brand,
+        format,
+        questions: quizData.questions,
+        userAnswers,
+        score,
+        totalQuestions: quizData.questions.length,
+        timestamp: Date.now(),
+        timePerQuestion,
+        source,
+        unanswered: unansweredCount,
+        reviewed: false, // Always initialize as not reviewed
+        ...overrides,
+    };
+
+    // Sanitize before returning to ensure no undefined fields are ever present.
+    return sanitizeAttemptData(attemptObject) as QuizAttempt;
+};
+
+
+
+// =================================================================================
+// FILE: lib/firebase.ts
+// =================================================================================
+
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth as getFirebaseAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+export const isFirebaseConfigured = !!(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId
+);
+
+let app: FirebaseApp;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+
+if (typeof window !== 'undefined' && isFirebaseConfigured) {
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  auth = getFirebaseAuth(app);
+  db = getFirestore(app);
+  if (auth) {
+    auth.useDeviceLanguage();
+  }
+}
+
+export function getAuth() {
+  if (auth) {
+    return auth;
+  }
+  if (typeof window !== 'undefined' && isFirebaseConfigured) {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApp();
+    }
+    auth = getFirebaseAuth(app);
+    return auth;
+  }
+  return null;
+}
+
+export { app, db };
+
+
+
+// =================================================================================
+// FILE: lib/utils.ts
+// =================================================================================
+
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+import { FirebaseError } from 'firebase/app';
+
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+/**
+ * Formats a number to have a leading zero if it's less than 10.
+ * @param time The number to format.
+ * @returns A string representation of the number, padded with a zero if needed.
+ */
+export function formatTime(time: number): string {
+  return time.toString().padStart(2, '0');
+}
+
+/**
+ * Generates a unique ID for the current 10-minute quiz slot.
+ * @returns A string representing the start timestamp of the current slot.
+ */
+export const getQuizSlotId = () => {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const slotLength = 10; // 10 minutes per slot
+  const currentSlotStartMinute = Math.floor(minutes / slotLength) * slotLength;
+  
+  const slotTime = new Date(now);
+  slotTime.setMinutes(currentSlotStartMinute, 0, 0); // Set to the beginning of the slot
+  
+  return slotTime.getTime().toString();
+};
+
+
+/**
+ * Masks a phone number, showing only the first and last two digits.
+ * @param phone The phone number string to mask.
+ * @returns The masked phone number or an empty string if input is invalid.
+ */
+export function maskPhone(phone?: string | null): string {
+  if (!phone || phone.length < 6) return '';
+  return `${phone.substring(0, 2)}******${phone.substring(phone.length - 2)}`;
+}
+
+/**
+ * Calculates age based on a date of birth string (YYYY-MM-DD).
+ * @param dobString The date of birth in 'YYYY-MM-DD' format.
+ * @returns The calculated age as a number, or null if the input is invalid.
+ */
+export function calculateAge(dobString: string): number | null {
+  const birthDate = new Date(dobString);
+  if (isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDifference = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
+/**
+ * Maps Firestore and other errors to user-friendly messages.
+ * @param error The error object.
+ * @returns An object with a user-friendly message and an optional error code.
+ */
+export function mapFirestoreError(error: any): { code?: string; userMessage: string; technical?: string } {
+    if (!error) return { userMessage: "An unknown error occurred." };
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return { code: "OFFLINE", userMessage: "You appear to be offline. Please check your internet connection." };
+    }
+    
+    const code = error.code || error?.name || "";
+    const msg = String(error.message || error).toLowerCase();
+
+    // Specific check for Firestore index errors
+    if (/index|failed-precondition/i.test(msg) && (msg.includes('query requires an index') || msg.includes('index is required'))) {
+        return {
+          code: "INDEX_REQUIRED",
+          userMessage: "The leaderboard database is being indexed. This can take a few minutes. Please check back shortly.",
+          technical: msg
+        };
+    }
+
+    if (error instanceof FirebaseError) {
+        switch (error.code) {
+            case 'unavailable':
+                return { code: error.code, userMessage: 'The server is temporarily unavailable. Please try again in a moment.' };
+            case 'permission-denied':
+                return { code: error.code, userMessage: 'You do not have permission to access this resource.' };
+            case 'not-found':
+                return { code: error.code, userMessage: 'The requested resource was not found.' };
+            case 'deadline-exceeded':
+                return { code: error.code, userMessage: 'The request timed out. Please check your connection and try again.' };
+            case 'cancelled':
+                return { code: error.code, userMessage: 'The request was cancelled. Please try again.' };
+           case "unauthenticated":
+              return { code: error.code, userMessage: "Your session may have expired. Please log in again." };
+          case "resource-exhausted":
+              return { code: error.code, userMessage: "The request limit was reached. Please wait before trying again." };
+          default:
+              return { code: error.code, userMessage: `An unexpected server error occurred (${error.code}). Please try again.` };
+        }
+    }
+
+    if (msg.includes('network') || msg.includes('failed to fetch')) {
+        return { code: "NETWORK_ERROR", userMessage: "A network error occurred. Please check your connection and try again." };
+    }
+  
+    if (typeof error.message === 'string') {
+        return { code: code || "UNKNOWN", userMessage: error.message };
+    }
+
+    return { code: "UNKNOWN", userMessage: 'An unknown error occurred. Please try again.' };
+}
+
+
+
+// =================================================================================
+// FILE: components/CricketLoading.tsx
+// =================================================================================
+'use client';
+
+import { motion } from 'framer-motion';
+
+export function CricketLoading() {
+  const containerVariants = {
+    start: {
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+    end: {
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const circleVariants = {
+    start: {
+      y: '0%',
+    },
+    end: {
+      y: '100%',
+    },
+  };
+
+  const circleTransition = {
+    duration: 0.4,
+    repeat: Infinity,
+    repeatType: 'reverse' as const,
+    ease: 'easeInOut',
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={cn("grid w-full", user ? "grid-cols-4" : "grid-cols-3")}>
-            <TabsTrigger value="live">Current</TabsTrigger>
-            <TabsTrigger value="all-time">All-Time</TabsTrigger>
-            <TabsTrigger value="streaks">Streaks</TabsTrigger>
-            {user && <TabsTrigger value="network">My Network</TabsTrigger>}
-        </TabsList>
-        
-        <div className="mt-4 relative">
-             <motion.div
-               key={activeTab}
-               variants={tabContentVariants}
-               initial="hidden"
-               animate="visible"
-            >
-                <TabsContent value="live" forceMount={true} hidden={activeTab !== 'live'}>
-                    <Suspense fallback={<LeaderboardSkeleton />}>
-                        <LiveLeaderboard />
-                    </Suspense>
-                </TabsContent>
-
-                <TabsContent value="all-time" forceMount={true} hidden={activeTab !== 'all-time'}>
-                    <Suspense fallback={<LeaderboardSkeleton />}>
-                        <AllTimeLeaderboard />
-                    </Suspense>
-                </TabsContent>
-
-                <TabsContent value="streaks" forceMount={true} hidden={activeTab !== 'streaks'}>
-                    <Suspense fallback={<LeaderboardSkeleton />}>
-                        <StreakLeaderboard />
-                    </Suspense>
-                </TabsContent>
-                
-                {user && (
-                <TabsContent value="network" forceMount={true} hidden={activeTab !== 'network'}>
-                    <Suspense fallback={<LeaderboardSkeleton count={3} />}>
-                        <MyNetworkLeaderboard />
-                    </Suspense>
-                </TabsContent>
-                )}
-            </motion.div>
-        </div>
-    </Tabs>
+    <div className="flex justify-center items-center h-24">
+      <motion.div
+        className="w-40 h-10 flex justify-around"
+        variants={containerVariants}
+        initial="start"
+        animate="end"
+      >
+        <motion.span
+          className="block w-4 h-4 bg-primary rounded-full"
+          variants={circleVariants}
+          transition={circleTransition}
+        />
+        <motion.span
+          className="block w-4 h-4 bg-primary rounded-full"
+          variants={circleVariants}
+          transition={{ ...circleTransition, delay: 0.1 }}
+        />
+        <motion.span
+          className="block w-4 h-4 bg-primary rounded-full"
+          variants={circleVariants}
+          transition={{ ...circleTransition, delay: 0.2 }}
+        />
+         <motion.span
+          className="block w-4 h-4 bg-primary rounded-full"
+          variants={circleVariants}
+          transition={{ ...circleTransition, delay: 0.3 }}
+        />
+      </motion.div>
+    </div>
   );
 }
 
-const LeaderboardContent = memo(LeaderboardContentComponent);
-export default LeaderboardContent;
 
 
 // =================================================================================
-// FILE: components/leaderboard/LiveLeaderboard.tsx
+// FILE: components/InterstitialLoader.tsx
 // =================================================================================
+'use client';
 
-"use client";
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { Progress } from '@/components/ui/progress';
 
-import React, { memo, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthProvider';
-import { useQuizStatus } from '@/context/QuizStatusProvider';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Clock, Ban, Users, AlertTriangle, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { LivePlayer } from './leaderboardTypes';
-import { mapFirestoreError } from '@/lib/utils';
-import { Button } from '../ui/button';
+interface InterstitialLoaderProps {
+  logoUrl: string;
+  logoHint: string;
+  duration?: number; // in ms
+  onComplete: () => void;
+}
 
-const RankIcon = memo(({ rank }: { rank: number }) => {
-    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
-    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
-    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
-    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
-});
-RankIcon.displayName = 'RankIcon';
+export default function InterstitialLoader({ logoUrl, logoHint, duration = 2000, onComplete }: InterstitialLoaderProps) {
+  const [progress, setProgress] = useState(0);
 
-const LeaderboardItem = memo(({ player, isCurrentUser }: { player: LivePlayer, isCurrentUser?: boolean }) => (
-    <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
-        <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || "A"}</AvatarFallback></Avatar>
-        <p className="font-semibold text-foreground flex-1">{player.name}</p>
-        {player.disqualified ? (
-            <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
-                <Ban className="h-4 w-4"/> Disqualified
-            </div>
-        ) : (
-            <div className="text-right">
-                <p className="font-bold text-primary">{player.score}</p>
-                <p className="text-xs text-muted-foreground">{player.time.toFixed(2)}s</p>
-            </div>
-        )}
+  useEffect(() => {
+    // A little delay to allow for fade-in animations if desired
+    const startTimeout = setTimeout(() => {
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+          const elapsedTime = Date.now() - startTime;
+          const progressValue = Math.min(100, (elapsedTime / duration) * 100);
+          setProgress(progressValue);
+
+          if (elapsedTime >= duration) {
+            clearInterval(interval);
+            onComplete();
+          }
+        }, 50); // Update progress frequently
+
+        // Cleanup function for the interval
+        return () => clearInterval(interval);
+    }, 100);
+
+
+    // Cleanup function for the timeout
+    return () => clearTimeout(startTimeout);
+  }, [duration, onComplete]);
+
+  return (
+    <div className="fixed inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center z-[100]">
+      <div className="w-48 h-24 relative mb-4">
+        <Image src={logoUrl} alt="Brand Logo" fill={true} className="object-contain" data-ai-hint={logoHint} />
+      </div>
+      <Progress value={progress} className="w-1/2 max-w-xs h-2" />
     </div>
-));
-LeaderboardItem.displayName = 'LeaderboardItem';
+  );
+}
 
-const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg animate-pulse">
-        <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
-        <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
-        <Skeleton key="skel-name" className="h-4 flex-1" />
-        <div key="skel-score-container" className="text-right space-y-2">
-            <Skeleton key="skel-score" className="h-4 w-8 ml-auto" />
-            <Skeleton key="skel-time" className="h-3 w-12 ml-auto" />
-        </div>
-    </div>
-);
 
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
-     isIndexError ? (
-        <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-            <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-            <AlertTitle>{title}</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
-        </Alert>
-    ) : (
-    <Alert variant="destructive" className="m-4">
-        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
-    </Alert>
-    )
-);
 
-const WaitingState = ({ timeLeft }: { timeLeft: { minutes: number; seconds: number; }}) => (
-    <Card className="bg-card/80 text-center mt-4">
-        <CardHeader>
-            <CardTitle className="flex items-center justify-center gap-2">
-                <Users className="h-6 w-6 text-primary" /> The Dressing Room is Filling Up...
-            </CardTitle>
-            <CardDescription>The next quiz starts in {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}. Get ready!</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-            <Clock className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-            <p className="text-sm text-muted-foreground font-semibold">The pitch is ready, players are taking their positions.</p>
-            <p className="text-xs text-muted-foreground mt-1">Play this round to make your mark on the leaderboard! 🏏</p>
-        </CardContent>
-    </Card>
-);
+// =================================================================================
+// FILE: components/AdDialog.tsx
+// =================================================================================
+'use client';
 
-const LiveLeaderboard = () => {
-    const { user, loading: authLoading, leaderboardLive, refreshLiveLeaderboard } = useAuth();
-    const { timeLeft } = useQuizStatus();
-   
-    const content = useMemo(() => {
-        if (leaderboardLive.loading || authLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-live-${i}`} />);
-        }
-        if (leaderboardLive.error) {
-            const mappedError = mapFirestoreError(leaderboardLive.error);
-            return <ErrorState 
-                title={mappedError.code === "INDEX_REQUIRED" ? "Leaderboard Indexing" : "Error Loading Leaderboard"} 
-                message={mappedError.userMessage}
-                isIndexError={mappedError.code === "INDEX_REQUIRED"}
-                onRetry={refreshLiveLeaderboard}
-            />;
-        }
-        if (leaderboardLive.rows.length === 0) return <WaitingState timeLeft={timeLeft} />;
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { SkipForward, Volume2, VolumeX } from 'lucide-react';
+import Image from 'next/image';
+import { useSettings } from '@/hooks/use-settings';
+
+interface AdDialogProps {
+  open: boolean;
+  onAdFinished: () => void;
+  onOpenChange: (open: boolean) => void;
+  duration: number; // in seconds
+  skippableAfter: number; // in seconds
+  adTitle: string;
+  adType: 'image' | 'video';
+  adUrl: string;
+  children?: React.ReactNode;
+  adHint?: string; // for data-ai-hint on images
+}
+
+export function AdDialog({ open, onAdFinished, onOpenChange, duration, skippableAfter, adTitle, adType, adUrl, adHint, children }: AdDialogProps) {
+  const { settings } = useSettings();
+  const [adTimeLeft, setAdTimeLeft] = useState(duration);
+  const [isSkippable, setIsSkippable] = useState(false);
+  const [isMuted, setIsMuted] = useState(!settings.sound);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  const handleSkip = () => {
+      if (videoRef.current) {
+          videoRef.current.pause();
+      }
+      onAdFinished();
+  }
+
+  useEffect(() => {
+    if (!open) return;
+
+    setAdTimeLeft(duration);
+    setIsSkippable(false);
+    setIsMuted(!settings.sound); // Reset mute state based on global settings
+
+    if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.muted = !settings.sound;
+        videoRef.current.play().catch(error => console.error("Video autoplay was prevented:", error));
+    }
+
+    const timer = setInterval(() => {
+      setAdTimeLeft((prev) => {
+        const newTime = prev - 1;
         
-        const playersWithRank = leaderboardLive.rows.map((player, index) => ({
-            ...player,
-            rank: index + 1,
-            isCurrentUser: user?.uid === player.userId,
-        }));
-
-        return playersWithRank.map((player) => (
-            <LeaderboardItem key={player.userId} player={player} isCurrentUser={player.isCurrentUser} />
-        ));
-    }, [leaderboardLive, timeLeft, user, authLoading, refreshLiveLeaderboard]);
-
-    return (
-        <Card className="bg-card/80 shadow-lg">
-            <CardHeader className="text-center">
-                <CardTitle>Current Match</CardTitle>
-                <CardDescription>Live standings for this 10-minute slot</CardDescription>
-            </CardHeader>
-            <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-2">{content}</div>
-            </CardContent>
-        </Card>
-    );
-};
-
-export default memo(LiveLeaderboard);
-
-
-// =================================================================================
-// FILE: components/leaderboard/AllTimeLeaderboard.tsx
-// =================================================================================
-
-"use client";
-
-import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Trophy, Star, AlertTriangle, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { AllTimePlayer } from './leaderboardTypes';
-import { mapFirestoreError } from '@/lib/utils';
-import { Button } from '../ui/button';
-
-const RankIcon = memo(({ rank }: { rank: number }) => {
-    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
-    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
-    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
-    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
-});
-RankIcon.displayName = 'RankIcon';
-
-const LeaderboardItem = memo(({ player, isCurrentUser }: { player: AllTimePlayer, isCurrentUser?: boolean }) => (
-    <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
-        <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name?.charAt(0) || 'A'}</AvatarFallback></Avatar>
-        <div className="flex-1">
-            <p className="font-semibold text-foreground flex-1">{player.name}</p>
-            <p className="text-xs text-muted-foreground">Played: {player.quizzesPlayed} | Total Score: {player.totalScore}</p>
-        </div>
-        <div className="text-right flex items-center gap-1">
-            <p className="font-bold text-primary">{player.perfectScores}</p>
-            <Star className="h-4 w-4 text-primary" />
-        </div>
-    </div>
-));
-LeaderboardItem.displayName = 'LeaderboardItem';
-
-const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg animate-pulse">
-        <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
-        <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
-        <div key="skel-info" className='flex-1 space-y-2'>
-            <Skeleton key="skel-name" className="h-4 w-3/4" />
-            <Skeleton key="skel-stats" className="h-3 w-1/2" />
-        </div>
-        <Skeleton key="skel-score" className="h-4 w-12" />
-    </div>
-);
-
-const EmptyState = () => (
-    <Card className="bg-card/80 text-center mt-4">
-        <CardContent className="p-6">
-            <Trophy className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-            <p className="font-semibold text-lg text-foreground">The Honours Board is Awaiting Its First Legend 🏆</p>
-            <p className="text-sm text-muted-foreground">Score a perfect 5/5 to etch your name in history!</p>
-        </CardContent>
-    </Card>
-);
-
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
-     isIndexError ? (
-        <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-            <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-            <AlertTitle>{title}</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
-        </Alert>
-    ) : (
-    <Alert variant="destructive" className="m-4">
-        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
-    </Alert>
-    )
-);
-
-const AllTimeLeaderboard = () => {
-    const { user, loading: authLoading } = useAuth();
-    const [players, setPlayers] = useState<AllTimePlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
-
-    const startListener = useCallback(() => {
-        setIsLoading(true);
-        setError(null);
-        if (!db) {
-            setError({userMessage: "Database not available."});
-            setIsLoading(false);
-            return () => {};
+        if (newTime <= duration - skippableAfter) {
+            setIsSkippable(true);
+            if (settings.autoSkipAd) {
+                clearInterval(timer);
+                setTimeout(handleSkip, 500); // Give a brief moment before auto-closing
+            }
         }
+        
+        if (newTime <= 0) {
+          clearInterval(timer);
+          if (adType === 'image') {
+            onAdFinished();
+          }
+          return 0;
+        }
+        return newTime;
+      });
+    }, 1000);
 
-        const usersCollection = collection(db, 'users');
-        const q = query(
-            usersCollection, 
-            orderBy('totalScore', 'desc'),
-            orderBy('perfectScores', 'desc'), 
-            orderBy('quizzesPlayed', 'asc'),
-            limit(50)
-        );
+    return () => {
+      clearInterval(timer);
+    };
+  }, [open, duration, skippableAfter, adType, onAdFinished, settings.sound, settings.autoSkipAd]);
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            setIsLoading(false);
-            const playersData = querySnapshot.docs
-                .filter(doc => (doc.data().quizzesPlayed || 0) > 0)
-                .map((doc, index) => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        name: data.name || 'Anonymous Player',
-                        avatar: data.photoURL,
-                        perfectScores: data.perfectScores || 0,
-                        totalScore: data.totalScore || 0,
-                        quizzesPlayed: data.quizzesPlayed || 0,
-                        isCurrentUser: user?.uid === doc.id,
-                        rank: index + 1
-                    };
-                });
-            setPlayers(playersData);
-            setError(null);
-        }, (err: any) => {
-            console.error("All-Time Leaderboard snapshot error: ", err);
-            setError(mapFirestoreError(err));
-            setIsLoading(false);
+  const handleVideoEnd = () => {
+    onAdFinished();
+  };
+  
+  if (!open) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        if (!isOpen && isSkippable) {
+            handleSkip();
+        } else {
+            onOpenChange(isOpen);
+        }
+    }}>
+        <DialogContent
+            className="bg-background text-foreground p-0 max-w-sm"
+            onInteractOutside={(e) => {
+                 if (!isSkippable) e.preventDefault();
+            }}
+            onEscapeKeyDown={(e) => {
+                if (!isSkippable) {
+                    e.preventDefault();
+                } else {
+                    handleSkip();
+                }
+            }}
+        >
+            <DialogHeader className="p-4 border-b">
+                <DialogTitle>{adTitle}</DialogTitle>
+            </DialogHeader>
+            <div className="p-4 pt-2 text-center">
+                 <div className="relative aspect-video bg-black rounded-md flex items-center justify-center">
+                    {adType === 'video' ? (
+                        <>
+                            <video
+                                ref={videoRef}
+                                src={adUrl}
+                                onEnded={handleVideoEnd}
+                                className="w-full h-full object-cover rounded-md"
+                                playsInline
+                                autoPlay
+                                title={adTitle}
+                                muted={isMuted}
+                            />
+                            <Button variant="ghost" size="icon" className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white" onClick={() => setIsMuted(prev => !prev)} aria-label={isMuted ? "Unmute video" : "Mute video"}>
+                                {isMuted ? <VolumeX /> : <Volume2 />}
+                            </Button>
+                        </>
+                    ) : (
+                         <Image src={adUrl} alt="Advertisement" fill={true} className="object-contain rounded-md" data-ai-hint={adHint || 'advertisement'} />
+                    )}
+                </div>
+                {children}
+                <div className="mt-4 flex justify-between items-center gap-2">
+                    <span className="text-sm text-muted-foreground shrink-0">
+                        {adType === 'video' ? 'Ad' : `Ad will close in ${adTimeLeft}s`}
+                    </span>
+                    {isSkippable ? (
+                        <Button onClick={handleSkip} size="sm" className="h-auto py-1 whitespace-normal">
+                            <SkipForward className="mr-2 h-4 w-4"/> Skip Ad
+                        </Button>
+                    ) : (
+                         <Button disabled size="sm" className="h-auto py-1 whitespace-normal text-right">
+                           {`Skippable in ${adTimeLeft - (duration - skippableAfter)}s`}
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
+  );
+}
+
+
+
+// =================================================================================
+// FILE: components/history/AnalysisDialog.tsx
+// =================================================================================
+'use client';
+
+import React, { useState, useEffect, memo } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  BarChart,
+  Target,
+  Zap,
+  Lightbulb,
+  Loader2,
+  ServerCrash,
+} from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
+
+interface AnalysisDialogProps {
+  attempt: QuizAttempt;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const AnalysisDialogComponent = ({
+  attempt,
+  open,
+  onOpenChange,
+}: AnalysisDialogProps) => {
+  const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchAnalysis = async () => {
+      setLoading(true);
+      setError(null);
+      setAnalysis(null);
+      try {
+        const res = await fetch('/api/analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
 
-        return unsubscribe;
-    }, [user]);
-
-    useEffect(() => {
-        if (authLoading) return;
-        const unsubscribe = startListener();
-        return () => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-        };
-    }, [authLoading, startListener]);
-
-    const content = useMemo(() => {
-        if (isLoading || authLoading) {
-          return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-alltime-${i}`} />);
+        if (!res.ok) {
+          const result = await res.json();
+          const errText =
+            result.analysis.summary || 'Failed to fetch analysis from server.';
+          setAnalysis(result.analysis);
+          return;
         }
-        if (error) {
-             return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
-                message={error.userMessage} 
-                isIndexError={error.code === "INDEX_REQUIRED"}
-                onRetry={startListener}
-            />;
-        }
-        if (players.length === 0) return <EmptyState />;
-        
-        const playersWithRank = players.map((player, index) => ({ ...player, rank: index + 1 }));
 
-        return playersWithRank.map(player => (
-            <LeaderboardItem key={player.uid} player={player} isCurrentUser={user?.uid === player.uid}/>
-        ));
-    }, [isLoading, authLoading, error, players, user, startListener]);
+        const data = await res.json();
+        setAnalysis(data.analysis);
+      } catch (err: any) {
+        console.error('AnalysisDialog Error:', err);
+        setError('Could not load AI analysis. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return (
-        <Card className="bg-card/80 shadow-lg">
-            <CardHeader className="text-center">
-                <CardTitle>All-Time Honours Board</CardTitle>
-                <CardDescription>Based on Total Score and Perfect Scores</CardDescription>
+    fetchAnalysis();
+  }, [open, attempt]);
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+          <Loader2 className="animate-spin h-8 w-8 mb-4 text-primary" />
+          <p className="font-semibold">Generating your analysis...</p>
+          <p className="text-sm">The AI coach is reviewing the match footage.</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <Alert variant="destructive" className="mt-4">
+          <ServerCrash className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (analysis) {
+      return (
+        <div className="space-y-6">
+          {analysis.source === 'fallback' && (
+            <p className="text-xs text-center p-2 bg-yellow-900/50 text-yellow-300 rounded-md">
+              ⚠️ AI analysis wasn’t available for this session. Showing fallback
+              insights.
+            </p>
+          )}
+
+          <Card className="bg-card/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="text-primary" /> Overall Summary
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-2">{content}</div>
+            <CardContent>
+              <p>{analysis.summary}</p>
             </CardContent>
-        </Card>
-    );
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-green-500">
+                  <Zap /> Key Strengths
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  {analysis.strengths.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                  {analysis.strengths.length === 0 && (
+                    <li className="text-muted-foreground">
+                      No specific strengths identified.
+                    </li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <Target /> Areas for Improvement
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  {analysis.weaknesses.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                  {analysis.weaknesses.length === 0 && (
+                    <li className="text-muted-foreground">
+                      No specific weaknesses identified.
+                    </li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="bg-primary/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Lightbulb /> Recommendations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                {analysis.recommendations.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+                {analysis.recommendations.length === 0 && (
+                  <li className="text-muted-foreground">Keep practicing!</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-center text-2xl font-bold">
+            Third Umpire Review
+          </DialogTitle>
+          <DialogDescription className="text-center">
+            A detailed debrief of your {attempt.format} innings.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6 py-4">
+          {renderContent()}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
-export default memo(AllTimeLeaderboard);
+export default memo(AnalysisDialogComponent);
+
 
 
 // =================================================================================
-// FILE: components/leaderboard/StreakLeaderboard.tsx
+// FILE: components/history/ReviewDialog.tsx
 // =================================================================================
+'use client';
 
-"use client";
+import { useState, memo } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, XCircle, Award } from 'lucide-react';
+import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
+import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
+import { normalizeTimestamp } from '@/lib/dates';
 
-import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where, Unsubscribe } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle, RefreshCw } from 'lucide-react';
-import { cn, mapFirestoreError } from '@/lib/utils';
-import type { StreakPlayer } from './leaderboardTypes';
-import { Button } from '../ui/button';
+interface ReviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  attempt: QuizAttempt;
+}
 
-const RankIcon = memo(({ rank }: { rank: number | undefined }) => {
-    if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
-    if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
-    if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
-    if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
-    return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
-});
-RankIcon.displayName = 'RankIcon';
+const ReviewDialogComponent = ({
+  open,
+  onOpenChange,
+  attempt,
+}: ReviewDialogProps) => {
+  const [reportingQuestion, setReportingQuestion] =
+    useState<QuizQuestion | null>(null);
 
-const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: StreakPlayer, isCurrentUser?: boolean }) => (
-    <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
-        <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
-        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-        <p className="font-semibold text-foreground flex-1">{player.name}</p>
-        <div className="text-right flex items-center gap-1">
-            <p className="font-bold text-accent">{player.currentStreak}</p>
-            <Flame className="h-4 w-4 text-accent" />
-        </div>
+  if (!attempt) return null;
+
+  const handleReportClick = (question: QuizQuestion) => {
+    setReportingQuestion(question);
+  };
+
+  const attemptDate = normalizeTimestamp(attempt.timestamp);
+  const formattedDate = attemptDate
+    ? attemptDate.toLocaleDateString('en-GB')
+    : 'Invalid Date';
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold">
+              Answer Review
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              For the {attempt.format} quiz on {formattedDate}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4 py-4">
+            {attempt.questions.map((question, index) => (
+              <Card
+                key={`${attempt.slotId}-${question.id}-${index}`}
+                className="bg-card/50"
+              >
+                <CardHeader>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    {index + 1}. {question.question}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm space-y-2">
+                    <p className="flex items-start gap-2">
+                      {attempt.userAnswers[index] === question.correctAnswer ? (
+                        <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                      )}
+                      <span>
+                        Your Answer:{' '}
+                        <span className="font-semibold">
+                          {attempt.userAnswers[index] || 'Not Answered'}
+                        </span>
+                      </span>
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <Award className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                      <span>
+                        Correct Answer:{' '}
+                        <span className="font-semibold">
+                          {question.correctAnswer}
+                        </span>
+                      </span>
+                    </p>
+                  </div>
+                  <Card className="bg-background/70 p-3">
+                    <p className="text-xs text-muted-foreground font-semibold">
+                      EXPLANATION
+                    </p>
+                    <p className="text-sm">{question.explanation}</p>
+                  </Card>
+                  <div className="pt-2 flex justify-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => handleReportClick(question)}
+                    >
+                      Report this question
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="flex justify-end pt-4 border-t">
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* This ensures only one Report dialog is rendered at a time */}
+      {reportingQuestion && (
+        <ReportQuestionDialog
+          question={reportingQuestion}
+          open={!!reportingQuestion}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setReportingQuestion(null);
+            }
+          }}
+        />
+      )}
+    </>
+  );
+};
+
+export default memo(ReviewDialogComponent);
+
+
+
+// =================================================================================
+// FILE: components/PageWrapper.tsx
+// =================================================================================
+'use client';
+import { ReactNode } from "react";
+import { motion } from 'framer-motion';
+import BackButton from "./BackButton";
+import { cn } from "@/lib/utils";
+
+interface PageWrapperProps {
+  title?: ReactNode;
+  children: ReactNode;
+  showBackButton?: boolean;
+  breadcrumb?: string;
+  actions?: ReactNode;
+  hideBorder?: boolean;
+}
+
+export default function PageWrapper({ title, children, showBackButton, breadcrumb, actions, hideBorder = false }: PageWrapperProps) {
+  return (
+    <div className="flex flex-col pb-24 px-4 pt-2 sm:px-6 lg:px-8">
+        {(title || showBackButton || actions) && (
+            <header className={cn(
+                "relative flex items-center justify-between gap-4 py-3 z-40 mb-0 sticky top-0 bg-background/80 backdrop-blur-lg -mx-4 px-4",
+                !hideBorder && "border-b"
+            )}>
+                <div className="absolute left-4">
+                  {showBackButton && <BackButton />}
+                </div>
+                <div className="flex-1 text-center">
+                    {title && (typeof title === 'string' ? <h1 className="text-2xl font-bold text-foreground leading-tight">{title}</h1> : title)}
+                    {breadcrumb && <p className="text-sm text-muted-foreground">{breadcrumb}</p>}
+                </div>
+                <div className="absolute right-4">
+                  {actions && <div className="flex-shrink-0">{actions}</div>}
+                </div>
+            </header>
+        )}
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="space-y-6"
+        >
+            {children}
+        </motion.div>
     </div>
-));
-LeaderboardItem.displayName = 'LeaderboardItem';
+  );
+}
 
-const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg animate-pulse">
-        <Skeleton key="skel-rank" className="w-8 h-8 rounded-full" />
-        <Skeleton key="skel-avatar" className="h-10 w-10 mx-4 rounded-full" />
-        <Skeleton key="skel-name" className="h-4 flex-1" />
-        <Skeleton key="skel-streak" className="h-4 w-12" />
-    </div>
-);
 
-const ErrorState = ({ message, title, isIndexError, onRetry }: { message: string, title: string, isIndexError?: boolean, onRetry: () => void }) => (
-     isIndexError ? (
-        <Alert variant="default" className="m-4 bg-yellow-900/50 text-yellow-300 border-yellow-700">
-            <AlertTriangle className="h-4 w-4 !text-yellow-300" />
-            <AlertTitle>{title}</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
-        </Alert>
-    ) : (
-    <Alert variant="destructive" className="m-4">
-        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
-    </Alert>
-    )
-);
 
-const EmptyState = () => (
-    <Card className="bg-card/80 text-center mt-4">
-        <CardContent className="p-6">
-            <Trophy className="h-10 w-10 mx-auto text-accent/50 mb-4" />
-            <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
-            <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
-        </CardContent>
-    </Card>
-);
+// =================================================================================
+// FILE: hooks/use-toast.ts
+// =================================================================================
+"use client"
 
-const calculateUserRank = async (streak: number, name: string): Promise<number> => {
-    if (!db) return 999;
-    const usersCollection = collection(db, 'users');
-    
+// Inspired by react-hot-toast library
+import * as React from "react"
+
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
+
+const TOAST_LIMIT = 1
+const TOAST_REMOVE_DELAY = 1000000
+
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const
+
+let count = 0
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER
+  return count.toString()
+}
+
+type ActionType = typeof actionTypes
+
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"]
+      toast: ToasterToast
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"]
+      toast: Partial<ToasterToast>
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+
+interface State {
+  toasts: ToasterToast[]
+}
+
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId)
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    })
+  }, TOAST_REMOVE_DELAY)
+
+  toastTimeouts.set(toastId, timeout)
+}
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      }
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
+      }
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action
+
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
+      if (toastId) {
+        addToRemoveQueue(toastId)
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id)
+        })
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t
+        ),
+      }
+    }
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        }
+      }
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      }
+  }
+}
+
+const listeners: Array<(state: State) => void> = []
+
+let memoryState: State = { toasts: [] }
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action)
+  listeners.forEach((listener) => {
+    listener(memoryState)
+  })
+}
+
+type Toast = Omit<ToasterToast, "id">
+
+function toast({ ...props }: Toast) {
+  const id = genId()
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    })
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
+    },
+  })
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  }
+}
+
+function useToast() {
+  const [state, setState] = React.useState<State>(memoryState)
+
+  React.useEffect(() => {
+    listeners.push(setState)
+    return () => {
+      const index = listeners.indexOf(setState)
+      if (index > -1) {
+        listeners.splice(index, 1)
+      }
+    }
+  }, [state])
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  }
+}
+
+export { useToast, toast }
+
+
+
+// =================================================================================
+// FILE: hooks/use-settings.tsx
+// =================================================================================
+'use client';
+
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
+
+export interface Settings {
+  notifications: boolean;
+  sound: boolean;
+  vibration: boolean;
+  autoSkipAd: boolean;
+}
+
+const defaultSettings: Settings = {
+  notifications: true,
+  sound: true,
+  vibration: true,
+  autoSkipAd: false, // Default to disabled
+};
+
+// Define the type for the setSetting function separately to avoid JSX parsing issues with generics.
+type SetSettingType = <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+
+interface SettingsContextType {
+  settings: Settings;
+  setSetting: SetSettingType;
+  resetSettings: () => void;
+  isLoading: boolean;
+}
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+
+export const SettingsProvider = ({ children }: { children: ReactNode }) => {
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // This effect runs only on the client
     try {
-        const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
-        
-        const tieBreakerQuery = query(
-            usersCollection, 
-            where('currentStreak', '==', streak), 
-            where('name', '<', name || '')
-        );
-        
-        const [higherSnapshot, tieSnapshot] = await Promise.all([
-            getCountFromServer(higherStreakQuery),
-            getCountFromServer(tieBreakerQuery)
-        ]);
+      const storedSettings = localStorage.getItem('app-settings');
+      if (storedSettings) {
+        setSettings({ ...defaultSettings, ...JSON.parse(storedSettings) });
+      }
+    } catch (error) {
+      console.error("Failed to load settings from localStorage", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-        return higherSnapshot.data().count + tieSnapshot.data().count + 1;
-    } catch (e: any) {
-        console.error("Rank calculation failed:", e);
-        return 999; 
+  const setSetting: SetSettingType = useCallback((key, value) => {
+    setSettings(prevSettings => {
+      const newSettings = { ...prevSettings, [key]: value };
+      try {
+        localStorage.setItem('app-settings', JSON.stringify(newSettings));
+      } catch (error)      {
+        console.error("Failed to save settings to localStorage", error);
+      }
+      return newSettings;
+    });
+  }, []);
+
+  const resetSettings = useCallback(() => {
+    setSettings(defaultSettings);
+    try {
+      localStorage.setItem('app-settings', JSON.stringify(defaultSettings));
+    } catch (error) {
+      console.error("Failed to reset settings in localStorage", error);
+    }
+  }, []);
+  
+  const value = { settings, setSetting, resetSettings, isLoading };
+
+  return (
+    <SettingsContext.Provider value={value}>
+      {children}
+    </SettingsContext.Provider>
+  );
+};
+
+export const useSettings = () => {
+  const context = useContext(SettingsContext);
+  if (context === undefined) {
+    throw new Error('useSettings must be used within a SettingsProvider');
+  }
+  return context;
+};
+
+
+
+// =================================================================================
+// FILE: lib/ads.ts
+// =================================================================================
+export interface Ad {
+    type: 'image' | 'video';
+    url: string;
+    title: string;
+    duration: number; // in seconds
+    skippableAfter: number; // in seconds
+    hint?: string; // for image data-ai-hint
+}
+
+// This adLibrary is for ads that are shown for specific actions,
+// like getting a hint or viewing results.
+export const adLibrary: {
+    hintAds: Ad[];
+    resultsAd: Ad;
+} = {
+    hintAds: [
+        // Question 1 Hint
+        { type: 'image', url: 'https://picsum.photos/400/225', title: 'Hint by KFC', hint: 'food chicken', duration: 7, skippableAfter: 5 },
+        // Question 2 Hint
+        { type: 'image', url: 'https://picsum.photos/400/225', title: 'Hint by Ceat Tyres', hint: 'tyres car', duration: 7, skippableAfter: 5 },
+        // Question 3 Hint
+        { type: 'image', url: 'https://picsum.photos/400/225', title: 'Hint by MESA School', hint: 'education school', duration: 7, skippableAfter: 5 },
+        // Question 4 Hint
+        { type: 'image', url: 'https://picsum.photos/400/225', title: 'Hint by Swiggy', hint: 'food delivery', duration: 7, skippableAfter: 5 },
+        // Question 5 Hint
+        { type: 'image', url: 'https://picsum.photos/400/225', title: 'Hint by HDFC Bank', hint: 'finance bank', duration: 7, skippableAfter: 5 },
+    ],
+    resultsAd: {
+        type: 'video',
+        url: 'https://videos.pexels.com/video-files/5993356/5993356-hd_1920_1080_25fps.mp4',
+        title: 'Answers sponsored by: Indigo Airlines',
+        duration: 30,
+        skippableAfter: 15,
     }
 };
 
-const StreakLeaderboard = () => {
-    const { user, loading: authLoading } = useAuth();
-    const [players, setPlayers] = useState<StreakPlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<{ code?: string; userMessage: string; technical?: string } | null>(null);
-
-    const startListener = useCallback(() => {
-        setIsLoading(true);
-        setError(null);
-        if (!db) {
-            setError({userMessage: "Database not available."});
-            setIsLoading(false);
-            return () => {};
-        }
-
-        const usersCollection = collection(db, 'users');
-        const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
-        
-        const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-            const playersData = querySnapshot.docs
-                .filter(doc => (doc.data().currentStreak || 0) > 0)
-                .map((doc, index) => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        name: data.name || 'Anonymous Player',
-                        avatar: data.photoURL,
-                        currentStreak: data.currentStreak || 0,
-                        isCurrentUser: user?.uid === doc.id,
-                        rank: index + 1
-                    };
-                });
-            
-            if (user && !playersData.some(p => p.uid === user.uid)) {
-               const userDocRef = doc(db, 'users', user.uid);
-               const userDoc = await getDoc(userDocRef);
-               if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const streak = data.currentStreak || 0;
-                    if (streak > 0) {
-                        const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
-                        const currentUserData = {
-                            uid: user.uid,
-                            name: data.name || 'You',
-                            avatar: data.photoURL,
-                            currentStreak: streak,
-                            rank: userRank,
-                            isCurrentUser: true,
-                        };
-                        setPlayers([...playersData, currentUserData]);
-                    } else {
-                         setPlayers(playersData);
-                    }
-               } else {
-                 setPlayers(playersData);
-               }
-            } else {
-                setPlayers(playersData);
-            }
-            setError(null);
-            setIsLoading(false);
-        }, (err: any) => {
-            setError(mapFirestoreError(err));
-            setIsLoading(false);
-        });
-
-        return unsubscribe;
-    }, [user]);
-
-    useEffect(() => {
-        if (authLoading) return;
-        const unsubscribe = startListener();
-        return () => {
-            if (unsubscribe) unsubscribe();
-        };
-    }, [authLoading, startListener]);
-
-
-    const content = useMemo(() => {
-        if (isLoading || authLoading) {
-            return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
-        }
-        if (error) {
-             return <ErrorState 
-                title={error.code === "INDEX_REQUIRED" ? "Leaderboard is being prepared" : "Error Loading Leaderboard"} 
-                message={error.userMessage}
-                isIndexError={error.code === "INDEX_REQUIRED"}
-                onRetry={startListener}
-             />;
-        }
-        if (players.length === 0) return <EmptyState />;
-        
-        const currentUserInList = players.find(p => p.isCurrentUser);
-
-        return (
-            <>
-                {players.filter(p => !p.isCurrentUser).map((player) => (
-                    <LeaderboardItem key={player.uid} player={player} />
-                ))}
-                {currentUserInList && (
-                    <>
-                        <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
-                        <LeaderboardItem player={currentUserInList} isCurrentUser={true} />
-                    </>
-                )}
-            </>
-        );
-    }, [isLoading, authLoading, error, players, startListener]);
-
-
-    return (
-        <Card className="bg-card/80 shadow-lg mt-4">
-            <CardHeader className="text-center">
-                <CardTitle>Daily Streak Champions</CardTitle>
-                <CardDescription>The most consistent players on the pitch.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-2">{content}</div>
-            </CardContent>
-        </Card>
-    );
+// This interstitialAds config is for ads shown between questions.
+export interface InterstitialAdConfig {
+    type: 'static' | 'video';
+    // For static ads
+    logoUrl?: string;
+    logoHint?: string;
+    durationMs?: number; // duration in milliseconds for static loader
+    // For video ads
+    videoUrl?: string;
+    videoTitle?: string;
+    durationSec?: number; // duration in seconds for video
+    skippableAfterSec?: number; // skippable after seconds for video
+}
+  
+export const interstitialAds: { [key: number]: InterstitialAdConfig } = {
+    // After question 1 (index 0) -> Show a 2s static ad
+    0: {
+        type: 'static',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg',
+        logoHint: 'BMW logo',
+        durationMs: 2000,
+    },
+    // After question 2 (index 1) -> Show a 2s static ad
+    1: {
+        type: 'static',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/74/Dominos_pizza_logo.svg',
+        logoHint: 'Dominos logo',
+        durationMs: 2000,
+    },
+    // After question 3 (index 2) -> Show the 30s video ad
+    2: {
+        type: 'video',
+        videoUrl: 'https://videos.pexels.com/video-files/3209828/3209828-hd_1920_1080_25fps.mp4',
+        videoTitle: 'Sponsored by Pepsi',
+        durationSec: 30,
+        skippableAfterSec: 10,
+    },
+    // After question 4 (index 3) -> Show a 2s static ad
+    3: {
+        type: 'static',
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg',
+        logoHint: 'Nike logo',
+        durationMs: 2000,
+    },
 };
 
-export default memo(StreakLeaderboard);
 
 
 // =================================================================================
-// FILE: components/leaderboard/MyNetworkLeaderboard.tsx
+// UI Components
 // =================================================================================
 
-"use client";
+// Note: The contents of the /components/ui directory are standard shadcn/ui components.
+// They are included here for completeness of the review but are not custom logic.
+// Key files like Button, Card, Skeleton, Progress, Alert, Dialog are below.
 
-import React, { memo, useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { WifiOff, ServerCrash, Star, Users, RefreshCw } from 'lucide-react';
-import type { MyNetworkPlayer } from './leaderboardTypes';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { mapFirestoreError } from '@/lib/utils';
+// =================================================================================
+// FILE: components/ui/button.tsx
+// =================================================================================
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
 
-const RankIcon = memo(({ rank }: { rank: number }) => {
-    if (rank === 1) return <span className="text-2xl">🥇</span>;
-    if (rank === 2) return <span className="text-2xl">🥈</span>;
-    if (rank === 3) return <span className="text-2xl">🥉</span>;
-    return <span className="text-lg font-bold text-muted-foreground">{rank}</span>;
-});
-RankIcon.displayName = 'RankIcon';
+import { cn } from "@/lib/utils"
 
-const LeaderboardItem = memo(({ player }: { player: MyNetworkPlayer }) => (
-    <div className="flex items-center p-2 rounded-lg">
-        <div className="w-8 text-center"><RankIcon rank={player.rank!} /></div>
-        <Avatar className="h-10 w-10 mx-4"><AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} /><AvatarFallback>{player.name.charAt(0)}</AvatarFallback></Avatar>
-        <div className="flex-1">
-            <p className="font-semibold text-foreground">{player.name}</p>
-            <p className="text-sm text-muted-foreground">{player.isReferrer ? 'Your Referrer' : 'Your Referral'}</p>
-        </div>
-        <div className="text-right flex items-center gap-2">
-            <div className="flex flex-col items-center">
-                <p className="font-bold text-primary flex items-center gap-1">{player.perfectScores} <Star className="h-4 w-4 text-primary" /></p>
-                <p className="text-xs text-muted-foreground">Perfect</p>
-            </div>
-        </div>
-    </div>
-));
-LeaderboardItem.displayName = 'LeaderboardItem';
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background hover:bg-primary hover:text-primary-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-primary/20 hover:text-primary",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
 
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
 
-const LeaderboardItemSkeleton = () => (
-    <div className="flex items-center p-2 rounded-lg animate-pulse">
-        <Skeleton className="w-8 h-8 rounded-full" />
-        <Skeleton className="h-10 w-10 mx-4 rounded-full" />
-        <div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
-        <div className="text-right space-y-2"><Skeleton className="h-4 w-8" /><Skeleton className="h-3 w-12" /></div>
-    </div>
-);
-
-const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
-    <Alert variant="destructive" className="mt-4">
-        {(message || '').includes("offline") || (message || '').includes("Connection") || (message || '').includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
-        <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
-    </Alert>
-);
-
-const MyNetworkLeaderboard = () => {
-    const { user, profile, loading: authLoading } = useAuth();
-    const [networkPlayers, setNetworkPlayers] = useState<MyNetworkPlayer[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchNetworkData = useCallback(async () => {
-        let isMounted = true;
-        if (!user || !profile || !db) {
-            setIsLoading(false);
-            if (!db) setError("Database not available.");
-            return () => { isMounted = false; };
-        }
-
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-            const networkIds: string[] = [...(profile.referrals || [])];
-            if (profile.referredBy && !networkIds.includes(profile.referredBy)) {
-                networkIds.push(profile.referredBy);
-            }
-
-            if (networkIds.length === 0) {
-                if (isMounted) setNetworkPlayers([]);
-                return () => { isMounted = false; };
-            }
-            
-            const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
-            const playerDocs = await Promise.all(playerPromises);
-            
-            if (isMounted) {
-                const playersData: MyNetworkPlayer[] = playerDocs
-                    .filter(doc => doc.exists())
-                    .map(doc => {
-                        const data = doc.data();
-                        return {
-                            uid: doc.id,
-                            name: data.name || 'Unknown User',
-                            avatar: data.photoURL,
-                            perfectScores: data.perfectScores || 0,
-                            isReferrer: doc.id === profile.referredBy,
-                        };
-                    });
-                
-                const sortedPlayers = playersData.sort((a, b) => b.perfectScores - a.perfectScores);
-                setNetworkPlayers(sortedPlayers.map((p, i) => ({ ...p, rank: i + 1 })));
-            }
-        } catch (e: any) {
-            console.error("Error fetching network leaderboard:", e);
-            if (isMounted) setError(mapFirestoreError(e).userMessage);
-        } finally {
-            if (isMounted) setIsLoading(false);
-        }
-        
-        return () => { isMounted = false; };
-    }, [user, profile]);
-
-    useEffect(() => {
-        if (authLoading) return;
-        const cleanup = fetchNetworkData();
-        return () => {
-            if (typeof cleanup === 'function') {
-                cleanup();
-            }
-        };
-    }, [authLoading, fetchNetworkData]);
-
-    const content = useMemo(() => {
-        if (isLoading || authLoading) return Array.from({ length: 3 }).map((_, i) => <LeaderboardItemSkeleton key={i} />);
-        if (error) return <ErrorState title="Error" message={error} onRetry={fetchNetworkData} />;
-        if (networkPlayers.length === 0) {
-            return (
-                <Card className="bg-card/80 text-center mt-4">
-                     <CardContent className="p-6">
-                        <Users className="h-10 w-10 mx-auto text-primary/50 mb-4" />
-                        <p className="font-semibold text-lg text-foreground">Build Your Squad 🤝</p>
-                        <p className="text-sm text-muted-foreground">Refer friends to see their stats here and form a winning partnership!</p>
-                        <Button asChild size="sm" className="mt-4"><Link href="/profile">Get Referral Code</Link></Button>
-                    </CardContent>
-                </Card>
-            )
-        }
-        
-        return networkPlayers.map((player) => (
-            <LeaderboardItem key={player.uid} player={player} />
-        ));
-    }, [isLoading, authLoading, error, networkPlayers, fetchNetworkData]);
-
-
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
     return (
-        <Card className="bg-card/80 shadow-lg mt-4">
-            <CardHeader className="text-center">
-                <CardTitle>My Network</CardTitle>
-                <CardDescription>Track your friends' perfect scores</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-2">{content}</div>
-            </CardContent>
-        </Card>
-    );
-};
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button"
 
-export default memo(MyNetworkLeaderboard);
+export { Button, buttonVariants }
 
 
 // =================================================================================
-// FILE: components/leaderboard/leaderboardTypes.ts
+// FILE: components/ui/card.tsx
 // =================================================================================
+import * as React from "react"
 
-export interface LivePlayer {
-    userId: string;
-    name: string;
-    avatar?: string;
-    score: number;
-    time: number;
-    disqualified: boolean;
-    rank?: number;
-    isCurrentUser?: boolean;
+import { cn } from "@/lib/utils"
+
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg bg-card text-card-foreground shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+Card.displayName = "Card"
+
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+))
+CardHeader.displayName = "CardHeader"
+
+const CardTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className
+    )}
+    {...props}
+  />
+))
+CardTitle.displayName = "CardTitle"
+
+const CardDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+CardDescription.displayName = "CardDescription"
+
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+))
+CardContent.displayName = "CardContent"
+
+const CardFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+))
+CardFooter.displayName = "CardFooter"
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+
+
+// =================================================================================
+// FILE: components/ui/skeleton.tsx
+// =================================================================================
+import { cn } from "@/lib/utils"
+
+function Skeleton({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-muted", className)}
+      {...props}
+    />
+  )
 }
 
-export interface AllTimePlayer {
-    uid: string;
-    name: string;
-    avatar?: string;
-    perfectScores: number;
-    totalScore: number;
-    quizzesPlayed: number;
-    rank?: number;
-    isCurrentUser?: boolean;
-}
+export { Skeleton }
 
-export interface MyNetworkPlayer {
-    uid: string;
-    name: string;
-    avatar: string;
-    perfectScores: number;
-    isReferrer: boolean;
-    rank?: number;
-}
 
-export interface StreakPlayer {
-    uid: string;
-    name: string;
-    avatar: string;
-    currentStreak: number;
-    rank?: number;
-    isCurrentUser?: boolean;
+// =================================================================================
+// FILE: components/ui/progress.tsx
+// =================================================================================
+import * as React from "react"
+import * as ProgressPrimitive from "@radix-ui/react-progress"
+
+import { cn } from "@/lib/utils"
+
+const Progress = React.forwardRef<
+  React.ElementRef<typeof ProgressPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
+>(({ className, value, ...props }, ref) => (
+  <ProgressPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
+      className
+    )}
+    {...props}
+  >
+    <ProgressPrimitive.Indicator
+      className="h-full w-full flex-1 bg-primary transition-all"
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+    />
+  </ProgressPrimitive.Root>
+))
+Progress.displayName = ProgressPrimitive.Root.displayName
+
+export { Progress }
+
+
+// =================================================================================
+// FILE: components/ui/alert-dialog.tsx
+// =================================================================================
+import * as React from "react"
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
+
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
+
+const AlertDialog = AlertDialogPrimitive.Root
+
+const AlertDialogTrigger = AlertDialogPrimitive.Trigger
+
+const AlertDialogPortal = AlertDialogPrimitive.Portal
+
+const AlertDialogOverlay = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Overlay
+    className={cn(
+      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
+    )}
+    {...props}
+    ref={ref}
+  />
+))
+AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
+
+const AlertDialogContent = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPortal>
+    <AlertDialogOverlay />
+    <AlertDialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        className
+      )}
+      {...props}
+    />
+  </AlertDialogPortal>
+))
+AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
+
+const AlertDialogHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col space-y-2 text-center sm:text-left",
+      className
+    )}
+    {...props}
+  />
+)
+AlertDialogHeader.displayName = "AlertDialogHeader"
+
+const AlertDialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      className
+    )}
+    {...props}
+  />
+)
+AlertDialogFooter.displayName = "AlertDialogFooter"
+
+const AlertDialogTitle = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Title
+    ref={ref}
+    className={cn("text-lg font-semibold", className)}
+    {...props}
+  />
+))
+AlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName
+
+const AlertDialogDescription = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Description
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+AlertDialogDescription.displayName =
+  AlertDialogPrimitive.Description.displayName
+
+const AlertDialogAction = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Action>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Action
+    ref={ref}
+    className={cn(buttonVariants(), className)}
+    {...props}
+  />
+))
+AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName
+
+const AlertDialogCancel = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Cancel
+    ref={ref}
+    className={cn(
+      buttonVariants({ variant: "outline" }),
+      "mt-2 sm:mt-0",
+      className
+    )}
+    {...props}
+  />
+))
+AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName
+
+export {
+  AlertDialog,
+  AlertDialogPortal,
+  AlertDialogOverlay,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
 }
