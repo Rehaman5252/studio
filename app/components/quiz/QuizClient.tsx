@@ -36,8 +36,11 @@ type QuizAPIResponse = {
   source?: 'ai' | 'fallback';
   reqId?: string;
   error?: { message: string };
-  errorDetails?: { message: string, originalError: string };
+  errorDetails?: { message: string, originalError: string, code: string };
 };
+
+const IS_DEV = process.env.NODE_ENV !== "production";
+
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizState, setQuizState] = useState<QuizState>('loading');
@@ -135,11 +138,37 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
          return;
       }
       
-      if (data.source === 'fallback' && data.errorDetails?.message) {
+      if (data.source === 'fallback' && data.errorDetails) {
+          let friendlyTitle = "Standard Quiz Loaded";
+          let friendlyDesc = "The AI is warming up, so here's a ready-made quiz for you.";
+
+          switch (data.errorDetails.code) {
+            case "INVALID_JSON":
+              friendlyTitle = "⚠️ Bad Request Fixed";
+              friendlyDesc = "We couldn't read your request, but a quiz is ready anyway.";
+              break;
+            case "INVALID_PAYLOAD":
+              friendlyTitle = "⚠️ Invalid Request";
+              friendlyDesc = "Some data was missing, but we generated a quiz for you.";
+              break;
+            case "AI_FLOW_FAILED":
+              friendlyTitle = "🤖 AI Unavailable";
+              friendlyDesc = "The AI engine stumbled, so a standard quiz is here for you.";
+              break;
+            case "FATAL":
+              friendlyTitle = "🔥 Unexpected Error";
+              friendlyDesc = "Something went wrong, but you're not blocked—here's a quiz.";
+              break;
+          }
+
+          if (IS_DEV) {
+            friendlyDesc += ` (Dev: ${data.reqId} - ${data.errorDetails.originalError})`;
+          }
+
           toast({
-              title: "Standard Quiz Loaded",
-              description: data.errorDetails.message,
-              duration: 5000,
+              title: friendlyTitle,
+              description: friendlyDesc,
+              duration: 7000,
           });
       }
 
