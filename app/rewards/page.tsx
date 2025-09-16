@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -87,12 +88,13 @@ function RewardsPage() {
     
     if (!user) {
       return (
-        <div className="pt-4">
+        <div className="space-y-8 pt-4">
             <LoginPrompt 
                 icon={Trophy}
                 title="Claim Your Man of the Match Awards! 🏆"
                 description="You've played a great innings! Sign in to claim the brand gifts and rewards you've earned."
             />
+            <GenericOffers />
         </div>
       );
     }
