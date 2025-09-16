@@ -15,9 +15,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'indcric - The Ultimate Cricket Quiz',
-  description: 'Test your cricket knowledge and win rewards!',
+  description: 'win ₹100 for every 100 seconds!',
   manifest: '/manifest.json',
-  themeColor: '#228B22',
+  themeColor: '#D4AF37',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

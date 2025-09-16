@@ -46,16 +46,11 @@ const nextConfig = {
         },
     },
     webpack(config, { webpack, isServer }) {
-        // Restrict build output to errors only
+        // This is an advanced configuration to control Webpack's behavior.
+        // Restricting infrastructure logging to 'error' reduces console noise during builds,
+        // making it easier to spot critical issues.
         config.infrastructureLogging = {
           level: 'error',
-        };
-
-        config.stats = {
-          all: false,
-          errors: true,
-          errorsCount: true,
-          errorDetails: true,
         };
 
         return config;
