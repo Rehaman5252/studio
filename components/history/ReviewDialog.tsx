@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, memo } from 'react';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Award } from 'lucide-react';
 import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
+import { normalizeTimestamp } from '@/lib/dates';
 
 interface ReviewDialogProps {
   open: boolean;
@@ -23,6 +23,9 @@ const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProp
     const handleReportClick = (question: QuizQuestion) => {
         setReportingQuestion(question);
     };
+    
+    const attemptDate = normalizeTimestamp(attempt.timestamp);
+    const formattedDate = attemptDate ? attemptDate.toLocaleDateString('en-GB') : 'Invalid Date';
 
     return (
         <>
@@ -31,7 +34,7 @@ const ReviewDialogComponent = ({ open, onOpenChange, attempt }: ReviewDialogProp
                     <DialogHeader>
                         <DialogTitle className="text-center text-2xl font-bold">Answer Review</DialogTitle>
                         <DialogDescription className="text-center">
-                            For the {attempt.format} quiz on {new Date(attempt.timestamp).toLocaleDateString()}.
+                            For the {attempt.format} quiz on {formattedDate}.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4 py-4">

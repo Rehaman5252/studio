@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { ReactNode } from 'react';
@@ -14,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import { normalizeTimestamp } from '@/lib/dates';
+
 
 const profileSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -40,14 +40,8 @@ const cricketTeams = [
 ];
 
 function toInputDate(value: any): string {
-  if (!value) return "";
-  let date: Date;
-  if (value instanceof Timestamp) {
-    date = value.toDate();
-  } else {
-    date = new Date(value);
-  }
-  if (isNaN(date.getTime())) return "";
+  const date = normalizeTimestamp(value);
+  if (!date) return "";
   return date.toISOString().slice(0, 10);
 }
 

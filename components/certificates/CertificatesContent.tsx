@@ -1,15 +1,15 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
+import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { normalizeTimestamp } from '@/lib/dates';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -45,8 +45,10 @@ export default function CertificatesContent() {
   const { profile, quizHistory } = useAuth();
   const { toast } = useToast();
   
-  const getSlotTimings = (timestamp: number) => {
-    const attemptDate = new Date(timestamp);
+  const getSlotTimings = (timestamp: any) => {
+    const attemptDate = normalizeTimestamp(timestamp);
+    if (!attemptDate) return 'Invalid Time';
+
     const minutes = attemptDate.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
     
@@ -55,7 +57,7 @@ export default function CertificatesContent() {
     
     const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
 
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
   };
@@ -63,14 +65,17 @@ export default function CertificatesContent() {
   const certificates = useMemo(() => {
     return quizHistory.data
       .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
-      .map(attempt => ({
-        id: attempt.slotId + attempt.format,
-        title: `${attempt.format} Masterclass Certificate`,
-        date: new Date(attempt.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        slot: getSlotTimings(attempt.timestamp),
-        brand: attempt.brand,
-        format: attempt.format,
-      }));
+      .map(attempt => {
+          const attemptDate = normalizeTimestamp(attempt.timestamp);
+          return {
+            id: attempt.slotId + attempt.format,
+            title: `${attempt.format} Masterclass Certificate`,
+            date: attemptDate ? attemptDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A',
+            slot: getSlotTimings(attempt.timestamp),
+            brand: attempt.brand,
+            format: attempt.format,
+          }
+      });
   }, [quizHistory.data]);
 
   const handleDownload = (cert: typeof certificates[0]) => {

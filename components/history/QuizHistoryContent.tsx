@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, memo, useCallback } from 'react';
@@ -13,7 +12,7 @@ import AnalysisDialog from '@/components/history/AnalysisDialog';
 import ReviewDialog from '@/components/history/ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
-import { Timestamp } from 'firebase/firestore';
+import { normalizeTimestamp } from '@/lib/dates';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -41,9 +40,9 @@ export const ErrorState = ({ message }: { message: string }) => (
     </Alert>
 );
 
-const getSlotTimings = (timestamp: number | Timestamp) => {
-    const attemptDate = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
-    if (isNaN(attemptDate.getTime())) return 'Invalid Time';
+const getSlotTimings = (timestamp: any) => {
+    const attemptDate = normalizeTimestamp(timestamp);
+    if (!attemptDate) return 'Invalid Time';
 
     const minutes = attemptDate.getMinutes();
     const slotStartMinute = Math.floor(minutes / 10) * 10;
@@ -53,7 +52,7 @@ const getSlotTimings = (timestamp: number | Timestamp) => {
     
     const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
 
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const formatTime = (date: Date) => date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
     return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
 };
@@ -70,16 +69,13 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   const isDisqualified = !!attempt.reason;
 
   const handleReviewClick = useCallback(() => {
-    // This check prevents any action if the process is already running or completed.
     if (isDisqualified || isReviewing) return;
     
-    // If already reviewed, just open the dialog directly. This handles out-of-sync UI.
     if (isReviewed) {
         setShowReviewDialog(true);
         return;
     }
     
-    // Start the review process: disable button and show ad.
     setIsReviewing(true);
     setShowAdDialog(true);
   }, [isDisqualified, isReviewed, isReviewing]);
@@ -103,15 +99,12 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
         });
       }
     } finally {
-      // Whether success or fail, the "reviewing" process is over.
       setIsReviewing(false);
     }
   }, [attempt.slotId, markAttemptAsReviewed, toast]);
 
   const handleAdDialogClose = (open: boolean) => {
     if (!open) {
-        // Only reset isReviewing if the user closes the ad dialog *before* the ad finishes.
-        // This handles the user abandoning the review process.
         if (isReviewing && !showReviewDialog) {
             setIsReviewing(false);
         }
@@ -119,12 +112,12 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
     setShowAdDialog(open);
   }
   
-  const attemptDate = attempt.timestamp instanceof Timestamp ? attempt.toDate() : new Date(attempt.timestamp);
+  const attemptDate = normalizeTimestamp(attempt.timestamp);
   const isPerfectScore = attempt.score === attempt.totalQuestions && !attempt.reason;
   const slotTiming = getSlotTimings(attempt.timestamp);
 
-  const formattedDate = !isNaN(attemptDate.getTime()) 
-    ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const formattedDate = attemptDate
+    ? attemptDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '')
     : 'Invalid Date';
 
   return (
@@ -155,7 +148,7 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
                     </div>
                     <div className="flex items-center gap-2">
                         <Clock className="h-3.5 w-3.5 text-primary" />
-                        <span>{slotTiming}</span>
+                        <span>{slotTiming} (IST)</span>
                     </div>
                 </div>
                 <div className="flex gap-2">

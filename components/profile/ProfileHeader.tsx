@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { memo } from 'react';
@@ -13,11 +12,14 @@ import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { EditProfileDialog } from './EditProfileDialog';
+import { normalizeTimestamp } from '@/lib/dates';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user, profile } = useAuth(); // Get the auth user object
     const { toast } = useToast();
-    const age = userProfile?.dob ? calculateAge(new Date(userProfile.dob.seconds * 1000).toISOString().split('T')[0]) : null;
+    
+    const dobDate = normalizeTimestamp(userProfile?.dob);
+    const age = dobDate ? calculateAge(dobDate.toISOString().split('T')[0]) : null;
     
     const isPhoneVerified = !!profile?.phoneVerified;
     const isEmailVerified = user?.emailVerified || false;
