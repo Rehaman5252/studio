@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
-import { normalizeTimestamp } from '@/lib/dates';
+import { normalizeTimestamp } from '@/app/lib/dates';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
