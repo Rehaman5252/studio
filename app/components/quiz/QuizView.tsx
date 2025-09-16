@@ -145,6 +145,7 @@ export default function QuizView({
                                                 duration: 2,
                                                 ease: "easeInOut",
                                                 repeat: Infinity,
+                                                repeatType: "reverse",
                                               }}
                                             >
                                                 <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default">Standard</Badge>
