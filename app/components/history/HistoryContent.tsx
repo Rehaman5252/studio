@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
@@ -46,37 +46,35 @@ export default function HistoryContent() {
     if (!user) {
         return (
              <div className="pt-8">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        {activeTab === 'recent' && (
-                            <LoginPrompt 
-                                icon={History} 
-                                title="Review Your Last Few Innings" 
-                                description="Sign in to analyze your recent performance and learn from your mistakes. Every ball counts!"
-                            />
-                        )}
-                        {activeTab === 'all' && (
-                             <LoginPrompt 
-                                icon={TrendingUp} 
-                                title="Track Your Career Stats" 
-                                description="Your entire cricketing journey is recorded here. Sign in to see your full career stats and watch your average climb!"
-                            />
-                        )}
-                         {activeTab === 'perfect' && (
-                             <LoginPrompt 
-                                icon={Star} 
-                                title="Join the Hall of Fame" 
-                                description="Scored a perfect century? Sign in to view your certificates and etch your name on the honours board!"
-                            />
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+                 <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    {activeTab === 'recent' && (
+                        <LoginPrompt 
+                            icon={History} 
+                            title="Review Your Last Few Innings" 
+                            description="Sign in to analyze your recent performance and learn from your mistakes. Every ball counts!"
+                        />
+                    )}
+                    {activeTab === 'all' && (
+                         <LoginPrompt 
+                            icon={TrendingUp} 
+                            title="Track Your Career Stats" 
+                            description="Your entire cricketing journey is recorded here. Sign in to see your full career stats and watch your average climb!"
+                        />
+                    )}
+                     {activeTab === 'perfect' && (
+                         <LoginPrompt 
+                            icon={Star} 
+                            title="Join the Hall of Fame" 
+                            description="Scored a perfect century? Sign in to view your certificates and etch your name on the honours board!"
+                        />
+                    )}
+                </motion.div>
              </div>
         );
     }
