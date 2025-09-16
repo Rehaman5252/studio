@@ -131,20 +131,20 @@ export default function QuizView({
                  <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
-                        {quizSource === 'fallback' && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                             {quizSource === 'fallback' && (
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default">Standard</Badge>
+                                            <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default animate-pulse">Standard</Badge>
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             <p>This is a standard quiz, provided when the AI was unavailable.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
-                            </motion.div>
-                        )}
+                            )}
+                        </motion.div>
                     </div>
                     <div className="relative h-16 w-16">
                          <CircularProgressbar
@@ -223,6 +223,7 @@ export default function QuizView({
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
                         className="mt-4 p-3 bg-accent/20 rounded-lg text-sm text-center flex items-center justify-center gap-2"
                     >
                         {hint.source === 'fallback' && (
