@@ -123,6 +123,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       if (!data.ok || !data.quiz) {
          const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
+         // Even if ok is false, the robust API might send a fallback quiz.
          if (data.quiz && data.source === 'fallback') {
             setQuizData(data.quiz);
             setQuizSource('fallback');
@@ -138,7 +139,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       if (data.source === 'fallback' && data.errorDetails?.message) {
           toast({
               title: "Standard Quiz Loaded",
-              description: data.errorDetails.message,
+              description: "The AI is warming up, so here's a ready-made quiz for you.",
               duration: 5000,
           });
       }
