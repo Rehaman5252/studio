@@ -136,7 +136,19 @@ export default function QuizView({
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default animate-pulse">Standard</Badge>
+                                            <motion.div
+                                              animate={{
+                                                scale: [1, 1.05, 1],
+                                                opacity: [1, 0.7, 1],
+                                              }}
+                                              transition={{
+                                                duration: 2,
+                                                ease: "easeInOut",
+                                                repeat: Infinity,
+                                              }}
+                                            >
+                                                <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default">Standard</Badge>
+                                            </motion.div>
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             <p>This is a standard quiz, provided when the AI was unavailable.</p>
