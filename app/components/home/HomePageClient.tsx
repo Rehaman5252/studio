@@ -1,204 +1,183 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from '@/hooks/use-debounce';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mapFirestoreError } from '@/lib/utils';
+import type { CubeBrand } from '@/components/home/brandData';
+import { useAuth } from '@/context/AuthProvider';
+import { brandData } from '@/components/home/brandData';
+import { useQuizStatus } from '@/context/QuizStatusProvider';
+import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { memo, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Button } from '@/components/ui/button';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  quizzesPlayed: number;
-  totalScore: number;
-  photoURL?: string;
-}
+const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
+    loading: () => <Skeleton className="h-40 w-full" />,
+});
 
-const ROWS_PER_PAGE = 15;
+const HomeClientContent = dynamic(() => import('@/components/home/HomeClientContent').catch(e => {
+    console.error("Failed to load HomeClientContent chunk", e);
+    return function ChunkLoadFallback() {
+        return (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error Loading Content</AlertTitle>
+                <AlertDescription>
+                    There was a problem loading this feature. Please check your connection and try again.
+                     <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        );
+    }
+}), { 
+    loading: () => <HomeContentSkeleton />,
+    ssr: false 
+});
 
-const UserSkeleton = () => (
-    <TableRow>
-        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-    </TableRow>
-)
+const StartQuizButton = dynamic(() => import('@/components/home/StartQuizButton'), {
+    loading: () => <Skeleton className="h-12 w-full rounded-full" />,
+});
 
-export default function UserManagement() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [page, setPage] = useState(1);
+const HomeContentSkeleton = () => (
+    <div className="space-y-8 animate-pulse">
+        <div className="text-center mb-4">
+            <Skeleton className="h-8 w-3/4 mx-auto" />
+            <Skeleton className="h-4 w-1/2 mx-auto mt-2" />
+        </div>
+        <div className="flex justify-center items-center h-[200px]">
+            <Skeleton className="w-48 h-48 rounded-lg" />
+        </div>
+        <Skeleton className="h-[124px] w-full rounded-2xl" />
+        <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-[92px] w-full" />
+            <Skeleton className="h-[92px] w-full" />
+            <Skeleton className="h-[92px] w-full" />
+            <Skeleton className="h-[92px] w-full" />
+        </div>
+        <Skeleton className="h-16 w-full rounded-full" />
+    </div>
+);
 
-    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
-        setIsLoading(true);
-        setError(null);
-        if (!db) {
-            setError("Database connection not available.");
-            setIsLoading(false);
+const MalpracticeWarning = memo(() => {
+    const { profile } = useAuth();
+    if (!profile) return null;
+
+    const noBallCount = profile.noBallCount || 0;
+    if (noBallCount <= 0 || noBallCount >= 3) return null;
+
+    const today = new Date().setHours(0, 0, 0, 0);
+    const lastNoBallDay = profile.lastNoBallTimestamp ? new Date(profile.lastNoBallTimestamp.seconds * 1000).setHours(0, 0, 0, 0) : null;
+
+    if(lastNoBallDay !== today) return null;
+
+    const warningsLeft = 3 - noBallCount;
+    
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+        >
+            <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Fair Play Warning!</AlertTitle>
+                <AlertDescription>
+                    You have {noBallCount} No-Ball(s) today. {warningsLeft} more and you're Out for the Day! Please contact support to appeal.
+                </AlertDescription>
+            </Alert>
+        </motion.div>
+    )
+});
+MalpracticeWarning.displayName = 'MalpracticeWarning';
+
+function HomePageClient() {
+    const { user, isProfileComplete, lastAttemptInSlot, loading: authLoading } = useAuth();
+    const { isLoading: isQuizStatusLoading } = useQuizStatus();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [selectedBrand, setSelectedBrand] = useState(brandData[0]);
+
+    const hasPlayedInCurrentSlot = !!lastAttemptInSlot;
+
+    const handleStartQuiz = useCallback((brandToPlay?: CubeBrand) => {
+        const brand = brandToPlay || selectedBrand;
+        if (!user) {
+            router.push(`/auth/login?from=/`);
+            return;
+        }
+        
+        if (hasPlayedInCurrentSlot && lastAttemptInSlot) {
+            router.push(`/quiz/results?attemptId=${lastAttemptInSlot.slotId}`);
+            toast({
+                title: "You've already played this innings!",
+                description: `Showing your results for the ${lastAttemptInSlot.format} quiz. You can only attempt one quiz per slot.`,
+            });
             return;
         }
 
-        try {
-            let q = query(
-                collection(db, 'users'),
-                orderBy('name'),
-                limit(ROWS_PER_PAGE)
-            );
-            
-            if (direction === 'next' && lastVisible) {
-                q = query(q, startAfter(lastVisible));
-            } else if (direction === 'prev' && firstVisible) {
-                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
-            }
-
-            const documentSnapshots = await getDocs(q);
-            const fetchedUsers: User[] = [];
-            documentSnapshots.forEach((doc) => {
-                const data = doc.data();
-                fetchedUsers.push({
-                    id: doc.id,
-                    name: data.name,
-                    email: data.email,
-                    quizzesPlayed: data.quizzesPlayed || 0,
-                    totalScore: data.totalScore || 0,
-                    photoURL: data.photoURL,
-                });
+        if (!user.emailVerified) {
+            toast({
+                title: "Email not verified",
+                description: "Please verify your email address before playing a quiz.",
+                variant: "destructive"
             });
-
-            if (!documentSnapshots.empty) {
-                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
-                setFirstVisible(documentSnapshots.docs[0]);
-            }
-            setUsers(fetchedUsers);
-
-        } catch (err: any) {
-            console.error("Error fetching users:", err);
-            const mappedError = mapFirestoreError(err);
-            setError(mappedError.userMessage);
-        } finally {
-            setIsLoading(false);
+            return;
         }
-
-    }, [lastVisible, firstVisible]);
-
-    useEffect(() => {
-        // For now, search is disabled. Will be implemented with a proper search solution.
-        fetchUsers('initial');
-    }, [debouncedSearchTerm, fetchUsers]);
-
-    const handleNextPage = () => {
-        if (lastVisible) {
-            setPage(p => p + 1);
-            fetchUsers('next');
-        }
-    };
-    
-    const handlePrevPage = () => {
-        if (firstVisible) {
-            setPage(p => Math.max(1, p - 1));
-            fetchUsers('prev');
-        }
-    };
-
-    const renderContent = () => {
-        if (isLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
-        }
-
-        if (error) {
-            return (
-                <TableRow>
-                    <TableCell colSpan={5}>
-                        <Alert variant="destructive">
-                            <AlertTitle>Error Loading Users</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    </TableCell>
-                </TableRow>
-            );
+        if (!isProfileComplete) {
+            toast({
+                title: "Profile Incomplete",
+                description: "Please complete your profile to start playing quizzes.",
+                variant: "destructive"
+            });
+             router.push('/profile');
+            return;
         }
         
-        if (users.length === 0) {
-            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
-        }
+        router.push(`/quiz?brand=${encodeURIComponent(brand.brand)}&format=${encodeURIComponent(brand.format)}`);
+    }, [user, hasPlayedInCurrentSlot, lastAttemptInSlot, isProfileComplete, selectedBrand, router, toast]);
 
-        return users.map(user => (
-            <TableRow key={user.id}>
-                <TableCell>
-                    <Avatar>
-                        <AvatarImage src={user.photoURL} alt={user.name} />
-                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                </TableCell>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
-                <TableCell className="text-center">{user.totalScore}</TableCell>
-            </TableRow>
-        ));
-    };
-
+    if (authLoading) {
+      return <HomeContentSkeleton />
+    }
+    
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h1 className="text-2xl font-bold">User Management</h1>
-                    <p className="text-muted-foreground">Browse and manage platform users.</p>
-                </div>
-                <div className="w-1/3 relative">
-                    <Input 
-                        placeholder="Search users... (disabled)" 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                        disabled
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="space-y-6"
+        >
+            <MalpracticeWarning />
+            
+            <HomeClientContent 
+                selectedBrand={selectedBrand}
+                setSelectedBrand={setSelectedBrand}
+                handleStartQuiz={handleStartQuiz}
+            />
+            
+             <div className="mt-6">
+                <StartQuizButton
+                    brandFormat={hasPlayedInCurrentSlot && lastAttemptInSlot ? lastAttemptInSlot.format : selectedBrand.format}
+                    onClick={() => handleStartQuiz()}
+                    isDisabled={isQuizStatusLoading}
+                    hasPlayed={hasPlayedInCurrentSlot}
+                />
+            </div>
+            
+            <div className="mt-8">
+              <CricketFact format={selectedBrand.format} />
             </div>
 
-            <div className="rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Avatar</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead className="text-center">Quizzes Played</TableHead>
-                            <TableHead className="text-center">Total Score</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {renderContent()}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 py-4">
-                 <span className="text-sm text-muted-foreground">Page {page}</span>
-                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
-                    Next <ChevronRight className="h-4 w-4" />
-                </Button>
-            </div>
-        </div>
+        </motion.div>
     );
 }
+
+export default memo(HomePageClient);
