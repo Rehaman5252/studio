@@ -335,38 +335,44 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       collection(db, 'users', user.uid, 'quizAttempts'),
       orderBy('timestamp', 'desc')
     );
-    unsubs.push(onSnapshot(
-      historyQuery,
-      (querySnapshot) => {
-        if (!isMounted) return;
+    unsubs.push(
+      onSnapshot(
+        historyQuery,
+        (querySnapshot) => {
+          if (!isMounted) return;
 
-        const historyData: QuizAttempt[] = [];
-        querySnapshot.forEach((docSnap) => {
+          const historyData: QuizAttempt[] = [];
+          querySnapshot.forEach((docSnap) => {
             const raw = docSnap.data();
 
-            // Validate each document against the Zod schema
+            // ✅ Validate each document against the Zod schema
             const parsed = QuizAttemptSchema.safeParse(raw);
             if (parsed.success) {
-                historyData.push(parsed.data);
+              historyData.push(parsed.data);
             } else {
-                console.warn(
-                    `⚠️ Skipped invalid quiz attempt [${docSnap.id}] from Firestore:`,
-                    parsed.error.flatten()
-                );
+              console.warn(
+                `⚠️ Skipped invalid quiz attempt [${docSnap.id}] from Firestore:`,
+                parsed.error.flatten()
+              );
             }
-        });
+          });
 
-        quizHistoryCache.current = historyData;
-        setQuizHistory({ data: historyData, loading: false, error: null });
-      },
-      (error) => {
-        if (!isMounted) return;
-        console.error('Error fetching quiz history:', error);
-        const mappedError = mapFirestoreError(error);
-        // On error, serve from cache but still surface the error message
-        setQuizHistory({ data: quizHistoryCache.current, loading: false, error: mappedError.userMessage });
-      }
-    ));
+          quizHistoryCache.current = historyData;
+          setQuizHistory({ data: historyData, loading: false, error: null });
+        },
+        (error) => {
+          if (!isMounted) return;
+          console.error('Error fetching quiz history:', error);
+          const mappedError = mapFirestoreError(error);
+          // On error, serve from cache but still surface the error message
+          setQuizHistory({
+            data: quizHistoryCache.current,
+            loading: false,
+            error: mappedError.userMessage,
+          });
+        }
+      )
+    );
 
     return () => {
       isMounted = false;
@@ -778,5 +784,3 @@ export function useAuth() {
   }
   return context;
 }
-
-  
