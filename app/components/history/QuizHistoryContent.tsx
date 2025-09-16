@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeTimestamp } from '@/lib/dates';
 import { Skeleton } from '../ui/skeleton';
+import { EmptyState } from '../EmptyState';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
@@ -33,7 +34,7 @@ export const HistoryItemSkeleton = () => (
     </Card>
 );
 
-export const ErrorState = ({ message }: { message: string }) => (
+export const ErrorStateDisplay = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading History</AlertTitle>

@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
 import { normalizeTimestamp } from '@/lib/dates';
+import { EmptyState } from '../EmptyState';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -46,7 +47,7 @@ const RewardsSkeleton = () => (
   </div>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
+const ErrorStateDisplay = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("network") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Rewards</AlertTitle>
@@ -193,15 +194,15 @@ function RewardsContentComponent() {
 
   const BrandGifts = () => {
     if (loading || quizHistory.loading) return <RewardsSkeleton />;
-    if (quizHistory.error) return <ErrorState message={quizHistory.error} />;
-    if (!user) {
-      return (
-        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4" type="button"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
-      );
-    }
+    if (quizHistory.error) return <ErrorStateDisplay message={quizHistory.error} />;
+    
     if (rewardableAttempts.length === 0) {
       return (
-        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">Your Kit Bag is Empty</p><p className="text-sm">Play a match to earn your first reward!</p></CardContent></Card>
+        <EmptyState
+            Icon={Gift}
+            title="Your Kit Bag is Empty"
+            description="Play a match to earn your first reward!"
+        />
       );
     }
     return (
