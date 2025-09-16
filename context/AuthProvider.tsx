@@ -339,8 +339,24 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       historyQuery,
       (querySnapshot) => {
         if (!isMounted) return;
-        const historyData = querySnapshot.docs.map((d) => d.data() as QuizAttempt);
-        quizHistoryCache.current = historyData; // Update cache on success
+
+        const historyData: QuizAttempt[] = [];
+        querySnapshot.forEach((docSnap) => {
+            const raw = docSnap.data();
+
+            // Validate each document against the Zod schema
+            const parsed = QuizAttemptSchema.safeParse(raw);
+            if (parsed.success) {
+                historyData.push(parsed.data);
+            } else {
+                console.warn(
+                    `⚠️ Skipped invalid quiz attempt [${docSnap.id}] from Firestore:`,
+                    parsed.error.flatten()
+                );
+            }
+        });
+
+        quizHistoryCache.current = historyData;
         setQuizHistory({ data: historyData, loading: false, error: null });
       },
       (error) => {
@@ -762,3 +778,5 @@ export function useAuth() {
   }
   return context;
 }
+
+  
