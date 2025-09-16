@@ -39,6 +39,9 @@ type QuizAPIResponse = {
   errorDetails?: { message: string, originalError: string, code: string };
 };
 
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizState, setQuizState] = useState<QuizState>('loading');
   const [quizData, setQuizData] = useState<QuizData | null>(null);
@@ -135,7 +138,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
          return;
       }
       
-      if (data.source === 'fallback' && data.errorDetails?.code) {
+      if (data.source === 'fallback' && data.errorDetails) {
           let friendlyTitle = "Standard Quiz Loaded";
           let friendlyDesc = "The AI is warming up, so here's a ready-made quiz for you.";
 
@@ -158,10 +161,14 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
               break;
           }
 
+          if (IS_DEV) {
+            friendlyDesc += ` (Dev: ${data.reqId} - ${data.errorDetails.originalError})`;
+          }
+
           toast({
               title: friendlyTitle,
               description: friendlyDesc,
-              duration: 5000,
+              duration: 7000,
           });
       }
 
@@ -434,3 +441,4 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+
