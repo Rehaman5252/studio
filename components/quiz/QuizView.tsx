@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Lightbulb, Volume2, VolumeX, Loader2, AlertTriangle } from 'lucide-react';
-import { QuizQuestion } from '@/ai/schemas';
+import type { QuizQuestion } from '@/ai/schemas';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';

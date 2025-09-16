@@ -48,12 +48,14 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
         });
         
         if (!res.ok) {
-           const errText = await res.text();
-           throw new Error(errText || "Failed to fetch analysis from server.");
+           const result = await res.json();
+           const errText = result.analysis.summary || "Failed to fetch analysis from server.";
+           setAnalysis(result.analysis);
+           return;
         }
 
         const data = await res.json();
-        setAnalysis(data);
+        setAnalysis(data.analysis);
 
       } catch (err: any) {
         console.error("AnalysisDialog Error:", err);

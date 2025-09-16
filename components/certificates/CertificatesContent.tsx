@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -10,6 +11,7 @@ import jsPDF from 'jspdf';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { normalizeTimestamp } from '@/lib/dates';
+import type { QuizAttempt } from '@/ai/schemas';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -64,8 +66,8 @@ export default function CertificatesContent() {
   
   const certificates = useMemo(() => {
     return quizHistory.data
-      .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
-      .map(attempt => {
+      .filter((attempt: QuizAttempt) => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
+      .map((attempt: QuizAttempt) => {
           const attemptDate = normalizeTimestamp(attempt.timestamp);
           return {
             id: attempt.slotId + attempt.format,
