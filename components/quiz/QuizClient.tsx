@@ -36,7 +36,7 @@ type QuizAPIResponse = {
   source?: 'ai' | 'fallback';
   reqId?: string;
   error?: { message: string };
-  errorDetails?: { message: string, originalError: string };
+  errorDetails?: { message: string, originalError: string, code: string };
 };
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
@@ -123,7 +123,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
       if (!data.ok || !data.quiz) {
          const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
-         // Even if ok is false, the robust API might send a fallback quiz.
          if (data.quiz && data.source === 'fallback') {
             setQuizData(data.quiz);
             setQuizSource('fallback');
@@ -136,10 +135,32 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
          return;
       }
       
-      if (data.source === 'fallback' && data.errorDetails?.message) {
+      if (data.source === 'fallback' && data.errorDetails?.code) {
+          let friendlyTitle = "Standard Quiz Loaded";
+          let friendlyDesc = "The AI is warming up, so here's a ready-made quiz for you.";
+
+          switch (data.errorDetails.code) {
+            case "INVALID_JSON":
+              friendlyTitle = "⚠️ Bad Request Fixed";
+              friendlyDesc = "We couldn't read your request, but a quiz is ready anyway.";
+              break;
+            case "INVALID_PAYLOAD":
+              friendlyTitle = "⚠️ Invalid Request";
+              friendlyDesc = "Some data was missing, but we generated a quiz for you.";
+              break;
+            case "AI_FLOW_FAILED":
+              friendlyTitle = "🤖 AI Unavailable";
+              friendlyDesc = "The AI engine stumbled, so a standard quiz is here for you.";
+              break;
+            case "FATAL":
+              friendlyTitle = "🔥 Unexpected Error";
+              friendlyDesc = "Something went wrong, but you're not blocked—here's a quiz.";
+              break;
+          }
+
           toast({
-              title: "Standard Quiz Loaded",
-              description: "The AI is warming up, so here's a ready-made quiz for you.",
+              title: friendlyTitle,
+              description: friendlyDesc,
               duration: 5000,
           });
       }

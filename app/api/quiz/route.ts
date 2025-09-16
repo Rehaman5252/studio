@@ -30,6 +30,7 @@ function createErrorResponse(
     errorDetails: {
       message: `The AI quiz could not be generated (${code}). Showing a standard quiz instead.`,
       originalError: IS_DEV ? message : "Hidden in production",
+      code,
     },
   });
 }
