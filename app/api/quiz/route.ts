@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, quiz: aiResult, source: "ai", reqId });
 
   } catch (err: any) {
-    console.error(`[quiz][${reqId}] AI generation failed, serving fallback. Error:`, err.message);
+    console.error(`[quiz][${reqId}] AI generation failed, serving fallback. Error:`, IS_DEV ? err : err.message);
     
     const mappedError = mapFirestoreError(err);
     if (mappedError?.code === "INDEX_REQUIRED") {
