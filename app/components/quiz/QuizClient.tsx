@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -380,7 +381,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             brand={brand}
             format={format}
             onHintRequest={handleHintRequest}
-            hint={hints[currentQuestionIndex]?.hint || null}
+            hint={hints[currentQuestionIndex] || null}
             isHintLoading={isHintLoading}
             soundEnabled={settings.sound}
           />
