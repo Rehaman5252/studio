@@ -13,7 +13,7 @@ import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
-import { buildAttempt } from '@/lib/quiz-utils';
+import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
@@ -223,16 +223,11 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
-    const { success, attemptId } = await addQuizAttempt(attempt);
+    addQuizAttempt(attempt);
 
-    if (success && attemptId) {
-        router.replace(`/quiz/results?attemptId=${attemptId}`);
-    } else {
-        toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
-        router.replace('/');
-    }
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
 
-  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (isFinishedRef.current || !quizData || !user) return;
@@ -258,14 +253,9 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    const { success, attemptId } = await addQuizAttempt(attempt);
+    addQuizAttempt(attempt);
 
-    if (success && attemptId) {
-        router.replace(`/quiz/results?attemptId=${attemptId}`);
-    } else {
-        toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
-        router.replace('/');
-    }
+    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
 
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 

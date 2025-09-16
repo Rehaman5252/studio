@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,8 @@ import PageWrapper from '@/components/PageWrapper';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { decodeAttempt } from '@/lib/quiz-utils';
 
 const AnalysisDialog = dynamic(
     () => import('@/components/history/AnalysisDialog'),
@@ -39,61 +37,23 @@ const LoadingSkeleton = () => (
 )
 
 const ResultsContent = () => {
-    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const searchParams = useSearchParams();
-    const attemptId = searchParams.get('attemptId');
-
-    const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     
-    const [showReviewDialog, setShowReviewDialog] = useState(false);
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
+    const [showReviewDialog, setShowReviewDialog] = useState(false);
 
-    useEffect(() => {
-        if (authLoading) return;
-
-        if (!user) {
-             toast({ title: "Not logged in", description: "You need to be logged in to view results.", variant: "destructive"});
-             router.replace(`/auth/login?from=/quiz/results?attemptId=${attemptId || ''}`);
-            return;
+    const attempt: QuizAttempt | null = useMemo(() => {
+        const attemptData = searchParams.get('attempt');
+        if (!attemptData) return null;
+        try {
+            return decodeAttempt(attemptData);
+        } catch (e) {
+            console.error("Failed to decode attempt from URL", e);
+            return null;
         }
-
-        if (!attemptId) {
-            setError("No quiz attempt ID found in the link.");
-            setLoading(false);
-            return;
-        }
-
-        const fetchAttempt = async () => {
-            if (!db) {
-                setError("Database connection is not available.");
-                setLoading(false);
-                return;
-            }
-            
-            setLoading(true);
-            try {
-                const attemptDocRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
-                const attemptDoc = await getDoc(attemptDocRef);
-
-                if (attemptDoc.exists()) {
-                    setAttempt(attemptDoc.data() as QuizAttempt);
-                } else {
-                    setError("We couldn't find the quiz data for this link. It might be expired or invalid.");
-                }
-            } catch (err) {
-                console.error("Failed to fetch quiz attempt:", err);
-                setError("A server error occurred while fetching your results.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAttempt();
-    }, [attemptId, user, router, toast, authLoading]);
+    }, [searchParams]);
 
     const handleViewAnswers = () => {
         if (attempt?.reviewed) {
@@ -106,12 +66,8 @@ const ResultsContent = () => {
             });
         }
     };
-
-    if (loading || authLoading) {
-        return <LoadingSkeleton />;
-    }
-
-    if (error) {
+    
+    if (!attempt) {
         return (
             <PageWrapper title="Error">
                 <Card className="text-center">
@@ -120,27 +76,7 @@ const ResultsContent = () => {
                         <CardTitle className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground mb-6">{error}</p>
-                        <Button onClick={() => router.push('/')}>
-                            <Home className="mr-2 h-4 w-4" />
-                            Return to Home
-                        </Button>
-                    </CardContent>
-                </Card>
-            </PageWrapper>
-        );
-    }
-
-    if (!attempt) {
-        return (
-             <PageWrapper title="Not Found">
-                <Card className="text-center">
-                    <CardHeader>
-                        <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                        <CardTitle className="text-2xl font-bold text-destructive">Attempt Not Found</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground mb-6">The quiz result you are looking for does not exist or has been moved.</p>
+                        <p className="text-muted-foreground mb-6">There was an error decoding your results from the link. It might be invalid or expired.</p>
                         <Button onClick={() => router.push('/')}>
                             <Home className="mr-2 h-4 w-4" />
                             Return to Home
