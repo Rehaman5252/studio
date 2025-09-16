@@ -53,7 +53,7 @@ const GenericOffersComponent = () => {
                     className="shrink-0"
                     aria-label={`Claim offer for ${offer.title}`}
                 >
-                    <ExternalLink className="h-5 w-5" />
+                    <ExternalLink className="h-5 w-5 text-primary" />
                 </Button>
             </CardContent>
           </Card>
