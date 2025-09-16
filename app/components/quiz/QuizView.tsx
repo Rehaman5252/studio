@@ -132,7 +132,18 @@ export default function QuizView({
                     <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
                         {quizSource === 'fallback' && (
-                            <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs">Standard</Badge>
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default">Standard</Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>This is a standard quiz, provided when the AI was unavailable.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </motion.div>
                         )}
                     </div>
                     <div className="relative h-16 w-16">
@@ -238,7 +249,3 @@ export default function QuizView({
         </div>
     );
 }
-
-
-
-    
