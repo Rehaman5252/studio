@@ -12,6 +12,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 const QUESTION_TIME_LIMIT = 20; // seconds
 
@@ -27,6 +28,7 @@ interface QuizViewProps {
     hint: HintOutput | null;
     isHintLoading: boolean;
     soundEnabled: boolean;
+    quizSource: 'ai' | 'fallback';
 }
 
 export default function QuizView({
@@ -40,7 +42,8 @@ export default function QuizView({
     onHintRequest,
     hint,
     isHintLoading,
-    soundEnabled
+    soundEnabled,
+    quizSource,
 }: QuizViewProps) {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
@@ -126,7 +129,12 @@ export default function QuizView({
             {/* Header */}
             <header className="flex flex-col gap-4 mb-4 shrink-0">
                  <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
+                        {quizSource === 'fallback' && (
+                            <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs">Standard</Badge>
+                        )}
+                    </div>
                     <div className="relative h-16 w-16">
                          <CircularProgressbar
                             value={timeLeft}

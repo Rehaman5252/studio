@@ -421,6 +421,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             hint={hints[currentQuestionIndex]}
             isHintLoading={isHintLoading}
             soundEnabled={settings.sound}
+            quizSource={quizSource}
           />
           {adForHint && (
             <AdDialog
