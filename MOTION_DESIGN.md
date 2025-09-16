@@ -1,4 +1,7 @@
-# Indcric App: Motion Design System v1.0
+# Indcric Motion Design System
+**Version:** v1.0
+**Owner:** Indcric Design & Engineering
+**Last Updated:** September 16, 2024
 
 This document outlines the core principles and standard values for animations to ensure a cohesive, fluid, and intuitive user experience across the Indcric app.
 
@@ -167,4 +170,33 @@ const variants = {
 </motion.div>
 ```
 
-By adhering to these guidelines, we will ensure the entire Indcric app feels like a single, cohesive, and high-quality product.
+---
+
+## 6. Do & Don’t
+
+✅ **Do** keep animations between **0.2s – 0.5s** for responsiveness.  
+✅ **Do** mirror exit transitions with their enter transitions.  
+✅ **Do** use easing `[0.4, 0, 0.2, 1]` unless explicitly specified.  
+
+❌ **Don’t** use bouncy easing for every interaction (reserve it for big, positive actions).  
+❌ **Don’t** animate layout-affecting properties (like `width`, `height`) directly — use `transform` and `opacity`.  
+❌ **Don’t** exceed 0.7s for standard UI animations unless it’s onboarding or a tutorial.  
+
+---
+
+## 7. Global Motion Tokens
+
+| Token                  | Value                                         |
+|------------------------|-----------------------------------------------|
+| `DURATION_FAST`        | `0.2s`                                        |
+| `DURATION_MEDIUM`      | `0.3s`                                        |
+| `DURATION_SLOW`        | `0.5s+`                                       |
+| `EASING_STANDARD`      | `[0.4, 0, 0.2, 1]`                            |
+| `EASING_BOUNCY`        | `{ type: "spring", stiffness: 500, damping: 30 }` |
+
+---
+
+## 8. Code Helpers
+
+A `motion.ts` helper file in `app/lib/` can expose reusable configs like `fadeInUp`, `pulse`, and `buttonTap`.  
+Developers should import from here instead of rewriting transitions in every component.
