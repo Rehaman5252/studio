@@ -35,11 +35,8 @@ type QuizAPIResponse = {
   quiz: QuizData;
   source?: 'ai' | 'fallback';
   reqId?: string;
-  errorDetails?: {
-    message: string;
-    originalError: string;
-    code: string;
-  };
+  error?: { message: string };
+  errorDetails?: { message: string, originalError: string, code: string };
 };
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -128,7 +125,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       }
       
       if (!data.ok || !data.quiz) {
-         const msg = data.errorDetails?.message || "Could not load quiz from the server.";
+         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
          if (data.quiz && data.source === 'fallback') {
             setQuizData(data.quiz);
             setQuizSource('fallback');
