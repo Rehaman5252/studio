@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -21,7 +22,6 @@ import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
 import LoginPrompt from '../auth/LoginPrompt';
 
-
 interface QuizClientProps {
   brand: string;
   format: string;
@@ -39,7 +39,6 @@ type QuizAPIResponse = {
 };
 
 const IS_DEV = process.env.NODE_ENV !== "production";
-
 
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizState, setQuizState] = useState<QuizState>('loading');
@@ -72,7 +71,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         }
     }
   }, [router]);
-
 
   const interstitialConfig: InterstitialAdConfig | null = useMemo(() => {
     return interstitialAds[currentQuestionIndex] || null;
@@ -176,7 +174,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       setQuizState('pre-quiz');
       
     } catch (e: any) {
-      if (e.name === 'AbortError') return; // Ignore abort errors
+      if (e.name === 'AbortError') return;
       console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
       
@@ -440,3 +438,4 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+    
