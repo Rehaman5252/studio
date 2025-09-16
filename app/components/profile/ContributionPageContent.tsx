@@ -1,204 +1,62 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from '@/hooks/use-debounce';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mapFirestoreError } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  quizzesPlayed: number;
-  totalScore: number;
-  photoURL?: string;
-}
+const ContributionStats = dynamic(() => import('@/components/profile/ContributionStats'), { loading: () => <Skeleton className="h-48 w-full" />});
+const UserSubmissionsList = dynamic(() => import('@/components/profile/UserSubmissionsList'), { loading: () => <Skeleton className="h-32 w-full" />});
+const FactForm = dynamic(() => import('@/components/profile/FactForm'), { loading: () => <Skeleton className="h-48 w-full" />});
+const PostForm = dynamic(() => import('@/components/profile/PostForm'), { loading: () => <Skeleton className="h-64 w-full" />});
+const QuestionForm = dynamic(() => import('@/components/profile/QuestionForm'), { loading: () => <Skeleton className="h-96 w-full" />});
 
-const ROWS_PER_PAGE = 15;
-
-const UserSkeleton = () => (
-    <TableRow>
-        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-    </TableRow>
-)
-
-export default function UserManagement() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [page, setPage] = useState(1);
-
-    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
-        setIsLoading(true);
-        setError(null);
-        if (!db) {
-            setError("Database connection not available.");
-            setIsLoading(false);
-            return;
-        }
-
-        try {
-            let q = query(
-                collection(db, 'users'),
-                orderBy('name'),
-                limit(ROWS_PER_PAGE)
-            );
-            
-            if (direction === 'next' && lastVisible) {
-                q = query(q, startAfter(lastVisible));
-            } else if (direction === 'prev' && firstVisible) {
-                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
-            }
-
-            const documentSnapshots = await getDocs(q);
-            const fetchedUsers: User[] = [];
-            documentSnapshots.forEach((doc) => {
-                const data = doc.data();
-                fetchedUsers.push({
-                    id: doc.id,
-                    name: data.name,
-                    email: data.email,
-                    quizzesPlayed: data.quizzesPlayed || 0,
-                    totalScore: data.totalScore || 0,
-                    photoURL: data.photoURL,
-                });
-            });
-
-            if (!documentSnapshots.empty) {
-                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
-                setFirstVisible(documentSnapshots.docs[0]);
-            }
-            setUsers(fetchedUsers);
-
-        } catch (err: any) {
-            console.error("Error fetching users:", err);
-            const mappedError = mapFirestoreError(err);
-            setError(mappedError.userMessage);
-        } finally {
-            setIsLoading(false);
-        }
-
-    }, [lastVisible, firstVisible]);
-
-    useEffect(() => {
-        // For now, search is disabled. Will be implemented with a proper search solution.
-        fetchUsers('initial');
-    }, [debouncedSearchTerm, fetchUsers]);
-
-    const handleNextPage = () => {
-        if (lastVisible) {
-            setPage(p => p + 1);
-            fetchUsers('next');
-        }
-    };
+export default function ContributionPageContent() {
+    const [activeTab, setActiveTab] = useState('stats');
     
-    const handlePrevPage = () => {
-        if (firstVisible) {
-            setPage(p => Math.max(1, p - 1));
-            fetchUsers('prev');
-        }
-    };
-
-    const renderContent = () => {
-        if (isLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
-        }
-
-        if (error) {
-            return (
-                <TableRow>
-                    <TableCell colSpan={5}>
-                        <Alert variant="destructive">
-                            <AlertTitle>Error Loading Users</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    </TableCell>
-                </TableRow>
-            );
-        }
-        
-        if (users.length === 0) {
-            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
-        }
-
-        return users.map(user => (
-            <TableRow key={user.id}>
-                <TableCell>
-                    <Avatar>
-                        <AvatarImage src={user.photoURL} alt={user.name} />
-                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                </TableCell>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
-                <TableCell className="text-center">{user.totalScore}</TableCell>
-            </TableRow>
-        ));
-    };
-
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h1 className="text-2xl font-bold">User Management</h1>
-                    <p className="text-muted-foreground">Browse and manage platform users.</p>
-                </div>
-                <div className="w-1/3 relative">
-                    <Input 
-                        placeholder="Search users... (disabled)" 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                        disabled
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
-            </div>
-
-            <div className="rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Avatar</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead className="text-center">Quizzes Played</TableHead>
-                            <TableHead className="text-center">Total Score</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {renderContent()}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 py-4">
-                 <span className="text-sm text-muted-foreground">Page {page}</span>
-                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
-                    Next <ChevronRight className="h-4 w-4" />
-                </Button>
-            </div>
-        </div>
+      <Card className="bg-card shadow-lg">
+        <CardHeader>
+            <CardTitle className="text-lg">Contribute & Earn</CardTitle>
+            <CardDescription>
+                Contribute to the indcric community and earn rewards! Submit facts, posts, or questions.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="stats">Your Scorecard</TabsTrigger>
+                    <TabsTrigger value="fact">Add Fact</TabsTrigger>
+                    <TabsTrigger value="post">Add Post</TabsTrigger>
+                    <TabsTrigger value="question">Add Question</TabsTrigger>
+                </TabsList>
+                
+                <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-4"
+                >
+                    <TabsContent value="stats" forceMount={activeTab === 'stats'}>
+                    <ContributionStats />
+                    <UserSubmissionsList />
+                    </TabsContent>
+                    <TabsContent value="fact" forceMount={activeTab === 'fact'}>
+                        <FactForm onSubmitted={() => setActiveTab('stats')} />
+                    </TabsContent>
+                    <TabsContent value="post" forceMount={activeTab === 'post'}>
+                        <PostForm onSubmitted={() => setActiveTab('stats')} />
+                    </TabsContent>
+                    <TabsContent value="question" forceMount={activeTab === 'question'}>
+                        <QuestionForm onSubmitted={() => setActiveTab('stats')} />
+                    </TabsContent>
+                </motion.div>
+            </Tabs>
+        </CardContent>
+    </Card>
     );
 }

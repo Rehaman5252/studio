@@ -1,204 +1,110 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from '@/hooks/use-debounce';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mapFirestoreError } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2, Sparkles } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthProvider';
+import { submitContribution } from '@/ai/flows/submit-contribution';
+import { refineText } from '@/ai/flows/refine-text';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  quizzesPlayed: number;
-  totalScore: number;
-  photoURL?: string;
-}
+const FactFormSchema = z.object({
+    content: z.string().min(10, "Fact must be at least 10 characters.").max(280, "Fact cannot exceed 280 characters."),
+});
 
-const ROWS_PER_PAGE = 15;
+type FactFormValues = z.infer<typeof FactFormSchema>;
 
-const UserSkeleton = () => (
-    <TableRow>
-        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-    </TableRow>
-)
+export default function FactForm({ onSubmitted }: { onSubmitted: () => void }) {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [isRefining, setIsRefining] = useState(false);
 
-export default function UserManagement() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const form = useForm<FactFormValues>({
+        resolver: zodResolver(FactFormSchema),
+        defaultValues: { content: '' },
+    });
 
-    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [page, setPage] = useState(1);
+    const { isSubmitting } = form.formState;
 
-    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
-        setIsLoading(true);
-        setError(null);
-        if (!db) {
-            setError("Database connection not available.");
-            setIsLoading(false);
+    const handleRefine = async () => {
+        const content = form.getValues('content');
+        if (!content) {
+            toast({ title: "Nothing to refine", description: "Please write a fact first.", variant: "destructive"});
             return;
         }
-
+        setIsRefining(true);
         try {
-            let q = query(
-                collection(db, 'users'),
-                orderBy('name'),
-                limit(ROWS_PER_PAGE)
-            );
-            
-            if (direction === 'next' && lastVisible) {
-                q = query(q, startAfter(lastVisible));
-            } else if (direction === 'prev' && firstVisible) {
-                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
-            }
-
-            const documentSnapshots = await getDocs(q);
-            const fetchedUsers: User[] = [];
-            documentSnapshots.forEach((doc) => {
-                const data = doc.data();
-                fetchedUsers.push({
-                    id: doc.id,
-                    name: data.name,
-                    email: data.email,
-                    quizzesPlayed: data.quizzesPlayed || 0,
-                    totalScore: data.totalScore || 0,
-                    photoURL: data.photoURL,
-                });
-            });
-
-            if (!documentSnapshots.empty) {
-                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
-                setFirstVisible(documentSnapshots.docs[0]);
-            }
-            setUsers(fetchedUsers);
-
-        } catch (err: any) {
-            console.error("Error fetching users:", err);
-            const mappedError = mapFirestoreError(err);
-            setError(mappedError.userMessage);
+            const refinedContent = await refineText({ text: content });
+            form.setValue('content', refinedContent, { shouldValidate: true });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not refine the text.", variant: "destructive"});
         } finally {
-            setIsLoading(false);
-        }
-
-    }, [lastVisible, firstVisible]);
-
-    useEffect(() => {
-        // For now, search is disabled. Will be implemented with a proper search solution.
-        fetchUsers('initial');
-    }, [debouncedSearchTerm, fetchUsers]);
-
-    const handleNextPage = () => {
-        if (lastVisible) {
-            setPage(p => p + 1);
-            fetchUsers('next');
-        }
-    };
-    
-    const handlePrevPage = () => {
-        if (firstVisible) {
-            setPage(p => Math.max(1, p - 1));
-            fetchUsers('prev');
+            setIsRefining(false);
         }
     };
 
-    const renderContent = () => {
-        if (isLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
+    const onSubmit = async (values: FactFormValues) => {
+        if (!user) return;
+        try {
+            const result = await submitContribution({
+                userId: user.uid,
+                type: 'fact',
+                ...values,
+            });
+            if (result.success) {
+                toast({ title: "Fact Submitted!", description: result.message });
+                form.reset();
+                onSubmitted();
+            } else {
+                toast({ title: "Submission Failed", description: result.message, variant: 'destructive' });
+            }
+        } catch (error) {
+            toast({ title: "Error", description: "An unexpected error occurred.", variant: 'destructive' });
         }
-
-        if (error) {
-            return (
-                <TableRow>
-                    <TableCell colSpan={5}>
-                        <Alert variant="destructive">
-                            <AlertTitle>Error Loading Users</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    </TableCell>
-                </TableRow>
-            );
-        }
-        
-        if (users.length === 0) {
-            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
-        }
-
-        return users.map(user => (
-            <TableRow key={user.id}>
-                <TableCell>
-                    <Avatar>
-                        <AvatarImage src={user.photoURL} alt={user.name} />
-                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                </TableCell>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
-                <TableCell className="text-center">{user.totalScore}</TableCell>
-            </TableRow>
-        ));
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h1 className="text-2xl font-bold">User Management</h1>
-                    <p className="text-muted-foreground">Browse and manage platform users.</p>
-                </div>
-                <div className="w-1/3 relative">
-                    <Input 
-                        placeholder="Search users... (disabled)" 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                        disabled
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
-            </div>
-
-            <div className="rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Avatar</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead className="text-center">Quizzes Played</TableHead>
-                            <TableHead className="text-center">Total Score</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {renderContent()}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 py-4">
-                 <span className="text-sm text-muted-foreground">Page {page}</span>
-                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
-                    Next <ChevronRight className="h-4 w-4" />
-                </Button>
-            </div>
-        </div>
+        <Card className="border-0">
+            <CardHeader>
+                <CardTitle>Submit a Cricket Fact</CardTitle>
+                <CardDescription>Share an interesting and verifiable cricket fact.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="content"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel>Fact</FormLabel>
+                                        <Button type="button" variant="ghost" size="sm" onClick={handleRefine} disabled={isRefining}>
+                                            {isRefining ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
+                                            <span className="ml-2">Refine with AI</span>
+                                        </Button>
+                                    </div>
+                                    <FormControl>
+                                        <Textarea placeholder="e.g., Sachin Tendulkar is the only player to have scored 100 international centuries." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" disabled={!user || isSubmitting || isRefining} className="w-full">
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit Fact
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
     );
 }

@@ -96,7 +96,15 @@ const ResultsContent = () => {
     }, [attemptId, user, router, toast, authLoading]);
 
     const handleViewAnswers = () => {
-        setShowReviewDialog(true);
+        if (attempt?.reviewed) {
+            setShowReviewDialog(true);
+        } else {
+            toast({
+                title: "Answers Not Available Yet",
+                description: "You must watch an ad to review your answers. You can do this from the History page.",
+                variant: 'default',
+            });
+        }
     };
 
     if (loading || authLoading) {
@@ -201,7 +209,7 @@ const ResultsContent = () => {
                           <Button size="lg" variant="secondary" className="w-full h-14 text-base" onClick={() => router.push('/')}>
                               <Home className="mr-2 h-5 w-5" /> Go Home
                           </Button>
-                          {!isDisqualified && attempt.reviewed && (
+                          {!isDisqualified && (
                               <Button size="lg" variant="outline" className="w-full h-14 text-base" onClick={handleViewAnswers}>
                                   <Eye className="mr-2 h-5 w-5" /> View Answers
                               </Button>

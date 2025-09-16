@@ -45,6 +45,7 @@ export default function UserManagement() {
     const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
     const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
     const [page, setPage] = useState(1);
+    const [pageHistory, setPageHistory] = useState<(QueryDocumentSnapshot<DocumentData> | null)[]>([null]);
 
     const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
         setIsLoading(true);
@@ -56,16 +57,19 @@ export default function UserManagement() {
         }
 
         try {
-            let q = query(
-                collection(db, 'users'),
-                orderBy('name'),
-                limit(ROWS_PER_PAGE)
-            );
+            let q;
             
             if (direction === 'next' && lastVisible) {
-                q = query(q, startAfter(lastVisible));
-            } else if (direction === 'prev' && firstVisible) {
-                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
+                q = query(collection(db, 'users'), orderBy('name'), startAfter(lastVisible), limit(ROWS_PER_PAGE));
+            } else if (direction === 'prev' && page > 1) {
+                const prevLastVisible = pageHistory[page-2];
+                if(prevLastVisible) {
+                    q = query(collection(db, 'users'), orderBy('name'), startAfter(prevLastVisible), limit(ROWS_PER_PAGE));
+                } else {
+                     q = query(collection(db, 'users'), orderBy('name'), limit(ROWS_PER_PAGE));
+                }
+            } else { // initial
+                 q = query(collection(db, 'users'), orderBy('name'), limit(ROWS_PER_PAGE));
             }
 
             const documentSnapshots = await getDocs(q);
@@ -83,8 +87,12 @@ export default function UserManagement() {
             });
 
             if (!documentSnapshots.empty) {
-                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
-                setFirstVisible(documentSnapshots.docs[0]);
+                const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1];
+                setLastVisible(newLastVisible);
+                
+                if (direction === 'next') {
+                    setPageHistory(prev => [...prev, newLastVisible]);
+                }
             }
             setUsers(fetchedUsers);
 
@@ -96,25 +104,25 @@ export default function UserManagement() {
             setIsLoading(false);
         }
 
-    }, [lastVisible, firstVisible]);
+    }, [lastVisible, page, pageHistory]);
 
     useEffect(() => {
         // For now, search is disabled. Will be implemented with a proper search solution.
         fetchUsers('initial');
-    }, [debouncedSearchTerm, fetchUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSearchTerm]);
 
     const handleNextPage = () => {
-        if (lastVisible) {
-            setPage(p => p + 1);
-            fetchUsers('next');
-        }
+        if (!lastVisible) return;
+        setPage(p => p + 1);
+        fetchUsers('next');
     };
     
     const handlePrevPage = () => {
-        if (firstVisible) {
-            setPage(p => Math.max(1, p - 1));
-            fetchUsers('prev');
-        }
+        if (page <= 1) return;
+        setPage(p => p - 1);
+        setPageHistory(prev => prev.slice(0, -1));
+        fetchUsers('prev');
     };
 
     const renderContent = () => {
@@ -196,7 +204,7 @@ export default function UserManagement() {
                 <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
                     <ChevronLeft className="h-4 w-4" /> Previous
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
+                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE || !lastVisible}>
                     Next <ChevronRight className="h-4 w-4" />
                 </Button>
             </div>

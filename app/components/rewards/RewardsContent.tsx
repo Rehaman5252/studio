@@ -179,7 +179,7 @@ function RewardsContentComponent() {
       );
     }
     return (
-        <div className="relative">
+        <div className="relative pb-10">
             <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
                 <CarouselContent className="-ml-4">
                 {rewardableAttempts.map((attempt, index) => (
@@ -192,9 +192,9 @@ function RewardsContentComponent() {
                     </CarouselItem>
                 ))}
                 </CarouselContent>
-                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
-                    <CarouselPrevious />
-                    <CarouselNext />
+                 <div className="sm:hidden flex justify-center mt-4">
+                    <CarouselPrevious className="relative static" />
+                    <CarouselNext className="relative static" />
                 </div>
             </Carousel>
         </div>

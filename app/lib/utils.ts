@@ -1,125 +1,121 @@
-import { Timestamp } from "firebase/firestore";
-import type { QuizAttempt } from '@/ai/schemas';
 
-/**
- * @fileOverview User Profile and Data Sanitizer
- *
- * This utility function sanitizes objects before they are sent to Firestore or AI flows.
- * It performs key operations:
- * 1.  Removes any properties with `undefined` values.
- * 2.  Converts `Date` objects or specific date strings into Firestore `Timestamp` objects.
- * 3.  Pads missing arrays or fields in a QuizAttempt to ensure it meets a minimum structure before strict validation.
- */
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+import { FirebaseError } from 'firebase/app';
 
-/**
- * A comprehensive sanitizer for QuizAttempt objects before they are validated.
- * This function handles missing fields, incorrect types, and ensures the structure
- * is consistent for AI processing.
- * @param raw - The raw quiz attempt object from Firestore or client.
- * @returns A sanitized QuizAttempt object, or null if the input is invalid.
- */
-export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
-  if (!raw || typeof raw !== 'object') {
-    return null;
-  }
 
-  const sanitized: Partial<QuizAttempt> = {};
-
-  sanitized.userId = String(raw.userId ?? "");
-  sanitized.slotId = String(raw.slotId ?? "");
-  sanitized.brand = String(raw.brand ?? "Unknown");
-  sanitized.format = String(raw.format ?? "Mixed");
-
-  sanitized.questions = Array.isArray(raw.questions)
-    ? raw.questions.map((q: any) => ({
-        id: String(q?.id ?? Math.random().toString(36).substring(2)),
-        question: String(q?.question ?? ""),
-        options: Array.isArray(q?.options) ? q.options.map(String) : [],
-        correctAnswer: String(q?.correctAnswer ?? ""),
-        explanation: String(q?.explanation ?? ""),
-      }))
-    : [];
-  
-  sanitized.totalQuestions = sanitized.questions.length;
-
-  const answers = Array.isArray(raw.userAnswers) ? raw.userAnswers.map(String) : [];
-  while (answers.length < sanitized.totalQuestions) {
-    answers.push("");
-  }
-  sanitized.userAnswers = answers.slice(0, sanitized.totalQuestions);
-
-  const score = Number(raw.score);
-  sanitized.score = Number.isFinite(score) ? Math.floor(score) : 0;
-
-  if (raw.timestamp instanceof Timestamp) {
-    sanitized.timestamp = raw.timestamp.toMillis();
-  } else if (raw.timestamp && typeof raw.timestamp === 'object' && 'seconds' in raw.timestamp) {
-    sanitized.timestamp = new Timestamp(raw.timestamp.seconds, raw.timestamp.nanoseconds).toMillis();
-  } else if (typeof raw.timestamp === 'number') {
-    sanitized.timestamp = raw.timestamp;
-  } else {
-    sanitized.timestamp = Date.now();
-  }
-  
-  const timePer = Array.isArray(raw.timePerQuestion) ? raw.timePerQuestion.map(Number) : [];
-   while (timePer.length < sanitized.totalQuestions) {
-    timePer.push(0);
-  }
-  sanitized.timePerQuestion = timePer.slice(0, sanitized.totalQuestions);
-
-  sanitized.unanswered = raw.unanswered ?? (sanitized.totalQuestions - answers.filter(Boolean).length);
-  
-  // Explicitly handle the 'reason' field: only include it if it's a non-empty string.
-  if (raw.reason && typeof raw.reason === 'string') {
-    sanitized.reason = raw.reason;
-  }
-
-  sanitized.source = raw.source === 'ai' ? 'ai' : 'fallback';
-  sanitized.reviewed = !!raw.reviewed;
-
-  // Final check to remove any top-level undefined properties
-  Object.keys(sanitized).forEach(keyStr => {
-    const key = keyStr as keyof typeof sanitized;
-    if ((sanitized as any)[key] === undefined) {
-      delete (sanitized as any)[key];
-    }
-  });
-
-  return sanitized;
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
 }
 
+/**
+ * Formats a number to have a leading zero if it's less than 10.
+ * @param time The number to format.
+ * @returns A string representation of the number, padded with a zero if needed.
+ */
+export function formatTime(time: number): string {
+  return time.toString().padStart(2, '0');
+}
 
-export function sanitizeUserProfile(data: any): any {
-  if (data === null || typeof data !== 'object') {
-    return data;
+/**
+ * Generates a unique ID for the current 10-minute quiz slot.
+ * @returns A string representing the start timestamp of the current slot.
+ */
+export const getQuizSlotId = () => {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const slotLength = 10; // 10 minutes per slot
+  const currentSlotStartMinute = Math.floor(minutes / slotLength) * slotLength;
+  
+  const slotTime = new Date(now);
+  slotTime.setMinutes(currentSlotStartMinute, 0, 0); // Set to the beginning of the slot
+  
+  return slotTime.getTime().toString();
+};
+
+
+/**
+ * Masks a phone number, showing only the first and last two digits.
+ * @param phone The phone number string to mask.
+ * @returns The masked phone number or an empty string if input is invalid.
+ */
+export function maskPhone(phone?: string | null): string {
+  if (!phone || phone.length < 6) return '';
+  return `${phone.substring(0, 2)}******${phone.substring(phone.length - 2)}`;
+}
+
+/**
+ * Calculates age based on a date of birth string (YYYY-MM-DD).
+ * @param dobString The date of birth in 'YYYY-MM-DD' format.
+ * @returns The calculated age as a number, or null if the input is invalid.
+ */
+export function calculateAge(dobString: string): number | null {
+  const birthDate = new Date(dobString);
+  if (isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDifference = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
   }
+  
+  return age;
+}
 
-  if (Array.isArray(data)) {
-    return data.map(item => sanitizeUserProfile(item)).filter(item => item !== undefined);
-  }
+/**
+ * Maps Firestore and other errors to user-friendly messages.
+ * @param error The error object.
+ * @returns An object with a user-friendly message and an optional error code.
+ */
+export function mapFirestoreError(error: any): { code?: string; userMessage: string; technical?: string } {
+    if (!error) return { userMessage: "An unknown error occurred." };
 
-  const sanitizedObject: { [key: string]: any } = {};
-
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key) && data[key] !== undefined) {
-      const value = data[key];
-
-      if (key === 'dob' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        const date = new Date(value);
-        if (!isNaN(date.getTime())) {
-          sanitizedObject[key] = Timestamp.fromDate(date);
-        }
-      } else if (value instanceof Date) {
-        sanitizedObject[key] = Timestamp.fromDate(value);
-      } else if (value instanceof Timestamp) {
-        sanitizedObject[key] = value;
-      } else if (typeof value === 'object' && value !== null) {
-        sanitizedObject[key] = sanitizeUserProfile(value);
-      } else {
-        sanitizedObject[key] = value;
-      }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return { code: "OFFLINE", userMessage: "You appear to be offline. Please check your internet connection." };
     }
-  }
+    
+    const code = error.code || error?.name || "";
+    const msg = String(error.message || error).toLowerCase();
 
-  return sanitizedObject;
+    // Specific check for Firestore index errors
+    if (/index|failed-precondition/i.test(msg) && (msg.includes('query requires an index') || msg.includes('index is required'))) {
+        return {
+          code: "INDEX_REQUIRED",
+          userMessage: "The leaderboard database is being indexed. This can take a few minutes. Please check back shortly.",
+          technical: msg
+        };
+    }
+
+    if (error instanceof FirebaseError) {
+        switch (error.code) {
+            case 'unavailable':
+                return { code: error.code, userMessage: 'The server is temporarily unavailable. Please try again in a moment.' };
+            case 'permission-denied':
+                return { code: error.code, userMessage: 'You do not have permission to access this resource.' };
+            case 'not-found':
+                return { code: error.code, userMessage: 'The requested resource was not found.' };
+            case 'deadline-exceeded':
+                return { code: error.code, userMessage: 'The request timed out. Please check your connection and try again.' };
+            case 'cancelled':
+                return { code: error.code, userMessage: 'The request was cancelled. Please try again.' };
+           case "unauthenticated":
+              return { code: error.code, userMessage: "Your session may have expired. Please log in again." };
+          case "resource-exhausted":
+              return { code: error.code, userMessage: "The request limit was reached. Please wait before trying again." };
+          default:
+              return { code: error.code, userMessage: `An unexpected server error occurred (${error.code}). Please try again.` };
+        }
+    }
+
+    if (msg.includes('network') || msg.includes('failed to fetch')) {
+        return { code: "NETWORK_ERROR", userMessage: "A network error occurred. Please check your connection and try again." };
+    }
+  
+    if (typeof error.message === 'string') {
+        return { code: code || "UNKNOWN", userMessage: error.message };
+    }
+
+    return { code: "UNKNOWN", userMessage: 'An unknown error occurred. Please try again.' };
 }

@@ -1,204 +1,67 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import React, { memo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Copy, Gift, Check, Users } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { SocialShareButtons } from '@/components/profile/SocialShareButtons';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from '@/hooks/use-debounce';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mapFirestoreError } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  quizzesPlayed: number;
-  totalScore: number;
-  photoURL?: string;
-}
+const ReferralCardComponent = ({ referralCode, referralEarnings }: { referralCode: string, referralEarnings: number }) => {
+    const { toast } = useToast();
+    const [hasCopied, setHasCopied] = React.useState(false);
+    const referralLink = `https://indcric.app/auth/signup?ref=${referralCode}`;
 
-const ROWS_PER_PAGE = 15;
-
-const UserSkeleton = () => (
-    <TableRow>
-        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-    </TableRow>
-)
-
-export default function UserManagement() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [page, setPage] = useState(1);
-
-    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
-        setIsLoading(true);
-        setError(null);
-        if (!db) {
-            setError("Database connection not available.");
-            setIsLoading(false);
+    const onCopy = async () => {
+        if (!navigator.clipboard) {
+            toast({ title: 'Failed to copy', description: 'Clipboard API not available in this browser.', variant: "destructive" });
             return;
         }
-
         try {
-            let q = query(
-                collection(db, 'users'),
-                orderBy('name'),
-                limit(ROWS_PER_PAGE)
-            );
-            
-            if (direction === 'next' && lastVisible) {
-                q = query(q, startAfter(lastVisible));
-            } else if (direction === 'prev' && firstVisible) {
-                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
-            }
-
-            const documentSnapshots = await getDocs(q);
-            const fetchedUsers: User[] = [];
-            documentSnapshots.forEach((doc) => {
-                const data = doc.data();
-                fetchedUsers.push({
-                    id: doc.id,
-                    name: data.name,
-                    email: data.email,
-                    quizzesPlayed: data.quizzesPlayed || 0,
-                    totalScore: data.totalScore || 0,
-                    photoURL: data.photoURL,
-                });
-            });
-
-            if (!documentSnapshots.empty) {
-                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
-                setFirstVisible(documentSnapshots.docs[0]);
-            }
-            setUsers(fetchedUsers);
-
-        } catch (err: any) {
-            console.error("Error fetching users:", err);
-            const mappedError = mapFirestoreError(err);
-            setError(mappedError.userMessage);
-        } finally {
-            setIsLoading(false);
+            await navigator.clipboard.writeText(referralLink);
+            setHasCopied(true);
+            toast({ title: 'Copied!', description: 'Referral link copied to clipboard.' });
+            setTimeout(() => setHasCopied(false), 2000);
+        } catch (err) {
+            toast({ title: 'Failed to copy', description: 'Could not copy link to clipboard.', variant: "destructive" });
         }
-
-    }, [lastVisible, firstVisible]);
-
-    useEffect(() => {
-        // For now, search is disabled. Will be implemented with a proper search solution.
-        fetchUsers('initial');
-    }, [debouncedSearchTerm, fetchUsers]);
-
-    const handleNextPage = () => {
-        if (lastVisible) {
-            setPage(p => p + 1);
-            fetchUsers('next');
-        }
-    };
-    
-    const handlePrevPage = () => {
-        if (firstVisible) {
-            setPage(p => Math.max(1, p - 1));
-            fetchUsers('prev');
-        }
-    };
-
-    const renderContent = () => {
-        if (isLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
-        }
-
-        if (error) {
-            return (
-                <TableRow>
-                    <TableCell colSpan={5}>
-                        <Alert variant="destructive">
-                            <AlertTitle>Error Loading Users</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    </TableCell>
-                </TableRow>
-            );
-        }
-        
-        if (users.length === 0) {
-            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
-        }
-
-        return users.map(user => (
-            <TableRow key={user.id}>
-                <TableCell>
-                    <Avatar>
-                        <AvatarImage src={user.photoURL} alt={user.name} />
-                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                </TableCell>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
-                <TableCell className="text-center">{user.totalScore}</TableCell>
-            </TableRow>
-        ));
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h1 className="text-2xl font-bold">User Management</h1>
-                    <p className="text-muted-foreground">Browse and manage platform users.</p>
-                </div>
-                <div className="w-1/3 relative">
+        <Card className="bg-card shadow-lg">
+            <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><Users className="text-primary"/> Build Your Squad</CardTitle>
+                <CardDescription>
+                    Invite friends to form a partnership. You'll earn a bonus for every teammate who signs up and scores their first perfect quiz.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="flex items-center space-x-2">
                     <Input 
-                        placeholder="Search users... (disabled)" 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                        disabled
+                        readOnly 
+                        value={referralLink} 
+                        className="text-sm font-mono flex-1 bg-secondary/50 cursor-text" 
+                        onFocus={(e) => e.target.select()}
+                        aria-label="Referral Link"
                     />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Button onClick={onCopy} size="icon" variant="outline" className="shrink-0" aria-label="Copy referral link" type="button">
+                        {hasCopied ? <Check className="h-4 w-4 text-green-500 animate-bounce" /> : <Copy className="h-4 w-4" />}
+                    </Button>
                 </div>
-            </div>
-
-            <div className="rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Avatar</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead className="text-center">Quizzes Played</TableHead>
-                            <TableHead className="text-center">Total Score</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {renderContent()}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 py-4">
-                 <span className="text-sm text-muted-foreground">Page {page}</span>
-                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
-                    Next <ChevronRight className="h-4 w-4" />
-                </Button>
-            </div>
-        </div>
+                <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">
+                    <span className="font-semibold text-muted-foreground text-sm">Total Partnership Earnings:</span>
+                    <span className="font-bold text-primary text-lg">₹{referralEarnings || 0}</span>
+                </div>
+                <div>
+                   <p className="text-center text-xs text-muted-foreground mb-2">Share via</p>
+                   <SocialShareButtons referralLink={referralLink} />
+                </div>
+            </CardContent>
+        </Card>
     );
-}
+};
+
+const ReferralCard = memo(ReferralCardComponent);
+export default ReferralCard;
