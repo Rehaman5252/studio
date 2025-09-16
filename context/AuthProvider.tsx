@@ -41,7 +41,8 @@ import {
 } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
-import { QuizAttempt, QuizAttempt as QuizAttemptSchema } from '@/ai/schemas';
+import type { QuizAttempt } from '@/ai/schemas';
+import { QuizAttempt as QuizAttemptSchema } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/providers/FirebaseProvider';
 import { getQuizSlotId, mapFirestoreError } from '@/lib/utils';
@@ -344,9 +345,9 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
           const historyData: QuizAttempt[] = [];
           querySnapshot.forEach((docSnap) => {
             const raw = docSnap.data();
+            const sanitized = sanitizeQuizAttempt(raw);
+            const parsed = QuizAttemptSchema.safeParse(sanitized);
 
-            // ✅ Validate each document against the Zod schema
-            const parsed = QuizAttemptSchema.safeParse(raw);
             if (parsed.success) {
               historyData.push(parsed.data);
             } else {
