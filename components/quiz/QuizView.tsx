@@ -4,13 +4,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Lightbulb, Volume2, VolumeX, Loader2, AlertTriangle } from 'lucide-react';
-import type { QuizQuestion } from '@/ai/schemas';
+import { Lightbulb, Volume2, VolumeX, Loader2, ShieldAlert } from 'lucide-react';
+import type { QuizQuestion, HintOutput } from '@/ai/schemas';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const QUESTION_TIME_LIMIT = 20; // seconds
 
@@ -23,7 +24,7 @@ interface QuizViewProps {
     brand: string;
     format: string;
     onHintRequest: () => void;
-    hint: string | null;
+    hint: HintOutput | null;
     isHintLoading: boolean;
     soundEnabled: boolean;
 }
@@ -203,9 +204,21 @@ export default function QuizView({
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-4 p-3 bg-accent/20 rounded-lg text-sm text-center"
+                        className="mt-4 p-3 bg-accent/20 rounded-lg text-sm text-center flex items-center justify-center gap-2"
                     >
-                       <span className="font-bold">Hint:</span> {hint}
+                        {hint.source === 'fallback' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>This is a generic hint as the AI could not generate one.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                       <span className="font-bold">Hint:</span> {hint.hint}
                     </motion.div>
                 ) : (
                     <Button variant="outline" size="lg" onClick={onHintRequest} disabled={isAnswered}>

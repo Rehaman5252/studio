@@ -4,17 +4,17 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, WifiOff, ServerCrash, Play, Trophy } from 'lucide-react';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useAuth } from '@/context/AuthProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
 import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
-import { normalizeTimestamp } from '@/app/lib/dates';
+import { normalizeTimestamp } from '@/lib/dates';
+import { EmptyState } from '../EmptyState';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -37,17 +37,10 @@ const RewardsSkeleton = () => (
             </CarouselContent>
         </Carousel>
       </section>
-      <section>
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Generic Offers</h2>
-        <div className="space-y-4">
-          <Skeleton className="h-[96px] w-full" />
-          <Skeleton className="h-[96px] w-full" />
-        </div>
-      </section>
   </div>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
+const ErrorStateDisplay = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("network") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Rewards</AlertTitle>
@@ -105,26 +98,6 @@ const ScratchCard = memo(({ brand, onScratch, isScratched }: { brand: string, on
 });
 ScratchCard.displayName = 'ScratchCard';
 
-const GenericOfferComponent = ({ title, description, image, hint, link }: { title: string, description: string, image: string, hint: string, link: string }) => (
-    <a href={link} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-103 animate-fade-in-up block">
-        <Card className="bg-card/80 shadow-lg hover:border-primary/30">
-            <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center p-2 shadow-inner bg-white relative overflow-hidden flex-shrink-0">
-                    <Image src={image} alt={title} fill className="object-contain" data-ai-hint={hint} priority={false} loading="lazy" />
-                </div>
-                <div className="flex-grow">
-                    <h4 className="font-bold text-foreground">{title}</h4>
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="ml-auto flex-shrink-0 text-muted-foreground hover:text-primary" aria-label={`Claim offer for ${title}`}><ExternalLink className="h-4 w-4 text-primary" /></Button>
-            </CardContent>
-        </Card>
-    </a>
-);
-export const GenericOffer = memo(GenericOfferComponent);
-GenericOffer.displayName = 'GenericOffer';
-
-
 const getStartOfWeek = (timestamp: any): number => {
     const date = normalizeTimestamp(timestamp);
     if (!date) return 0;
@@ -139,7 +112,7 @@ const getStartOfWeek = (timestamp: any): number => {
 
 
 function RewardsContentComponent() {
-  const { user, quizHistory, loading } = useAuth();
+  const { quizHistory } = useAuth();
   const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -193,20 +166,20 @@ function RewardsContentComponent() {
   }, [quizHistory.data]);
 
   const BrandGifts = () => {
-    if (loading || quizHistory.loading) return <RewardsSkeleton />;
-    if (quizHistory.error) return <ErrorState message={quizHistory.error} />;
-    if (!user) {
-      return (
-        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Play className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-lg text-foreground">Play to Win!</p><p>Play a quiz to unlock exclusive brand gifts and rewards.</p><Button asChild size="sm" className="mt-4" type="button"><Link href="/home">Play a Quiz</Link></Button></CardContent></Card>
-      );
-    }
+    if (quizHistory.loading) return <RewardsSkeleton />;
+    if (quizHistory.error) return <ErrorStateDisplay message={quizHistory.error} />;
+    
     if (rewardableAttempts.length === 0) {
       return (
-        <Card className="bg-card/80"><CardContent className="p-6 text-center text-muted-foreground"><Gift className="h-10 w-10 mx-auto text-primary/50 mb-4" /><p className="font-semibold text-foreground mb-2">Your Kit Bag is Empty</p><p className="text-sm">Play a match to earn your first reward!</p></CardContent></Card>
+        <EmptyState
+            Icon={Gift}
+            title="Your Kit Bag is Empty"
+            description="Play a match to earn your first reward!"
+        />
       );
     }
     return (
-        <div className="relative">
+        <div className="relative pb-10">
             <Carousel opts={{ align: 'start' }} className="w-full max-w-full">
                 <CarouselContent className="-ml-4">
                 {rewardableAttempts.map((attempt, index) => (
@@ -219,9 +192,9 @@ function RewardsContentComponent() {
                     </CarouselItem>
                 ))}
                 </CarouselContent>
-                <div className="hidden sm:flex justify-between w-full absolute top-1/2 -translate-y-1/2 px-0">
-                    <CarouselPrevious />
-                    <CarouselNext />
+                 <div className="sm:hidden flex justify-center mt-4">
+                    <CarouselPrevious className="relative static" />
+                    <CarouselNext className="relative static" />
                 </div>
             </Carousel>
         </div>
