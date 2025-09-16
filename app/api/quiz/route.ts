@@ -3,11 +3,16 @@ import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { mapFirestoreError } from "@/lib/utils";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 
 export const dynamic = 'force_dynamic';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
+
+const ApiQuizInputSchema = z.object({
+  format: z.enum(["mixed", "odi", "t20", "test", "ipl", "wpl"]),
+  userId: z.string().min(1, { message: "User ID cannot be empty." }),
+});
 
 function createErrorResponse(message: string, reqId: string, status = 500, code?: string) {
   const fallbackQuiz = getFallbackQuiz("mixed");
@@ -35,8 +40,8 @@ export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
     if (!rawBody) {
-        console.warn(`[quiz][${reqId}] Empty request body`);
-        return createErrorResponse("Empty request body.", reqId, 400, "EMPTY_BODY");
+      console.warn(`[quiz][${reqId}] Empty request body`);
+      return createErrorResponse("Empty request body.", reqId, 400, "EMPTY_BODY");
     }
     body = JSON.parse(rawBody);
   } catch (e) {
@@ -44,17 +49,15 @@ export async function POST(req: Request) {
     return createErrorResponse("Invalid JSON body.", reqId, 400, "INVALID_JSON");
   }
 
-  const { format, userId } = body ?? {};
-  const allowedFormats = ["mixed", "odi", "t20", "test", "ipl", "wpl"];
+  const validationResult = ApiQuizInputSchema.safeParse(body);
 
-  if (!format || typeof format !== "string" || !allowedFormats.includes(format.toLowerCase())) {
-    console.warn(`[quiz][${reqId}] Invalid format requested: ${format}`);
-    return createErrorResponse("Invalid or missing format.", reqId, 400, "INVALID_FORMAT");
+  if (!validationResult.success) {
+    const formattedErrors = validationResult.error.format();
+    console.warn(`[quiz][${reqId}] Invalid request body:`, formattedErrors);
+    return createErrorResponse(JSON.stringify(formattedErrors), reqId, 400, "INVALID_PAYLOAD");
   }
-  if (!userId || typeof userId !== 'string') {
-    console.warn(`[quiz][${reqId}] Missing or invalid userId.`);
-    return createErrorResponse("Missing or invalid userId.", reqId, 400, "INVALID_USERID");
-  }
+
+  const { format, userId } = validationResult.data;
 
   try {
     console.info(`[quiz][${reqId}] Starting AI quiz generation for format=${format} user=${userId}`);
