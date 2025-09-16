@@ -1,204 +1,257 @@
-'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from '@/hooks/use-debounce';
+"use client";
+
+import React, { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mapFirestoreError } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/context/AuthProvider';
+import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where, Unsubscribe } from 'firebase/firestore';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { WifiOff, ServerCrash, Trophy, Flame, AlertTriangle, RefreshCw } from 'lucide-react';
+import { cn, mapFirestoreError } from '@/lib/utils';
+import type { StreakPlayer } from './leaderboardTypes';
+import { Button } from '../ui/button';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  quizzesPlayed: number;
-  totalScore: number;
-  photoURL?: string;
-}
+const RankIcon = memo(({ rank }: { rank?: number }) => {
+  if (!rank) return <span aria-label="Unranked" className="text-lg font-bold text-muted-foreground">--</span>;
+  if (rank === 1) return <span aria-label="Rank 1" className="text-2xl">🥇</span>;
+  if (rank === 2) return <span aria-label="Rank 2" className="text-2xl">🥈</span>;
+  if (rank === 3) return <span aria-label="Rank 3" className="text-2xl">🥉</span>;
+  return <span aria-label={`Rank ${rank}`} className="text-lg font-bold text-muted-foreground">{rank}</span>;
+});
+RankIcon.displayName = 'RankIcon';
 
-const ROWS_PER_PAGE = 15;
+const LeaderboardItem = memo(({ player, isCurrentUser = false }: { player: StreakPlayer, isCurrentUser?: boolean }) => (
+  <div className={cn("flex items-center p-2 rounded-lg transition-colors", isCurrentUser ? 'bg-primary/10' : 'hover:bg-muted/50')}>
+    <div className="w-8 text-center"><RankIcon rank={player.rank} /></div>
+    <Avatar className="h-10 w-10 mx-4">
+      <AvatarImage src={player.avatar || `https://placehold.co/40x40.png`} alt={player.name} />
+      <AvatarFallback>{player.name?.charAt(0) ?? 'A'}</AvatarFallback>
+    </Avatar>
+    <p className="font-semibold text-foreground flex-1">{player.name ?? 'Anonymous'}</p>
+    <div className="text-right flex items-center gap-1">
+      <p className="font-bold text-accent">{player.currentStreak}</p>
+      <Flame className="h-4 w-4 text-accent" />
+    </div>
+  </div>
+));
+LeaderboardItem.displayName = 'LeaderboardItem';
 
-const UserSkeleton = () => (
-    <TableRow>
-        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-    </TableRow>
-)
+const LeaderboardItemSkeleton = () => (
+  <div className="flex items-center p-2 rounded-lg animate-pulse">
+    <Skeleton className="w-8 h-8 rounded-full" />
+    <Skeleton className="h-10 w-10 mx-4 rounded-full" />
+    <Skeleton className="h-4 flex-1" />
+    <Skeleton className="h-4 w-12" />
+  </div>
+);
 
-export default function UserManagement() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+const ErrorState = ({ message, title, onRetry }: { message: string, title: string, onRetry: () => void }) => (
+    <Alert variant="destructive" className="m-4">
+      {(message || '').includes("offline") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription className="mb-4">{message || 'An unexpected error occurred.'}</AlertDescription>
+      <Button onClick={onRetry} variant="secondary" size="sm"><RefreshCw className="mr-2 h-4 w-4"/>Retry</Button>
+    </Alert>
+);
 
-    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [page, setPage] = useState(1);
+const EmptyState = () => (
+  <Card className="bg-card/80 text-center mt-4">
+    <CardContent className="p-6">
+      <Trophy className="h-10 w-10 mx-auto text-accent/50 mb-4" />
+      <p className="font-semibold text-lg text-foreground">The Consistency Chart is Empty</p>
+      <p className="text-sm text-muted-foreground">Play daily to build your streak and claim the top spot!</p>
+    </CardContent>
+  </Card>
+);
 
-    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
-        setIsLoading(true);
-        setError(null);
-        if (!db) {
-            setError("Database connection not available.");
-            setIsLoading(false);
-            return;
-        }
+const calculateUserRank = async (streak: number, name: string) : Promise<number> => {
+  if (!db) return 999;
+  const usersCollection = collection(db, 'users');
+  try {
+    const higherStreakQuery = query(usersCollection, where('currentStreak', '>', streak));
+    const tieBreakerQuery = query(usersCollection, where('currentStreak', '==', streak), where('name', '<', name || ''));
+    const [higherSnapshot, tieSnapshot] = await Promise.all([getCountFromServer(higherStreakQuery), getCountFromServer(tieBreakerQuery)]);
+    return higherSnapshot.data().count + tieSnapshot.data().count + 1;
+  } catch (e) {
+    console.error("Rank calculation failed:", e);
+    return 999;
+  }
+};
 
-        try {
-            let q = query(
-                collection(db, 'users'),
-                orderBy('name'),
-                limit(ROWS_PER_PAGE)
-            );
-            
-            if (direction === 'next' && lastVisible) {
-                q = query(q, startAfter(lastVisible));
-            } else if (direction === 'prev' && firstVisible) {
-                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
-            }
+const StreakLeaderboard = () => {
+  const { user, loading: authLoading } = useAuth();
+  const [players, setPlayers] = useState<StreakPlayer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<{ code?: string; userMessage: string } | null>(null);
 
-            const documentSnapshots = await getDocs(q);
-            const fetchedUsers: User[] = [];
-            documentSnapshots.forEach((doc) => {
-                const data = doc.data();
-                fetchedUsers.push({
-                    id: doc.id,
-                    name: data.name,
-                    email: data.email,
-                    quizzesPlayed: data.quizzesPlayed || 0,
-                    totalScore: data.totalScore || 0,
-                    photoURL: data.photoURL,
-                });
-            });
+  const lastGoodRef = useRef<StreakPlayer[]>([]);
 
-            if (!documentSnapshots.empty) {
-                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
-                setFirstVisible(documentSnapshots.docs[0]);
-            }
-            setUsers(fetchedUsers);
+  const startListener = useCallback(() => {
+    setIsLoading(true);
+    setError(null);
 
-        } catch (err: any) {
-            console.error("Error fetching users:", err);
-            const mappedError = mapFirestoreError(err);
-            setError(mappedError.userMessage);
-        } finally {
-            setIsLoading(false);
-        }
+    if (!db) {
+        setError({ userMessage: "Database not available." });
+        setIsLoading(false);
+        return () => {};
+    }
 
-    }, [lastVisible, firstVisible]);
-
-    useEffect(() => {
-        // For now, search is disabled. Will be implemented with a proper search solution.
-        fetchUsers('initial');
-    }, [debouncedSearchTerm, fetchUsers]);
-
-    const handleNextPage = () => {
-        if (lastVisible) {
-            setPage(p => p + 1);
-            fetchUsers('next');
-        }
-    };
+    const usersCollection = collection(db, 'users');
+    const q = query(usersCollection, orderBy('currentStreak', 'desc'), orderBy('name', 'asc'), limit(50));
     
-    const handlePrevPage = () => {
-        if (firstVisible) {
-            setPage(p => Math.max(1, p - 1));
-            fetchUsers('prev');
-        }
-    };
+    let isMounted = true;
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      if(!isMounted) return;
+      try {
+        let playersData = querySnapshot.docs
+          .filter(doc => (doc.data().currentStreak || 0) > 0)
+          .map((doc, index) => {
+            const data = doc.data();
+            return {
+              uid: doc.id,
+              name: data.name || 'Anonymous Player',
+              avatar: data.photoURL,
+              currentStreak: data.currentStreak || 0,
+              isCurrentUser: user?.uid === doc.id,
+              rank: index + 1
+            } as StreakPlayer;
+          });
 
-    const renderContent = () => {
-        if (isLoading) {
-            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
-        }
-
-        if (error) {
-            return (
-                <TableRow>
-                    <TableCell colSpan={5}>
-                        <Alert variant="destructive">
-                            <AlertTitle>Error Loading Users</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    </TableCell>
-                </TableRow>
-            );
+        if (user && !playersData.some(p => p.uid === user.uid)) {
+           try {
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    const streak = data.currentStreak || 0;
+                    if (streak > 0) {
+                        const userRank = await calculateUserRank(streak, data.name || 'Anonymous Player');
+                        const currentUserData: StreakPlayer = {
+                            uid: user.uid,
+                            name: data.name || 'You',
+                            avatar: data.photoURL,
+                            currentStreak: streak,
+                            rank: userRank,
+                            isCurrentUser: true,
+                        };
+                        if (isMounted) playersData.push(currentUserData);
+                    }
+                }
+           } catch (e) {
+                if (isMounted) console.error("Error fetching current user for streak board", e);
+           }
         }
         
-        if (users.length === 0) {
-            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
+        if (isMounted) {
+            const sortedPlayers = playersData.sort((a,b) => (a.rank || 999) - (b.rank || 999));
+            setPlayers(sortedPlayers);
+            lastGoodRef.current = sortedPlayers;
+            setError(null);
+            setIsLoading(false);
         }
+      } catch (e) {
+        if (isMounted) {
+            console.error("Snapshot processing error:", e);
+            setError({ userMessage: "Error processing leaderboard data." });
+            setIsLoading(false);
+        }
+      }
+    }, (err: any) => {
+      if(!isMounted) return;
+      console.error("Streak leaderboard snapshot error:", err);
+      setError(mapFirestoreError(err));
+      setIsLoading(false);
+      setPlayers(lastGoodRef.current); // fallback to cache
+    });
 
-        return users.map(user => (
-            <TableRow key={user.id}>
-                <TableCell>
-                    <Avatar>
-                        <AvatarImage src={user.photoURL} alt={user.name} />
-                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                </TableCell>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
-                <TableCell className="text-center">{user.totalScore}</TableCell>
-            </TableRow>
-        ));
+    return () => {
+        isMounted = false;
+        try {
+            unsubscribe();
+        } catch(e) {
+            console.warn("Error unsubscribing from StreakLeaderboard", e);
+        }
     };
+  }, [user]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const unsubscribe = startListener();
+    return () => {
+        if (unsubscribe) {
+            try {
+                unsubscribe();
+            } catch (e) {
+                console.warn("Failed to unsubscribe from StreakLeaderboard listener", e);
+            }
+        }
+    };
+  }, [authLoading, startListener]);
+
+
+  const content = useMemo(() => {
+    const dataToRender = players;
+    
+    if (isLoading && dataToRender.length === 0) {
+      return Array.from({ length: 10 }).map((_, i) => <LeaderboardItemSkeleton key={`skel-streak-${i}`} />);
+    }
+    
+    if (error && dataToRender.length === 0) {
+        return <ErrorState
+            title={"Error Loading Leaderboard"}
+            message={error.userMessage}
+            onRetry={startListener}
+        />;
+    }
+    
+    if (dataToRender.length === 0) return <EmptyState />;
+    
+    const currentUserInList = dataToRender.find(p => p.isCurrentUser);
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h1 className="text-2xl font-bold">User Management</h1>
-                    <p className="text-muted-foreground">Browse and manage platform users.</p>
-                </div>
-                <div className="w-1/3 relative">
-                    <Input 
-                        placeholder="Search users... (disabled)" 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                        disabled
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
-            </div>
-
-            <div className="rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Avatar</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead className="text-center">Quizzes Played</TableHead>
-                            <TableHead className="text-center">Total Score</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {renderContent()}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 py-4">
-                 <span className="text-sm text-muted-foreground">Page {page}</span>
-                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
-                    Next <ChevronRight className="h-4 w-4" />
-                </Button>
-            </div>
-        </div>
+      <>
+        {dataToRender.filter(p => !p.isCurrentUser).map(player => <LeaderboardItem key={player.uid} player={player} />)}
+        {currentUserInList && (
+          <>
+            <div className="border-t my-2 text-center text-sm text-muted-foreground pt-2">Your Rank</div>
+            <LeaderboardItem player={currentUserInList} isCurrentUser />
+          </>
+        )}
+      </>
     );
-}
+  }, [isLoading, authLoading, error, players, user, startListener]);
+
+  const isIndexError = error?.code === 'INDEX_REQUIRED';
+
+  return (
+    <Card className="bg-card/80 shadow-lg mt-4">
+      <CardHeader className="text-center">
+        <div className="flex items-center justify-center gap-2">
+            <CardTitle>Daily Streak Champions</CardTitle>
+            {isIndexError && (
+                <Button size="sm" variant="ghost" onClick={startListener} className="text-muted-foreground hover:text-primary">
+                    <RefreshCw className="h-4 w-4" />
+                </Button>
+            )}
+        </div>
+        <CardDescription>The most consistent players on the pitch.</CardDescription>
+      </CardHeader>
+      
+      {error && players.length > 0 && (
+          <Alert variant="destructive" className="mx-4 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sync Issue</AlertTitle>
+            <AlertDescription>{error.userMessage}</AlertDescription>
+          </Alert>
+      )}
+
+      <CardContent className="p-2 max-h-[60vh] overflow-y-auto">
+        <div className="space-y-2">{content}</div>
+      </CardContent>
+    </Card>
+  );
+};
+export default memo(StreakLeaderboard);

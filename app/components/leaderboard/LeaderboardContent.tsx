@@ -7,9 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 const ChunkLoadError = () => (
     <Alert variant="destructive">
@@ -75,23 +75,23 @@ function LeaderboardContentComponent() {
               transition={{ duration: 0.3 }}
               className="mt-4"
           >
-            <TabsContent value="live" forceMount={activeTab === 'live'}>
+            <TabsContent value="live" forceMount={true} hidden={activeTab !== 'live'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <LiveLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="all-time" forceMount={activeTab === 'all-time'}>
+            <TabsContent value="all-time" forceMount={true} hidden={activeTab !== 'all-time'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <AllTimeLeaderboard />
                 </Suspense>
             </TabsContent>
-            <TabsContent value="streaks" forceMount={activeTab === 'streaks'}>
+            <TabsContent value="streaks" forceMount={true} hidden={activeTab !== 'streaks'}>
                 <Suspense fallback={<LeaderboardSkeleton />}>
                     <StreakLeaderboard />
                 </Suspense>
             </TabsContent>
             {user && (
-            <TabsContent value="network" forceMount={activeTab === 'network'}>
+            <TabsContent value="network" forceMount={true} hidden={activeTab !== 'network'}>
                 <Suspense fallback={<LeaderboardSkeleton count={3} />}>
                     <MyNetworkLeaderboard />
                 </Suspense>
