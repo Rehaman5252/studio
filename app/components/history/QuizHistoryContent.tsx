@@ -109,6 +109,8 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
   const handleAdDialogClose = (open: boolean) => {
     if (!open) {
+        // If the user closes the ad dialog without finishing the ad,
+        // reset the reviewing state.
         if (isReviewing && !showReviewDialog) {
             setIsReviewing(false);
         }
@@ -210,3 +212,4 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
   );
 };
 export const HistoryItem = memo(HistoryItemComponent);
+
