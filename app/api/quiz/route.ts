@@ -39,14 +39,18 @@ export async function POST(req: Request) {
   const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
   try {
-    let body: any;
+    // --- SAFE BODY PARSING ---
+    let rawBody: string | null = null;
+    let body: any = {};
     try {
-      body = await req.json();
-    } catch {
-      console.error(`[quiz][${reqId}] Invalid JSON body.`);
+      rawBody = await req.text();
+      body = rawBody ? JSON.parse(rawBody) : {};
+    } catch (parseErr) {
+      console.error(`[quiz][${reqId}] Invalid JSON body:`, rawBody, parseErr);
       return createErrorResponse("Invalid JSON body", "mixed", reqId, "INVALID_JSON");
     }
 
+    // --- VALIDATION ---
     const parsed = ApiQuizInputSchema.safeParse(body);
     if (!parsed.success) {
       console.warn(`[quiz][${reqId}] Invalid payload:`, parsed.error.format());
@@ -60,6 +64,7 @@ export async function POST(req: Request) {
 
     const { format, userId } = parsed.data;
 
+    // --- AI QUIZ FLOW ---
     try {
       console.info(`[quiz][${reqId}] Generating AI quiz for ${userId} (${format})`);
       const quiz = await generateQuizFlow({ format, userId });
@@ -87,7 +92,6 @@ export async function POST(req: Request) {
       );
     }
   } catch (fatal: any) {
-    // This catches *anything* not already handled
     console.error(`[quiz][${reqId}] Fatal API error:`, fatal);
     return createErrorResponse(
       fatal?.message || "Unknown fatal error",
