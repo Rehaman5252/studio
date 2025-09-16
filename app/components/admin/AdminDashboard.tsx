@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 
 const StatCard = memo(({ title, value, icon, description, href }: { title: string; value: string; icon: React.ReactNode; description?: string; href: string; }) => (
     <Link href={href} className="block hover:scale-105 transition-transform duration-200">

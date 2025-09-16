@@ -1,134 +1,204 @@
-
 'use client';
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthProvider';
-import { submitContribution } from '@/ai/flows/submit-contribution';
-import { refineText } from '@/ai/flows/refine-text';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { mapFirestoreError } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const PostFormSchema = z.object({
-    title: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title cannot exceed 100 characters."),
-    content: z.string().min(50, "Post must be at least 50 characters.").max(5000, "Post cannot exceed 5000 characters."),
-});
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  quizzesPlayed: number;
+  totalScore: number;
+  photoURL?: string;
+}
 
-type PostFormValues = z.infer<typeof PostFormSchema>;
+const ROWS_PER_PAGE = 15;
 
-export default function PostForm({ onSubmitted }: { onSubmitted: () => void }) {
-    const { user } = useAuth();
-    const { toast } = useToast();
-    const [isRefining, setIsRefining] = useState<'title' | 'content' | null>(null);
+const UserSkeleton = () => (
+    <TableRow>
+        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+    </TableRow>
+)
 
-    const form = useForm<PostFormValues>({
-        resolver: zodResolver(PostFormSchema),
-        defaultValues: { title: '', content: '' },
-    });
+export default function UserManagement() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-    const { isSubmitting } = form.formState;
+    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [page, setPage] = useState(1);
 
-    const handleRefine = async (field: 'title' | 'content') => {
-        const value = form.getValues(field);
-        if (!value) {
-            toast({ title: "Nothing to refine", description: `Please write a ${field} first.`, variant: "destructive"});
+    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
+        setIsLoading(true);
+        setError(null);
+        if (!db) {
+            setError("Database connection not available.");
+            setIsLoading(false);
             return;
         }
-        setIsRefining(field);
+
         try {
-            const refinedContent = await refineText({ text: value });
-            form.setValue(field, refinedContent, { shouldValidate: true });
-        } catch (error) {
-            toast({ title: "Error", description: "Could not refine the text.", variant: "destructive"});
+            let q = query(
+                collection(db, 'users'),
+                orderBy('name'),
+                limit(ROWS_PER_PAGE)
+            );
+            
+            if (direction === 'next' && lastVisible) {
+                q = query(q, startAfter(lastVisible));
+            } else if (direction === 'prev' && firstVisible) {
+                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
+            }
+
+            const documentSnapshots = await getDocs(q);
+            const fetchedUsers: User[] = [];
+            documentSnapshots.forEach((doc) => {
+                const data = doc.data();
+                fetchedUsers.push({
+                    id: doc.id,
+                    name: data.name,
+                    email: data.email,
+                    quizzesPlayed: data.quizzesPlayed || 0,
+                    totalScore: data.totalScore || 0,
+                    photoURL: data.photoURL,
+                });
+            });
+
+            if (!documentSnapshots.empty) {
+                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
+                setFirstVisible(documentSnapshots.docs[0]);
+            }
+            setUsers(fetchedUsers);
+
+        } catch (err: any) {
+            console.error("Error fetching users:", err);
+            const mappedError = mapFirestoreError(err);
+            setError(mappedError.userMessage);
         } finally {
-            setIsRefining(null);
+            setIsLoading(false);
+        }
+
+    }, [lastVisible, firstVisible]);
+
+    useEffect(() => {
+        // For now, search is disabled. Will be implemented with a proper search solution.
+        fetchUsers('initial');
+    }, [debouncedSearchTerm, fetchUsers]);
+
+    const handleNextPage = () => {
+        if (lastVisible) {
+            setPage(p => p + 1);
+            fetchUsers('next');
+        }
+    };
+    
+    const handlePrevPage = () => {
+        if (firstVisible) {
+            setPage(p => Math.max(1, p - 1));
+            fetchUsers('prev');
         }
     };
 
-    const onSubmit = async (values: PostFormValues) => {
-        if (!user) {
-            toast({ title: "Authentication Error", description: "You must be logged in to submit a post.", variant: "destructive" });
-            return;
+    const renderContent = () => {
+        if (isLoading) {
+            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
         }
-        try {
-            const result = await submitContribution({
-                userId: user.uid,
-                type: 'post',
-                ...values,
-            });
-            if (result.success) {
-                toast({ title: "Post Submitted!", description: result.message });
-                form.reset();
-                onSubmitted();
-            } else {
-                toast({ title: "Submission Failed", description: result.message, variant: 'destructive' });
-            }
-        } catch (error) {
-            toast({ title: "Error", description: "An unexpected error occurred.", variant: 'destructive' });
+
+        if (error) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={5}>
+                        <Alert variant="destructive">
+                            <AlertTitle>Error Loading Users</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    </TableCell>
+                </TableRow>
+            );
         }
+        
+        if (users.length === 0) {
+            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
+        }
+
+        return users.map(user => (
+            <TableRow key={user.id}>
+                <TableCell>
+                    <Avatar>
+                        <AvatarImage src={user.photoURL} alt={user.name} />
+                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                </TableCell>
+                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
+                <TableCell className="text-center">{user.totalScore}</TableCell>
+            </TableRow>
+        ));
     };
 
     return (
-        <Card className="border-0">
-             <CardHeader>
-                <CardTitle>Write a Post</CardTitle>
-                <CardDescription>Share your analysis, opinion, or a short story about cricket.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <div className="flex justify-between items-center">
-                                        <FormLabel>Title</FormLabel>
-                                        <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('title')} disabled={!!isRefining}>
-                                            {isRefining === 'title' ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
-                                            <span className="ml-2">Refine</span>
-                                        </Button>
-                                    </div>
-                                    <FormControl>
-                                        <Input placeholder="e.g., The evolution of T20 batting" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="content"
-                            render={({ field }) => (
-                                <FormItem>
-                                     <div className="flex justify-between items-center">
-                                        <FormLabel>Content</FormLabel>
-                                         <Button type="button" variant="ghost" size="sm" onClick={() => handleRefine('content')} disabled={!!isRefining}>
-                                            {isRefining === 'content' ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4 text-primary" />}
-                                            <span className="ml-2">Refine</span>
-                                        </Button>
-                                    </div>
-                                    <FormControl>
-                                        <Textarea placeholder="Write your post here..." {...field} rows={6} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" disabled={!user || isSubmitting || !!isRefining} className="w-full">
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Submit Post
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+        <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+                <div>
+                    <h1 className="text-2xl font-bold">User Management</h1>
+                    <p className="text-muted-foreground">Browse and manage platform users.</p>
+                </div>
+                <div className="w-1/3 relative">
+                    <Input 
+                        placeholder="Search users... (disabled)" 
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                        disabled
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                </div>
+            </div>
+
+            <div className="rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Avatar</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="text-center">Quizzes Played</TableHead>
+                            <TableHead className="text-center">Total Score</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {renderContent()}
+                    </TableBody>
+                </Table>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 py-4">
+                 <span className="text-sm text-muted-foreground">Page {page}</span>
+                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
+                    <ChevronLeft className="h-4 w-4" /> Previous
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
+                    Next <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        </div>
     );
 }

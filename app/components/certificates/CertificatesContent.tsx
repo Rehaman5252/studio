@@ -1,247 +1,204 @@
-
 'use client';
 
-import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Share2, Clock, Calendar, WifiOff, ServerCrash, Trophy, Star } from 'lucide-react';
-import { useAuth } from '@/context/AuthProvider';
-import { useToast } from '@/hooks/use-toast';
-import jsPDF from 'jspdf';
+import { Input } from '@/components/ui/input';
+import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { normalizeTimestamp } from '@/lib/dates';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { mapFirestoreError } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const CertificateItemSkeleton = () => (
-    <div className="space-y-4">
-        <Card className="bg-card/80 shadow-lg">
-            <CardHeader>
-                <div className="flex items-start gap-4">
-                    <Skeleton className="h-8 w-8 rounded-md mt-1 flex-shrink-0" />
-                    <div className="flex-grow space-y-2">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-3 w-5/6" />
-                        <Skeleton className="h-3 w-3/4" />
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="flex justify-end gap-2">
-                <Skeleton className="h-9 w-24 rounded-md" />
-                <Skeleton className="h-9 w-20 rounded-md" />
-            </CardContent>
-        </Card>
-    </div>
-);
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  quizzesPlayed: number;
+  totalScore: number;
+  photoURL?: string;
+}
 
-const ErrorState = ({ message }: { message: string }) => (
-    <Alert variant="destructive" className="mt-4">
-        {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
-        <AlertTitle>Error Loading Certificates</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
-    </Alert>
-);
+const ROWS_PER_PAGE = 15;
 
-export default function CertificatesContent() {
-  const { profile, quizHistory } = useAuth();
-  const { toast } = useToast();
-  
-  const getSlotTimings = (timestamp: any) => {
-    const attemptDate = normalizeTimestamp(timestamp);
-    if (!attemptDate) return 'Invalid Time';
-    
-    const minutes = attemptDate.getMinutes();
-    const slotStartMinute = Math.floor(minutes / 10) * 10;
-    
-    const slotStartTime = new Date(attemptDate);
-    slotStartTime.setMinutes(slotStartMinute, 0, 0);
-    
-    const slotEndTime = new Date(slotStartTime.getTime() + 10 * 60 * 1000);
+const UserSkeleton = () => (
+    <TableRow>
+        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+    </TableRow>
+)
 
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
+export default function UserManagement() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-    return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
-  };
-  
-  const getFormattedDate = (timestamp: any): string => {
-    const date = normalizeTimestamp(timestamp);
-    if (!date) return 'Invalid Date';
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}${month}${year}`;
-  };
-  
-  const certificates = useMemo(() => {
-    return quizHistory.data
-      .filter(attempt => attempt.score === attempt.totalQuestions && attempt.totalQuestions > 0 && !attempt.reason)
-      .map(attempt => {
-          const attemptDate = normalizeTimestamp(attempt.timestamp);
-          return {
-            id: attempt.slotId + attempt.format,
-            title: `${attempt.format} Masterclass Certificate`,
-            date: getFormattedDate(attempt.timestamp),
-            displayDate: attemptDate ? attemptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date Unavailable',
-            slot: getSlotTimings(attempt.timestamp),
-            brand: attempt.brand,
-            format: attempt.format,
-          }
-      });
-  }, [quizHistory.data]);
+    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [page, setPage] = useState(1);
 
-  const handleDownload = (cert: typeof certificates[0]) => {
-    const doc = new jsPDF();
-
-    doc.setDrawColor(212, 175, 55); 
-    doc.setLineWidth(1.5);
-    doc.rect(5, 5, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10);
-
-    doc.setFontSize(26);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(34, 34, 34);
-    doc.text('Certificate of Mastery', doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    doc.text('For an outstanding innings by', doc.internal.pageSize.width / 2, 50, { align: 'center' });
-    
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(212, 175, 55);
-    doc.text(profile?.name || 'Valued Player', doc.internal.pageSize.width / 2, 70, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    doc.text('who achieved a perfect score in the', doc.internal.pageSize.width / 2, 90, { align: 'center' });
-    
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${cert.format} Quiz (${cert.brand})`, doc.internal.pageSize.width / 2, 105, { align: 'center' });
-    
-    const stars = Math.floor((profile?.perfectScores || 1) / 5);
-    if (stars > 0) {
-      doc.setFontSize(20);
-      doc.setTextColor(255, 215, 0);
-      doc.text('★'.repeat(stars), doc.internal.pageSize.width / 2, 120, { align: 'center' });
-    }
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date of Innings: ${cert.displayDate}`, 30, 140);
-    doc.text(`Match Slot: ${cert.slot}`, 30, 147);
-
-    doc.setLineWidth(0.5);
-    doc.line(130, 150, 180, 150);
-    doc.setFontSize(10);
-    doc.text('Official Scorer', 140, 155);
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(34, 139, 34);
-    doc.text('indcric', doc.internal.pageSize.width / 2, 170, { align: 'center' });
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(150, 150, 150);
-    doc.text('win ₹100 for every 100 seconds!', doc.internal.pageSize.width / 2, 175, { align: 'center' });
-    
-    doc.save(`indcric_${cert.format}_Certificate.pdf`);
-    
-    toast({
-        title: "Download Started",
-        description: "Your certificate is being downloaded as a PDF.",
-    });
-  };
-
-  const handleShare = async (cert: typeof certificates[0]) => {
-    if (!profile) return;
-    const stars = Math.floor((profile.perfectScores || 0) / 5);
-    const starText = stars > 0 ? ` I now have ${stars} star(s) on my profile! ⭐` : '';
-
-    const shareData = {
-        title: `I aced a quiz on indcric!`,
-        text: `I just hit a century with a perfect score in the ${cert.format} quiz on indcric!${starText} Think you can match my score?`,
-        url: window.location.origin,
-    };
-    try {
-        if (navigator.share) {
-            await navigator.share(shareData);
-        } else {
-           navigator.clipboard.writeText(shareData.text + ' ' + shareData.url);
-           toast({ title: 'Copied to clipboard!', description: 'Sharing not available, so we copied the text for you.' });
+    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
+        setIsLoading(true);
+        setError(null);
+        if (!db) {
+            setError("Database connection not available.");
+            setIsLoading(false);
+            return;
         }
-    } catch (error) {
-        console.error('Share failed:', error);
-    }
-  };
 
+        try {
+            let q = query(
+                collection(db, 'users'),
+                orderBy('name'),
+                limit(ROWS_PER_PAGE)
+            );
+            
+            if (direction === 'next' && lastVisible) {
+                q = query(q, startAfter(lastVisible));
+            } else if (direction === 'prev' && firstVisible) {
+                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
+            }
 
-  if (quizHistory.loading) {
+            const documentSnapshots = await getDocs(q);
+            const fetchedUsers: User[] = [];
+            documentSnapshots.forEach((doc) => {
+                const data = doc.data();
+                fetchedUsers.push({
+                    id: doc.id,
+                    name: data.name,
+                    email: data.email,
+                    quizzesPlayed: data.quizzesPlayed || 0,
+                    totalScore: data.totalScore || 0,
+                    photoURL: data.photoURL,
+                });
+            });
+
+            if (!documentSnapshots.empty) {
+                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
+                setFirstVisible(documentSnapshots.docs[0]);
+            }
+            setUsers(fetchedUsers);
+
+        } catch (err: any) {
+            console.error("Error fetching users:", err);
+            const mappedError = mapFirestoreError(err);
+            setError(mappedError.userMessage);
+        } finally {
+            setIsLoading(false);
+        }
+
+    }, [lastVisible, firstVisible]);
+
+    useEffect(() => {
+        // For now, search is disabled. Will be implemented with a proper search solution.
+        fetchUsers('initial');
+    }, [debouncedSearchTerm, fetchUsers]);
+
+    const handleNextPage = () => {
+        if (lastVisible) {
+            setPage(p => p + 1);
+            fetchUsers('next');
+        }
+    };
+    
+    const handlePrevPage = () => {
+        if (firstVisible) {
+            setPage(p => Math.max(1, p - 1));
+            fetchUsers('prev');
+        }
+    };
+
+    const renderContent = () => {
+        if (isLoading) {
+            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
+        }
+
+        if (error) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={5}>
+                        <Alert variant="destructive">
+                            <AlertTitle>Error Loading Users</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    </TableCell>
+                </TableRow>
+            );
+        }
+        
+        if (users.length === 0) {
+            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
+        }
+
+        return users.map(user => (
+            <TableRow key={user.id}>
+                <TableCell>
+                    <Avatar>
+                        <AvatarImage src={user.photoURL} alt={user.name} />
+                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                </TableCell>
+                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
+                <TableCell className="text-center">{user.totalScore}</TableCell>
+            </TableRow>
+        ));
+    };
+
     return (
-        <div className="space-y-4">
-            <CertificateItemSkeleton />
-            <CertificateItemSkeleton />
+        <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+                <div>
+                    <h1 className="text-2xl font-bold">User Management</h1>
+                    <p className="text-muted-foreground">Browse and manage platform users.</p>
+                </div>
+                <div className="w-1/3 relative">
+                    <Input 
+                        placeholder="Search users... (disabled)" 
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                        disabled
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                </div>
+            </div>
+
+            <div className="rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Avatar</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="text-center">Quizzes Played</TableHead>
+                            <TableHead className="text-center">Total Score</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {renderContent()}
+                    </TableBody>
+                </Table>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 py-4">
+                 <span className="text-sm text-muted-foreground">Page {page}</span>
+                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
+                    <ChevronLeft className="h-4 w-4" /> Previous
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
+                    Next <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
         </div>
     );
-  }
-
-  if (quizHistory.error) {
-    return <ErrorState message={quizHistory.error} />;
-  }
-  
-  return (
-    <>
-        {certificates.length > 0 ? (
-          <div className="space-y-4">
-            {certificates.map((cert) => (
-              <div key={cert.id}>
-                <Card className="bg-card/80 shadow-lg">
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                        <Trophy className="h-8 w-8 text-primary mt-1 flex-shrink-0" />
-                        <div className="flex-grow">
-                            <CardTitle className="text-lg">{cert.title}</CardTitle>
-                            <CardDescription>
-                                For the {cert.brand} {cert.format} quiz.
-                            </CardDescription>
-                            <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    <span>Awarded on: {cert.date}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    <span>Slot: {cert.slot}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex justify-end gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => handleDownload(cert)}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleShare(cert)}>
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Share
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Card className="bg-card/80">
-            <CardContent className="p-8 text-center text-muted-foreground">
-              <Award className="h-12 w-12 mx-auto mb-4 text-primary/50" />
-              <p className="font-semibold text-lg text-foreground">No certificates yet!</p>
-              <p>Score a perfect 5/5 in any quiz to earn your first certificate.</p>
-            </CardContent>
-          </Card>
-        )}
-    </>
-  );
 }

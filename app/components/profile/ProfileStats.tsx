@@ -1,51 +1,204 @@
-
 'use client';
-import { Card, CardContent } from '@/components/ui/card';
-import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
-import React, { memo } from 'react';
-import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '../ui/skeleton';
 
-const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
-  <Card className="bg-secondary/50 p-3 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-primary/40">
-    <div className='flex flex-col items-center text-center'>
-      <div className="text-primary mb-1">{icon}</div>
-      <p className="text-xl font-bold text-foreground leading-tight">{value}</p>
-      <p className="text-[10px] text-muted-foreground font-semibold uppercase leading-tight mt-1">{label}</p>
-    </div>
-  </Card>
-);
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot, endBefore, limitToLast } from 'firebase/firestore';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { mapFirestoreError } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const StatsSkeleton = () => (
-    <div className="grid grid-cols-2 gap-3">
-        <Skeleton className="h-[90px] w-full" />
-        <Skeleton className="h-[90px] w-full" />
-        <Skeleton className="h-[90px] w-full" />
-        <Skeleton className="h-[90px] w-full" />
-    </div>
-);
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  quizzesPlayed: number;
+  totalScore: number;
+  photoURL?: string;
+}
 
-const ProfileStatsComponent = () => {
-  const { profile, loading } = useAuth();
-  
-  if (loading || !profile) {
-    return <StatsSkeleton />;
-  }
+const ROWS_PER_PAGE = 15;
 
-  const quizzesPlayed = profile?.quizzesPlayed || 0;
-  const perfectScores = profile?.perfectScores || 0;
-  const winPercentage = quizzesPlayed > 0 ? ((perfectScores / quizzesPlayed) * 100).toFixed(1) : 0;
-  const totalRewards = profile?.totalRewards || 0;
+const UserSkeleton = () => (
+    <TableRow>
+        <TableCell><Skeleton className="h-10 w-10 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+    </TableRow>
+)
 
-  return (
-    <div className="grid grid-cols-2 gap-3">
-        <StatItem icon={<Star size={24} className="text-primary"/>} label="Perfect Scores" value={perfectScores} />
-        <StatItem icon={<Award size={24} className="text-primary"/>} label="Quizzes Played" value={quizzesPlayed} />
-        <StatItem icon={<TrendingUp size={24} className="text-primary"/>} label="Win Percentage" value={`${winPercentage}%`} />
-        <StatItem icon={<Trophy size={24} className="text-primary"/>} label="Rewards Earned" value={`₹${totalRewards}`} />
-    </div>
-  );
-};
+export default function UserManagement() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-const ProfileStats = memo(ProfileStatsComponent);
-export default ProfileStats;
+    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [page, setPage] = useState(1);
+
+    const fetchUsers = useCallback(async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
+        setIsLoading(true);
+        setError(null);
+        if (!db) {
+            setError("Database connection not available.");
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            let q = query(
+                collection(db, 'users'),
+                orderBy('name'),
+                limit(ROWS_PER_PAGE)
+            );
+            
+            if (direction === 'next' && lastVisible) {
+                q = query(q, startAfter(lastVisible));
+            } else if (direction === 'prev' && firstVisible) {
+                q = query(collection(db, 'users'), orderBy('name'), endBefore(firstVisible), limitToLast(ROWS_PER_PAGE));
+            }
+
+            const documentSnapshots = await getDocs(q);
+            const fetchedUsers: User[] = [];
+            documentSnapshots.forEach((doc) => {
+                const data = doc.data();
+                fetchedUsers.push({
+                    id: doc.id,
+                    name: data.name,
+                    email: data.email,
+                    quizzesPlayed: data.quizzesPlayed || 0,
+                    totalScore: data.totalScore || 0,
+                    photoURL: data.photoURL,
+                });
+            });
+
+            if (!documentSnapshots.empty) {
+                setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
+                setFirstVisible(documentSnapshots.docs[0]);
+            }
+            setUsers(fetchedUsers);
+
+        } catch (err: any) {
+            console.error("Error fetching users:", err);
+            const mappedError = mapFirestoreError(err);
+            setError(mappedError.userMessage);
+        } finally {
+            setIsLoading(false);
+        }
+
+    }, [lastVisible, firstVisible]);
+
+    useEffect(() => {
+        // For now, search is disabled. Will be implemented with a proper search solution.
+        fetchUsers('initial');
+    }, [debouncedSearchTerm, fetchUsers]);
+
+    const handleNextPage = () => {
+        if (lastVisible) {
+            setPage(p => p + 1);
+            fetchUsers('next');
+        }
+    };
+    
+    const handlePrevPage = () => {
+        if (firstVisible) {
+            setPage(p => Math.max(1, p - 1));
+            fetchUsers('prev');
+        }
+    };
+
+    const renderContent = () => {
+        if (isLoading) {
+            return Array.from({ length: 5 }).map((_, i) => <UserSkeleton key={i} />);
+        }
+
+        if (error) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={5}>
+                        <Alert variant="destructive">
+                            <AlertTitle>Error Loading Users</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    </TableCell>
+                </TableRow>
+            );
+        }
+        
+        if (users.length === 0) {
+            return <TableRow><TableCell colSpan={5} className="text-center">No users found.</TableCell></TableRow>;
+        }
+
+        return users.map(user => (
+            <TableRow key={user.id}>
+                <TableCell>
+                    <Avatar>
+                        <AvatarImage src={user.photoURL} alt={user.name} />
+                        <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                </TableCell>
+                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell className="text-center">{user.quizzesPlayed}</TableCell>
+                <TableCell className="text-center">{user.totalScore}</TableCell>
+            </TableRow>
+        ));
+    };
+
+    return (
+        <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+                <div>
+                    <h1 className="text-2xl font-bold">User Management</h1>
+                    <p className="text-muted-foreground">Browse and manage platform users.</p>
+                </div>
+                <div className="w-1/3 relative">
+                    <Input 
+                        placeholder="Search users... (disabled)" 
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                        disabled
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                </div>
+            </div>
+
+            <div className="rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Avatar</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="text-center">Quizzes Played</TableHead>
+                            <TableHead className="text-center">Total Score</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {renderContent()}
+                    </TableBody>
+                </Table>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 py-4">
+                 <span className="text-sm text-muted-foreground">Page {page}</span>
+                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={page === 1}>
+                    <ChevronLeft className="h-4 w-4" /> Previous
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={users.length < ROWS_PER_PAGE}>
+                    Next <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        </div>
+    );
+}

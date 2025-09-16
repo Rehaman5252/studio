@@ -1,8 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Users, FileCheck, Banknote, LogOut, Shield } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
