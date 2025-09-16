@@ -13,7 +13,7 @@ import AnalysisDialog from '@/components/history/AnalysisDialog';
 import ReviewDialog from '@/components/history/ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
-import { normalizeTimestamp } from '@/lib/dates';
+import { normalizeTimestamp } from '@/app/lib/dates';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">

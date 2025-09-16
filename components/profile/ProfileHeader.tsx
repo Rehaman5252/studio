@@ -13,7 +13,7 @@ import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { EditProfileDialog } from './EditProfileDialog';
-import { normalizeTimestamp } from '@/lib/dates';
+import { normalizeTimestamp } from '@/app/lib/dates';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user, profile } = useAuth(); // Get the auth user object

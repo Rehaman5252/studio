@@ -24,7 +24,7 @@ export function normalizeTimestamp(timestamp: any): Date | null {
             date = timestamp;
         } else if (timestamp instanceof Timestamp) { // Firestore Timestamp from server
             date = timestamp.toDate();
-        } else if (typeof timestamp === 'object' && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
+        } else if (typeof timestamp === 'object' && 'seconds' in timestamp && typeof timestamp.seconds === 'number' && 'nanoseconds' in timestamp && typeof timestamp.nanoseconds === 'number') {
             // Firestore Timestamp from client (after JSON serialization)
             date = new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
         } else if (typeof timestamp === 'number') { // Unix timestamp in ms

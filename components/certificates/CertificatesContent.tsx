@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { normalizeTimestamp } from '@/lib/dates';
+import { normalizeTimestamp } from '@/app/lib/dates';
 import type { QuizAttempt } from '@/ai/schemas';
 
 const CertificateItemSkeleton = () => (

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Award } from 'lucide-react';
 import type { QuizAttempt, QuizQuestion } from '@/ai/schemas';
 import ReportQuestionDialog from '@/components/quiz/ReportQuestionDialog';
-import { normalizeTimestamp } from '@/lib/dates';
+import { normalizeTimestamp } from '@/app/lib/dates';
 
 interface ReviewDialogProps {
   open: boolean;
