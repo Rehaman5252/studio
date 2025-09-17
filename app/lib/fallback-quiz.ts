@@ -221,18 +221,27 @@ export const allFallbackQuestions: FallbackQuestion[] = [
  * @param format The cricket format (e.g., 'ipl', 't20').
  * @returns A QuizData object containing 5 questions.
  */
-export function getLocalFallbackQuiz(format: string): { questions: FallbackQuestion[] } {
+export function getLocalFallbackQuiz(format: string): { questions: QuizDataQuestion[] } {
   const normalizedFormat = format.toLowerCase();
-  const questionsForFormat = allFallbackQuestions.filter(
-    (q) => q.format === normalizedFormat
-  );
+  
+  // Filter questions for the specific format
+  let questionsForFormat = allFallbackQuestions.filter(q => q.format === normalizedFormat);
 
-  const questions =
-    questionsForFormat.length >= 5
-      ? questionsForFormat
-      : allFallbackQuestions.filter((q) => q.format === 'mixed');
+  // If there aren't enough questions for the specific format, use 'mixed' as a fallback
+  if (questionsForFormat.length < 5) {
+    console.warn(`Not enough local fallback questions for format "${format}". Using "mixed" format.`);
+    questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
+  }
 
-  return { questions: shuffleArray(questions).slice(0, 5) };
+  // Shuffle the selected questions and take the first 5
+  const shuffledQuestions = shuffleArray(questionsForFormat);
+  const selectedQuestions = shuffledQuestions.slice(0, 5).map((q, index) => ({
+      ...q,
+      // The API route will provide the final ID from Firestore, so this is just for local structure.
+      id: `local_fb_${normalizedFormat}_${index}` 
+  }));
+
+  return { questions: selectedQuestions };
 }
 
 
