@@ -46,9 +46,15 @@ export const QuizAnalysisOutputSchema = z.object({
   source: z.enum(["ai", "fallback"]).default("fallback"),
 });
 
+export const HintOutputSchema = z.object({
+  hint: z.string().min(1),
+  source: z.enum(["ai", "fallback"]),
+  debug: z.string().optional(),
+});
+
 
 export type QuizQuestion = z.infer<typeof QuizQuestion>;
 export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
-export type HintOutput = import('./flows/ai-powered-hints').HintOutput;
+export type HintOutput = z.infer<typeof HintOutputSchema>;

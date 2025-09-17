@@ -11,8 +11,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { QuizQuestion as QuizQuestionType } from '@/ai/schemas';
-import { QuizQuestion as QuestionSchema } from '@/ai/schemas';
+import type { QuizQuestion as QuizQuestionType, HintOutput } from '@/ai/schemas';
+import { QuizQuestion as QuestionSchema, HintOutputSchema } from '@/ai/schemas';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
@@ -20,13 +20,6 @@ const HintInputSchema = z.object({
   question: QuestionSchema,
 });
 export type HintInput = z.infer<typeof HintInputSchema>;
-
-export const HintOutputSchema = z.object({
-  hint: z.string().min(1),
-  source: z.enum(["ai", "fallback"]),
-  debug: z.string().optional(),
-});
-export type HintOutput = z.infer<typeof HintOutputSchema>;
 
 // The main function exported to the client. It wraps the Genkit flow.
 export async function getAIPoweredHint(input: HintInput): Promise<HintOutput> {
