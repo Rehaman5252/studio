@@ -59,6 +59,7 @@ export default function CricketFact({ format }: { format: string }) {
     // Initial load effect
     useEffect(() => {
         fetchFacts(format, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [format]);
 
 
