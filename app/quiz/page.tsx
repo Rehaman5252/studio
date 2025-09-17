@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
+import { logger } from '@/lib/logger';
 
 const QuizClient = dynamic(
   () => import('@/components/quiz/QuizClient').catch(err => {
@@ -48,7 +49,7 @@ function QuizPageContent() {
   const [key, setKey] = useState(0);
 
   const retryQuizFetch = () => {
-    console.warn("Retrying quiz fetch...");
+    logger.warn("Retrying quiz fetch...", { brand, format });
     setKey(prev => prev + 1);
   };
 
