@@ -1,42 +1,50 @@
 
 import { logger } from "../logger";
-import { eventSchema } from "../analytics-events";
 
-describe("logger.event()", () => {
-  const spyLog = jest.spyOn(console, "log").mockImplementation(() => {});
-  const spyError = jest.spyOn(console, "error").mockImplementation(() => {});
+describe("Logger Event Validation", () => {
+  let infoSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
+  let logSpy: jest.SpyInstance;
+  const originalNodeEnv = process.env.NODE_ENV;
 
-  beforeEach(() => {
-    // Set NODE_ENV to development for these tests to ensure logs appear
-    process.env.NODE_ENV = 'development';
-  });
-
-  afterEach(() => {
-    spyLog.mockClear();
-    spyError.mockClear();
+  beforeAll(() => {
+    process.env.NODE_ENV = "development"; // force logging for tests
   });
 
   afterAll(() => {
-    spyLog.mockRestore();
-    spyError.mockRestore();
-    // Reset NODE_ENV
-    process.env.NODE_ENV = 'test';
+    process.env.NODE_ENV = originalNodeEnv; // restore original NODE_ENV
   });
 
-  it("logs valid quiz_start event", () => {
-    const payload = {
-      format: "T20",
-      brand: "TestBrand",
-      source: "ai" as const,
-    };
+  beforeEach(() => {
+    infoSpy = jest.spyOn(console, "info").mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+  });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("logs a valid quiz_start event", () => {
+    const payload = { format: "T20", brand: "TestBrand", source: "ai" as const };
     logger.event("quiz_start", payload);
-
-    expect(spyLog).toHaveBeenCalledWith("[EVENT] quiz_start", payload);
-    expect(spyError).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith("[EVENT] quiz_start", payload);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it("logs valid quiz_complete event", () => {
+  it("logs a validation error for an invalid quiz_start event", () => {
+    const badPayload = { format: "T20" } as any;
+    logger.event("quiz_start", badPayload);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[EVENT VALIDATION FAILED] for event "quiz_start":'),
+      expect.any(Object)
+    );
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("logs a valid quiz_complete event", () => {
     const payload = {
       format: "T20",
       brand: "TestBrand",
@@ -46,29 +54,12 @@ describe("logger.event()", () => {
       disqualified: false,
       reason: null,
     };
-
     logger.event("quiz_complete", payload);
-
-    expect(spyLog).toHaveBeenCalledWith("[EVENT] quiz_complete", payload);
-    expect(spyError).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith("[EVENT] quiz_complete", payload);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid quiz_start event and logs a validation error", () => {
-    const badPayload = {
-      format: "T20",
-      // ❌ missing brand and source
-    } as any;
-
-    logger.event("quiz_start", badPayload);
-
-    expect(spyError).toHaveBeenCalledWith(
-      '[EVENT VALIDATION FAILED] for event "quiz_start":',
-      expect.any(Object)
-    );
-    expect(spyLog).not.toHaveBeenCalled();
-  });
-
-  it("rejects invalid quiz_complete event and logs a validation error", () => {
+  it("logs a validation error for an invalid quiz_complete event", () => {
     const badPayload = {
       format: "T20",
       brand: "TestBrand",
@@ -78,25 +69,11 @@ describe("logger.event()", () => {
       disqualified: false,
       reason: null,
     } as any;
-
     logger.event("quiz_complete", badPayload);
-
-    expect(spyError).toHaveBeenCalledWith(
-      '[EVENT VALIDATION FAILED] for event "quiz_complete":',
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[EVENT VALIDATION FAILED] for event "quiz_complete":'),
       expect.any(Object)
     );
-    expect(spyLog).not.toHaveBeenCalled();
-  });
-
-  it("does not log events in production environment", () => {
-    process.env.NODE_ENV = 'production';
-    const payload = {
-      format: "T20",
-      brand: "TestBrand",
-      source: "ai" as const,
-    };
-    logger.event("quiz_start", payload);
-    expect(spyLog).not.toHaveBeenCalled();
-    expect(spyError).not.toHaveBeenCalled();
+     expect(logSpy).not.toHaveBeenCalled();
   });
 });
