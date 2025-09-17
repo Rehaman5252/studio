@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview A simple, centralized logging utility.
  *
@@ -6,6 +7,7 @@
  * It also includes a dedicated `event` method for tracking structured analytics.
  */
 import type { EventName, EventPayload } from './analytics-events';
+import { eventSchema } from './analytics-events';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -32,14 +34,27 @@ export const logger = {
     log('error', message, context);
   },
   /**
-   * Tracks a structured, type-safe analytics event.
+   * Tracks a structured, type-safe analytics event. It also validates the payload
+   * at runtime to catch errors during development.
    * @param eventName The name of the event (e.g., 'quiz_start').
    * @param payload An object containing metadata about the event.
    */
   event: <T extends EventName>(eventName: T, payload: EventPayload<T>) => {
-    // In a real-world scenario, you would send this to your analytics service.
-    // e.g., firebase.analytics().logEvent(eventName, payload);
+    // 1. Runtime validation (great for development)
+    const schema = eventSchema[eventName];
+    const validation = schema.safeParse(payload);
+    if (!validation.success) {
+      console.error(
+        `[EVENT VALIDATION FAILED] for event "${eventName}":`,
+        validation.error.flatten()
+      );
+      return;
+    }
 
+    // 2. In a real-world scenario, you would send this to your analytics service.
+    // e.g., firebase.analytics().logEvent(eventName, payload);
+    
+    // 3. Log to console in non-production environments
     if (!IS_PRODUCTION) {
       console.log(`[EVENT] ${eventName}`, payload);
     }
