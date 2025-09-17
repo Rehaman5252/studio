@@ -142,27 +142,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
           let friendlyTitle = "Standard Quiz Loaded";
           let friendlyDesc = "The AI is warming up, so here's a ready-made quiz for you.";
 
-          switch (data.errorDetails.code) {
-            case "INVALID_JSON":
-              friendlyTitle = "⚠️ Bad Request Fixed";
-              friendlyDesc = "We couldn't read your request, but a quiz is ready anyway.";
-              break;
-            case "INVALID_PAYLOAD":
-              friendlyTitle = "⚠️ Invalid Request";
-              friendlyDesc = "Some data was missing, but we generated a quiz for you.";
-              break;
-            case "AI_FLOW_FAILED":
-              friendlyTitle = "🤖 AI Unavailable";
-              friendlyDesc = "The AI engine stumbled, so a standard quiz is here for you.";
-              break;
-            case "FATAL":
-              friendlyTitle = "🔥 Unexpected Error";
-              friendlyDesc = "Something went wrong, but you're not blocked—here's a quiz.";
-              break;
-          }
-
           if (IS_DEV) {
-            friendlyDesc += ` (Dev: ${data.reqId} - ${data.errorDetails.originalError})`;
+            friendlyDesc += ` (Dev: ${data.reqId} - ${data.errorDetails.message})`;
           }
 
           toast({
@@ -223,9 +204,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
-    addQuizAttempt(attempt);
+    const { success } = await addQuizAttempt(attempt);
 
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    if (success) {
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    } else {
+        // Even if queued, redirect with data so user sees their result.
+        // The data will sync later.
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    }
 
   }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
@@ -253,9 +240,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    addQuizAttempt(attempt);
+    const { success } = await addQuizAttempt(attempt);
 
-    router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    if (success) {
+      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    } else {
+      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
+    }
 
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
 
