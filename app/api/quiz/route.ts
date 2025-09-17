@@ -1,10 +1,10 @@
 
 import { NextResponse } from "next/server";
-import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { z, ZodError } from "zod";
-import type { QuizData, FallbackQuestion } from "@/lib/fallback-quiz";
+import type { QuizData, QuizQuestion } from "@/ai/schemas";
 import { db } from "@/lib/firebase";
-import { collection, query, where, limit, getDocs, orderBy, startAt, documentId } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, where, getCountFromServer } from 'firebase/firestore';
+import { getFallbackQuiz } from "@/lib/fallback-quiz";
 
 export const dynamic = 'force_dynamic';
 
@@ -15,28 +15,52 @@ const ApiQuizInputSchema = z.object({
 
 const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
     if (!db) {
-        // Fallback to local file if DB is not available
+        console.warn(`[quiz] DB not available, using local fallback for "${format}".`);
         return getFallbackQuiz(format);
     }
     try {
-        const q = query(
-          collection(db, "fallback_questions"), 
-          where('format', '==', format.toLowerCase()),
-        );
+        const normalizedFormat = format.toLowerCase();
+        
+        const formatQuery = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat));
+        const countSnapshot = await getCountFromServer(formatQuery);
+        const docCount = countSnapshot.data().count;
 
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            console.warn(`[quiz] No questions found for format "${format}" in Firestore, using local fallback.`);
+        if (docCount < 5) {
+            console.warn(`[quiz] Not enough questions for format "${format}" in Firestore (${docCount}), using local fallback.`);
             return getFallbackQuiz(format);
         }
 
-        const allQuestions = snapshot.docs.map(doc => doc.data() as FallbackQuestion);
+        const randomIndex = Math.floor(Math.random() * (docCount - 4));
+        const randomDocQuery = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), orderBy('question'), limit(1), startAt(randomIndex));
         
-        // Simple shuffle and pick 5
-        const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-        const selectedQuestions = shuffled.slice(0, 5).map(q => ({...q, id: Math.random().toString(36).substring(7)}));
+        const randomDocSnap = await getDocs(randomDocQuery);
+        if (randomDocSnap.empty) {
+             // This can happen if the random index is too close to the end. Fallback to a simpler query.
+             const q = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), limit(5));
+             const snapshot = await getDocs(q);
+             const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
+             return { questions };
+        }
 
-        return { questions: selectedQuestions };
+        const startingDoc = randomDocSnap.docs[0];
+        
+        const finalQuery = query(
+            collection(db, "fallback_questions"), 
+            where('format', '==', normalizedFormat),
+            orderBy('question'), 
+            startAt(startingDoc),
+            limit(5)
+        );
+
+        const snapshot = await getDocs(finalQuery);
+        const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
+        
+        if (questions.length < 5) {
+            console.warn(`[quiz] Firestore query returned < 5 questions for "${format}", using local fallback.`);
+            return getFallbackQuiz(format);
+        }
+
+        return { questions };
 
     } catch (error) {
         console.error(`[quiz] Firestore query failed for format "${format}", using local fallback.`, error);
@@ -64,7 +88,7 @@ export async function POST(req: Request) {
     console.info(`[quiz][${reqId}] Generating fallback quiz for ${parsed.userId} (${format})`);
     const quiz = await getQuestionsFromFirestore(format);
     
-    // As we are now always using the fallback, the source is always 'fallback'.
+    // Always use the fallback source.
     return NextResponse.json({ ok: true, quiz, source: "fallback", reqId });
 
   } catch (err: any) {
