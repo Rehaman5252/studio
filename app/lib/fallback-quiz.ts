@@ -216,8 +216,8 @@ export const allFallbackQuestions: FallbackQuestion[] = [
 ];
 
 /**
- * Retrieves a fallback quiz for a given format. If the format is not found,
- * it defaults to the 'mixed' format quiz. This is only used when Firestore fails.
+ * Retrieves a fallback quiz from the local array of questions. This is used
+ * ONLY when Firestore is unavailable.
  * @param format The cricket format (e.g., 'ipl', 't20').
  * @returns A QuizData object containing 5 questions.
  */

@@ -52,13 +52,11 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
         
         let questions = snapshot.docs.map(doc => {
             const data = doc.data();
+            // Ensure no embedded ID from the data object conflicts with the document ID
+            delete (data as any).id;
             return {
               id: doc.id,
-              question: data.question,
-              options: data.options,
-              correctAnswer: data.correctAnswer,
-              explanation: data.explanation,
-              // hint and difficulty are part of the doc data but not QuizQuestion schema
+              ...data,
             } as QuizQuestion;
         });
         
@@ -68,12 +66,10 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
             const wrapAroundSnapshot = await getDocs(wrapAroundQuery);
             questions = wrapAroundSnapshot.docs.map(doc => {
                  const data = doc.data();
+                 delete (data as any).id;
                  return {
                     id: doc.id,
-                    question: data.question,
-                    options: data.options,
-                    correctAnswer: data.correctAnswer,
-                    explanation: data.explanation,
+                    ...data,
                  } as QuizQuestion;
             });
         }
