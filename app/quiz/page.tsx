@@ -49,7 +49,7 @@ function QuizPageContent() {
   const [key, setKey] = useState(0);
 
   const retryQuizFetch = () => {
-    logger.warn("Retrying quiz fetch...", { brand, format });
+    logger.event("quiz_fetch_retry", { brand, format });
     setKey(prev => prev + 1);
   };
 

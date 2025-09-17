@@ -1,10 +1,9 @@
-
 /**
  * @fileoverview A simple, centralized logging utility.
  *
  * This module provides a basic logging interface that can be expanded later
  * to integrate with a real telemetry service like Sentry, LogRocket, or Firebase Analytics.
- * For now, it just wraps the standard console methods and only logs in non-production environments.
+ * It also includes a dedicated `event` method for tracking structured analytics.
  */
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -31,4 +30,17 @@ export const logger = {
   error: (message: string, context?: Record<string, any>) => {
     log('error', message, context);
   },
+  /**
+   * Tracks a structured analytics event.
+   * @param eventName The name of the event (e.g., 'quiz_start', 'user_login').
+   * @param payload An object containing metadata about the event.
+   */
+  event: (eventName: string, payload: Record<string, any> = {}) => {
+    // In a real-world scenario, you would send this to your analytics service.
+    // e.g., firebase.analytics().logEvent(eventName, payload);
+
+    if (!IS_PRODUCTION) {
+        console.log(`[EVENT] ${eventName}`, payload);
+    }
+  }
 };
