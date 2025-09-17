@@ -39,16 +39,16 @@ export const QuizAttempt = z.object({
 });
 
 export const QuizAnalysisOutputSchema = z.object({
-  summary: z.string().describe("Concise performance summary."),
-  strengths: z.array(z.string()).min(1).max(3).describe("User strengths."),
-  weaknesses: z.array(z.string()).min(1).max(3).describe("User weaknesses."),
-  recommendations: z.array(z.string()).min(1).max(3).describe("Next steps."),
+  summary: z.string().describe("Summary of performance"),
+  strengths: z.array(z.string()).min(1).max(3).describe("Key strengths"),
+  weaknesses: z.array(z.string()).min(1).max(3).describe("Key weaknesses"),
+  recommendations: z.array(z.string()).min(1).max(3).describe("Recommendations"),
   source: z.enum(["ai", "fallback"]).default("fallback").describe("Analysis source"),
 });
 
 export const HintOutputSchema = z.object({
   hint: z.string().min(1),
-  source: z.enum(["ai", "fallback"]),
+  source: z.enum(['ai', 'fallback']),
   debug: z.string().optional(),
 });
 
