@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { getFallbackQuiz } from "@/lib/fallback-quiz";
-import { mapFirestoreError } from "@/lib/utils";
 import { z, ZodError } from "zod";
 import type { QuizData } from "@/ai/schemas";
 
@@ -13,47 +12,68 @@ const ApiQuizInputSchema = z.object({
   userId: z.string().min(1, { message: "User ID cannot be empty." }),
 });
 
+type ErrorCodes = "INVALID_JSON" | "INVALID_PAYLOAD" | "AI_FLOW_FAILED" | "FATAL";
+
+const sendErrorResponse = (
+  reqId: string,
+  code: ErrorCodes,
+  originalError: string,
+  fallbackQuiz: QuizData
+) => {
+    let friendlyMessage = "The AI is currently busy. Here's a standard quiz to get you started!";
+    
+    return NextResponse.json({
+        ok: true, // Still OK because we have a fallback
+        quiz: fallbackQuiz,
+        source: "fallback",
+        reqId: reqId,
+        error: { message: friendlyMessage },
+        errorDetails: {
+            message: friendlyMessage,
+            originalError: originalError,
+            code: code
+        }
+    });
+};
+
 
 export async function POST(req: Request) {
   const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  let body;
+  
+  try {
+    body = await req.json();
+  } catch (e) {
+    const err = e as Error;
+    console.error(`[quiz][${reqId}] Invalid JSON`, err.message);
+    const fallbackQuiz = getFallbackQuiz("mixed");
+    return sendErrorResponse(reqId, "INVALID_JSON", err.message, fallbackQuiz);
+  }
 
   try {
-    const body = await req.json();
     const parsed = ApiQuizInputSchema.parse(body);
-    const { format, userId } = parsed.data;
+    const { format, userId } = parsed;
 
-    console.info(`[quiz][${reqId}] Generating AI quiz for ${userId} (${format})`);
-    
-    // Directly call the AI flow. If it fails, the error will propagate
-    // and result in a 500 server error, as requested.
-    const quiz = await generateQuizFlow({ format, userId });
-    
-    return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
+    try {
+        console.info(`[quiz][${reqId}] Generating AI quiz for ${userId} (${format})`);
+        const quiz = await generateQuizFlow({ format, userId });
+        return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
+
+    } catch (aiError: any) {
+        console.error(`[quiz][${reqId}] AI flow failed`, aiError.message);
+        const fallbackQuiz = getFallbackQuiz(format);
+        return sendErrorResponse(reqId, "AI_FLOW_FAILED", aiError.message, fallbackQuiz);
+    }
 
   } catch (err: any) {
-    console.error(`[quiz][${reqId}] Fatal API error:`, err);
-    
-    // Map Firestore index errors to a specific, actionable response.
-    const mapped = mapFirestoreError(err);
-    if (mapped?.code === "INDEX_REQUIRED") {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: { code: mapped.code, message: mapped.userMessage },
-          reqId,
-        },
-        { status: 500 }
-      );
-    }
-    
-    // For all other errors (Zod validation, AI flow failure, etc.), return a generic 500 error.
-    const errorMessage = err instanceof ZodError 
-      ? "Invalid request payload." 
-      : err.message || "Failed to generate AI quiz.";
-
-    return NextResponse.json(
-      { ok: false, error: { message: errorMessage }, reqId },
-      { status: 500 }
-    );
+     if (err instanceof ZodError) {
+        console.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
+        const fallbackQuiz = getFallbackQuiz(body?.format || "mixed");
+        return sendErrorResponse(reqId, "INVALID_PAYLOAD", JSON.stringify(err.flatten()), fallbackQuiz);
+     }
+     
+     console.error(`[quiz][${reqId}] Fatal API error`, err.message);
+     const fallbackQuiz = getFallbackQuiz(body?.format || "mixed");
+     return sendErrorResponse(reqId, "FATAL", err.message, fallbackQuiz);
   }
 }
