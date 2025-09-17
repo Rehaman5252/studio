@@ -1,9 +1,9 @@
 
 import { NextResponse } from "next/server";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
-import { getFallbackQuiz } from "@/lib/fallback-quiz";
+import { allFallbackQuestions, shuffleArray } from "@/lib/fallback-quiz";
 import { z, ZodError } from "zod";
-import type { QuizData } from "@/ai/schemas";
+import type { QuizData, QuizQuestion } from "@/ai/schemas";
 
 export const dynamic = 'force_dynamic';
 
@@ -14,6 +14,21 @@ const ApiQuizInputSchema = z.object({
 
 type ErrorCodes = "INVALID_JSON" | "INVALID_PAYLOAD" | "AI_FLOW_FAILED" | "FATAL";
 
+
+const getFallbackQuizForFormat = (format: string): QuizData => {
+  const normalizedFormat = format.toLowerCase();
+  const questionsForFormat = allFallbackQuestions.filter(
+    (q) => q.format.toLowerCase() === normalizedFormat
+  );
+
+  const questions =
+    questionsForFormat.length >= 5
+      ? questionsForFormat
+      : allFallbackQuestions;
+
+  return { questions: shuffleArray(questions).slice(0, 5) as QuizQuestion[] };
+};
+
 const sendErrorResponse = async (
   reqId: string,
   code: ErrorCodes,
@@ -21,7 +36,7 @@ const sendErrorResponse = async (
   format: string = "mixed"
 ) => {
     let friendlyMessage = "The AI is currently busy. Here's a standard quiz to get you started!";
-    const fallbackQuiz = await getFallbackQuiz(format);
+    const fallbackQuiz = getFallbackQuizForFormat(format);
     
     return NextResponse.json({
         ok: true, // Still OK because we have a fallback
