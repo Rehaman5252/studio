@@ -48,6 +48,7 @@ function QuizPageContent() {
   const [key, setKey] = useState(0);
 
   const retryQuizFetch = () => {
+    console.warn("Retrying quiz fetch...");
     setKey(prev => prev + 1);
   };
 
