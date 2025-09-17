@@ -1,9 +1,10 @@
 
 import { NextResponse } from "next/server";
-import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
-import { allFallbackQuestions, shuffleArray } from "@/lib/fallback-quiz";
+import { getFallbackQuiz } from "@/lib/fallback-quiz";
 import { z, ZodError } from "zod";
-import type { QuizData, QuizQuestion } from "@/ai/schemas";
+import type { QuizData, FallbackQuestion } from "@/lib/fallback-quiz";
+import { db } from "@/lib/firebase";
+import { collection, query, where, limit, getDocs, orderBy, startAt, documentId } from 'firebase/firestore';
 
 export const dynamic = 'force_dynamic';
 
@@ -12,45 +13,36 @@ const ApiQuizInputSchema = z.object({
   userId: z.string().min(1, { message: "User ID cannot be empty." }),
 });
 
-type ErrorCodes = "INVALID_JSON" | "INVALID_PAYLOAD" | "AI_FLOW_FAILED" | "FATAL";
+const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
+    if (!db) {
+        // Fallback to local file if DB is not available
+        return getFallbackQuiz(format);
+    }
+    try {
+        const q = query(
+          collection(db, "fallback_questions"), 
+          where('format', '==', format.toLowerCase()),
+        );
 
-
-const getFallbackQuizForFormat = (format: string): QuizData => {
-  const normalizedFormat = format.toLowerCase();
-  const questionsForFormat = allFallbackQuestions.filter(
-    (q) => q.format.toLowerCase() === normalizedFormat
-  );
-
-  const questions =
-    questionsForFormat.length >= 5
-      ? questionsForFormat
-      : allFallbackQuestions;
-
-  return { questions: shuffleArray(questions).slice(0, 5) as QuizQuestion[] };
-};
-
-const sendErrorResponse = async (
-  reqId: string,
-  code: ErrorCodes,
-  originalError: string,
-  format: string = "mixed"
-) => {
-    let friendlyMessage = "The AI is currently busy. Here's a standard quiz to get you started!";
-    const fallbackQuiz = getFallbackQuizForFormat(format);
-    
-    return NextResponse.json({
-        ok: true, // Still OK because we have a fallback
-        quiz: fallbackQuiz,
-        source: "fallback",
-        reqId: reqId,
-        error: { message: friendlyMessage },
-        errorDetails: {
-            message: friendlyMessage,
-            originalError: originalError,
-            code: code
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            console.warn(`[quiz] No questions found for format "${format}" in Firestore, using local fallback.`);
+            return getFallbackQuiz(format);
         }
-    });
-};
+
+        const allQuestions = snapshot.docs.map(doc => doc.data() as FallbackQuestion);
+        
+        // Simple shuffle and pick 5
+        const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+        const selectedQuestions = shuffled.slice(0, 5).map(q => ({...q, id: Math.random().toString(36).substring(7)}));
+
+        return { questions: selectedQuestions };
+
+    } catch (error) {
+        console.error(`[quiz] Firestore query failed for format "${format}", using local fallback.`, error);
+        return getFallbackQuiz(format);
+    }
+}
 
 
 export async function POST(req: Request) {
@@ -62,32 +54,26 @@ export async function POST(req: Request) {
   } catch (e) {
     const err = e as Error;
     console.error(`[quiz][${reqId}] Invalid JSON`, err.message);
-    return sendErrorResponse(reqId, "INVALID_JSON", err.message);
+    return NextResponse.json({ ok: false, error: { message: "Invalid request format." } }, { status: 400 });
   }
 
   try {
     const parsed = ApiQuizInputSchema.parse(body);
-    const { format, userId } = parsed;
+    const { format } = parsed;
 
-    try {
-        console.info(`[quiz][${reqId}] Generating AI quiz for ${userId} (${format})`);
-        const quiz = await generateQuizFlow({ format, userId });
-        return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
-
-    } catch (aiError: any) {
-        console.error(`[quiz][${reqId}] AI flow failed`, aiError.message);
-        return sendErrorResponse(reqId, "AI_FLOW_FAILED", aiError.message, format);
-    }
+    console.info(`[quiz][${reqId}] Generating fallback quiz for ${parsed.userId} (${format})`);
+    const quiz = await getQuestionsFromFirestore(format);
+    
+    // As we are now always using the fallback, the source is always 'fallback'.
+    return NextResponse.json({ ok: true, quiz, source: "fallback", reqId });
 
   } catch (err: any) {
      if (err instanceof ZodError) {
         console.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
-        const format = body?.format || "mixed";
-        return sendErrorResponse(reqId, "INVALID_PAYLOAD", JSON.stringify(err.flatten()), format);
+        return NextResponse.json({ ok: false, error: { message: "Invalid payload provided." } }, { status: 400 });
      }
      
      console.error(`[quiz][${reqId}] Fatal API error`, err.message);
-     const format = body?.format || "mixed";
-     return sendErrorResponse(reqId, "FATAL", err.message, format);
+     return NextResponse.json({ ok: false, error: { message: "An unexpected server error occurred." } }, { status: 500 });
   }
 }
