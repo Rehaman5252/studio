@@ -11,8 +11,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { QuizQuestion as QuizQuestionType, HintOutput } from '@/ai/schemas';
-import { QuizQuestion as QuestionSchema, HintOutputSchema } from '@/ai/schemas';
+import type { QuizQuestion as QuizQuestionType } from '@/ai/schemas';
+import { QuizQuestion as QuestionSchema, HintOutputSchema, type HintOutput } from '@/ai/schemas';
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
