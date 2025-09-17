@@ -21,6 +21,7 @@ import { isFirebaseConfigured } from '@/lib/firebase';
 import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
 import LoginPrompt from '../auth/LoginPrompt';
+import { logger } from '@/lib/logger';
 
 
 interface QuizClientProps {
@@ -173,9 +174,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const handlePreQuizFinish = useCallback(() => {
     if (isFinishedRef.current) return;
+    logger.event('quiz_start', { format, brand, source: quizSource });
     setQuizState('playing');
     setStartTime(Date.now());
-  }, []);
+  }, [format, brand, quizSource]);
 
   const finishQuiz = useCallback(async (finalAnswers: string[], finalTimePerQuestion: number[]) => {
     if (isFinishedRef.current || !quizData || !user) return;
@@ -190,6 +192,15 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       userAnswers: finalAnswers,
       timePerQuestion: finalTimePerQuestion,
       source: quizSource,
+    });
+    
+    logger.event('quiz_complete', {
+        format,
+        brand,
+        score: attempt.score,
+        totalQuestions: attempt.totalQuestions,
+        source: quizSource,
+        disqualified: false,
     });
     
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
@@ -227,6 +238,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       overrides: { reason, score: 0 },
       source: quizSource,
     });
+
+    logger.event('quiz_complete', {
+        format,
+        brand,
+        score: 0,
+        totalQuestions: attempt.totalQuestions,
+        source: quizSource,
+        disqualified: true,
+        reason,
+    });
+
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
     const { success } = await addQuizAttempt(attempt);
@@ -400,5 +422,6 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     );
   }
 
+  // Fallback rendering for any unhandled state. This should not normally be reached.
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
