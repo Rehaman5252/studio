@@ -50,13 +50,32 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
 
         const snapshot = await getDocs(finalQuery);
         
-        let questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
+        let questions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              question: data.question,
+              options: data.options,
+              correctAnswer: data.correctAnswer,
+              explanation: data.explanation,
+              // hint and difficulty are part of the doc data but not QuizQuestion schema
+            } as QuizQuestion;
+        });
         
         // If we still don't have enough questions (e.g., reached the end of the collection), fetch from the beginning.
         if (questions.length < 5) {
             const wrapAroundQuery = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), orderBy('__name__'), limit(5));
             const wrapAroundSnapshot = await getDocs(wrapAroundQuery);
-            questions = wrapAroundSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
+            questions = wrapAroundSnapshot.docs.map(doc => {
+                 const data = doc.data();
+                 return {
+                    id: doc.id,
+                    question: data.question,
+                    options: data.options,
+                    correctAnswer: data.correctAnswer,
+                    explanation: data.explanation,
+                 } as QuizQuestion;
+            });
         }
 
         return { questions };
