@@ -14,13 +14,14 @@ const ApiQuizInputSchema = z.object({
 
 type ErrorCodes = "INVALID_JSON" | "INVALID_PAYLOAD" | "AI_FLOW_FAILED" | "FATAL";
 
-const sendErrorResponse = (
+const sendErrorResponse = async (
   reqId: string,
   code: ErrorCodes,
   originalError: string,
-  fallbackQuiz: QuizData
+  format: string = "mixed"
 ) => {
     let friendlyMessage = "The AI is currently busy. Here's a standard quiz to get you started!";
+    const fallbackQuiz = await getFallbackQuiz(format);
     
     return NextResponse.json({
         ok: true, // Still OK because we have a fallback
@@ -46,8 +47,7 @@ export async function POST(req: Request) {
   } catch (e) {
     const err = e as Error;
     console.error(`[quiz][${reqId}] Invalid JSON`, err.message);
-    const fallbackQuiz = getFallbackQuiz("mixed");
-    return sendErrorResponse(reqId, "INVALID_JSON", err.message, fallbackQuiz);
+    return sendErrorResponse(reqId, "INVALID_JSON", err.message);
   }
 
   try {
@@ -61,19 +61,18 @@ export async function POST(req: Request) {
 
     } catch (aiError: any) {
         console.error(`[quiz][${reqId}] AI flow failed`, aiError.message);
-        const fallbackQuiz = getFallbackQuiz(format);
-        return sendErrorResponse(reqId, "AI_FLOW_FAILED", aiError.message, fallbackQuiz);
+        return sendErrorResponse(reqId, "AI_FLOW_FAILED", aiError.message, format);
     }
 
   } catch (err: any) {
      if (err instanceof ZodError) {
         console.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
-        const fallbackQuiz = getFallbackQuiz(body?.format || "mixed");
-        return sendErrorResponse(reqId, "INVALID_PAYLOAD", JSON.stringify(err.flatten()), fallbackQuiz);
+        const format = body?.format || "mixed";
+        return sendErrorResponse(reqId, "INVALID_PAYLOAD", JSON.stringify(err.flatten()), format);
      }
      
      console.error(`[quiz][${reqId}] Fatal API error`, err.message);
-     const fallbackQuiz = getFallbackQuiz(body?.format || "mixed");
-     return sendErrorResponse(reqId, "FATAL", err.message, fallbackQuiz);
+     const format = body?.format || "mixed";
+     return sendErrorResponse(reqId, "FATAL", err.message, format);
   }
 }
