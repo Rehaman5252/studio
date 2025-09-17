@@ -6,6 +6,34 @@ import type { User } from 'firebase/auth';
 import { getQuizSlotId } from '@/lib/utils';
 import { sanitizeQuizAttempt as sanitizeAttemptData } from './sanitizeUserProfile';
 
+/**
+ * Encodes a QuizAttempt object into a Base64 string for URL transport.
+ */
+export const encodeAttempt = (attempt: QuizAttempt): string => {
+    try {
+        const sanitized = sanitizeAttemptData(attempt);
+        // Using native btoa for browser environments.
+        return encodeURIComponent(btoa(JSON.stringify(sanitized)));
+    } catch (e) {
+        console.error("Failed to encode attempt:", e);
+        return "";
+    }
+}
+
+/**
+ * Decodes a Base64 string from a URL into a QuizAttempt object.
+ */
+export const decodeAttempt = (encodedAttempt: string): QuizAttempt | null => {
+    try {
+        // Using native atob for browser environments.
+        return JSON.parse(atob(decodeURIComponent(encodedAttempt)));
+    } catch (e) {
+        console.error("Failed to decode attempt:", e);
+        return null;
+    }
+}
+
+
 interface BuildAttemptArgs {
     user: User;
     quizData: QuizData;

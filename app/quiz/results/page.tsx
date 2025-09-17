@@ -13,6 +13,10 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { decodeAttempt } from '@/lib/quiz-utils';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider';
+
 
 const AnalysisDialog = dynamic(
     () => import('@/components/history/AnalysisDialog'),
@@ -37,37 +41,84 @@ const LoadingSkeleton = () => (
 )
 
 const ResultsContent = () => {
+    const { user } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const searchParams = useSearchParams();
     
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
     const [showReviewDialog, setShowReviewDialog] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const attempt: QuizAttempt | null = useMemo(() => {
+    const [attempt, setAttempt] = useState<QuizAttempt | null>(() => {
         const attemptData = searchParams.get('attempt');
         if (!attemptData) return null;
-        try {
-            return decodeAttempt(attemptData);
-        } catch (e) {
-            console.error("Failed to decode attempt from URL", e);
-            return null;
+        return decodeAttempt(attemptData);
+    });
+
+    useEffect(() => {
+        if (attempt) {
+            setLoading(false);
+            return;
         }
-    }, [searchParams]);
+
+        const attemptId = searchParams.get('attemptId');
+        if (!attemptId) {
+            setError("No quiz data found in the URL.");
+            setLoading(false);
+            return;
+        }
+
+        if (!user) {
+             // Let AuthGuard handle redirect, just wait.
+            return;
+        }
+
+        const fetchAttemptFromDB = async () => {
+            if (!db) {
+                setError("Database connection unavailable.");
+                setLoading(false);
+                return;
+            }
+            try {
+                const attemptRef = doc(db, 'users', user.uid, 'quizAttempts', attemptId);
+                const docSnap = await getDoc(attemptRef);
+                if (docSnap.exists()) {
+                    setAttempt(docSnap.data() as QuizAttempt);
+                } else {
+                    setError("Could not find the specified quiz result.");
+                }
+            } catch (e) {
+                console.error("Error fetching attempt from DB:", e);
+                setError("Failed to fetch quiz results from the server.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAttemptFromDB();
+    }, [searchParams, user, attempt]);
 
     const handleViewAnswers = () => {
-        if (attempt?.reviewed) {
+        if (!attempt) return;
+        if (attempt.reviewed) {
             setShowReviewDialog(true);
         } else {
             toast({
-                title: "Answers Not Available Yet",
-                description: "You must watch an ad to review your answers. You can do this from the History page.",
-                variant: 'default',
+                title: "Review Your Answers in History",
+                description: "You can watch a short ad from the History page to unlock the answers for this quiz.",
+                duration: 7000,
             });
+             router.push('/history');
         }
     };
+
+    if (loading) {
+        return <LoadingSkeleton />;
+    }
     
-    if (!attempt) {
+    if (error || !attempt) {
         return (
             <PageWrapper title="Error">
                 <Card className="text-center">
@@ -76,7 +127,7 @@ const ResultsContent = () => {
                         <CardTitle className="text-2xl font-bold text-destructive">Could Not Load Quiz Results</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground mb-6">There was an error decoding your results from the link. It might be invalid or expired.</p>
+                        <p className="text-muted-foreground mb-6">{error || "There was an error decoding your results."}</p>
                         <Button onClick={() => router.push('/')}>
                             <Home className="mr-2 h-4 w-4" />
                             Return to Home

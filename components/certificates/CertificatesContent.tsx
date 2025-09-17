@@ -10,8 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { normalizeTimestamp } from '@/app/lib/dates';
+import { normalizeTimestamp } from '@/lib/dates';
 import type { QuizAttempt } from '@/ai/schemas';
+import { EmptyState } from '../EmptyState';
 
 const CertificateItemSkeleton = () => (
     <div className="space-y-4">
@@ -35,7 +36,7 @@ const CertificateItemSkeleton = () => (
     </div>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
+const ErrorStateDisplay = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading Certificates</AlertTitle>
@@ -179,7 +180,7 @@ export default function CertificatesContent() {
   }
 
   if (quizHistory.error) {
-    return <ErrorState message={quizHistory.error} />;
+    return <ErrorStateDisplay message={quizHistory.error} />;
   }
   
   return (
@@ -225,13 +226,11 @@ export default function CertificatesContent() {
             ))}
           </div>
         ) : (
-          <Card className="bg-card/80">
-            <CardContent className="p-8 text-center text-muted-foreground">
-              <Award className="h-12 w-12 mx-auto mb-4 text-primary/50" />
-              <p className="font-semibold text-lg text-foreground">No certificates yet!</p>
-              <p>Score a perfect 5/5 in any quiz to earn your first certificate.</p>
-            </CardContent>
-          </Card>
+          <EmptyState 
+            Icon={Award}
+            title="No certificates yet!"
+            description="Score a perfect 5/5 in any quiz to earn your first certificate."
+          />
         )}
     </>
   );

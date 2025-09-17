@@ -13,7 +13,7 @@ import { getAIPoweredHint } from '@/ai/flows/ai-powered-hints';
 import { adLibrary, interstitialAds, type InterstitialAdConfig } from '@/lib/ads';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
-import { buildAttempt } from '@/lib/quiz-utils';
+import { buildAttempt, encodeAttempt } from '@/lib/quiz-utils';
 import PreQuizLoader from './PreQuizLoader';
 import { Button } from '../ui/button';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
@@ -142,27 +142,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
           let friendlyTitle = "Standard Quiz Loaded";
           let friendlyDesc = "The AI is warming up, so here's a ready-made quiz for you.";
 
-          switch (data.errorDetails.code) {
-            case "INVALID_JSON":
-              friendlyTitle = "⚠️ Bad Request Fixed";
-              friendlyDesc = "We couldn't read your request, but a quiz is ready anyway.";
-              break;
-            case "INVALID_PAYLOAD":
-              friendlyTitle = "⚠️ Invalid Request";
-              friendlyDesc = "Some data was missing, but we generated a quiz for you.";
-              break;
-            case "AI_FLOW_FAILED":
-              friendlyTitle = "🤖 AI Unavailable";
-              friendlyDesc = "The AI engine stumbled, so a standard quiz is here for you.";
-              break;
-            case "FATAL":
-              friendlyTitle = "🔥 Unexpected Error";
-              friendlyDesc = "Something went wrong, but you're not blocked—here's a quiz.";
-              break;
-          }
-
           if (IS_DEV) {
-            friendlyDesc += ` (Dev: ${data.reqId} - ${data.errorDetails.originalError})`;
+            friendlyDesc += ` (Dev: ${data.reqId} - ${data.errorDetails.message})`;
           }
 
           toast({
@@ -223,16 +204,17 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
-    const { success, attemptId } = await addQuizAttempt(attempt);
+    const { success } = await addQuizAttempt(attempt);
 
-    if (success && attemptId) {
-        router.replace(`/quiz/results?attemptId=${attemptId}`);
+    if (success) {
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     } else {
-        toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
-        router.replace('/');
+        // Even if queued, redirect with data so user sees their result.
+        // The data will sync later.
+        router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     }
 
-  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource, toast]);
+  }, [quizData, user, brand, format, addQuizAttempt, router, quizSource]);
 
   const handleNoBall = useCallback(async (reason: 'no-ball') => {
     if (isFinishedRef.current || !quizData || !user) return;
@@ -258,13 +240,12 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     });
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
     
-    const { success, attemptId } = await addQuizAttempt(attempt);
+    const { success } = await addQuizAttempt(attempt);
 
-    if (success && attemptId) {
-        router.replace(`/quiz/results?attemptId=${attemptId}`);
+    if (success) {
+      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     } else {
-        toast({ title: "Submission Error", description: "Could not save your results. Please check connection.", variant: "destructive"});
-        router.replace('/');
+      router.replace(`/quiz/results?attempt=${encodeAttempt(attempt)}`);
     }
 
   }, [handleMalpractice, toast, quizData, user, brand, format, userAnswers, timePerQuestion, addQuizAttempt, router, quizSource]);
@@ -421,6 +402,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             hint={hints[currentQuestionIndex]}
             isHintLoading={isHintLoading}
             soundEnabled={settings.sound}
+            quizSource={quizSource}
           />
           {adForHint && (
             <AdDialog

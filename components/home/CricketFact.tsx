@@ -7,12 +7,17 @@ import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
 import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { fallbackQuizData } from '@/lib/fallback-quiz';
+import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
 
-const getFallbackFacts = (format: string) => {
+const getFallbackFacts = (format: string): string[] => {
     const key = format.toLowerCase();
-    const quiz = fallbackQuizData[key] || fallbackQuizData.mixed;
-    return quiz.questions.map(q => q.explanation);
+    let questionsForFormat = allFallbackQuestions.filter(q => q.format === key);
+
+    if (questionsForFormat.length === 0) {
+        questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
+    }
+    
+    return shuffleArray(questionsForFormat).map(q => q.explanation).slice(0, 10);
 }
 
 export default function CricketFact({ format }: { format: string }) {
@@ -54,6 +59,7 @@ export default function CricketFact({ format }: { format: string }) {
     // Initial load effect
     useEffect(() => {
         fetchFacts(format, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [format]);
 
 

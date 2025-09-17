@@ -22,7 +22,7 @@ export type FallbackQuestion = Omit<QuizDataQuestion, 'id'> & {
     hint: string;
 };
 
-// Total: 6000 questions (1000 per format)
+// A smaller, local fallback in case Firestore fails.
 export const allFallbackQuestions: FallbackQuestion[] = [
     // =================================================================================
     // MIXED (1000 Questions)
@@ -132,160 +132,62 @@ export const allFallbackQuestions: FallbackQuestion[] = [
     { format: 'mixed', difficulty: 'Expert', question: 'Who was the first bowler to take 10 wickets in a single Test innings?', options: ['Jim Laker', 'Anil Kumble', 'Sydney Barnes', 'George Lohmann'], correctAnswer: 'Jim Laker', explanation: 'England\'s Jim Laker was the first bowler to take all 10 wickets in a Test innings, achieving figures of 10/53 against Australia in 1956.', hint: 'He was an English off-spinner who took 19 wickets in the same match.'},
     { format: 'mixed', difficulty: 'Expert', question: 'The "Sandpapergate" scandal in 2018 involved which three Australian players?', options: ['Warner, Smith, Starc', 'Warner, Smith, Bancroft', 'Finch, Maxwell, Cummins', 'Paine, Lyon, Hazlewood'], correctAnswer: 'Warner, Smith, Bancroft', explanation: 'Cameron Bancroft was caught using sandpaper to alter the ball, with captain Steve Smith and vice-captain David Warner found to be involved in the plan.', hint: 'It involved the captain, vice-captain, and a young opening batsman.'},
     
-    // ... 950 more mixed questions ...
+    // ... more mixed questions ...
 
     // =================================================================================
-    // IPL (1000 Questions)
+    // IPL 
     // =================================================================================
-    { format: 'ipl', difficulty: 'Easy', question: 'Which team has won the most IPL titles?', options: ['Chennai Super Kings', 'Mumbai Indians', 'Kolkata Knight Riders', 'Royal Challengers Bangalore'], correctAnswer: 'Mumbai Indians', explanation: 'Mumbai Indians hold the record for the most IPL championship titles.', hint: 'This team is captained by Rohit Sharma.' },
-    { format: 'ipl', difficulty: 'Easy', question: 'What is the "Orange Cap" awarded for?', options: ['Most wickets', 'Most runs', 'Most sixes', 'Best fair play'], correctAnswer: 'Most runs', explanation: 'The Orange Cap is awarded to the leading run-scorer in an edition of the Indian Premier League.', hint: 'It\'s for the batsman who scores the highest number of runs in the tournament.' },
-    { format: 'ipl', difficulty: 'Easy', question: 'Which team is known as the "Men in Yellow"?', options: ['Sunrisers Hyderabad', 'Royal Challengers Bangalore', 'Chennai Super Kings', 'Delhi Capitals'], correctAnswer: 'Chennai Super Kings', explanation: 'Chennai Super Kings are famously known as the "Men in Yellow" or the "Yellow Army" due to their team jersey color.', hint: 'This team is led by MS Dhoni.'},
-    { format: 'ipl', difficulty: 'Easy', question: 'Who is the captain of Royal Challengers Bangalore (RCB)?', options: ['Virat Kohli', 'Faf du Plessis', 'Glenn Maxwell', 'Dinesh Karthik'], correctAnswer: 'Faf du Plessis', explanation: 'Faf du Plessis took over the captaincy of RCB from Virat Kohli ahead of the IPL 2022 season.', hint: 'He is a former captain of the South African national team.'},
-    { format: 'ipl', difficulty: 'Easy', question: 'The Eden Gardens cricket stadium is the home ground for which IPL team?', options: ['Mumbai Indians', 'Delhi Capitals', 'Sunrisers Hyderabad', 'Kolkata Knight Riders'], correctAnswer: 'Kolkata Knight Riders', explanation: 'The iconic Eden Gardens in Kolkata is the home ground for the Kolkata Knight Riders (KKR).', hint: 'This team is co-owned by a famous Bollywood actor.'},
-    { format: 'ipl', difficulty: 'Medium', question: 'Who was the first Indian to score a century in the IPL?', options: ['Sachin Tendulkar', 'Gautam Gambhir', 'Manish Pandey', 'Virender Sehwag'], correctAnswer: 'Manish Pandey', explanation: 'Manish Pandey, playing for Royal Challengers Bangalore, became the first Indian to score an IPL century in 2009.', hint: 'He achieved this feat for RCB in South Africa.' },
-    { format: 'ipl', difficulty: 'Medium', question: 'The "Strategic Timeout" in the IPL lasts for how long?', options: ['1 minute', '2 minutes 30 seconds', '3 minutes', '5 minutes'], correctAnswer: '2 minutes 30 seconds', explanation: 'Each IPL innings has two strategic timeouts, each lasting two and a half minutes.', hint: 'It\'s 150 seconds long.' },
-    { format: 'ipl', difficulty: 'Medium', question: 'Which two teams played the first-ever IPL match in 2008?', options: ['CSK vs MI', 'DC vs RR', 'RCB vs KKR', 'KXIP vs DD'], correctAnswer: 'RCB vs KKR', explanation: 'The first match of the IPL was between Royal Challengers Bangalore and Kolkata Knight Riders, where Brendon McCullum scored a blistering 158*.', hint: 'Brendon McCullum scored 158* in this match.'},
-    { format: 'ipl', difficulty: 'Medium', question: 'Who holds the record for the most sixes in IPL history?', options: ['MS Dhoni', 'Rohit Sharma', 'AB de Villiers', 'Chris Gayle'], correctAnswer: 'Chris Gayle', explanation: 'The "Universe Boss" Chris Gayle holds the record for hitting the most sixes in the history of the IPL.', hint: 'He is known as the "Universe Boss".'},
-    { format: 'ipl', difficulty: 'Medium', question: 'Which player has the most "Player of the Match" awards in the IPL?', options: ['Rohit Sharma', 'MS Dhoni', 'AB de Villiers', 'Chris Gayle'], correctAnswer: 'AB de Villiers', explanation: 'AB de Villiers has won the most Player of the Match awards for his incredible match-winning performances over the years.', hint: 'This South African batsman is also known as "Mr. 360".'},
-    { format: 'ipl', difficulty: 'Hard', question: 'Who has the record for the fastest fifty in IPL history?', options: ['KL Rahul', 'Yashasvi Jaiswal', 'Pat Cummins', 'Sunil Narine'], correctAnswer: 'Yashasvi Jaiswal', explanation: 'Yashasvi Jaiswal broke the record for the fastest IPL fifty, reaching the milestone in just 13 balls for Rajasthan Royals in 2023.', hint: 'This young Indian opener set the record in 2023.' },
-    { format: 'ipl', difficulty: 'Hard', question: 'Which player has taken the most hat-tricks in the IPL?', options: ['Yuvraj Singh', 'Amit Mishra', 'Lasith Malinga', 'Sunil Narine'], correctAnswer: 'Amit Mishra', explanation: 'Leg-spinner Amit Mishra holds the record for the most hat-tricks in the history of the IPL, with three to his name.', hint: 'This veteran Indian leg-spinner has played for multiple franchises.' },
-    { format: 'ipl', difficulty: 'Hard', question: 'Which team was the first to win back-to-back IPL titles?', options: ['Mumbai Indians', 'Kolkata Knight Riders', 'Chennai Super Kings', 'Sunrisers Hyderabad'], correctAnswer: 'Chennai Super Kings', explanation: 'Chennai Super Kings were the first team to win consecutive IPL titles, in 2010 and 2011.', hint: 'This team is led by MS Dhoni.'},
-    { format: 'ipl', difficulty: 'Hard', question: 'Paul Valthaty famously scored a 120* for which now-defunct IPL team?', options: ['Pune Warriors India', 'Kochi Tuskers Kerala', 'Deccan Chargers', 'Kings XI Punjab'], correctAnswer: 'Kings XI Punjab', explanation: 'Paul Valthaty played a sensational innings of 120* for Kings XI Punjab (now Punjab Kings) against Chennai Super Kings in 2011.', hint: 'This team is now known as the Punjab Kings.'},
-    { format: 'ipl', difficulty: 'Hard', question: 'Which bowler has bowled the most dot balls in IPL history?', options: ['Lasith Malinga', 'Bhuvneshwar Kumar', 'Sunil Narine', 'Piyush Chawla'], correctAnswer: 'Bhuvneshwar Kumar', explanation: 'Indian pacer Bhuvneshwar Kumar holds the record for bowling the highest number of dot balls in the IPL.', hint: 'This Indian swing bowler plays for Sunrisers Hyderabad.'},
-    { format: 'ipl', difficulty: 'Very Hard', question: 'Who was the first player to be traded in the IPL transfer window?', options: ['Zaheer Khan', 'Ashish Nehra', 'Dinesh Karthik', 'Robin Uthappa'], correctAnswer: 'Zaheer Khan', explanation: 'In the first-ever IPL transfer, Zaheer Khan was traded from RCB to Mumbai Indians for Robin Uthappa.', hint: 'This left-arm Indian pacer was part of a trade involving Robin Uthappa.'},
-    { format: 'ipl', difficulty: 'Very Hard', question: 'Which two players were the first-ever "Impact Players" to be used in an IPL match?', options: ['Prithvi Shaw and Tushar Deshpande', 'Sai Sudharsan and Kane Williamson', 'Ajinkya Rahane and Matheesha Pathirana', 'Dhruv Jurel and Abdul Samad'], correctAnswer: 'Sai Sudharsan and Kane Williamson', explanation: 'In the opening match of IPL 2023, Sai Sudharsan replaced Kane Williamson for Gujarat Titans, becoming the first-ever concussion substitute also acting as an Impact Player.', hint: 'It happened in the first match of the 2023 season involving the Gujarat Titans.'},
-    { format: 'ipl', difficulty: 'Very Hard', question: 'Besides Brendon McCullum, who is the only other KKR player to score an IPL century?', options: ['Andre Russell', 'Dinesh Karthik', 'Gautam Gambhir', 'Venkatesh Iyer'], correctAnswer: 'Venkatesh Iyer', explanation: 'Venkatesh Iyer became only the second batsman after Brendon McCullum to score a century for KKR, achieving this feat in IPL 2023.', hint: 'This Indian all-rounder scored a century in the 2023 season.'},
-    { format: 'ipl', difficulty: 'Very Hard', question: 'Who holds the record for the most catches by a non-wicketkeeper in the IPL?', options: ['Suresh Raina', 'Kieron Pollard', 'Rohit Sharma', 'Virat Kohli'], correctAnswer: 'Suresh Raina', explanation: 'Suresh Raina, also known as "Mr. IPL", holds the record for the most catches taken by a fielder in the history of the IPL.', hint: 'This player is affectionately known as "Chinna Thala" by CSK fans.'},
-    { format: 'ipl', difficulty: 'Very Hard', question: 'In the inaugural 2008 IPL final, which team did Rajasthan Royals defeat?', options: ['Chennai Super Kings', 'Kings XI Punjab', 'Delhi Daredevils', 'Deccan Chargers'], correctAnswer: 'Chennai Super Kings', explanation: 'Shane Warne\'s Rajasthan Royals defeated MS Dhoni\'s Chennai Super Kings in a thrilling final to win the first-ever IPL trophy.', hint: 'The losing team was led by MS Dhoni.' },
-    { format: 'ipl', difficulty: 'Expert', question: 'Who has the best bowling figures in an IPL match?', options: ['Anil Kumble', 'Alzarri Joseph', 'Adam Zampa', 'Sohail Tanvir'], correctAnswer: 'Alzarri Joseph', explanation: 'Alzarri Joseph recorded figures of 6 wickets for 12 runs for Mumbai Indians on his IPL debut, the best in the tournament\'s history.', hint: 'This West Indian fast bowler achieved the feat on his debut.' },
-    { format: 'ipl', difficulty: 'Expert', question: 'Which player famously hit five sixes in the final over to win a match for KKR in IPL 2023?', options: ['Andre Russell', 'Nitish Rana', 'Rinku Singh', 'Venkatesh Iyer'], correctAnswer: 'Rinku Singh', explanation: 'Rinku Singh pulled off a miraculous chase for Kolkata Knight Riders against Gujarat Titans by hitting five consecutive sixes in the last over.', hint: 'This left-handed batsman from Uttar Pradesh became a sensation overnight.' },
-    { format: 'ipl', difficulty: 'Expert', question: 'The now-defunct Pune Warriors India team was owned by which business group?', options: ['Reliance Industries', 'Sahara India Pariwar', 'UB Group', 'GMR Group'], correctAnswer: 'Sahara India Pariwar', explanation: 'The Pune Warriors India franchise was owned by the Sahara Group from 2011 to 2013.', hint: 'This group was also a long-time sponsor of the Indian national cricket team.'},
-    { format: 'ipl', difficulty: 'Expert', question: 'In the 2009 IPL season held in South Africa, who was the player of the tournament?', options: ['Adam Gilchrist', 'Matthew Hayden', 'Anil Kumble', 'Sachin Tendulkar'], correctAnswer: 'Adam Gilchrist', explanation: 'Adam Gilchrist captained the Deccan Chargers to victory and was named the player of the tournament for his leadership and explosive batting.', hint: 'This Australian wicket-keeper captained the winning team that year.'},
-    { format: 'ipl', difficulty: 'Expert', question: 'Who is the only player to score centuries for three different IPL teams?', options: ['David Warner', 'Chris Gayle', 'Brendon McCullum', 'KL Rahul'], correctAnswer: 'KL Rahul', explanation: 'KL Rahul has scored centuries for Kings XI Punjab (now Punjab Kings), Lucknow Super Giants, and Sunrisers Hyderabad.', hint: 'This stylish Indian batsman has played for teams in Punjab and Lucknow.'},
-
-    // ... 975 more IPL questions ...
-
-    // =================================================================================
-    // T20 (1000 Questions)
-    // =================================================================================
-    { format: 't20', difficulty: 'Easy', question: 'Which team won the first-ever ICC Men\'s T20 World Cup in 2007?', options: ['Pakistan', 'Australia', 'England', 'India'], correctAnswer: 'India', explanation: 'India, under the captaincy of MS Dhoni, won the inaugural T20 World Cup by defeating Pakistan in the final.', hint: 'The final was decided in a thrilling last over bowled by Joginder Sharma.' },
-    { format: 't20', difficulty: 'Easy', question: 'What is the duration of a Powerplay in a T20 International match?', options: ['First 4 overs', 'First 6 overs', 'First 8 overs', 'First 10 overs'], correctAnswer: 'First 6 overs', explanation: 'The mandatory Powerplay in a T20I lasts for the first 6 overs, restricting the fielding team to two fielders outside the 30-yard circle.', hint: 'It\'s a bit longer than the original 5 overs.'},
-    { format: 't20', difficulty: 'Easy', question: 'Who is the only player to have scored two centuries in T20 World Cups?', options: ['Virat Kohli', 'Chris Gayle', 'Brendon McCullum', 'Rohit Sharma'], correctAnswer: 'Chris Gayle', explanation: 'Chris Gayle is the only player to have scored two centuries in the history of the T20 World Cup.', hint: 'This West Indian powerhouse is known for his big hitting.'},
-    { format: 't20', difficulty: 'Easy', question: 'A bowler can bowl a maximum of how many overs in a T20 match?', options: ['2', '3', '4', '5'], correctAnswer: '4', explanation: 'In a 20-over innings, a bowler is restricted to a maximum of four overs.', hint: 'It\'s one-fifth of the total overs.'},
-    { format: 't20', difficulty: 'Easy', question: 'The first-ever T20 International was played between which two women\'s teams in 2004?', options: ['Australia and New Zealand', 'England and Australia', 'England and New Zealand', 'India and Pakistan'], correctAnswer: 'England and New Zealand', explanation: 'The first T20I was played between England and New Zealand women\'s teams at Hove in August 2004.', hint: 'The first men\'s T20I was played between the men\'s teams of these two nations as well.'},
-    { format: 't20', difficulty: 'Medium', question: 'Who was the first player to score a century in a T20 International?', options: ['Brendon McCullum', 'Suresh Raina', 'Chris Gayle', 'Richard Levi'], correctAnswer: 'Chris Gayle', explanation: 'Chris Gayle scored the first-ever T20I century (117) against South Africa in the opening match of the 2007 T20 World Cup.', hint: 'This "Universe Boss" from West Indies is known for his power-hitting.' },
-    { format: 't20', difficulty: 'Medium', question: 'Which player hit 6 sixes in an over against Akila Dananjaya in a T20I?', options: ['Yuvraj Singh', 'Kieron Pollard', 'Thisara Perera', 'Evin Lewis'], correctAnswer: 'Kieron Pollard', explanation: 'Kieron Pollard of the West Indies hit 6 sixes in an over against Sri Lanka\'s Akila Dananjaya in a T20I in 2021.', hint: 'This West Indian all-rounder achieved the feat in 2021.'},
-    { format: 't20', difficulty: 'Medium', question: 'What is the highest team total in a T20 International?', options: ['260/6 by Sri Lanka', '278/3 by Afghanistan', '263/5 by RCB', '314/3 by Nepal'], correctAnswer: '314/3 by Nepal', explanation: 'Nepal set the world record for the highest T20I score, smashing 314/3 against Mongolia in 2023.', hint: 'This record was set by an associate nation in 2023.'},
-    { format: 't20', difficulty: 'Medium', question: 'Which country has hosted the most T20 World Cups?', options: ['India', 'England', 'South Africa', 'West Indies'], correctAnswer: 'South Africa', explanation: 'South Africa hosted the inaugural T20 World Cup in 2007 and has been a frequent host of major ICC tournaments.', hint: 'This country hosted the very first edition of the tournament.'},
-    { format: 't20', difficulty: 'Medium', question: 'Who was the captain of the Pakistan team that won the 2009 T20 World Cup?', options: ['Shoaib Malik', 'Shahid Afridi', 'Younis Khan', 'Misbah-ul-Haq'], correctAnswer: 'Younis Khan', explanation: 'Younis Khan captained Pakistan to their first and only T20 World Cup title in 2009 at Lord\'s.', hint: 'He was a classy right-handed batsman from Mardan.'},
-    { format: 't20', difficulty: 'Hard', question: 'Who has the record for the fastest century in T20I history?', options: ['David Miller', 'Rohit Sharma', 'Suryakumar Yadav', 'Kushal Malla'], correctAnswer: 'Kushal Malla', explanation: 'Nepal\'s Kushal Malla scored a century in just 34 balls against Mongolia in 2023, setting a new world record.', hint: 'This record was set by a player from an associate nation in 2023.' },
-    { format: 't20', difficulty: 'Hard', question: 'Which team won the T20 World Cup in 2010 by defeating Australia in the final?', options: ['England', 'Pakistan', 'Sri Lanka', 'India'], correctAnswer: 'England', explanation: 'England, led by Paul Collingwood, won their first-ever ICC trophy by defeating their arch-rivals Australia in the 2010 T20 World Cup final.', hint: 'It was England\'s first-ever major ICC tournament victory.'},
-    { format: 't20', difficulty: 'Hard', question: 'Who is the only player to take a hat-trick in their first T20 International match?', options: ['Brett Lee', 'Jacob Oram', 'Elias Sunny', 'Rashid Khan'], correctAnswer: 'Brett Lee', explanation: 'Australian speedster Brett Lee took a hat-trick against Bangladesh in the 2007 T20 World Cup, becoming the first to do so in the format.', hint: 'This Australian fast bowler was known for his extreme pace.'},
-    { format: 't20', difficulty: 'Hard', question: 'What is a "Diamond Duck" in cricket?', options: ['Getting out on the first ball', 'Getting out for a score of 4', 'Being run out without facing a ball', 'Getting out by hitting your own wicket'], correctAnswer: 'Being run out without facing a ball', explanation: 'A Diamond Duck is when a batsman is dismissed without facing a single delivery, most commonly by being run out at the non-striker\'s end.', hint: 'It is considered the most unfortunate type of duck.'},
-    { format: 't20', difficulty: 'Hard', question: 'In the famous tied T20I between India and Pakistan in the 2007 World Cup, what was used to decide the winner?', options: ['Super Over', 'Coin Toss', 'Bowl-Out', 'Boundary Count'], correctAnswer: 'Bowl-Out', explanation: 'Before the Super Over became standard, tied T20Is were decided by a "bowl-out," where bowlers from each team would try to hit an undefended wicket. India won this contest 3-0.', hint: 'It was the predecessor to the Super Over.'},
-    { format: 't20', difficulty: 'Very Hard', question: 'Who was the first player to play 100 T20 Internationals?', options: ['Shoaib Malik', 'Brendon McCullum', 'Ross Taylor', 'MS Dhoni'], correctAnswer: 'Shoaib Malik', explanation: 'Pakistan\'s Shoaib Malik became the first male cricketer to play 100 T20I matches.', hint: 'This Pakistani all-rounder has had a very long international career.'},
-    { format: 't20', difficulty: 'Very Hard', question: 'The Big Bash League (BBL) in Australia introduced an innovation called "The X-Factor". What does it allow?', options: ['A 12th or 13th player can be substituted into the game', 'A bowler can bowl 5 overs', 'The batting team can choose to use a special "power" ball', 'Teams can review wide calls'], correctAnswer: 'A 12th or 13th player can be substituted into the game', explanation: 'The X-Factor rule allowed a team to substitute a player from their 12th or 13th man on the team sheet at the 10-over mark of the first innings.', hint: 'It involves substituting a player mid-game.'},
-    { format: 't20', difficulty: 'Very Hard', question: 'Which ground hosted the first-ever Men\'s T20 International?', options: ['Lord\'s, London', 'Eden Park, Auckland', 'MCG, Melbourne', 'The Oval, London'], correctAnswer: 'Eden Park, Auckland', explanation: 'The first men\'s T20I was played between Australia and New Zealand at Eden Park on 17 February 2005, with both teams wearing retro 1980s kits.', hint: 'It is a major stadium in New Zealand.'},
-    { format: 't20', difficulty: 'Very Hard', question: 'Deepak Chahar\'s record T20I bowling figures of 6/7 came against which team?', options: ['Sri Lanka', 'Bangladesh', 'West Indies', 'South Africa'], correctAnswer: 'Bangladesh', explanation: 'Deepak Chahar recorded the best-ever bowling figures in men\'s T20I history, taking 6 wickets for just 7 runs, including a hat-trick, against Bangladesh in 2019.', hint: 'India\'s opponent was their neighbor to the east.'},
-    { format: 't20', difficulty: 'Very Hard', question: 'The Netherlands famously defeated which full-member nation twice in T20 World Cups?', options: ['South Africa', 'England', 'Pakistan', 'New Zealand'], correctAnswer: 'England', explanation: 'The Netherlands pulled off stunning upsets against England in both the 2009 and 2014 T20 World Cups.', hint: 'They defeated the inventors of the game on two separate occasions.'},
-    { format: 't20', difficulty: 'Expert', question: 'Who has the best bowling figures in a T20 International match?', options: ['Deepak Chahar', 'Ajantha Mendis', 'Peter Aho', 'Yuzvendra Chahal'], correctAnswer: 'Peter Aho', explanation: 'Nigeria\'s Peter Aho holds the record with incredible figures of 6 wickets for 5 runs against Sierra Leone in 2021.', hint: 'The record-holder is from an African associate nation.' },
-    { format: 't20', difficulty: 'Expert', question: 'In the 2016 T20 World Cup final, Carlos Brathwaite hit four consecutive sixes to win. Who was the unfortunate bowler?', options: ['Chris Jordan', 'David Willey', 'Ben Stokes', 'Adil Rashid'], correctAnswer: 'Ben Stokes', explanation: 'England\'s Ben Stokes was the bowler who conceded four consecutive sixes to Carlos Brathwaite in the dramatic final over of the 2016 T20 World Cup final.', hint: 'This English all-rounder is now their Test captain.'},
-    { format: 't20', difficulty: 'Expert', question: 'What is the name of the T20 league played in the Caribbean?', options: ['CSL', 'CPL', 'BBL', 'PSL'], correctAnswer: 'CPL', explanation: 'The Caribbean Premier League (CPL) is the annual T20 tournament held in the West Indies.', hint: 'It stands for Caribbean Premier League.'},
-    { format: 't20', difficulty: 'Expert', question: 'Which player has scored the most T20I runs without ever hitting a century?', options: ['Shoaib Malik', 'Eoin Morgan', 'Mohammad Hafeez', 'David Warner'], correctAnswer: 'Shoaib Malik', explanation: 'Despite having one of the longest T20I careers and being a prolific run-scorer, Shoaib Malik of Pakistan has never scored a T20I century.', hint: 'This Pakistani veteran has played over 100 T20Is.'},
-    { format: 't20', difficulty: 'Expert', question: 'Who was the first associate nation player to score a T20I century?', options: ['Richie Berrington (Scotland)', 'Calum MacLeod (Scotland)', 'Paul Stirling (Ireland)', 'Kyle Coetzer (Scotland)'], correctAnswer: 'Richie Berrington (Scotland)', explanation: 'Richie Berrington of Scotland became the first player from an associate nation to score a T20I century, hitting 100 against Bangladesh in 2012.', hint: 'He is a Scottish all-rounder.'},
-
-    // ... 975 more T20 questions ...
-
-    // =================================================================================
-    // ODI (1000 Questions)
-    // =================================================================================
-    { format: 'odi', difficulty: 'Easy', question: 'Who is the only player to have scored three double centuries in ODIs?', options: ['Sachin Tendulkar', 'Virender Sehwag', 'Chris Gayle', 'Rohit Sharma'], correctAnswer: 'Rohit Sharma', explanation: 'Rohit Sharma of India has uniquely scored three double hundreds in One Day Internationals.', hint: 'This Indian opener is nicknamed the "Hitman".' },
-    // ... 999 more ODI questions with distribution
+    { format: 'ipl', difficulty: 'Easy', question: 'Which team won the first-ever IPL tournament in 2008?', options: ['Chennai Super Kings', 'Mumbai Indians', 'Kolkata Knight Riders', 'Rajasthan Royals'], correctAnswer: 'Rajasthan Royals', explanation: 'Rajasthan Royals, led by Shane Warne, were the surprise champions of the inaugural IPL season in 2008.', hint: 'This team was led by a legendary Australian spinner.' },
+    { format: 'ipl', difficulty: 'Easy', question: 'What is the "Purple Cap" awarded for in the IPL?', options: ['Most wickets', 'Most runs', 'Most sixes', 'Best fair play'], correctAnswer: 'Most wickets', explanation: 'The Purple Cap is awarded to the leading wicket-taker in an edition of the Indian Premier League.', hint: 'It\'s for the bowler who takes the highest number of wickets in the tournament.' },
+    // ... more IPL questions ...
     
     // =================================================================================
-    // TEST (1000 Questions)
+    // T20
     // =================================================================================
-    { format: 'test', difficulty: 'Easy', question: 'Sir Donald Bradman famously finished his Test career with what batting average?', options: ['99.94', '100.00', '98.67', '95.14'], correctAnswer: '99.94', explanation: 'Requiring only four runs in his final innings to average 100, Don Bradman was famously bowled for a duck, finishing with an average of 99.94.', hint: 'It\'s famously just short of a perfect three-digit number.' },
-    // ... 999 more Test questions with distribution
+    { format: 't20', difficulty: 'Easy', question: 'How many overs are in a T20 innings?', options: ['10', '20', '50', '90'], correctAnswer: '20', explanation: 'A T20 match consists of two innings, with each innings limited to a maximum of 20 overs.', hint: 'The name of the format gives it away.' },
+    { format: 't20', difficulty: 'Medium', question: 'Who hit 6 sixes in an over in the 2007 T20 World Cup?', options: ['Chris Gayle', 'Yuvraj Singh', 'MS Dhoni', 'Adam Gilchrist'], correctAnswer: 'Yuvraj Singh', explanation: 'Yuvraj Singh famously hit England\'s Stuart Broad for six consecutive sixes in an over during the 2007 ICC World T20.', hint: 'This stylish Indian left-hander achieved the feat against England.' },
+    // ... more T20 questions ...
+
+    // =================================================================================
+    // ODI
+    // =================================================================================
+    { format: 'odi', difficulty: 'Easy', question: 'How many overs are in a One Day International (ODI) innings?', options: ['20', '40', '50', '100'], correctAnswer: '50', explanation: 'A standard ODI match consists of 50 overs per side.', hint: 'It\'s two and a half times longer than a T20 innings.' },
+    // ... more ODI questions ...
     
     // =================================================================================
-    // WPL (1000 Questions)
+    // TEST
     // =================================================================================
-    { format: 'wpl', difficulty: 'Easy', question: 'Which team won the inaugural Women\'s Premier League (WPL) in 2023?', options: ['Delhi Capitals', 'UP Warriorz', 'Mumbai Indians', 'Royal Challengers Bangalore'], correctAnswer: 'Mumbai Indians', explanation: 'Mumbai Indians, led by Harmanpreet Kaur, defeated Delhi Capitals in the final to become the champions of the first-ever WPL season.', hint: 'This team shares its name with a multiple-time men\'s IPL champion.' },
-    // ... 999 more WPL questions with distribution
+    { format: 'test', difficulty: 'Easy', question: 'What color of ball is traditionally used in Test cricket?', options: ['White', 'Red', 'Pink', 'Orange'], correctAnswer: 'Red', explanation: 'A red ball is traditionally used for Test matches and first-class cricket played during the day.', hint: 'It\'s the classic color used since the beginning of the sport.' },
+    // ... more Test questions ...
+    
+    // =================================================================================
+    // WPL
+    // =================================================================================
+    { format: 'wpl', difficulty: 'Easy', question: 'Who was the most expensive player in the first WPL auction?', options: ['Ellyse Perry', 'Smriti Mandhana', 'Harmanpreet Kaur', 'Ashleigh Gardner'], correctAnswer: 'Smriti Mandhana', explanation: 'Smriti Mandhana was the most expensive player, bought by Royal Challengers Bangalore for ₹3.4 crore at the inaugural WPL auction.', hint: 'This stylish Indian left-handed opener was bought by RCB.' }
+    // ... more WPL questions ...
 ];
 
+
 /**
- * Retrieves a fallback quiz from the local array of questions. This is used
- * ONLY when Firestore is unavailable.
+ * Retrieves a fallback quiz from the local array of questions.
  * @param format The cricket format (e.g., 'ipl', 't20').
  * @returns A QuizData object containing 5 questions.
  */
 export function getLocalFallbackQuiz(format: string): { questions: QuizDataQuestion[] } {
   const normalizedFormat = format.toLowerCase();
   
-  // Filter questions for the specific format
   let questionsForFormat = allFallbackQuestions.filter(q => q.format === normalizedFormat);
 
-  // If there aren't enough questions for the specific format, use 'mixed' as a fallback
   if (questionsForFormat.length < 5) {
     console.warn(`Not enough local fallback questions for format "${format}". Using "mixed" format.`);
     questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
   }
 
-  // Shuffle the selected questions and take the first 5
   const shuffledQuestions = shuffleArray(questionsForFormat);
   const selectedQuestions = shuffledQuestions.slice(0, 5).map((q, index) => ({
       ...q,
-      // The API route will provide the final ID from Firestore, so this is just for local structure.
-      id: `local_fb_${normalizedFormat}_${index}` 
+      id: `local_fb_${normalizedFormat}_${Date.now()}_${index}` 
   }));
 
   return { questions: selectedQuestions };
-}
-
-
-/**
- * A one-time function to seed the fallback questions into Firestore.
- * This is intended to be run manually from a script or a secure environment.
- * It's not directly used by the application at runtime.
- */
-export async function seedFallbackQuestions() {
-  // This requires a server-side/admin Firebase instance, not available in the client.
-  // Example implementation (conceptual):
-  /*
-  const { getFirestore } = require('firebase-admin/firestore');
-  const admin = require('firebase-admin');
-
-  // Initialize Firebase Admin SDK
-  // admin.initializeApp({ ... });
-  const db = getFirestore();
-  
-  console.log('Starting to seed fallback questions...');
-  
-  const batchArray = [];
-  batchArray.push(db.batch());
-  let operationCounter = 0;
-  let batchIndex = 0;
-
-  for (const question of allFallbackQuestions) {
-    const docRef = db.collection('fallback_questions').doc(); // Auto-generate ID
-    batchArray[batchIndex].set(docRef, question);
-    operationCounter++;
-
-    if (operationCounter === 499) {
-      batchArray.push(db.batch());
-      batchIndex++;
-      operationCounter = 0;
-    }
-  }
-
-  try {
-    await Promise.all(batchArray.map(batch => batch.commit()));
-    console.log(`Successfully seeded ${allFallbackQuestions.length} questions.`);
-  } catch (error) {
-    console.error('Error seeding questions:', error);
-  }
-  */
-  console.log("Seeding function is defined but requires a Firebase Admin environment to run.");
 }

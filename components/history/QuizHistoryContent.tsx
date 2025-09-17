@@ -13,27 +13,30 @@ import AnalysisDialog from '@/components/history/AnalysisDialog';
 import ReviewDialog from '@/components/history/ReviewDialog';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
-import { normalizeTimestamp } from '@/app/lib/dates';
+import { normalizeTimestamp } from '@/lib/dates';
+import { Skeleton } from '../ui/skeleton';
+import { EmptyState } from '../EmptyState';
 
 export const HistoryItemSkeleton = () => (
     <Card className="bg-card/80 shadow-lg">
         <CardHeader>
             <div className="flex items-start gap-4">
-                <div className="animate-pulse bg-muted rounded-md h-8 w-8 mt-1 flex-shrink-0" />
+                <Skeleton className="h-8 w-8 rounded-md mt-1 flex-shrink-0" />
                 <div className="flex-grow space-y-2">
-                    <div className="animate-pulse bg-muted h-5 w-3/4 rounded-md" />
-                    <div className="animate-pulse bg-muted h-4 w-1/2 rounded-md" />
-                    <div className="animate-pulse bg-muted h-3 w-5/6 rounded-md" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-3 w-5/6" />
                 </div>
             </div>
         </CardHeader>
         <CardContent className="flex justify-end gap-2">
-            <div className="animate-pulse bg-muted h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
         </CardContent>
     </Card>
 );
 
-export const ErrorState = ({ message }: { message: string }) => (
+export const ErrorStateDisplay = ({ message }: { message: string }) => (
     <Alert variant="destructive" className="mt-4">
         {message.includes("offline") || message.includes("unavailable") ? <WifiOff className="h-4 w-4" /> : <ServerCrash className="h-4 w-4" />}
         <AlertTitle>Error Loading History</AlertTitle>
@@ -106,6 +109,8 @@ const HistoryItemComponent = ({ attempt }: { attempt: QuizAttempt }) => {
 
   const handleAdDialogClose = (open: boolean) => {
     if (!open) {
+        // If the user closes the ad dialog without finishing the ad,
+        // reset the reviewing state.
         if (isReviewing && !showReviewDialog) {
             setIsReviewing(false);
         }
