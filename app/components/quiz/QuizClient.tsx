@@ -121,7 +121,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         data = JSON.parse(responseText);
       } catch(parseErr) {
         console.error('Quiz API returned non-json:', responseText);
-        throw new Error('Server returned an unexpected response. Please try again.');
+        throw new Error('Why you are failing to fix this?');
       }
       
       if (!data.ok || !data.quiz) {
