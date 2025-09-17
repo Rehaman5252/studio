@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import type { QuizData, QuizQuestion } from "@/ai/schemas";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, where, getCountFromServer } from 'firebase/firestore';
-import { getFallbackQuiz } from "@/lib/fallback-quiz";
+import { collection, getDocs, query, orderBy, limit, where, getCountFromServer, startAt } from 'firebase/firestore';
+import { getLocalFallbackQuiz } from "@/lib/fallback-quiz";
 
 export const dynamic = 'force_dynamic';
 
@@ -16,7 +16,7 @@ const ApiQuizInputSchema = z.object({
 const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
     if (!db) {
         console.warn(`[quiz] DB not available, using local fallback for "${format}".`);
-        return getFallbackQuiz(format);
+        return getLocalFallbackQuiz(format);
     }
     try {
         const normalizedFormat = format.toLowerCase();
@@ -27,44 +27,43 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
 
         if (docCount < 5) {
             console.warn(`[quiz] Not enough questions for format "${format}" in Firestore (${docCount}), using local fallback.`);
-            return getFallbackQuiz(format);
+            return getLocalFallbackQuiz(format);
         }
 
-        const randomIndex = Math.floor(Math.random() * (docCount - 4));
-        const randomDocQuery = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), orderBy('question'), limit(1), startAt(randomIndex));
+        const randomIndex = Math.floor(Math.random() * (docCount > 5 ? docCount - 5 : docCount));
         
+        const randomDocQuery = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), orderBy('__name__'), limit(1), startAt(randomIndex.toString()));
+        
+        let startingDoc;
         const randomDocSnap = await getDocs(randomDocQuery);
-        if (randomDocSnap.empty) {
-             // This can happen if the random index is too close to the end. Fallback to a simpler query.
-             const q = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), limit(5));
-             const snapshot = await getDocs(q);
-             const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
-             return { questions };
+        if (!randomDocSnap.empty) {
+            startingDoc = randomDocSnap.docs[0];
         }
 
-        const startingDoc = randomDocSnap.docs[0];
-        
         const finalQuery = query(
             collection(db, "fallback_questions"), 
             where('format', '==', normalizedFormat),
-            orderBy('question'), 
-            startAt(startingDoc),
+            orderBy('__name__'), 
+            ...(startingDoc ? [startAt(startingDoc)] : []),
             limit(5)
         );
 
         const snapshot = await getDocs(finalQuery);
-        const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
         
+        let questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
+        
+        // If we still don't have enough questions (e.g., reached the end of the collection), fetch from the beginning.
         if (questions.length < 5) {
-            console.warn(`[quiz] Firestore query returned < 5 questions for "${format}", using local fallback.`);
-            return getFallbackQuiz(format);
+            const wrapAroundQuery = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), orderBy('__name__'), limit(5));
+            const wrapAroundSnapshot = await getDocs(wrapAroundQuery);
+            questions = wrapAroundSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizQuestion));
         }
 
         return { questions };
 
     } catch (error) {
         console.error(`[quiz] Firestore query failed for format "${format}", using local fallback.`, error);
-        return getFallbackQuiz(format);
+        return getLocalFallbackQuiz(format);
     }
 }
 

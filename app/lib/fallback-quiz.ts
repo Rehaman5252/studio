@@ -1,14 +1,13 @@
 
-import type { QuizQuestion } from '@/ai/schemas';
+import type { QuizQuestion as QuizDataQuestion } from '@/ai/schemas';
 
 /**
  * @fileOverview Fallback quiz data source.
  * This file contains a curated list of high-quality questions used as a fallback
- * when the primary AI generation system fails. The API route randomly shuffles
- * and selects from this list to provide variety.
+ * when the primary AI generation system fails or when Firestore is unavailable.
  */
 
-// Helper to shuffle an array, exported for use in the API route.
+// Helper to shuffle an array, used for local fallback.
 export function shuffleArray<T>(array: T[]): T[] {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -17,7 +16,7 @@ export function shuffleArray<T>(array: T[]): T[] {
     return array;
 }
 
-export type FallbackQuestion = Omit<QuizQuestion, 'id'> & { 
+export type FallbackQuestion = Omit<QuizDataQuestion, 'id'> & { 
     format: string;
     difficulty: 'Easy' | 'Medium' | 'Hard' | 'Very Hard' | 'Expert';
     hint: string;
@@ -218,11 +217,11 @@ export const allFallbackQuestions: FallbackQuestion[] = [
 
 /**
  * Retrieves a fallback quiz for a given format. If the format is not found,
- * it defaults to the 'mixed' format quiz.
+ * it defaults to the 'mixed' format quiz. This is only used when Firestore fails.
  * @param format The cricket format (e.g., 'ipl', 't20').
  * @returns A QuizData object containing 5 questions.
  */
-export function getFallbackQuiz(format: string): { questions: FallbackQuestion[] } {
+export function getLocalFallbackQuiz(format: string): { questions: FallbackQuestion[] } {
   const normalizedFormat = format.toLowerCase();
   const questionsForFormat = allFallbackQuestions.filter(
     (q) => q.format === normalizedFormat
@@ -235,6 +234,7 @@ export function getFallbackQuiz(format: string): { questions: FallbackQuestion[]
 
   return { questions: shuffleArray(questions).slice(0, 5) };
 }
+
 
 /**
  * A one-time function to seed the fallback questions into Firestore.
