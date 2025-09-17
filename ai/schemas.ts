@@ -1,53 +1,54 @@
+
 import { z } from 'zod';
 
 /**
  * Centralized schema definitions for the cricket quiz application.
- * Ensures consistent validation and typing across the application.
+ * Ensures consistent type safety and validation for core data structures.
  */
 
 export const QuizQuestion = z.object({
-  id: z.string().describe('Unique question identifier'),
-  question: z.string().describe('Question text'),
-  options: z.array(z.string()).length(4).describe('Four answer options'),
-  correctAnswer: z.string().describe('Correct answer'),
-  explanation: z.string().describe('Explanation for the correct answer'),
-  hint: z.string().optional().describe('Hint for the question'),
-  difficulty: z.enum(['Easy', 'Medium', 'Hard', 'Expert']).optional().describe('Question difficulty'),
-  format: z.string().optional().describe('Cricket format label'),
+  id: z.string().describe('Unique question identifier.'),
+  question: z.string().describe('Text of the quiz question.'),
+  options: z.array(z.string()).length(4).describe('Four distinct answer options.'),
+  correctAnswer: z.string().describe('Valid correct answer string.'),
+  explanation: z.string().describe('Detailed explanation of the answer.'),
+  hint: z.string().optional().describe('Helpful hint text.'),
+  difficulty: z.enum(['Easy', 'Medium', 'Hard', 'Expert']).optional().describe('Question difficulty level.'),
+  format: z.string().optional().describe('Cricket format, e.g., IPL, ODI.'),
 });
 
 export const QuizData = z.object({
-  questions: z.array(QuizQuestion).length(5).describe('Set of exactly five quiz questions'),
+  questions: z.array(QuizQuestion).length(5).describe('Array of exactly five quiz questions.'),
 });
 
 export const QuizAttempt = z.object({
-  userId: z.string().min(1).describe("User's unique ID"),
-  slotId: z.string().describe('10-minute quiz slot ID'),
-  brand: z.string().optional().default('unknown').describe('Brand associated with the quiz'),
-  format: z.string().describe('Cricket format'),
-  questions: z.array(QuizQuestion).min(1).describe('Questions presented in the quiz'),
-  userAnswers: z.array(z.string()).describe('User responses'),
-  score: z.number().int().describe('Final score'),
-  totalQuestions: z.number().int().describe('Total questions'),
-  timestamp: z.number().describe('Completion timestamp'),
-  timePerQuestion: z.optional(z.array(z.number())).describe('Time taken per question'),
-  unanswered: z.optional(z.number().int()).describe('Number of unanswered questions'),
-  reason: z.optional(z.string().nullable()).describe('Disqualification reason'),
-  source: z.optional(z.enum(['ai', 'fallback'])).describe('Source of quiz data'),
-  reviewed: z.boolean().optional().default(false).describe('If the user has reviewed answers'),
+  userId: z.string().min(1).describe("User's unique identifier."),
+  slotId: z.string().describe("10-minute quiz slot ID."),
+  brand: z.string().optional().default("unknown").describe("Quiz brand."),
+  format: z.string().min(1).describe("Cricket format."),
+  questions: z.array(QuizQuestion).min(1).describe("Questions in the quiz attempt."),
+  userAnswers: z.array(z.string()).describe("User's selected answers."),
+  score: z.number().int().describe("User's final score."),
+  totalQuestions: z.number().int().describe("Total questions attempted."),
+  timestamp: z.number().describe("Completion timestamp in ms."),
+  timePerQuestion: z.optional(z.array(z.number())).describe("Time per question in seconds."),
+  unanswered: z.optional(z.number().int()).describe("Number of unanswered questions."),
+  reason: z.optional(z.string().nullable()).describe("Disqualification reason if any."),
+  source: z.optional(z.enum(["ai", "fallback"])).describe("Data source"),
+  reviewed: z.boolean().optional().default(false).describe("Whether quiz is reviewed"),
 });
 
 export const QuizAnalysisOutputSchema = z.object({
-  summary: z.string().describe('Overall performance summary'),
-  strengths: z.array(z.string()).min(1).max(3).describe('Key strengths'),
-  weaknesses: z.array(z.string()).min(1).max(3).describe('Key weaknesses'),
-  recommendations: z.array(z.string()).min(1).max(3).describe('Recommended next steps'),
-  source: z.enum(['ai', 'fallback']).default('fallback').describe('Source of analysis'),
+  summary: z.string().describe("Concise performance summary."),
+  strengths: z.array(z.string()).min(1).max(3).describe("User strengths."),
+  weaknesses: z.array(z.string()).min(1).max(3).describe("User weaknesses."),
+  recommendations: z.array(z.string()).min(1).max(3).describe("Next steps."),
+  source: z.enum(["ai", "fallback"]).default("fallback").describe("Analysis source"),
 });
 
 export const HintOutputSchema = z.object({
   hint: z.string().min(1),
-  source: z.enum(['ai', 'fallback']),
+  source: z.enum(["ai", "fallback"]),
   debug: z.string().optional(),
 });
 

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -17,26 +18,24 @@ export async function getAIPoweredHint(input: HintInput): Promise<HintOutput> {
   return getHintFlow(input);
 }
 
-function fallbackHint(question?: QuizQuestion): string {
+const fallbackHint = (question?: QuizQuestion): string => {
   if (!question) {
-    return 'Review the topic and eliminate obviously incorrect options.';
+    return 'Review relevant topics and eliminate clearly incorrect options.';
   }
   if (question.correctAnswer) {
-    return 'Think carefully about the question and try to exclude unlikely options.';
+    return 'Focus on the most plausible options and discard unlikely ones.';
   }
-  if (Array.isArray(question.options) && question.options.length) {
-    return 'Try to eliminate options that don’t match the question context.';
-  }
-  return 'Consider basic concepts and make your best guess.';
-}
+  if (Array.isArray(question.options) && question.options.length)
+    return 'Exclude options irrelevant to the question stem.';
+  return 'Consider the key facts and make an informed choice.';
+};
 
 const prompt = ai.definePrompt({
-  name: 'GenerateHint',
+  name: 'getAIPoweredHintPrompt',
   input: { schema: HintInputSchema },
   output: { schema: z.object({ hint: z.string() }) },
   prompt: `
-You are a helpful assistant generating a hint for the following cricket quiz question.
-Do not reveal the correct answer "{{question.correctAnswer}}". Provide only one subtle hint.
+You are a helpful cricket quiz assistant. Provide a single, smart, and indirect hint without revealing the correct answer "{{question.correctAnswer}}".
 
 Question: "{{question.question}}"
 Options:
@@ -44,8 +43,8 @@ Options:
 - {{this}}
 {{/each}}
 
-Generate a concise, indirect hint to assist the user.
-`,
+Generate one concise, indirect hint.
+  `,
   config: {
     retries: 2,
   },
@@ -53,42 +52,35 @@ Generate a concise, indirect hint to assist the user.
 
 const getHintFlow = ai.defineFlow(
   {
-    name: 'AIHintFlow',
+    name: 'getAIPoweredHintFlow',
     inputSchema: HintInputSchema,
     outputSchema: HintOutputSchema,
   },
   async (input) => {
-    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-    const validation = HintInputSchema.safeParse(input);
-    if (!validation.success) {
-      console.warn(`[AI Hint][${requestId}] Invalid input:`, validation.error.format());
-      return {
-        hint: fallbackHint(),
-        source: 'fallback',
-        debug: IS_DEVELOPMENT ? 'Invalid input shape' : undefined,
-      };
+    const parseResult = HintInputSchema.safeParse(input);
+    if (!parseResult.success) {
+      console.warn(`[hints][${reqId}] invalid question input`, parseResult.error.format());
+      return { hint: fallbackHint(), source: 'fallback', debug: IS_DEV ? 'invalid_input' : undefined };
     }
 
     try {
-      console.info(`[AI Hint][${requestId}] Requesting hint from AI`);
-      const { output } = await prompt(validation.data);
+      console.info(`[hints][${reqId}] requesting AI hint`);
+      const { output } = await prompt(parseResult.data);
 
       if (!output?.hint || output.hint.trim().length < 5) {
-        throw new Error('Invalid or empty hint from AI');
+        throw new Error('AI returned invalid or empty hint');
       }
 
-      console.info(`[AI Hint][${requestId}] Hint generated successfully`);
-      return {
-        hint: output.hint.trim(),
-        source: 'ai',
-      };
+      console.info(`[hints][${reqId}] AI hint generated`);
+      return { hint: output.hint.trim(), source: 'ai' };
     } catch (error: any) {
-      console.error(`[AI Hint][${requestId}] Error generating hint:`, error?.message || error);
+      console.error(`[hints][${reqId}] AI hint failed:`, error?.message ?? error);
       return {
-        hint: fallbackHint(validation.data.question),
+        hint: fallbackHint(parseResult.data.question),
         source: 'fallback',
-        debug: IS_DEVELOPMENT ? (error instanceof Error ? error.message : String(error)) : undefined,
+        debug: IS_DEV ? (error instanceof Error ? error.message : String(error)) : undefined,
       };
     }
   }
