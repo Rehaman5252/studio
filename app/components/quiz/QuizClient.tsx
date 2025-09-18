@@ -185,7 +185,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const handlePreQuizFinish = useCallback(() => {
     if (isFinishedRef.current) return;
-    logger.event('quiz_start', { format, brand, source: quizSource });
+    logger.info('Quiz started', { format, brand, source: quizSource });
     setQuizState('playing');
     setStartTime(Date.now());
   }, [format, brand, quizSource]);
@@ -205,7 +205,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
-    logger.event('quiz_complete', {
+    logger.info('Quiz completed', {
         format,
         brand,
         score: attempt.score,
@@ -251,7 +251,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
 
-    logger.event('quiz_complete', {
+    logger.info('Quiz completed (disqualified)', {
         format,
         brand,
         score: 0,

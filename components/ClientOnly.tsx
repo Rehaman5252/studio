@@ -1,9 +1,11 @@
+
 'use client';
 
 import React, { Component, ReactNode } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { logger } from '@/app/lib/logger';
 
 interface ClientOnlyProps {
   children: ReactNode;
@@ -42,7 +44,7 @@ class ClientOnly extends Component<ClientOnlyProps, ClientOnlyState> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ClientOnly Boundary Caught Error:", error, errorInfo);
+    logger.error("ClientOnly Boundary Caught Error:", { error, errorInfo });
   }
 
   render() {

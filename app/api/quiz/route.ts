@@ -95,7 +95,6 @@ export async function POST(req: Request) {
     const err = e as Error;
     logger.error(`[quiz][${reqId}] Invalid JSON`, { message: err.message });
     const quiz = getLocalFallbackQuiz('mixed');
-    logger.event("quiz_fail_load", { error: "Invalid JSON body" });
     return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid JSON body.", originalError: err.message, code: "INVALID_JSON"} });
   }
 
@@ -110,7 +109,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
     } catch (aiError: any) {
         // --- Step 2: Firestore Fallback ---
-        logger.event("quiz_fail_load", { error: aiError.message });
         logger.warn(`[quiz][${reqId}] AI generation failed for ${userId} (${format}), falling back to Firestore. Reason:`, { message: aiError.message });
         const quiz = await getQuestionsFromFirestore(format);
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "AI generation failed, using fallback.", originalError: aiError.message, code: "AI_FLOW_FAILED"} });
@@ -119,13 +117,11 @@ export async function POST(req: Request) {
   } catch (err: any) {
      // --- Step 3: Total Failure ---
      if (err instanceof ZodError) {
-        logger.event("quiz_fail_load", { error: "Invalid payload" });
         logger.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
         const quiz = getLocalFallbackQuiz('mixed');
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid payload provided.", originalError: err.message, code: "INVALID_PAYLOAD"} });
      }
      
-     logger.event("quiz_fail_load", { error: "Fatal API error" });
      logger.error(`[quiz][${reqId}] Fatal API error`, { message: err.message });
      const quiz = getLocalFallbackQuiz('mixed');
      return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "An unexpected server error occurred.", originalError: err.message, code: "FATAL"} });
