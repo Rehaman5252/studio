@@ -6,7 +6,7 @@ import { collection, getDocs, query, orderBy, limit, where, getCountFromServer, 
 import { getLocalFallbackQuiz } from "@/lib/fallback-quiz";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { v4 as uuidv4 } from "uuid";
-import { logger } from "@/lib/logger";
+import { logger } from "@/app/lib/logger";
 
 export const dynamic = 'force_dynamic';
 
