@@ -1,5 +1,5 @@
 
-import type { QuizDataQuestion } from '@/ai/schemas';
+import type { QuizQuestion as QuizDataQuestion } from '@/ai/schemas';
 
 /**
  * @fileOverview Fallback quiz data source.
