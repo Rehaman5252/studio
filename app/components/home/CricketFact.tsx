@@ -10,6 +10,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
 
 const getFallbackFacts = (format: string): string[] => {
+    if (!Array.isArray(allFallbackQuestions)) {
+        console.warn("allFallbackQuestions not available for getFallbackFacts");
+        return [];
+    }
     const key = format.toLowerCase();
     let questionsForFormat = allFallbackQuestions.filter(q => q.format === key);
 
