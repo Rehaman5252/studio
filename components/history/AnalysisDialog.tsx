@@ -1,13 +1,14 @@
-"use client";
 
-import React, { useState, useEffect, memo } from "react";
+'use client';
+
+import React, { useState, useEffect, memo } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
@@ -18,8 +19,8 @@ import {
   Loader2,
   ServerCrash,
 } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
@@ -27,7 +28,11 @@ interface AnalysisDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialogProps) => {
+const AnalysisDialogComponent = ({
+  attempt,
+  open,
+  onOpenChange,
+}: AnalysisDialogProps) => {
   const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,26 +45,30 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
       setError(null);
       setAnalysis(null);
       try {
-        const res = await fetch("/api/analysis", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
-        
-        const data = await res.json();
-        
-        if (!res.ok || !data.ok) {
-           const summary = data.analysis?.summary || "Failed to fetch analysis from server.";
-           setAnalysis(data.analysis); // Still set the fallback analysis if available
-           if (!data.analysis) setError(summary);
-           return;
+
+        if (!res.ok) {
+          const result = await res.json();
+          const errText =
+            result.analysis.summary || 'Failed to fetch analysis from server.';
+          setAnalysis(result.analysis);
+          return;
         }
 
-        setAnalysis(data.analysis);
-
+        const data = await res.json();
+        if (data.ok) {
+            setAnalysis(data.analysis);
+        } else {
+            setError(data.analysis?.summary || "An unknown error occurred.");
+            setAnalysis(data.analysis);
+        }
       } catch (err: any) {
-        console.error("AnalysisDialog Error:", err);
-        setError("Could not load AI analysis. Please try again later.");
+        console.error('AnalysisDialog Error:', err);
+        setError('Could not load AI analysis. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -67,96 +76,113 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
 
     fetchAnalysis();
   }, [open, attempt]);
-  
+
   const renderContent = () => {
     if (loading) {
       return (
         <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-            <Loader2 className="animate-spin h-8 w-8 mb-4 text-primary" />
-            <p className="font-semibold">Generating your analysis...</p>
-            <p className="text-sm">The AI coach is reviewing the match footage.</p>
+          <Loader2 className="animate-spin h-8 w-8 mb-4 text-primary" />
+          <p className="font-semibold">Generating your analysis...</p>
+          <p className="text-sm">The AI coach is reviewing the match footage.</p>
         </div>
       );
     }
-    
+
     if (error && !analysis) {
       return (
         <Alert variant="destructive" className="mt-4">
-            <ServerCrash className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+          <ServerCrash className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       );
     }
 
     if (analysis) {
       return (
-          <div className="space-y-6">
-              {analysis.source === "fallback" && (
-                <p className="text-xs text-center p-2 bg-yellow-900/50 text-yellow-300 rounded-md">
-                    ⚠️ AI analysis wasn’t available for this session. Showing fallback insights.
-                </p>
-              )}
+        <div className="space-y-6">
+          {analysis.source === 'fallback' && (
+            <p className="text-xs text-center p-2 bg-yellow-900/50 text-yellow-300 rounded-md">
+              ⚠️ AI analysis wasn’t available for this session. Showing fallback
+              insights.
+            </p>
+          )}
 
-              <Card className="bg-card/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart className="text-primary" /> Overall Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{analysis.summary}</p>
-                </CardContent>
-              </Card>
+          <Card className="bg-card/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="text-primary" /> Overall Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>{analysis.summary}</p>
+            </CardContent>
+          </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-green-500">
-                      <Zap /> Key Strengths
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.strengths.map((item, i) => <li key={i}>{item}</li>)}
-                      {analysis.strengths.length === 0 && <li className="text-muted-foreground">No specific strengths identified.</li>}
-                    </ul>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-destructive">
-                      <Target /> Areas for Improvement
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.weaknesses.map((item, i) => <li key={i}>{item}</li> )}
-                      {analysis.weaknesses.length === 0 && <li className="text-muted-foreground">No specific weaknesses identified.</li>}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-green-500">
+                  <Zap /> Key Strengths
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  {analysis.strengths.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                  {analysis.strengths.length === 0 && (
+                    <li className="text-muted-foreground">
+                      No specific strengths identified.
+                    </li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <Target /> Areas for Improvement
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  {analysis.weaknesses.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                  {analysis.weaknesses.length === 0 && (
+                    <li className="text-muted-foreground">
+                      No specific weaknesses identified.
+                    </li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
 
-              <Card className="bg-primary/10">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
-                    <Lightbulb /> Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                      {analysis.recommendations.map((item, i) => <li key={i}>{item}</li>)}
-                      {analysis.recommendations.length === 0 && <li className="text-muted-foreground">Keep practicing!</li>}
-                    </ul>
-                </CardContent>
-              </Card>
-            </div>
+          <Card className="bg-primary/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Lightbulb /> Recommendations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                {analysis.recommendations.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+                {analysis.recommendations.length === 0 && (
+                  <li className="text-muted-foreground">Keep practicing!</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
-    
+
     return null;
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,6 +201,6 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
       </DialogContent>
     </Dialog>
   );
-}
+};
 
 export default memo(AnalysisDialogComponent);
