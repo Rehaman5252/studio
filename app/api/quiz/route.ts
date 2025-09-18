@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, limit, where, getCountFromServer, startAt } from 'firebase/firestore';
 import { getLocalFallbackQuiz } from "@/lib/fallback-quiz";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
+import { v4 as uuidv4 } from "uuid";
 
 export const dynamic = 'force_dynamic';
 
@@ -85,7 +86,7 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
 
 
 export async function POST(req: Request) {
-  const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const reqId = uuidv4();
   let body;
   
   try {
@@ -101,17 +102,20 @@ export async function POST(req: Request) {
     const parsed = ApiQuizInputSchema.parse(body);
     const { format, userId } = parsed;
 
+    // --- Step 1: Try AI Flow ---
     try {
         console.info(`[quiz][${reqId}] Requesting AI-generated quiz for ${userId} (${format})`);
         const quiz = await generateQuizFlow({ format, userId });
         return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
     } catch (aiError: any) {
+        // --- Step 2: Firestore Fallback ---
         console.warn(`[quiz][${reqId}] AI generation failed for ${userId} (${format}), falling back to Firestore. Reason:`, aiError.message);
         const quiz = await getQuestionsFromFirestore(format);
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "AI generation failed, using fallback.", originalError: aiError.message, code: "AI_FLOW_FAILED"} });
     }
 
   } catch (err: any) {
+     // --- Step 3: Total Failure ---
      if (err instanceof ZodError) {
         console.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
         const quiz = getLocalFallbackQuiz('mixed');
