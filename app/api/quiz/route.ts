@@ -79,7 +79,7 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
         return { questions };
 
     } catch (error) {
-        logger.error(`[quiz] Firestore query failed for format "${format}", using local fallback.`, error);
+        logger.error(`[quiz] Firestore query failed for format "${format}", using local fallback.`, { error });
         return getLocalFallbackQuiz(format);
     }
 }

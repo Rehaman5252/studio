@@ -322,7 +322,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       const hintResult = await getAIPoweredHint({ question: currentQ });
       setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
     } catch (e) {
-      logger.error("Failed to get AI hint:", e);
+      logger.error("Failed to get AI hint:", { e });
       setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
     } finally {
       setIsHintLoading(false);
