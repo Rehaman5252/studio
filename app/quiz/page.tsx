@@ -45,7 +45,6 @@ function QuizPageContent() {
   const brand = searchParams.get('brand') || 'Default Brand';
   const format = searchParams.get('format') || 'Mixed';
   
-  // Key to force remounting of the component on retry
   const [key, setKey] = useState(0);
 
   const retryQuizFetch = () => {

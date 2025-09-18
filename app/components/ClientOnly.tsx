@@ -16,6 +16,7 @@ interface ClientOnlyProps {
 interface ClientOnlyState {
   hasError: boolean;
   error?: Error;
+  resetKey: number;
 }
 
 const DefaultFallback = ({
@@ -60,10 +61,10 @@ const DefaultFallback = ({
 class ClientOnly extends Component<ClientOnlyProps, ClientOnlyState> {
   constructor(props: ClientOnlyProps) {
     super(props);
-    this.state = { hasError: false, error: undefined };
+    this.state = { hasError: false, error: undefined, resetKey: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): ClientOnlyState {
+  static getDerivedStateFromError(error: Error): Partial<ClientOnlyState> {
     return { hasError: true, error };
   }
 
@@ -74,17 +75,28 @@ class ClientOnly extends Component<ClientOnlyProps, ClientOnlyState> {
     });
   }
 
+  handleRetry = () => {
+    if (this.props.retry) {
+        this.props.retry();
+    }
+    this.setState((prev) => ({
+      hasError: false,
+      error: undefined,
+      resetKey: prev.resetKey + 1,
+    }));
+  };
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
       return (
-        <DefaultFallback error={this.state.error} retry={this.props.retry} />
+        <DefaultFallback error={this.state.error} retry={this.handleRetry} />
       );
     }
 
-    return this.props.children;
+    return <div key={this.state.resetKey}>{this.props.children}</div>;
   }
 }
 
