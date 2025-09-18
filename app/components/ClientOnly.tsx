@@ -5,7 +5,7 @@ import React, { Component, ReactNode } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import { logger } from '@/app/lib/logger';
 
 interface ClientOnlyProps {
   children: ReactNode;

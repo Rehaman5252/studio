@@ -121,7 +121,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       try {
         data = JSON.parse(responseText);
       } catch(parseErr) {
-        console.error('Quiz API returned non-json:', responseText);
+        logger.error('Quiz API returned non-json:', { responseText });
         throw new Error('Server returned an unexpected response. Please try again.');
       }
       
@@ -160,7 +160,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
     } catch (e: any) {
       if (e.name === 'AbortError') return; // Ignore abort errors
-      console.error("Quiz fetch failed:", e);
+      logger.error("Quiz fetch failed:", { message: e.message });
       let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
       
       if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
@@ -322,7 +322,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       const hintResult = await getAIPoweredHint({ question: currentQ });
       setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
     } catch (e) {
-      console.error("Failed to get AI hint:", e);
+      logger.error("Failed to get AI hint:", e);
       setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
     } finally {
       setIsHintLoading(false);

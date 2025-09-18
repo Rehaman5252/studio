@@ -18,7 +18,7 @@ const ApiQuizInputSchema = z.object({
 
 const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
     if (!db) {
-        console.warn(`[quiz] DB not available, using local fallback for "${format}".`);
+        logger.warn(`[quiz] DB not available, using local fallback for "${format}".`);
         return getLocalFallbackQuiz(format);
     }
     try {
@@ -29,7 +29,7 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
         const docCount = countSnapshot.data().count;
 
         if (docCount < 5) {
-            console.warn(`[quiz] Not enough questions for format "${format}" in Firestore (${docCount}), using local fallback.`);
+            logger.warn(`[quiz] Not enough questions for format "${format}" in Firestore (${docCount}), using local fallback.`);
             return getLocalFallbackQuiz(format);
         }
 
@@ -79,7 +79,7 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
         return { questions };
 
     } catch (error) {
-        console.error(`[quiz] Firestore query failed for format "${format}", using local fallback.`, error);
+        logger.error(`[quiz] Firestore query failed for format "${format}", using local fallback.`, error);
         return getLocalFallbackQuiz(format);
     }
 }
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch (e) {
     const err = e as Error;
-    console.error(`[quiz][${reqId}] Invalid JSON`, err.message);
+    logger.error(`[quiz][${reqId}] Invalid JSON`, { message: err.message });
     const quiz = getLocalFallbackQuiz('mixed');
     logger.event("quiz_fail_load", { error: "Invalid JSON body" });
     return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid JSON body.", originalError: err.message, code: "INVALID_JSON"} });
@@ -105,13 +105,13 @@ export async function POST(req: Request) {
 
     // --- Step 1: Try AI Flow ---
     try {
-        console.info(`[quiz][${reqId}] Requesting AI-generated quiz for ${userId} (${format})`);
+        logger.info(`[quiz][${reqId}] Requesting AI-generated quiz for ${userId} (${format})`);
         const quiz = await generateQuizFlow({ format, userId });
         return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
     } catch (aiError: any) {
         // --- Step 2: Firestore Fallback ---
         logger.event("quiz_fail_load", { error: aiError.message });
-        console.warn(`[quiz][${reqId}] AI generation failed for ${userId} (${format}), falling back to Firestore. Reason:`, aiError.message);
+        logger.warn(`[quiz][${reqId}] AI generation failed for ${userId} (${format}), falling back to Firestore. Reason:`, { message: aiError.message });
         const quiz = await getQuestionsFromFirestore(format);
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "AI generation failed, using fallback.", originalError: aiError.message, code: "AI_FLOW_FAILED"} });
     }
@@ -120,13 +120,13 @@ export async function POST(req: Request) {
      // --- Step 3: Total Failure ---
      if (err instanceof ZodError) {
         logger.event("quiz_fail_load", { error: "Invalid payload" });
-        console.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
+        logger.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
         const quiz = getLocalFallbackQuiz('mixed');
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid payload provided.", originalError: err.message, code: "INVALID_PAYLOAD"} });
      }
      
      logger.event("quiz_fail_load", { error: "Fatal API error" });
-     console.error(`[quiz][${reqId}] Fatal API error`, err.message);
+     logger.error(`[quiz][${reqId}] Fatal API error`, { message: err.message });
      const quiz = getLocalFallbackQuiz('mixed');
      return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "An unexpected server error occurred.", originalError: err.message, code: "FATAL"} });
   }

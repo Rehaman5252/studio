@@ -1,9 +1,11 @@
+
 import { NextResponse } from "next/server";
 import { generateQuizAnalysis } from "@/ai/flows/generate-quiz-analysis";
 import { QuizAnalysisOutputSchema } from "@/ai/schemas";
 import type { QuizAnalysisOutput, QuizAttempt } from "@/ai/schemas";
 import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 import { v4 as uuidv4 } from "uuid";
+import { logger } from "@/app/lib/logger";
 
 const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
     const format = attempt?.format || "cricket";
@@ -40,13 +42,13 @@ export async function POST(req: Request) {
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
-          console.error(`[Analysis AI error] reqId=${requestId} - AI output failed validation`, parsed.error);
+          logger.error(`[Analysis AI error] reqId=${requestId} - AI output failed validation`, { error: parsed.error });
           // Fall through to static fallback
         } else {
            return NextResponse.json({ ok: true, analysis: parsed.data, requestId });
         }
-    } catch (aiError) {
-      console.error(`[Analysis AI error] reqId=${requestId}`, aiError);
+    } catch (aiError: any) {
+      logger.error(`[Analysis AI error] reqId=${requestId}`, { error: aiError.message });
       // Fall through to static fallback
     }
 
@@ -55,7 +57,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, analysis: fallbackAnalysis, fallback: true, requestId });
 
   } catch (err: any) {
-     console.error(`[Analysis route error] reqId=${requestId}`, err);
+     logger.error(`[Analysis route error] reqId=${requestId}`, { error: err.message });
      return NextResponse.json(
       { ok: false, error: "Invalid request body.", requestId },
       { status: 400 }
