@@ -48,3 +48,11 @@ jobs:
       # 6. Run Jest tests
       - name: Run Jest Tests
         run: npm test
+
+      # 7. Upload test results (optional)
+      - name: Upload Jest Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: jest-results
+          path: ./jest-results
