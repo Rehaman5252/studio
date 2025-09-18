@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -10,6 +9,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
 
 const getFallbackFacts = (format: string): string[] => {
+    if (!Array.isArray(allFallbackQuestions)) {
+        console.warn("allFallbackQuestions not available for getFallbackFacts");
+        return [];
+    }
     const key = format.toLowerCase();
     let questionsForFormat = allFallbackQuestions.filter(q => q.format === key);
 
@@ -35,7 +38,7 @@ export default function CricketFact({ format }: { format: string }) {
         }
         try {
             const seen = isInitial ? [] : facts;
-            const newFacts = await generateCricketFacts({ format: fetchFormat, seenFacts: seen });
+            const newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts: seen });
             
             if (newFacts && newFacts.length > 0) {
                 setFacts(prev => isInitial ? newFacts : [...prev, ...newFacts]);

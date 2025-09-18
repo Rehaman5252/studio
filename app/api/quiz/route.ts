@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 export const dynamic = 'force_dynamic';
 
 const ApiQuizInputSchema = z.object({
-  format: z.enum(["mixed", "odi", "t20", "test", "ipl", "wpl"]),
+  format: z.string(),
   userId: z.string().min(1, { message: "User ID cannot be empty." }),
 });
 
