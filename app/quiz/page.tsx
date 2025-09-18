@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
-import { logger } from '@/lib/logger';
+import { logger } from '@/app/lib/logger';
 
 const QuizClient = dynamic(
   () => import('@/components/quiz/QuizClient').catch(err => {

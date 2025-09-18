@@ -21,7 +21,7 @@ import { isFirebaseConfigured } from '@/lib/firebase';
 import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
 import LoginPrompt from '../auth/LoginPrompt';
-import { logger } from '@/lib/logger';
+import { logger } from '@/app/lib/logger';
 
 
 interface QuizClientProps {
@@ -29,7 +29,7 @@ interface QuizClientProps {
   format: string;
 }
 
-type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'unauthenticated';
+type QuizState = 'loading' | 'pre-quiz' | 'playing' | 'submitting' | 'error' | 'unauthenticated';
 
 type QuizAPIResponse = {
   ok: boolean;
@@ -46,6 +46,7 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 export default function QuizClient({ brand, format }: QuizClientProps) {
   const [quizState, setQuizState] = useState<QuizState>('loading');
   const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
@@ -87,16 +88,21 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     abortControllerRef.current = controller;
 
     setQuizState('loading');
-    
+    setError(null);
+
     if (!user) {
         setQuizState('unauthenticated');
         return;
     }
     if (isOffline) {
-        throw new Error("You appear to be offline. Please check your connection.");
+        setError("You appear to be offline. Please check your connection.");
+        setQuizState('error');
+        return;
     }
     if (!isFirebaseConfigured) {
-        throw new Error("🔥 The app is not connected to the server. Please try again later.");
+        setError("🔥 The app is not connected to the server. Please try again later.");
+        setQuizState('error');
+        return;
     }
     
     try {
@@ -127,7 +133,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
             setQuizState('pre-quiz');
             toast({ title: 'Heads up!', description: msg, variant: 'default' });
          } else {
-            throw new Error(msg);
+            setError(msg);
+            setQuizState('error');
          }
          return;
       }
@@ -153,22 +160,23 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
     } catch (e: any) {
       if (e.name === 'AbortError') return; // Ignore abort errors
+      console.error("Quiz fetch failed:", e);
       let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
+      
       if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
           userMessage = "📴 You appear to be offline. Please check your connection.";
       } else if (typeof e.message === 'string') {
           userMessage = e.message;
       }
-      throw new Error(userMessage);
+      
+      setError(userMessage);
+      setQuizState('error');
     }
   }, [format, user, authLoading, isOffline, toast]);
 
   useEffect(() => {
     if (!authLoading) {
-        fetchQuiz().catch(error => {
-          setQuizState('error');
-          console.error(error);
-        });
+        fetchQuiz();
     }
     return () => {
         abortControllerRef.current?.abort();
@@ -346,6 +354,16 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   if (quizState === 'pre-quiz' && quizData) {
       return <PreQuizLoader format={format} onFinish={handlePreQuizFinish} />;
   }
+
+  if (quizState === 'error') {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
+            <AlertTriangle className="h-12 w-12 mb-4" />
+            <p className="font-semibold mb-4">{error}</p>
+            <Button onClick={fetchQuiz}>Try Again</Button>
+        </div>
+    );
+  }
   
   if (quizState === 'submitting') {
     return (
@@ -429,3 +447,5 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   // Fallback rendering for any unhandled state. This should not normally be reached.
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
+
+    
