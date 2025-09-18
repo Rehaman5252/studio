@@ -447,7 +447,3 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
   // Fallback rendering for any unhandled state. This should not normally be reached.
   return <div className="flex items-center justify-center min-h-screen"><CricketLoading /></div>;
 }
-
-    
-
-    

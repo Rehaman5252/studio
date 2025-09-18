@@ -14,8 +14,7 @@ import { logger } from '@/app/lib/logger';
 
 const QuizClient = dynamic(
   () => import('@/components/quiz/QuizClient').catch(err => {
-    console.error("Failed to load QuizClient chunk", err);
-    logger.event('quiz_fail_load', { error: err.message });
+    logger.error("Failed to load QuizClient chunk", err);
     return function ChunkLoadFallback() {
       return (
         <div className="flex items-center justify-center min-h-screen p-4">
