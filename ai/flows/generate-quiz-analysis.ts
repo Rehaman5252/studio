@@ -46,7 +46,7 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
 
 
 export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
-    const sanitized = sanitizeQuizAttempt(rawAttempt);
+    const sanitized = sanitizeQuizAttempt(rawAttempt) as QuizAttempt;
 
     if (!sanitized || !sanitized.userId) {
         console.error("[generateQuizAnalysis] Sanitization failed or missing userId, returning fallback.", { rawAttempt });
@@ -55,7 +55,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
     }
     
     try {
-        const validatedAttempt = QuizAttempt.parse(sanitized as z.infer<typeof QuizAttempt>);
+        const validatedAttempt = QuizAttempt.parse(sanitized);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
@@ -69,7 +69,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
     } catch (error: any) {
         console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
-        return getFallbackAnalysis(sanitized as z.infer<typeof QuizAttempt>);
+        return getFallbackAnalysis(sanitized);
     }
 }
 

@@ -12,9 +12,6 @@ export const QuizQuestion = z.object({
   options: z.array(z.string()).length(4).describe('Four distinct answer options.'),
   correctAnswer: z.string().describe('Valid correct answer string.'),
   explanation: z.string().describe('Detailed explanation of the answer.'),
-  hint: z.string().optional().describe('Helpful hint text.'),
-  difficulty: z.enum(['Easy', 'Medium', 'Hard', 'Expert']).optional().describe('Question difficulty level.'),
-  format: z.string().optional().describe('Cricket format, e.g., IPL, ODI.'),
 });
 
 export const QuizData = z.object({

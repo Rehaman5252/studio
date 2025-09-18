@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { Suspense, useState } from 'react';
@@ -57,7 +58,7 @@ function QuizPageContent() {
   }
 
   return (
-    <ClientOnly retry={retryQuizFetch}>
+    <ClientOnly>
       <QuizClient key={key} brand={brand} format={format} />
     </ClientOnly>
   );

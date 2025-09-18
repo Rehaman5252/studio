@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, memo } from 'react';
@@ -59,7 +60,12 @@ const AnalysisDialogComponent = ({
         }
 
         const data = await res.json();
-        setAnalysis(data.analysis);
+        if (data.ok) {
+            setAnalysis(data.analysis);
+        } else {
+            setError(data.analysis?.summary || "An unknown error occurred.");
+            setAnalysis(data.analysis);
+        }
       } catch (err: any) {
         console.error('AnalysisDialog Error:', err);
         setError('Could not load AI analysis. Please try again later.');
@@ -82,7 +88,7 @@ const AnalysisDialogComponent = ({
       );
     }
 
-    if (error) {
+    if (error && !analysis) {
       return (
         <Alert variant="destructive" className="mt-4">
           <ServerCrash className="h-4 w-4" />

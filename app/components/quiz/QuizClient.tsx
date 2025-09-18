@@ -165,7 +165,10 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   useEffect(() => {
     if (!authLoading) {
-        fetchQuiz();
+        fetchQuiz().catch(error => {
+          setQuizState('error');
+          console.error(error);
+        });
     }
     return () => {
         abortControllerRef.current?.abort();
@@ -201,6 +204,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         totalQuestions: attempt.totalQuestions,
         source: quizSource,
         disqualified: false,
+        reason: null,
     });
     
     sessionStorage.setItem(`quiz-finished-${attempt.slotId}`, "true");
