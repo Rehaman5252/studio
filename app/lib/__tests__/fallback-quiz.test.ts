@@ -1,4 +1,3 @@
-
 import { allFallbackQuestions, getLocalFallbackQuiz } from '../fallback-quiz';
 
 describe('Fallback quiz data integrity', () => {
@@ -16,7 +15,7 @@ describe('Fallback quiz data integrity', () => {
       expect(q.question).not.toBe("");
       
       expect(Array.isArray(q.options)).toBe(true);
-      expect(q.options.length).toBeGreaterThanOrEqual(2);
+      expect(q.options.length).toBe(4);
       q.options.forEach(opt => expect(typeof opt).toBe('string'));
       
       expect(typeof q.correctAnswer).toBe('string');

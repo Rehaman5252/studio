@@ -6,6 +6,7 @@ import { collection, getDocs, query, orderBy, limit, where, getCountFromServer, 
 import { getLocalFallbackQuiz } from "@/lib/fallback-quiz";
 import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { v4 as uuidv4 } from "uuid";
+import { logger } from "@/lib/logger";
 
 export const dynamic = 'force_dynamic';
 
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
     const err = e as Error;
     console.error(`[quiz][${reqId}] Invalid JSON`, err.message);
     const quiz = getLocalFallbackQuiz('mixed');
+    logger.event("quiz_fail_load", { error: "Invalid JSON body" });
     return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid JSON body.", originalError: err.message, code: "INVALID_JSON"} });
   }
 
@@ -107,6 +109,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
     } catch (aiError: any) {
         // --- Step 2: Firestore Fallback ---
+        logger.event("quiz_fail_load", { error: aiError.message });
         console.warn(`[quiz][${reqId}] AI generation failed for ${userId} (${format}), falling back to Firestore. Reason:`, aiError.message);
         const quiz = await getQuestionsFromFirestore(format);
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "AI generation failed, using fallback.", originalError: aiError.message, code: "AI_FLOW_FAILED"} });
@@ -115,11 +118,13 @@ export async function POST(req: Request) {
   } catch (err: any) {
      // --- Step 3: Total Failure ---
      if (err instanceof ZodError) {
+        logger.event("quiz_fail_load", { error: "Invalid payload" });
         console.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
         const quiz = getLocalFallbackQuiz('mixed');
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid payload provided.", originalError: err.message, code: "INVALID_PAYLOAD"} });
      }
      
+     logger.event("quiz_fail_load", { error: "Fatal API error" });
      console.error(`[quiz][${reqId}] Fatal API error`, err.message);
      const quiz = getLocalFallbackQuiz('mixed');
      return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "An unexpected server error occurred.", originalError: err.message, code: "FATAL"} });
