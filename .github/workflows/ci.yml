@@ -1,6 +1,5 @@
 name: CI
 
-# Trigger on push or pull request for main, dev, or any feature branches
 on:
   push:
     branches:
@@ -19,37 +18,80 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [20.x]  # Use your preferred Node.js version
+        node-version: [20.x]
 
     steps:
-      # 1. Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Set up Node.js environment
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: npm ci
 
-      # 4. Run lint (optional but recommended)
       - name: Run ESLint
+        # The GitHub formatter automatically creates annotations for PRs
         run: npm run lint
 
-      # 5. Run TypeScript type check
-      - name: Type-check
-        run: npm run type-check
+      - name: Run TypeScript type check
+        id: tsc
+        # We pipe the output to a file and continue on error.
+        # This allows the next step to process the output for annotations.
+        run: npm run type-check > tsc_output.txt 2>&1 || true
 
-      # 6. Run Jest tests
+      - name: Create TypeScript Annotations
+        # This step runs only if the type-check failed.
+        if: steps.tsc.outcome == 'failure'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('tsc_output.txt', 'utf8');
+            const lines = output.split('\n');
+            const annotations = [];
+            
+            // Regex to capture file path, line, column, and message
+            const regex = /(.+?)\((\d+),(\d+)\):\s+error\s+TS\d+:\s+(.*)/;
+
+            for (const line of lines) {
+              const match = line.match(regex);
+              if (match) {
+                const [_, file, startLine, startColumn, message] = match;
+                annotations.push({
+                  path: file.trim(),
+                  start_line: parseInt(startLine),
+                  end_line: parseInt(startLine),
+                  start_column: parseInt(startColumn),
+                  end_column: parseInt(startColumn),
+                  annotation_level: 'failure',
+                  message: message.trim(),
+                });
+              }
+            }
+
+            if (annotations.length > 0) {
+              core.summary
+                .addHeading('TypeScript Errors Found')
+                .addTable([
+                  [{data: 'File', header: true}, {data: 'Error', header: true}],
+                  ...annotations.map(a => [
+                    `${a.path}:${a.start_line}`,
+                    a.message
+                  ])
+                ])
+                .write()
+            }
+            
+            // Exit the workflow with a failure code.
+            core.setFailed(`TypeScript check failed with ${annotations.length} errors.`);
+
       - name: Run Jest Tests
         run: npm test
 
-      # 7. Upload test results (optional)
       - name: Upload Jest Test Results
         if: always()
         uses: actions/upload-artifact@v3
