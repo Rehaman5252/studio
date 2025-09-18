@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import type { QuizData, QuizQuestion } from "@/ai/schemas";
@@ -62,7 +61,6 @@ const getQuestionsFromFirestore = async (format: string): Promise<QuizData> => {
             } as QuizQuestion;
         });
         
-        // If we still don't have enough questions (e.g., reached the end of the collection), fetch from the beginning.
         if (questions.length < 5) {
             const wrapAroundQuery = query(collection(db, "fallback_questions"), where('format', '==', normalizedFormat), orderBy('__name__'), limit(5));
             const wrapAroundSnapshot = await getDocs(wrapAroundQuery);

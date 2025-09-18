@@ -1,9 +1,9 @@
-
 import { NextResponse } from "next/server";
 import { generateQuizAnalysis } from "@/ai/flows/generate-quiz-analysis";
 import { QuizAnalysisOutputSchema } from "@/ai/schemas";
 import type { QuizAnalysisOutput, QuizAttempt } from "@/ai/schemas";
 import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
+import { v4 as uuidv4 } from "uuid";
 
 const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
     const format = attempt?.format || "cricket";
@@ -20,35 +20,45 @@ const getFallbackAnalysisForApi = (attempt: any): QuizAnalysisOutput => {
 };
 
 export async function POST(req: Request) {
+  const requestId = uuidv4();
   let attemptBody: any;
+  
   try {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object' || !body.attempt) {
-      return NextResponse.json({ ok: false, analysis: getFallbackAnalysisForApi({}) }, { status: 400 });
+      return NextResponse.json({ ok: false, analysis: getFallbackAnalysisForApi({}), requestId }, { status: 400 });
+    }
+    
+    attemptBody = body.attempt;
+
+    // --- Step 1: Try AI Flow ---
+    try {
+        const sanitizedAttempt = sanitizeQuizAttempt(attemptBody) as QuizAttempt;
+        const analysis = await generateQuizAnalysis(sanitizedAttempt);
+        
+        // Final validation before sending to client
+        const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
+
+        if (!parsed.success) {
+          console.error(`[Analysis AI error] reqId=${requestId} - AI output failed validation`, parsed.error);
+          // Fall through to static fallback
+        } else {
+           return NextResponse.json({ ok: true, analysis: parsed.data, requestId });
+        }
+    } catch (aiError) {
+      console.error(`[Analysis AI error] reqId=${requestId}`, aiError);
+      // Fall through to static fallback
     }
 
-    const sanitizedAttempt = sanitizeQuizAttempt(body.attempt) as QuizAttempt;
-    
-    const result = await generateQuizAnalysis(sanitizedAttempt);
-    
-    const parsed = QuizAnalysisOutputSchema.safeParse(result);
-
-    if (!parsed.success) {
-      console.error("[Analysis API] FATAL: Output from hardened flow failed validation. This should not happen.", parsed.error);
-      const fallback = getFallbackAnalysisForApi(sanitizedAttempt);
-      // Still return OK: true so client can display the fallback analysis
-      return NextResponse.json({ ok: true, analysis: fallback }); 
-    }
-
-    return NextResponse.json({ ok: true, analysis: parsed.data });
+    // --- Step 2: Static Fallback ---
+    const fallbackAnalysis = getFallbackAnalysisForApi(attemptBody);
+    return NextResponse.json({ ok: true, analysis: fallbackAnalysis, fallback: true, requestId });
 
   } catch (err: any) {
-    console.error("[Analysis API] A critical unhandled error occurred:", err);
-    const fallback = getFallbackAnalysisForApi(attemptBody || {});
-    // Always return ok:true with a fallback so the client doesn't show a hard error.
-    return NextResponse.json(
-      { ok: true, analysis: fallback },
-      { status: 200 }
+     console.error(`[Analysis route error] reqId=${requestId}`, err);
+     return NextResponse.json(
+      { ok: false, error: "Invalid request body.", requestId },
+      { status: 400 }
     );
   }
 }

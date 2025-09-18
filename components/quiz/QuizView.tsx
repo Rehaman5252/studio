@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -12,6 +11,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 const QUESTION_TIME_LIMIT = 20; // seconds
 
@@ -27,6 +27,7 @@ interface QuizViewProps {
     hint: HintOutput | null;
     isHintLoading: boolean;
     soundEnabled: boolean;
+    quizSource: 'ai' | 'fallback';
 }
 
 export default function QuizView({
@@ -40,7 +41,8 @@ export default function QuizView({
     onHintRequest,
     hint,
     isHintLoading,
-    soundEnabled
+    soundEnabled,
+    quizSource,
 }: QuizViewProps) {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
@@ -126,7 +128,36 @@ export default function QuizView({
             {/* Header */}
             <header className="flex flex-col gap-4 mb-4 shrink-0">
                  <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-primary animate-pulse">{brand} - {format}</p>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                             {quizSource === 'fallback' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <motion.div
+                                              animate={{
+                                                scale: [1, 1.05, 1],
+                                                opacity: [1, 0.7, 1],
+                                              }}
+                                              transition={{
+                                                duration: 2,
+                                                ease: [0.4, 0, 0.2, 1],
+                                                repeat: Infinity,
+                                                repeatType: "reverse",
+                                              }}
+                                            >
+                                                <Badge variant="outline" className="border-amber-500 text-amber-500 text-xs cursor-default">Standard</Badge>
+                                            </motion.div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>This is a standard quiz, provided when the AI was unavailable.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+                        </motion.div>
+                    </div>
                     <div className="relative h-16 w-16">
                          <CircularProgressbar
                             value={timeLeft}
@@ -204,6 +235,7 @@ export default function QuizView({
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
                         className="mt-4 p-3 bg-accent/20 rounded-lg text-sm text-center flex items-center justify-center gap-2"
                     >
                         {hint.source === 'fallback' && (

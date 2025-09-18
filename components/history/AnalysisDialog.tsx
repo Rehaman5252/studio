@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, memo } from "react";
@@ -47,14 +46,15 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
           body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
         
-        if (!res.ok) {
-           const result = await res.json();
-           const errText = result.analysis.summary || "Failed to fetch analysis from server.";
-           setAnalysis(result.analysis);
+        const data = await res.json();
+        
+        if (!res.ok || !data.ok) {
+           const summary = data.analysis?.summary || "Failed to fetch analysis from server.";
+           setAnalysis(data.analysis); // Still set the fallback analysis if available
+           if (!data.analysis) setError(summary);
            return;
         }
 
-        const data = await res.json();
         setAnalysis(data.analysis);
 
       } catch (err: any) {
@@ -79,7 +79,7 @@ const AnalysisDialogComponent = ({ attempt, open, onOpenChange }: AnalysisDialog
       );
     }
     
-    if (error) {
+    if (error && !analysis) {
       return (
         <Alert variant="destructive" className="mt-4">
             <ServerCrash className="h-4 w-4" />
