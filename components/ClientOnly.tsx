@@ -44,7 +44,7 @@ class ClientOnly extends Component<ClientOnlyProps, ClientOnlyState> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error("ClientOnly Boundary Caught Error:", { error, errorInfo });
+    logger.error("ClientOnly Boundary Caught Error:", { error: error.message, componentStack: errorInfo.componentStack });
   }
 
   render() {

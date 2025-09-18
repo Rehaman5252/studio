@@ -68,7 +68,8 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   }
   sanitized.timePerQuestion = timePer.slice(0, sanitized.totalQuestions);
 
-  sanitized.unanswered = raw.unanswered ?? (sanitized.totalQuestions - answers.filter(Boolean).length);
+  const unanswered = answers.filter(a => a === "").length;
+  sanitized.unanswered = unanswered;
   
   // Explicitly handle the 'reason' field: only include it if it's a non-empty string.
   if (raw.reason && typeof raw.reason === 'string') {

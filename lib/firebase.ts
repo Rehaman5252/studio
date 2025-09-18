@@ -18,7 +18,7 @@ export const isFirebaseConfigured = !!(
   firebaseConfig.projectId
 );
 
-let app: FirebaseApp;
+let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
@@ -40,10 +40,12 @@ export function getAuth() {
     return auth;
   }
   if (typeof window !== 'undefined' && isFirebaseConfigured) {
-    if (!getApps().length) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApp();
+    if (!app) {
+        if (!getApps().length) {
+            app = initializeApp(firebaseConfig);
+        } else {
+            app = getApp();
+        }
     }
     auth = getFirebaseAuth(app);
     return auth;

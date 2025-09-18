@@ -21,7 +21,7 @@ import { isFirebaseConfigured } from '@/lib/firebase';
 import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
 import LoginPrompt from '../auth/LoginPrompt';
-import { logger } from '@/lib/logger';
+import { logger } from '@/app/lib/logger';
 
 
 interface QuizClientProps {
@@ -121,7 +121,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       try {
         data = JSON.parse(responseText);
       } catch(parseErr) {
-        console.error('Quiz API returned non-json:', responseText);
+        logger.error('Quiz API returned non-json:', { responseText });
         throw new Error('Server returned an unexpected response. Please try again.');
       }
       
@@ -160,7 +160,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       
     } catch (e: any) {
       if (e.name === 'AbortError') return; // Ignore abort errors
-      console.error("Quiz fetch failed:", e);
+      logger.error("Quiz fetch failed:", { message: e.message });
       let userMessage = "Could not load quiz. The AI might be busy. Please try again.";
       
       if (typeof e.message === 'string' && e.message.includes("Failed to fetch")) {
@@ -185,7 +185,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const handlePreQuizFinish = useCallback(() => {
     if (isFinishedRef.current) return;
-    logger.event('quiz_start', { format, brand, source: quizSource });
+    logger.info('Quiz started', { format, brand, source: quizSource });
     setQuizState('playing');
     setStartTime(Date.now());
   }, [format, brand, quizSource]);
@@ -205,7 +205,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
-    logger.event('quiz_complete', {
+    logger.info('Quiz completed', {
         format,
         brand,
         score: attempt.score,
@@ -251,7 +251,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
 
-    logger.event('quiz_complete', {
+    logger.info('Quiz completed (disqualified)', {
         format,
         brand,
         score: 0,
@@ -321,8 +321,8 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       const currentQ = quizData.questions[currentQuestionIndex];
       const hintResult = await getAIPoweredHint({ question: currentQ });
       setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
-    } catch (e) {
-      console.error("Failed to get AI hint:", e);
+    } catch (e: any) {
+      logger.error("Failed to get AI hint:", { e });
       setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
     } finally {
       setIsHintLoading(false);
