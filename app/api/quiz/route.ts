@@ -93,7 +93,8 @@ export async function POST(req: Request) {
   } catch (e) {
     const err = e as Error;
     console.error(`[quiz][${reqId}] Invalid JSON`, err.message);
-    return NextResponse.json({ ok: false, error: { message: "Invalid request format." } }, { status: 400 });
+    const quiz = getLocalFallbackQuiz('mixed');
+    return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid JSON body.", originalError: err.message, code: "INVALID_JSON"} });
   }
 
   try {
@@ -113,11 +114,12 @@ export async function POST(req: Request) {
   } catch (err: any) {
      if (err instanceof ZodError) {
         console.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
-        return NextResponse.json({ ok: false, error: { message: "Invalid payload provided." } }, { status: 400 });
+        const quiz = getLocalFallbackQuiz('mixed');
+        return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid payload provided.", originalError: err.message, code: "INVALID_PAYLOAD"} });
      }
      
      console.error(`[quiz][${reqId}] Fatal API error`, err.message);
-     return NextResponse.json({ ok: false, error: { message: "An unexpected server error occurred." } }, { status: 500 });
+     const quiz = getLocalFallbackQuiz('mixed');
+     return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "An unexpected server error occurred.", originalError: err.message, code: "FATAL"} });
   }
 }
-

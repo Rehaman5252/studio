@@ -16,10 +16,15 @@ export function shuffleArray<T>(array: T[]): T[] {
     return array;
 }
 
-export type FallbackQuestion = QuizDataQuestion & { 
-    format: string;
-    difficulty: 'Easy' | 'Medium' | 'Hard' | 'Very Hard' | 'Expert';
-    hint: string;
+export type FallbackQuestion = {
+  id: string; // must be unique
+  question: string; // quiz question text
+  options: string[]; // answer choices
+  correctAnswer: string; // the correct answer (must match one of the options)
+  explanation: string;
+  format: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Very Hard' | 'Expert';
+  hint: string;
 };
 
 // A smaller, local fallback in case Firestore fails.
@@ -44,7 +49,6 @@ export const allFallbackQuestions: FallbackQuestion[] = [
     { id: 'fb_mix_14', format: 'mixed', difficulty: 'Easy', question: 'What is the name of the cricket ground in London often called the "Home of Cricket"?', options: ['The Oval', 'Edgbaston', 'Lord\'s', 'Old Trafford'], correctAnswer: 'Lord\'s', explanation: 'Lord\'s Cricket Ground in London is owned by the Marylebone Cricket Club (MCC) and is known worldwide as the "Home of Cricket".', hint: 'It is named after its founder, Thomas Lord.' },
     { id: 'fb_mix_15', format: 'mixed', difficulty: 'Easy', question: 'What is the term for a batsman scoring 100 runs?', options: ['Fifty', 'Ton', 'Century', 'Milestone'], correctAnswer: 'Century', explanation: 'Scoring 100 runs in a single innings is a significant achievement known as a century.', hint: 'It shares its name with a period of 100 years.' },
     { id: 'fb_mix_16', format: 'mixed', difficulty: 'Easy', question: 'Which piece of equipment is NOT worn by a batsman?', options: ['Helmet', 'Pads', 'Shin guards', 'Gloves'], correctAnswer: 'Shin guards', explanation: 'Batsmen wear pads to protect their legs, but shin guards are typically associated with sports like soccer.', hint: 'These are worn in soccer but not cricket.' },
-    { id: 'fb_mix_17', format: 'mixed', difficulty: 'Easy', question: 'The long rectangular strip in the middle of the field is called the...?', options: ['Track', 'Runway', 'Pitch', 'Lane'], correctAnswer: 'Pitch', explanation: 'The pitch is the central strip of the cricket field where most of the action takes place.', hint: 'It\'s where the bowling and batting happens.' },
     { id: 'fb_mix_18', format: 'mixed', difficulty: 'Easy', question: 'What does it mean if a batsman is "run out"?', options: ['He ran too slowly', 'He hit the ball out of the park', 'His wicket is put down while he is out of his crease', 'He retired from the game'], correctAnswer: 'His wicket is put down while he is out of his crease', explanation: 'A batsman is run out if a fielder dislodges the bails while the batsman is attempting a run and is short of the crease.', hint: 'It involves a fielder hitting the stumps with the ball.' },
     { id: 'fb_mix_19', format: 'mixed', difficulty: 'Easy', question: 'In cricket, what is the term for a score of zero?', options: ['A blank', 'A miss', 'A duck', 'A ghost'], correctAnswer: 'A duck', explanation: 'A "duck" is the term for a batsman being dismissed without scoring any runs.', hint: 'It\'s named after a type of bird.'},
     { id: 'fb_mix_20', format: 'mixed', difficulty: 'Easy', question: 'Which format of cricket is the longest?', options: ['T20', 'One Day International', 'Test Cricket', 'The Hundred'], correctAnswer: 'Test Cricket', explanation: 'Test cricket is the longest format of the sport, with matches lasting up to five days.', hint: 'It is a "test" of endurance and skill.' },
