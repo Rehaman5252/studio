@@ -1,4 +1,3 @@
-
 import type { QuizQuestion as QuizDataQuestion } from '@/ai/schemas';
 
 /**
