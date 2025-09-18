@@ -1,5 +1,5 @@
 
-import type { QuizQuestion as QuizDataQuestion } from '@/ai/schemas';
+import type { QuizDataQuestion } from '@/ai/schemas';
 
 /**
  * @fileOverview Fallback quiz data source.
@@ -166,6 +166,11 @@ export const allFallbackQuestions: FallbackQuestion[] = [
     { id: 'fb_wpl_1', format: 'wpl', difficulty: 'Easy', question: 'Who was the most expensive player in the first WPL auction?', options: ['Ellyse Perry', 'Smriti Mandhana', 'Harmanpreet Kaur', 'Ashleigh Gardner'], correctAnswer: 'Smriti Mandhana', explanation: 'Smriti Mandhana was the most expensive player, bought by Royal Challengers Bangalore for ₹3.4 crore at the inaugural WPL auction.', hint: 'This stylish Indian left-handed opener was bought by RCB.' }
     // ... more WPL questions ...
 ];
+
+const ids = new Set(allFallbackQuestions.map((q) => q.id));
+if (ids.size !== allFallbackQuestions.length) {
+  throw new Error("Duplicate IDs detected in allFallbackQuestions!");
+}
 
 
 /**

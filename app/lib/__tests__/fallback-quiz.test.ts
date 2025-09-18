@@ -14,9 +14,7 @@ describe('Fallback quiz data integrity', () => {
       expect(q).toHaveProperty('id');
       expect(typeof q.id).toBe('string');
       expect(q.id.length).toBeGreaterThan(0);
-      expect(ids.has(q.id)).toBe(false);
-      ids.add(q.id);
-
+      
       // Question must be a non-empty string
       expect(q).toHaveProperty('question');
       expect(typeof q.question).toBe('string');
@@ -42,6 +40,12 @@ describe('Fallback quiz data integrity', () => {
       expect(typeof q.format).toBe('string');
       expect(q.format.length).toBeGreaterThan(0);
     }
+  });
+  
+  it('should enforce unique IDs across all fallback questions', () => {
+    const ids = allFallbackQuestions.map((q) => q.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
   });
 
   it('getLocalFallbackQuiz should return 5 unique questions', () => {
