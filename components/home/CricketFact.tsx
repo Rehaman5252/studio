@@ -9,7 +9,7 @@ import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
 import { logger } from '@/app/lib/logger';
-import { fallbackFacts } from '@/app/lib/fallback-facts';
+import { fallbackFacts } from '@/lib/fallback-facts';
 
 const getRobustFallbackFacts = (format: string): string[] => {
     // 1. Try format-specific questions from the main fallback quiz file.
