@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import type { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
+import { QuizData as QuizDataSchema, type QuizData, type QuizQuestion, type HintOutput } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
@@ -125,17 +125,13 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         throw new Error('Server returned an unexpected response. Please try again.');
       }
       
-      if (!data.ok || !data.quiz) {
-         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
-         if (data.quiz && data.source === 'fallback') {
-            setQuizData(data.quiz);
-            setQuizSource('fallback');
-            setQuizState('pre-quiz');
-            toast({ title: 'Heads up!', description: msg, variant: 'default' });
-         } else {
-            setError(msg);
-            setQuizState('error');
-         }
+      const quizValidation = QuizDataSchema.safeParse(data.quiz);
+
+      if (!data.ok || !data.quiz || !quizValidation.success) {
+         const msg = data.error?.message || data.errorDetails?.message || "Invalid quiz data received.";
+         logger.warn('Invalid quiz data received from API', { error: quizValidation.success ? 'data.ok was false' : quizValidation.error, reqId: data.reqId });
+         setError(msg);
+         setQuizState('error');
          return;
       }
       
