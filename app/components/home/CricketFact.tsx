@@ -111,7 +111,10 @@ export default function CricketFact({ format }: { format: string }) {
         }
     };
     
-    const factToDisplay = !isLoading && facts?.length > 0 ? facts[currentIndex] : '';
+    const factToDisplay =
+      !isLoading && facts?.length > 0
+        ? facts[currentIndex] ?? "Here’s a quirky cricket fact coming up next!"
+        : "Fetching a fun cricket fact...";
 
     return (
         <Card className="bg-card/80 shadow-lg border border-primary">
@@ -124,7 +127,7 @@ export default function CricketFact({ format }: { format: string }) {
             <CardContent>
                 <div className="min-h-[60px] flex items-center justify-center text-center px-2">
                     <AnimatePresence mode="wait">
-                        {(isLoading && facts.length === 0) ? (
+                        {isLoading && facts.length === 0 ? (
                             <motion.div
                                 key="loader"
                                 initial={{ opacity: 0 }}
@@ -150,7 +153,7 @@ export default function CricketFact({ format }: { format: string }) {
                 </div>
                 <div className="flex justify-center mt-4">
                     <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || (isFetching && currentIndex >= facts.length -1) }>
-                        {(isLoading || (isFetching && currentIndex >= facts.length -1)) ? (
+                        {(isFetching && currentIndex >= facts.length -1) ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
@@ -162,3 +165,4 @@ export default function CricketFact({ format }: { format: string }) {
         </Card>
     );
 }
+
