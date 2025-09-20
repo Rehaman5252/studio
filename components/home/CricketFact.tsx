@@ -7,28 +7,33 @@ import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
 import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { getLocalFallbackQuiz } from '@/lib/fallback-quiz';
+import { shuffleArray, allFallbackQuestions } from '@/lib/fallback-quiz';
 import { logger } from '@/app/lib/logger';
 import { fallbackFacts } from '@/app/lib/fallback-facts';
 
 const getRobustFallbackFacts = (format: string): string[] => {
-    // 1. Use the new global list of funny facts.
+    // 1. Try format-specific questions from the main fallback quiz file.
+    const key = format.toLowerCase();
+    let questionsForFormat = allFallbackQuestions.filter(q => q.format === key);
+
+    if (questionsForFormat.length > 0) {
+        return shuffleArray(questionsForFormat).map(q => q.explanation).slice(0, 10);
+    }
+    
+    // 2. If none, try 'mixed' format questions.
+    questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
+    if (questionsForFormat.length > 0) {
+        return shuffleArray(questionsForFormat).map(q => q.explanation).slice(0, 10);
+    }
+
+    // 3. If still none, use the new global list of funny facts.
     if (fallbackFacts.length > 0) {
         return shuffleArray([...fallbackFacts]).slice(0, 10);
     }
 
-    // 2. Absolute last resort hardcoded fact.
+    // 4. Absolute last resort hardcoded fact.
     return ["The first official international cricket match was held in 1844 between USA and Canada."];
 }
-
-function shuffleArray<T>(array: T[]): T[] {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-
 
 export default function CricketFact({ format }: { format: string }) {
     const [facts, setFacts] = useState<string[]>([]);
