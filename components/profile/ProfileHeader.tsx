@@ -10,7 +10,7 @@ import { CheckCircle2, AlertCircle, Edit } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getAuth } from '@/lib/firebase';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { EditProfileDialog } from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
@@ -26,7 +26,8 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
-        if (!user) {
+        const auth = getAuth();
+        if (!user || !auth) {
             toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
             return;
         }
