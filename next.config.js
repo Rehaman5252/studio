@@ -1,5 +1,7 @@
 
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
     output: "standalone",
     reactStrictMode: true,
@@ -46,6 +48,7 @@ const nextConfig = {
         },
     },
     webpack(config, { webpack, isServer }) {
+        config.resolve.alias['@'] = path.resolve(__dirname);
         // This is an advanced configuration to control Webpack's behavior.
         // Restricting infrastructure logging to 'error' reduces console noise during builds,
         // making it easier to spot critical issues.
