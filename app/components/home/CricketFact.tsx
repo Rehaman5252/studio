@@ -68,7 +68,7 @@ export default function CricketFact({ format }: { format: string }) {
 
         try {
             const seen = isInitial ? [] : await new Promise<string[]>(resolve => setFacts(prev => { resolve(prev); return prev; }));
-            let newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts: seen });
+            let newFacts = await generateCricketFacts({ format: fetchFormat, count: 10, seenFacts: seen });
             
             if (!newFacts || newFacts.length === 0) {
                 logger.warn('AI returned no facts, using robust fallback.', { format: fetchFormat });
@@ -76,20 +76,16 @@ export default function CricketFact({ format }: { format: string }) {
             }
             
             if (isMounted.current) {
-                setFacts(prev => {
-                    const uniqueNewFacts = newFacts.filter(f => !prev.includes(f));
-                    return isInitial ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
-                });
+                const uniqueNewFacts = newFacts.filter(f => !facts.includes(f));
+                setFacts(isInitial ? uniqueNewFacts : [...facts, ...uniqueNewFacts]);
             }
 
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
             if (isMounted.current) {
-                setFacts(prev => {
-                    const fallback = getRobustFallbackFacts(fetchFormat);
-                    const uniqueFallback = fallback.filter(f => !prev.includes(f));
-                    return isInitial ? uniqueFallback : [...prev, ...uniqueFallback];
-                });
+                const fallback = getRobustFallbackFacts(fetchFormat);
+                const uniqueFallback = fallback.filter(f => !facts.includes(f));
+                setFacts(isInitial ? uniqueFallback : [...facts, ...uniqueFallback]);
             }
         } finally {
             if (isMounted.current) {
@@ -100,7 +96,7 @@ export default function CricketFact({ format }: { format: string }) {
                 }
             }
         }
-    }, [isFetching]);
+    }, [isFetching, facts]);
 
     // Effect to fetch facts when the format changes
     useEffect(() => {
@@ -112,13 +108,12 @@ export default function CricketFact({ format }: { format: string }) {
     const handleAnotherFact = () => {
         const nextIndex = currentIndex + 1;
         
-        // If we are near the end of the list, fetch more facts in the background.
-        if (facts && nextIndex >= facts.length - 2 && !isFetching) {
-            fetchFacts(currentFormat);
-        }
-        
-        // If we are at the end, loop back to the start. Otherwise, go to the next fact.
+        // If we have facts and are at the end, loop back to the start.
         if (facts && nextIndex >= facts.length) {
+            // Optional: fetch more if you want the list to be endless on clicks
+            if (!isFetching) {
+                fetchFacts(currentFormat);
+            }
             setCurrentIndex(0);
         } else {
             setCurrentIndex(nextIndex);
