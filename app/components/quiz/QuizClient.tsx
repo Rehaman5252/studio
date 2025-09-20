@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -187,7 +186,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const handlePreQuizFinish = useCallback(() => {
     if (isFinishedRef.current) return;
-    logger.info('Quiz started', { format, brand, source: quizSource });
+    logger.event('quiz_start', { format, brand, source: quizSource });
     setQuizState('playing');
     setStartTime(Date.now());
   }, [format, brand, quizSource]);
@@ -207,7 +206,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
-    logger.info('Quiz completed', {
+    logger.event('quiz_complete', {
         format,
         brand,
         score: attempt.score,
@@ -253,7 +252,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
 
-    logger.info('Quiz completed (disqualified)', {
+    logger.event('quiz_complete', {
         format,
         brand,
         score: 0,
