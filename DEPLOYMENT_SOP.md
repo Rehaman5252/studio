@@ -1,6 +1,6 @@
 # Deployment Standard Operating Procedure (SOP) – IndCric
 
-**Version:** 1.0
+**Version:** 1.1
 **Owner:** Engineering
 **Last Updated:** September 17, 2024
 
@@ -17,7 +17,7 @@ This document outlines the standard procedure for deploying the IndCric Next.js 
 These steps must be performed in your local development environment before initiating a deployment.
 
 **2.1. Environment Check**
-- **Node.js Version:** Verify you are using Node.js v18. Create a `.nvmrc` file if you use `nvm`.
+- **Node.js Version:** Verify you are using the version specified in `.nvmrc` or `package.json` (Node.js v18).
   ```bash
   node -v 
   # Expected output: v18.x.x
@@ -34,12 +34,13 @@ These steps must be performed in your local development environment before initi
   git pull origin main
   ```
 
-**2.3. Dependency Installation**
+**2.3. Dependency Installation & Verification**
 - Perform a clean installation of dependencies to ensure exact versions from `package-lock.json` are used. This is the most critical step for a deterministic build.
   ```bash
   rm -rf node_modules package-lock.json
   npm install
   ```
+- **CRITICAL:** After any dependency changes, always commit the updated `package-lock.json` file to version control.
 
 ### Phase 2: Local Build & Test Validation
 
@@ -98,7 +99,26 @@ Once all pre-deployment checks are successful, proceed with the deployment to Fi
 
 ---
 
-## 5. CI/CD Pipeline Integration Notes
+## 5. Emergency Rollback Procedure
+
+If a deployment introduces a critical bug, immediately roll back to a previous stable version.
+
+**5.1. List Versions**
+- List the available hosting versions for your site.
+  ```bash
+  firebase hosting:releases
+  ```
+
+**5.2. Perform Rollback**
+- Identify the desired stable version from the list and roll back to it.
+  ```bash
+  firebase hosting:rollback <VERSION_NAME>
+  ```
+- **Result:** The site will be instantly restored to the specified version.
+
+---
+
+## 6. CI/CD Pipeline Integration Notes
 
 For automated deployments (e.g., via GitHub Actions), the CI configuration should mirror these steps:
 
@@ -128,4 +148,6 @@ jobs:
       - name: Deploy to Firebase
         run: firebase deploy --only hosting --token ${{ secrets.FIREBASE_TOKEN }}
 ```
-**Note:** `npm ci` is preferred over `npm install` in CI/CD as it uses `package-lock.json` for a faster, more reliable installation.
+**Notes:**
+- `npm ci` is preferred over `npm install` in CI/CD as it uses `package-lock.json` for a faster, more reliable installation.
+- If you encounter stale CSS or build artifacts, consider adding a cache-clearing step before installation if your CI provider supports it.
