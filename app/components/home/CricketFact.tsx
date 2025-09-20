@@ -59,19 +59,19 @@ export default function CricketFact({ format }: { format: string }) {
         }
     }, [format, currentFormat]);
 
-    const fetchFacts = useCallback(async (fetchFormat: string, isInitial = false) => {
+    const fetchFacts = useCallback(async (fetchFormat: string, isInitialLoad = false) => {
         if (isFetching) return;
         
         if (isMounted.current) {
             setIsFetching(true);
-            if (isInitial) {
+            if (isInitialLoad) {
                  setIsLoading(true);
             }
         }
 
         try {
             // Using a function with setFacts to get the most recent state
-            const seen = isInitial ? [] : await new Promise<string[]>(resolve => {
+            const seen = isInitialLoad ? [] : await new Promise<string[]>(resolve => {
                 setFacts(prev => {
                     resolve(prev);
                     return prev;
@@ -88,7 +88,7 @@ export default function CricketFact({ format }: { format: string }) {
             if (isMounted.current) {
                 setFacts(prev => {
                     const uniqueNewFacts = newFacts.filter(f => !prev.includes(f));
-                    return isInitial ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
+                    return isInitialLoad ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
                 });
             }
 
@@ -98,13 +98,13 @@ export default function CricketFact({ format }: { format: string }) {
                 const fallback = getRobustFallbackFacts(fetchFormat);
                 setFacts(prev => {
                     const uniqueFallback = fallback.filter(f => !prev.includes(f));
-                    return isInitial ? uniqueFallback : [...prev, ...uniqueFallback];
+                    return isInitialLoad ? uniqueFallback : [...prev, ...uniqueFallback];
                 });
             }
         } finally {
             if (isMounted.current) {
                 setIsFetching(false);
-                if (isInitial) {
+                if (isInitialLoad) {
                     setIsLoading(false);
                     setCurrentIndex(0);
                 }
