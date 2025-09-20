@@ -103,26 +103,25 @@ export async function POST(req: Request) {
 
     // --- Step 1: Try AI Flow ---
     try {
-        logger.info(`[quiz][${reqId}] Requesting AI-generated quiz for ${userId} (${format})`);
+        logger.info(`[quiz][${reqId}] Requesting AI-generated quiz`, { userId, format });
         const quiz = await generateQuizFlow({ format, userId });
+        logger.event('quiz_start', { format, brand: body.brand || 'Unknown', source: 'ai' });
         return NextResponse.json({ ok: true, quiz, source: "ai", reqId });
     } catch (aiError: any) {
         // --- Step 2: Firestore Fallback ---
-        logger.warn(`[quiz][${reqId}] AI generation failed for ${userId} (${format}), falling back to Firestore. Reason:`, { message: aiError.message });
+        logger.warn(`[quiz][${reqId}] AI generation failed, falling back to Firestore.`, { userId, format, reason: aiError.message });
         const quiz = await getQuestionsFromFirestore(format);
+        logger.event('quiz_start', { format, brand: body.brand || 'Unknown', source: 'fallback' });
         return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "AI generation failed, using fallback.", originalError: aiError.message, code: "AI_FLOW_FAILED"} });
     }
 
   } catch (err: any) {
      // --- Step 3: Total Failure ---
-     if (err instanceof ZodError) {
-        logger.error(`[quiz][${reqId}] Invalid payload`, err.flatten());
-        const quiz = getLocalFallbackQuiz('mixed');
-        return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "Invalid payload provided.", originalError: err.message, code: "INVALID_PAYLOAD"} });
-     }
-     
-     logger.error(`[quiz][${reqId}] Fatal API error`, { message: err.message });
+     logger.error(`[quiz][${reqId}] Quiz API request failed`, {
+        error: err instanceof ZodError ? err.flatten() : err.message
+     });
      const quiz = getLocalFallbackQuiz('mixed');
-     return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "An unexpected server error occurred.", originalError: err.message, code: "FATAL"} });
+     const errorCode = err instanceof ZodError ? "INVALID_PAYLOAD" : "FATAL";
+     return NextResponse.json({ ok: true, quiz, source: "fallback", reqId, errorDetails: { message: "An unexpected server error occurred.", originalError: err.message, code: errorCode} });
   }
 }

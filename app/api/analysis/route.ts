@@ -27,6 +27,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object' || !body.attempt) {
+      logger.warn(`[Analysis] Invalid request body.`, { requestId });
       return NextResponse.json({ ok: false, analysis: getFallbackAnalysisForApi({}), requestId }, { status: 400 });
     }
     
@@ -41,22 +42,24 @@ export async function POST(req: Request) {
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
-          logger.error(`[Analysis AI error] reqId=${requestId} - AI output failed validation`, { error: parsed.error });
+          logger.error(`[Analysis AI Error] reqId=${requestId} - AI output failed validation`, { error: parsed.error, userId: sanitizedAttempt.userId });
           // Fall through to static fallback
         } else {
+           logger.info(`[Analysis] Successfully generated analysis.`, { requestId, source: parsed.data.source, userId: sanitizedAttempt.userId });
            return NextResponse.json({ ok: true, analysis: parsed.data, requestId });
         }
     } catch (aiError: any) {
-      logger.error(`[Analysis AI error] reqId=${requestId}`, { error: aiError.message });
+      logger.error(`[Analysis AI Exception] reqId=${requestId}`, { error: aiError.message, userId: attemptBody?.userId });
       // Fall through to static fallback
     }
 
     // --- Step 2: Static Fallback ---
+    logger.warn(`[Analysis] Serving fallback analysis.`, { requestId, userId: attemptBody?.userId });
     const fallbackAnalysis = getFallbackAnalysisForApi(attemptBody);
     return NextResponse.json({ ok: true, analysis: fallbackAnalysis, fallback: true, requestId });
 
   } catch (err: any) {
-     logger.error(`[Analysis route error] reqId=${requestId}`, { error: err.message });
+     logger.error(`[Analysis Route Error] reqId=${requestId}`, { error: err.message });
      return NextResponse.json(
       { ok: false, error: "Invalid request body.", requestId },
       { status: 400 }

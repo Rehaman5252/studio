@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Centralized schema for analytics events.
  *
@@ -7,39 +6,36 @@
  * and type-safe across the application.
  */
 
-import type { z } from 'zod';
-import { z as zod } from 'zod'; // Use a different name to avoid conflict with 'z' from genkit
+import { z } from 'zod';
 
 // Define the payload schema for each event
-const quizEvents = {
-  quiz_start: zod.object({
-    format: zod.string(),
-    brand: zod.string(),
-    source: zod.enum(['ai', 'fallback']),
+const allEventSchemas = {
+  quiz_start: z.object({
+    format: z.string(),
+    brand: z.string(),
+    source: z.enum(['ai', 'fallback']),
   }),
-  quiz_complete: zod.object({
-    format: zod.string(),
-    brand: zod.string(),
-    source: zod.enum(['ai', 'fallback']),
-    score: zod.number(),
-    totalQuestions: zod.number(),
-    disqualified: zod.boolean(),
-    reason: zod.string().optional().nullable(),
+  quiz_complete: z.object({
+    format: z.string(),
+    brand: z.string(),
+    source: z.enum(['ai', 'fallback']),
+    score: z.number(),
+    totalQuestions: z.number(),
+    disqualified: z.boolean(),
+    reason: z.string().optional().nullable(),
   }),
-  quiz_fail_load: zod.object({
-    error: zod.string(),
-  }),
-  quiz_fetch_retry: zod.object({
-    brand: zod.string(),
-    format: zod.string(),
+  quiz_fail_load: z.object({
+    error: z.string(),
+    format: z.string().optional(),
+    userId: z.string().optional(),
   }),
 };
 
 // Union type of all possible event names
-export type EventName = keyof typeof quizEvents;
+export type EventName = keyof typeof allEventSchemas;
 
 // A generic type to get the payload for a given event name
-export type EventPayload<T extends EventName> = z.infer<typeof quizEvents[T]>;
+export type EventPayload<T extends EventName> = z.infer<typeof allEventSchemas[T]>;
 
 // Export the schema for use in the logger
-export const eventSchema = quizEvents;
+export const eventSchema = allEventSchemas;

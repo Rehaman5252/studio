@@ -1,4 +1,3 @@
-
 import { logger } from "../logger";
 
 describe("Logger Event Validation", () => {
@@ -9,14 +8,16 @@ describe("Logger Event Validation", () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   beforeAll(() => {
-    process.env.NODE_ENV = "development"; // force logging for tests
+    // Set to a non-production value to ensure dev-style logging for tests
+    process.env.NODE_ENV = "development"; 
   });
 
   afterAll(() => {
-    process.env.NODE_ENV = originalNodeEnv; // restore original NODE_ENV
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   beforeEach(() => {
+    // Spy on console methods to check if they are called correctly
     infoSpy = jest.spyOn(console, "info").mockImplementation(() => {});
     warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -27,20 +28,25 @@ describe("Logger Event Validation", () => {
     jest.restoreAllMocks();
   });
 
-  it("logs a valid quiz_start event", () => {
+  it("logs a valid quiz_start event using the generic log method", () => {
     const payload = { format: "T20", brand: "TestBrand", source: "ai" as const };
     logger.event("quiz_start", payload);
-    expect(logSpy).toHaveBeenCalledWith("[EVENT] quiz_start", payload);
+    expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[EVENT] quiz_start"), 
+        payload
+    );
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it("logs a validation error for an invalid quiz_start event", () => {
-    const badPayload = { format: "T20" } as any;
+    const badPayload = { format: "T20" } as any; // Missing brand and source
     logger.event("quiz_start", badPayload);
+    // It should call the 'error' log level with a validation failure message
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining('[EVENT VALIDATION FAILED] for event "quiz_start":'),
       expect.any(Object)
     );
+    // It should NOT log a successful event
     expect(logSpy).not.toHaveBeenCalled();
   });
 
@@ -64,7 +70,7 @@ describe("Logger Event Validation", () => {
       format: "T20",
       brand: "TestBrand",
       source: "ai",
-      score: "five", // ❌ wrong type
+      score: "five", // Incorrect type
       totalQuestions: 5,
       disqualified: false,
       reason: null,
@@ -75,5 +81,15 @@ describe("Logger Event Validation", () => {
       expect.any(Object)
     );
      expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it('logs a standard info message', () => {
+    logger.info('This is an info message', { detail: 'some data' });
+    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('This is an info message'), { detail: 'some data' });
+  });
+
+  it('logs a standard error message', () => {
+    logger.error('This is an error message', { code: 500 });
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('This is an error message'), { code: 500 });
   });
 });

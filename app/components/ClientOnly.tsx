@@ -34,8 +34,7 @@ const DefaultFallback = ({
           <AlertDescription className="mt-1 space-y-2">
             <p>
               A client-side error occurred while rendering this part of the
-              page. This can happen due to network issues, mismatched data, or
-              unexpected browser behavior.
+              page. This can happen due to network issues or unexpected browser behavior.
             </p>
             {process.env.NODE_ENV === 'development' && error && (
               <pre className="mt-2 text-xs bg-muted p-2 rounded-md overflow-x-auto">
