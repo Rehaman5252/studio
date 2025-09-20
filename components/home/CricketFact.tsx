@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
 import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { shuffleArray, allFallbackQuestions } from '@/lib/fallback-quiz';
+import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
 import { logger } from '@/app/lib/logger';
 import { fallbackFacts } from '@/app/lib/fallback-facts';
 
