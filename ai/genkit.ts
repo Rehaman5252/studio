@@ -1,12 +1,18 @@
 'use server';
 
-import { configureGenkit } from '@genkit-ai/core';
+import { configureGenkit, logger } from '@genkit-ai/core';
 import { firebase } from '@genkit-ai/firebase';
 import { googleAI } from '@genkit-ai/googleai';
 import { nextJS } from '@genkit-ai/next';
 
-// Conditionally enable tracing and metrics only in development.
+// Conditionally enable verbose logging, tracing, and metrics only in development.
 const isDev = process.env.NODE_ENV === 'development';
+
+if (isDev) {
+  logger.setLevel('debug');
+} else {
+  logger.setLevel('info');
+}
 
 export const ai = configureGenkit({
   plugins: [
@@ -14,6 +20,6 @@ export const ai = configureGenkit({
     firebase(),
     googleAI({ apiVersion: 'v1beta' }),
   ],
-  // This will be true in development and false in production.
   enableTracingAndMetrics: isDev,
+  logLevel: isDev ? 'debug' : 'info',
 });
