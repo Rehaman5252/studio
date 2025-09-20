@@ -1,18 +1,19 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
 import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
+import { logger } from '@/app/lib/logger';
 
-const getFallbackFacts = (format: string): string[] => {
+const getRobustFallbackFacts = (format: string): string[] => {
     if (!Array.isArray(allFallbackQuestions)) {
-        console.warn("allFallbackQuestions not available for getFallbackFacts");
-        return [];
+        logger.warn("allFallbackQuestions not available for getFallbackFacts");
+        return ["Cricket is a bat-and-ball game played between two teams of eleven players."];
     }
     const key = format.toLowerCase();
     let questionsForFormat = allFallbackQuestions.filter(q => q.format === key);
@@ -20,6 +21,11 @@ const getFallbackFacts = (format: string): string[] => {
     // If no specific facts, default to mixed, ensuring there's always a fallback
     if (questionsForFormat.length === 0) {
         questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
+    }
+
+    // If still no facts, return a hardcoded default
+    if (questionsForFormat.length === 0) {
+        return ["The first official international cricket match was held in 1844 between USA and Canada."];
     }
     
     return shuffleArray(questionsForFormat).map(q => q.explanation).slice(0, 10);
@@ -32,30 +38,33 @@ export default function CricketFact({ format }: { format: string }) {
     const [isFetching, setIsFetching] = useState(false);
     const [currentFormat, setCurrentFormat] = useState(format);
 
-     useEffect(() => {
+    // Sync internal state with parent prop
+    useEffect(() => {
         setCurrentFormat(format);
     }, [format]);
 
     const fetchFacts = useCallback(async (fetchFormat: string, isInitial = false) => {
         if (isFetching) return;
+        
         setIsFetching(true);
         if (isInitial) {
              setIsLoading(true);
         }
+
         try {
             const seen = isInitial ? [] : facts;
             let newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts: seen });
             
             if (!newFacts || newFacts.length === 0) {
-                newFacts = getFallbackFacts(fetchFormat);
+                logger.warn('AI returned no facts, using robust fallback.', { format: fetchFormat });
+                newFacts = getRobustFallbackFacts(fetchFormat);
             }
             
             setFacts(prev => isInitial ? newFacts : [...prev, ...newFacts]);
 
         } catch (error) {
-            console.error('Failed to fetch cricket facts:', error);
-            // Add fallback facts if AI fails
-            const fallbackFacts = getFallbackFacts(fetchFormat);
+            logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
+            const fallbackFacts = getRobustFallbackFacts(fetchFormat);
             setFacts(prev => isInitial ? fallbackFacts : [...prev, ...fallbackFacts]);
         } finally {
             setIsFetching(false);
@@ -66,11 +75,11 @@ export default function CricketFact({ format }: { format: string }) {
         }
     }, [facts, isFetching]);
 
-    // Initial load effect
+    // Effect to fetch facts when the format changes
     useEffect(() => {
-        fetchFacts(format, true);
+        fetchFacts(currentFormat, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [format]);
+    }, [currentFormat]);
 
 
     const handleAnotherFact = () => {
@@ -84,8 +93,8 @@ export default function CricketFact({ format }: { format: string }) {
         if (facts && nextIndex < facts.length) {
             setCurrentIndex(nextIndex);
         } else if (!isFetching) {
-            // If we are completely out, show loader and wait for fetch
-            setCurrentIndex(prev => (prev + 1) % (facts?.length || 1));
+            // If we are completely out, show loader and wait for fetch, then reset to start
+            fetchFacts(currentFormat, true);
         }
     };
     
@@ -113,7 +122,7 @@ export default function CricketFact({ format }: { format: string }) {
             <CardContent>
                 <div className="min-h-[60px] flex items-center justify-center text-center px-2">
                     <AnimatePresence mode="wait">
-                        {isLoading || !factToDisplay ? (
+                        {isLoading || (isFetching && !factToDisplay) ? (
                             <motion.div
                                 key="loader"
                                 initial={{ opacity: 0 }}
