@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -48,7 +49,7 @@ export default function CricketFact({ format }: { format: string }) {
         }
     }, [format, currentFormat]);
 
-    const fetchFacts = useCallback(async (fetchFormat: string, isInitialLoad: boolean) => {
+    const fetchFacts = useCallback(async (fetchFormat: string, isInitialLoad: boolean = false) => {
         if (isFetching) return;
         
         setIsFetching(true);
@@ -65,14 +66,18 @@ export default function CricketFact({ format }: { format: string }) {
                 newFacts = getRobustFallbackFacts(fetchFormat);
             }
             
-            const uniqueNewFacts = newFacts.filter(f => !seenFacts.includes(f));
-            setFacts(prev => isInitialLoad ? uniqueNewFacts : [...prev, ...uniqueNewFacts]);
+            setFacts(prev => {
+                const uniqueNewFacts = newFacts.filter(f => !prev.includes(f));
+                return isInitialLoad ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
+            });
 
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
             const fallback = getRobustFallbackFacts(fetchFormat);
-            const uniqueFallback = fallback.filter(f => !facts.includes(f));
-            setFacts(prev => isInitialLoad ? uniqueFallback : [...prev, ...uniqueFallback]);
+            setFacts(prev => {
+                const uniqueFallback = fallback.filter(f => !prev.includes(f));
+                return isInitialLoad ? uniqueFallback : [...prev, ...uniqueFallback];
+            });
         } finally {
             setIsFetching(false);
             if (isInitialLoad) {
@@ -92,16 +97,13 @@ export default function CricketFact({ format }: { format: string }) {
     const handleAnotherFact = () => {
         const nextIndex = currentIndex + 1;
         
-        // If we've run out of facts, fetch more.
-        if (nextIndex >= facts.length) {
-            if (!isFetching) {
-                fetchFacts(currentFormat, false);
-            }
-            // Loop back to the start while new facts are loading in the background.
-            setCurrentIndex(0);
-        } else {
-            setCurrentIndex(nextIndex);
+        // If we've run out of facts, fetch more, but only if we are not already fetching
+        if (nextIndex >= facts.length && !isFetching) {
+            fetchFacts(currentFormat, false);
         }
+        
+        // Loop back to the start while new facts are loading in the background.
+        setCurrentIndex(prev => (prev + 1) % (facts.length || 1));
     };
     
     const factToDisplay =
@@ -145,8 +147,8 @@ export default function CricketFact({ format }: { format: string }) {
                     </AnimatePresence>
                 </div>
                 <div className="flex justify-center mt-4">
-                    <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || isFetching}>
-                        {isFetching ? (
+                    <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || (isFetching && currentIndex >= facts.length - 1)}>
+                        {(isFetching && currentIndex >= facts.length - 1) ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
