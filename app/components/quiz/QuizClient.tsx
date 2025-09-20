@@ -22,6 +22,7 @@ import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
 import LoginPrompt from '../auth/LoginPrompt';
 import { logger } from '@/app/lib/logger';
+import { fromZodError } from 'zod-validation-error';
 
 
 interface QuizClientProps {
@@ -129,7 +130,12 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
       if (!data.ok || !data.quiz || !quizValidation.success) {
          const msg = data.error?.message || data.errorDetails?.message || "Invalid quiz data received.";
-         logger.warn('Invalid quiz data received from API', { error: quizValidation.success ? 'data.ok was false' : quizValidation.error, reqId: data.reqId });
+         if (!quizValidation.success) {
+            const validationError = fromZodError(quizValidation.error).message;
+            logger.warn('Invalid quiz data received from API', { validationError, reqId: data.reqId });
+         } else {
+            logger.warn('Invalid quiz data received from API', { error: 'data.ok was false or data.quiz was null', reqId: data.reqId });
+         }
          setError(msg);
          setQuizState('error');
          return;
