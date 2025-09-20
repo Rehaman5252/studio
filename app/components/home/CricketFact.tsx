@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
@@ -41,6 +41,14 @@ export default function CricketFact({ format }: { format: string }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isFetching, setIsFetching] = useState(false);
     const [currentFormat, setCurrentFormat] = useState(format);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     // Sync internal state with parent prop
     useEffect(() => {
@@ -67,23 +75,29 @@ export default function CricketFact({ format }: { format: string }) {
                 newFacts = getRobustFallbackFacts(fetchFormat);
             }
             
-            setFacts(prev => {
-                const uniqueNewFacts = newFacts.filter(f => !prev.includes(f));
-                return isInitial ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
-            });
+            if (isMounted.current) {
+                setFacts(prev => {
+                    const uniqueNewFacts = newFacts.filter(f => !prev.includes(f));
+                    return isInitial ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
+                });
+            }
 
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
-            setFacts(prev => {
-                const fallback = getRobustFallbackFacts(fetchFormat);
-                const uniqueFallback = fallback.filter(f => !prev.includes(f));
-                return isInitial ? uniqueFallback : [...prev, ...uniqueFallback];
-            });
+            if (isMounted.current) {
+                setFacts(prev => {
+                    const fallback = getRobustFallbackFacts(fetchFormat);
+                    const uniqueFallback = fallback.filter(f => !prev.includes(f));
+                    return isInitial ? uniqueFallback : [...prev, ...uniqueFallback];
+                });
+            }
         } finally {
-            setIsFetching(false);
-            if (isInitial) {
-                setIsLoading(false);
-                setCurrentIndex(0);
+            if (isMounted.current) {
+                setIsFetching(false);
+                if (isInitial) {
+                    setIsLoading(false);
+                    setCurrentIndex(0);
+                }
             }
         }
     }, [isFetching, facts]);
@@ -165,4 +179,3 @@ export default function CricketFact({ format }: { format: string }) {
         </Card>
     );
 }
-
