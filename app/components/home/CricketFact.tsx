@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
@@ -40,8 +39,11 @@ export default function CricketFact({ format }: { format: string }) {
 
     // Sync internal state with parent prop
     useEffect(() => {
-        setCurrentFormat(format);
-    }, [format]);
+        if (format !== currentFormat) {
+            setCurrentFormat(format);
+            // This will trigger the next effect to fetch new facts
+        }
+    }, [format, currentFormat]);
 
     const fetchFacts = useCallback(async (fetchFormat: string, isInitial = false) => {
         if (isFetching) return;
@@ -60,12 +62,18 @@ export default function CricketFact({ format }: { format: string }) {
                 newFacts = getRobustFallbackFacts(fetchFormat);
             }
             
-            setFacts(prev => isInitial ? newFacts : [...prev, ...newFacts]);
+            setFacts(prev => {
+                const uniqueNewFacts = newFacts.filter(f => !prev.includes(f));
+                return isInitial ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
+            });
 
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
             const fallbackFacts = getRobustFallbackFacts(fetchFormat);
-            setFacts(prev => isInitial ? fallbackFacts : [...prev, ...fallbackFacts]);
+            setFacts(prev => {
+                const uniqueFallbackFacts = fallbackFacts.filter(f => !prev.includes(f));
+                return isInitial ? uniqueFallbackFacts : [...prev, ...uniqueFallbackFacts];
+            });
         } finally {
             setIsFetching(false);
             if (isInitial) {
@@ -85,30 +93,19 @@ export default function CricketFact({ format }: { format: string }) {
     const handleAnotherFact = () => {
         const nextIndex = currentIndex + 1;
         
-        // If we are about to run out of facts, fetch more in the background
+        // If we are near the end of the list, fetch more facts in the background.
         if (facts && nextIndex >= facts.length - 2 && !isFetching) {
             fetchFacts(currentFormat);
         }
-
-        if (facts && nextIndex < facts.length) {
+        
+        // If we are at the end, loop back to the start. Otherwise, go to the next fact.
+        if (facts && nextIndex >= facts.length) {
+            setCurrentIndex(0);
+        } else {
             setCurrentIndex(nextIndex);
-        } else if (!isFetching) {
-            // If we are completely out, show loader and wait for fetch, then reset to start
-            fetchFacts(currentFormat, true);
         }
     };
     
-    // Effect to handle switching index when facts list updates
-    useEffect(() => {
-        if (facts.length > 0 && isLoading) {
-            setIsLoading(false);
-        }
-        // This prevents going out of bounds if facts list shrinks
-        if (facts.length > 0 && currentIndex >= facts.length) {
-             setCurrentIndex(0);
-        }
-    }, [facts, currentIndex, isLoading]);
-
     const factToDisplay = !isLoading && facts?.length > 0 ? facts[currentIndex] : '';
 
     return (
@@ -128,6 +125,7 @@ export default function CricketFact({ format }: { format: string }) {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
+                                className="flex items-center justify-center h-full"
                             >
                                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
                             </motion.div>
