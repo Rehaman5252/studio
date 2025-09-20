@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -358,7 +359,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
             <AlertTriangle className="h-12 w-12 mb-4" />
-            <p className="font-semibold mb-4">{error}</p>
+            <p className="font-semibold mb-4">{error || "An unknown error occurred."}</p>
             <Button onClick={fetchQuiz}>Try Again</Button>
         </div>
     );
