@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - dev
-      - '**/feature/**'
   pull_request:
     branches:
       - main
@@ -18,7 +17,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [18]
 
     steps:
       - name: Checkout code
@@ -36,52 +35,8 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run TypeScript type check
-        id: tsc
-        run: npm run type-check > tsc_output.txt 2>&1 || true
-
-      - name: Create TypeScript Annotations
-        if: steps.tsc.outcome == 'failure'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const output = fs.readFileSync('tsc_output.txt', 'utf8');
-            const lines = output.split('\n');
-            const annotations = [];
-            
-            const regex = /(.+?)\((\d+),(\d+)\):\s+error\s+TS\d+:\s+(.*)/;
-
-            for (const line of lines) {
-              const match = line.match(regex);
-              if (match) {
-                const [_, file, startLine, startColumn, message] = match;
-                annotations.push({
-                  path: file.trim(),
-                  start_line: parseInt(startLine),
-                  end_line: parseInt(startLine),
-                  start_column: parseInt(startColumn),
-                  end_column: parseInt(startColumn),
-                  annotation_level: 'failure',
-                  message: message.trim(),
-                });
-              }
-            }
-
-            if (annotations.length > 0) {
-              core.summary
-                .addHeading('TypeScript Errors Found')
-                .addTable([
-                  [{data: 'File', header: true}, {data: 'Error', header: true}],
-                  ...annotations.map(a => [
-                    `${a.path}:${a.start_line}`,
-                    a.message
-                  ])
-                ])
-                .write()
-            }
-            
-            core.setFailed(`TypeScript check failed with ${annotations.length} errors.`);
+      - name: TypeScript Type Check
+        run: npm run type-check
 
       - name: Run Jest Tests
         run: npm test
@@ -92,3 +47,6 @@ jobs:
         with:
           name: jest-results
           path: ./jest-results
+          
+      - name: Build Application
+        run: npm run build
