@@ -21,5 +21,4 @@ export const ai = configureGenkit({
     googleAI({ apiVersion: 'v1beta' }),
   ],
   enableTracingAndMetrics: isDev,
-  logLevel: isDev ? 'debug' : 'info',
 });
