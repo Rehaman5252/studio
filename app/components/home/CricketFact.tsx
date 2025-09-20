@@ -40,59 +40,44 @@ export default function CricketFact({ format }: { format: string }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isFetching, setIsFetching] = useState(false);
     const [currentFormat, setCurrentFormat] = useState(format);
-    const isMounted = useRef(true);
-
-    useEffect(() => {
-        isMounted.current = true;
-        return () => {
-            isMounted.current = false;
-        };
-    }, []);
 
     // Sync internal state with parent prop
     useEffect(() => {
         if (format !== currentFormat) {
             setCurrentFormat(format);
-            // This will trigger the next effect to fetch new facts
         }
     }, [format, currentFormat]);
 
-    const fetchFacts = useCallback(async (fetchFormat: string, isInitial = false) => {
+    const fetchFacts = useCallback(async (fetchFormat: string, isInitialLoad: boolean) => {
         if (isFetching) return;
         
         setIsFetching(true);
-        if (isInitial) {
+        if (isInitialLoad) {
              setIsLoading(true);
         }
 
         try {
-            const seen = isInitial ? [] : await new Promise<string[]>(resolve => setFacts(prev => { resolve(prev); return prev; }));
-            let newFacts = await generateCricketFacts({ format: fetchFormat, count: 10, seenFacts: seen });
+            const seenFacts = isInitialLoad ? [] : facts;
+            let newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts });
             
             if (!newFacts || newFacts.length === 0) {
                 logger.warn('AI returned no facts, using robust fallback.', { format: fetchFormat });
                 newFacts = getRobustFallbackFacts(fetchFormat);
             }
             
-            if (isMounted.current) {
-                const uniqueNewFacts = newFacts.filter(f => !facts.includes(f));
-                setFacts(isInitial ? uniqueNewFacts : [...facts, ...uniqueNewFacts]);
-            }
+            const uniqueNewFacts = newFacts.filter(f => !seenFacts.includes(f));
+            setFacts(prev => isInitialLoad ? uniqueNewFacts : [...prev, ...uniqueNewFacts]);
 
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
-            if (isMounted.current) {
-                const fallback = getRobustFallbackFacts(fetchFormat);
-                const uniqueFallback = fallback.filter(f => !facts.includes(f));
-                setFacts(isInitial ? uniqueFallback : [...facts, ...uniqueFallback]);
-            }
+            const fallback = getRobustFallbackFacts(fetchFormat);
+            const uniqueFallback = fallback.filter(f => !facts.includes(f));
+            setFacts(prev => isInitialLoad ? uniqueFallback : [...prev, ...uniqueFallback]);
         } finally {
-            if (isMounted.current) {
-                setIsFetching(false);
-                if (isInitial) {
-                    setIsLoading(false);
-                    setCurrentIndex(0);
-                }
+            setIsFetching(false);
+            if (isInitialLoad) {
+                setIsLoading(false);
+                setCurrentIndex(0);
             }
         }
     }, [isFetching, facts]);
@@ -107,12 +92,12 @@ export default function CricketFact({ format }: { format: string }) {
     const handleAnotherFact = () => {
         const nextIndex = currentIndex + 1;
         
-        // If we have facts and are at the end, loop back to the start.
-        if (facts && nextIndex >= facts.length) {
-            // If we're out of facts and not already fetching, get more.
+        // If we've run out of facts, fetch more.
+        if (nextIndex >= facts.length) {
             if (!isFetching) {
-                fetchFacts(currentFormat);
+                fetchFacts(currentFormat, false);
             }
+            // Loop back to the start while new facts are loading in the background.
             setCurrentIndex(0);
         } else {
             setCurrentIndex(nextIndex);
@@ -120,7 +105,7 @@ export default function CricketFact({ format }: { format: string }) {
     };
     
     const factToDisplay =
-      !isLoading && facts?.length > 0
+      !isLoading && facts.length > 0
         ? facts[currentIndex] ?? "Here’s a quirky cricket fact coming up next!"
         : "Fetching a fun cricket fact...";
 
@@ -160,8 +145,8 @@ export default function CricketFact({ format }: { format: string }) {
                     </AnimatePresence>
                 </div>
                 <div className="flex justify-center mt-4">
-                    <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || (isFetching && currentIndex >= facts.length -1) }>
-                        {(isFetching && currentIndex >= facts.length -1) ? (
+                    <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || isFetching}>
+                        {isFetching ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
