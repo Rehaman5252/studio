@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -10,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
 import { logger } from '@/app/lib/logger';
 import { fallbackFacts } from '@/app/lib/fallback-facts';
+import { cn } from '@/lib/utils';
 
 const getRobustFallbackFacts = (format: string): string[] => {
     // 1. Try format-specific questions from the main fallback quiz file.
@@ -58,16 +58,25 @@ export default function CricketFact({ format }: { format: string }) {
         }
     }, [format, currentFormat]);
 
-    const fetchFacts = useCallback(async (fetchFormat: string, isInitial = false) => {
+    const fetchFacts = useCallback(async (fetchFormat: string, isInitialLoad = false) => {
         if (isFetching) return;
         
-        setIsFetching(true);
-        if (isInitial) {
-             setIsLoading(true);
+        if (isMounted.current) {
+            setIsFetching(true);
+            if (isInitialLoad) {
+                 setIsLoading(true);
+            }
         }
 
         try {
-            const seen = isInitial ? [] : await new Promise<string[]>(resolve => setFacts(prev => { resolve(prev); return prev; }));
+            // Using a function with setFacts to get the most recent state
+            const seen = isInitialLoad ? [] : await new Promise<string[]>(resolve => {
+                setFacts(prev => {
+                    resolve(prev);
+                    return prev;
+                });
+            });
+
             let newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts: seen });
             
             if (!newFacts || newFacts.length === 0) {
@@ -78,23 +87,23 @@ export default function CricketFact({ format }: { format: string }) {
             if (isMounted.current) {
                 setFacts(prev => {
                     const uniqueNewFacts = newFacts.filter(f => !prev.includes(f));
-                    return isInitial ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
+                    return isInitialLoad ? uniqueNewFacts : [...prev, ...uniqueNewFacts];
                 });
             }
 
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
             if (isMounted.current) {
+                const fallback = getRobustFallbackFacts(fetchFormat);
                 setFacts(prev => {
-                    const fallback = getRobustFallbackFacts(fetchFormat);
                     const uniqueFallback = fallback.filter(f => !prev.includes(f));
-                    return isInitial ? uniqueFallback : [...prev, ...uniqueFallback];
+                    return isInitialLoad ? uniqueFallback : [...prev, ...uniqueFallback];
                 });
             }
         } finally {
             if (isMounted.current) {
                 setIsFetching(false);
-                if (isInitial) {
+                if (isInitialLoad) {
                     setIsLoading(false);
                     setCurrentIndex(0);
                 }
@@ -130,6 +139,8 @@ export default function CricketFact({ format }: { format: string }) {
         ? facts[currentIndex] ?? "Here’s a quirky cricket fact coming up next!"
         : "Fetching a fun cricket fact...";
 
+    const isWaitingForFetch = isFetching && facts.length > 0 && currentIndex >= facts.length -1;
+
     return (
         <Card className="bg-card/80 shadow-lg border border-primary">
             <CardHeader className="pb-2">
@@ -141,7 +152,7 @@ export default function CricketFact({ format }: { format: string }) {
             <CardContent>
                 <div className="min-h-[60px] flex items-center justify-center text-center px-2">
                     <AnimatePresence mode="wait">
-                        {isLoading && facts.length === 0 ? (
+                        {isLoading ? (
                             <motion.div
                                 key="loader"
                                 initial={{ opacity: 0 }}
@@ -166,8 +177,14 @@ export default function CricketFact({ format }: { format: string }) {
                     </AnimatePresence>
                 </div>
                 <div className="flex justify-center mt-4">
-                    <Button variant="default" size="sm" onClick={handleAnotherFact} disabled={isLoading || (isFetching && currentIndex >= facts.length -1) }>
-                        {(isFetching && currentIndex >= facts.length -1) ? (
+                    <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={handleAnotherFact} 
+                        disabled={isLoading || isWaitingForFetch}
+                        className={cn("relative", isFetching && !isWaitingForFetch && "animate-pulse")}
+                    >
+                        {isWaitingForFetch ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
