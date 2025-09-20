@@ -67,7 +67,7 @@ export default function CricketFact({ format }: { format: string }) {
         }
 
         try {
-            const seen = isInitial ? [] : facts;
+            const seen = isInitial ? [] : await new Promise<string[]>(resolve => setFacts(prev => { resolve(prev); return prev; }));
             let newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts: seen });
             
             if (!newFacts || newFacts.length === 0) {
@@ -100,7 +100,7 @@ export default function CricketFact({ format }: { format: string }) {
                 }
             }
         }
-    }, [isFetching, facts]);
+    }, [isFetching]);
 
     // Effect to fetch facts when the format changes
     useEffect(() => {
