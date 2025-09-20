@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -60,7 +61,11 @@ const GenericOffersComponent = () => {
             <CardContent className="p-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="relative w-12 h-12 bg-white rounded-full flex items-center justify-center p-1.5 overflow-hidden">
-                        <Image src={offer.logoUrl} alt={`${offer.title} logo`} fill className="object-contain" data-ai-hint={offer.logoHint} />
+                        {offer.logoUrl ? (
+                            <Image src={offer.logoUrl} alt={`${offer.title} logo`} fill className="object-contain" data-ai-hint={offer.logoHint} />
+                        ) : (
+                            <offer.Icon className="h-8 w-8 text-primary" />
+                        )}
                     </div>
                     <div className="flex-grow">
                         <p className="font-semibold text-base text-foreground">{offer.title}</p>
