@@ -57,7 +57,7 @@ const getHintFlow = ai.defineFlow(
     inputSchema: HintInputSchema,
     outputSchema: HintOutputSchema,
   },
-  async (input) => {
+  async (input: HintInput) => {
     const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
     const parsed = HintInputSchema.safeParse(input);
