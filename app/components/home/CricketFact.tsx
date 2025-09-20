@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -110,7 +109,7 @@ export default function CricketFact({ format }: { format: string }) {
         
         // If we have facts and are at the end, loop back to the start.
         if (facts && nextIndex >= facts.length) {
-            // Optional: fetch more if you want the list to be endless on clicks
+            // If we're out of facts and not already fetching, get more.
             if (!isFetching) {
                 fetchFacts(currentFormat);
             }
