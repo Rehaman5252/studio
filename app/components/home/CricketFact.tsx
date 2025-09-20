@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { generateCricketFacts } from '@/ai/flows/generate-cricket-fact';
@@ -17,6 +17,7 @@ const getFallbackFacts = (format: string): string[] => {
     const key = format.toLowerCase();
     let questionsForFormat = allFallbackQuestions.filter(q => q.format === key);
 
+    // If no specific facts, default to mixed, ensuring there's always a fallback
     if (questionsForFormat.length === 0) {
         questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
     }
@@ -31,7 +32,7 @@ export default function CricketFact({ format }: { format: string }) {
     const [isFetching, setIsFetching] = useState(false);
     const [currentFormat, setCurrentFormat] = useState(format);
 
-    useEffect(() => {
+     useEffect(() => {
         setCurrentFormat(format);
     }, [format]);
 
@@ -43,18 +44,19 @@ export default function CricketFact({ format }: { format: string }) {
         }
         try {
             const seen = isInitial ? [] : facts;
-            const newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts: seen });
+            let newFacts = await generateCricketFacts({ format: fetchFormat, count: 5, seenFacts: seen });
             
-            if (newFacts && newFacts.length > 0) {
-                setFacts(prev => isInitial ? newFacts : [...prev, ...newFacts]);
-            } else {
-                 setFacts(prev => isInitial ? getFallbackFacts(fetchFormat) : [...prev, ...getFallbackFacts(fetchFormat)]);
+            if (!newFacts || newFacts.length === 0) {
+                newFacts = getFallbackFacts(fetchFormat);
             }
+            
+            setFacts(prev => isInitial ? newFacts : [...prev, ...newFacts]);
 
         } catch (error) {
             console.error('Failed to fetch cricket facts:', error);
             // Add fallback facts if AI fails
-            setFacts(prev => isInitial ? getFallbackFacts(fetchFormat) : [...prev, ...getFallbackFacts(fetchFormat)]);
+            const fallbackFacts = getFallbackFacts(fetchFormat);
+            setFacts(prev => isInitial ? fallbackFacts : [...prev, ...fallbackFacts]);
         } finally {
             setIsFetching(false);
             if (isInitial) {
@@ -75,10 +77,8 @@ export default function CricketFact({ format }: { format: string }) {
         const nextIndex = currentIndex + 1;
         
         // If we are about to run out of facts, fetch more in the background
-        if (facts && nextIndex >= facts.length - 3) {
-            if (!isFetching) {
-                fetchFacts(currentFormat);
-            }
+        if (facts && nextIndex >= facts.length - 2 && !isFetching) {
+            fetchFacts(currentFormat);
         }
 
         if (facts && nextIndex < facts.length) {
@@ -94,7 +94,7 @@ export default function CricketFact({ format }: { format: string }) {
         if (facts.length > 0 && isLoading) {
             setIsLoading(false);
         }
-        // This prevents going out of bounds if facts list shrinks, though it shouldn't in this logic
+        // This prevents going out of bounds if facts list shrinks
         if (facts.length > 0 && currentIndex >= facts.length) {
              setCurrentIndex(0);
         }
@@ -111,10 +111,17 @@ export default function CricketFact({ format }: { format: string }) {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="min-h-[40px] flex items-center justify-center text-center">
+                <div className="min-h-[60px] flex items-center justify-center text-center px-2">
                     <AnimatePresence mode="wait">
-                        {isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        {isLoading || !factToDisplay ? (
+                            <motion.div
+                                key="loader"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                            </motion.div>
                         ) : (
                             <motion.p
                                 key={factToDisplay}
