@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -69,8 +70,8 @@ export default function CricketFact({ format }: { format: string }) {
 
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
-            const fallbackFacts = getRobustFallbackFacts(fetchFormat);
             setFacts(prev => {
+                const fallbackFacts = getRobustFallbackFacts(fetchFormat);
                 const uniqueFallbackFacts = fallbackFacts.filter(f => !prev.includes(f));
                 return isInitial ? uniqueFallbackFacts : [...prev, ...uniqueFallbackFacts];
             });
@@ -81,7 +82,7 @@ export default function CricketFact({ format }: { format: string }) {
                 setCurrentIndex(0);
             }
         }
-    }, [facts, isFetching]);
+    }, [isFetching]);
 
     // Effect to fetch facts when the format changes
     useEffect(() => {
@@ -119,7 +120,7 @@ export default function CricketFact({ format }: { format: string }) {
             <CardContent>
                 <div className="min-h-[60px] flex items-center justify-center text-center px-2">
                     <AnimatePresence mode="wait">
-                        {isLoading || (isFetching && !factToDisplay) ? (
+                        {isLoading ? (
                             <motion.div
                                 key="loader"
                                 initial={{ opacity: 0 }}
