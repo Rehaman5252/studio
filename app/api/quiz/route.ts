@@ -8,8 +8,6 @@ import { generateQuizFlow } from "@/ai/flows/generate-quiz-flow";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from "@/app/lib/logger";
 
-export const dynamic = 'force_dynamic';
-
 const ApiQuizInputSchema = z.object({
   format: z.string(),
   userId: z.string().min(1, { message: "User ID cannot be empty." }),
