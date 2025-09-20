@@ -82,6 +82,9 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_INDCRIC }}'
           channelId: live
           projectId: indcric
+      
+      - name: Verify Production Health
+        run: curl -f https://indcric.web.app/ || exit 1
 
   deploy_staging:
     name: Deploy to Staging
@@ -109,9 +112,13 @@ jobs:
           path: ./.next
           
       - name: Deploy to Firebase Hosting (Staging)
+        id: deploy_staging
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_INDCRIC }}'
           channelId: dev
           projectId: indcric
+          
+      - name: Verify Staging Health
+        run: curl -f ${{ steps.deploy_staging.outputs.url }} || exit 1
