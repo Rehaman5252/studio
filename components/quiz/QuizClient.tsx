@@ -1,10 +1,9 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import type { QuizData, QuizQuestion, HintOutput } from '@/ai/schemas';
+import { QuizData as QuizDataSchema, type QuizData, type QuizQuestion, type HintOutput } from '@/ai/schemas';
 import { CricketLoading } from '@/components/CricketLoading';
 import QuizView from '@/components/quiz/QuizView';
 import InterstitialLoader from '@/components/InterstitialLoader';
@@ -22,6 +21,7 @@ import { motion } from 'framer-motion';
 import { getQuizSlotId } from '@/lib/utils';
 import LoginPrompt from '../auth/LoginPrompt';
 import { logger } from '@/app/lib/logger';
+import { fromZodError } from 'zod-validation-error';
 
 
 interface QuizClientProps {
@@ -125,17 +125,18 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
         throw new Error('Server returned an unexpected response. Please try again.');
       }
       
-      if (!data.ok || !data.quiz) {
-         const msg = data.error?.message || data.errorDetails?.message || "Could not load quiz from the server.";
-         if (data.quiz && data.source === 'fallback') {
-            setQuizData(data.quiz);
-            setQuizSource('fallback');
-            setQuizState('pre-quiz');
-            toast({ title: 'Heads up!', description: msg, variant: 'default' });
+      const quizValidation = QuizDataSchema.safeParse(data.quiz);
+
+      if (!data.ok || !data.quiz || !quizValidation.success) {
+         const msg = data.error?.message || data.errorDetails?.message || "Invalid quiz data received.";
+         if (!quizValidation.success) {
+            const validationError = fromZodError(quizValidation.error).message;
+            logger.warn('Invalid quiz data received from API', { validationError, reqId: data.reqId });
          } else {
-            setError(msg);
-            setQuizState('error');
+            logger.warn('Invalid quiz data received from API', { error: 'data.ok was false or data.quiz was null', reqId: data.reqId });
          }
+         setError(msg);
+         setQuizState('error');
          return;
       }
       
@@ -185,7 +186,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
 
   const handlePreQuizFinish = useCallback(() => {
     if (isFinishedRef.current) return;
-    logger.info('Quiz started', { format, brand, source: quizSource });
+    logger.event('quiz_start', { format, brand, source: quizSource });
     setQuizState('playing');
     setStartTime(Date.now());
   }, [format, brand, quizSource]);
@@ -205,7 +206,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
     
-    logger.info('Quiz completed', {
+    logger.event('quiz_complete', {
         format,
         brand,
         score: attempt.score,
@@ -251,7 +252,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       source: quizSource,
     });
 
-    logger.info('Quiz completed (disqualified)', {
+    logger.event('quiz_complete', {
         format,
         brand,
         score: 0,
@@ -321,7 +322,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
       const currentQ = quizData.questions[currentQuestionIndex];
       const hintResult = await getAIPoweredHint({ question: currentQ });
       setHints(prev => ({ ...prev, [currentQuestionIndex]: hintResult }));
-    } catch (e: any) {
+    } catch (e) {
       logger.error("Failed to get AI hint:", { e });
       setHints(prev => ({ ...prev, [currentQuestionIndex]: { hint: "Couldn't get a hint this time. Maybe think about the player's most famous matches?", source: "fallback", debug: "Client-side error" } }));
     } finally {
@@ -359,7 +360,7 @@ export default function QuizClient({ brand, format }: QuizClientProps) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-destructive p-4 text-center">
             <AlertTriangle className="h-12 w-12 mb-4" />
-            <p className="font-semibold mb-4">{error}</p>
+            <p className="font-semibold mb-4">{error || "An unknown error occurred."}</p>
             <Button onClick={fetchQuiz}>Try Again</Button>
         </div>
     );

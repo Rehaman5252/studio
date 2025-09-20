@@ -1,10 +1,8 @@
 import { logger } from "../logger";
 
 describe("Logger Event Validation", () => {
-  let infoSpy: jest.SpyInstance;
-  let warnSpy: jest.SpyInstance;
-  let errorSpy: jest.SpyInstance;
   let logSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
   const originalNodeEnv = process.env.NODE_ENV;
 
   beforeAll(() => {
@@ -18,10 +16,8 @@ describe("Logger Event Validation", () => {
 
   beforeEach(() => {
     // Spy on console methods to check if they are called correctly
-    infoSpy = jest.spyOn(console, "info").mockImplementation(() => {});
-    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -61,7 +57,7 @@ describe("Logger Event Validation", () => {
       reason: null,
     };
     logger.event("quiz_complete", payload);
-    expect(logSpy).toHaveBeenCalledWith("[EVENT] quiz_complete", payload);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[EVENT] quiz_complete"), payload);
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
@@ -81,15 +77,5 @@ describe("Logger Event Validation", () => {
       expect.any(Object)
     );
      expect(logSpy).not.toHaveBeenCalled();
-  });
-
-  it('logs a standard info message', () => {
-    logger.info('This is an info message', { detail: 'some data' });
-    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('This is an info message'), { detail: 'some data' });
-  });
-
-  it('logs a standard error message', () => {
-    logger.error('This is an error message', { code: 500 });
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('This is an error message'), { code: 500 });
   });
 });

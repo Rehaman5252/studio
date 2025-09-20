@@ -14,6 +14,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
+import { logger } from '@/app/lib/logger';
 
 const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
     const accuracy = attempt.totalQuestions > 0 ? (attempt.score / attempt.totalQuestions) * 100 : 0;
@@ -49,7 +50,7 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
     const sanitized = sanitizeQuizAttempt(rawAttempt) as QuizAttempt;
 
     if (!sanitized || !sanitized.userId) {
-        console.error("[generateQuizAnalysis] Sanitization failed or missing userId, returning fallback.", { rawAttempt });
+        logger.error("[generateQuizAnalysis] Sanitization failed or missing userId, returning fallback.", { rawAttempt });
         const dummyAttempt = { format: 'cricket', score: 0, totalQuestions: 5, questions: [], userAnswers: [] } as any;
         return getFallbackAnalysis(dummyAttempt);
     }
@@ -61,14 +62,14 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
 
         if (!parsed.success) {
-            console.error("[generateQuizAnalysis] AI output from flow failed validation, returning fallback.", parsed.error.format());
+            logger.error("[generateQuizAnalysis] AI output from flow failed validation, returning fallback.", { error: parsed.error.format(), userId: validatedAttempt.userId });
             return getFallbackAnalysis(validatedAttempt);
         }
         
         return parsed.data;
 
     } catch (error: any) {
-        console.error("Error in analysis generation pipeline. Returning fallback.", error?.errors ?? error);
+        logger.error("Error in analysis generation pipeline. Returning fallback.", { error: error?.errors ?? error, userId: sanitized.userId });
         return getFallbackAnalysis(sanitized);
     }
 }
@@ -112,14 +113,14 @@ const generateQuizAnalysisFlow = ai.defineFlow(
             
             const parsed = QuizAnalysisOutputSchema.safeParse(output);
             if (!parsed.success) {
-                 console.error("[generateQuizAnalysisFlow] AI output schema validation failed. Full output:", JSON.stringify(output, null, 2));
+                 logger.error("[generateQuizAnalysisFlow] AI output schema validation failed. Full output:", { output: JSON.stringify(output, null, 2), userId: input.userId });
                  throw new Error("AI returned incomplete or invalid analysis data.");
             }
     
             return { ...parsed.data, source: "ai" };
 
         } catch (error) {
-             console.error("Error during AI analysis flow execution. Returning fallback.", error);
+             logger.error("Error during AI analysis flow execution. Returning fallback.", { error, userId: input.userId });
              return getFallbackAnalysis(input);
         }
     }

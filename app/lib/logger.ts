@@ -15,20 +15,25 @@ function log(level: LogLevel, message: string, meta?: Record<string, unknown>) {
   // In a real-world scenario, this would forward to a logging service (e.g., Datadog, Sentry, Cloud Logging)
   if (isDev) {
     const timestamp = new Date().toISOString();
-    const output = { timestamp, level, message, ...(meta || {}) };
-
+    
+    // In development, use console methods that provide better formatting and interactivity.
+    const logArgs = [`[${level.toUpperCase()}] ${timestamp}: ${message}`];
+    if (meta && Object.keys(meta).length > 0) {
+        logArgs.push(meta);
+    }
+    
     switch (level) {
       case 'info':
-        console.info(`[INFO] ${timestamp}: ${message}`, meta || '');
+        console.info(...logArgs);
         break;
       case 'warn':
-        console.warn(`[WARN] ${timestamp}: ${message}`, meta || '');
+        console.warn(...logArgs);
         break;
       case 'error':
-        console.error(`[ERROR] ${timestamp}: ${message}`, meta || '');
+        console.error(...logArgs);
         break;
       default:
-        console.log(`[${level.toUpperCase()}] ${timestamp}: ${message}`, meta || '');
+        console.log(...logArgs);
         break;
     }
   } else {
