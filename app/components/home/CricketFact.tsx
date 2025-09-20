@@ -9,26 +9,30 @@ import { Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { allFallbackQuestions, shuffleArray } from '@/lib/fallback-quiz';
 import { logger } from '@/app/lib/logger';
+import { fallbackFacts } from '@/app/lib/fallback-facts';
 
 const getRobustFallbackFacts = (format: string): string[] => {
-    if (!Array.isArray(allFallbackQuestions)) {
-        logger.warn("allFallbackQuestions not available for getFallbackFacts");
-        return ["Cricket is a bat-and-ball game played between two teams of eleven players."];
-    }
+    // 1. Try format-specific questions from the main fallback quiz file.
     const key = format.toLowerCase();
     let questionsForFormat = allFallbackQuestions.filter(q => q.format === key);
 
-    // If no specific facts, default to mixed, ensuring there's always a fallback
-    if (questionsForFormat.length === 0) {
-        questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
-    }
-
-    // If still no facts, return a hardcoded default
-    if (questionsForFormat.length === 0) {
-        return ["The first official international cricket match was held in 1844 between USA and Canada."];
+    if (questionsForFormat.length > 0) {
+        return shuffleArray(questionsForFormat).map(q => q.explanation).slice(0, 10);
     }
     
-    return shuffleArray(questionsForFormat).map(q => q.explanation).slice(0, 10);
+    // 2. If none, try 'mixed' format questions.
+    questionsForFormat = allFallbackQuestions.filter(q => q.format === 'mixed');
+    if (questionsForFormat.length > 0) {
+        return shuffleArray(questionsForFormat).map(q => q.explanation).slice(0, 10);
+    }
+
+    // 3. If still none, use the new global list of funny facts.
+    if (fallbackFacts.length > 0) {
+        return shuffleArray([...fallbackFacts]).slice(0, 10);
+    }
+
+    // 4. Absolute last resort hardcoded fact.
+    return ["The first official international cricket match was held in 1844 between USA and Canada."];
 }
 
 export default function CricketFact({ format }: { format: string }) {
@@ -71,9 +75,9 @@ export default function CricketFact({ format }: { format: string }) {
         } catch (error) {
             logger.error('Failed to fetch cricket facts, using robust fallback.', { error, format: fetchFormat });
             setFacts(prev => {
-                const fallbackFacts = getRobustFallbackFacts(fetchFormat);
-                const uniqueFallbackFacts = fallbackFacts.filter(f => !prev.includes(f));
-                return isInitial ? uniqueFallbackFacts : [...prev, ...uniqueFallbackFacts];
+                const fallback = getRobustFallbackFacts(fetchFormat);
+                const uniqueFallback = fallback.filter(f => !prev.includes(f));
+                return isInitial ? uniqueFallback : [...prev, ...uniqueFallback];
             });
         } finally {
             setIsFetching(false);
@@ -82,7 +86,7 @@ export default function CricketFact({ format }: { format: string }) {
                 setCurrentIndex(0);
             }
         }
-    }, [isFetching]);
+    }, [isFetching, facts]);
 
     // Effect to fetch facts when the format changes
     useEffect(() => {
@@ -120,7 +124,7 @@ export default function CricketFact({ format }: { format: string }) {
             <CardContent>
                 <div className="min-h-[60px] flex items-center justify-center text-center px-2">
                     <AnimatePresence mode="wait">
-                        {isLoading ? (
+                        {(isLoading && facts.length === 0) ? (
                             <motion.div
                                 key="loader"
                                 initial={{ opacity: 0 }}
