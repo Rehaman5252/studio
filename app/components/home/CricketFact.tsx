@@ -31,6 +31,10 @@ export default function CricketFact({ format }: { format: string }) {
     const [isFetching, setIsFetching] = useState(false);
     const [currentFormat, setCurrentFormat] = useState(format);
 
+    useEffect(() => {
+        setCurrentFormat(format);
+    }, [format]);
+
     const fetchFacts = useCallback(async (fetchFormat: string, isInitial = false) => {
         if (isFetching) return;
         setIsFetching(true);
