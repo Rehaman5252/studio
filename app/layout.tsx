@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import ClientOnly from '@/components/ClientOnly';
 import Providers from '@/context/Providers';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -56,7 +58,7 @@ export default function RootLayout({
           <Providers>
             <div className="relative flex flex-col min-h-screen">
               <main className="flex-1 pb-20">{children}</main>
-              <ClientOnly>
+              <ClientOnly fallback={<Alert variant="destructive" className="fixed bottom-0 w-full rounded-none"><AlertTriangle className="h-4 w-4" /><AlertTitle>Navigation Failed</AlertTitle><AlertDescription>Could not load app navigation. Please refresh.</AlertDescription></Alert>}>
                 <BottomNav />
               </ClientOnly>
             </div>
