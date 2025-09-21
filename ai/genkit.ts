@@ -21,5 +21,7 @@ export const ai = configureGenkit({
     firebasePlugin(),
     googleAI({ apiVersion: 'v1beta' }),
   ],
+  // Tracing and metrics are disabled in production to prevent build failures
+  // due to missing optional @opentelemetry packages on Firebase.
   enableTracingAndMetrics: isDev,
 });

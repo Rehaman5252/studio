@@ -1,3 +1,4 @@
+
 # Firebase Studio
 
 This is a NextJS starter in Firebase Studio.
@@ -32,6 +33,8 @@ export const ai = configureGenkit({
   plugins: [
     // ...
   ],
+  // Tracing and metrics are disabled in production to prevent build failures
+  // due to missing optional @opentelemetry packages on Firebase.
   enableTracingAndMetrics: isDev,
 });
 ```
