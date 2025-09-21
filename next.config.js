@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
@@ -65,7 +64,7 @@ const nextConfig = {
         ];
         
         // Prevents "require.extensions" warnings from Handlebars
-        config.resolve.fallback = { fs: false, path: false };
+        config.resolve.fallback = { ...config.resolve.fallback, fs: false, path: false };
 
         return config;
     },

@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { CubeBrand } from '@/components/home/brandData';
@@ -14,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { memo, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
+import ClientOnly from '@/components/ClientOnly';
 
 const CricketFact = dynamic(() => import('@/components/home/CricketFact'), {
     loading: () => <Skeleton className="h-40 w-full" />,
@@ -157,11 +157,13 @@ function HomePageClient() {
         >
             <MalpracticeWarning />
             
-            <HomeClientContent 
-                selectedBrand={selectedBrand}
-                setSelectedBrand={setSelectedBrand}
-                handleStartQuiz={handleStartQuiz}
-            />
+            <ClientOnly>
+                <HomeClientContent 
+                    selectedBrand={selectedBrand}
+                    setSelectedBrand={setSelectedBrand}
+                    handleStartQuiz={handleStartQuiz}
+                />
+            </ClientOnly>
             
              <div className="mt-6">
                 <StartQuizButton
@@ -173,7 +175,9 @@ function HomePageClient() {
             </div>
             
             <div className="mt-8">
-              <CricketFact format={selectedBrand.format} />
+              <ClientOnly>
+                <CricketFact format={selectedBrand.format} />
+              </ClientOnly>
             </div>
 
         </motion.div>

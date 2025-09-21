@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth as getFirebaseAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
@@ -24,14 +23,23 @@ let db: Firestore | null = null;
 
 if (typeof window !== 'undefined' && isFirebaseConfigured) {
   if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
+    try {
+      app = initializeApp(firebaseConfig);
+    } catch (e) {
+      console.error("Firebase initialization error", e);
+    }
   } else {
     app = getApp();
   }
-  auth = getFirebaseAuth(app);
-  db = getFirestore(app);
-  if (auth) {
-    auth.useDeviceLanguage();
+  
+  if (app) {
+    try {
+      auth = getFirebaseAuth(app);
+      db = getFirestore(app);
+      auth.useDeviceLanguage();
+    } catch (e) {
+      console.error("Firebase services initialization error", e);
+    }
   }
 }
 
@@ -42,13 +50,24 @@ export function getAuth() {
   if (typeof window !== 'undefined' && isFirebaseConfigured) {
     if (!app) {
         if (!getApps().length) {
-            app = initializeApp(firebaseConfig);
+            try {
+              app = initializeApp(firebaseConfig);
+            } catch (e) {
+              console.error("Firebase initialization error on getAuth", e);
+              return null;
+            }
         } else {
             app = getApp();
         }
     }
-    auth = getFirebaseAuth(app);
-    return auth;
+    if (app) {
+      try {
+        auth = getFirebaseAuth(app);
+        return auth;
+      } catch (e) {
+        console.error("Firebase getAuth service error", e);
+      }
+    }
   }
   return null;
 }

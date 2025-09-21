@@ -1,4 +1,3 @@
-
 "use client";
 
 import { ReactNode, useEffect, useState, createContext, useContext } from "react";
@@ -24,6 +23,9 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     }
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
+      setLoading(false);
+    }, (error) => {
+      console.error("Auth state change error:", error);
       setLoading(false);
     });
 

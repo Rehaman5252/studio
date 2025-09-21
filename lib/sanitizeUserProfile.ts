@@ -1,4 +1,3 @@
-
 import { Timestamp } from "firebase/firestore";
 import type { QuizAttempt } from '@/ai/schemas';
 
@@ -68,7 +67,7 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   }
   sanitized.timePerQuestion = timePer.slice(0, sanitized.totalQuestions);
 
-  const unanswered = answers.filter(a => a === "").length;
+  const unanswered = answers.filter(a => !a).length;
   sanitized.unanswered = unanswered;
   
   // Explicitly handle the 'reason' field: only include it if it's a non-empty string.
