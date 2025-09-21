@@ -63,6 +63,9 @@ const nextConfig = {
             { module: /handlebars/ },
             { module: /require-in-the-middle/ },
         ];
+        
+        // Prevents "require.extensions" warnings from Handlebars
+        config.resolve.fallback = { fs: false, path: false };
 
         return config;
     },
