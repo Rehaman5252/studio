@@ -8,6 +8,7 @@ import DailyStreakCard from '@/components/profile/DailyStreakCard';
 import type { UserProfile } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function ProfileContentComponent({ profile }: { profile: UserProfile | null }) {
   if (!profile) {
