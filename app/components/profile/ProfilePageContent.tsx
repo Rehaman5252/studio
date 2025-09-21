@@ -10,6 +10,7 @@ import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import ProfileSkeleton from './ProfileSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
