@@ -1,104 +1,111 @@
 'use client';
 
-import React from 'react';
-import dynamic from 'next/dynamic';
+import React, { memo } from 'react';
+import dynamic, { DynamicOptions, DynamicModule } from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Award, Edit, LogOut, Settings, Scale, ChevronRight, User as UserIcon } from 'lucide-react';
-import { useAuth } from '@/context/AuthProvider';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import SupportCard from './SupportCard';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import ProfileSkeleton from './ProfileSkeleton';
 
+// Define the shape for skeleton props
 interface SkeletonProps {
   height?: number;
   className?: string;
 }
 
+// Define the shape of our card configuration
+interface CardConfig {
+  title: string;
+  name: string;
+  importPath: string;
+  skeletonProps?: SkeletonProps;
+}
+
+// Default Skeleton heights per component name as a fallback
+const defaultSkeletonHeights: Record<string, number> = {
+  ProfileHeader: 112,
+  ProfileCompletion: 96,
+  DailyStreakCard: 110,
+  ProfileStats: 88,
+  ReferralCard: 220,
+};
+
 /**
- * A safe, dynamic import helper that shows an adaptive Skeleton during load.
+ * A safe and adaptive dynamic import helper.
  * @param importFunc - The dynamic import() function.
- * @param skeletonProps - Optional props for the Skeleton fallback.
- * @returns A dynamically loaded component with a loading fallback.
+ * @param name - The component's name, used for fallback height lookup.
+ * @param skeletonProps - Optional custom styling for the skeleton.
+ * @returns A dynamically loaded component with a styled Skeleton and error handling.
  */
 const loadWithSkeleton = (
-  importFunc: () => Promise<{ default: React.ComponentType<any> }>,
-  skeletonProps: SkeletonProps = {}
-) =>
-  dynamic(importFunc, {
+  importFunc: () => Promise<DynamicModule<{_?: any}>>,
+  name: string,
+  skeletonProps?: SkeletonProps
+) => {
+  return dynamic(importFunc, {
     loading: () => {
-      const { height = 100, className } = skeletonProps;
-      return <Skeleton style={{ height: `${height}px` }} className={cn("w-full", className)} />;
+      const height = skeletonProps?.height ?? defaultSkeletonHeights[name] ?? 100;
+      return <Skeleton className={cn(`h-[${height}px] w-full`, skeletonProps?.className)} />;
     },
-    ssr: false, // Ensure this only runs on the client
+    ssr: false, // Disable server-side rendering for these client components
   });
+};
 
+// --- Declarative Card Configuration ---
+const profileCards: CardConfig[] = [
+  { title: 'Profile', name: 'ProfileHeader', importPath: '@/components/profile/ProfileHeader', skeletonProps: { height: 112 } },
+  { title: 'Completion', name: 'ProfileCompletion', importPath: '@/components/profile/ProfileCompletion', skeletonProps: { height: 96 } },
+  { title: 'Daily Streak', name: 'DailyStreakCard', importPath: '@/components/profile/DailyStreakCard', skeletonProps: { height: 110 } },
+  { title: 'Statistics', name: 'ProfileStats', importPath: '@/components/profile/ProfileStats', skeletonProps: { height: 88 } },
+  { title: 'Referral Program', name: 'ReferralCard', importPath: '@/components/profile/ReferralCard', skeletonProps: { height: 220 } },
+];
 
-const ProfileHeader = loadWithSkeleton(() => import('@/components/profile/ProfileHeader'), { height: 112 });
-const ProfileCompletion = loadWithSkeleton(() => import('@/components/profile/ProfileCompletion'), { height: 96 });
-const DailyStreakCard = loadWithSkeleton(() => import('@/components/profile/DailyStreakCard'), { height: 110 });
-const ProfileStats = loadWithSkeleton(() => import('@/components/profile/ProfileStats'), { height: 88 });
-const ReferralCard = loadWithSkeleton(() => import('@/components/profile/ReferralCard'), { height: 220 });
+// --- Generate Dynamic Components ---
+const cardsWithComponents = profileCards.map(({ title, name, importPath, skeletonProps }) => ({
+  title,
+  Component: loadWithSkeleton(
+    () => import(`${importPath}`).catch(err => {
+      console.error(`Failed to load component "${name}" from ${importPath}:`, err);
+      // Return a fallback component that just renders the skeleton on error
+      return { default: () => {
+          const height = skeletonProps?.height ?? defaultSkeletonHeights[name] ?? 100;
+          return <Skeleton className={cn(`h-[${height}px] w-full`, skeletonProps?.className)} />;
+      }};
+    }),
+    name,
+    skeletonProps
+  ),
+}));
 
-const LoggedOutProfileView = () => (
-    <div className="space-y-4">
-        <LoginPrompt
-            icon={UserIcon}
-            title="Step into the Player's Pavilion"
-            description="Sign in to view your profile, track stats, and manage your account."
-        />
-        <section className="space-y-3 pt-4">
-          <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
-              <Link href="/settings">
-                  <div className="flex items-center">
-                      <Settings className="mr-4 text-primary" /> App Settings
-                  </div>
-                  <ChevronRight/>
-              </Link>
-          </Button>
-          <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
-              <Link href="/policies">
-                  <div className="flex items-center">
-                      <Scale className="mr-4 text-primary" /> Legal & Policies
-                  </div>
-                  <ChevronRight/>
-              </Link>
-          </Button>
-      </section>
-      <SupportCard />
-    </div>
-);
+// --- Main Component ---
+function ProfilePageContentComponent() {
+  const { profile, logout } = useAuth(); // Assuming useAuth provides profile and logout
+  const router = useRouter();
 
-
-export default function ProfilePageContent() {
-    const { profile, logout, loading } = useAuth();
-    const router = useRouter();
-
-    if (loading) {
-        return <ProfileSkeleton />;
-    }
-    
-    if (!profile) {
-        return <LoggedOutProfileView />;
-    }
-
-    const handleLogout = async () => {
-      await logout();
-      router.replace('/auth/login');
-    };
+  if (!profile) {
+    // This case is handled by the parent, but it's good practice.
+    return null; 
+  }
+  
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/auth/login');
+  };
 
   return (
     <div className="space-y-4">
-      <ProfileHeader userProfile={profile} />
-      <ProfileCompletion />
-      <DailyStreakCard userProfile={profile} />
-      <ProfileStats />
-      <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
+      {/* Map through the generated components */}
+      {cardsWithComponents.map(({ title, Component }) => (
+        <Card key={title}>
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Component userProfile={profile} referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
+            </CardContent>
+        </Card>
+      ))}
 
+      {/* Static cards and buttons can remain here */}
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
               <Link href="/certificates">
@@ -156,3 +163,14 @@ export default function ProfilePageContent() {
     </div>
   );
 }
+
+// We need to import these here for the component to function
+import { useAuth } from "@/context/AuthProvider";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import SupportCard from './SupportCard';
+import { CardDescription } from '@/components/ui/card';
+
+export default memo(ProfilePageContentComponent);
