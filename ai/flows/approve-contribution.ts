@@ -31,7 +31,7 @@ const approveContributionFlow = ai.defineFlow(
         inputSchema: ApproveContributionInputSchema,
         outputSchema: ApproveContributionOutputSchema,
     },
-    async (input) => {
+    async (input: ApproveContributionInput) => {
         if (!db) {
             return { success: false, message: "Database connection not available." };
         }
