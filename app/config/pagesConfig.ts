@@ -12,6 +12,24 @@ export interface PageConfig {
 // Example configuration for multiple pages
 export const pagesConfig: PageConfig[] = [
   {
+    path: '/profile',
+    title: 'User Profile',
+    defaultHeights: {
+      ProfileHeader: 110,
+      ProfileCompletion: 80,
+      DailyStreakCard: 120,
+      ProfileStats: 170,
+      ReferralCard: 200,
+    },
+    cards: [
+      { title: 'Header', importPath: '@/components/profile/ProfileHeader', name: 'ProfileHeader', skeletonProps: { height: 100 } },
+      { title: 'Completion', importPath: '@/components/profile/ProfileCompletion', name: 'ProfileCompletion' },
+      { title: 'Daily Streak', importPath: '@/components/profile/DailyStreakCard', name: 'DailyStreakCard' },
+      { title: 'Stats', importPath: '@/components/profile/ProfileStats', name: 'ProfileStats' },
+      { title: 'Referral', importPath: '@/components/profile/ReferralCard', name: 'ReferralCard' },
+    ],
+  },
+  {
     path: '/sample-profile',
     title: 'User Profile',
     defaultHeights: {
