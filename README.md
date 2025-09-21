@@ -27,3 +27,22 @@ When running locally with `npm run dev`, the configuration provides enhanced dia
 
 -   **Tracing & Metrics:** Enabled (`enableTracingAndMetrics: true`). This allows for detailed inspection of Genkit flows and AI calls during development.
 -   **Logging:** The log level is set to `debug`. This provides verbose output to the console, making it easier to trace execution and troubleshoot issues.
+
+This is achieved with a simple environment check:
+
+```ts
+const isDev = process.env.NODE_ENV === 'development';
+
+if (isDev) {
+  logger.setLevel('debug');
+} else {
+  logger.setLevel('info');
+}
+
+export const ai = configureGenkit({
+  plugins: [
+    // ...
+  ],
+  enableTracingAndMetrics: isDev,
+});
+```
