@@ -2,16 +2,16 @@
 "use client";
 import React from "react";
 import { useAuth } from "@/context/AuthProvider";
-import { User as UserIcon, Settings, Scale, LogOut, ChevronRight, Edit, Award } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { User as UserIcon, Settings, Scale, LogOut, ChevronRight, Edit, Award } from "lucide-react";
 import Link from "next/link";
 import PageWrapper from "@/components/PageWrapper";
 import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import SupportCard from "@/components/profile/SupportCard";
-import AdaptiveDynamicPage from "@/components/common/AdaptiveDynamicPage";
+import AdaptiveDynamicPage from "@/app/components/common/AdaptiveDynamicPage";
 import { pagesConfig } from "@/app/config/pagesConfig";
-import { useRouter } from "next/navigation";
 
 const LoggedOutProfileView = () => {
     const { logout } = useAuth();
