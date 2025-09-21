@@ -1,3 +1,4 @@
+
 'use client';
 import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
@@ -11,6 +12,7 @@ import dynamic from 'next/dynamic';
 import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
 import PageWrapper from '@/components/PageWrapper';
 import SupportCard from '@/components/profile/SupportCard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
