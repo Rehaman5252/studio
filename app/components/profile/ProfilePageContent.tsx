@@ -1,30 +1,42 @@
+
 'use client';
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import ProfileSkeleton from './ProfileSkeleton';
-import SupportCard from './SupportCard';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import ProfileSkeleton from './ProfileSkeleton';
+import SupportCard from './SupportCard';
 
-// Helper function for dynamic imports with Skeleton fallback
-const loadWithSkeleton = (importFunc: () => Promise<{ default: React.ComponentType<any> }>, height: number) =>
+// Default Skeleton heights per component name
+const defaultSkeletonHeights: Record<string, number> = {
+  ProfileHeader: 112,
+  ProfileCompletion: 96,
+  DailyStreakCard: 110,
+  ProfileStats: 190,
+  ReferralCard: 220,
+};
+
+// Helper function for dynamic imports with automatic Skeleton heights
+const loadWithSkeleton = (importFunc: () => Promise<{ default: React.ComponentType<any> }>, name: string) =>
   dynamic(importFunc, {
-    loading: () => <Skeleton className={`h-[${height}px] w-full`} />,
+    loading: () => {
+      const height = defaultSkeletonHeights[name] || 100; // fallback height
+      return <Skeleton className={`h-[${height}px] w-full`} />;
+    },
     ssr: false,
   });
 
-// Dynamic components using the helper
-const ProfileHeader = loadWithSkeleton(() => import('@/components/profile/ProfileHeader'), 112);
-const ProfileCompletion = loadWithSkeleton(() => import('@/components/profile/ProfileCompletion'), 96);
-const DailyStreakCard = loadWithSkeleton(() => import('@/components/profile/DailyStreakCard'), 110);
-const ProfileStats = loadWithSkeleton(() => import('@/components/profile/ProfileStats'), 190);
-const ReferralCard = loadWithSkeleton(() => import('@/components/profile/ReferralCard'), 220);
+// Dynamic components using the advanced helper
+const ProfileHeader = loadWithSkeleton(() => import('@/components/profile/ProfileHeader'), 'ProfileHeader');
+const ProfileCompletion = loadWithSkeleton(() => import('@/components/profile/ProfileCompletion'), 'ProfileCompletion');
+const DailyStreakCard = loadWithSkeleton(() => import('@/components/profile/DailyStreakCard'), 'DailyStreakCard');
+const ProfileStats = loadWithSkeleton(() => import('@/components/profile/ProfileStats'), 'ProfileStats');
+const ReferralCard = loadWithSkeleton(() => import('@/components/profile/ReferralCard'), 'ReferralCard');
 
 
 export default function ProfilePageContent() {
