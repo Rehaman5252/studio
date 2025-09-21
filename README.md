@@ -8,6 +8,12 @@ To get started, take a look at src/app/page.tsx.
 
 This project uses Genkit for its Generative AI capabilities. The configuration in `ai/genkit.ts` is designed to be both developer-friendly and production-ready by automatically adapting to the environment.
 
+| Environment | Tracing & Metrics | Log Level |
+|-------------|-------------------|-----------|
+| `development` | **Enabled**       | `debug`   |
+| `production`  | **Disabled**      | `info`    |
+
+
 ### Production Environment (`NODE_ENV=production`)
 
 When deployed to Firebase Hosting (or any production environment), the configuration is optimized for performance and stability:
