@@ -4,53 +4,45 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { Award, Edit, LogOut, Settings, Scale, ChevronRight, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { Award, Edit, LogOut, Settings, Scale, ChevronRight, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import SupportCard from './SupportCard';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import ProfileSkeleton from './ProfileSkeleton';
-import ClientOnly from '@/components/ClientOnly';
-import { Button } from '../ui/button';
 
-// Default Skeleton heights per component name
-const defaultSkeletonHeights: Record<string, number> = {
-  ProfileHeader: 112,
-  ProfileCompletion: 96,
-  DailyStreakCard: 110,
-  ProfileStats: 88,
-  ReferralCard: 220,
-};
+interface SkeletonProps {
+  height?: number;
+  className?: string;
+}
 
-// Helper function for dynamic imports with automatic Skeleton heights and error handling
+/**
+ * A safe, dynamic import helper that shows an adaptive Skeleton during load.
+ * @param importFunc - The dynamic import() function.
+ * @param skeletonProps - Optional props for the Skeleton fallback.
+ * @returns A dynamically loaded component with a loading fallback.
+ */
 const loadWithSkeleton = (
   importFunc: () => Promise<{ default: React.ComponentType<any> }>,
-  name: string
+  skeletonProps: SkeletonProps = {}
 ) =>
   dynamic(importFunc, {
     loading: () => {
-      const height = defaultSkeletonHeights[name] || 100; // fallback height
-      return <Skeleton style={{ height: `${height}px` }} className="w-full" />;
+      const { height = 100, className } = skeletonProps;
+      return <Skeleton style={{ height: `${height}px` }} className={cn("w-full", className)} />;
     },
-    ssr: false, // prevent SSR import errors
+    ssr: false, // Ensure this only runs on the client
   });
 
-// Declarative array of cards
-const profileCardsMeta = [
-    { name: 'ProfileHeader', importPath: '@/components/profile/ProfileHeader', Component: null as any },
-    { name: 'ProfileCompletion', importPath: '@/components/profile/ProfileCompletion', Component: null as any },
-    { name: 'DailyStreakCard', importPath: '@/components/profile/DailyStreakCard', Component: null as any },
-    { name: 'ProfileStats', importPath: '@/components/profile/ProfileStats', Component: null as any },
-    { name: 'ReferralCard', importPath: '@/components/profile/ReferralCard', Component: null as any },
-];
 
-// Generate dynamic components declaratively
-const cardsWithComponents = profileCardsMeta.map(card => ({
-  ...card,
-  Component: loadWithSkeleton(() => import(`${card.importPath}`), card.name),
-}));
-
+const ProfileHeader = loadWithSkeleton(() => import('@/components/profile/ProfileHeader'), { height: 112 });
+const ProfileCompletion = loadWithSkeleton(() => import('@/components/profile/ProfileCompletion'), { height: 96 });
+const DailyStreakCard = loadWithSkeleton(() => import('@/components/profile/DailyStreakCard'), { height: 110 });
+const ProfileStats = loadWithSkeleton(() => import('@/components/profile/ProfileStats'), { height: 88 });
+const ReferralCard = loadWithSkeleton(() => import('@/components/profile/ReferralCard'), { height: 220 });
 
 const LoggedOutProfileView = () => (
     <div className="space-y-4">
@@ -101,12 +93,11 @@ export default function ProfilePageContent() {
 
   return (
     <div className="space-y-4">
-      {cardsWithComponents.map(({ name, Component }) => {
-          if (name === 'ProfileHeader') return <Component key={name} userProfile={profile} />;
-          if (name === 'DailyStreakCard') return <Component key={name} userProfile={profile} />;
-          if (name === 'ReferralCard') return <Component key={name} referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />;
-          return <Component key={name} />;
-      })}
+      <ProfileHeader userProfile={profile} />
+      <ProfileCompletion />
+      <DailyStreakCard userProfile={profile} />
+      <ProfileStats />
+      <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
 
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
