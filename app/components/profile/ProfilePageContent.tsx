@@ -11,13 +11,13 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import ProfileSkeleton from './ProfileSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
+import SupportCard from './SupportCard';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
 const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <Skeleton className="h-32 w-full" />});
 const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <Skeleton className="h-48 w-full" />});
 const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'), { loading: () => <Skeleton className="h-24 w-full" />});
-const SupportCard = dynamic(() => import('@/components/profile/SupportCard'), { loading: () => <Skeleton className="h-24 w-full" />});
 
 
 function ProfilePageContent() {
