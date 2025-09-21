@@ -1,23 +1,22 @@
-'use client';
 
-import React, { memo } from 'react';
+'use client';
+import React from 'react';
 import dynamic, { DynamicOptions, DynamicModule } from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from "@/context/AuthProvider";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import SupportCard from './SupportCard';
+import { CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 // Define the shape for skeleton props
 interface SkeletonProps {
   height?: number;
   className?: string;
-}
-
-// Define the shape of our card configuration
-interface CardConfig {
-  title: string;
-  name: string;
-  importPath: string;
-  skeletonProps?: SkeletonProps;
 }
 
 // Default Skeleton heights per component name as a fallback
@@ -50,39 +49,20 @@ const loadWithSkeleton = (
   });
 };
 
-// --- Declarative Card Configuration ---
-const profileCards: CardConfig[] = [
-  { title: 'Profile', name: 'ProfileHeader', importPath: '@/components/profile/ProfileHeader', skeletonProps: { height: 112 } },
-  { title: 'Completion', name: 'ProfileCompletion', importPath: '@/components/profile/ProfileCompletion', skeletonProps: { height: 96 } },
-  { title: 'Daily Streak', name: 'DailyStreakCard', importPath: '@/components/profile/DailyStreakCard', skeletonProps: { height: 110 } },
-  { title: 'Statistics', name: 'ProfileStats', importPath: '@/components/profile/ProfileStats', skeletonProps: { height: 88 } },
-  { title: 'Referral Program', name: 'ReferralCard', importPath: '@/components/profile/ReferralCard', skeletonProps: { height: 220 } },
-];
 
-// --- Generate Dynamic Components ---
-const cardsWithComponents = profileCards.map(({ title, name, importPath, skeletonProps }) => ({
-  title,
-  Component: loadWithSkeleton(
-    () => import(`${importPath}`).catch(err => {
-      console.error(`Failed to load component "${name}" from ${importPath}:`, err);
-      // Return a fallback component that just renders the skeleton on error
-      return { default: () => {
-          const height = skeletonProps?.height ?? defaultSkeletonHeights[name] ?? 100;
-          return <Skeleton className={cn(`h-[${height}px] w-full`, skeletonProps?.className)} />;
-      }};
-    }),
-    name,
-    skeletonProps
-  ),
-}));
+const ProfileHeader = loadWithSkeleton(() => import('@/components/profile/ProfileHeader'), 'ProfileHeader');
+const ProfileCompletion = loadWithSkeleton(() => import('@/components/profile/ProfileCompletion'), 'ProfileCompletion');
+const DailyStreakCard = loadWithSkeleton(() => import('@/components/profile/DailyStreakCard'), 'DailyStreakCard');
+const ProfileStats = loadWithSkeleton(() => import('@/components/profile/ProfileStats'), 'ProfileStats');
+const ReferralCard = loadWithSkeleton(() => import('@/components/profile/ReferralCard'), 'ReferralCard');
 
-// --- Main Component ---
-function ProfilePageContentComponent() {
-  const { profile, logout } = useAuth(); // Assuming useAuth provides profile and logout
+
+export default function ProfilePageContent() {
+  const { profile, logout } = useAuth();
   const router = useRouter();
 
   if (!profile) {
-    // This case is handled by the parent, but it's good practice.
+    // This case is handled by the parent page's auth guard, but it's good practice.
     return null; 
   }
   
@@ -93,19 +73,12 @@ function ProfilePageContentComponent() {
 
   return (
     <div className="space-y-4">
-      {/* Map through the generated components */}
-      {cardsWithComponents.map(({ title, Component }) => (
-        <Card key={title}>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Component userProfile={profile} referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
-            </CardContent>
-        </Card>
-      ))}
+      <ProfileHeader userProfile={profile} />
+      <ProfileCompletion />
+      <DailyStreakCard userProfile={profile} />
+      <ProfileStats />
+      <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
 
-      {/* Static cards and buttons can remain here */}
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
               <Link href="/certificates">
@@ -163,14 +136,3 @@ function ProfilePageContentComponent() {
     </div>
   );
 }
-
-// We need to import these here for the component to function
-import { useAuth } from "@/context/AuthProvider";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
-import SupportCard from './SupportCard';
-import { CardDescription } from '@/components/ui/card';
-
-export default memo(ProfilePageContentComponent);
