@@ -47,7 +47,7 @@ export function PhoneVerificationDialog({ phone, children }: PhoneVerificationDi
   const auth = getAuth();
 
   const setupRecaptcha = () => {
-    if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
+    if (typeof window !== 'undefined' && auth && !window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {
@@ -60,6 +60,7 @@ export function PhoneVerificationDialog({ phone, children }: PhoneVerificationDi
   const handleSendOtp = async () => {
     setIsLoading(true);
     try {
+      if(!auth) throw new Error("Auth service is not available.");
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
       const confirmationResult = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);

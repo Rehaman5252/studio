@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Newspaper, HelpCircle, ServerCrash, WifiOff } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { mapFirestoreError } from '@/lib/utils';
 
 const SubmissionItemSkeleton = () => (
     <div className="flex items-center justify-between p-3">
@@ -84,13 +85,8 @@ export default function UserSubmissionsList() {
                 setSubmissions(fetchedSubmissions);
             } catch (e: any) {
                 console.error("Failed to fetch user submissions:", e);
-                if (e.code === 'unavailable') {
-                    setError("Bad connection has stopped play. Please check your network and try again.");
-                } else if (e.code === 'failed-precondition') {
-                    setError("The required data is still being indexed. Please check back in a few moments.");
-                } else {
-                    setError("A technical fault has interrupted play. We're working to get it fixed.");
-                }
+                const mapped = mapFirestoreError(e);
+                setError(mapped.userMessage);
             } finally {
                 setIsLoading(false);
             }

@@ -9,17 +9,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import ProfileSkeleton from './ProfileSkeleton';
 
-const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'));
-const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'));
-const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'));
-const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'));
-const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'));
-const SupportCard = dynamic(() => import('@/components/profile/SupportCard'));
+const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
+const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
+const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <Skeleton className="h-32 w-full" />});
+const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <Skeleton className="h-48 w-full" />});
+const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'), { loading: () => <Skeleton className="h-24 w-full" />});
+const SupportCard = dynamic(() => import('@/components/profile/SupportCard'), { loading: () => <Skeleton className="h-24 w-full" />});
 
 
 function ProfilePageContent() {
-  const { profile, logout } = useAuth();
+  const { profile, logout, loading } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -27,12 +28,17 @@ function ProfilePageContent() {
     router.replace('/auth/login');
   };
   
+  if (loading) {
+      return <ProfileSkeleton />;
+  }
+
   if (!profile) {
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          Could not load profile data.
+          Could not load profile data. Please try logging in again.
         </AlertDescription>
+        <Button onClick={() => router.push('/auth/login')} className="mt-4">Login</Button>
       </Alert>
     );
   }

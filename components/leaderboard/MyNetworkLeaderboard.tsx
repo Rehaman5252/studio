@@ -70,16 +70,16 @@ const MyNetworkLeaderboard = () => {
 
   const fetchNetworkData = useCallback(async () => {
     let isMounted = true;
+    setIsLoading(true);
+    setError(null);
+
     if (!user || !profile || !db) {
       if (isMounted) {
         setIsLoading(false);
         if (!db) setError("Database not available.");
       }
-      return () => { isMounted = false };
+      return;
     }
-
-    setIsLoading(true);
-    setError(null);
 
     try {
       const networkIds: string[] = [...(profile.referrals || [])];
@@ -93,7 +93,7 @@ const MyNetworkLeaderboard = () => {
           setIsLoading(false);
           lastGoodRef.current = [];
         }
-        return () => { isMounted = false };
+        return;
       }
 
       const playerPromises = networkIds.map(id => getDoc(doc(db, 'users', id)));
@@ -129,19 +129,11 @@ const MyNetworkLeaderboard = () => {
     } finally {
       if (isMounted) setIsLoading(false);
     }
-    return () => { isMounted = false };
   }, [user, profile]);
 
   useEffect(() => {
     if (!authLoading) {
-      const cleanupPromise = fetchNetworkData();
-      return () => {
-        cleanupPromise.then(cleanup => {
-            if (typeof cleanup === 'function') {
-                cleanup();
-            }
-        });
-      };
+      fetchNetworkData();
     }
   }, [authLoading, fetchNetworkData]);
 
@@ -154,7 +146,7 @@ const MyNetworkLeaderboard = () => {
         return <ErrorState title="Error Loading Network" message={error} onRetry={fetchNetworkData} />;
     }
 
-    if (dataToShow.length === 0) {
+    if (dataToShow.length === 0 && !isLoading) {
       return (
         <Card className="bg-card/80 text-center mt-4">
           <CardContent className="p-6">

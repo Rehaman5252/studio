@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from './AuthProvider';
 import { getQuizSlotId } from '@/lib/utils';
 import { db } from '@/lib/firebase';
@@ -25,6 +25,8 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
   const [playersPlayed, setPlayersPlayed] = useState(0);
   const [totalWinners, setTotalWinners] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  const listenersRef = useRef<Unsubscribe[]>([]);
   
   const calculateTimeLeft = useCallback(() => {
     const now = new Date();
@@ -49,62 +51,50 @@ export const QuizStatusProvider = ({ children }: { children: ReactNode }) => {
     if (!db) {
         setIsLoading(false);
         return;
-    };
-    
-    let unsubscribeStats: Unsubscribe | null = null;
-    let intervalId: NodeJS.Timeout | null = null;
-
-    async function initListener() {
-        if (isLoading) setIsLoading(true);
-        try {
-            const statsDocRef = doc(db, 'globals', 'stats');
-            unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
-                if (doc.exists()) {
-                    const data = doc.data();
-                    setPlayersPlayed(data.totalQuizzesPlayed || 0);
-                    setTotalWinners(data.totalPerfectScores || 0);
-                }
-                if (isLoading) setIsLoading(false);
-            }, (error) => {
-                console.error("[QuizStatus] Failed to listen to global stats:", error);
-                if (isLoading) setIsLoading(false);
-            });
-        } catch (err) {
-            console.error("[QuizStatus] Failed to initialize listener:", err);
-            if (isLoading) setIsLoading(false);
-        }
     }
+    
+    let isMounted = true;
+    setIsLoading(true);
 
-    async function fetchLivePlayers() {
-        if (!db) return;
+    // Global stats listener
+    const statsDocRef = doc(db, 'globals', 'stats');
+    const unsubscribeStats = onSnapshot(statsDocRef, (doc) => {
+        if (!isMounted) return;
+        if (doc.exists()) {
+            const data = doc.data();
+            setPlayersPlayed(data.totalQuizzesPlayed || 0);
+            setTotalWinners(data.totalPerfectScores || 0);
+        }
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to listen to global stats:", error);
+        if (isMounted) setIsLoading(false);
+    });
+    listenersRef.current.push(unsubscribeStats);
+
+    // Live player count
+    const fetchLivePlayers = async () => {
+        if (!isMounted || !db) return;
         try {
             const currentSlotId = getQuizSlotId();
             const liveEntriesRef = collection(db, 'leaderboard_live', currentSlotId, 'entries');
             const snapshot = await getCountFromServer(liveEntriesRef);
-            setPlayersPlaying(snapshot.data().count);
+            if (isMounted) setPlayersPlaying(snapshot.data().count);
         } catch (error) {
-            console.warn("[QuizStatus] Could not fetch live player count:", error);
-        }
-    }
-    
-    initListener();
-    fetchLivePlayers();
-    intervalId = setInterval(fetchLivePlayers, 15000); // Refresh every 15 seconds
-
-    return () => {
-        try {
-            if (unsubscribeStats) {
-                unsubscribeStats();
-            }
-        } catch (cleanupErr) {
-            console.warn("[QuizStatus] Unsubscribe threw an error:", cleanupErr);
-        } finally {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
+            console.warn("Could not fetch live player count:", error);
         }
     };
-  }, [isLoading]);
+    
+    fetchLivePlayers();
+    const interval = setInterval(fetchLivePlayers, 15000); 
+
+    return () => {
+        isMounted = false;
+        clearInterval(interval);
+        listenersRef.current.forEach(unsub => unsub());
+        listenersRef.current = [];
+    };
+  }, []);
 
   const value = {
     timeLeft,
