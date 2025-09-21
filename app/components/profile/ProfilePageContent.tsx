@@ -8,10 +8,8 @@ import DailyStreakCard from '@/components/profile/DailyStreakCard';
 import type { UserProfile } from '@/context/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import dynamic from 'next/dynamic';
 
-const ProfileContentComponent = ({ profile }: { profile: UserProfile | null }) => {
+function ProfileContentComponent({ profile }: { profile: UserProfile | null }) {
   if (!profile) {
     return (
       <Alert variant="destructive">
