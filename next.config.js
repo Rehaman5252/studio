@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
@@ -55,6 +54,14 @@ const nextConfig = {
         config.infrastructureLogging = {
           level: 'error',
         };
+
+        // Safely ignore warnings for modules that use dependencies in ways
+        // that are valid but trigger webpack warnings.
+        config.ignoreWarnings = [
+            ...(config.ignoreWarnings || []),
+            { module: /handlebars/ },
+            { module: /require-in-the-middle/ },
+        ];
 
         return config;
     },
