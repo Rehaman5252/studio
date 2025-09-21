@@ -2,40 +2,27 @@
 'use client';
 
 import React from 'react';
-import AdaptiveDynamicPage, { DynamicCard } from '@/components/common/AdaptiveDynamicPage';
+import AdaptiveDynamicPage from '@/components/common/AdaptiveDynamicPage';
+import { pagesConfig } from '@/app/config/pagesConfig';
+import { usePathname } from 'next/navigation';
+import PageWrapper from '@/components/PageWrapper';
 
-// Declarative array of cards for this page
-const cards: DynamicCard[] = [
-  {
-    title: 'Header',
-    importPath: '@/components/profile/ProfileHeader',
-    name: 'ProfileHeader',
-    skeletonProps: { height: 100 }, // optional per-card override
-  },
-  {
-    title: 'Completion',
-    importPath: '@/components/profile/ProfileCompletion',
-    name: 'ProfileCompletion',
-  },
-  {
-    title: 'Stats',
-    importPath: '@/components/profile/ProfileStats',
-    name: 'ProfileStats',
-    skeletonProps: { height: 180 }, // optional per-card override
-  },
-  {
-    title: 'Referral',
-    importPath: '@/components/profile/ReferralCard',
-    name: 'ReferralCard',
-  },
-];
+// This component now acts as a generic loader for any page defined in pagesConfig.
+export default function DynamicPageLoader() {
+  const pathname = usePathname();
+  const pageConfig = pagesConfig.find((p) => p.path === pathname);
 
-// Optional per-page default Skeleton heights
-const pageDefaultHeights = {
-  ProfileHeader: 110,
-  ProfileStats: 170,
-};
+  if (!pageConfig) {
+    return (
+      <PageWrapper title="Page Not Found">
+          <div>The configuration for this page could not be found.</div>
+      </PageWrapper>
+    );
+  }
 
-export default function SampleProfilePage() {
-  return <AdaptiveDynamicPage cards={cards} defaultHeights={pageDefaultHeights} />;
+  return (
+    <PageWrapper title={pageConfig.title}>
+        <AdaptiveDynamicPage cards={pageConfig.cards} defaultHeights={pageConfig.defaultHeights} />
+    </PageWrapper>
+  );
 }
