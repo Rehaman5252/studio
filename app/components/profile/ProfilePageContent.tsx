@@ -6,10 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
+import { Award, Edit, LogOut, Settings, Scale, ChevronRight, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
-import ProfileSkeleton from './ProfileSkeleton';
 import SupportCard from './SupportCard';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import ProfileSkeleton from './ProfileSkeleton';
+import ClientOnly from '@/components/ClientOnly';
+import { Button } from '../ui/button';
 
 // Default Skeleton heights per component name
 const defaultSkeletonHeights: Record<string, number> = {
@@ -20,32 +23,75 @@ const defaultSkeletonHeights: Record<string, number> = {
   ReferralCard: 220,
 };
 
-// Helper function for dynamic imports with automatic Skeleton heights
-const loadWithSkeleton = (importFunc: () => Promise<{ default: React.ComponentType<any> }>, name: string) =>
+// Helper function for dynamic imports with automatic Skeleton heights and error handling
+const loadWithSkeleton = (
+  importFunc: () => Promise<{ default: React.ComponentType<any> }>,
+  name: string
+) =>
   dynamic(importFunc, {
     loading: () => {
       const height = defaultSkeletonHeights[name] || 100; // fallback height
       return <Skeleton style={{ height: `${height}px` }} className="w-full" />;
     },
-    ssr: false,
+    ssr: false, // prevent SSR import errors
   });
 
-// Generate dynamic components declaratively from the array
-const cardsWithComponents = [
-    { name: 'ProfileHeader', Component: loadWithSkeleton(() => import('@/components/profile/ProfileHeader'), 'ProfileHeader') },
-    { name: 'ProfileCompletion', Component: loadWithSkeleton(() => import('@/components/profile/ProfileCompletion'), 'ProfileCompletion') },
-    { name: 'DailyStreakCard', Component: loadWithSkeleton(() => import('@/components/profile/DailyStreakCard'), 'DailyStreakCard') },
-    { name: 'ProfileStats', Component: loadWithSkeleton(() => import('@/components/profile/ProfileStats'), 'ProfileStats') },
-    { name: 'ReferralCard', Component: loadWithSkeleton(() => import('@/components/profile/ReferralCard'), 'ReferralCard') },
+// Declarative array of cards
+const profileCardsMeta = [
+    { name: 'ProfileHeader', importPath: '@/components/profile/ProfileHeader', Component: null as any },
+    { name: 'ProfileCompletion', importPath: '@/components/profile/ProfileCompletion', Component: null as any },
+    { name: 'DailyStreakCard', importPath: '@/components/profile/DailyStreakCard', Component: null as any },
+    { name: 'ProfileStats', importPath: '@/components/profile/ProfileStats', Component: null as any },
+    { name: 'ReferralCard', importPath: '@/components/profile/ReferralCard', Component: null as any },
 ];
+
+// Generate dynamic components declaratively
+const cardsWithComponents = profileCardsMeta.map(card => ({
+  ...card,
+  Component: loadWithSkeleton(() => import(`${card.importPath}`), card.name),
+}));
+
+
+const LoggedOutProfileView = () => (
+    <div className="space-y-4">
+        <LoginPrompt
+            icon={UserIcon}
+            title="Step into the Player's Pavilion"
+            description="Sign in to view your profile, track stats, and manage your account."
+        />
+        <section className="space-y-3 pt-4">
+          <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+              <Link href="/settings">
+                  <div className="flex items-center">
+                      <Settings className="mr-4 text-primary" /> App Settings
+                  </div>
+                  <ChevronRight/>
+              </Link>
+          </Button>
+          <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+              <Link href="/policies">
+                  <div className="flex items-center">
+                      <Scale className="mr-4 text-primary" /> Legal & Policies
+                  </div>
+                  <ChevronRight/>
+              </Link>
+          </Button>
+      </section>
+      <SupportCard />
+    </div>
+);
 
 
 export default function ProfilePageContent() {
     const { profile, logout, loading } = useAuth();
     const router = useRouter();
 
-    if (loading || !profile) {
+    if (loading) {
         return <ProfileSkeleton />;
+    }
+    
+    if (!profile) {
+        return <LoggedOutProfileView />;
     }
 
     const handleLogout = async () => {
@@ -53,20 +99,14 @@ export default function ProfilePageContent() {
       router.replace('/auth/login');
     };
 
-    const ProfileHeader = cardsWithComponents.find(c => c.name === 'ProfileHeader')?.Component;
-    const ProfileCompletion = cardsWithComponents.find(c => c.name === 'ProfileCompletion')?.Component;
-    const DailyStreakCard = cardsWithComponents.find(c => c.name === 'DailyStreakCard')?.Component;
-    const ProfileStats = cardsWithComponents.find(c => c.name === 'ProfileStats')?.Component;
-    const ReferralCard = cardsWithComponents.find(c => c.name === 'ReferralCard')?.Component;
-
-
   return (
     <div className="space-y-4">
-      {ProfileHeader && <ProfileHeader userProfile={profile} />}
-      {ProfileCompletion && <ProfileCompletion />}
-      {DailyStreakCard && <DailyStreakCard userProfile={profile} />}
-      {ProfileStats && <ProfileStats />}
-      {ReferralCard && <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />}
+      {cardsWithComponents.map(({ name, Component }) => {
+          if (name === 'ProfileHeader') return <Component key={name} userProfile={profile} />;
+          if (name === 'DailyStreakCard') return <Component key={name} userProfile={profile} />;
+          if (name === 'ReferralCard') return <Component key={name} referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />;
+          return <Component key={name} />;
+      })}
 
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
