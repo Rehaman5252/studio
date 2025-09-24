@@ -95,7 +95,7 @@ export const generateQuizFlow = ai.defineFlow(
         inputSchema: GenerateQuizInputSchema,
         outputSchema: QuizData,
     },
-    async (input) => {
+    async (input: GenerateQuizInput) => {
         const seenQuestions = await getRecentQuestions(input.userId);
 
         const { output } = await prompt({ format: input.format, seenQuestions });
