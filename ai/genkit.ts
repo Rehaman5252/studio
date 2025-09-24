@@ -4,7 +4,7 @@
 import { configureGenkit, logger } from '@genkit-ai/core';
 import { firebase } from '@genkit-ai/firebase';
 import { googleAI } from '@genkit-ai/googleai';
-import { nextJS } from '@genkit-ai/next';
+import { nextjs } from '@genkit-ai/next';
 
 // Conditionally enable verbose logging, tracing, and metrics only in development.
 const isDev = process.env.NODE_ENV === 'development';
@@ -17,7 +17,7 @@ if (isDev) {
 
 export const ai = configureGenkit({
   plugins: [
-    nextJS(),
+    nextjs(),
     firebase(),
     googleAI({ apiVersion: 'v1beta' }),
   ],
