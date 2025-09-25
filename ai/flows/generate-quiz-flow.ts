@@ -1,6 +1,6 @@
 
 import { z } from "zod";
-import { defineFlow, ai } from "@/ai/genkit"; // Use pre-configured ai object
+import { defineFlow, ai } from "@/ai/genkit"; // Standardized import
 
 export const generateQuizFlow = defineFlow({
   input: z.object({
@@ -11,7 +11,6 @@ export const generateQuizFlow = defineFlow({
   async execute({ input, tools }) {
     const { topic, difficulty, numberOfQuestions } = input;
 
-    // Generate quiz directly using prompt-based logic
     const response = await tools.ai.chat({
       model: "gpt-5",
       messages: [
@@ -26,8 +25,6 @@ export const generateQuizFlow = defineFlow({
       ],
     });
 
-    return {
-      quiz: response.output_text,
-    };
+    return { quiz: response.output_text };
   },
 });
