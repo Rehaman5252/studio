@@ -1,24 +1,12 @@
 
-import { genkit } from "@genkit-ai/core";
-import { nextjs } from "@genkit-ai/next";
-import { firebase } from "@genkit-ai/firebase";
-import { googleAI } from '@genkit-ai/googleai';
-import { logger } from '@genkit-ai/core';
+import { createGenkit } from "@genkit-ai/next"; // Correct Genkit v1.10.0 package
 
-const isDev = process.env.NODE_ENV === 'development';
-
-if (isDev) {
-  logger.setLevel('debug');
-} else {
-  logger.setLevel('info');
-}
-
-export const ai = genkit({
-  plugins: [
-    googleAI(),
-    nextjs(), 
-    firebase()
-  ],
-  enableTracingAndMetrics: isDev,
-  logLevel: isDev ? 'debug' : 'info',
+export const genkit = createGenkit({
+  apiKey: process.env.GENKIT_API_KEY,
+  defaultModel: "gpt-5",
+  tracing: process.env.NODE_ENV !== "production", // Disable tracing in production
+  metrics: process.env.NODE_ENV !== "production", // Disable metrics in production
 });
+
+// Export pre-configured helpers for flows
+export const { defineFlow, ai } = genkit;
