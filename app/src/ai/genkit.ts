@@ -1,7 +1,7 @@
 
 'use server';
 
-import { configureGenkit, logger } from '@genkit-ai/core';
+import { genkit, configureGenkit, logger } from '@genkit-ai/core';
 import { firebase } from '@genkit-ai/firebase';
 import { googleAI } from '@genkit-ai/googleai';
 import { nextjs } from '@genkit-ai/next';
