@@ -1,7 +1,7 @@
 
 'use server';
 
-import { genkit, configureGenkit, logger } from '@genkit-ai/core';
+import { configureGenkit, genkit, logger } from '@genkit-ai/core';
 import { firebase } from '@genkit-ai/firebase';
 import { googleAI } from '@genkit-ai/googleai';
 import { nextjs } from '@genkit-ai/next';
@@ -15,7 +15,7 @@ if (isDev) {
   logger.setLevel('info');
 }
 
-export const ai = configureGenkit({
+export const ai = genkit({
   plugins: [
     nextjs(),
     firebase(),
