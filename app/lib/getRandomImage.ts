@@ -14,11 +14,17 @@ type CategoryTypes = {
  * Returns a random image object from the specified category.
  * @param category "quizImages" | "brandLogos" | "offerLogos"
  */
-export function getRandomImage<T extends ImageCategory>(category: T): CategoryTypes[T] | null {
+export function getRandomImage<T extends ImageCategory>(category: T): CategoryTypes[T] {
   const images = placeholderImageData[category];
   if (!images || images.length === 0) {
     console.warn(`No images found for category: ${category}`);
-    return null;
+    // Return a default placeholder to prevent crashes
+    return {
+        src: 'https://placehold.co/600x400',
+        hint: 'placeholder',
+        alt: 'Placeholder image',
+        id: 'fallback'
+    } as unknown as CategoryTypes[T];
   }
   const index = Math.floor(Math.random() * images.length);
   return images[index] as CategoryTypes[T];

@@ -1,5 +1,5 @@
 
-import placeholderImageData from '@/app/lib/placeholder-images.json';
+import { getRandomImage } from "@/app/lib/getRandomImage";
 
 export interface CubeBrand {
     id: number;
@@ -20,7 +20,7 @@ const brandDetails = [
 ];
 
 export const brandData: CubeBrand[] = brandDetails.map((detail, index) => {
-    const imageData = placeholderImageData.brandLogos[index] || { src: '/images/placeholders/brand1.png', hint: 'logo' };
+    const imageData = getRandomImage("brandLogos");
     return {
         id: index + 1,
         ...detail,

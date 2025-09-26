@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, ShoppingBag, Clapperboard, Utensils, Film, Shirt } from 'lucide-react';
 import Image from 'next/image';
-import placeholderImageData from '@/app/lib/placeholder-images.json';
+import { getRandomImage } from '@/app/lib/getRandomImage';
 
 const offerDetails = [
     { title: '20% Off Myntra', description: 'On your next purchase over ₹1500.', link: 'https://www.myntra.com/', Icon: ShoppingBag },
@@ -16,8 +16,8 @@ const offerDetails = [
     { title: 'Buy 1 Get 1 on Movie Tickets', description: 'With your next BookMyShow booking.', link: 'https://in.bookmyshow.com/', Icon: Film },
 ];
 
-const offers = offerDetails.map((detail, index) => {
-    const imageData = placeholderImageData.offerLogos[index] || { src: '', hint: '' };
+const offers = offerDetails.map((detail) => {
+    const imageData = getRandomImage("offerLogos");
     return {
         ...detail,
         logoUrl: imageData.src,

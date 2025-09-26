@@ -1,45 +1,50 @@
 
 {
   "brandLogos": [
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg", "hint": "Amazon logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg", "hint": "Mastercard logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", "hint": "Netflix logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/ICICI_Bank_Logo.svg/1280px-ICICI_Bank_Logo.svg.png", "hint": "ICICI logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Gucci_logo.svg/2560px-Gucci_logo.svg.png", "hint": "Gucci logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg", "hint": "Nike logo" }
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg", "hint": "Amazon logo", "alt": "Amazon Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg", "hint": "Mastercard logo", "alt": "Mastercard Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", "hint": "Netflix logo", "alt": "Netflix Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/ICICI_Bank_Logo.svg/1280px-ICICI_Bank_Logo.svg.png", "hint": "ICICI logo", "alt": "ICICI Bank Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Gucci_logo.svg/2560px-Gucci_logo.svg.png", "hint": "Gucci logo", "alt": "Gucci Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg", "hint": "Nike logo", "alt": "Nike Logo" }
   ],
   "offerLogos": [
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png", "hint": "Myntra logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg", "hint": "Hotstar logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/1200px-Swiggy_logo.svg.png", "hint": "Swiggy logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Puma_logo.svg/1200px-Puma_logo.svg.png", "hint": "Puma logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/BookMyShow_logo.svg/1200px-BookMyShow_logo.svg.png", "hint": "BookMyShow logo" }
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png", "hint": "Myntra logo", "alt": "Myntra Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg", "hint": "Hotstar logo", "alt": "Hotstar Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/1200px-Swiggy_logo.svg.png", "hint": "Swiggy logo", "alt": "Swiggy Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Puma_logo.svg/1200px-Puma_logo.svg.png", "hint": "Puma logo", "alt": "Puma Logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/BookMyShow_logo.svg/1200px-BookMyShow_logo.svg.png", "hint": "BookMyShow logo", "alt": "BookMyShow Logo" }
   ],
   "quizImages": [
     {
       "id": "img1",
-      "url": "/images/placeholders/quiz1.png",
-      "alt": "Quiz placeholder image 1"
+      "src": "https://picsum.photos/seed/quiz1/600/400",
+      "alt": "A tense moment in a cricket match",
+      "hint": "cricket match"
     },
     {
       "id": "img2",
-      "url": "/images/placeholders/quiz2.png",
-      "alt": "Quiz placeholder image 2"
+      "src": "https://picsum.photos/seed/quiz2/600/400",
+      "alt": "A bowler running up to the crease",
+      "hint": "cricket bowler"
     },
     {
       "id": "img3",
-      "url": "/images/placeholders/quiz3.png",
-      "alt": "Quiz placeholder image 3"
+      "src": "https://picsum.photos/seed/quiz3/600/400",
+      "alt": "A batsman hitting a powerful shot",
+      "hint": "cricket batting"
     },
     {
       "id": "img4",
-      "url": "/images/placeholders/quiz4.png",
-      "alt": "Quiz placeholder image 4"
+      "src": "https://picsum.photos/seed/quiz4/600/400",
+      "alt": "A crowd celebrating in a cricket stadium",
+      "hint": "cricket crowd"
     },
     {
       "id": "img5",
-      "url": "/images/placeholders/quiz5.png",
-      "alt": "Quiz placeholder image 5"
+      "src": "https://picsum.photos/seed/quiz5/600/400",
+      "alt": "A cricket ball on the pitch",
+      "hint": "cricket ball"
     }
   ]
 }
