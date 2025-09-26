@@ -20,7 +20,7 @@ const brandDetails = [
 ];
 
 export const brandData: CubeBrand[] = brandDetails.map((detail, index) => {
-    const imageData = placeholderImageData.brandLogos[index] || { src: '', hint: '' };
+    const imageData = placeholderImageData.brandLogos[index] || { src: '/images/placeholders/brand1.png', hint: 'logo' };
     return {
         id: index + 1,
         ...detail,
