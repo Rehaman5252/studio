@@ -1,22 +1,14 @@
 
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import dynamic from "next/dynamic";
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import PageWrapper from '@/components/PageWrapper';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import ClientOnly from '@/components/ClientOnly';
 import { memo } from 'react';
-
-const Alert = dynamic(() => import("@/components/ui/alert").then(mod => mod.Alert), {
-  ssr: false,
-  loading: () => <div className="p-4"><div className="w-full h-10 rounded-lg bg-muted animate-pulse"></div></div>,
-});
-const AlertTitle = dynamic(() => import("@/components/ui/alert").then(mod => mod.AlertTitle), { ssr: false });
-const AlertDescription = dynamic(() => import("@/components/ui/alert").then(mod => mod.AlertDescription), { ssr: false });
-
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const ChunkLoadError = () => (
   <Alert variant="destructive">
