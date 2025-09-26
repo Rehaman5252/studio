@@ -11,24 +11,24 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
 
+const ChunkLoadError = () => (
+    <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error Loading Rewards</AlertTitle>
+        <AlertDescription>
+            There was a problem loading your rewards. Please check your connection and try again.
+            <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+            </Button>
+        </AlertDescription>
+    </Alert>
+);
+
 const RewardsContent = dynamic(
     () => import('@/components/rewards/RewardsContent').catch(e => {
         console.error("Failed to load RewardsContent", e);
-        return function ChunkLoadFallback() {
-             return (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error Loading Rewards</AlertTitle>
-                    <AlertDescription>
-                        There was a problem loading your rewards. Please check your connection and try again.
-                         <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Refresh
-                        </Button>
-                    </AlertDescription>
-                </Alert>
-            );
-        }
+        return () => <ChunkLoadError />;
     }),
     {
         loading: () => <RewardsSkeleton />,

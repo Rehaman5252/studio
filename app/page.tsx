@@ -10,24 +10,24 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
 
+const ChunkLoadError = () => (
+  <Alert variant="destructive">
+    <AlertTriangle className="h-4 w-4" />
+    <AlertTitle>Error Loading Page</AlertTitle>
+    <AlertDescription>
+      There was a problem loading content. Please check your connection and try again.
+      <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+      </Button>
+    </AlertDescription>
+  </Alert>
+);
+
 const HomePageClient = dynamic(
   () => import('@/components/home/HomePageClient').catch(error => {
     console.error('Failed to load HomePageClient chunk', error);
-    return function ChunkLoadFallback() {
-      return (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error Loading Page</AlertTitle>
-          <AlertDescription>
-            There was a problem loading content. Please check your connection and try again.
-             <Button variant="secondary" size="sm" onClick={() => window.location.reload()} className="mt-2">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-            </Button>
-          </AlertDescription>
-        </Alert>
-      );
-    };
+    return () => <ChunkLoadError />;
   }),
   {
     ssr: false,
