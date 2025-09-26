@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -12,6 +13,9 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
+import { getRandomImage } from '@/app/lib/getRandomImage';
+
 
 const QUESTION_TIME_LIMIT = 20; // seconds
 
@@ -56,6 +60,8 @@ export default function QuizView({
       hiddenTimer: null as NodeJS.Timeout | null,
       tabSwitchCount: 0,
     });
+
+    const quizImage = getRandomImage("quizImages");
 
 
     // Auto-advance logic
@@ -192,6 +198,19 @@ export default function QuizView({
                         transition={{ duration: 0.4, ease: "easeInOut" }}
                         className="w-full max-w-2xl space-y-6"
                     >
+                        {quizImage.src && (
+                            <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-lg">
+                                <Image
+                                    src={quizImage.src}
+                                    alt={quizImage.alt}
+                                    data-ai-hint={quizImage.hint}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                    priority
+                                />
+                            </div>
+                        )}
                         <Card className="shadow-lg bg-transparent border-0 text-center">
                             <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight">{question.question}</h2>
                         </Card>

@@ -36,12 +36,13 @@ export const QuizAttempt = z.object({
 });
 
 export const QuizAnalysisOutputSchema = z.object({
-  summary: z.string().describe("Summary of performance"),
-  strengths: z.array(z.string()).min(1).max(3).describe("Key strengths"),
-  weaknesses: z.array(z.string()).min(1).max(3).describe("Key weaknesses"),
-  recommendations: z.array(z.string()).min(1).max(3).describe("Recommendations"),
-  source: z.enum(["ai", "fallback"]).default("fallback").describe("Analysis source"),
+  summary: z.string().describe("A concise overall insight into the user's performance, mentioning score and format."),
+  strengths: z.array(z.string()).min(1).max(3).describe("A list of 1-3 key strengths the user demonstrated."),
+  weaknesses: z.array(z.string()).min(1).max(3).describe("A list of 1-3 specific areas for improvement."),
+  recommendations: z.array(z.string()).min(1).max(3).describe("A list of 1-3 actionable next steps for the user."),
+  source: z.enum(["ai", "fallback"]).default("fallback"),
 });
+
 
 export const HintOutputSchema = z.object({
   hint: z.string().min(1),
@@ -54,4 +55,3 @@ export type QuizData = z.infer<typeof QuizData>;
 export type QuizAttempt = z.infer<typeof QuizAttempt>;
 export type QuizAnalysisOutput = z.infer<typeof QuizAnalysisOutputSchema>;
 export type HintOutput = z.infer<typeof HintOutputSchema>;
-    
