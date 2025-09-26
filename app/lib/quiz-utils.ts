@@ -46,6 +46,13 @@ interface BuildAttemptArgs {
 }
 
 /**
+ * Counts the number of unanswered questions.
+ */
+export const countUnanswered = (answers: string[]) =>
+  answers.filter(a => !a || a.trim() === "").length;
+
+
+/**
  * Constructs a fully-formed QuizAttempt object.
  */
 export const buildAttempt = ({
@@ -60,7 +67,7 @@ export const buildAttempt = ({
 }: BuildAttemptArgs): QuizAttempt => {
     const score = overrides.score ?? quizData.questions.reduce((acc, q, i) => userAnswers[i] === q.correctAnswer ? acc + 1 : acc, 0);
     
-    const unansweredCount = userAnswers.filter(a => a === "").length;
+    const unansweredCount = countUnanswered(userAnswers);
 
     const attemptObject: QuizAttempt = {
         userId: user.uid,

@@ -48,7 +48,7 @@ const prompt = ai.definePrompt({
         format: z.string(),
         seenQuestions: z.array(z.string()),
     }),
-    outputSchema: QuizData,
+    output: { schema: QuizData },
     prompt: `
     You are a world-class cricket expert and quizmaster. Your task is to generate a completely new and unique 5-question multiple-choice quiz about "{{format}}" cricket.
 

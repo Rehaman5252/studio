@@ -99,9 +99,10 @@ const AnalysisDialogComponent = ({
     }
 
     if (analysis) {
+      const { summary, strengths, weaknesses, recommendations, source } = analysis;
       return (
         <div className="space-y-6">
-          {analysis.source === 'fallback' && (
+          {source === 'fallback' && (
             <p className="text-xs text-center p-2 bg-yellow-900/50 text-yellow-300 rounded-md">
               ⚠️ AI analysis wasn’t available for this session. Showing fallback
               insights.
@@ -115,7 +116,7 @@ const AnalysisDialogComponent = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p>{analysis.summary}</p>
+              <p>{summary}</p>
             </CardContent>
           </Card>
 
@@ -128,10 +129,10 @@ const AnalysisDialogComponent = ({
               </CardHeader>
               <CardContent>
                 <ul className="list-disc pl-5 space-y-1 text-sm">
-                  {analysis.strengths.map((item, i) => (
+                  {strengths.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
-                  {analysis.strengths.length === 0 && (
+                  {strengths.length === 0 && (
                     <li className="text-muted-foreground">
                       No specific strengths identified.
                     </li>
@@ -147,10 +148,10 @@ const AnalysisDialogComponent = ({
               </CardHeader>
               <CardContent>
                 <ul className="list-disc pl-5 space-y-1 text-sm">
-                  {analysis.weaknesses.map((item, i) => (
+                  {weaknesses.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
-                  {analysis.weaknesses.length === 0 && (
+                  {weaknesses.length === 0 && (
                     <li className="text-muted-foreground">
                       No specific weaknesses identified.
                     </li>
@@ -168,10 +169,10 @@ const AnalysisDialogComponent = ({
             </CardHeader>
             <CardContent>
               <ul className="list-disc pl-5 space-y-1 text-sm">
-                {analysis.recommendations.map((item, i) => (
+                {recommendations.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
-                {analysis.recommendations.length === 0 && (
+                {recommendations.length === 0 && (
                   <li className="text-muted-foreground">Keep practicing!</li>
                 )}
               </ul>
