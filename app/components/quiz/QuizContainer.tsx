@@ -11,13 +11,13 @@ const Alert = dynamic(() => import("@/components/ui/alert").then(m => m.Alert), 
   loading: () => <Skeleton className="h-12 w-full" />,
 });
 
-export default function RewardsPage() {
+export default function QuizContainer() {
   return (
     <div className="p-4">
       <Card>
         <CardContent className="p-6">
           <Suspense fallback={<Skeleton className="h-12 w-full" />}>
-            <Alert>Your reward points are updated!</Alert>
+            <Alert>Quiz is loading, please wait...</Alert>
           </Suspense>
         </CardContent>
       </Card>

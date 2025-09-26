@@ -1,3 +1,4 @@
+
 'use client';
 import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
@@ -7,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import ProfileSkeleton from './ProfileSkeleton';
+import ProfileSkeleton from "./ProfileSkeleton";
 import SupportCard from './SupportCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import ClientOnly from '../ClientOnly';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
@@ -43,11 +46,13 @@ function ProfilePageContent() {
   
   return (
     <div className="space-y-4">
-      <ProfileHeader userProfile={profile} />
-      <ProfileCompletion />
-      <DailyStreakCard userProfile={profile} />
-      <ProfileStats />
-      <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
+      <ClientOnly>
+        <ProfileHeader userProfile={profile} />
+        <ProfileCompletion />
+        <DailyStreakCard userProfile={profile} />
+        <ProfileStats />
+        <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
+      </ClientOnly>
 
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
