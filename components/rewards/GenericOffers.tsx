@@ -62,3 +62,5 @@ const GenericOffersComponent = () => {
 
 const GenericOffers = memo(GenericOffersComponent);
 export default GenericOffers;
+
+    

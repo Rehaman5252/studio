@@ -1,4 +1,20 @@
+
 {
+  "brandLogos": [
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg", "hint": "Amazon logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg", "hint": "Mastercard logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", "hint": "Netflix logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/ICICI_Bank_Logo.svg/1280px-ICICI_Bank_Logo.svg.png", "hint": "ICICI logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Gucci_logo.svg/2560px-Gucci_logo.svg.png", "hint": "Gucci logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg", "hint": "Nike logo" }
+  ],
+  "offerLogos": [
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png", "hint": "Myntra logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg", "hint": "Hotstar logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/1200px-Swiggy_logo.svg.png", "hint": "Swiggy logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Puma_logo.svg/1200px-Puma_logo.svg.png", "hint": "Puma logo" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/BookMyShow_logo.svg/1200px-BookMyShow_logo.svg.png", "hint": "BookMyShow logo" }
+  ],
   "quizImages": [
     {
       "id": "img1",
@@ -27,3 +43,5 @@
     }
   ]
 }
+
+    
