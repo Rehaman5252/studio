@@ -1,5 +1,5 @@
 
-import { createGenkit } from "@genkit-ai/next"; // Correct Genkit v1.10.0 package
+import { createGenkit } from "@genkit-ai/next"; // Correct package for Genkit v1.10.0
 
 export const genkit = createGenkit({
   apiKey: process.env.GENKIT_API_KEY,
