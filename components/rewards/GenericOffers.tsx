@@ -6,49 +6,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, ShoppingBag, Clapperboard, Utensils, Film, Shirt } from 'lucide-react';
 import Image from 'next/image';
+import placeholderImageData from '@/app/lib/placeholder-images.json';
 
-const offers = [
-    {
-        title: '20% Off Myntra',
-        description: 'On your next purchase over ₹1500.',
-        link: 'https://www.myntra.com/',
-        Icon: ShoppingBag,
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png',
-        logoHint: 'Myntra logo'
-    },
-    {
-        title: 'Free Hotstar Subscription',
-        description: 'Enjoy 1 month of Hotstar Premium on us.',
-        link: 'https://www.hotstar.com/in',
-        Icon: Clapperboard,
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg',
-        logoHint: 'Hotstar logo'
-    },
-    {
-        title: '₹200 Swiggy Voucher',
-        description: 'To satisfy your match-day cravings.',
-        link: 'https://www.swiggy.com/',
-        Icon: Utensils,
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/1200px-Swiggy_logo.svg.png',
-        logoHint: 'Swiggy logo'
-    },
-    {
-        title: '15% Off Puma Gear',
-        description: 'On select cricket equipment and apparel.',
-        link: 'https://www.puma.com/in',
-        Icon: Shirt,
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Puma_logo.svg/1200px-Puma_logo.svg.png',
-        logoHint: 'Puma logo'
-    },
-    {
-        title: 'Buy 1 Get 1 on Movie Tickets',
-        description: 'With your next BookMyShow booking.',
-        link: 'https://in.bookmyshow.com/',
-        Icon: Film,
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/BookMyShow_logo.svg/1200px-BookMyShow_logo.svg.png',
-        logoHint: 'BookMyShow logo'
-    },
+const offerDetails = [
+    { title: '20% Off Myntra', description: 'On your next purchase over ₹1500.', link: 'https://www.myntra.com/', Icon: ShoppingBag },
+    { title: 'Free Hotstar Subscription', description: 'Enjoy 1 month of Hotstar Premium on us.', link: 'https://www.hotstar.com/in', Icon: Clapperboard },
+    { title: '₹200 Swiggy Voucher', description: 'To satisfy your match-day cravings.', link: 'https://www.swiggy.com/', Icon: Utensils },
+    { title: '15% Off Puma Gear', description: 'On select cricket equipment and apparel.', link: 'https://www.puma.com/in', Icon: Shirt },
+    { title: 'Buy 1 Get 1 on Movie Tickets', description: 'With your next BookMyShow booking.', link: 'https://in.bookmyshow.com/', Icon: Film },
 ];
+
+const offers = offerDetails.map((detail, index) => {
+    const imageData = placeholderImageData.offerLogos[index] || { src: '', hint: '' };
+    return {
+        ...detail,
+        logoUrl: imageData.src,
+        logoHint: imageData.hint,
+    };
+});
 
 const GenericOffersComponent = () => {
   return (

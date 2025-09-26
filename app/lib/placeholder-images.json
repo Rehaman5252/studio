@@ -1,0 +1,62 @@
+
+{
+  "brandLogos": [
+    {
+      "id": "amazon",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+      "hint": "amazon logo"
+    },
+    {
+      "id": "mastercard",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Mastercard_2019_logo.svg",
+      "hint": "mastercard logo"
+    },
+    {
+      "id": "netflix",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Netflix_2015_N_logo.svg/1200px-Netflix_2015_N_logo.svg.png",
+      "hint": "netflix logo"
+    },
+    {
+      "id": "icici",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/1/12/ICICI_Bank_Logo.svg",
+      "hint": "icici bank"
+    },
+    {
+      "id": "gucci",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Gucci_logo.svg",
+      "hint": "gucci logo"
+    },
+    {
+      "id": "nike",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg",
+      "hint": "nike logo"
+    }
+  ],
+  "offerLogos": [
+    {
+      "id": "myntra",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png",
+      "hint": "myntra logo"
+    },
+    {
+      "id": "hotstar",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg",
+      "hint": "hotstar logo"
+    },
+    {
+      "id": "swiggy",
+      "src": "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/1200px-Swiggy_logo.svg.png",
+      "hint": "swiggy logo"
+    },
+    {
+      "id": "puma",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Puma_logo.svg/1200px-Puma_logo.svg.png",
+      "hint": "puma logo"
+    },
+    {
+      "id": "bookmyshow",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/BookMyShow_logo.svg/1200px-BookMyShow_logo.svg.png",
+      "hint": "bookmyshow logo"
+    }
+  ]
+}
