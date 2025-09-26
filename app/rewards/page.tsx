@@ -1,26 +1,19 @@
 
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import dynamic from "next/dynamic";
-import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const Alert = dynamic(() => import("@/components/ui/alert").then(m => m.Alert), {
-  ssr: false,
-  loading: () => <Skeleton className="h-12 w-full" />,
-});
+import PageWrapper from "@/components/PageWrapper";
+import AuthGuard from "@/components/auth/AuthGuard";
+import RewardsContent from "@/components/rewards/RewardsContent";
+import GenericOffers from "@/components/rewards/GenericOffers";
 
 export default function RewardsPage() {
   return (
-    <div className="p-4">
-      <Card>
-        <CardContent className="p-6">
-          <Suspense fallback={<Skeleton className="h-12 w-full" />}>
-            <Alert>Your reward points are updated!</Alert>
-          </Suspense>
-        </CardContent>
-      </Card>
-    </div>
+    <PageWrapper title="Rewards">
+      <AuthGuard>
+        <RewardsContent />
+        <GenericOffers />
+      </AuthGuard>
+    </PageWrapper>
   );
 }
+
