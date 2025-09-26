@@ -5,7 +5,6 @@ import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, ShoppingBag, Clapperboard, Utensils, Film, Shirt } from 'lucide-react';
-import Image from 'next/image';
 
 const offers = [
     {
