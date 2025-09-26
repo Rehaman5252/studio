@@ -44,10 +44,12 @@ const getRecentQuestions = async (userId: string): Promise<string[]> => {
 
 const prompt = ai.definePrompt({
     name: 'generateQuizPrompt',
-    inputSchema: z.object({
-        format: z.string(),
-        seenQuestions: z.array(z.string()),
-    }),
+    input: {
+        schema: z.object({
+            format: z.string(),
+            seenQuestions: z.array(z.string()),
+        }),
+    },
     output: { schema: QuizData },
     prompt: `
     You are a world-class cricket expert and quizmaster. Your task is to generate a completely new and unique 5-question multiple-choice quiz about "{{format}}" cricket.
