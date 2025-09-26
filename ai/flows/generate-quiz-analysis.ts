@@ -76,19 +76,19 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
 const prompt = ai.definePrompt({
     name: 'generateQuizAnalysisPrompt',
-    input: { schema: QuizAttempt },
+    input: { schema: z.object({ attempt: QuizAttempt }) },
     output: { schema: QuizAnalysisOutputSchema },
     prompt: `
     You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful, detailed, and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
 
-    Analyze the following quiz data for the "{{format}}" format:
-    - Score: {{score}} out of {{totalQuestions}}
+    Analyze the following quiz data for the "{{attempt.format}}" format:
+    - Score: {{attempt.score}} out of {{attempt.totalQuestions}}
     - Questions, User Answers, and Time Taken:
-      {{#each questions}}
+      {{#each attempt.questions}}
       - Q{{@index + 1}}: {{this.question}}
-        - Your Answer: {{../userAnswers.[@index]}}
+        - Your Answer: {{../attempt.userAnswers.[@index]}}
         - Correct Answer: {{this.correctAnswer}}
-        - Time Taken: {{../timePerQuestion.[@index]}}s
+        - Time Taken: {{../attempt.timePerQuestion.[@index]}}s
       {{/each}}
 
     Based on this data, generate a comprehensive analysis. Follow these steps precisely:
@@ -109,7 +109,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     },
     async (input) => {
         try {
-            const { output } = await prompt(input);
+            const { output } = await prompt({ attempt: input });
             
             const parsed = QuizAnalysisOutputSchema.safeParse(output);
             if (!parsed.success) {

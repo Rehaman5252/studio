@@ -1,19 +1,19 @@
 
 {
   "brandLogos": [
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg", "hint": "Amazon logo", "alt": "Amazon Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg", "hint": "Mastercard logo", "alt": "Mastercard Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Netflix_2015_N_logo.svg/1200px-Netflix_2015_N_logo.svg.png", "hint": "Netflix logo", "alt": "Netflix Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/ICICI_Bank_Logo.svg/1280px-ICICI_Bank_Logo.svg.png", "hint": "ICICI logo", "alt": "ICICI Bank Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Gucci_logo.svg/2560px-Gucci_logo.svg.png", "hint": "Gucci logo", "alt": "Gucci Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg", "hint": "Nike logo", "alt": "Nike Logo" }
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg", "hint": "Amazon logo", "alt": "Amazon Logo", "id": "brand_amazon" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg", "hint": "Mastercard logo", "alt": "Mastercard Logo", "id": "brand_mastercard" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Netflix_2015_N_logo.svg/1200px-Netflix_2015_N_logo.svg.png", "hint": "Netflix logo", "alt": "Netflix Logo", "id": "brand_netflix" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/ICICI_Bank_Logo.svg/1280px-ICICI_Bank_Logo.svg.png", "hint": "ICICI logo", "alt": "ICICI Bank Logo", "id": "brand_icici" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Gucci_logo.svg/2560px-Gucci_logo.svg.png", "hint": "Gucci logo", "alt": "Gucci Logo", "id": "brand_gucci" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg", "hint": "Nike logo", "alt": "Nike Logo", "id": "brand_nike" }
   ],
   "offerLogos": [
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png", "hint": "Myntra logo", "alt": "Myntra Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg", "hint": "Hotstar logo", "alt": "Hotstar Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/1200px-Swiggy_logo.svg.png", "hint": "Swiggy logo", "alt": "Swiggy Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Puma_logo.svg/1200px-Puma_logo.svg.png", "hint": "Puma logo", "alt": "Puma Logo" },
-    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/BookMyShow_logo.svg/1200px-BookMyShow_logo.svg.png", "hint": "BookMyShow logo", "alt": "BookMyShow Logo" }
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png", "hint": "Myntra logo", "alt": "Myntra Logo", "id": "offer_myntra" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Disney%2B_Hotstar_logo.svg", "hint": "Hotstar logo", "alt": "Hotstar Logo", "id": "offer_hotstar" },
+    { "src": "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/1200px-Swiggy_logo.svg.png", "hint": "Swiggy logo", "alt": "Swiggy Logo", "id": "offer_swiggy" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Puma_logo.svg/1200px-Puma_logo.svg.png", "hint": "Puma logo", "alt": "Puma Logo", "id": "offer_puma" },
+    { "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/BookMyShow_logo.svg/1200px-BookMyShow_logo.svg.png", "hint": "BookMyShow logo", "alt": "BookMyShow Logo", "id": "offer_bms" }
   ],
   "quizImages": [
     {
