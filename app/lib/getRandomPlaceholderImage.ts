@@ -1,3 +1,4 @@
+
 // app/lib/getRandomPlaceholderImage.ts
 import placeholderImages from "./placeholder-images.json";
 
