@@ -1,5 +1,7 @@
+
 import { Timestamp } from "firebase/firestore";
 import type { QuizAttempt } from '@/ai/schemas';
+import { countUnanswered } from "./quiz-utils";
 
 /**
  * @fileOverview User Profile and Data Sanitizer
@@ -67,8 +69,7 @@ export function sanitizeQuizAttempt(raw: any): Partial<QuizAttempt> | null {
   }
   sanitized.timePerQuestion = timePer.slice(0, sanitized.totalQuestions);
 
-  const unanswered = userAnswers.filter(a => a === "").length;
-  sanitized.unanswered = unanswered;
+  sanitized.unanswered = countUnanswered(sanitized.userAnswers);
   
   // Explicitly handle the 'reason' field: only include it if it's a non-empty string.
   if (raw.reason && typeof raw.reason === 'string') {
@@ -124,3 +125,4 @@ export function sanitizeUserProfile(data: any): any {
 
   return sanitizedObject;
 }
+    

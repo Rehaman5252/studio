@@ -10,15 +10,24 @@ const Alert = dynamic(() => import("@/components/ui/alert").then(m => m.Alert), 
   ssr: false,
   loading: () => <Skeleton className="h-12 w-full" />,
 });
+const AlertTitle = dynamic(() => import("@/components/ui/alert").then(m => m.AlertTitle), { ssr: false });
+const AlertDescription = dynamic(() => import("@/components/ui/alert").then(m => m.AlertDescription), { ssr: false });
 
-export default function QuizContainer() {
+
+const QuizContainer = () => {
   return (
     <div className="p-4">
       <Card>
         <CardContent className="p-6">
-            <Alert>Quiz is loading, please wait...</Alert>
+            <Alert>
+                <AlertTitle>Loading Quiz</AlertTitle>
+                <AlertDescription>The quiz is being prepared. Please wait a moment.</AlertDescription>
+            </Alert>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+export default QuizContainer;
+    

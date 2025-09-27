@@ -1,12 +1,12 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Users, FileCheck, Banknote, LogOut, Shield } from 'lucide-react';
+import type { Auth } from 'firebase/auth';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -22,6 +22,13 @@ export default function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
+  const [auth, setAuth] = useState<Auth | null>(null);
+
+  useEffect(() => {
+    import('@/lib/firebase').then(mod => {
+      setAuth(mod.auth);
+    });
+  }, []);
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -64,3 +71,4 @@ export default function AdminNav() {
     </div>
   );
 }
+    

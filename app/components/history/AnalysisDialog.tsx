@@ -1,14 +1,14 @@
 
-'use client';
+"use client";
 
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import type { QuizAttempt, QuizAnalysisOutput } from '@/ai/schemas';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
@@ -19,8 +19,8 @@ import {
   Loader2,
   ServerCrash,
 } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { sanitizeQuizAttempt } from "@/lib/sanitizeUserProfile";
 
 interface AnalysisDialogProps {
   attempt: QuizAttempt;
@@ -33,7 +33,7 @@ const AnalysisDialogComponent = ({
   open,
   onOpenChange,
 }: AnalysisDialogProps) => {
-  const [analysis, setAnalysis] = useState<QuizAnalysisOutput | null>(null);
+  const [analysis, setAnalysis] = useState<Partial<QuizAnalysisOutput> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,17 +45,18 @@ const AnalysisDialogComponent = ({
       setError(null);
       setAnalysis(null);
       try {
-        const res = await fetch('/api/analysis', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ attempt: sanitizeQuizAttempt(attempt) }),
         });
 
         if (!res.ok) {
           const result = await res.json();
           const errText =
-            result.analysis.summary || 'Failed to fetch analysis from server.';
+            result.analysis?.summary || "Failed to fetch analysis from server.";
           setAnalysis(result.analysis);
+          setError(errText);
           return;
         }
 
@@ -67,8 +68,8 @@ const AnalysisDialogComponent = ({
             setAnalysis(data.analysis);
         }
       } catch (err: any) {
-        console.error('AnalysisDialog Error:', err);
-        setError('Could not load AI analysis. Please try again later.');
+        console.error("AnalysisDialog Error:", err);
+        setError("Could not load AI analysis. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -97,9 +98,15 @@ const AnalysisDialogComponent = ({
         </Alert>
       );
     }
-
+    
+    // Backwards compatibility: Handle both old and new schema shapes
     if (analysis) {
-      const { summary, strengths, weaknesses, recommendations, source } = analysis;
+      const summary = analysis.summary ?? "No summary available.";
+      const strengths = (analysis.strengths ?? []) as string[];
+      const weaknesses = (analysis.weaknesses ?? []) as string[];
+      const recommendations = (analysis.recommendations ?? []) as string[];
+      const source = analysis.source;
+
       return (
         <div className="space-y-6">
           {source === 'fallback' && (
@@ -205,3 +212,4 @@ const AnalysisDialogComponent = ({
 };
 
 export default memo(AnalysisDialogComponent);
+    

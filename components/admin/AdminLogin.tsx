@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,8 +10,8 @@ import { Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import type { Auth } from 'firebase/auth';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 const ADMIN_EMAIL = "rehamansyed07@gmail.com";
 const ADMIN_PASSWORD = "Indcric@100";
@@ -30,6 +30,13 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const [auth, setAuth] = useState<Auth | null>(null);
+
+  useEffect(() => {
+    import('@/lib/firebase').then(mod => {
+      setAuth(mod.auth);
+    });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +87,10 @@ export default function AdminLogin() {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  if (!auth) {
+    return <div>Loading Auth...</div>
+  }
 
   return (
     <Card className="shadow-2xl bg-card/80 backdrop-blur-lg border-primary/20 animate-fade-in-up">
@@ -157,3 +168,4 @@ export default function AdminLogin() {
     </Card>
   );
 }
+    

@@ -29,3 +29,4 @@ export function getRandomImage<T extends ImageCategory>(category: T): CategoryTy
   const index = Math.floor(Math.random() * images.length);
   return images[index] as CategoryTypes[T];
 }
+    

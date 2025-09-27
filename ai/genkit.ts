@@ -7,7 +7,7 @@
  * ensuring it's ready for use in server-side Next.js environments.
  */
 
-import { genkit } from 'genkit';
+import { genkit, configureGenkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 import { isDev } from '@/lib/utils';
 import { logger } from 'genkit/logging';
@@ -18,7 +18,8 @@ if (isDev) {
   logger.setLevel('info');
 }
 
-export const ai = genkit({
+// Configure Genkit (no Jaeger tracing, avoids missing dependency errors)
+export const ai = configureGenkit({
   plugins: [
     googleAI({
       apiKey: process.env.GOOGLE_API_KEY,

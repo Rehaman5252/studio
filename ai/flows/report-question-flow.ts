@@ -9,6 +9,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { defineFlow } from '@genkit-ai/core';
 
 export const ReportQuestionInputSchema = z.object({
   questionId: z.string().describe("The ID of the question being reported."),
@@ -30,13 +31,13 @@ export async function reportQuestion(input: ReportQuestionInput): Promise<z.infe
   return reportQuestionFlow(input);
 }
 
-const reportQuestionFlow = ai.defineFlow(
+export const reportQuestionFlow = defineFlow(
   {
     name: 'reportQuestionFlow',
     inputSchema: ReportQuestionInputSchema,
     outputSchema: ReportQuestionOutputSchema,
   },
-  async (input: ReportQuestionInput): Promise<z.infer<typeof ReportQuestionOutputSchema>> => {
+  async (input: z.infer<typeof ReportQuestionInputSchema>): Promise<z.infer<typeof ReportQuestionOutputSchema>> => {
     if (!db) {
       return { success: false, message: "Database connection not available." };
     }
