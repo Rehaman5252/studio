@@ -16,9 +16,8 @@ import { EditProfileDialog } from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
-    const { user, profile } = useAuth(); // Get the auth user object
+    const { user, profile } = useAuth(); // Use Auth context hook
     const { toast } = useToast();
-    const auth = getAuth();
     
     const dobDate = normalizeTimestamp(userProfile?.dob);
     const age = dobDate ? calculateAge(dobDate.toISOString().split('T')[0]) : null;
@@ -27,6 +26,7 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
+        const auth = getAuth();
         if (!user || !auth) {
             toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
             return;
