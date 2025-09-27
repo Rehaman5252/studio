@@ -44,6 +44,8 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
         }
     };
 
+    if (!user) return <div>Loading...</div>;
+
     return (
         <Card className="bg-card shadow-lg relative">
              {user && profile && (
