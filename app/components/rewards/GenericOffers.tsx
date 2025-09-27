@@ -5,7 +5,7 @@ import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
-import { genericOffers } from '@/lib/rewards-config';
+import { genericOffers } from '@/app/lib/rewards-config';
 
 const GenericOffersComponent = () => {
 

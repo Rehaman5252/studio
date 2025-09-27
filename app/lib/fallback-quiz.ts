@@ -1,3 +1,4 @@
+
 import type { QuizQuestion } from '@/ai/schemas';
 
 /**
@@ -52,7 +53,7 @@ export const allFallbackQuestions: FallbackQuestion[] = [
     // =================================================================================
     { id: 'fb_t20_1', format: 't20', difficulty: 'Easy', question: 'Who hit six sixes in an over in the 2007 ICC World T20?', options: ['Chris Gayle', 'Yuvraj Singh', 'MS Dhoni', 'Shahid Afridi'], correctAnswer: 'Yuvraj Singh', explanation: 'Yuvraj Singh famously hit England\'s Stuart Broad for six sixes in an over during the inaugural ICC World T20 in 2007.'},
     { id: 'fb_t20_2', format: 't20', difficulty: 'Medium', question: 'Which team has won the most ICC Men\'s T20 World Cup titles?', options: ['India', 'West Indies', 'Australia', 'England'], correctAnswer: 'West Indies', explanation: 'The West Indies are the only team to have won the ICC Men\'s T20 World Cup twice, in 2012 and 2016.'},
-    { id: 'fb_t20_3', format: 't20', difficulty: 'Hard', question: 'Who holds the record for the fastest century in T20 international history?', options: ['Rohit Sharma', 'David Miller', 'Chris Gayle', 'Cushing NPL'], correctAnswer: 'Cushing NPL', explanation: 'Nepal\'s Kushal Malla broke the record for the fastest T20I century, reaching the milestone in just 34 balls against Mongolia in 2023.'},
+    { id: 'fb_t20_3', format: 't20', difficulty: 'Hard', question: 'Who holds the record for the fastest century in T20 international history?', options: ['Rohit Sharma', 'David Miller', 'Chris Gayle', 'Kushal Malla'], correctAnswer: 'Kushal Malla', explanation: 'Nepal\'s Kushal Malla broke the record for the fastest T20I century, reaching the milestone in just 34 balls against Mongolia in 2023.'},
     { id: 'fb_t20_4', format: 't20', difficulty: 'Very Hard', question: 'What is the "Super Over"?', options: ['A 12-ball over', 'A tie-breaking method', 'An over with special fielding restrictions', 'An over where runs count double'], correctAnswer: 'A tie-breaking method', explanation: 'A Super Over, or one-over eliminator, is used to decide the winner of a tied T20 match.'},
     { id: 'fb_t20_5', format: 't20', difficulty: 'Expert', question: 'The first-ever Men\'s T20 International was played between which two countries in 2005?', options: ['England and Australia', 'Australia and New Zealand', 'South Africa and West Indies', 'India and Pakistan'], correctAnswer: 'Australia and New Zealand', explanation: 'The first men\'s T20I took place on 17 February 2005 between Australia and New Zealand, with players famously wearing retro kits and wigs.'}
 ];
@@ -74,5 +75,8 @@ export function getLocalFallbackQuiz(format: string): { questions: QuizQuestion[
     questionsForFormat = allFallbackQuestions.filter((q) => q.format === 'mixed');
   }
 
-  return { questions: shuffleArray(questionsForFormat).slice(0, 5) };
+  // Ensure we don't try to slice more than available
+  const count = Math.min(5, questionsForFormat.length);
+
+  return { questions: shuffleArray(questionsForFormat).slice(0, count) };
 }
