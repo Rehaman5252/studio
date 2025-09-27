@@ -19,7 +19,7 @@ if (isDev) {
   logger.setLevel('info');
 }
 
-// Configure Genkit
+// Configure Genkit (no Jaeger tracing, avoids missing dependency errors)
 export const ai = configureGenkit({
   plugins: [
     googleAI({
