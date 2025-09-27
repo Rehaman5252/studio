@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { memo } from 'react';
@@ -9,7 +10,7 @@ import { CheckCircle2, AlertCircle, Edit } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
-import { getAuth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { EditProfileDialog } from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
@@ -25,7 +26,6 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     const isEmailVerified = user?.emailVerified || false;
 
     const handleResendVerification = async () => {
-        const auth = getAuth();
         if (!user || !auth) {
             toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
             return;

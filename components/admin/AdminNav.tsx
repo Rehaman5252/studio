@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Users, FileCheck, Banknote, LogOut, Shield } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { getAuth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -24,7 +24,6 @@ export default function AdminNav() {
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    const auth = getAuth();
     if (!auth) return;
     try {
       await signOut(auth);

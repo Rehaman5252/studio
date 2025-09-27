@@ -75,4 +75,4 @@ export function getAuth() {
   return null;
 }
 
-export { app, db };
+export { app, auth, db };

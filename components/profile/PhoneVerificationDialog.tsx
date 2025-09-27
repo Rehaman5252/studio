@@ -19,11 +19,11 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthProvider';
 import {
-  getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
 } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 declare global {
   interface Window {
@@ -44,8 +44,7 @@ export function PhoneVerificationDialog({ phone, children }: PhoneVerificationDi
   const [isOtpSent, setIsOtpSent] = useState(false);
   const { toast } = useToast();
   const { updateUserData } = useAuth();
-  const auth = getAuth();
-
+  
   const setupRecaptcha = () => {
     if (typeof window !== 'undefined' && auth && !window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {

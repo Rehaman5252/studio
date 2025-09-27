@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { getAuth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 
 const ADMIN_EMAIL = "rehamansyed07@gmail.com";
 const ADMIN_PASSWORD = "Indcric@100";
@@ -52,7 +52,6 @@ export default function AdminLogin() {
   };
 
   const handleGoogleSignIn = async () => {
-    const auth = getAuth();
     if (!auth) {
         toast({ title: "Error", description: "Authentication service not available.", variant: "destructive" });
         return;

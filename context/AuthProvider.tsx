@@ -39,7 +39,7 @@ import {
   orderBy,
   Unsubscribe,
 } from 'firebase/firestore';
-import { getAuth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { sanitizeUserProfile, sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 import type { QuizAttempt } from '@/ai/schemas';
 import { QuizAttempt as QuizAttemptSchema } from '@/ai/schemas';
@@ -392,7 +392,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   /* -------------------------- Auth convenience --------------------------- */
 
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
-    const auth = getAuth();
     if (!auth) return null;
     const provider = new GoogleAuthProvider();
     try {
@@ -417,7 +416,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       password: string,
       referralCode?: string
     ): Promise<User | null> => {
-      const auth = getAuth();
       if (!auth) return null;
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -444,7 +442,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithEmail = useCallback(
     async (email: string, password: string): Promise<User | null> => {
-      const auth = getAuth();
       if (!auth) return null;
       try {
         const userCredential = await firebaseSignInWithEmail(auth, email, password);
@@ -467,7 +464,6 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const logout = useCallback(async () => {
-    const auth = getAuth();
     if (!auth) return;
     await signOut(auth);
     toast({ title: 'Signed Out', description: 'You have been logged out successfully.' });
