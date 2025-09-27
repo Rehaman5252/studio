@@ -3,7 +3,7 @@
 /**
  * @fileOverview Genkit AI configuration.
  *
- * This file sets up and configures the Genkit AI instance for the application,
+ * This file sets up and newup the Genkit AI instance for the application,
  * ensuring it's ready for use in server-side Next.js environments.
  */
 
