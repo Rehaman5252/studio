@@ -1,5 +1,4 @@
 
-
 'use server';
 
 /**
@@ -13,11 +12,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { QuizAttempt, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
+import { QuizAttempt as QuizAttemptSchema, QuizAnalysisOutput, QuizAnalysisOutputSchema } from '@/ai/schemas';
+import type { QuizAttempt } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 import { logger } from '@/app/lib/logger';
 
-const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysisOutput => {
+const getFallbackAnalysis = (attempt: QuizAttempt): QuizAnalysisOutput => {
     const accuracy = attempt.totalQuestions > 0 ? (attempt.score / attempt.totalQuestions) * 100 : 0;
     
     let strengths = ["Good pace on questions you knew.", "Strong foundational knowledge."];
@@ -57,7 +57,7 @@ export async function generateQuizAnalysis(rawAttempt: QuizAttempt): Promise<Qui
     }
     
     try {
-        const validatedAttempt = QuizAttempt.parse(sanitized);
+        const validatedAttempt = QuizAttemptSchema.parse(sanitized);
         const analysis = await generateQuizAnalysisFlow(validatedAttempt);
         
         const parsed = QuizAnalysisOutputSchema.safeParse(analysis);
@@ -77,7 +77,7 @@ export async function generateQuizAnalysis(rawAttempt: QuizAttempt): Promise<Qui
 
 const prompt = ai.definePrompt({
     name: 'generateQuizAnalysisPrompt',
-    input: { schema: QuizAttempt },
+    input: { schema: QuizAttemptSchema },
     output: { schema: QuizAnalysisOutputSchema },
     prompt: `
     You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful, detailed, and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
@@ -105,7 +105,7 @@ const prompt = ai.definePrompt({
 const generateQuizAnalysisFlow = ai.defineFlow(
     {
         name: 'generateQuizAnalysisFlow',
-        inputSchema: QuizAttempt,
+        inputSchema: QuizAttemptSchema,
         outputSchema: QuizAnalysisOutputSchema,
     },
     async (input: QuizAttempt): Promise<QuizAnalysisOutput> => {
@@ -126,5 +126,4 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         }
     }
 );
-    
     
