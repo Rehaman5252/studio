@@ -20,7 +20,7 @@ if (isDev) {
 }
 
 // Configure Genkit
-export const ai = configureGenkit({
+export const ai = genkit({
   plugins: [
     googleAI({
       apiKey: process.env.GOOGLE_API_KEY,
