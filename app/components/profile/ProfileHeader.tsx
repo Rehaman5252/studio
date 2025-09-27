@@ -11,8 +11,8 @@ import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 import { getAuth } from '@/lib/firebase';
-import { PhoneVerificationDialog } from './PhoneVerificationDialog';
-import { EditProfileDialog } from './EditProfileDialog';
+import PhoneVerificationDialog from './PhoneVerificationDialog';
+import EditProfileDialog from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
 
 function ProfileHeaderComponent({ userProfile }: { userProfile: any }) {
