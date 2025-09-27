@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
 import { genericOffers } from '@/lib/rewards-config';
-import Image from 'next/image';
 
 const GenericOffersComponent = () => {
 
