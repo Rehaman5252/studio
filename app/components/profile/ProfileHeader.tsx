@@ -15,7 +15,7 @@ import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { EditProfileDialog } from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
 
-function ProfileHeader({ userProfile }: { userProfile: any }) {
+function ProfileHeaderComponent({ userProfile }: { userProfile: any }) {
     const { user, profile } = useAuth(); // Use Auth context hook
     const { toast } = useToast();
     
@@ -103,6 +103,6 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     );
 };
 
-const ProfileHeader = memo(ProfileHeader);
+const ProfileHeader = memo(ProfileHeaderComponent);
 
 export default ProfileHeader;
