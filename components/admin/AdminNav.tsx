@@ -10,6 +10,7 @@ import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { getAuth } from '@/lib/firebase';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -25,9 +26,7 @@ export default function AdminNav() {
   const [auth, setAuth] = useState<Auth | null>(null);
 
   useEffect(() => {
-    import('@/lib/firebase').then(mod => {
-      setAuth(mod.getAuth());
-    });
+    setAuth(getAuth());
   }, []);
 
   const handleLogout = async () => {
@@ -71,4 +70,3 @@ export default function AdminNav() {
     </div>
   );
 }
-    

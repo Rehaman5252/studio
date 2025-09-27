@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { Auth } from 'firebase/auth';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { getAuth } from '@/lib/firebase';
 
 const ADMIN_EMAIL = "rehamansyed07@gmail.com";
 const ADMIN_PASSWORD = "Indcric@100";
@@ -170,4 +171,3 @@ export default function AdminLogin() {
     </Card>
   );
 }
-    
