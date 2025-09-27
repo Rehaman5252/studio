@@ -107,7 +107,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         inputSchema: QuizAttempt,
         outputSchema: QuizAnalysisOutputSchema,
     },
-    async (input: QuizAttempt) => {
+    async (input: QuizAttempt): Promise<QuizAnalysisOutput> => {
         try {
             const { output } = await prompt({ attempt: input });
             

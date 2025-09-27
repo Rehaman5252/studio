@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -35,7 +36,7 @@ const reportQuestionFlow = ai.defineFlow(
     inputSchema: ReportQuestionInputSchema,
     outputSchema: ReportQuestionOutputSchema,
   },
-  async (input: ReportQuestionInput) => {
+  async (input: ReportQuestionInput): Promise<z.infer<typeof ReportQuestionOutputSchema>> => {
     if (!db) {
       return { success: false, message: "Database connection not available." };
     }
