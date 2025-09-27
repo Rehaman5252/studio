@@ -34,7 +34,7 @@ const processPayoutFlow = ai.defineFlow(
         inputSchema: ProcessPayoutInputSchema,
         outputSchema: ProcessPayoutOutputSchema,
     },
-    async (input) => {
+    async (input: ProcessPayoutInput) => {
         if (!db) {
             return { success: false, message: "Database connection not available." };
         }
