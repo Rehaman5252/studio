@@ -103,4 +103,6 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
     );
 };
 
-export default memo(ProfileHeader);
+const ProfileHeader = memo(ProfileHeader);
+
+export default ProfileHeader;
