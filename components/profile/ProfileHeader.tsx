@@ -10,7 +10,7 @@ import { CheckCircle2, AlertCircle, Edit } from 'lucide-react';
 import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getAuth } from '@/lib/firebase';
 import { PhoneVerificationDialog } from './PhoneVerificationDialog';
 import { EditProfileDialog } from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
@@ -18,6 +18,7 @@ import { normalizeTimestamp } from '@/lib/dates';
 function ProfileHeader({ userProfile }: { userProfile: any }) {
     const { user, profile } = useAuth(); // Get the auth user object
     const { toast } = useToast();
+    const auth = getAuth();
     
     const dobDate = normalizeTimestamp(userProfile?.dob);
     const age = dobDate ? calculateAge(dobDate.toISOString().split('T')[0]) : null;
@@ -101,3 +102,4 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
 };
 
 export default memo(ProfileHeader);
+    
