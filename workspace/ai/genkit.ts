@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Genkit AI configuration.
@@ -7,7 +6,7 @@
  * ensuring it's ready for use in server-side Next.js environments.
  */
 
-import { genkit, configureGenkit } from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 import { logger } from 'genkit/logging';
 
@@ -20,7 +19,7 @@ if (isDev) {
 }
 
 // Configure Genkit
-export const ai = configureGenkit({
+export const ai = genkit({
   plugins: [
     googleAI({
       apiKey: process.env.GOOGLE_API_KEY,
