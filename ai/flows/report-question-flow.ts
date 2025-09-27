@@ -9,7 +9,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { defineFlow } from '@genkit-ai/core';
 
 export const ReportQuestionInputSchema = z.object({
   questionId: z.string().describe("The ID of the question being reported."),
@@ -31,7 +30,7 @@ export async function reportQuestion(input: ReportQuestionInput): Promise<z.infe
   return reportQuestionFlow(input);
 }
 
-export const reportQuestionFlow = defineFlow(
+export const reportQuestionFlow = ai.defineFlow(
   {
     name: 'reportQuestionFlow',
     inputSchema: ReportQuestionInputSchema,

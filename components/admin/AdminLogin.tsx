@@ -31,10 +31,12 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const router = useRouter();
   const [auth, setAuth] = useState<Auth | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     import('@/lib/firebase').then(mod => {
-      setAuth(mod.auth);
+      setAuth(mod.getAuth());
+      setAuthLoading(false);
     });
   }, []);
 
@@ -88,8 +90,8 @@ export default function AdminLogin() {
     setShowPassword(!showPassword);
   };
 
-  if (!auth) {
-    return <div>Loading Auth...</div>
+  if (authLoading) {
+    return <div className="flex items-center justify-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   return (

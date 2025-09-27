@@ -48,8 +48,8 @@ interface BuildAttemptArgs {
 /**
  * Counts the number of unanswered questions.
  */
-export const countUnanswered = (answers: string[]) =>
-  answers.filter(a => !a || a.trim() === "").length;
+export const countUnanswered = (answers: Array<string | null | undefined>): number =>
+  answers.filter((a) => !a || String(a).trim() === "").length;
 
 
 /**
@@ -89,3 +89,4 @@ export const buildAttempt = ({
     // Sanitize before returning to ensure no undefined fields are ever present.
     return sanitizeAttemptData(attemptObject) as QuizAttempt;
 };
+    

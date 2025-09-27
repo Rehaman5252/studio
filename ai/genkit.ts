@@ -9,8 +9,9 @@
 
 import { genkit, configureGenkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { isDev } from '@/lib/utils';
 import { logger } from 'genkit/logging';
+
+const isDev = process.env.NODE_ENV === 'development';
 
 if (isDev) {
   logger.setLevel('debug');
@@ -28,6 +29,5 @@ export const ai = configureGenkit({
   // Tracing and metrics are disabled in production to prevent build failures
   // due to missing optional @opentelemetry packages on Firebase.
   enableTracingAndMetrics: isDev,
-  logLevel: isDev ? 'debug' : 'info',
 });
     

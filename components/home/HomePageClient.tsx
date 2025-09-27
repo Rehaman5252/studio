@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { CubeBrand } from '@/components/home/brandData';
@@ -157,13 +158,11 @@ function HomePageClient() {
         >
             <MalpracticeWarning />
             
-            <ClientOnly>
-                <HomeClientContent 
-                    selectedBrand={selectedBrand}
-                    setSelectedBrand={setSelectedBrand}
-                    handleStartQuiz={handleStartQuiz}
-                />
-            </ClientOnly>
+            <HomeClientContent 
+                selectedBrand={selectedBrand}
+                setSelectedBrand={setSelectedBrand}
+                handleStartQuiz={handleStartQuiz}
+            />
             
              <div className="mt-6">
                 <StartQuizButton
@@ -185,3 +184,4 @@ function HomePageClient() {
 }
 
 export default memo(HomePageClient);
+    

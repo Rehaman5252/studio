@@ -26,7 +26,7 @@ export default function AdminNav() {
 
   useEffect(() => {
     import('@/lib/firebase').then(mod => {
-      setAuth(mod.auth);
+      setAuth(mod.getAuth());
     });
   }, []);
 

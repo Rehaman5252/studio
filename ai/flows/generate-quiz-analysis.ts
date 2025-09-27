@@ -16,8 +16,6 @@ import { QuizAttempt as QuizAttemptSchema, QuizAnalysisOutput, QuizAnalysisOutpu
 import type { QuizAttempt } from '@/ai/schemas';
 import { sanitizeQuizAttempt } from '@/lib/sanitizeUserProfile';
 import { logger } from '@/app/lib/logger';
-import { defineFlow } from '@genkit-ai/core';
-
 
 const getFallbackAnalysis = (attempt: QuizAttempt): QuizAnalysisOutput => {
     const accuracy = attempt.totalQuestions > 0 ? (attempt.score / attempt.totalQuestions) * 100 : 0;
@@ -104,7 +102,7 @@ const prompt = ai.definePrompt({
 });
 
 
-export const generateQuizAnalysisFlow = defineFlow(
+export const generateQuizAnalysisFlow = ai.defineFlow(
     {
         name: 'generateQuizAnalysisFlow',
         inputSchema: QuizAttemptSchema,

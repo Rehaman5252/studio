@@ -5,7 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import React from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+const Alert = dynamic(() => import("@/components/ui/alert").then(m => m.Alert), {
+  ssr: false,
+  loading: () => <Skeleton className="h-12 w-full" />,
+});
+const AlertTitle = dynamic(() => import("@/components/ui/alert").then(m => m.AlertTitle), { ssr: false });
+const AlertDescription = dynamic(() => import("@/components/ui/alert").then(m => m.AlertDescription), { ssr: false });
 
 
 const QuizContainer = () => {
@@ -24,3 +30,4 @@ const QuizContainer = () => {
 }
 
 export default QuizContainer;
+    
