@@ -101,4 +101,6 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
             </CardContent>
         </Card>
     );
-}
+};
+
+export default memo(ProfileHeader);
