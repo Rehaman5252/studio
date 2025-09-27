@@ -16,7 +16,7 @@ import { EditProfileDialog } from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
 
 function ProfileHeader({ userProfile }: { userProfile: any }) {
-    const { user, profile } = useAuth(); // Get the auth user object
+    const { user, profile } = useAuth(); // Use Auth context hook
     const { toast } = useToast();
     
     const dobDate = normalizeTimestamp(userProfile?.dob);
@@ -101,6 +101,4 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
             </CardContent>
         </Card>
     );
-};
-
-export default memo(ProfileHeader);
+}
