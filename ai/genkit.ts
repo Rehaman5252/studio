@@ -7,7 +7,7 @@
  * ensuring it's ready for use in server-side Next.js environments.
  */
 
-import { genkit, configureGenkit } from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 import { logger } from 'genkit/logging';
 
