@@ -30,4 +30,3 @@ export const ai = configureGenkit({
   // due to missing optional @opentelemetry packages on Firebase.
   enableTracingAndMetrics: isDev,
 });
-    
