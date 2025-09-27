@@ -1,4 +1,5 @@
 
+
 'use server';
 
 /**
@@ -46,7 +47,7 @@ const getFallbackAnalysis = (attempt: z.infer<typeof QuizAttempt>): QuizAnalysis
 };
 
 
-export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysisOutput> {
+export async function generateQuizAnalysis(rawAttempt: QuizAttempt): Promise<QuizAnalysisOutput> {
     const sanitized = sanitizeQuizAttempt(rawAttempt) as QuizAttempt;
 
     if (!sanitized || !sanitized.userId) {
@@ -76,19 +77,19 @@ export async function generateQuizAnalysis(rawAttempt: any): Promise<QuizAnalysi
 
 const prompt = ai.definePrompt({
     name: 'generateQuizAnalysisPrompt',
-    input: { schema: z.object({ attempt: QuizAttempt }) },
+    input: { schema: QuizAttempt },
     output: { schema: QuizAnalysisOutputSchema },
     prompt: `
     You are an expert cricket quiz analyst and coach. Your goal is to provide an insightful, detailed, and helpful performance analysis for a user based on their recent quiz attempt. Be encouraging but also provide concrete, actionable feedback.
 
-    Analyze the following quiz data for the "{{attempt.format}}" format:
-    - Score: {{attempt.score}} out of {{attempt.totalQuestions}}
+    Analyze the following quiz data for the "{{format}}" format:
+    - Score: {{score}} out of {{totalQuestions}}
     - Questions, User Answers, and Time Taken:
-      {{#each attempt.questions}}
+      {{#each questions}}
       - Q{{@index + 1}}: {{this.question}}
-        - Your Answer: {{../attempt.userAnswers.[@index]}}
+        - Your Answer: {{../userAnswers.[@index]}}
         - Correct Answer: {{this.correctAnswer}}
-        - Time Taken: {{../attempt.timePerQuestion.[@index]}}s
+        - Time Taken: {{../timePerQuestion.[@index]}}s
       {{/each}}
 
     Based on this data, generate a comprehensive analysis. Follow these steps precisely:
@@ -109,7 +110,7 @@ const generateQuizAnalysisFlow = ai.defineFlow(
     },
     async (input: QuizAttempt): Promise<QuizAnalysisOutput> => {
         try {
-            const { output } = await prompt({ attempt: input });
+            const { output } = await prompt(input);
             
             const parsed = QuizAnalysisOutputSchema.safeParse(output);
             if (!parsed.success) {
@@ -125,3 +126,4 @@ const generateQuizAnalysisFlow = ai.defineFlow(
         }
     }
 );
+    

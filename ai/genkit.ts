@@ -30,3 +30,4 @@ export const ai = configureGenkit({
   enableTracingAndMetrics: isDev,
   logLevel: isDev ? 'debug' : 'info',
 });
+    
