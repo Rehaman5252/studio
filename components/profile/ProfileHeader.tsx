@@ -102,3 +102,4 @@ function ProfileHeader({ userProfile }: { userProfile: any }) {
 };
 
 export default memo(ProfileHeader);
+    
