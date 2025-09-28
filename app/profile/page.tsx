@@ -13,10 +13,7 @@ import ProfilePageContent from '@/components/profile/ProfilePageContent';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <ProfileSkeleton /> });
-const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <ProfileSkeleton /> });
-const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <ProfileSkeleton /> });
 const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <ProfileSkeleton /> });
-const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'), { loading: () => <ProfileSkeleton /> });
 
 function ProfilePage() {
     const { user, loading, profile } = useAuth();
@@ -29,11 +26,8 @@ function ProfilePage() {
               ) : user && profile ? (
                 <div className="space-y-4">
                   <ProfileHeader userProfile={profile} />
-                  <ProfileCompletion />
-                  <DailyStreakCard userProfile={profile} />
-                  <ProfileStats />
-                  <ReferralCard referralCode={profile.referralCode || ''} referralEarnings={profile.referralEarnings || 0} />
                   <ProfilePageContent />
+                  <ReferralCard referralCode={profile.referralCode || ''} referralEarnings={profile.referralEarnings || 0} />
                 </div>
               ) : (
                 <div className="pt-8">
