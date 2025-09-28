@@ -8,15 +8,11 @@ import { Award, Edit, LogOut, Settings, Scale, ChevronRight, User } from 'lucide
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import SupportCard from './SupportCard';
-import { Skeleton } from '@/components/ui/skeleton';
-import LoginPrompt from '../auth/LoginPrompt';
 import ProfileHeader from '@/components/profile/ProfileHeader';
-
-const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
-const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <Skeleton className="h-32 w-full" />});
-const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <Skeleton className="h-48 w-full" />});
-const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'), { loading: () => <Skeleton className="h-24 w-full" />});
-
+import ProfileCompletion from '@/components/profile/ProfileCompletion';
+import ProfileStats from '@/components/profile/ProfileStats';
+import ReferralCard from '@/components/profile/ReferralCard';
+import DailyStreakCard from '@/components/profile/DailyStreakCard';
 
 function ProfilePageContent() {
   const { profile, logout, user } = useAuth();
@@ -26,15 +22,9 @@ function ProfilePageContent() {
     await logout();
     router.replace('/auth/login');
   };
-  
-  if (!user || !profile) {
-    return (
-        <LoginPrompt 
-          icon={User}
-          title="Ready to Step Up to the Crease?"
-          description="Sign in to view your profile, track stats, and climb the leaderboard."
-        />
-    )
+
+  if (!profile || !user) {
+    return null; // The parent page handles the LoginPrompt
   }
   
   return (
@@ -43,7 +33,7 @@ function ProfilePageContent() {
         <ProfileCompletion />
         <DailyStreakCard userProfile={profile} />
         <ProfileStats />
-        <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
+        <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings || 0} />
 
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
