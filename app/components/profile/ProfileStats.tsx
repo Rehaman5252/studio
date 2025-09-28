@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
 import React, { memo } from 'react';
 import { useAuth } from '@/context/AuthProvider';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const StatItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
   <Card className="bg-secondary/50 p-3 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-primary/40">
