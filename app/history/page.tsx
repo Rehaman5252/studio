@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const ChunkLoadError = () => (
     <Alert variant="destructive">
@@ -44,7 +45,7 @@ export default function HistoryPage() {
     <PageWrapper title="My Innings" showBackButton>
         <ClientOnly>
             {loading ? (
-                 <div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-48 w-full" /></div>
+                 <LoadingSpinner className="h-48"/>
             ) : user ? (
                 <HistoryContent />
             ) : (

@@ -1,4 +1,6 @@
+
 'use client';
+
 import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
 import PageWrapper from '@/components/PageWrapper';
@@ -7,17 +9,13 @@ import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
 import ClientOnly from '@/components/ClientOnly';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { User } from 'lucide-react';
+import ProfilePageContent from '@/components/profile/ProfilePageContent';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <ProfileSkeleton /> });
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <ProfileSkeleton /> });
 const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <ProfileSkeleton /> });
 const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <ProfileSkeleton /> });
 const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'), { loading: () => <ProfileSkeleton /> });
-const ProfilePageContent = dynamic(() => import('@/components/profile/ProfilePageContent'), {
-  loading: () => <ProfileSkeleton />,
-  ssr: false,
-});
-
 
 function ProfilePage() {
     const { user, loading, profile } = useAuth();

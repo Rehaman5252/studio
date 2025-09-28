@@ -9,6 +9,7 @@ import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Gift } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ClientOnly from "@/components/ClientOnly";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function RewardsPage() {
   const { user, loading } = useAuth();
@@ -17,10 +18,7 @@ export default function RewardsPage() {
     <PageWrapper title="Rewards">
       <ClientOnly>
         {loading ? (
-          <div className="space-y-8">
-              <Skeleton className="h-48 w-full" />
-              <Skeleton className="h-64 w-full" />
-          </div>
+          <LoadingSpinner className="h-48"/>
         ) : user ? (
           <>
             <RewardsContent />
