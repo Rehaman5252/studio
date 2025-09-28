@@ -7,7 +7,6 @@ import GenericOffers from "@/components/rewards/GenericOffers";
 import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Gift } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import ClientOnly from "@/components/ClientOnly";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
