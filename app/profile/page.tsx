@@ -7,19 +7,19 @@ import { useRouter } from "next/navigation";
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import ClientOnly from '@/components/ClientOnly';
-import LoginPrompt from '@/app/components/auth/LoginPrompt';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { User, Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-const ProfileHeader = dynamic(() => import('@/app/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" /> });
-const DailyStreakCard = dynamic(() => import('@/app/components/profile/DailyStreakCard'), { loading: () => <Skeleton className="h-24 w-full" /> });
-const ProfileStats = dynamic(() => import('@/app/components/profile/ProfileStats'), { loading: () => <Skeleton className="h-24 w-full" /> });
-const ReferralCard = dynamic(() => import('@/app/components/profile/ReferralCard'), { loading: () => <Skeleton className="h-48 w-full" /> });
-const SupportCard = dynamic(() => import('@/app/components/profile/SupportCard'), { loading: () => <Skeleton className="h-24 w-full" /> });
-const ProfileCompletion = dynamic(() => import('@/app/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" /> });
+const ProfileHeader = dynamic(() => import('../components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" /> });
+const DailyStreakCard = dynamic(() => import('../components/profile/DailyStreakCard'), { loading: () => <Skeleton className="h-24 w-full" /> });
+const ProfileStats = dynamic(() => import('../components/profile/ProfileStats'), { loading: () => <Skeleton className="h-24 w-full" /> });
+const ReferralCard = dynamic(() => import('../components/profile/ReferralCard'), { loading: () => <Skeleton className="h-48 w-full" /> });
+const SupportCard = dynamic(() => import('../components/profile/SupportCard'), { loading: () => <Skeleton className="h-24 w-full" /> });
+const ProfileCompletion = dynamic(() => import('../components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" /> });
 
 
 function ProfilePage() {
