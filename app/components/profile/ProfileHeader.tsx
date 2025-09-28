@@ -1,6 +1,7 @@
+
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -102,4 +103,4 @@ function ProfileHeaderComponent({ userProfile }: { userProfile: any }) {
     );
 };
 
-export default ProfileHeaderComponent;
+export default memo(ProfileHeaderComponent);

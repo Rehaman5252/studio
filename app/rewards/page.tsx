@@ -1,3 +1,4 @@
+
 "use client";
 
 import PageWrapper from "@/components/PageWrapper";
@@ -24,7 +25,7 @@ export default function RewardsPage() {
         <div className="pt-8">
           <LoginPrompt 
             icon={Gift}
-            title="Unlock Your Kit Bag"
+            title="Step Up to the Crease to See Your Rewards"
             description="Sign in to view your match rewards and scratch cards. Every game you play earns you a prize!"
           />
         </div>
