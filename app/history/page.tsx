@@ -6,9 +6,11 @@ import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
+import { useAuth } from '@/context/AuthProvider';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 
 const ChunkLoadError = () => (
     <Alert variant="destructive">
@@ -36,10 +38,24 @@ const HistoryContent = dynamic(
 );
 
 export default function HistoryPage() {
+  const { user, loading } = useAuth();
+
   return (
     <PageWrapper title="My Innings" showBackButton>
         <ClientOnly>
-            <HistoryContent />
+            {loading ? (
+                 <div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-48 w-full" /></div>
+            ) : user ? (
+                <HistoryContent />
+            ) : (
+                <div className="pt-8">
+                    <LoginPrompt 
+                        icon={History}
+                        title="Check Your Match History"
+                        description="Sign in to review your past performances, analyze your stats, and track your progress."
+                    />
+                </div>
+            )}
         </ClientOnly>
     </PageWrapper>
   );
