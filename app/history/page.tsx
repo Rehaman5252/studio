@@ -50,11 +50,11 @@ export default function HistoryPage() {
                 <HistoryContent />
             ) : (
                 <div className="pt-8">
-                    <LoginPrompt 
-                        icon={History}
-                        title="Check Your Match History"
-                        description="Sign in to review your past performances, analyze your stats, and track your progress."
-                    />
+                  <LoginPrompt 
+                    icon={History}
+                    title="Check Your Match History"
+                    description="Sign in to review your past performances, analyze your stats, and track your progress."
+                  />
                 </div>
             )}
         </ClientOnly>
