@@ -6,10 +6,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import SupportCard from './SupportCard';
+import SupportCard from '@/app/components/profile/SupportCard';
+import DailyStreakCard from '@/app/components/profile/DailyStreakCard';
+import ProfileStats from '@/app/components/profile/ProfileStats';
+import ReferralCard from '@/app/components/profile/ReferralCard';
 
 function ProfilePageContent() {
-  const { logout, user } = useAuth();
+  const { logout, user, profile } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -17,12 +20,16 @@ function ProfilePageContent() {
     router.replace('/auth/login');
   };
 
-  if (!user) {
+  if (!user || !profile) {
     return null;
   }
   
   return (
     <div className="space-y-4">
+      <DailyStreakCard userProfile={profile} />
+      <ProfileStats />
+      <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
+
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
               <Link href="/certificates">
