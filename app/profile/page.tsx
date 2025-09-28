@@ -6,6 +6,8 @@ import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
 import ClientOnly from '@/components/ClientOnly';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import { User } from 'lucide-react';
 
 const ProfilePageContent = dynamic(() => import('@/components/profile/ProfilePageContent'), {
   loading: () => <ProfileSkeleton />,
@@ -14,20 +16,24 @@ const ProfilePageContent = dynamic(() => import('@/components/profile/ProfilePag
 
 
 function ProfilePage() {
-    const { loading } = useAuth();
+    const { user, loading } = useAuth();
 
-    if (loading) {
-        return (
-            <PageWrapper title="Player's Pavilion">
-                <ProfileSkeleton />
-            </PageWrapper>
-        );
-    }
-    
     return (
         <PageWrapper title="Player's Pavilion">
             <ClientOnly>
-              <ProfilePageContent />
+              {loading ? (
+                <ProfileSkeleton />
+              ) : user ? (
+                <ProfilePageContent />
+              ) : (
+                <div className="pt-8">
+                  <LoginPrompt 
+                    icon={User}
+                    title="Ready to Step Up to the Crease?"
+                    description="Sign in to view your profile, track stats, and climb the leaderboard."
+                  />
+                </div>
+              )}
             </ClientOnly>
         </PageWrapper>
     );

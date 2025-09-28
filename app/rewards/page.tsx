@@ -8,31 +8,34 @@ import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Gift } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import ClientOnly from "@/components/ClientOnly";
 
 export default function RewardsPage() {
   const { user, loading } = useAuth();
 
   return (
     <PageWrapper title="Rewards">
-      {loading ? (
-        <div className="space-y-8">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-64 w-full" />
-        </div>
-      ) : user ? (
-        <RewardsContent />
-      ) : (
-        <div className="pt-8">
-          <LoginPrompt 
-            icon={Gift}
-            title="Step Up to the Crease to See Your Rewards"
-            description="Sign in to view your match rewards and scratch cards. Every game you play earns you a prize!"
-          />
-        </div>
-      )}
-      <div className="mt-8">
-        <GenericOffers />
-      </div>
+      <ClientOnly>
+        {loading ? (
+          <div className="space-y-8">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-64 w-full" />
+          </div>
+        ) : user ? (
+          <>
+            <RewardsContent />
+            <GenericOffers />
+          </>
+        ) : (
+          <div className="pt-8">
+            <LoginPrompt 
+              icon={Gift}
+              title="Step Up to the Crease to See Your Rewards"
+              description="Sign in to view your match rewards and scratch cards. Every game you play earns you a prize!"
+            />
+          </div>
+        )}
+      </ClientOnly>
     </PageWrapper>
   );
 }

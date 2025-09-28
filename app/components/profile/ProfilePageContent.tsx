@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import SupportCard from './SupportCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import LoginPrompt from '../auth/LoginPrompt';
-import ProfileHeaderComponent from '@/components/profile/ProfileHeader';
+import ProfileHeader from '@/components/profile/ProfileHeader';
 
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
 const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <Skeleton className="h-32 w-full" />});
@@ -27,23 +27,23 @@ function ProfilePageContent() {
     router.replace('/auth/login');
   };
   
-  return (
-    <div className="space-y-4">
-      {user && profile ? (
-        <>
-          <ProfileHeaderComponent userProfile={profile} />
-          <ProfileCompletion />
-          <DailyStreakCard userProfile={profile} />
-          <ProfileStats />
-          <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
-        </>
-      ) : (
+  if (!user || !profile) {
+    return (
         <LoginPrompt 
           icon={User}
           title="Ready to Step Up to the Crease?"
           description="Sign in to view your profile, track stats, and climb the leaderboard."
         />
-      )}
+    )
+  }
+  
+  return (
+    <div className="space-y-4">
+        <ProfileHeader userProfile={profile} />
+        <ProfileCompletion />
+        <DailyStreakCard userProfile={profile} />
+        <ProfileStats />
+        <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
 
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
