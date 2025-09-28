@@ -10,6 +10,7 @@ import ClientOnly from '@/components/ClientOnly';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { User } from 'lucide-react';
 import ProfilePageContent from '@/components/profile/ProfilePageContent';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <ProfileSkeleton /> });
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <ProfileSkeleton /> });
@@ -24,7 +25,7 @@ function ProfilePage() {
         <PageWrapper title="Player's Pavilion">
             <ClientOnly>
               {loading ? (
-                <ProfileSkeleton />
+                <LoadingSpinner className="h-96"/>
               ) : user && profile ? (
                 <div className="space-y-4">
                   <ProfileHeader userProfile={profile} />
