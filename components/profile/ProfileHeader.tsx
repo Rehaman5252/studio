@@ -11,12 +11,12 @@ import { calculateAge, maskPhone } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 import { getAuth } from '@/lib/firebase';
-import { PhoneVerificationDialog } from './PhoneVerificationDialog';
-import { EditProfileDialog } from './EditProfileDialog';
+import { PhoneVerificationDialog } from '@/components/profile/PhoneVerificationDialog';
+import { EditProfileDialog } from '@/components/profile/EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
 
 function ProfileHeaderComponent({ userProfile }: { userProfile: any }) {
-    const { user, profile } = useAuth(); // Use Auth context hook
+    const { user, profile } = useAuth();
     const { toast } = useToast();
     
     const dobDate = normalizeTimestamp(userProfile?.dob);
@@ -104,5 +104,4 @@ function ProfileHeaderComponent({ userProfile }: { userProfile: any }) {
 };
 
 const ProfileHeader = memo(ProfileHeaderComponent);
-
 export default ProfileHeader;

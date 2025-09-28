@@ -3,14 +3,10 @@
 
 import { useAuth } from '@/context/AuthProvider';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PercentCircle } from 'lucide-react';
-import dynamic from 'next/dynamic';
-
-const EditProfileDialog = dynamic(() => 
-    import('./EditProfileDialog').then(mod => mod.EditProfileDialog), { ssr: false }
-);
+import { EditProfileDialog } from '@/components/profile/EditProfileDialog';
 
 export default function ProfileCompletion() {
     const { profile } = useAuth();
