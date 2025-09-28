@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import React from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,7 +15,7 @@ import { EditProfileDialog } from './EditProfileDialog';
 import { normalizeTimestamp } from '@/lib/dates';
 
 function ProfileHeaderComponent({ userProfile }: { userProfile: any }) {
-    const { user, profile } = useAuth(); // Use Auth context hook
+    const { user, profile } = useAuth();
     const { toast } = useToast();
     
     const dobDate = normalizeTimestamp(userProfile?.dob);
@@ -102,6 +102,4 @@ function ProfileHeaderComponent({ userProfile }: { userProfile: any }) {
     );
 };
 
-const ProfileHeader = memo(ProfileHeaderComponent);
-
-export default ProfileHeader;
+export default ProfileHeaderComponent;

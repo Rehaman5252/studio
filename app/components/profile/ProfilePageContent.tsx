@@ -9,8 +9,8 @@ import dynamic from 'next/dynamic';
 import SupportCard from './SupportCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import LoginPrompt from '../auth/LoginPrompt';
+import ProfileHeaderComponent from '@/components/profile/ProfileHeader';
 
-const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
 const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <Skeleton className="h-32 w-full" />});
 const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <Skeleton className="h-48 w-full" />});
@@ -30,7 +30,7 @@ function ProfilePageContent() {
     <div className="space-y-4">
       {user && profile ? (
         <>
-          <ProfileHeader userProfile={profile} />
+          <ProfileHeaderComponent userProfile={profile} />
           <ProfileCompletion />
           <DailyStreakCard userProfile={profile} />
           <ProfileStats />
