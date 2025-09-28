@@ -2,9 +2,6 @@
 'use client';
 import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
-import { useRouter } from "next/navigation";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import ProfileSkeleton from "@/components/profile/ProfileSkeleton";

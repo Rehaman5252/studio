@@ -3,15 +3,13 @@
 import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
 import { useRouter } from "next/navigation";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
+import { Award, Edit, LogOut, Settings, Scale, ChevronRight, User } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import ProfileSkeleton from "./ProfileSkeleton";
 import SupportCard from './SupportCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import ClientOnly from '../ClientOnly';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
@@ -21,7 +19,7 @@ const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCa
 
 
 function ProfilePageContent() {
-  const { profile, logout, loading } = useAuth();
+  const { profile, logout, user } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -29,30 +27,23 @@ function ProfilePageContent() {
     router.replace('/auth/login');
   };
   
-  if (loading) {
-      return <ProfileSkeleton />;
-  }
-
-  if (!profile) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Could not load profile data. Please try logging in again.
-        </AlertDescription>
-        <Button onClick={() => router.push('/auth/login')} className="mt-4">Login</Button>
-      </Alert>
-    );
-  }
-  
   return (
     <div className="space-y-4">
-      <ClientOnly>
-        <ProfileHeader userProfile={profile} />
-        <ProfileCompletion />
-        <DailyStreakCard userProfile={profile} />
-        <ProfileStats />
-        <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
-      </ClientOnly>
+      {user && profile ? (
+        <>
+          <ProfileHeader userProfile={profile} />
+          <ProfileCompletion />
+          <DailyStreakCard userProfile={profile} />
+          <ProfileStats />
+          <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings} />
+        </>
+      ) : (
+        <LoginPrompt 
+          icon={User}
+          title="Ready to Step Up to the Crease?"
+          description="Sign in to view your profile, track stats, and climb the leaderboard."
+        />
+      )}
 
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
@@ -91,11 +82,13 @@ function ProfilePageContent() {
       
       <SupportCard />
 
-      <section className="pt-4">
-          <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
-              <LogOut className="mr-2 h-5 w-5" /> Logout
-          </Button>
-      </section>
+      {user && (
+        <section className="pt-4">
+            <Button variant="destructive" size="lg" className="w-full" onClick={handleLogout}>
+                <LogOut className="mr-2 h-5 w-5" /> Logout
+            </Button>
+        </section>
+      )}
     </div>
   );
 }
