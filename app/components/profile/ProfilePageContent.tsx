@@ -9,7 +9,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import SupportCard from './SupportCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import LoginPrompt from '@/components/auth/LoginPrompt';
+import LoginPrompt from '../auth/LoginPrompt';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
