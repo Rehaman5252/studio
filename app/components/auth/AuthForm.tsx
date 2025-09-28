@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { Suspense } from 'react';
@@ -164,7 +163,7 @@ function AuthFormComponent({ type }: { type: 'login' | 'signup' }) {
                       <div className="space-y-1 leading-none">
                         <FormLabel>
                           I acknowledge this platform is for testing cricket knowledge only, and not for entertainment, financial gain, or gambling. I accept the 
-                          <Button variant="link" asChild className="p-1 h-auto"><Link href="/policies" target="_blank">Terms & Conditions</Link></Button>.
+                          <Button variant="link" asChild className="p-1 h-auto"><Link href="/policies" target="_blank" rel="noopener noreferrer">Terms & Conditions</Link></Button>.
                         </FormLabel>
                         <FormMessage />
                       </div>

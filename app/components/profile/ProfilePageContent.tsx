@@ -1,21 +1,14 @@
-
 'use client';
 import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Award, Edit, LogOut, Settings, Scale, ChevronRight, User } from 'lucide-react';
+import { Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import SupportCard from './SupportCard';
-import ProfileHeader from '@/components/profile/ProfileHeader';
-import ProfileCompletion from '@/components/profile/ProfileCompletion';
-import ProfileStats from '@/components/profile/ProfileStats';
-import ReferralCard from '@/components/profile/ReferralCard';
-import DailyStreakCard from '@/components/profile/DailyStreakCard';
 
 function ProfilePageContent() {
-  const { profile, logout, user } = useAuth();
+  const { logout, user } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -23,18 +16,12 @@ function ProfilePageContent() {
     router.replace('/auth/login');
   };
 
-  if (!profile || !user) {
-    return null; // The parent page handles the LoginPrompt
+  if (!user) {
+    return null;
   }
   
   return (
     <div className="space-y-4">
-        <ProfileHeader userProfile={profile} />
-        <ProfileCompletion />
-        <DailyStreakCard userProfile={profile} />
-        <ProfileStats />
-        <ReferralCard referralCode={profile.referralCode} referralEarnings={profile.referralEarnings || 0} />
-
       <section className="space-y-3 pt-4">
           <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
               <Link href="/certificates">

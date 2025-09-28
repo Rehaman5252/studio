@@ -1,4 +1,3 @@
-
 'use client';
 import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
@@ -9,6 +8,11 @@ import ClientOnly from '@/components/ClientOnly';
 import LoginPrompt from '@/components/auth/LoginPrompt';
 import { User } from 'lucide-react';
 
+const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <ProfileSkeleton /> });
+const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <ProfileSkeleton /> });
+const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <ProfileSkeleton /> });
+const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <ProfileSkeleton /> });
+const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'), { loading: () => <ProfileSkeleton /> });
 const ProfilePageContent = dynamic(() => import('@/components/profile/ProfilePageContent'), {
   loading: () => <ProfileSkeleton />,
   ssr: false,
@@ -24,7 +28,14 @@ function ProfilePage() {
               {loading ? (
                 <ProfileSkeleton />
               ) : user && profile ? (
-                <ProfilePageContent />
+                <div className="space-y-4">
+                  <ProfileHeader userProfile={profile} />
+                  <ProfileCompletion />
+                  <DailyStreakCard userProfile={profile} />
+                  <ProfileStats />
+                  <ReferralCard referralCode={profile.referralCode || ''} referralEarnings={profile.referralEarnings || 0} />
+                  <ProfilePageContent />
+                </div>
               ) : (
                 <div className="pt-8">
                   <LoginPrompt 
