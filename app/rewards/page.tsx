@@ -2,13 +2,13 @@
 "use client";
 
 import PageWrapper from "@/components/PageWrapper";
-import RewardsContent from "@/components/rewards/RewardsContent";
-import GenericOffers from "@/components/rewards/GenericOffers";
+import RewardsContent from "@/app/components/rewards/RewardsContent";
+import GenericOffers from "@/app/components/rewards/GenericOffers";
 import { useAuth } from "@/context/AuthProvider";
-import LoginPrompt from "@/components/auth/LoginPrompt";
+import LoginPrompt from "@/app/components/auth/LoginPrompt";
 import { Gift } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import LoadingSpinner from "@/app/components/ui/LoadingSpinner";
 
 export default function RewardsPage() {
   const { user, loading } = useAuth();

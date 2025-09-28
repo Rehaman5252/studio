@@ -5,15 +5,12 @@ import React, { memo } from 'react';
 import { useAuth } from "@/context/AuthProvider";
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
-import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
 import ClientOnly from '@/components/ClientOnly';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import { User } from 'lucide-react';
-import ProfilePageContent from '@/components/profile/ProfilePageContent';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoginPrompt from '@/app/components/auth/LoginPrompt';
+import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
 
-const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <ProfileSkeleton /> });
-const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <ProfileSkeleton /> });
+const ProfileHeader = dynamic(() => import('@/app/components/profile/ProfileHeader'), { loading: () => <LoadingSpinner /> });
+const ProfilePageContent = dynamic(() => import('@/app/components/profile/ProfilePageContent'), { loading: () => <LoadingSpinner /> });
 
 function ProfilePage() {
     const { user, loading, profile } = useAuth();
@@ -27,7 +24,6 @@ function ProfilePage() {
                 <div className="space-y-4">
                   <ProfileHeader userProfile={profile} />
                   <ProfilePageContent />
-                  <ReferralCard referralCode={profile.referralCode || ''} referralEarnings={profile.referralEarnings || 0} />
                 </div>
               ) : (
                 <div className="pt-8">
