@@ -16,14 +16,14 @@ const ProfilePageContent = dynamic(() => import('@/components/profile/ProfilePag
 
 
 function ProfilePage() {
-    const { user, loading } = useAuth();
+    const { user, loading, profile } = useAuth();
 
     return (
         <PageWrapper title="Player's Pavilion">
             <ClientOnly>
               {loading ? (
                 <ProfileSkeleton />
-              ) : user ? (
+              ) : user && profile ? (
                 <ProfilePageContent />
               ) : (
                 <div className="pt-8">
