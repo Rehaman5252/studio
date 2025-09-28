@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -8,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { History, Star, TrendingUp } from 'lucide-react';
+import LoginPrompt from '@/components/auth/LoginPrompt';
 
 const RecentHistory = dynamic(() => import('@/components/history/RecentHistory'), {
     loading: () => <HistorySkeleton count={3} />,
@@ -20,9 +20,6 @@ const AllHistory = dynamic(() => import('@/components/history/AllHistory'), {
 const PerfectScoresHistory = dynamic(() => import('@/components/history/PerfectScoresHistory'), {
     loading: () => <HistorySkeleton count={2} />,
     ssr: false,
-});
-const LoginPrompt = dynamic(() => import('@/components/auth/LoginPrompt'), {
-    loading: () => <Skeleton className="h-56 w-full" />,
 });
 
 
