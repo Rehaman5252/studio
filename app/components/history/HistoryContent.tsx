@@ -39,21 +39,9 @@ export default function HistoryContent() {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <HistorySkeleton />;
+    return <HistorySkeleton count={5} />;
   }
   
-  if (!user) {
-    return (
-      <div className="pt-8">
-        <LoginPrompt 
-            icon={History} 
-            title="Review Your Last Few Innings" 
-            description="Sign in to analyze your recent performance and learn from your mistakes. Every ball counts!"
-        />
-      </div>
-    );
-  }
-
   return (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -69,13 +57,37 @@ export default function HistoryContent() {
               className="mt-4"
           >
               <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                  <RecentHistory />
+                  {user ? <RecentHistory /> : (
+                      <div className="pt-8">
+                        <LoginPrompt 
+                            icon={History} 
+                            title="Review Your Recent Innings" 
+                            description="Sign in to analyze your most recent performance and learn from your mistakes."
+                        />
+                      </div>
+                  )}
               </TabsContent>
               <TabsContent value="all" forceMount={activeTab === 'all'}>
-                  <AllHistory />
+                  {user ? <AllHistory /> : (
+                      <div className="pt-8">
+                        <LoginPrompt 
+                            icon={TrendingUp} 
+                            title="View Your Career Stats" 
+                            description="Every match you've played is recorded here. Sign in to see your complete cricket journey."
+                        />
+                      </div>
+                  )}
               </TabsContent>
               <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                  <PerfectScoresHistory />
+                  {user ? <PerfectScoresHistory /> : (
+                      <div className="pt-8">
+                        <LoginPrompt 
+                            icon={Star} 
+                            title="Check the Honours Board" 
+                            description="See all your perfect scores in one place. Sign in to view your centuries!"
+                        />
+                      </div>
+                  )}
               </TabsContent>
           </motion.div>
       </Tabs>
