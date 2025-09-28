@@ -10,8 +10,8 @@ import { AlertTriangle, RefreshCw, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
 import { useAuth } from '@/context/AuthProvider';
-import LoginPrompt from '@/app/components/auth/LoginPrompt';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import LoginPrompt from '@/components/auth/LoginPrompt';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const ChunkLoadError = () => (
     <Alert variant="destructive">
@@ -28,7 +28,7 @@ const ChunkLoadError = () => (
 );
 
 const HistoryContent = dynamic(
-    () => import('@/app/components/history/HistoryContent').catch(e => {
+    () => import('@/components/history/HistoryContent').catch(e => {
         console.error("Failed to load HistoryContent chunk", e);
         return () => <ChunkLoadError />;
     }),
