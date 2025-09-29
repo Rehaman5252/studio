@@ -7,8 +7,6 @@ import { useRouter } from "next/navigation";
 import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import ClientOnly from '@/components/ClientOnly';
-import LoginPrompt from '@/components/auth/LoginPrompt';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
 import { User, Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
 import { Button } from '@/components/ui/button';
@@ -44,11 +42,16 @@ function ProfilePage() {
         return (
             <PageWrapper title="Player's Pavilion">
                  <div className="space-y-4">
-                    <LoginPrompt 
-                        icon={User}
-                        title="Ready to Step Up to the Crease?"
-                        description="Sign in to view your profile, track stats, and climb the leaderboard."
-                    />
+                    <div className="text-center p-8 bg-card rounded-lg shadow-lg">
+                        <User className="mx-auto h-12 w-12 text-primary mb-4" />
+                        <h2 className="text-xl font-bold">Ready to Step Up?</h2>
+                        <p className="text-muted-foreground mt-2 mb-4">Sign in to view your profile, track stats, and climb the leaderboard.</p>
+                        <Button asChild>
+                            <Link href="/auth/login?from=/profile">
+                                Sign In / Sign Up
+                            </Link>
+                        </Button>
+                    </div>
                     <section className="space-y-3 pt-4">
                         <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
                             <Link href="/settings">
