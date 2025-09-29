@@ -176,8 +176,8 @@ function RewardsContentComponent() {
             <div className="pt-8">
                 <LoginPrompt 
                     icon={Lock}
-                    title="Unlock Your Rewards"
-                    description="Sign in to claim your Man of the Match awards!"
+                    title="Unlock Your Kit Bag"
+                    description="Your rewards are waiting! Sign in to scratch and claim your Man of the Match awards."
                 />
             </div>
         )
