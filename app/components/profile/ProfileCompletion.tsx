@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useAuth } from '@/context/AuthProvider';
 import { isProfileConsideredComplete } from '@/lib/profile-utils';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PercentCircle } from 'lucide-react';
 import { EditProfileDialog } from './EditProfileDialog';

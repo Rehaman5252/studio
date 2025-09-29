@@ -8,7 +8,7 @@ import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import ClientOnly from '@/components/ClientOnly';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { User, Award, Edit, LogOut, Settings, Scale, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
