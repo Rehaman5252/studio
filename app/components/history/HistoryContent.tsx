@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -38,6 +39,36 @@ export default function HistoryContent() {
   if (loading) {
     return <HistorySkeleton count={5} />;
   }
+
+  const renderLoggedOutContent = () => {
+    switch (activeTab) {
+      case 'all':
+        return (
+          <LoginPrompt 
+            icon={TrendingUp} 
+            title="View Your Career Stats" 
+            description="Every match you've played is recorded here. Sign in to see your complete cricket journey."
+          />
+        );
+      case 'perfect':
+        return (
+          <LoginPrompt 
+            icon={Star} 
+            title="Check the Honours Board" 
+            description="See all your perfect scores in one place. Sign in to view your centuries!"
+          />
+        );
+      case 'recent':
+      default:
+        return (
+          <LoginPrompt 
+            icon={History} 
+            title="Review Your Recent Innings" 
+            description="Sign in to analyze your most recent performance and learn from your mistakes."
+          />
+        );
+    }
+  };
   
   return (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -53,39 +84,23 @@ export default function HistoryContent() {
               transition={{ duration: 0.3 }}
               className="mt-4"
           >
-              <TabsContent value="recent" forceMount={activeTab === 'recent'}>
-                  {user ? <RecentHistory /> : (
-                      <div className="pt-8">
-                        <LoginPrompt 
-                            icon={History} 
-                            title="Review Your Recent Innings" 
-                            description="Sign in to analyze your most recent performance and learn from your mistakes."
-                        />
-                      </div>
-                  )}
-              </TabsContent>
-              <TabsContent value="all" forceMount={activeTab === 'all'}>
-                  {user ? <AllHistory /> : (
-                      <div className="pt-8">
-                        <LoginPrompt 
-                            icon={TrendingUp} 
-                            title="View Your Career Stats" 
-                            description="Every match you've played is recorded here. Sign in to see your complete cricket journey."
-                        />
-                      </div>
-                  )}
-              </TabsContent>
-              <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
-                  {user ? <PerfectScoresHistory /> : (
-                      <div className="pt-8">
-                        <LoginPrompt 
-                            icon={Star} 
-                            title="Check the Honours Board" 
-                            description="See all your perfect scores in one place. Sign in to view your centuries!"
-                        />
-                      </div>
-                  )}
-              </TabsContent>
+            {user ? (
+              <>
+                <TabsContent value="recent" forceMount={activeTab === 'recent'}>
+                  <RecentHistory />
+                </TabsContent>
+                <TabsContent value="all" forceMount={activeTab === 'all'}>
+                  <AllHistory />
+                </TabsContent>
+                <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
+                  <PerfectScoresHistory />
+                </TabsContent>
+              </>
+            ) : (
+              <div className="pt-8">
+                {renderLoggedOutContent()}
+              </div>
+            )}
           </motion.div>
       </Tabs>
   )
