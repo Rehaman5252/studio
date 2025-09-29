@@ -8,7 +8,7 @@ import PageWrapper from '@/components/PageWrapper';
 import dynamic from 'next/dynamic';
 import ClientOnly from '@/components/ClientOnly';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
 import { User } from 'lucide-react';
 import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
 import ProfilePageContent from '@/components/profile/ProfilePageContent';

@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthProvider";
 import LoginPrompt from "@/components/auth/LoginPrompt";
 import { Gift } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import LoadingSpinner from "@/app/components/ui/LoadingSpinner";
 
 export default function RewardsPage() {
   const { user, loading } = useAuth();

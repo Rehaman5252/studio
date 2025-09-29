@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import ClientOnly from '@/components/ClientOnly';
 import { useAuth } from '@/context/AuthProvider';
 import LoginPrompt from '@/components/auth/LoginPrompt';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
 
 const ChunkLoadError = () => (
     <Alert variant="destructive">
