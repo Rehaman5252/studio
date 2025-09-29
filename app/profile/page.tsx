@@ -15,14 +15,13 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import SupportCard from '@/components/profile/SupportCard';
 
 const ProfileHeader = dynamic(() => import('@/components/profile/ProfileHeader'), { loading: () => <Skeleton className="h-28 w-full" />});
 const ProfileCompletion = dynamic(() => import('@/components/profile/ProfileCompletion'), { loading: () => <Skeleton className="h-24 w-full" />});
 const DailyStreakCard = dynamic(() => import('@/components/profile/DailyStreakCard'), { loading: () => <Skeleton className="h-24 w-full" />});
 const ProfileStats = dynamic(() => import('@/components/profile/ProfileStats'), { loading: () => <Skeleton className="h-32 w-full" />});
 const ReferralCard = dynamic(() => import('@/components/profile/ReferralCard'), { loading: () => <Skeleton className="h-48 w-full" />});
-const SupportCard = dynamic(() => import('@/components/profile/SupportCard'), { loading: () => <Skeleton className="h-24 w-full" />});
-
 
 function ProfilePage() {
     const { profile, logout, loading, user } = useAuth();
@@ -44,12 +43,31 @@ function ProfilePage() {
     if (!user) {
         return (
             <PageWrapper title="Player's Pavilion">
-                <div className="pt-8">
-                  <LoginPrompt 
-                    icon={User}
-                    title="Ready to Step Up to the Crease?"
-                    description="Sign in to view your profile, track stats, and climb the leaderboard."
-                  />
+                 <div className="space-y-4">
+                    <LoginPrompt 
+                        icon={User}
+                        title="Ready to Step Up to the Crease?"
+                        description="Sign in to view your profile, track stats, and climb the leaderboard."
+                    />
+                    <section className="space-y-3 pt-4">
+                        <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                            <Link href="/settings">
+                                <div className="flex items-center">
+                                    <Settings className="mr-4 text-primary" /> App Settings
+                                </div>
+                                <ChevronRight/>
+                            </Link>
+                        </Button>
+                        <Button asChild size="lg" className="w-full justify-between text-base py-6" variant="secondary">
+                            <Link href="/policies">
+                                <div className="flex items-center">
+                                    <Scale className="mr-4 text-primary" /> Legal & Policies
+                                </div>
+                                <ChevronRight/>
+                            </Link>
+                        </Button>
+                    </section>
+                    <SupportCard />
                 </div>
             </PageWrapper>
         );

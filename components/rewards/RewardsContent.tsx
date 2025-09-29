@@ -4,7 +4,7 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Gift, ExternalLink, WifiOff, ServerCrash, Trophy } from 'lucide-react';
+import { Gift, ExternalLink, WifiOff, ServerCrash, Trophy, Lock } from 'lucide-react';
 import Image from 'next/image';
 import type { QuizAttempt } from '@/ai/schemas';
 import { useAuth } from '@/context/AuthProvider';
@@ -15,6 +15,7 @@ import { brandData } from '@/components/home/brandData';
 import { cn } from '@/lib/utils';
 import { normalizeTimestamp } from '@/lib/dates';
 import { EmptyState } from '../EmptyState';
+import LoginPrompt from '../auth/LoginPrompt';
 
 const ScratchCardSkeleton = () => (
     <div className="w-full aspect-[4/5] p-1">
@@ -112,11 +113,11 @@ const getStartOfWeek = (timestamp: any): number => {
 
 
 function RewardsContentComponent() {
-  const { quizHistory } = useAuth();
+  const { user, quizHistory, loading: authLoading } = useAuth();
   const [scratchedCards, setScratchedCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && quizHistory.data.length > 0) {
+    if (user && typeof window !== 'undefined' && quizHistory.data.length > 0) {
       const initialScratchedState: Record<string, boolean> = {};
       quizHistory.data.forEach(attempt => {
         const storageKey = `indcric-scratch-card-${attempt.slotId}`;
@@ -127,7 +128,7 @@ function RewardsContentComponent() {
       });
       setScratchedCards(initialScratchedState);
     }
-  }, [quizHistory.data]);
+  }, [quizHistory.data, user]);
 
   const handleScratch = (slotId: string) => {
     setScratchedCards(prev => ({ ...prev, [slotId]: true }));
@@ -138,6 +139,7 @@ function RewardsContentComponent() {
   };
   
   const rewardableAttempts = useMemo(() => {
+    if (!user) return [];
     // Sort all attempts newest first to ensure we process the most recent ones
     const sortedAttempts = [...quizHistory.data].sort((a, b) => {
       const timeA = normalizeTimestamp(a.timestamp)?.getTime() || 0;
@@ -163,11 +165,34 @@ function RewardsContentComponent() {
     
     // The list is already sorted by newest first from the initial sort.
     return uniqueWeeklyAttempts;
-  }, [quizHistory.data]);
+  }, [quizHistory.data, user]);
 
   const BrandGifts = () => {
-    if (quizHistory.loading) return <RewardsSkeleton />;
+    if (authLoading || quizHistory.loading) return <RewardsSkeleton />;
     if (quizHistory.error) return <ErrorStateDisplay message={quizHistory.error} />;
+
+    if (!user) {
+        return (
+             <div className="relative blur-sm">
+                <Carousel opts={{ align: 'start', draggable: false }} className="w-full max-w-full pointer-events-none">
+                    <CarouselContent className="-ml-4">
+                        {[...Array(3)].map((_, index) => (
+                            <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                                <ScratchCardSkeleton />
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                </Carousel>
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg">
+                    <div className="text-center p-4 bg-background/80 rounded-xl shadow-lg">
+                        <Lock className="h-8 w-8 mx-auto text-primary mb-2" />
+                        <p className="font-semibold text-foreground">Sign in to claim your awards</p>
+                        <p className="text-xs text-muted-foreground">Every match comes with a reward!</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
     
     if (rewardableAttempts.length === 0) {
       return (
@@ -202,13 +227,11 @@ function RewardsContentComponent() {
   };
 
   return (
-    <>
       <section>
         <h2 className="text-xl font-semibold text-foreground">Man of the Match Awards</h2>
         <p className="text-sm text-muted-foreground mb-4">A special award for every match you play. Claim your prize!</p>
         <BrandGifts />
       </section>
-    </>
   );
 }
 

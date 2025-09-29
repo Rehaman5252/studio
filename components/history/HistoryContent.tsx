@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthProvider';
 import { History, Star, TrendingUp } from 'lucide-react';
 import LoginPrompt from '@/components/auth/LoginPrompt';
+import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
 
 const RecentHistory = dynamic(() => import('@/components/history/RecentHistory'), {
     loading: () => <HistorySkeleton count={3} />,
@@ -54,7 +55,7 @@ export default function HistoryContent() {
               transition={{ duration: 0.3 }}
               className="mt-4"
           >
-              <TabsContent value="recent" forceMount={activeTab === 'recent'}>
+              <TabsContent value="recent" forceMount={true}>
                   {user ? <RecentHistory /> : (
                       <div className="pt-8">
                         <LoginPrompt 
@@ -65,7 +66,7 @@ export default function HistoryContent() {
                       </div>
                   )}
               </TabsContent>
-              <TabsContent value="all" forceMount={activeTab === 'all'}>
+              <TabsContent value="all" forceMount={true}>
                   {user ? <AllHistory /> : (
                       <div className="pt-8">
                         <LoginPrompt 
@@ -76,7 +77,7 @@ export default function HistoryContent() {
                       </div>
                   )}
               </TabsContent>
-              <TabsContent value="perfect" forceMount={activeTab === 'perfect'}>
+              <TabsContent value="perfect" forceMount={true}>
                   {user ? <PerfectScoresHistory /> : (
                       <div className="pt-8">
                         <LoginPrompt 
