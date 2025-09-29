@@ -173,25 +173,12 @@ function RewardsContentComponent() {
 
     if (!user) {
         return (
-            <div className="relative">
-                <div className="blur-sm pointer-events-none">
-                    <Carousel opts={{ align: 'start', draggable: false }} className="w-full max-w-full">
-                        <CarouselContent className="-ml-4">
-                            {[...Array(3)].map((_, index) => (
-                                <CarouselItem key={index} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
-                                    <ScratchCardSkeleton />
-                                </CarouselItem>
-                            ))}
-                        </CarouselContent>
-                    </Carousel>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg">
-                    <LoginPrompt 
-                        icon={Lock}
-                        title="Unlock Your Rewards"
-                        description="Sign in to claim your Man of the Match awards!"
-                    />
-                </div>
+            <div className="pt-8">
+                <LoginPrompt 
+                    icon={Lock}
+                    title="Unlock Your Rewards"
+                    description="Sign in to claim your Man of the Match awards!"
+                />
             </div>
         )
     }
